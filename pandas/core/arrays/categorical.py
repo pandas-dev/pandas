@@ -2258,7 +2258,7 @@ class Categorical(ExtensionArray, PandasObject):
         codes = sorted(htable.mode_int64(ensure_int64(codes), dropna))
         return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
 
-    def unique(self):
+    def unique(self, return_inverse=False):
         """
         Return the ``Categorical`` which ``categories`` and ``codes`` are
         unique. Unused categories are NOT returned.
@@ -2268,9 +2268,21 @@ class Categorical(ExtensionArray, PandasObject):
         - ordered category: values are sorted by appearance order, categories
           keeps existing order.
 
+        Parameters
+        ----------
+        return_inverse : boolean, default False
+            Whether to return the inverse of the unique values. If True, the
+            output will be a tuple of two np.ndarray. The second component
+            contains the mapping between the indices of the elements in the
+            calling Categorical and their locations in the unique values.
+
+            .. versionadded:: 0.25.0
+
         Returns
         -------
-        unique values : ``Categorical``
+        uniques : ``Categorical``
+        inverse : np.ndarray (if `return_inverse=True`)
+            The inverse from the `uniques` back to the calling ``Categorical``.
 
         Examples
         --------
@@ -2302,7 +2314,10 @@ class Categorical(ExtensionArray, PandasObject):
         """
 
         # unlike np.unique, unique1d does not sort
-        unique_codes = unique1d(self.codes)
+        if return_inverse:
+            unique_codes, inverse = unique1d(self.codes, return_inverse=True)
+        else:
+            unique_codes = unique1d(self.codes, return_inverse=False)
         cat = self.copy()
 
         # keep nan in codes
@@ -2312,7 +2327,11 @@ class Categorical(ExtensionArray, PandasObject):
         take_codes = unique_codes[unique_codes != -1]
         if self.ordered:
             take_codes = np.sort(take_codes)
-        return cat.set_categories(cat.categories.take(take_codes))
+        result = cat.set_categories(cat.categories.take(take_codes))
+
+        if return_inverse:
+            return result, inverse
+        return result
 
     def _values_for_factorize(self):
         codes = self.codes.astype('int64')

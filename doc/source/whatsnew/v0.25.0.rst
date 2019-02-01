@@ -14,6 +14,27 @@ These are the changes in pandas 0.25.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_0250.enhancements.unique:
+
+Changes to the ``unique``-method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The method :meth:`pandas.unique` now supports the keyword ``return_inverse``, which, if passed,
+makes the output a tuple where the second component is an ndarray that contains the
+mapping from the indices of the values to their location in the return unique values.
+
+.. ipython:: python
+
+    idx = pd.Index([1, 0, 0, 1])
+    uniques, inverse = pd.unique(idx, return_inverse=True)
+    uniques
+    inverse
+    reconstruct = pd.Index(uniques[inverse])
+    reconstruct.equals(idx)
+
 .. _whatsnew_0250.enhancements.other:
 
 Other Enhancements

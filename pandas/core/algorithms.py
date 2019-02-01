@@ -275,7 +275,7 @@ def match(to_match, values, na_sentinel=-1):
     return result
 
 
-def unique(values):
+def unique(values, return_inverse=False):
     """
     Hash table-based unique. Uniques are returned in order
     of appearance. This does NOT sort.
@@ -285,6 +285,13 @@ def unique(values):
     Parameters
     ----------
     values : 1d array-like
+    return_inverse : boolean, default False
+        Whether to return the inverse of the unique values. If True, the
+        output will be a tuple of two np.ndarray. The second component
+        contains the mapping between the indices of the elements in the
+        calling Categorical and their locations in the unique values.
+
+        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -348,19 +355,45 @@ def unique(values):
     >>> pd.unique([('a', 'b'), ('b', 'a'), ('a', 'c'), ('b', 'a')])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
+    from pandas import Index
 
     values = _ensure_arraylike(values)
 
     if is_extension_array_dtype(values):
         # Dispatch to extension dtype's unique.
+        if return_inverse:
+            # as long as return_inverse is not part of the EA.unique contract,
+            # test if this works
+            try:
+                # make sure that we're not calling from an Index/Series
+                # container, as these do not support return_inverse yet
+                ea_val = getattr(values, 'array', values)
+                result, inverse = ea_val.unique(return_inverse=return_inverse)
+
+                if is_categorical_dtype(values) and isinstance(values, Index):
+                    # pd.unique(CategoricalIndex) returns Index not Categorical
+                    result = Index(result)
+                return result, inverse
+            except TypeError:
+                msg = ('The Extension Array class for type {dtype} does not '
+                       'yet support the unique-method with '
+                       '"return_inverse=True".'.format(dtype=type(values)))
+                raise NotImplementedError(msg)
         return values.unique()
 
     original = values
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
 
     table = htable(len(values))
-    uniques = table.unique(values)
+    if return_inverse:
+        uniques, inverse = table.unique(values, return_inverse=True)
+    else:
+        uniques = table.unique(values)
+
     uniques = _reconstruct_data(uniques, dtype, original)
+
+    if return_inverse:
+        return uniques, inverse
     return uniques
 
 
