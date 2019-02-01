@@ -714,6 +714,29 @@ class TestToDatetime(object):
                                   NaT], tz='UTC')
         tm.assert_index_equal(result, expected)
 
+    def test_iss8601_strings_mixed_offsets_with_naive(self):
+        # GH 24992
+        result = pd.to_datetime([
+            '2018-11-28T00:00:00',
+            '2018-11-28T00:00:00+12:00',
+            '2018-11-28T00:00:00',
+            '2018-11-28T00:00:00+06:00',
+            '2018-11-28T00:00:00'
+        ], utc=True)
+        expected = pd.to_datetime([
+            '2018-11-28T00:00:00',
+            '2018-11-27T12:00:00',
+            '2018-11-28T00:00:00',
+            '2018-11-27T18:00:00',
+            '2018-11-28T00:00:00'
+        ], utc=True)
+        tm.assert_index_equal(result, expected)
+
+        items = ['2018-11-28T00:00:00+12:00', '2018-11-28T00:00:00']
+        result = pd.to_datetime(items, utc=True)
+        expected = pd.to_datetime(list(reversed(items)), utc=True)[::-1]
+        tm.assert_index_equal(result, expected)
+
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(['March 1, 2018 12:00:00+0400'] * 2)
         expected = DatetimeIndex([datetime(2018, 3, 1, 12,
