@@ -4172,7 +4172,7 @@ class DataFrame(NDFrame):
                         missing.append(col)
 
         if missing:
-            raise KeyError('{}'.format(missing))
+            raise KeyError('None of {} are in the columns'.format(missing))
 
         if inplace:
             frame = self
