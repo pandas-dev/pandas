@@ -7,7 +7,10 @@ Offer fast expression evaluation through numexpr
 """
 
 import warnings
+
 import numpy as np
+
+from pandas.core.dtypes.generic import ABCDataFrame
 
 import pandas.core.common as com
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
@@ -159,12 +162,12 @@ set_use_numexpr(get_option('compute.use_numexpr'))
 
 def _has_bool_dtype(x):
     try:
-        return x.dtype == bool
-    except AttributeError:
-        try:
+        if isinstance(x, ABCDataFrame):
             return 'bool' in x.dtypes
-        except AttributeError:
-            return isinstance(x, (bool, np.bool_))
+        else:
+            return x.dtype == bool
+    except AttributeError:
+        return isinstance(x, (bool, np.bool_))
 
 
 def _bool_arith_check(op_str, a, b, not_allowed=frozenset(('/', '//', '**')),

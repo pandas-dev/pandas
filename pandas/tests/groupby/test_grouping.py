@@ -2,34 +2,34 @@
 
 """ test where we are determining what we are grouping, or getting groups """
 
+import numpy as np
 import pytest
 
-from pandas import (date_range, Timestamp,
-                    Index, MultiIndex, DataFrame, Series, CategoricalIndex)
-from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
-                                 assert_series_equal, assert_almost_equal)
-from pandas.core.groupby.grouper import Grouping
-from pandas.compat import lrange, long
+from pandas.compat import long, lrange
 
-from pandas import compat
-import numpy as np
-
-import pandas.util.testing as tm
 import pandas as pd
-
+from pandas import (
+    CategoricalIndex, DataFrame, Index, MultiIndex, Series, Timestamp, compat,
+    date_range)
+from pandas.core.groupby.grouper import Grouping
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_panel_equal,
+    assert_series_equal)
 
 # selection
 # --------------------------------
 
-class TestSelection():
+
+class TestSelection(object):
 
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
         g = df.groupby('A')
-        pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
+        with pytest.raises(KeyError, match='"Columns not found: \'C\'"'):
+            g[['C']]
 
-        pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
-        with tm.assert_raises_regex(KeyError, '^[^A]+$'):
+        with pytest.raises(KeyError, match='^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
             g[['A', 'C']]
@@ -39,8 +39,11 @@ class TestSelection():
         df = DataFrame(columns=['A', 'B', 'A', 'C'],
                        data=[range(4), range(2, 6), range(0, 8, 2)])
 
-        pytest.raises(ValueError, df.groupby, 'A')
-        pytest.raises(ValueError, df.groupby, ['A', 'B'])
+        msg = "Grouper for 'A' not 1-dimensional"
+        with pytest.raises(ValueError, match=msg):
+            df.groupby('A')
+        with pytest.raises(ValueError, match=msg):
+            df.groupby(['A', 'B'])
 
         grouped = df.groupby('B')
         c = grouped.count()
@@ -304,7 +307,8 @@ class TestGrouping():
 
     def test_empty_groups(self, df):
         # see gh-1048
-        pytest.raises(ValueError, df.groupby, [])
+        with pytest.raises(ValueError, match="No group keys passed!"):
+            df.groupby([])
 
     def test_groupby_grouper(self, df):
         grouped = df.groupby('A')
@@ -345,11 +349,15 @@ class TestGrouping():
         # when the elements are Timestamp.
         # the result is Index[0:6], very confusing.
 
-        pytest.raises(AssertionError, ts.groupby, lambda key: key[0:6])
+        msg = r"Grouper result violates len\(labels\) == len\(data\)"
+        with pytest.raises(AssertionError, match=msg):
+            ts.groupby(lambda key: key[0:6])
 
     def test_grouping_error_on_multidim_input(self, df):
-        pytest.raises(ValueError,
-                      Grouping, df.index, df[['A', 'A']])
+        msg = ("Grouper for '<class 'pandas.core.frame.DataFrame'>'"
+               " not 1-dimensional")
+        with pytest.raises(ValueError, match=msg):
+            Grouping(df.index, df[['A', 'A']])
 
     def test_multiindex_passthru(self):
 
@@ -470,21 +478,25 @@ class TestGrouping():
         assert_frame_equal(result1, expected1.T)
 
         # raise exception for non-MultiIndex
-        pytest.raises(ValueError, df.groupby, level=1)
+        msg = "level > 0 or level < -1 only valid with MultiIndex"
+        with pytest.raises(ValueError, match=msg):
+            df.groupby(level=1)
 
     def test_groupby_level_index_names(self):
         # GH4014 this used to raise ValueError since 'exp'>1 (in py2)
         df = DataFrame({'exp': ['A'] * 3 + ['B'] * 3,
                         'var1': lrange(6), }).set_index('exp')
         df.groupby(level='exp')
-        pytest.raises(ValueError, df.groupby, level='foo')
+        msg = "level name foo is not the name of the index"
+        with pytest.raises(ValueError, match=msg):
+            df.groupby(level='foo')
 
     @pytest.mark.parametrize('sort', [True, False])
     def test_groupby_level_with_nas(self, sort):
         # GH 17537
         index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
-                           labels=[[1, 1, 1, 1, 0, 0, 0, 0], [0, 1, 2, 3, 0, 1,
-                                                              2, 3]])
+                           codes=[[1, 1, 1, 1, 0, 0, 0, 0], [0, 1, 2, 3, 0, 1,
+                                                             2, 3]])
 
         # factorizing doesn't confuse things
         s = Series(np.arange(8.), index=index)
@@ -493,8 +505,8 @@ class TestGrouping():
         assert_series_equal(result, expected)
 
         index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
-                           labels=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0,
-                                                               1, 2, 3]])
+                           codes=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0,
+                                                              1, 2, 3]])
 
         # factorizing doesn't confuse things
         s = Series(np.arange(8.), index=index)
@@ -506,17 +518,13 @@ class TestGrouping():
         # PR8618 and issue 8015
         frame = mframe
 
-        def j():
+        msg = "You have to supply one of 'by' and 'level'"
+        with pytest.raises(TypeError, match=msg):
             frame.groupby()
 
-        tm.assert_raises_regex(TypeError, "You have to supply one of "
-                               "'by' and 'level'", j)
-
-        def k():
+        msg = "You have to supply one of 'by' and 'level'"
+        with pytest.raises(TypeError, match=msg):
             frame.groupby(by=None, level=None)
-
-        tm.assert_raises_regex(TypeError, "You have to supply one of "
-                               "'by' and 'level'", k)
 
     @pytest.mark.parametrize('sort,labels', [
         [True, [2, 2, 2, 0, 0, 1, 1, 3, 3, 3]],
@@ -592,10 +600,15 @@ class TestGetGroup():
         assert_frame_equal(result1, result3)
 
         # must pass a same-length tuple with multiple keys
-        pytest.raises(ValueError, lambda: g.get_group('foo'))
-        pytest.raises(ValueError, lambda: g.get_group(('foo')))
-        pytest.raises(ValueError,
-                      lambda: g.get_group(('foo', 'bar', 'baz')))
+        msg = "must supply a tuple to get_group with multiple grouping keys"
+        with pytest.raises(ValueError, match=msg):
+            g.get_group('foo')
+        with pytest.raises(ValueError, match=msg):
+            g.get_group(('foo'))
+        msg = ("must supply a same-length tuple to get_group with multiple"
+               " grouping keys")
+        with pytest.raises(ValueError, match=msg):
+            g.get_group(('foo', 'bar', 'baz'))
 
     def test_get_group_empty_bins(self, observed):
 
@@ -609,7 +622,9 @@ class TestGetGroup():
         expected = DataFrame([3, 1], index=[0, 1])
         assert_frame_equal(result, expected)
 
-        pytest.raises(KeyError, lambda: g.get_group(pd.Interval(10, 15)))
+        msg = r"Interval\(10, 15, closed='right'\)"
+        with pytest.raises(KeyError, match=msg):
+            g.get_group(pd.Interval(10, 15))
 
     def test_get_group_grouped_by_tuple(self):
         # GH 8121
@@ -731,9 +746,7 @@ class TestIteration():
         df['k1'] = np.array(['b', 'b', 'b', 'a', 'a', 'a'])
         df['k2'] = np.array(['1', '1', '1', '2', '2', '2'])
         grouped = df.groupby(['k1', 'k2'])
-        groups = {}
-        for key, gp in grouped:
-            groups[key] = gp
+        groups = {key: gp for key, gp in grouped}
         assert len(groups) == 2
 
         # axis = 1

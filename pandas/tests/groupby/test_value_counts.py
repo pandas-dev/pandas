@@ -4,13 +4,13 @@ with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
 
+from itertools import product
+
+import numpy as np
 import pytest
 
-from itertools import product
-import numpy as np
-
+from pandas import DataFrame, MultiIndex, Series, date_range
 from pandas.util import testing as tm
-from pandas import MultiIndex, DataFrame, Series, date_range
 
 
 # our starting frame

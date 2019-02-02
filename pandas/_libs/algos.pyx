@@ -10,31 +10,29 @@ from libc.math cimport fabs, sqrt
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray,
-                    NPY_INT64, NPY_UINT64, NPY_INT32, NPY_INT16, NPY_INT8,
+                    NPY_INT64, NPY_INT32, NPY_INT16, NPY_INT8,
+                    NPY_UINT64, NPY_UINT32, NPY_UINT16, NPY_UINT8,
                     NPY_FLOAT32, NPY_FLOAT64,
                     NPY_OBJECT,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t,
-                    double_t)
+                    uint32_t, uint64_t, float32_t, float64_t)
 cnp.import_array()
 
 
-cimport util
-from util cimport numeric, get_nat
+cimport pandas._libs.util as util
+from pandas._libs.util cimport numeric, get_nat
 
-from khash cimport (khiter_t,
-                    kh_destroy_int64, kh_put_int64,
-                    kh_init_int64, kh_int64_t,
-                    kh_resize_int64, kh_get_int64)
+from pandas._libs.khash cimport (
+    khiter_t, kh_destroy_int64, kh_put_int64, kh_init_int64, kh_int64_t,
+    kh_resize_int64, kh_get_int64)
 
-import missing
+import pandas._libs.missing as missing
 
 cdef float64_t FP_ERR = 1e-13
 
-cdef double NaN = <double> np.NaN
-cdef double nan = NaN
+cdef float64_t NaN = <float64_t>np.NaN
 
-cdef int64_t iNaT = get_nat()
+cdef int64_t NPY_NAT = get_nat()
 
 tiebreakers = {
     'average': TIEBREAK_AVERAGE,
@@ -76,7 +74,9 @@ class NegInfinity(object):
     __ge__ = lambda self, other: isinstance(other, NegInfinity)
 
 
-cpdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
     """
     Efficiently find the unique first-differences of the given array.
 
@@ -125,11 +125,11 @@ def is_lexsorted(list_of_arrays: list) -> bint:
     nlevels = len(list_of_arrays)
     n = len(list_of_arrays[0])
 
-    cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
+    cdef int64_t **vecs = <int64_t**>malloc(nlevels * sizeof(int64_t*))
     for i in range(nlevels):
         arr = list_of_arrays[i]
         assert arr.dtype.name == 'int64'
-        vecs[i] = <int64_t*> cnp.PyArray_DATA(arr)
+        vecs[i] = <int64_t*>cnp.PyArray_DATA(arr)
 
     # Assume uniqueness??
     with nogil:
@@ -150,7 +150,7 @@ def is_lexsorted(list_of_arrays: list) -> bint:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
+def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     """
     compute a 1-d indexer that is an ordering of the passed index,
     ordered by the groups. This is a reverse of the label
@@ -196,7 +196,7 @@ def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k) nogil:
+def kth_smallest(numeric[:] a, Py_ssize_t k) -> numeric:
     cdef:
         Py_ssize_t i, j, l, m, n = a.shape[0]
         numeric x
@@ -230,7 +230,7 @@ cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
+def nancorr(const float64_t[:, :] mat, bint cov=0, minp=None):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         bint minpv
@@ -239,7 +239,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany, divisor
 
-    N, K = (<object> mat).shape
+    N, K = (<object>mat).shape
 
     if minp is None:
         minpv = 1
@@ -294,7 +294,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
+def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
@@ -304,7 +304,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumxx, sumyy, mean, divisor
 
-    N, K = (<object> mat).shape
+    N, K = (<object>mat).shape
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
@@ -359,35 +359,14 @@ ctypedef fused algos_t:
     float64_t
     float32_t
     object
-    int32_t
     int64_t
+    int32_t
+    int16_t
+    int8_t
     uint64_t
+    uint32_t
+    uint16_t
     uint8_t
-
-
-# TODO: unused; needed?
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cpdef map_indices(ndarray[algos_t] index):
-    """
-    Produce a dict mapping the values of the input array to their respective
-    locations.
-
-    Example:
-        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
-
-    Better to do this with Cython because of the enormous speed boost.
-    """
-    cdef:
-        Py_ssize_t i, length
-        dict result = {}
-
-    length = len(index)
-
-    for i in range(length):
-        result[index[i]] = i
-
-    return result
 
 
 @cython.boundscheck(False)
@@ -402,7 +381,7 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     nleft = len(old)
     nright = len(new)
     indexer = np.empty(nright, dtype=np.int64)
-    indexer.fill(-1)
+    indexer[:] = -1
 
     if limit is None:
         lim = nright
@@ -454,19 +433,10 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     return indexer
 
 
-pad_float64 = pad["float64_t"]
-pad_float32 = pad["float32_t"]
-pad_object = pad["object"]
-pad_int64 = pad["int64_t"]
-pad_int32 = pad["int32_t"]
-pad_uint64 = pad["uint64_t"]
-pad_bool = pad["uint8_t"]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_inplace(ndarray[algos_t] values,
-                ndarray[uint8_t, cast=True] mask,
+def pad_inplace(algos_t[:] values,
+                const uint8_t[:] mask,
                 limit=None):
     cdef:
         Py_ssize_t i, N
@@ -500,26 +470,17 @@ def pad_inplace(ndarray[algos_t] values,
             val = values[i]
 
 
-pad_inplace_float64 = pad_inplace["float64_t"]
-pad_inplace_float32 = pad_inplace["float32_t"]
-pad_inplace_object = pad_inplace["object"]
-pad_inplace_int64 = pad_inplace["int64_t"]
-pad_inplace_int32 = pad_inplace["int32_t"]
-pad_inplace_uint64 = pad_inplace["uint64_t"]
-pad_inplace_bool = pad_inplace["uint8_t"]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_2d_inplace(ndarray[algos_t, ndim=2] values,
-                   ndarray[uint8_t, ndim=2] mask,
+def pad_2d_inplace(algos_t[:, :] values,
+                   const uint8_t[:, :] mask,
                    limit=None):
     cdef:
         Py_ssize_t i, j, N, K
         algos_t val
         int lim, fill_count = 0
 
-    K, N = (<object> values).shape
+    K, N = (<object>values).shape
 
     # GH#2778
     if N == 0:
@@ -546,15 +507,6 @@ def pad_2d_inplace(ndarray[algos_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
-
-
-pad_2d_inplace_float64 = pad_2d_inplace["float64_t"]
-pad_2d_inplace_float32 = pad_2d_inplace["float32_t"]
-pad_2d_inplace_object = pad_2d_inplace["object"]
-pad_2d_inplace_int64 = pad_2d_inplace["int64_t"]
-pad_2d_inplace_int32 = pad_2d_inplace["int32_t"]
-pad_2d_inplace_uint64 = pad_2d_inplace["uint64_t"]
-pad_2d_inplace_bool = pad_2d_inplace["uint8_t"]
 
 
 """
@@ -595,7 +547,7 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     nleft = len(old)
     nright = len(new)
     indexer = np.empty(nright, dtype=np.int64)
-    indexer.fill(-1)
+    indexer[:] = -1
 
     if limit is None:
         lim = nright
@@ -648,19 +600,10 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     return indexer
 
 
-backfill_float64 = backfill["float64_t"]
-backfill_float32 = backfill["float32_t"]
-backfill_object = backfill["object"]
-backfill_int64 = backfill["int64_t"]
-backfill_int32 = backfill["int32_t"]
-backfill_uint64 = backfill["uint64_t"]
-backfill_bool = backfill["uint8_t"]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_inplace(ndarray[algos_t] values,
-                     ndarray[uint8_t, cast=True] mask,
+def backfill_inplace(algos_t[:] values,
+                     const uint8_t[:] mask,
                      limit=None):
     cdef:
         Py_ssize_t i, N
@@ -694,26 +637,17 @@ def backfill_inplace(ndarray[algos_t] values,
             val = values[i]
 
 
-backfill_inplace_float64 = backfill_inplace["float64_t"]
-backfill_inplace_float32 = backfill_inplace["float32_t"]
-backfill_inplace_object = backfill_inplace["object"]
-backfill_inplace_int64 = backfill_inplace["int64_t"]
-backfill_inplace_int32 = backfill_inplace["int32_t"]
-backfill_inplace_uint64 = backfill_inplace["uint64_t"]
-backfill_inplace_bool = backfill_inplace["uint8_t"]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_2d_inplace(ndarray[algos_t, ndim=2] values,
-                        ndarray[uint8_t, ndim=2] mask,
+def backfill_2d_inplace(algos_t[:, :] values,
+                        const uint8_t[:, :] mask,
                         limit=None):
     cdef:
         Py_ssize_t i, j, N, K
         algos_t val
         int lim, fill_count = 0
 
-    K, N = (<object> values).shape
+    K, N = (<object>values).shape
 
     # GH#2778
     if N == 0:
@@ -742,18 +676,9 @@ def backfill_2d_inplace(ndarray[algos_t, ndim=2] values,
                 val = values[j, i]
 
 
-backfill_2d_inplace_float64 = backfill_2d_inplace["float64_t"]
-backfill_2d_inplace_float32 = backfill_2d_inplace["float32_t"]
-backfill_2d_inplace_object = backfill_2d_inplace["object"]
-backfill_2d_inplace_int64 = backfill_2d_inplace["int64_t"]
-backfill_2d_inplace_int32 = backfill_2d_inplace["int32_t"]
-backfill_2d_inplace_uint64 = backfill_2d_inplace["uint64_t"]
-backfill_2d_inplace_bool = backfill_2d_inplace["uint8_t"]
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def arrmap(ndarray[algos_t] index, object func):
+def arrmap(algos_t[:] index, object func):
     cdef:
         Py_ssize_t length = index.shape[0]
         Py_ssize_t i = 0
@@ -778,7 +703,7 @@ arrmap_bool = arrmap["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic(ndarray[algos_t] arr, bint timelike):
+def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     """
     Returns
     -------
@@ -795,7 +720,7 @@ def is_monotonic(ndarray[algos_t] arr, bint timelike):
     n = len(arr)
 
     if n == 1:
-        if arr[0] != arr[0] or (timelike and <int64_t>arr[0] == iNaT):
+        if arr[0] != arr[0] or (timelike and <int64_t>arr[0] == NPY_NAT):
             # single value is NaN
             return False, False, True
         else:
@@ -803,7 +728,7 @@ def is_monotonic(ndarray[algos_t] arr, bint timelike):
     elif n < 2:
         return True, True, True
 
-    if timelike and <int64_t>arr[0] == iNaT:
+    if timelike and <int64_t>arr[0] == NPY_NAT:
         return False, False, True
 
     if algos_t is not object:
@@ -811,7 +736,7 @@ def is_monotonic(ndarray[algos_t] arr, bint timelike):
             prev = arr[0]
             for i in range(1, n):
                 cur = arr[i]
-                if timelike and <int64_t>cur == iNaT:
+                if timelike and <int64_t>cur == NPY_NAT:
                     is_monotonic_inc = 0
                     is_monotonic_dec = 0
                     break
@@ -836,7 +761,7 @@ def is_monotonic(ndarray[algos_t] arr, bint timelike):
         prev = arr[0]
         for i in range(1, n):
             cur = arr[i]
-            if timelike and <int64_t>cur == iNaT:
+            if timelike and <int64_t>cur == NPY_NAT:
                 is_monotonic_inc = 0
                 is_monotonic_dec = 0
                 break
@@ -859,15 +784,6 @@ def is_monotonic(ndarray[algos_t] arr, bint timelike):
 
     is_strict_monotonic = is_unique and (is_monotonic_inc or is_monotonic_dec)
     return is_monotonic_inc, is_monotonic_dec, is_strict_monotonic
-
-
-is_monotonic_float64 = is_monotonic["float64_t"]
-is_monotonic_float32 = is_monotonic["float32_t"]
-is_monotonic_object = is_monotonic["object"]
-is_monotonic_int64 = is_monotonic["int64_t"]
-is_monotonic_int32 = is_monotonic["int32_t"]
-is_monotonic_uint64 = is_monotonic["uint64_t"]
-is_monotonic_bool = is_monotonic["uint8_t"]
 
 
 # generated from template

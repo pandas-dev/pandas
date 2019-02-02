@@ -10,6 +10,8 @@ import os
 from os.path import join as pjoin
 
 import pkg_resources
+import platform
+from distutils.sysconfig import get_config_var
 import sys
 import shutil
 from distutils.version import LooseVersion
@@ -24,7 +26,11 @@ def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
 
-min_numpy_ver = '1.9.0'
+def is_platform_mac():
+    return sys.platform == 'darwin'
+
+
+min_numpy_ver = '1.12.0'
 setuptools_kwargs = {
     'install_requires': [
         'python-dateutil >= 2.5.0',
@@ -76,7 +82,6 @@ _pxi_dep_template = {
               '_libs/algos_take_helper.pxi.in',
               '_libs/algos_rank_helper.pxi.in'],
     'groupby': ['_libs/groupby_helper.pxi.in'],
-    'join': ['_libs/join_helper.pxi.in', '_libs/join_func_helper.pxi.in'],
     'hashtable': ['_libs/hashtable_class_helper.pxi.in',
                   '_libs/hashtable_func_helper.pxi.in'],
     'index': ['_libs/index_class_helper.pxi.in'],
@@ -396,20 +401,6 @@ class DummyBuildSrc(Command):
 cmdclass.update({'clean': CleanCommand,
                  'build': build})
 
-try:
-    from wheel.bdist_wheel import bdist_wheel
-
-    class BdistWheel(bdist_wheel):
-        def get_tag(self):
-            tag = bdist_wheel.get_tag(self)
-            repl = 'macosx_10_6_intel.macosx_10_9_intel.macosx_10_9_x86_64'
-            if tag[2] == 'macosx_10_6_intel':
-                tag = (tag[0], tag[1], repl)
-            return tag
-    cmdclass['bdist_wheel'] = BdistWheel
-except ImportError:
-    pass
-
 if cython:
     suffix = '.pyx'
     cmdclass['build_ext'] = CheckingBuildExt
@@ -435,6 +426,19 @@ else:
     extra_compile_args = ['-Wno-unused-function']
 
 
+# For mac, ensure extensions are built for macos 10.9 when compiling on a
+# 10.9 system or above, overriding distuitls behaviour which is to target
+# the version that python was built for. This may be overridden by setting
+# MACOSX_DEPLOYMENT_TARGET before calling setup.py
+if is_platform_mac():
+    if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
+        current_system = LooseVersion(platform.mac_ver()[0])
+        python_target = LooseVersion(
+            get_config_var('MACOSX_DEPLOYMENT_TARGET'))
+        if python_target < '10.9' and current_system >= '10.9':
+            os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
+
+
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
 # with `--with-cython-coverage`enabled
@@ -452,6 +456,11 @@ if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py
     directives['linetrace'] = True
     macros = [('CYTHON_TRACE', '1'), ('CYTHON_TRACE_NOGIL', '1')]
+
+# in numpy>=1.16.0, silence build warnings about deprecated API usage
+#  we can't do anything about these warnings because they stem from
+#  cython+numpy version mismatches.
+macros.append(('NPY_NO_DEPRECATED_API', '0'))
 
 
 # ----------------------------------------------------------------------
@@ -487,7 +496,7 @@ def srcpath(name=None, suffix='.pyx', subdir='src'):
 
 
 common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
-ts_include = ['pandas/_libs/tslibs/src']
+ts_include = ['pandas/_libs/tslibs/src', 'pandas/_libs/tslibs']
 
 
 lib_depends = ['pandas/_libs/src/parse_helper.h',
@@ -531,8 +540,7 @@ ext_data = {
         'pyxfile': '_libs/interval',
         'depends': _pxi_dep['interval']},
     '_libs.join': {
-        'pyxfile': '_libs/join',
-        'depends': _pxi_dep['join']},
+        'pyxfile': '_libs/join'},
     '_libs.lib': {
         'pyxfile': '_libs/lib',
         'include': common_include + ts_include,
@@ -544,8 +552,7 @@ ext_data = {
     '_libs.parsers': {
         'pyxfile': '_libs/parsers',
         'depends': ['pandas/_libs/src/parser/tokenizer.h',
-                    'pandas/_libs/src/parser/io.h',
-                    'pandas/_libs/src/numpy_helper.h'],
+                    'pandas/_libs/src/parser/io.h'],
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
     '_libs.reduction': {

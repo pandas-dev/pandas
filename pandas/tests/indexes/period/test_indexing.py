@@ -1,18 +1,26 @@
 from datetime import datetime, timedelta
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-from pandas.util import testing as tm
-from pandas.compat import lrange
-from pandas._libs import tslibs
-from pandas import (PeriodIndex, Series, DatetimeIndex,
-                    period_range, Period, notna)
 from pandas._libs.tslibs import period as libperiod
+from pandas.compat import lrange
+
+import pandas as pd
+from pandas import (
+    DatetimeIndex, Period, PeriodIndex, Series, notna, period_range)
+from pandas.util import testing as tm
 
 
 class TestGetItem(object):
+    def test_ellipsis(self):
+        # GH#21282
+        idx = period_range('2011-01-01', '2011-01-31', freq='D',
+                           name='idx')
+
+        result = idx[...]
+        assert result.equals(idx)
+        assert result is not idx
 
     def test_getitem(self):
         idx1 = pd.period_range('2011-01-01', '2011-01-31', freq='D',
@@ -101,10 +109,9 @@ class TestGetItem(object):
         tm.assert_series_equal(exp, result)
 
         ts = ts[10:].append(ts[10:])
-        tm.assert_raises_regex(KeyError,
-                               "left slice bound for non-unique "
-                               "label: '2008'",
-                               ts.__getitem__, slice('2008', '2009'))
+        msg = "left slice bound for non-unique label: '2008'"
+        with pytest.raises(KeyError, match=msg):
+            ts[slice('2008', '2009')]
 
     def test_getitem_datetime(self):
         rng = period_range(start='2012-01-01', periods=10, freq='W-MON')
@@ -137,10 +144,11 @@ class TestGetItem(object):
         tm.assert_series_equal(ts[[Period('2012-01-02', freq='D')]], exp)
 
     def test_getitem_seconds(self):
-        # GH 6716
-        didx = DatetimeIndex(start='2013/01/01 09:00:00', freq='S',
+        # GH#6716
+        didx = pd.date_range(start='2013/01/01 09:00:00', freq='S',
                              periods=4000)
-        pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
+        pidx = period_range(start='2013/01/01 09:00:00', freq='S',
+                            periods=4000)
 
         for idx in [didx, pidx]:
             # getitem against index should raise ValueError
@@ -161,10 +169,10 @@ class TestGetItem(object):
                 tm.assert_series_equal(s[d], s)
 
     def test_getitem_day(self):
-        # GH 6716
+        # GH#6716
         # Confirm DatetimeIndex and PeriodIndex works identically
-        didx = DatetimeIndex(start='2013/01/01', freq='D', periods=400)
-        pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
+        didx = pd.date_range(start='2013/01/01', freq='D', periods=400)
+        pidx = period_range(start='2013/01/01', freq='D', periods=400)
 
         for idx in [didx, pidx]:
             # getitem against index should raise ValueError
@@ -274,8 +282,8 @@ class TestTake(object):
             assert result.freq == 'D'
 
     def test_take_misc(self):
-        index = PeriodIndex(start='1/1/10', end='12/31/12', freq='D',
-                            name='idx')
+        index = period_range(start='1/1/10', end='12/31/12', freq='D',
+                             name='idx')
         expected = PeriodIndex([datetime(2010, 1, 6), datetime(2010, 1, 7),
                                 datetime(2010, 1, 9), datetime(2010, 1, 13)],
                                freq='D', name='idx')
@@ -313,9 +321,9 @@ class TestTake(object):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -362,7 +370,9 @@ class TestIndexing(object):
         assert idx0.get_loc(p2) == expected_idx1_p2
         assert idx0.get_loc(str(p2)) == expected_idx1_p2
 
-        pytest.raises(tslibs.parsing.DateParseError, idx0.get_loc, 'foo')
+        msg = "Cannot interpret 'foo' as period"
+        with pytest.raises(KeyError, match=msg):
+            idx0.get_loc('foo')
         pytest.raises(KeyError, idx0.get_loc, 1.1)
         pytest.raises(TypeError, idx0.get_loc, idx0)
 
@@ -377,7 +387,10 @@ class TestIndexing(object):
         assert idx1.get_loc(p2) == expected_idx1_p2
         assert idx1.get_loc(str(p2)) == expected_idx1_p2
 
-        pytest.raises(tslibs.parsing.DateParseError, idx1.get_loc, 'foo')
+        msg = "Cannot interpret 'foo' as period"
+        with pytest.raises(KeyError, match=msg):
+            idx1.get_loc('foo')
+
         pytest.raises(KeyError, idx1.get_loc, 1.1)
         pytest.raises(TypeError, idx1.get_loc, idx1)
 
@@ -404,11 +417,11 @@ class TestIndexing(object):
         idx_dec1 = pd.PeriodIndex([p2, p1, p1])
         idx = pd.PeriodIndex([p1, p2, p0])
 
-        assert idx_inc0.is_monotonic_increasing
-        assert idx_inc1.is_monotonic_increasing
-        assert not idx_dec0.is_monotonic_increasing
-        assert not idx_dec1.is_monotonic_increasing
-        assert not idx.is_monotonic_increasing
+        assert idx_inc0.is_monotonic_increasing is True
+        assert idx_inc1.is_monotonic_increasing is True
+        assert idx_dec0.is_monotonic_increasing is False
+        assert idx_dec1.is_monotonic_increasing is False
+        assert idx.is_monotonic_increasing is False
 
     def test_is_monotonic_decreasing(self):
         # GH 17717
@@ -422,11 +435,11 @@ class TestIndexing(object):
         idx_dec1 = pd.PeriodIndex([p2, p1, p1])
         idx = pd.PeriodIndex([p1, p2, p0])
 
-        assert not idx_inc0.is_monotonic_decreasing
-        assert not idx_inc1.is_monotonic_decreasing
-        assert idx_dec0.is_monotonic_decreasing
-        assert idx_dec1.is_monotonic_decreasing
-        assert not idx.is_monotonic_decreasing
+        assert idx_inc0.is_monotonic_decreasing is False
+        assert idx_inc1.is_monotonic_decreasing is False
+        assert idx_dec0.is_monotonic_decreasing is True
+        assert idx_dec1.is_monotonic_decreasing is True
+        assert idx.is_monotonic_decreasing is False
 
     def test_is_unique(self):
         # GH 17717
@@ -435,10 +448,10 @@ class TestIndexing(object):
         p2 = pd.Period('2017-09-03')
 
         idx0 = pd.PeriodIndex([p0, p1, p2])
-        assert idx0.is_unique
+        assert idx0.is_unique is True
 
         idx1 = pd.PeriodIndex([p1, p1, p2])
-        assert not idx1.is_unique
+        assert idx1.is_unique is False
 
     def test_contains(self):
         # GH 17717
@@ -560,12 +573,13 @@ class TestIndexing(object):
                            tolerance=np.timedelta64(1, 'D')) == 1
         assert idx.get_loc('2000-01-02T12', method='nearest',
                            tolerance=timedelta(1)) == 1
-        with tm.assert_raises_regex(ValueError,
-                                    'unit abbreviation w/o a number'):
+
+        msg = 'unit abbreviation w/o a number'
+        with pytest.raises(ValueError, match=msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='foo')
 
-        msg = 'Input has different freq from PeriodIndex\\(freq=D\\)'
-        with tm.assert_raises_regex(ValueError, msg):
+        msg = 'Input has different freq=None from PeriodArray\\(freq=D\\)'
+        with pytest.raises(ValueError, match=msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
         with pytest.raises(KeyError):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 day')
@@ -594,8 +608,8 @@ class TestIndexing(object):
                                                     tolerance='1 hour'),
                                     np.array([0, -1, 1], dtype=np.intp))
 
-        msg = 'Input has different freq from PeriodIndex\\(freq=H\\)'
-        with tm.assert_raises_regex(ValueError, msg):
+        msg = 'Input has different freq=None from PeriodArray\\(freq=H\\)'
+        with pytest.raises(ValueError, match=msg):
             idx.get_indexer(target, 'nearest', tolerance='1 minute')
 
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest',
@@ -613,7 +627,7 @@ class TestIndexing(object):
                    np.timedelta64(1, 'M'), ]
         with pytest.raises(
                 libperiod.IncompatibleFrequency,
-                match='Input has different freq from'):
+                match='Input has different freq=None from'):
             idx.get_indexer(target, 'nearest', tolerance=tol_bad)
 
     def test_indexing(self):

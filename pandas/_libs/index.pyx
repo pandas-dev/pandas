@@ -5,25 +5,27 @@ import cython
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, float64_t, int32_t,
-                    int64_t, uint8_t, uint64_t, intp_t,
+from numpy cimport (ndarray, intp_t,
+                    float64_t, float32_t,
+                    int64_t, int32_t, int16_t, int8_t,
+                    uint64_t, uint32_t, uint16_t, uint8_t,
                     # Note: NPY_DATETIME, NPY_TIMEDELTA are only available
                     # for cimport in cython>=0.27.3
                     NPY_DATETIME, NPY_TIMEDELTA)
 cnp.import_array()
 
 
-cimport util
+cimport pandas._libs.util as util
 
-from tslibs.conversion cimport maybe_datetimelike_to_i8
+from pandas._libs.tslibs.conversion cimport maybe_datetimelike_to_i8
 
-from hashtable cimport HashTable
+from pandas._libs.hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
-cdef int64_t iNaT = util.get_nat()
+cdef int64_t NPY_NAT = util.get_nat()
 
 
 cdef inline bint is_definitely_invalid_key(object val):
@@ -111,6 +113,8 @@ cdef class IndexEngine:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
+
+            self._check_type(val)
             loc = _bin_search(values, val)  # .searchsorted(val, side='left')
             if loc >= len(values):
                 raise KeyError(val)
@@ -222,7 +226,13 @@ cdef class IndexEngine:
         return self.vgetter()
 
     def _call_monotonic(self, values):
-        raise NotImplementedError
+        return algos.is_monotonic(values, timelike=False)
+
+    def get_backfill_indexer(self, other, limit=None):
+        return algos.backfill(self._get_index_values(), other, limit=limit)
+
+    def get_pad_indexer(self, other, limit=None):
+        return algos.pad(self._get_index_values(), other, limit=limit)
 
     cdef _make_hash_table(self, n):
         raise NotImplementedError
@@ -294,14 +304,23 @@ cdef class IndexEngine:
         result = np.empty(n_alloc, dtype=np.int64)
         missing = np.empty(n_t, dtype=np.int64)
 
-        # form the set of the results (like ismember)
-        members = np.empty(n, dtype=np.uint8)
-        for i in range(n):
-            val = values[i]
-            if val in stargets:
-                if val not in d:
-                    d[val] = []
-                d[val].append(i)
+        # map each starget to its position in the index
+        if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
+            # if there are few enough stargets and the index is monotonically
+            # increasing, then use binary search for each starget
+            for starget in stargets:
+                start = values.searchsorted(starget, side='left')
+                end = values.searchsorted(starget, side='right')
+                if start != end:
+                    d[starget] = list(range(start, end))
+        else:
+            # otherwise, map by iterating through all items in the index
+            for i in range(n):
+                val = values[i]
+                if val in stargets:
+                    if val not in d:
+                        d[val] = []
+                    d[val].append(i)
 
         for i in range(n_t):
             val = targets[i]
@@ -358,6 +377,14 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         return mid + 1
 
 
+cdef class ObjectEngine(IndexEngine):
+    """
+    Index Engine for use with object-dtype Index, namely the base class Index
+    """
+    cdef _make_hash_table(self, n):
+        return _hash.PyObjectHashTable(n)
+
+
 cdef class DatetimeEngine(Int64Engine):
 
     cdef _get_box_dtype(self):
@@ -379,7 +406,7 @@ cdef class DatetimeEngine(Int64Engine):
         return self.vgetter().view('i8')
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_int64(values, timelike=True)
+        return algos.is_monotonic(values, timelike=True)
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
@@ -438,14 +465,13 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return algos.pad_int64(self._get_index_values(), other, limit=limit)
+        return algos.pad(self._get_index_values(), other, limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return algos.backfill_int64(self._get_index_values(), other,
-                                    limit=limit)
+        return algos.backfill(self._get_index_values(), other, limit=limit)
 
 
 cdef class TimedeltaEngine(DatetimeEngine):
@@ -479,15 +505,15 @@ cdef class PeriodEngine(Int64Engine):
         freq = super(PeriodEngine, self).vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 
-        return algos.pad_int64(self._get_index_values(),
-                               np.asarray(ordinal), limit=limit)
+        return algos.pad(self._get_index_values(),
+                         np.asarray(ordinal), limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         freq = super(PeriodEngine, self).vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 
-        return algos.backfill_int64(self._get_index_values(),
-                                    np.asarray(ordinal), limit=limit)
+        return algos.backfill(self._get_index_values(),
+                              np.asarray(ordinal), limit=limit)
 
     def get_indexer_non_unique(self, targets):
         freq = super(PeriodEngine, self).vgetter().freq
@@ -509,7 +535,7 @@ cpdef convert_scalar(ndarray arr, object value):
         elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
         elif value is None or value != value:
-            return iNaT
+            return NPY_NAT
         elif util.is_string_object(value):
             return Timestamp(value).value
         raise ValueError("cannot set a Timestamp with a non-timestamp")
@@ -520,7 +546,7 @@ cpdef convert_scalar(ndarray arr, object value):
         elif isinstance(value, timedelta):
             return Timedelta(value).value
         elif value is None or value != value:
-            return iNaT
+            return NPY_NAT
         elif util.is_string_object(value):
             return Timedelta(value).value
         raise ValueError("cannot set a Timedelta with a non-timedelta")

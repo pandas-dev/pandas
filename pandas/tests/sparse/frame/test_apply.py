@@ -1,7 +1,9 @@
-import pytest
 import numpy as np
-from pandas import SparseDataFrame, DataFrame, Series, bdate_range
+import pytest
+
+from pandas import DataFrame, Series, SparseDataFrame, bdate_range
 from pandas.core import nanops
+from pandas.core.sparse.api import SparseDtype
 from pandas.util import testing as tm
 
 
@@ -51,7 +53,7 @@ def test_apply(frame):
 
     applied = frame.apply(np.sum)
     tm.assert_series_equal(applied,
-                           frame.to_dense().apply(nanops.nansum))
+                           frame.to_dense().apply(nanops.nansum).to_sparse())
 
 
 def test_apply_fill(fill_frame):
@@ -71,7 +73,7 @@ def test_apply_nonuq():
     exp = orig.apply(lambda s: s[0], axis=1)
 
     # dtype must be kept
-    assert res.dtype == np.int64
+    assert res.dtype == SparseDtype(np.int64)
 
     # ToDo: apply must return subclassed dtype
     assert isinstance(res, Series)
@@ -90,3 +92,14 @@ def test_applymap(frame):
     # just test that it works
     result = frame.applymap(lambda x: x * 2)
     assert isinstance(result, SparseDataFrame)
+
+
+def test_apply_keep_sparse_dtype():
+    # GH 23744
+    sdf = SparseDataFrame(np.array([[0, 1, 0], [0, 0, 0], [0, 0, 1]]),
+                          columns=['b', 'a', 'c'], default_fill_value=1)
+    df = DataFrame(sdf)
+
+    expected = sdf.apply(np.exp)
+    result = df.apply(np.exp)
+    tm.assert_frame_equal(expected, result)

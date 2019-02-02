@@ -4,52 +4,45 @@ Template for functions of IndexEngine subclasses.
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # IndexEngine Subclass Methods
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 {{py:
 
-# name, dtype, ctype
-dtypes = [('Float64', 'float64', 'float64_t'),
-          ('UInt64', 'uint64', 'uint64_t'),
-          ('Int64', 'int64', 'int64_t'),
-          ('Object', 'object', 'object')]
+# name, dtype, ctype, hashtable_name, hashtable_dtype
+dtypes = [('Float64', 'float64', 'float64_t', 'Float64', 'float64'),
+          ('Float32', 'float32', 'float32_t', 'Float64', 'float64'),
+          ('Int64', 'int64', 'int64_t', 'Int64', 'int64'),
+          ('Int32', 'int32', 'int32_t', 'Int64', 'int64'),
+          ('Int16', 'int16', 'int16_t', 'Int64', 'int64'),
+          ('Int8', 'int8', 'int8_t', 'Int64', 'int64'),
+          ('UInt64', 'uint64', 'uint64_t', 'UInt64', 'uint64'),
+          ('UInt32', 'uint32', 'uint32_t', 'UInt64', 'uint64'),
+          ('UInt16', 'uint16', 'uint16_t', 'UInt64', 'uint64'),
+          ('UInt8', 'uint8', 'uint8_t', 'UInt64', 'uint64'),
+          ]
 }}
 
-{{for name, dtype, ctype in dtypes}}
+{{for name, dtype, ctype, hashtable_name, hashtable_dtype in dtypes}}
 
 
 cdef class {{name}}Engine(IndexEngine):
 
-    def _call_monotonic(self, values):
-        return algos.is_monotonic_{{dtype}}(values, timelike=False)
-
-    def get_backfill_indexer(self, other, limit=None):
-        return algos.backfill_{{dtype}}(self._get_index_values(),
-                                        other, limit=limit)
-
-    def get_pad_indexer(self, other, limit=None):
-        return algos.pad_{{dtype}}(self._get_index_values(),
-                                   other, limit=limit)
-
     cdef _make_hash_table(self, n):
-        {{if name == 'Object'}}
-        return _hash.PyObjectHashTable(n)
-        {{else}}
-        return _hash.{{name}}HashTable(n)
-        {{endif}}
+        return _hash.{{hashtable_name}}HashTable(n)
 
-    {{if name != 'Float64' and name != 'Object'}}
+    {{if name not in {'Float64', 'Float32'} }}
     cdef _check_type(self, object val):
-        hash(val)
-        if util.is_bool_object(val):
-            raise KeyError(val)
-        elif util.is_float_object(val):
+        if not util.is_integer_object(val):
             raise KeyError(val)
     {{endif}}
 
-    {{if name != 'Object'}}
+    cpdef _call_map_locations(self, values):
+        # self.mapping is of type {{hashtable_name}}HashTable,
+        # so convert dtype of values
+        self.mapping.map_locations(algos.ensure_{{hashtable_dtype}}(values))
+
     cdef _get_index_values(self):
         return algos.ensure_{{dtype}}(self.vgetter())
 
@@ -60,7 +53,7 @@ cdef class {{name}}Engine(IndexEngine):
             ndarray[{{ctype}}] values
             int count = 0
 
-        {{if name != 'Float64'}}
+        {{if name not in {'Float64', 'Float32'} }}
         if not util.is_integer_object(val):
             raise KeyError(val)
         {{endif}}
@@ -77,7 +70,5 @@ cdef class {{name}}Engine(IndexEngine):
             return int(found[0])
 
         raise KeyError(val)
-
-    {{endif}}
 
 {{endfor}}

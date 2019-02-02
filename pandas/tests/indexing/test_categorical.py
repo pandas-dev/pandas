@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-import pandas as pd
 import pandas.compat as compat
-import numpy as np
-from pandas import (Series, DataFrame, Timestamp, Categorical,
-                    CategoricalIndex, Interval, Index)
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-from pandas.util import testing as tm
+
 from pandas.core.dtypes.common import is_categorical_dtype
-from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, Index, Interval, Series,
+    Timestamp)
+from pandas.api.types import CategoricalDtype as CDT
+from pandas.util import testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestCategoricalIndex(object):
@@ -50,22 +53,19 @@ class TestCategoricalIndex(object):
         assert_frame_equal(df, expected)
 
         # value not in the categories
-        pytest.raises(KeyError, lambda: df.loc['d'])
+        with pytest.raises(KeyError, match=r"^'d'$"):
+            df.loc['d']
 
-        def f():
+        msg = "cannot append a non-category item to a CategoricalIndex"
+        with pytest.raises(TypeError, match=msg):
             df.loc['d'] = 10
 
-        pytest.raises(TypeError, f)
-
-        def f():
+        msg = ("cannot insert an item into a CategoricalIndex that is not"
+               " already an existing category")
+        with pytest.raises(TypeError, match=msg):
             df.loc['d', 'A'] = 10
-
-        pytest.raises(TypeError, f)
-
-        def f():
+        with pytest.raises(TypeError, match=msg):
             df.loc['d', 'C'] = 10
-
-        pytest.raises(TypeError, f)
 
     def test_getitem_scalar(self):
 
@@ -315,7 +315,8 @@ class TestCategoricalIndex(object):
         assert_frame_equal(result, expected, check_index_type=True)
 
         # element in the categories but not in the values
-        pytest.raises(KeyError, lambda: self.df2.loc['e'])
+        with pytest.raises(KeyError, match=r"^'e'$"):
+            self.df2.loc['e']
 
         # assign is ok
         df = self.df2.copy()
@@ -359,10 +360,9 @@ class TestCategoricalIndex(object):
         exp = DataFrame({'A': [1, 1, 2], 'B': [4, 4, 5]}, index=exp_index)
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        with tm.assert_raises_regex(
-                KeyError,
-                'a list-indexer must only include values that are '
-                'in the categories'):
+        msg = ('a list-indexer must only include '
+               'values that are in the categories')
+        with pytest.raises(KeyError, match=msg):
             df.loc[['a', 'x']]
 
         # duplicated categories and codes
@@ -384,10 +384,9 @@ class TestCategoricalIndex(object):
                    ]}, index=CategoricalIndex(['a', 'a', 'a', 'a', 'b']))
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        with tm.assert_raises_regex(
-                KeyError,
-                'a list-indexer must only include values '
-                'that are in the categories'):
+        msg = ('a list-indexer must only include values '
+               'that are in the categories')
+        with pytest.raises(KeyError, match=msg):
             df.loc[['a', 'x']]
 
         # contains unused category
@@ -414,10 +413,9 @@ class TestCategoricalIndex(object):
                                                categories=list('abcde')))
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        with tm.assert_raises_regex(
-                KeyError,
-                'a list-indexer must only include values '
-                'that are in the categories'):
+        msg = ('a list-indexer must only include values '
+               'that are in the categories')
+        with pytest.raises(KeyError, match=msg):
             df.loc[['a', 'x']]
 
     def test_get_indexer_array(self):
@@ -616,22 +614,29 @@ class TestCategoricalIndex(object):
         assert_frame_equal(result, expected, check_index_type=True)
 
         # passed duplicate indexers are not allowed
-        pytest.raises(ValueError, lambda: self.df2.reindex(['a', 'a']))
+        msg = "cannot reindex with a non-unique indexer"
+        with pytest.raises(ValueError, match=msg):
+            self.df2.reindex(['a', 'a'])
 
         # args NotImplemented ATM
-        pytest.raises(NotImplementedError,
-                      lambda: self.df2.reindex(['a'], method='ffill'))
-        pytest.raises(NotImplementedError,
-                      lambda: self.df2.reindex(['a'], level=1))
-        pytest.raises(NotImplementedError,
-                      lambda: self.df2.reindex(['a'], limit=2))
+        msg = r"argument {} is not implemented for CategoricalIndex\.reindex"
+        with pytest.raises(NotImplementedError, match=msg.format('method')):
+            self.df2.reindex(['a'], method='ffill')
+        with pytest.raises(NotImplementedError, match=msg.format('level')):
+            self.df2.reindex(['a'], level=1)
+        with pytest.raises(NotImplementedError, match=msg.format('limit')):
+            self.df2.reindex(['a'], limit=2)
 
     def test_loc_slice(self):
         # slicing
         # not implemented ATM
         # GH9748
 
-        pytest.raises(TypeError, lambda: self.df.loc[1:5])
+        msg = ("cannot do slice indexing on {klass} with these "
+               r"indexers \[1\] of {kind}".format(
+                   klass=str(CategoricalIndex), kind=str(int)))
+        with pytest.raises(TypeError, match=msg):
+            self.df.loc[1:5]
 
         # result = df.loc[1:5]
         # expected = df.iloc[[1,2,3,4]]
@@ -679,8 +684,11 @@ class TestCategoricalIndex(object):
         #         categories=[3, 2, 1],
         #         ordered=False,
         #         name=u'B')
-        pytest.raises(TypeError, lambda: df4[df4.index < 2])
-        pytest.raises(TypeError, lambda: df4[df4.index > 1])
+        msg = "Unordered Categoricals can only compare equality or not"
+        with pytest.raises(TypeError, match=msg):
+            df4[df4.index < 2]
+        with pytest.raises(TypeError, match=msg):
+            df4[df4.index > 1]
 
     def test_indexing_with_category(self):
 

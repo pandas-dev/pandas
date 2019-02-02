@@ -38,39 +38,37 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-from datetime import datetime, date, timedelta
-from dateutil.parser import parse
+from datetime import date, datetime, timedelta
 import os
 from textwrap import dedent
 import warnings
 
+from dateutil.parser import parse
 import numpy as np
-from pandas import compat
+
+import pandas.compat as compat
 from pandas.compat import u, u_safe
+from pandas.errors import PerformanceWarning
+from pandas.util._move import (
+    BadMove as _BadMove, move_into_mutable_buffer as _move_into_mutable_buffer)
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_object_dtype,
+    is_categorical_dtype, is_datetime64tz_dtype, is_object_dtype,
     needs_i8_conversion, pandas_dtype)
 
-from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
-                    Index, MultiIndex, Float64Index, Int64Index,
-                    Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
-                    Categorical, CategoricalIndex, IntervalIndex, Interval,
-                    TimedeltaIndex)
-from pandas.core.arrays import IntervalArray
-from pandas.core.sparse.api import SparseSeries, SparseDataFrame
-from pandas.core.sparse.array import BlockIndex, IntIndex
+from pandas import (  # noqa:F401
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
+    Index, Int64Index, Interval, IntervalIndex, MultiIndex, NaT, Panel, Period,
+    PeriodIndex, RangeIndex, Series, TimedeltaIndex, Timestamp)
+from pandas.core import internals
+from pandas.core.arrays import DatetimeArray, IntervalArray, PeriodArray
+from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
-from pandas.errors import PerformanceWarning
-from pandas.io.common import get_filepath_or_buffer, _stringify_path
-from pandas.core.internals import BlockManager, make_block, _safe_reshape
-import pandas.core.internals as internals
+from pandas.core.internals import BlockManager, _safe_reshape, make_block
+from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 
-from pandas.io.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
-from pandas.util._move import (
-    BadMove as _BadMove,
-    move_into_mutable_buffer as _move_into_mutable_buffer,
-)
+from pandas.io.common import _stringify_path, get_filepath_or_buffer
+from pandas.io.msgpack import ExtType, Packer as _Packer, Unpacker as _Unpacker
 
 # check which compression libs we have installed
 try:
@@ -130,7 +128,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     path_or_buf : string File path, buffer-like, or None
                   if None, return generated string
     args : an object or objects to serialize
-    encoding: encoding for unicode objects
+    encoding : encoding for unicode objects
     append : boolean whether to append to an existing msgpack
              (default is False)
     compress : type of compressor (zlib or blosc), default to None (no
@@ -173,30 +171,29 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     Parameters
     ----------
     path_or_buf : string File path, BytesIO like or string
-    encoding: Encoding for decoding msgpack str type
+    encoding : Encoding for decoding msgpack str type
     iterator : boolean, if True, return an iterator to the unpacker
                (default is False)
 
     Returns
     -------
     obj : same type as object stored in file
-
     """
     path_or_buf, _, _, should_close = get_filepath_or_buffer(path_or_buf)
     if iterator:
         return Iterator(path_or_buf)
 
     def read(fh):
-        l = list(unpack(fh, encoding=encoding, **kwargs))
-        if len(l) == 1:
-            return l[0]
+        unpacked_obj = list(unpack(fh, encoding=encoding, **kwargs))
+        if len(unpacked_obj) == 1:
+            return unpacked_obj[0]
 
         if should_close:
             try:
                 path_or_buf.close()
-            except:  # noqa: flake8
+            except IOError:
                 pass
-        return l
+        return unpacked_obj
 
     # see if we have an actual file
     if isinstance(path_or_buf, compat.string_types):
@@ -254,7 +251,7 @@ c2f_dict = {'complex': np.float64,
             'complex128': np.float64,
             'complex64': np.float32}
 
-# numpy 1.6.1 compat
+# windows (32 bit) compat
 if hasattr(np, 'float128'):
     c2f_dict['complex256'] = np.float128
 
@@ -522,7 +519,8 @@ def encode(obj):
         elif isinstance(obj, date):
             return {u'typ': u'date',
                     u'data': u(obj.isoformat())}
-        raise Exception("cannot encode this datetimelike object: %s" % obj)
+        raise Exception(
+            "cannot encode this datetimelike object: {obj}".format(obj=obj))
     elif isinstance(obj, Period):
         return {u'typ': u'period',
                 u'ordinal': obj.ordinal,
@@ -588,26 +586,28 @@ def decode(obj):
         dtype = dtype_for(obj[u'dtype'])
         data = unconvert(obj[u'data'], dtype,
                          obj.get(u'compress'))
-        return globals()[obj[u'klass']](data, dtype=dtype, name=obj[u'name'])
+        return Index(data, dtype=dtype, name=obj[u'name'])
     elif typ == u'range_index':
-        return globals()[obj[u'klass']](obj[u'start'],
-                                        obj[u'stop'],
-                                        obj[u'step'],
-                                        name=obj[u'name'])
+        return RangeIndex(obj[u'start'],
+                          obj[u'stop'],
+                          obj[u'step'],
+                          name=obj[u'name'])
     elif typ == u'multi_index':
         dtype = dtype_for(obj[u'dtype'])
         data = unconvert(obj[u'data'], dtype,
                          obj.get(u'compress'))
         data = [tuple(x) for x in data]
-        return globals()[obj[u'klass']].from_tuples(data, names=obj[u'names'])
+        return MultiIndex.from_tuples(data, names=obj[u'names'])
     elif typ == u'period_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
         d = dict(name=obj[u'name'], freq=obj[u'freq'])
-        return globals()[obj[u'klass']]._from_ordinals(data, **d)
+        freq = d.pop('freq', None)
+        return PeriodIndex(PeriodArray(data, freq), **d)
+
     elif typ == u'datetime_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
-        d = dict(name=obj[u'name'], freq=obj[u'freq'], verify_integrity=False)
-        result = globals()[obj[u'klass']](data, **d)
+        d = dict(name=obj[u'name'], freq=obj[u'freq'])
+        result = DatetimeIndex(data, **d)
         tz = obj[u'tz']
 
         # reverse tz conversion
@@ -633,11 +633,10 @@ def decode(obj):
         pd_dtype = pandas_dtype(dtype)
 
         index = obj[u'index']
-        result = globals()[obj[u'klass']](unconvert(obj[u'data'], dtype,
-                                                    obj[u'compress']),
-                                          index=index,
-                                          dtype=pd_dtype,
-                                          name=obj[u'name'])
+        result = Series(unconvert(obj[u'data'], dtype, obj[u'compress']),
+                        index=index,
+                        dtype=pd_dtype,
+                        name=obj[u'name'])
         return result
 
     elif typ == u'block_manager':
@@ -654,6 +653,12 @@ def decode(obj):
                 placement = b[u'locs']
             else:
                 placement = axes[0].get_indexer(b[u'items'])
+
+            if is_datetime64tz_dtype(b[u'dtype']):
+                assert isinstance(values, np.ndarray), type(values)
+                assert values.dtype == 'M8[ns]', values.dtype
+                values = DatetimeArray(values, dtype=b[u'dtype'])
+
             return make_block(values=values,
                               klass=getattr(internals, b[u'klass']),
                               placement=placement,
@@ -673,18 +678,18 @@ def decode(obj):
         return np.timedelta64(int(obj[u'data']))
     # elif typ == 'sparse_series':
     #    dtype = dtype_for(obj['dtype'])
-    #    return globals()[obj['klass']](
+    #    return SparseSeries(
     #        unconvert(obj['sp_values'], dtype, obj['compress']),
     #        sparse_index=obj['sp_index'], index=obj['index'],
     #        fill_value=obj['fill_value'], kind=obj['kind'], name=obj['name'])
     # elif typ == 'sparse_dataframe':
-    #    return globals()[obj['klass']](
+    #    return SparseDataFrame(
     #        obj['data'], columns=obj['columns'],
     #        default_fill_value=obj['default_fill_value'],
     #        default_kind=obj['default_kind']
     #    )
     # elif typ == 'sparse_panel':
-    #    return globals()[obj['klass']](
+    #    return SparsePanel(
     #        obj['data'], items=obj['items'],
     #        default_fill_value=obj['default_fill_value'],
     #        default_kind=obj['default_kind'])
@@ -703,7 +708,7 @@ def decode(obj):
             dtype = dtype_for(obj[u'dtype'])
             try:
                 return dtype(obj[u'data'])
-            except:
+            except (ValueError, TypeError):
                 return dtype.type(obj[u'data'])
     elif typ == u'np_complex':
         return complex(obj[u'real'] + u'+' + obj[u'imag'] + u'j')

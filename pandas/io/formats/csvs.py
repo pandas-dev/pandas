@@ -5,29 +5,24 @@ Module for formatting output data into CSV files.
 
 from __future__ import print_function
 
-import warnings
-
 import csv as csvlib
+import os
+import warnings
 from zipfile import ZipFile
 
 import numpy as np
 
 from pandas._libs import writers as libwriters
-
-from pandas import compat
 from pandas.compat import StringIO, range, zip
 
-from pandas.core.dtypes.missing import notna
 from pandas.core.dtypes.generic import (
-    ABCMultiIndex, ABCPeriodIndex, ABCDatetimeIndex, ABCIndexClass)
+    ABCDatetimeIndex, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex)
+from pandas.core.dtypes.missing import notna
+
+from pandas import compat
 
 from pandas.io.common import (
-    _expand_user,
-    _get_handle,
-    _infer_compression,
-    _stringify_path,
-    UnicodeWriter,
-)
+    UnicodeWriter, _get_handle, _infer_compression, get_filepath_or_buffer)
 
 
 class CSVFormatter(object):
@@ -45,7 +40,9 @@ class CSVFormatter(object):
         if path_or_buf is None:
             path_or_buf = StringIO()
 
-        self.path_or_buf = _expand_user(_stringify_path(path_or_buf))
+        self.path_or_buf, _, _, _ = get_filepath_or_buffer(
+            path_or_buf, encoding=encoding, compression=compression, mode=mode
+        )
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
@@ -72,7 +69,7 @@ class CSVFormatter(object):
         self.doublequote = doublequote
         self.escapechar = escapechar
 
-        self.line_terminator = line_terminator
+        self.line_terminator = line_terminator or os.linesep
 
         self.date_format = date_format
 

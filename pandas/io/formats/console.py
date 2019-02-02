@@ -2,8 +2,9 @@
 Internal module for console introspection
 """
 
-import sys
 import locale
+import sys
+
 from pandas.io.formats.terminal import get_terminal_size
 
 # -----------------------------------------------------------------------------
@@ -94,13 +95,16 @@ def in_interactive_session():
     from pandas import get_option
 
     def check_main():
-        import __main__ as main
+        try:
+            import __main__ as main
+        except ModuleNotFoundError:
+            return get_option('mode.sim_interactive')
         return (not hasattr(main, '__file__') or
                 get_option('mode.sim_interactive'))
 
     try:
         return __IPYTHON__ or check_main()  # noqa
-    except:
+    except NameError:
         return check_main()
 
 
@@ -118,7 +122,7 @@ def in_qtconsole():
             ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
         if 'qtconsole' in front_end.lower():
             return True
-    except:
+    except NameError:
         return False
     return False
 
@@ -137,7 +141,7 @@ def in_ipnb():
             ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
         if 'notebook' in front_end.lower():
             return True
-    except:
+    except NameError:
         return False
     return False
 
@@ -149,7 +153,7 @@ def in_ipython_frontend():
     try:
         ip = get_ipython()  # noqa
         return 'zmq' in str(type(ip)).lower()
-    except:
+    except NameError:
         pass
 
     return False

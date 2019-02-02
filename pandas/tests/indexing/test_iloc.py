@@ -1,16 +1,17 @@
 """ test positional based indexing with iloc """
 
+from warnings import catch_warnings, filterwarnings, simplefilter
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings, filterwarnings, simplefilter
-import numpy as np
+from pandas.compat import lmap, lrange
 
 import pandas as pd
-from pandas.compat import lrange, lmap
-from pandas import Series, DataFrame, date_range, concat, isna
-from pandas.util import testing as tm
-from pandas.tests.indexing.common import Base
+from pandas import DataFrame, Series, concat, date_range, isna
 from pandas.api.types import is_scalar
+from pandas.tests.indexing.common import Base
+from pandas.util import testing as tm
 
 
 class TestiLoc(Base):
@@ -20,33 +21,38 @@ class TestiLoc(Base):
         # GH6296
         # iloc should allow indexers that exceed the bounds
         df = DataFrame(np.random.random_sample((20, 5)), columns=list('ABCDE'))
-        expected = df
 
         # lists of positions should raise IndexErrror!
-        with tm.assert_raises_regex(IndexError,
-                                    'positional indexers '
-                                    'are out-of-bounds'):
+        msg = 'positional indexers are out-of-bounds'
+        with pytest.raises(IndexError, match=msg):
             df.iloc[:, [0, 1, 2, 3, 4, 5]]
-        pytest.raises(IndexError, lambda: df.iloc[[1, 30]])
-        pytest.raises(IndexError, lambda: df.iloc[[1, -30]])
-        pytest.raises(IndexError, lambda: df.iloc[[100]])
+        with pytest.raises(IndexError, match=msg):
+            df.iloc[[1, 30]]
+        with pytest.raises(IndexError, match=msg):
+            df.iloc[[1, -30]]
+        with pytest.raises(IndexError, match=msg):
+            df.iloc[[100]]
 
         s = df['A']
-        pytest.raises(IndexError, lambda: s.iloc[[100]])
-        pytest.raises(IndexError, lambda: s.iloc[[-100]])
+        with pytest.raises(IndexError, match=msg):
+            s.iloc[[100]]
+        with pytest.raises(IndexError, match=msg):
+            s.iloc[[-100]]
 
         # still raise on a single indexer
         msg = 'single positional indexer is out-of-bounds'
-        with tm.assert_raises_regex(IndexError, msg):
+        with pytest.raises(IndexError, match=msg):
             df.iloc[30]
-        pytest.raises(IndexError, lambda: df.iloc[-30])
+        with pytest.raises(IndexError, match=msg):
+            df.iloc[-30]
 
         # GH10779
         # single positive/negative indexer exceeding Series bounds should raise
         # an IndexError
-        with tm.assert_raises_regex(IndexError, msg):
+        with pytest.raises(IndexError, match=msg):
             s.iloc[30]
-        pytest.raises(IndexError, lambda: s.iloc[-30])
+        with pytest.raises(IndexError, match=msg):
+            s.iloc[-30]
 
         # slices are ok
         result = df.iloc[:, 4:10]  # 0 < start < len < stop
@@ -105,8 +111,12 @@ class TestiLoc(Base):
         check(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
         check(dfl.iloc[4:6], dfl.iloc[[4]])
 
-        pytest.raises(IndexError, lambda: dfl.iloc[[4, 5, 6]])
-        pytest.raises(IndexError, lambda: dfl.iloc[:, 4])
+        msg = "positional indexers are out-of-bounds"
+        with pytest.raises(IndexError, match=msg):
+            dfl.iloc[[4, 5, 6]]
+        msg = "single positional indexer is out-of-bounds"
+        with pytest.raises(IndexError, match=msg):
+            dfl.iloc[:, 4]
 
     def test_iloc_getitem_int(self):
 
@@ -135,8 +145,8 @@ class TestiLoc(Base):
         else:
             s = DataFrame(np.arange(100).reshape(10, 10))
 
-        tm.assert_raises_regex(TypeError, 'Cannot index by location index',
-                               lambda: s.iloc['a'])
+        with pytest.raises(TypeError, match='Cannot index by location index'):
+            s.iloc['a']
 
     def test_iloc_array_not_mutating_negative_indices(self):
 
@@ -297,33 +307,6 @@ class TestiLoc(Base):
         expected = Series([0, 1, 0], index=[4, 5, 6])
         tm.assert_series_equal(s, expected)
 
-    @pytest.mark.parametrize(
-        'data, indexes, values, expected_k', [
-            # test without indexer value in first level of MultiIndex
-            ([[2, 22, 5], [2, 33, 6]], [0, -1, 1], [2, 3, 1], [7, 10]),
-            # test like code sample 1 in the issue
-            ([[1, 22, 555], [1, 33, 666]], [0, -1, 1], [200, 300, 100],
-                [755, 1066]),
-            # test like code sample 2 in the issue
-            ([[1, 3, 7], [2, 4, 8]], [0, -1, 1], [10, 10, 1000], [17, 1018]),
-            # test like code sample 3 in the issue
-            ([[1, 11, 4], [2, 22, 5], [3, 33, 6]], [0, -1, 1], [4, 7, 10],
-                [8, 15, 13])
-        ])
-    def test_iloc_setitem_int_multiindex_series(
-            self, data, indexes, values, expected_k):
-        # GH17148
-        df = DataFrame(data=data, columns=['i', 'j', 'k'])
-        df = df.set_index(['i', 'j'])
-
-        series = df.k.copy()
-        for i, v in zip(indexes, values):
-            series.iloc[i] += v
-
-        df['k'] = expected_k
-        expected = df.k
-        tm.assert_series_equal(series, expected)
-
     def test_iloc_setitem_list(self):
 
         # setitem with an iloc list
@@ -338,7 +321,7 @@ class TestiLoc(Base):
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_pandas_object(self):
-        # GH 17193, affecting old numpy (1.7 and 1.8)
+        # GH 17193
         s_orig = Series([0, 1, 2, 3])
         expected = Series([0, -1, -2, 3])
 
@@ -465,10 +448,16 @@ class TestiLoc(Base):
         assert result == exp
 
         # out-of-bounds exception
-        pytest.raises(IndexError, df.iloc.__getitem__, tuple([10, 5]))
+        msg = "single positional indexer is out-of-bounds"
+        with pytest.raises(IndexError, match=msg):
+            df.iloc[10, 5]
 
         # trying to use a label
-        pytest.raises(ValueError, df.iloc.__getitem__, tuple(['j', 'D']))
+        msg = (r"Location based indexing can only have \[integer, integer"
+               r" slice \(START point is INCLUDED, END point is EXCLUDED\),"
+               r" listlike of integers, boolean array\] types")
+        with pytest.raises(ValueError, match=msg):
+            df.iloc['j', 'D']
 
     def test_iloc_getitem_doc_issue(self):
 
@@ -583,10 +572,15 @@ class TestiLoc(Base):
         # GH 3631, iloc with a mask (of a series) should raise
         df = DataFrame(lrange(5), list('ABCDE'), columns=['a'])
         mask = (df.a % 2 == 0)
-        pytest.raises(ValueError, df.iloc.__getitem__, tuple([mask]))
+        msg = ("iLocation based boolean indexing cannot use an indexable as"
+               " a mask")
+        with pytest.raises(ValueError, match=msg):
+            df.iloc[mask]
         mask.index = lrange(len(mask))
-        pytest.raises(NotImplementedError, df.iloc.__getitem__,
-                      tuple([mask]))
+        msg = ("iLocation based boolean indexing on an integer type is not"
+               " available")
+        with pytest.raises(NotImplementedError, match=msg):
+            df.iloc[mask]
 
         # ndarray ok
         result = df.iloc[np.array([True] * len(mask), dtype=bool)]

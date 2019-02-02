@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from cython import Py_ssize_t
-
 # dateutil compat
 from dateutil.tz import (
     tzutc as _dateutil_tzutc,
@@ -21,13 +19,14 @@ from numpy cimport int64_t
 cnp.import_array()
 
 # ----------------------------------------------------------------------
-from util cimport is_string_object, is_integer_object, get_nat
+from pandas._libs.tslibs.util cimport (
+    is_string_object, is_integer_object, get_nat)
 
 cdef int64_t NPY_NAT = get_nat()
 
 # ----------------------------------------------------------------------
 
-cdef inline bint is_utc(object tz):
+cpdef inline bint is_utc(object tz):
     return tz is UTC or isinstance(tz, _dateutil_tzutc)
 
 
@@ -36,8 +35,8 @@ cdef inline bint is_tzlocal(object tz):
 
 
 cdef inline bint treat_tz_as_pytz(object tz):
-    return hasattr(tz, '_utc_transition_times') and hasattr(
-        tz, '_transition_info')
+    return (hasattr(tz, '_utc_transition_times') and
+            hasattr(tz, '_transition_info'))
 
 
 cdef inline bint treat_tz_as_dateutil(object tz):
@@ -58,7 +57,7 @@ cpdef inline object get_timezone(object tz):
     UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
     """
     if is_utc(tz):
-        return 'UTC'
+        return tz
     else:
         if treat_tz_as_dateutil(tz):
             if '.tar.gz' in tz._filename:
@@ -322,7 +321,7 @@ cpdef bint tz_compare(object start, object end):
     return get_timezone(start) == get_timezone(end)
 
 
-cpdef tz_standardize(object tz):
+def tz_standardize(tz: object):
     """
     If the passed tz is a pytz timezone object, "normalize" it to the a
     consistent version

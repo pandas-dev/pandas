@@ -7,20 +7,19 @@ import re
 import sys
 import textwrap
 
-from numpy import nan
 import numpy as np
 import pytest
 
-from pandas import (DataFrame, Series, compat, option_context,
-                    date_range, period_range, Categorical)
-from pandas.compat import StringIO, lrange, u, PYPY
-import pandas.io.formats.format as fmt
-import pandas as pd
+from pandas.compat import PYPY, StringIO, lrange, u
 
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Series, compat, date_range, option_context,
+    period_range)
+from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
-from pandas.tests.frame.common import TestData
-
+import pandas.io.formats.format as fmt
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
@@ -49,8 +48,8 @@ class TestDataFrameReprInfoEtc(TestData):
         biggie = DataFrame({'A': np.random.randn(200),
                             'B': tm.makeStringIndex(200)},
                            index=lrange(200))
-        biggie.loc[:20, 'A'] = nan
-        biggie.loc[:20, 'B'] = nan
+        biggie.loc[:20, 'A'] = np.nan
+        biggie.loc[:20, 'B'] = np.nan
 
         foo = repr(biggie)  # noqa
 
@@ -194,7 +193,6 @@ class TestDataFrameReprInfoEtc(TestData):
         # GH 12182
         assert df._repr_latex_() is None
 
-    @tm.capture_stdout
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)
@@ -514,12 +512,12 @@ class TestDataFrameReprInfoEtc(TestData):
                         tz='US/Eastern')
         p = period_range('2011-01', freq='M', periods=5)
         df = DataFrame({'dt': dt, 'p': p})
-        exp = """                         dt       p
-0 2011-01-01 09:00:00-05:00 2011-01
-1 2011-01-01 10:00:00-05:00 2011-02
-2 2011-01-01 11:00:00-05:00 2011-03
-3 2011-01-01 12:00:00-05:00 2011-04
-4 2011-01-01 13:00:00-05:00 2011-05"""
+        exp = """                         dt        p
+0 2011-01-01 09:00:00-05:00  2011-01
+1 2011-01-01 10:00:00-05:00  2011-02
+2 2011-01-01 11:00:00-05:00  2011-03
+3 2011-01-01 12:00:00-05:00  2011-04
+4 2011-01-01 13:00:00-05:00  2011-05"""
 
         df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
         assert repr(df) == exp

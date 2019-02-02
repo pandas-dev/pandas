@@ -4,12 +4,9 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import Series, date_range, NaT
 
-from .pandas_vb_common import setup  # noqa
-
 
 class SeriesConstructor(object):
 
-    goal_time = 0.2
     params = [None, 'dict']
     param_names = ['data']
 
@@ -26,8 +23,7 @@ class SeriesConstructor(object):
 
 class IsIn(object):
 
-    goal_time = 0.2
-    params = ['int64', 'object']
+    params = ['int64', 'uint64', 'object']
     param_names = ['dtype']
 
     def setup(self, dtype):
@@ -98,7 +94,6 @@ class IsInForObjects(object):
 
 class NSort(object):
 
-    goal_time = 0.2
     params = ['first', 'last', 'all']
     param_names = ['keep']
 
@@ -114,7 +109,6 @@ class NSort(object):
 
 class Dropna(object):
 
-    goal_time = 0.2
     params = ['int', 'datetime']
     param_names = ['dtype']
 
@@ -132,7 +126,6 @@ class Dropna(object):
 
 class Map(object):
 
-    goal_time = 0.2
     params = ['dict', 'Series']
     param_names = 'mapper'
 
@@ -147,20 +140,19 @@ class Map(object):
 
 
 class Clip(object):
+    params = [50, 1000, 10**5]
+    param_names = ['n']
 
-    goal_time = 0.2
+    def setup(self, n):
+        self.s = Series(np.random.randn(n))
 
-    def setup(self):
-        self.s = Series(np.random.randn(50))
-
-    def time_clip(self):
+    def time_clip(self, n):
         self.s.clip(0, 1)
 
 
 class ValueCounts(object):
 
-    goal_time = 0.2
-    params = ['int', 'float', 'object']
+    params = ['int', 'uint', 'float', 'object']
     param_names = ['dtype']
 
     def setup(self, dtype):
@@ -172,8 +164,6 @@ class ValueCounts(object):
 
 class Dir(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.s = Series(index=tm.makeStringIndex(10000))
 
@@ -183,8 +173,6 @@ class Dir(object):
 
 class SeriesGetattr(object):
     # https://github.com/pandas-dev/pandas/issues/19764
-    goal_time = 0.2
-
     def setup(self):
         self.s = Series(1,
                         index=date_range("2012-01-01", freq='s',
@@ -192,3 +180,6 @@ class SeriesGetattr(object):
 
     def time_series_datetimeindex_repr(self):
         getattr(self.s, 'a', None)
+
+
+from .pandas_vb_common import setup  # noqa: F401

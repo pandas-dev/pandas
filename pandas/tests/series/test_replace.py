@@ -1,11 +1,10 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
-import pandas._libs.lib as lib
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -64,7 +63,7 @@ class TestSeriesReplace(TestData):
         ser = pd.Series([np.nan, 0, np.inf])
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 
-        ser = pd.Series([np.nan, 0, 'foo', 'bar', np.inf, None, lib.NaT])
+        ser = pd.Series([np.nan, 0, 'foo', 'bar', np.inf, None, pd.NaT])
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
         filled = ser.copy()
         filled[4] = 0
@@ -74,11 +73,13 @@ class TestSeriesReplace(TestData):
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 
         # malformed
-        pytest.raises(ValueError, ser.replace, [1, 2, 3], [np.nan, 0])
+        msg = r"Replacement lists must match in length\. Expecting 3 got 2"
+        with pytest.raises(ValueError, match=msg):
+            ser.replace([1, 2, 3], [np.nan, 0])
 
         # make sure that we aren't just masking a TypeError because bools don't
         # implement indexing
-        with tm.assert_raises_regex(TypeError, 'Cannot compare types .+'):
+        with pytest.raises(TypeError, match='Cannot compare types .+'):
             ser.replace([1, 2], [np.nan, 0])
 
         ser = pd.Series([0, 1, 2, 3, 4])
@@ -126,7 +127,9 @@ class TestSeriesReplace(TestData):
 
         # make sure things don't get corrupted when fillna call fails
         s = ser.copy()
-        with pytest.raises(ValueError):
+        msg = (r"Invalid fill method\. Expecting pad \(ffill\) or backfill"
+               r" \(bfill\)\. Got crash_cymbal")
+        with pytest.raises(ValueError, match=msg):
             s.replace([1, 2, 3], inplace=True, method='crash_cymbal')
         tm.assert_series_equal(s, ser)
 
@@ -138,9 +141,9 @@ class TestSeriesReplace(TestData):
         tm.assert_series_equal(result, expected)
 
         # GH 19266
-        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+        with pytest.raises(ValueError, match="cannot assign mismatch"):
             s.replace({np.nan: []})
-        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+        with pytest.raises(ValueError, match="cannot assign mismatch"):
             s.replace({np.nan: ['dummy', 'alt']})
 
     def test_replace_mixed_types(self):
@@ -206,7 +209,7 @@ class TestSeriesReplace(TestData):
 
     def test_replace_with_dict_with_bool_keys(self):
         s = pd.Series([True, False, True])
-        with tm.assert_raises_regex(TypeError, 'Cannot compare types .+'):
+        with pytest.raises(TypeError, match='Cannot compare types .+'):
             s.replace({'asdf': 'asdb', True: 'yes'})
 
     def test_replace2(self):

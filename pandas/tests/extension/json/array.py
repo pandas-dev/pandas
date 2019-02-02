@@ -13,18 +13,22 @@ hack around pandas by using UserDicts.
 import collections
 import itertools
 import numbers
+import random
+import string
 import sys
 
 import numpy as np
 
-from pandas import compat
 from pandas.core.dtypes.base import ExtensionDtype
+
+from pandas import compat
 from pandas.core.arrays import ExtensionArray
 
 
 class JSONDtype(ExtensionDtype):
     type = compat.Mapping
     name = 'json'
+
     try:
         na_value = collections.UserDict()
     except AttributeError:
@@ -52,6 +56,7 @@ class JSONDtype(ExtensionDtype):
 
 class JSONArray(ExtensionArray):
     dtype = JSONDtype()
+    __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False):
         for val in values:
@@ -110,9 +115,6 @@ class JSONArray(ExtensionArray):
     def __len__(self):
         return len(self.data)
 
-    def __repr__(self):
-        return 'JSONArary({!r})'.format(self.data)
-
     @property
     def nbytes(self):
         return sys.getsizeof(self.data)
@@ -155,6 +157,12 @@ class JSONArray(ExtensionArray):
         # NumPy has issues when all the dicts are the same length.
         # np.array([UserDict(...), UserDict(...)]) fails,
         # but np.array([{...}, {...}]) works, so cast.
+
+        # needed to add this check for the Series constructor
+        if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
+            if copy:
+                return self.copy()
+            return self
         return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def unique(self):
@@ -171,6 +179,9 @@ class JSONArray(ExtensionArray):
 
     def _values_for_factorize(self):
         frozen = self._values_for_argsort()
+        if len(frozen) == 0:
+            # _factorize_array expects 1-d array, this is a len-0 2-d array.
+            frozen = frozen.ravel()
         return frozen, ()
 
     def _values_for_argsort(self):
@@ -179,3 +190,10 @@ class JSONArray(ExtensionArray):
         # cast them to an (N, P) array, instead of an (N,) array of tuples.
         frozen = [()] + [tuple(x.items()) for x in self]
         return np.array(frozen, dtype=object)[1:]
+
+
+def make_data():
+    # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
+    return [collections.UserDict([
+        (random.choice(string.ascii_letters), random.randint(0, 100))
+        for _ in range(random.randint(0, 10))]) for _ in range(100)]

@@ -2,12 +2,11 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Series, to_numeric
 
-from .pandas_vb_common import numeric_dtypes, lib, setup  # noqa
+from .pandas_vb_common import numeric_dtypes, lib
 
 
 class NumericInferOps(object):
     # from GH 7332
-    goal_time = 0.2
     params = numeric_dtypes
     param_names = ['dtype']
 
@@ -34,8 +33,6 @@ class NumericInferOps(object):
 
 class DateInferOps(object):
     # from GH 7332
-    goal_time = 0.2
-
     def setup_cache(self):
         N = 5 * 10**5
         df = DataFrame({'datetime64': np.arange(N).astype('datetime64[ms]')})
@@ -54,7 +51,6 @@ class DateInferOps(object):
 
 class ToNumeric(object):
 
-    goal_time = 0.2
     params = ['ignore', 'coerce']
     param_names = ['errors']
 
@@ -111,3 +107,6 @@ class MaybeConvertNumeric(object):
 
     def time_convert(self, data):
         lib.maybe_convert_numeric(data, set(), coerce_numeric=False)
+
+
+from .pandas_vb_common import setup  # noqa: F401

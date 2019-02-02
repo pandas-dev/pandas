@@ -215,7 +215,8 @@ cdef inline bint is_offset_object(object val):
 
 cdef inline bint is_nan(object val):
     """
-    Check if val is a Not-A-Number float, including float('NaN') and np.nan.
+    Check if val is a Not-A-Number float or complex, including
+    float('NaN') and np.nan.
 
     Parameters
     ----------
@@ -225,4 +226,4 @@ cdef inline bint is_nan(object val):
     -------
     is_nan : bool
     """
-    return is_float_object(val) and val != val
+    return (is_float_object(val) or is_complex_object(val)) and val != val

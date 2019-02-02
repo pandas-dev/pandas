@@ -1,21 +1,21 @@
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
+from pandas import DataFrame, PeriodIndex, Series, period_range
 from pandas.util import testing as tm
-from pandas import PeriodIndex, Series, DataFrame
 
 
 class TestPeriodIndex(object):
 
     def test_asfreq(self):
-        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='1/1/2001')
-        pi2 = PeriodIndex(freq='Q', start='1/1/2001', end='1/1/2001')
-        pi3 = PeriodIndex(freq='M', start='1/1/2001', end='1/1/2001')
-        pi4 = PeriodIndex(freq='D', start='1/1/2001', end='1/1/2001')
-        pi5 = PeriodIndex(freq='H', start='1/1/2001', end='1/1/2001 00:00')
-        pi6 = PeriodIndex(freq='Min', start='1/1/2001', end='1/1/2001 00:00')
-        pi7 = PeriodIndex(freq='S', start='1/1/2001', end='1/1/2001 00:00:00')
+        pi1 = period_range(freq='A', start='1/1/2001', end='1/1/2001')
+        pi2 = period_range(freq='Q', start='1/1/2001', end='1/1/2001')
+        pi3 = period_range(freq='M', start='1/1/2001', end='1/1/2001')
+        pi4 = period_range(freq='D', start='1/1/2001', end='1/1/2001')
+        pi5 = period_range(freq='H', start='1/1/2001', end='1/1/2001 00:00')
+        pi6 = period_range(freq='Min', start='1/1/2001', end='1/1/2001 00:00')
+        pi7 = period_range(freq='S', start='1/1/2001', end='1/1/2001 00:00:00')
 
         assert pi1.asfreq('Q', 'S') == pi2
         assert pi1.asfreq('Q', 's') == pi2
@@ -70,7 +70,7 @@ class TestPeriodIndex(object):
         pytest.raises(ValueError, pi7.asfreq, 'T', 'foo')
         result1 = pi1.asfreq('3M')
         result2 = pi1.asfreq('M')
-        expected = PeriodIndex(freq='M', start='2001-12', end='2001-12')
+        expected = period_range(freq='M', start='2001-12', end='2001-12')
         tm.assert_numpy_array_equal(result1.asi8, expected.asi8)
         assert result1.freqstr == '3M'
         tm.assert_numpy_array_equal(result2.asi8, expected.asi8)
@@ -126,7 +126,7 @@ class TestPeriodIndex(object):
             assert result.freq == exp.freq
 
     def test_asfreq_ts(self):
-        index = PeriodIndex(freq='A', start='1/1/2001', end='12/31/2010')
+        index = period_range(freq='A', start='1/1/2001', end='12/31/2010')
         ts = Series(np.random.randn(len(index)), index=index)
         df = DataFrame(np.random.randn(len(index), 3), index=index)
 

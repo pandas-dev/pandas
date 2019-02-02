@@ -1,19 +1,22 @@
+from datetime import date, datetime
 import subprocess
 import sys
-import pytest
-from datetime import datetime, date
 
 import numpy as np
-from pandas import Timestamp, Period, Index, date_range, Series
+import pytest
+
 from pandas.compat import u
-import pandas.core.config as cf
-import pandas.util.testing as tm
-from pandas.tseries.offsets import Second, Milli, Micro, Day
 from pandas.compat.numpy import np_datetime64_compat
 
+from pandas import Index, Period, Series, Timestamp, date_range
+import pandas.core.config as cf
+import pandas.util.testing as tm
+
+from pandas.tseries.offsets import Day, Micro, Milli, Second
+
 converter = pytest.importorskip('pandas.plotting._converter')
-from pandas.plotting import (register_matplotlib_converters,
-                             deregister_matplotlib_converters)
+from pandas.plotting import (deregister_matplotlib_converters,  # isort:skip
+                             register_matplotlib_converters)
 
 
 def test_timtetonum_accepts_unicode():
@@ -236,29 +239,17 @@ class TestDateTimeConverter(object):
         xp = converter.dates.date2num(values[0])
         assert rs == xp
 
-    def test_time_formatter(self):
+    @pytest.mark.parametrize('time,format_expected', [
+        (0, '00:00'),  # time2num(datetime.time.min)
+        (86399.999999, '23:59:59.999999'),  # time2num(datetime.time.max)
+        (90000, '01:00'),
+        (3723, '01:02:03'),
+        (39723.2, '11:02:03.200')
+    ])
+    def test_time_formatter(self, time, format_expected):
         # issue 18478
-
-        # time2num(datetime.time.min)
-        rs = self.tc(0)
-        xp = '00:00'
-        assert rs == xp
-
-        # time2num(datetime.time.max)
-        rs = self.tc(86399.999999)
-        xp = '23:59:59.999999'
-        assert rs == xp
-
-        # some other times
-        rs = self.tc(90000)
-        xp = '01:00'
-        assert rs == xp
-        rs = self.tc(3723)
-        xp = '01:02:03'
-        assert rs == xp
-        rs = self.tc(39723.2)
-        xp = '11:02:03.200'
-        assert rs == xp
+        result = self.tc(time)
+        assert result == format_expected
 
     def test_dateindex_conversion(self):
         decimals = 9
@@ -285,11 +276,11 @@ class TestDateTimeConverter(object):
         _assert_less(ts, ts + Micro(50))
 
     def test_convert_nested(self):
-        inner = [Timestamp('2017-01-01', Timestamp('2017-01-02'))]
+        inner = [Timestamp('2017-01-01'), Timestamp('2017-01-02')]
         data = [inner, inner]
         result = self.dtc.convert(data, None, None)
         expected = [self.dtc.convert(x, None, None) for x in data]
-        assert result == expected
+        assert (np.array(result) == expected).all()
 
 
 class TestPeriodConverter(object):

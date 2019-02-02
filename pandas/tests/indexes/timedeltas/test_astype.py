@@ -1,12 +1,13 @@
 from datetime import timedelta
 
+import numpy as np
 import pytest
 
-import numpy as np
-
+import pandas as pd
+from pandas import (
+    Float64Index, Index, Int64Index, NaT, Timedelta, TimedeltaIndex,
+    timedelta_range)
 import pandas.util.testing as tm
-from pandas import (TimedeltaIndex, timedelta_range, Int64Index, Float64Index,
-                    Index, Timedelta, NaT)
 
 
 class TestTimedeltaIndex(object):
@@ -52,6 +53,15 @@ class TestTimedeltaIndex(object):
         tm.assert_index_equal(result, Index(rng.asi8))
         tm.assert_numpy_array_equal(rng.asi8, result.values)
 
+    def test_astype_uint(self):
+        arr = timedelta_range('1H', periods=2)
+        expected = pd.UInt64Index(
+            np.array([3600000000000, 90000000000000], dtype="uint64")
+        )
+
+        tm.assert_index_equal(arr.astype("uint64"), expected)
+        tm.assert_index_equal(arr.astype("uint32"), expected)
+
     def test_astype_timedelta64(self):
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, 'NaT', NaT, np.NaN])
@@ -73,6 +83,28 @@ class TestTimedeltaIndex(object):
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, 'NaT', NaT, np.NaN])
-        msg = 'Cannot cast TimedeltaIndex to dtype'
-        with tm.assert_raises_regex(TypeError, msg):
+        msg = 'Cannot cast TimedeltaArray to dtype'
+        with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
+
+    def test_astype_category(self):
+        obj = pd.timedelta_range("1H", periods=2, freq='H')
+
+        result = obj.astype('category')
+        expected = pd.CategoricalIndex([pd.Timedelta('1H'),
+                                        pd.Timedelta('2H')])
+        tm.assert_index_equal(result, expected)
+
+        result = obj._data.astype('category')
+        expected = expected.values
+        tm.assert_categorical_equal(result, expected)
+
+    def test_astype_array_fallback(self):
+        obj = pd.timedelta_range("1H", periods=2)
+        result = obj.astype(bool)
+        expected = pd.Index(np.array([True, True]))
+        tm.assert_index_equal(result, expected)
+
+        result = obj._data.astype(bool)
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)

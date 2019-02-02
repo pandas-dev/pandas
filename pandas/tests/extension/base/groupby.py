@@ -1,7 +1,8 @@
 import pytest
 
-import pandas.util.testing as tm
 import pandas as pd
+import pandas.util.testing as tm
+
 from .base import BaseExtensionTests
 
 
@@ -25,8 +26,8 @@ class BaseGroupbyTests(BaseExtensionTests):
                            "B": data_for_grouping})
         result = df.groupby("B", as_index=as_index).A.mean()
         _, index = pd.factorize(data_for_grouping, sort=True)
-        # TODO(ExtensionIndex): remove astype
-        index = pd.Index(index.astype(object), name="B")
+
+        index = pd.Index(index, name="B")
         expected = pd.Series([3, 1, 4], index=index, name="A")
         if as_index:
             self.assert_series_equal(result, expected)
@@ -39,8 +40,8 @@ class BaseGroupbyTests(BaseExtensionTests):
                            "B": data_for_grouping})
         result = df.groupby("B", sort=False).A.mean()
         _, index = pd.factorize(data_for_grouping, sort=False)
-        # TODO(ExtensionIndex): remove astype
-        index = pd.Index(index.astype(object), name="B")
+
+        index = pd.Index(index, name="B")
         expected = pd.Series([1, 3, 4], index=index, name="A")
         self.assert_series_equal(result, expected)
 

@@ -1,17 +1,17 @@
 """ test indexing with ix """
 
-import pytest
-
 from warnings import catch_warnings
 
 import numpy as np
-import pandas as pd
+import pytest
+
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_scalar
-from pandas.compat import lrange
-from pandas import Series, DataFrame, option_context, MultiIndex
+
+import pandas as pd
+from pandas import DataFrame, Series, option_context
 from pandas.util import testing as tm
-from pandas.errors import PerformanceWarning
 
 
 def test_ix_deprecation():
@@ -102,7 +102,12 @@ class TestIX(object):
                 with catch_warnings(record=True):
                     df.ix[key]
 
-                pytest.raises(TypeError, lambda: df.loc[key])
+                msg = (r"cannot do slice indexing"
+                       r" on {klass} with these indexers \[(0|1)\] of"
+                       r" {kind}"
+                       .format(klass=type(df.index), kind=str(int)))
+                with pytest.raises(TypeError, match=msg):
+                    df.loc[key]
 
         df = DataFrame(np.random.randn(5, 4), columns=list('ABCD'),
                        index=pd.date_range('2012-01-01', periods=5))
@@ -122,7 +127,8 @@ class TestIX(object):
                 with catch_warnings(record=True):
                     expected = df.ix[key]
             except KeyError:
-                pytest.raises(KeyError, lambda: df.loc[key])
+                with pytest.raises(KeyError, match=r"^'2012-01-31'$"):
+                    df.loc[key]
                 continue
 
             result = df.loc[key]
@@ -177,31 +183,6 @@ class TestIX(object):
                                       3: 4,
                                       4: 5}})
         tm.assert_frame_equal(df, expected)
-
-    def test_ix_general(self):
-
-        # ix general issues
-
-        # GH 2817
-        data = {'amount': {0: 700, 1: 600, 2: 222, 3: 333, 4: 444},
-                'col': {0: 3.5, 1: 3.5, 2: 4.0, 3: 4.0, 4: 4.0},
-                'year': {0: 2012, 1: 2011, 2: 2012, 3: 2012, 4: 2012}}
-        df = DataFrame(data).set_index(keys=['col', 'year'])
-        key = 4.0, 2012
-
-        # emits a PerformanceWarning, ok
-        with tm.assert_produces_warning(PerformanceWarning):
-            tm.assert_frame_equal(df.loc[key], df.iloc[2:])
-
-        # this is ok
-        df.sort_index(inplace=True)
-        res = df.loc[key]
-
-        # col has float dtype, result should be Float64Index
-        index = MultiIndex.from_arrays([[4.] * 3, [2012] * 3],
-                                       names=['col', 'year'])
-        expected = DataFrame({'amount': [222, 333, 444]}, index=index)
-        tm.assert_frame_equal(res, expected)
 
     def test_ix_assign_column_mixed(self):
         # GH #1142
@@ -304,14 +285,18 @@ class TestIX(object):
             np.random.randn(2, 5), index=["row%s" % i for i in range(2)],
             columns=["col%s" % i for i in range(5)])
         with catch_warnings(record=True):
-            pytest.raises(ValueError, df.ix.__setitem__, (2, 0), 100)
+            msg = "cannot set by positional indexing with enlargement"
+            with pytest.raises(ValueError, match=msg):
+                df.ix[2, 0] = 100
 
     def test_ix_setitem_out_of_bounds_axis_1(self):
         df = DataFrame(
             np.random.randn(5, 2), index=["row%s" % i for i in range(5)],
             columns=["col%s" % i for i in range(2)])
         with catch_warnings(record=True):
-            pytest.raises(ValueError, df.ix.__setitem__, (0, 2), 100)
+            msg = "cannot set by positional indexing with enlargement"
+            with pytest.raises(ValueError, match=msg):
+                df.ix[0, 2] = 100
 
     def test_ix_empty_list_indexer_is_ok(self):
         with catch_warnings(record=True):

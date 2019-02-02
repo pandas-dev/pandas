@@ -1,29 +1,25 @@
+import copy
 import sys
 import warnings
-import copy
+
 import numpy as np
 
-from pandas._libs.lib import infer_dtype
+from pandas._libs import lib
+from pandas.compat import range, set_function_name, string_types
 from pandas.util._decorators import cache_readonly
-from pandas.compat import u, range, string_types
-from pandas.compat import set_function_name
 
-from pandas.core.dtypes.cast import astype_nansafe
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
-from pandas.core.dtypes.common import (
-    is_integer, is_scalar, is_float,
-    is_bool_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_list_like)
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.common import (
+    is_bool_dtype, is_float, is_float_dtype, is_integer, is_integer_dtype,
+    is_list_like, is_object_dtype, is_scalar)
 from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.io.formats.printing import (
-    format_object_summary, format_object_attrs, default_pprint)
+from pandas.core import nanops
+from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.tools.numeric import to_numeric
 
 
 class _IntegerDtype(ExtensionDtype):
@@ -36,8 +32,14 @@ class _IntegerDtype(ExtensionDtype):
     The attributes name & type are set when these subclasses are created.
     """
     name = None
+    base = None
     type = None
     na_value = np.nan
+
+    def __repr__(self):
+        sign = 'U' if self.is_unsigned_integer else ''
+        return "{sign}Int{size}Dtype()".format(sign=sign,
+                                               size=8 * self.itemsize)
 
     @cache_readonly
     def is_signed_integer(self):
@@ -59,6 +61,11 @@ class _IntegerDtype(ExtensionDtype):
     @cache_readonly
     def kind(self):
         return self.numpy_dtype.kind
+
+    @cache_readonly
+    def itemsize(self):
+        """ Return the number of bytes in this dtype """
+        return self.numpy_dtype.itemsize
 
     @classmethod
     def construct_array_type(cls):
@@ -152,6 +159,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
             # https://github.com/numpy/numpy/pull/7476
             dtype = dtype.lower()
+
         if not issubclass(type(dtype), _IntegerDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
@@ -170,9 +178,12 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
 
     values = np.array(values, copy=copy)
     if is_object_dtype(values):
-        inferred_type = infer_dtype(values)
-        if inferred_type not in ['floating', 'integer',
-                                 'mixed-integer', 'mixed-integer-float']:
+        inferred_type = lib.infer_dtype(values, skipna=True)
+        if inferred_type == 'empty':
+            values = np.empty(len(values))
+            values.fill(np.nan)
+        elif inferred_type not in ['floating', 'integer',
+                                   'mixed-integer', 'mixed-integer-float']:
             raise TypeError("{} cannot be converted to an IntegerDtype".format(
                 values.dtype))
 
@@ -214,24 +225,57 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     """
     Array of integer (optional missing) values.
 
+    .. versionadded:: 0.24.0
+
+    .. warning::
+
+       IntegerArray is currently experimental, and its API or internal
+       implementation may change without warning.
+
     We represent an IntegerArray with 2 numpy arrays:
 
     - data: contains a numpy integer array of the appropriate dtype
     - mask: a boolean array holding a mask on the data, True is missing
 
     To construct an IntegerArray from generic array-like input, use
-    ``integer_array`` function instead.
+    :func:`pandas.array` with one of the integer dtypes (see examples).
+
+    See :ref:`integer_na` for more.
 
     Parameters
     ----------
-    values : integer 1D numpy array
-    mask : boolean 1D numpy array
+    values : numpy.ndarray
+        A 1-d integer-dtype array.
+    mask : numpy.ndarray
+        A 1-d boolean-dtype array indicating missing values.
     copy : bool, default False
+        Whether to copy the `values` and `mask`.
 
     Returns
     -------
     IntegerArray
 
+    Examples
+    --------
+    Create an IntegerArray with :func:`pandas.array`.
+
+    >>> int_array = pd.array([1, None, 3], dtype=pd.Int32Dtype())
+    >>> int_array
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: Int32
+
+    String aliases for the dtypes are also available. They are capitalized.
+
+    >>> pd.array([1, None, 3], dtype='Int32')
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: Int32
+
+    >>> pd.array([1, None, 3], dtype='UInt16')
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: UInt16
     """
 
     @cache_readonly
@@ -259,8 +303,20 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return integer_array(scalars, dtype=dtype, copy=copy)
 
     @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        scalars = to_numeric(strings, errors="raise")
+        return cls._from_sequence(scalars, dtype, copy)
+
+    @classmethod
     def _from_factorized(cls, values, original):
         return integer_array(values, dtype=original.dtype)
+
+    def _formatter(self, boxed=False):
+        def fmt(x):
+            if isna(x):
+                return 'NaN'
+            return str(x)
+        return fmt
 
     def __getitem__(self, item):
         if is_integer(item):
@@ -279,6 +335,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         data[self._mask] = self._na_value
         return data
 
+    __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
+
     def __array__(self, dtype=None):
         """
         the array interface, return my values
@@ -287,21 +345,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return self._coerce_to_ndarray()
 
     def __iter__(self):
-        """Iterate over elements of the array.
-
-        """
-        # This needs to be implemented so that pandas recognizes extension
-        # arrays as list-like. The default implementation makes successive
-        # calls to ``__getitem__``, which may be slower than necessary.
         for i in range(len(self)):
             if self._mask[i]:
                 yield self.dtype.na_value
             else:
                 yield self._data[i]
-
-    def _formatting_values(self):
-        # type: () -> np.ndarray
-        return self._coerce_to_ndarray()
 
     def take(self, indexer, allow_fill=False, fill_value=None):
         from pandas.api.extensions import take
@@ -352,25 +400,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def __len__(self):
         return len(self._data)
 
-    def __repr__(self):
-        """
-        Return a string representation for this object.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
-        """
-        klass = self.__class__.__name__
-        data = format_object_summary(self, default_pprint, False)
-        attrs = format_object_attrs(self)
-        space = " "
-
-        prepr = (u(",%s") %
-                 space).join(u("%s=%s") % (k, v) for k, v in attrs)
-
-        res = u("%s(%s%s)") % (klass, data, prepr)
-
-        return res
-
     @property
     def nbytes(self):
         return self._data.nbytes + self._mask.nbytes
@@ -389,7 +418,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return cls(data, mask)
 
     def astype(self, dtype, copy=True):
-        """Cast to a NumPy array or IntegerArray with 'dtype'.
+        """
+        Cast to a NumPy array or IntegerArray with 'dtype'.
 
         Parameters
         ----------
@@ -503,12 +533,20 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             op_name = op.__name__
             mask = None
+
+            if isinstance(other, (ABCSeries, ABCIndexClass)):
+                # Rely on pandas to unbox and dispatch to us.
+                return NotImplemented
+
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
+
             elif is_list_like(other):
                 other = np.asarray(other)
                 if other.ndim > 0 and len(self) != len(other):
                     raise ValueError('Lengths must match to compare')
+
+            other = lib.item_from_zerodim(other)
 
             # numpy will show a DeprecationWarning on invalid elementwise
             # comparisons, this will raise in the future
@@ -528,6 +566,31 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         name = '__{name}__'.format(name=op.__name__)
         return set_function_name(cmp_method, name, cls)
+
+    def _reduce(self, name, skipna=True, **kwargs):
+        data = self._data
+        mask = self._mask
+
+        # coerce to a nan-aware float if needed
+        if mask.any():
+            data = self._data.astype('float64')
+            data[mask] = self._na_value
+
+        op = getattr(nanops, 'nan' + name)
+        result = op(data, axis=0, skipna=skipna, mask=mask)
+
+        # if we have a boolean op, don't coerce
+        if name in ['any', 'all']:
+            pass
+
+        # if we have a preservable numeric op,
+        # provide coercion back to an integer type if possible
+        elif name in ['sum', 'min', 'max', 'prod'] and notna(result):
+            int_result = int(result)
+            if int_result == result:
+                result = int_result
+
+        return result
 
     def _maybe_mask_result(self, result, mask, other, op_name):
         """
@@ -560,14 +623,21 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             op_name = op.__name__
             mask = None
+
             if isinstance(other, (ABCSeries, ABCIndexClass)):
-                other = getattr(other, 'values', other)
+                # Rely on pandas to unbox and dispatch to us.
+                return NotImplemented
+
+            if getattr(other, 'ndim', 0) > 1:
+                raise NotImplementedError(
+                    "can only perform ops with 1-d structures")
 
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
-            elif getattr(other, 'ndim', 0) > 1:
-                raise NotImplementedError(
-                    "can only perform ops with 1-d structures")
+
+            elif getattr(other, 'ndim', None) == 0:
+                other = other.item()
+
             elif is_list_like(other):
                 other = np.asarray(other)
                 if not other.ndim:
@@ -585,6 +655,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 mask = self._mask
             else:
                 mask = self._mask | mask
+
+            # 1 ** np.nan is 1. So we have to unmask those.
+            if op_name == 'pow':
+                mask = np.where(self == 1, False, mask)
+
+            elif op_name == 'rpow':
+                mask = np.where(other == 1, False, mask)
 
             with np.errstate(all='ignore'):
                 result = op(self._data, other)
@@ -618,7 +695,8 @@ for dtype in ['int8', 'int16', 'int32', 'int64',
     else:
         name = dtype.capitalize()
     classname = "{}Dtype".format(name)
-    attributes_dict = {'type': getattr(np, dtype),
+    numpy_dtype = getattr(np, dtype)
+    attributes_dict = {'type': numpy_dtype,
                        'name': name}
     dtype_type = register_extension_dtype(
         type(classname, (_IntegerDtype, ), attributes_dict)

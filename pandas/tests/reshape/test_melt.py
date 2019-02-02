@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 
+import numpy as np
+from numpy import nan
 import pytest
 
-from pandas import DataFrame
-import pandas as pd
-
-from numpy import nan
-import numpy as np
-
-from pandas import melt, lreshape, wide_to_long
-import pandas.util.testing as tm
 from pandas.compat import range
+
+import pandas as pd
+from pandas import DataFrame, lreshape, melt, wide_to_long
+import pandas.util.testing as tm
 
 
 class TestMelt(object):
@@ -101,6 +99,14 @@ class TestMelt(object):
         result = self.df1.melt(id_vars=[('A', 'a')], value_vars=[('B', 'b')])
         tm.assert_frame_equal(result, expected)
 
+    def test_single_vars_work_with_multiindex(self):
+        expected = DataFrame({
+            'A': {0: 1.067683, 1: -1.321405, 2: -0.807333},
+            'CAP': {0: 'B', 1: 'B', 2: 'B'},
+            'value': {0: -1.110463, 1: 0.368915, 2: 0.08298}})
+        result = self.df1.melt(['A'], ['B'], col_level=0)
+        tm.assert_frame_equal(result, expected)
+
     def test_tuple_vars_fail_with_multiindex(self):
         # melt should fail with an informative error message if
         # the columns have a MultiIndex and a tuple is passed
@@ -110,9 +116,11 @@ class TestMelt(object):
         tuple_b = ('B', 'b')
         list_b = [tuple_b]
 
+        msg = (r"(id|value)_vars must be a list of tuples when columns are"
+               " a MultiIndex")
         for id_vars, value_vars in ((tuple_a, list_b), (list_a, tuple_b),
                                     (tuple_a, tuple_b)):
-            with tm.assert_raises_regex(ValueError, r'MultiIndex'):
+            with pytest.raises(ValueError, match=msg):
                 self.df1.melt(id_vars=id_vars, value_vars=value_vars)
 
     def test_custom_var_name(self):
@@ -233,6 +241,49 @@ class TestMelt(object):
         expected.columns = ['klass', 'col', 'attribute', 'value']
         tm.assert_frame_equal(result, expected)
 
+    def test_melt_missing_columns_raises(self):
+        # GH-23575
+        # This test is to ensure that pandas raises an error if melting is
+        # attempted with column names absent from the dataframe
+
+        # Generate data
+        df = pd.DataFrame(np.random.randn(5, 4), columns=list('abcd'))
+
+        # Try to melt with missing `value_vars` column name
+        msg = "The following '{Var}' are not present in the DataFrame: {Col}"
+        with pytest.raises(
+                KeyError,
+                match=msg.format(Var='value_vars', Col="\\['C'\\]")):
+            df.melt(['a', 'b'], ['C', 'd'])
+
+        # Try to melt with missing `id_vars` column name
+        with pytest.raises(
+                KeyError,
+                match=msg.format(Var='id_vars', Col="\\['A'\\]")):
+            df.melt(['A', 'b'], ['c', 'd'])
+
+        # Multiple missing
+        with pytest.raises(
+                KeyError,
+                match=msg.format(Var='id_vars',
+                                 Col="\\['not_here', 'or_there'\\]")):
+            df.melt(['a', 'b', 'not_here', 'or_there'], ['c', 'd'])
+
+        # Multiindex melt fails if column is missing from multilevel melt
+        multi = df.copy()
+        multi.columns = [list('ABCD'), list('abcd')]
+        with pytest.raises(
+            KeyError,
+            match=msg.format(Var='id_vars',
+                             Col="\\['E'\\]")):
+            multi.melt([('E', 'a')], [('B', 'b')])
+        # Multiindex fails if column is missing from single level melt
+        with pytest.raises(
+            KeyError,
+            match=msg.format(Var='value_vars',
+                             Col="\\['F'\\]")):
+            multi.melt(['A'], ['F'], col_level=0)
+
 
 class TestLreshape(object):
 
@@ -303,7 +354,9 @@ class TestLreshape(object):
 
         spec = {'visitdt': ['visitdt%d' % i for i in range(1, 3)],
                 'wt': ['wt%d' % i for i in range(1, 4)]}
-        pytest.raises(ValueError, lreshape, df, spec)
+        msg = "All column lists must be same length"
+        with pytest.raises(ValueError, match=msg):
+            lreshape(df, spec)
 
 
 class TestWideToLong(object):
@@ -554,7 +607,8 @@ class TestWideToLong(object):
             'B_B1': [1, 2, 3, 4, 5],
             'x': [1, 1, 1, 1, 1]
         })
-        with pytest.raises(ValueError):
+        msg = "the id variables need to uniquely identify each row"
+        with pytest.raises(ValueError, match=msg):
             wide_to_long(df, ['A_A', 'B_B'], i='x', j='colname')
 
     def test_cast_j_int(self):
@@ -590,7 +644,8 @@ class TestWideToLong(object):
                            'A2011': [3.0, 4.0],
                            'B2010': [5.0, 6.0],
                            'A': ['X1', 'X2']})
-        with pytest.raises(ValueError):
+        msg = "stubname can't be identical to a column name"
+        with pytest.raises(ValueError, match=msg):
             wide_to_long(df, ['A', 'B'], i='A', j='colname')
 
     def test_nonnumeric_suffix(self):
@@ -639,4 +694,25 @@ class TestWideToLong(object):
         expected = expected.set_index(['A', 'colname'])
         result = wide_to_long(df, ['result', 'treatment'],
                               i='A', j='colname', suffix='[0-9.]+', sep='_')
+        tm.assert_frame_equal(result, expected)
+
+    def test_col_substring_of_stubname(self):
+        # GH22468
+        # Don't raise ValueError when a column name is a substring
+        # of a stubname that's been passed as a string
+        wide_data = {'node_id': {0: 0, 1: 1, 2: 2, 3: 3, 4: 4},
+                     'A': {0: 0.80, 1: 0.0, 2: 0.25, 3: 1.0, 4: 0.81},
+                     'PA0': {0: 0.74, 1: 0.56, 2: 0.56, 3: 0.98, 4: 0.6},
+                     'PA1': {0: 0.77, 1: 0.64, 2: 0.52, 3: 0.98, 4: 0.67},
+                     'PA3': {0: 0.34, 1: 0.70, 2: 0.52, 3: 0.98, 4: 0.67}
+                     }
+        wide_df = pd.DataFrame.from_dict(wide_data)
+        expected = pd.wide_to_long(wide_df,
+                                   stubnames=['PA'],
+                                   i=['node_id', 'A'],
+                                   j='time')
+        result = pd.wide_to_long(wide_df,
+                                 stubnames='PA',
+                                 i=['node_id', 'A'],
+                                 j='time')
         tm.assert_frame_equal(result, expected)

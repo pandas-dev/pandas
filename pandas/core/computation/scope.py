@@ -2,18 +2,18 @@
 Module for scope operations
 """
 
-import sys
-import struct
-import inspect
 import datetime
+import inspect
 import itertools
 import pprint
+import struct
+import sys
 
 import numpy as np
 
-import pandas
+from pandas.compat import DeepChainMap, StringIO, map
+
 import pandas as pd  # noqa
-from pandas.compat import DeepChainMap, map, StringIO
 from pandas.core.base import StringMixin
 import pandas.core.computation as compu
 
@@ -48,7 +48,7 @@ def _raw_hex_id(obj):
 
 
 _DEFAULT_GLOBALS = {
-    'Timestamp': pandas._libs.tslib.Timestamp,
+    'Timestamp': pd._libs.tslib.Timestamp,
     'datetime': datetime.datetime,
     'True': True,
     'False': False,

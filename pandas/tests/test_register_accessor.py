@@ -85,5 +85,5 @@ def test_raises_attribute_error():
             def __init__(self, data):
                 raise AttributeError("whoops")
 
-        with tm.assert_raises_regex(AttributeError, "whoops"):
+        with pytest.raises(AttributeError, match="whoops"):
             pd.Series([]).bad

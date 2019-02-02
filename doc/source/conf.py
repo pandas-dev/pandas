@@ -13,19 +13,16 @@
 
 import sys
 import os
-import re
 import inspect
 import importlib
 import logging
 import warnings
+import jinja2
 from sphinx.ext.autosummary import _import_by_name
+from numpydoc.docscrape import NumpyDocString
+from numpydoc.docscrape_sphinx import SphinxDocString
 
 logger = logging.getLogger(__name__)
-
-try:
-    raw_input          # Python 2
-except NameError:
-    raw_input = input  # Python 3
 
 # https://github.com/sphinx-doc/sphinx/pull/2325/files
 # Workaround for sphinx-build recursion limit overflow:
@@ -40,7 +37,6 @@ sys.setrecursionlimit(5000)
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.append(os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../sphinxext'))
-
 sys.path.extend([
 
     # numpy standard doc extensions
@@ -49,10 +45,6 @@ sys.path.extend([
                  'sphinxext')
 
 ])
-
-# numpydoc is available in the sphinxext directory, and can't be imported
-# until sphinxext is available in the Python path
-from numpydoc.docscrape import NumpyDocString
 
 # -- General configuration -----------------------------------------------
 
@@ -65,7 +57,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
-              'numpydoc',
+              'numpydoc',  # handle NumPy documentation formatted docstrings
               'IPython.sphinxext.ipython_directive',
               'IPython.sphinxext.ipython_console_highlighting',
               'matplotlib.sphinxext.plot_directive',
@@ -75,38 +67,50 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.ifconfig',
               'sphinx.ext.linkcode',
               'nbsphinx',
+              'contributors',  # custom pandas extension
               ]
 
-try:
-    import sphinxcontrib.spelling  # noqa
-except ImportError as err:
-    logger.warn(('sphinxcontrib.spelling failed to import with error "{}". '
-                '`spellcheck` command is not available.'.format(err)))
-else:
-    extensions.append('sphinxcontrib.spelling')
-
 exclude_patterns = ['**.ipynb_checkpoints']
+try:
+    import nbconvert
+except ImportError:
+    logger.warn('nbconvert not installed. Skipping notebooks.')
+    exclude_patterns.append('**/*.ipynb')
+else:
+    try:
+        nbconvert.utils.pandoc.get_pandoc_version()
+    except nbconvert.utils.pandoc.PandocMissing:
+        logger.warn('Pandoc not installed. Skipping notebooks.')
+        exclude_patterns.append('**/*.ipynb')
 
-spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
-spelling_ignore_pypi_package_names = True
+# sphinx_pattern can be '-api' to exclude the API pages,
+# the path to a file, or a Python object
+# (e.g. '10min.rst' or 'pandas.DataFrame.head')
+source_path = os.path.dirname(os.path.abspath(__file__))
+pattern = os.environ.get('SPHINX_PATTERN')
+if pattern:
+    for dirname, dirs, fnames in os.walk(source_path):
+        for fname in fnames:
+            if os.path.splitext(fname)[-1] in ('.rst', '.ipynb'):
+                fname = os.path.relpath(os.path.join(dirname, fname),
+                                        source_path)
 
-with open("index.rst") as f:
-    index_rst_lines = f.readlines()
+                if (fname == 'index.rst'
+                        and os.path.abspath(dirname) == source_path):
+                    continue
+                elif pattern == '-api' and dirname == 'api':
+                    exclude_patterns.append(fname)
+                elif fname != pattern:
+                    exclude_patterns.append(fname)
 
-# only include the slow autosummary feature if we're building the API section
-# of the docs
-
-# JP: added from sphinxdocs
-autosummary_generate = False
-
-if any(re.match("\s*api\s*", l) for l in index_rst_lines):
-    autosummary_generate = True
-
-# numpydoc
-# for now use old parameter listing (styling + **kwargs problem)
-numpydoc_use_blockquotes = True
-# use member listing for attributes
-numpydoc_attributes_as_param_list = False
+with open(os.path.join(source_path, 'index.rst.template')) as f:
+    t = jinja2.Template(f.read())
+with open(os.path.join(source_path, 'index.rst'), 'w') as f:
+    f.write(t.render(include_api=pattern is None,
+                     single_doc=(pattern
+                                 if pattern is not None and pattern != '-api'
+                                 else None)))
+autosummary_generate = True if pattern is None else ['index']
 
 # matplotlib plot directive
 plot_include_source = True
@@ -120,7 +124,9 @@ import pandas as pd"""
 templates_path = ['../_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = [
+    '.rst',
+]
 
 # The encoding of source files.
 source_encoding = 'utf-8'
@@ -293,13 +299,35 @@ for old, new in moved_classes:
              "{new}.{method}".format(new=new, method=method))
         )
 
-html_additional_pages = {
-    'generated/' + page[0]: 'api_redirect.html'
-    for page in moved_api_pages
-}
+if pattern is None:
+    html_additional_pages = {
+        'generated/' + page[0]: 'api_redirect.html'
+        for page in moved_api_pages
+    }
+
+
+header = """\
+.. currentmodule:: pandas
+
+.. ipython:: python
+   :suppress:
+
+   import numpy as np
+   import pandas as pd
+
+   randn = np.random.randn
+   np.random.seed(123456)
+   np.set_printoptions(precision=4, suppress=True)
+   pd.options.display.max_rows = 15
+
+   import os
+   os.chdir('{}')
+""".format(os.path.dirname(os.path.dirname(__file__)))
+
 
 html_context = {
-    'redirects': {old: new for old, new in moved_api_pages}
+    'redirects': {old: new for old, new in moved_api_pages},
+    'header': header
 }
 
 # If false, no module index is generated.
@@ -331,6 +359,8 @@ nbsphinx_allow_errors = True
 
 # -- Options for LaTeX output --------------------------------------------
 
+latex_elements = {}
+
 # The paper size ('letter' or 'a4').
 # latex_paper_size = 'letter'
 
@@ -341,8 +371,8 @@ nbsphinx_allow_errors = True
 # file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index', 'pandas.tex',
-     u'pandas: powerful Python data analysis toolkit',
-     u'Wes McKinney\n\& PyData Development Team', 'manual'),
+     'pandas: powerful Python data analysis toolkit',
+     r'Wes McKinney\n\& PyData Development Team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -363,17 +393,17 @@ latex_documents = [
 # latex_use_modindex = True
 
 
-intersphinx_mapping = {
-    'statsmodels': ('http://www.statsmodels.org/devel/', None),
-    'matplotlib': ('http://matplotlib.org/', None),
-    'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
-    'python': ('https://docs.python.org/3/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
-    'py': ('https://pylib.readthedocs.io/en/latest/', None)
-}
-import glob
-autosummary_generate = glob.glob("*.rst")
+if pattern is None:
+    intersphinx_mapping = {
+        'dateutil': ("https://dateutil.readthedocs.io/en/latest/", None),
+        'matplotlib': ('https://matplotlib.org/', None),
+        'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+        'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
+        'py': ('https://pylib.readthedocs.io/en/latest/', None),
+        'python': ('https://docs.python.org/3/', None),
+        'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
+        'statsmodels': ('http://www.statsmodels.org/devel/', None),
+    }
 
 # extlinks alias
 extlinks = {'issue': ('https://github.com/pandas-dev/pandas/issues/%s',
@@ -388,6 +418,7 @@ warnings.filterwarnings("ignore", message="\nPanel is deprecated",
                         category=FutureWarning)
 
 
+ipython_warning_is_error = False
 ipython_exec_lines = [
     'import numpy as np',
     'import pandas as pd',
@@ -398,6 +429,62 @@ ipython_exec_lines = [
     'pd.options.display.encoding="utf8"'
 ]
 
+
+def sphinxdocstring_str(self, indent=0, func_role="obj"):
+    # Pandas displays Attributes section in style like Methods section
+
+    # Function is copy of `SphinxDocString.__str__`
+    ns = {
+        'signature': self._str_signature(),
+        'index': self._str_index(),
+        'summary': self._str_summary(),
+        'extended_summary': self._str_extended_summary(),
+        'parameters': self._str_param_list('Parameters'),
+        'returns': self._str_returns('Returns'),
+        'yields': self._str_returns('Yields'),
+        'other_parameters': self._str_param_list('Other Parameters'),
+        'raises': self._str_param_list('Raises'),
+        'warns': self._str_param_list('Warns'),
+        'warnings': self._str_warnings(),
+        'see_also': self._str_see_also(func_role),
+        'notes': self._str_section('Notes'),
+        'references': self._str_references(),
+        'examples': self._str_examples(),
+        # Replaced `self._str_param_list('Attributes', fake_autosummary=True)`
+        # with `self._str_member_list('Attributes')`
+        'attributes': self._str_member_list('Attributes'),
+        'methods': self._str_member_list('Methods'),
+    }
+    ns = {k: '\n'.join(v) for k, v in ns.items()}
+
+    rendered = self.template.render(**ns)
+    return '\n'.join(self._str_indent(rendered.split('\n'), indent))
+
+
+SphinxDocString.__str__ = sphinxdocstring_str
+
+
+# Fix "WARNING: Inline strong start-string without end-string."
+# PR #155 "Escape the * in *args and **kwargs" from numpydoc
+# Can be removed after PR merges in v0.9.0
+def decorate_process_param(func):
+    def _escape_args_and_kwargs(name):
+        if name[:2] == '**':
+            return r'\*\*' + name[2:]
+        elif name[:1] == '*':
+            return r'\*' + name[1:]
+        else:
+            return name
+
+    def func_wrapper(self, param, desc, fake_autosummary):
+        param = _escape_args_and_kwargs(param.strip())
+        return func(self, param, desc, fake_autosummary)
+
+    return func_wrapper
+
+
+func = SphinxDocString._process_param
+SphinxDocString._process_param = decorate_process_param(func)
 
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
@@ -565,19 +652,23 @@ def linkcode_resolve(domain, info):
     for part in fullname.split('.'):
         try:
             obj = getattr(obj, part)
-        except:
+        except AttributeError:
             return None
 
     try:
-        fn = inspect.getsourcefile(obj)
-    except:
+        # inspect.unwrap() was added in Python version 3.4
+        if sys.version_info >= (3, 5):
+            fn = inspect.getsourcefile(inspect.unwrap(obj))
+        else:
+            fn = inspect.getsourcefile(obj)
+    except TypeError:
         fn = None
     if not fn:
         return None
 
     try:
         source, lineno = inspect.getsourcelines(obj)
-    except:
+    except OSError:
         lineno = None
 
     if lineno:
@@ -647,9 +738,29 @@ suppress_warnings = [
     # suppress this warning.
     'app.add_directive'
 ]
+if pattern:
+    # When building a single document we don't want to warn because references
+    # to other documents are unknown, as it's expected
+    suppress_warnings.append('ref.ref')
+
+
+def rstjinja(app, docname, source):
+    """
+    Render our pages as a jinja template for fancy templating goodness.
+    """
+    # http://ericholscher.com/blog/2016/jul/25/integrating-jinja-rst-sphinx/
+    # Make sure we're outputting HTML
+    if app.builder.format != 'html':
+        return
+    src = source[0]
+    rendered = app.builder.templates.render_string(
+        src, app.config.html_context
+    )
+    source[0] = rendered
 
 
 def setup(app):
+    app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.add_autodocumenter(AccessorDocumenter)

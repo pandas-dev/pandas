@@ -2,25 +2,24 @@
 """
 
 import ast
+from functools import partial
 import tokenize
 
-from functools import partial
 import numpy as np
+
+from pandas.compat import StringIO, lmap, reduce, string_types, zip
 
 import pandas as pd
 from pandas import compat
-from pandas.compat import StringIO, lmap, zip, reduce, string_types
-from pandas.core.base import StringMixin
 from pandas.core import common as com
-import pandas.io.formats.printing as printing
-from pandas.core.reshape.util import compose
+from pandas.core.base import StringMixin
 from pandas.core.computation.ops import (
-    _cmp_ops_syms, _bool_ops_syms,
-    _arith_ops_syms, _unary_ops_syms, is_term)
-from pandas.core.computation.ops import _reductions, _mathops, _LOCAL_TAG
-from pandas.core.computation.ops import Op, BinOp, UnaryOp, Term, Constant, Div
-from pandas.core.computation.ops import UndefinedVariableError, FuncNode
+    _LOCAL_TAG, BinOp, Constant, Div, FuncNode, Op, Term, UnaryOp,
+    UndefinedVariableError, _arith_ops_syms, _bool_ops_syms, _cmp_ops_syms,
+    _mathops, _reductions, _unary_ops_syms, is_term)
 from pandas.core.computation.scope import Scope
+
+import pandas.io.formats.printing as printing
 
 
 def tokenize_string(source):
@@ -103,8 +102,19 @@ def _replace_locals(tok):
     return toknum, tokval
 
 
-def _preparse(source, f=compose(_replace_locals, _replace_booleans,
-                                _rewrite_assign)):
+def _compose2(f, g):
+    """Compose 2 callables"""
+    return lambda *args, **kwargs: f(g(*args, **kwargs))
+
+
+def _compose(*funcs):
+    """Compose 2 or more callables"""
+    assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
+    return reduce(_compose2, funcs)
+
+
+def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
+                                 _rewrite_assign)):
     """Compose a collection of tokenization functions
 
     Parameters
@@ -701,8 +711,8 @@ _numexpr_supported_calls = frozenset(_reductions + _mathops)
 class PandasExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser,
-                 preparser=partial(_preparse, f=compose(_replace_locals,
-                                                        _replace_booleans))):
+                 preparser=partial(_preparse, f=_compose(_replace_locals,
+                                                         _replace_booleans))):
         super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
 
 

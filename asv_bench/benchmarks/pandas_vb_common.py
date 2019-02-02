@@ -2,19 +2,31 @@ import os
 from importlib import import_module
 
 import numpy as np
-from pandas import Panel
+import pandas as pd
 
 # Compatibility import for lib
 for imp in ['pandas._libs.lib', 'pandas.lib']:
     try:
         lib = import_module(imp)
         break
-    except:
+    except (ImportError, TypeError, ValueError):
         pass
 
 numeric_dtypes = [np.int64, np.int32, np.uint32, np.uint64, np.float32,
                   np.float64, np.int16, np.int8, np.uint16, np.uint8]
 datetime_dtypes = [np.datetime64, np.timedelta64]
+string_dtypes = [np.object]
+try:
+    extension_dtypes = [pd.Int8Dtype, pd.Int16Dtype,
+                        pd.Int32Dtype, pd.Int64Dtype,
+                        pd.UInt8Dtype, pd.UInt16Dtype,
+                        pd.UInt32Dtype, pd.UInt64Dtype,
+                        pd.CategoricalDtype,
+                        pd.IntervalDtype,
+                        pd.DatetimeTZDtype('ns', 'UTC'),
+                        pd.PeriodDtype('D')]
+except AttributeError:
+    extension_dtypes = []
 
 
 def setup(*args, **kwargs):
@@ -34,7 +46,7 @@ class BaseIO(object):
         """Remove created files"""
         try:
             os.remove(f)
-        except:
+        except OSError:
             # On Windows, attempting to remove a file that is in use
             # causes an exception to be raised
             pass

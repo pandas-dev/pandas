@@ -1,27 +1,29 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0102
 
-from datetime import datetime, date
-import operator
-import sys
-import pytest
-import numpy as np
-
-import re
+from datetime import date, datetime
 from distutils.version import LooseVersion
 import itertools
-from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
-                    Series, Categorical, TimedeltaIndex, SparseArray)
-from pandas.compat import OrderedDict, lrange
-from pandas.core.internals import (SingleBlockManager,
-                                   make_block, BlockManager)
-import pandas.core.algorithms as algos
-import pandas.util.testing as tm
-import pandas as pd
+import operator
+import re
+import sys
+
+import numpy as np
+import pytest
+
 from pandas._libs.internals import BlockPlacement
-from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
-                                 randn, assert_series_equal)
-from pandas.compat import zip, u
+from pandas.compat import OrderedDict, lrange, u, zip
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series,
+    SparseArray)
+import pandas.core.algorithms as algos
+from pandas.core.arrays import DatetimeArray, TimedeltaArray
+from pandas.core.internals import BlockManager, SingleBlockManager, make_block
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal, randn)
 
 # in 3.6.1 a c-api slicing function changed, see src/compat_helper.h
 PY361 = LooseVersion(sys.version) >= LooseVersion('3.6.1')
@@ -290,7 +292,7 @@ class TestBlock(object):
         block = create_block('M8[ns, US/Eastern]', [3])
         with tm.assert_produces_warning(DeprecationWarning,
                                         check_stacklevel=False):
-            block.make_block_same_class(block.values.values,
+            block.make_block_same_class(block.values,
                                         dtype=block.values.dtype)
 
 
@@ -300,14 +302,14 @@ class TestDatetimeBlock(object):
         block = create_block('datetime', [0])
 
         # coerce None
-        none_coerced = block._try_coerce_args(block.values, None)[2]
+        none_coerced = block._try_coerce_args(block.values, None)[1]
         assert pd.Timestamp(none_coerced) is pd.NaT
 
         # coerce different types of date bojects
         vals = (np.datetime64('2010-10-10'), datetime(2010, 10, 10),
                 date(2010, 10, 10))
         for val in vals:
-            coerced = block._try_coerce_args(block.values, val)[2]
+            coerced = block._try_coerce_args(block.values, val)[1]
             assert np.int64 == type(coerced)
             assert pd.Timestamp('2010-10-10') == pd.Timestamp(coerced)
 
@@ -451,7 +453,7 @@ class TestBlockManager(object):
                 assert cp_blk.values.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
-                assert cp_blk.values.values.base is blk.values.values.base
+                assert cp_blk.values._data.base is blk.values._data.base
 
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
@@ -460,7 +462,7 @@ class TestBlockManager(object):
             # some blocks it is an array (e.g. datetimetz), but was copied
             assert cp_blk.equals(blk)
             if not isinstance(cp_blk.values, np.ndarray):
-                assert cp_blk.values.values.base is not blk.values.values.base
+                assert cp_blk.values._data.base is not blk.values._data.base
             else:
                 assert cp_blk.values.base is None and blk.values.base is None
 
@@ -711,8 +713,8 @@ class TestBlockManager(object):
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                                   'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
 
         mgr.set_axis(1, index)
@@ -845,23 +847,18 @@ class TestIndexing(object):
     MANAGERS = [
         create_single_mgr('f8', N),
         create_single_mgr('i8', N),
-        # create_single_mgr('sparse', N),
-        create_single_mgr('sparse_na', N),
 
         # 2-dim
         create_mgr('a,b,c,d,e,f: f8', item_shape=(N,)),
         create_mgr('a,b,c,d,e,f: i8', item_shape=(N,)),
         create_mgr('a,b: f8; c,d: i8; e,f: string', item_shape=(N,)),
         create_mgr('a,b: f8; c,d: i8; e,f: f8', item_shape=(N,)),
-        # create_mgr('a: sparse', item_shape=(N,)),
-        create_mgr('a: sparse_na', item_shape=(N,)),
 
         # 3-dim
         create_mgr('a,b,c,d,e,f: f8', item_shape=(N, N)),
         create_mgr('a,b,c,d,e,f: i8', item_shape=(N, N)),
         create_mgr('a,b: f8; c,d: i8; e,f: string', item_shape=(N, N)),
         create_mgr('a,b: f8; c,d: i8; e,f: f8', item_shape=(N, N)),
-        # create_mgr('a: sparse', item_shape=(1, N)),
     ]
 
     # MANAGERS = [MANAGERS[6]]
@@ -1060,8 +1057,8 @@ class TestBlockPlacement(object):
 
     def test_unbounded_slice_raises(self):
         def assert_unbounded_slice_error(slc):
-            tm.assert_raises_regex(ValueError, "unbounded slice",
-                                   lambda: BlockPlacement(slc))
+            with pytest.raises(ValueError, match="unbounded slice"):
+                BlockPlacement(slc)
 
         assert_unbounded_slice_error(slice(None, None))
         assert_unbounded_slice_error(slice(10, None))
@@ -1248,12 +1245,11 @@ class TestCanHoldElement(object):
                    (operator.mul, '<M8[ns]'),
                    (operator.add, '<M8[ns]'),
                    (operator.pow, '<m8[ns]'),
-                   (operator.mod, '<m8[ns]'),
                    (operator.mul, '<m8[ns]')}
 
         if (op, dtype) in invalid:
             with pytest.raises(TypeError):
-                result = op(s, e.value)
+                op(s, e.value)
         else:
             # FIXME: Since dispatching to Series, this test no longer
             # asserts anything meaningful
@@ -1264,9 +1260,9 @@ class TestCanHoldElement(object):
 
 @pytest.mark.parametrize('typestr, holder', [
     ('category', Categorical),
-    ('M8[ns]', DatetimeIndex),
-    ('M8[ns, US/Central]', DatetimeIndex),
-    ('m8[ns]', TimedeltaIndex),
+    ('M8[ns]', DatetimeArray),
+    ('M8[ns, US/Central]', DatetimeArray),
+    ('m8[ns]', TimedeltaArray),
     ('sparse', SparseArray),
 ])
 def test_holder(typestr, holder):
@@ -1287,5 +1283,14 @@ def test_validate_ndim():
     placement = slice(2)
     msg = r"Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
 
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         make_block(values, placement, ndim=2)
+
+
+def test_block_shape():
+    idx = pd.Index([0, 1, 2, 3, 4])
+    a = pd.Series([1, 2, 3]).reindex(idx)
+    b = pd.Series(pd.Categorical([1, 2, 3])).reindex(idx)
+
+    assert (a._data.blocks[0].mgr_locs.indexer ==
+            b._data.blocks[0].mgr_locs.indexer)

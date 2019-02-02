@@ -1,10 +1,10 @@
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
+from pandas import (
+    DataFrame, Series, Timestamp, compat, date_range, option_context)
 from pandas.core import common as com
-from pandas import (compat, DataFrame, option_context,
-                    Series, MultiIndex, date_range, Timestamp)
 from pandas.util import testing as tm
 
 
@@ -93,7 +93,6 @@ class TestChaining(object):
     def test_setitem_chained_setfault(self):
 
         # GH6026
-        # setfaults under numpy 1.7.1 (ok on 1.8)
         data = ['right', 'left', 'left', 'left', 'right', 'left', 'timeout']
         mdata = ['right', 'left', 'left', 'left', 'right', 'left', 'none']
 
@@ -253,24 +252,6 @@ class TestChaining(object):
         assert df._is_copy is None
         df['a'] += 1
 
-        # Inplace ops, originally from:
-        # http://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
-        a = [12, 23]
-        b = [123, None]
-        c = [1234, 2345]
-        d = [12345, 23456]
-        tuples = [('eyes', 'left'), ('eyes', 'right'), ('ears', 'left'),
-                  ('ears', 'right')]
-        events = {('eyes', 'left'): a,
-                  ('eyes', 'right'): b,
-                  ('ears', 'left'): c,
-                  ('ears', 'right'): d}
-        multiind = MultiIndex.from_tuples(tuples, names=['part', 'side'])
-        zed = DataFrame(events, index=['a', 'b'], columns=multiind)
-
-        with pytest.raises(com.SettingWithCopyError):
-            zed['eyes']['right'].fillna(value=555, inplace=True)
-
         df = DataFrame(np.random.randn(10, 4))
         s = df.iloc[:, 0].sort_values()
 
@@ -321,10 +302,10 @@ class TestChaining(object):
                         'c': ['a', 'b', np.nan, 'd']})
         mask = pd.isna(df.c)
 
-        def f():
+        msg = ("A value is trying to be set on a copy of a slice from a"
+               " DataFrame")
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df[['c']][mask] = df[['b']][mask]
-
-        pytest.raises(com.SettingWithCopyError, f)
 
         # invalid warning as we are returning a new object
         # GH 8730
@@ -336,13 +317,24 @@ class TestChaining(object):
         df2['y'] = ['g', 'h', 'i']
 
     def test_detect_chained_assignment_warnings(self):
+        with option_context("chained_assignment", "warn"):
+            df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
 
-        # warnings
-        with option_context('chained_assignment', 'warn'):
-            df = DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
-            with tm.assert_produces_warning(
-                    expected_warning=com.SettingWithCopyWarning):
-                df.loc[0]['A'] = 111
+            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+                df.loc[0]["A"] = 111
+
+    def test_detect_chained_assignment_warnings_filter_and_dupe_cols(self):
+        # xref gh-13017.
+        with option_context("chained_assignment", "warn"):
+            df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, -9]],
+                              columns=["a", "a", "c"])
+
+            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+                df.c.loc[df.c > 0] = None
+
+            expected = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, -9]],
+                                    columns=["a", "a", "c"])
+            tm.assert_frame_equal(df, expected)
 
     def test_chained_getitem_with_lists(self):
 
@@ -380,25 +372,6 @@ class TestChaining(object):
         panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
         assert "A+1" in panel.ix[0].columns
         assert "A+1" in panel.ix[1].columns
-
-        # 5216
-        # make sure that we don't try to set a dead cache
-        a = np.random.rand(10, 3)
-        df = DataFrame(a, columns=['x', 'y', 'z'])
-        tuples = [(i, j) for i in range(5) for j in range(2)]
-        index = MultiIndex.from_tuples(tuples)
-        df.index = index
-
-        # setting via chained assignment
-        # but actually works, since everything is a view
-        df.loc[0]['z'].iloc[0] = 1.
-        result = df.loc[(0, 0), 'z']
-        assert result == 1
-
-        # correct setting
-        df.loc[(0, 0), 'z'] = 2
-        result = df.loc[(0, 0), 'z']
-        assert result == 2
 
         # 10264
         df = DataFrame(np.zeros((5, 5), dtype='int64'), columns=[

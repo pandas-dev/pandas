@@ -1,14 +1,17 @@
 from datetime import datetime
 
-import pytest
 import numpy as np
+import pytest
+
+import pandas.util._test_decorators as td
 
 import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, Int64Index, Series, bdate_range,
+    date_range, to_datetime)
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas import (DatetimeIndex, date_range, Series, bdate_range, DataFrame,
-                    Int64Index, Index, to_datetime)
-from pandas.tseries.offsets import Minute, BMonthEnd, MonthEnd
+
+from pandas.tseries.offsets import BMonthEnd, Minute, MonthEnd
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -111,7 +114,7 @@ class TestDatetimeIndexSetOps(object):
 
     def test_union_with_DatetimeIndex(self):
         i1 = Int64Index(np.arange(0, 20, 2))
-        i2 = DatetimeIndex(start='2012-01-03 00:00:00', periods=10, freq='D')
+        i2 = date_range(start='2012-01-03 00:00:00', periods=10, freq='D')
         i1.union(i2)  # Works
         i2.union(i1)  # Fails with "AttributeError: can't set attribute"
 
@@ -135,7 +138,8 @@ class TestDatetimeIndexSetOps(object):
 
     @pytest.mark.parametrize("tz", [None, 'Asia/Tokyo', 'US/Eastern',
                                     'dateutil/US/Pacific'])
-    def test_intersection(self, tz):
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_intersection(self, tz, sort):
         # GH 4690 (with tz)
         base = date_range('6/1/2000', '6/30/2000', freq='D', name='idx')
 
@@ -182,7 +186,9 @@ class TestDatetimeIndexSetOps(object):
 
         for (rng, expected) in [(rng2, expected2), (rng3, expected3),
                                 (rng4, expected4)]:
-            result = base.intersection(rng)
+            result = base.intersection(rng, sort=sort)
+            if sort is None:
+                expected = expected.sort_values()
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
             assert result.freq is None
@@ -206,50 +212,58 @@ class TestDatetimeIndexSetOps(object):
         assert len(result) == 0
 
     @pytest.mark.parametrize("tz", tz)
-    def test_difference(self, tz):
-        rng1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_difference(self, tz, sort):
+        rng_dates = ['1/2/2000', '1/3/2000', '1/1/2000', '1/4/2000',
+                     '1/5/2000']
+
+        rng1 = pd.DatetimeIndex(rng_dates, tz=tz)
         other1 = pd.date_range('1/6/2000', freq='D', periods=5, tz=tz)
-        expected1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+        expected1 = pd.DatetimeIndex(rng_dates, tz=tz)
 
-        rng2 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+        rng2 = pd.DatetimeIndex(rng_dates, tz=tz)
         other2 = pd.date_range('1/4/2000', freq='D', periods=5, tz=tz)
-        expected2 = pd.date_range('1/1/2000', freq='D', periods=3, tz=tz)
+        expected2 = pd.DatetimeIndex(rng_dates[:3], tz=tz)
 
-        rng3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+        rng3 = pd.DatetimeIndex(rng_dates, tz=tz)
         other3 = pd.DatetimeIndex([], tz=tz)
-        expected3 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
+        expected3 = pd.DatetimeIndex(rng_dates, tz=tz)
 
         for rng, other, expected in [(rng1, other1, expected1),
                                      (rng2, other2, expected2),
                                      (rng3, other3, expected3)]:
-            result_diff = rng.difference(other)
+            result_diff = rng.difference(other, sort)
+            if sort is None:
+                expected = expected.sort_values()
             tm.assert_index_equal(result_diff, expected)
 
-    def test_difference_freq(self):
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_difference_freq(self, sort):
         # GH14323: difference of DatetimeIndex should not preserve frequency
 
         index = date_range("20160920", "20160925", freq="D")
         other = date_range("20160921", "20160924", freq="D")
         expected = DatetimeIndex(["20160920", "20160925"], freq=None)
-        idx_diff = index.difference(other)
+        idx_diff = index.difference(other, sort)
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal('freq', idx_diff, expected)
 
         other = date_range("20160922", "20160925", freq="D")
-        idx_diff = index.difference(other)
+        idx_diff = index.difference(other, sort)
         expected = DatetimeIndex(["20160920", "20160921"], freq=None)
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal('freq', idx_diff, expected)
 
-    def test_datetimeindex_diff(self):
-        dti1 = DatetimeIndex(freq='Q-JAN', start=datetime(1997, 12, 31),
-                             periods=100)
-        dti2 = DatetimeIndex(freq='Q-JAN', start=datetime(1997, 12, 31),
-                             periods=98)
-        assert len(dti1.difference(dti2)) == 2
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_datetimeindex_diff(self, sort):
+        dti1 = date_range(freq='Q-JAN', start=datetime(1997, 12, 31),
+                          periods=100)
+        dti2 = date_range(freq='Q-JAN', start=datetime(1997, 12, 31),
+                          periods=98)
+        assert len(dti1.difference(dti2, sort)) == 2
 
     def test_datetimeindex_union_join_empty(self):
-        dti = DatetimeIndex(start='1/1/2001', end='2/1/2001', freq='D')
+        dti = date_range(start='1/1/2001', end='2/1/2001', freq='D')
         empty = Index([])
 
         result = dti.union(empty)

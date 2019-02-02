@@ -3,27 +3,23 @@
 
 """ test fancy indexing & misc """
 
+from datetime import datetime
+from warnings import catch_warnings, simplefilter
+import weakref
+
+import numpy as np
 import pytest
 
-import weakref
-from warnings import catch_warnings, simplefilter
-from datetime import datetime
+from pandas.compat import PY2, lrange, range
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    is_float_dtype)
-from pandas.compat import range, lrange, lzip, StringIO
-import numpy as np
+from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas.core.indexing import (_non_reducing_slice, _maybe_numeric_slice,
-                                  validate_indices)
-from pandas import NaT, DataFrame, Index, Series, MultiIndex
-import pandas.util.testing as tm
-from pandas.compat import PY2
-
+from pandas import DataFrame, Index, NaT, Series
+from pandas.core.indexing import (
+    _maybe_numeric_slice, _non_reducing_slice, validate_indices)
 from pandas.tests.indexing.common import Base, _mklbl
-
+import pandas.util.testing as tm
 
 # ------------------------------------------------------------------------
 # Indexing test cases
@@ -41,11 +37,9 @@ class TestFancy(Base):
         df['bar'] = np.zeros(10, dtype=np.complex)
 
         # invalid
-        def f():
+        with pytest.raises(ValueError):
             df.loc[df.index[2:5], 'bar'] = np.array([2.33j, 1.23 + 0.1j,
                                                      2.2, 1.0])
-
-        pytest.raises(ValueError, f)
 
         # valid
         df.loc[df.index[2:6], 'bar'] = np.array([2.33j, 1.23 + 0.1j,
@@ -61,10 +55,8 @@ class TestFancy(Base):
         df['foo'] = np.zeros(10, dtype=np.float64)
         df['bar'] = np.zeros(10, dtype=np.complex)
 
-        def f():
+        with pytest.raises(ValueError):
             df[2:5] = np.arange(1, 4) * 1j
-
-        pytest.raises(ValueError, f)
 
     def test_inf_upcast(self):
         # GH 16957
@@ -345,21 +337,6 @@ class TestFancy(Base):
             columns=df.columns)
         tm.assert_frame_equal(result, df)
 
-    def test_multi_nan_indexing(self):
-
-        # GH 3588
-        df = DataFrame({"a": ['R1', 'R2', np.nan, 'R4'],
-                        'b': ["C1", "C2", "C3", "C4"],
-                        "c": [10, 15, np.nan, 20]})
-        result = df.set_index(['a', 'b'], drop=False)
-        expected = DataFrame({"a": ['R1', 'R2', np.nan, 'R4'],
-                              'b': ["C1", "C2", "C3", "C4"],
-                              "c": [10, 15, np.nan, 20]},
-                             index=[Index(['R1', 'R2', np.nan, 'R4'],
-                                          name='a'),
-                                    Index(['C1', 'C2', 'C3', 'C4'], name='b')])
-        tm.assert_frame_equal(result, expected)
-
     def test_multi_assign(self):
 
         # GH 3626, an assignment of a sub-df to a df
@@ -490,45 +467,6 @@ class TestFancy(Base):
         with pytest.raises(KeyError):
             df.loc['2011', 0]
 
-    def test_mi_access(self):
-
-        # GH 4145
-        data = """h1 main  h3 sub  h5
-0  a    A   1  A1   1
-1  b    B   2  B1   2
-2  c    B   3  A1   3
-3  d    A   4  B2   4
-4  e    A   5  B2   5
-5  f    B   6  A2   6
-"""
-
-        df = pd.read_csv(StringIO(data), sep=r'\s+', index_col=0)
-        df2 = df.set_index(['main', 'sub']).T.sort_index(1)
-        index = Index(['h1', 'h3', 'h5'])
-        columns = MultiIndex.from_tuples([('A', 'A1')], names=['main', 'sub'])
-        expected = DataFrame([['a', 1, 1]], index=columns, columns=index).T
-
-        result = df2.loc[:, ('A', 'A1')]
-        tm.assert_frame_equal(result, expected)
-
-        result = df2[('A', 'A1')]
-        tm.assert_frame_equal(result, expected)
-
-        # GH 4146, not returning a block manager when selecting a unique index
-        # from a duplicate index
-        # as of 4879, this returns a Series (which is similar to what happens
-        # with a non-unique)
-        expected = Series(['a', 1, 1], index=['h1', 'h3', 'h5'], name='A1')
-        result = df2['A']['A1']
-        tm.assert_series_equal(result, expected)
-
-        # selecting a non_unique from the 2nd level
-        expected = DataFrame([['d', 4, 4], ['e', 5, 5]],
-                             index=Index(['B2', 'B2'], name='sub'),
-                             columns=['h1', 'h3', 'h5'], ).T
-        result = df2['A']['B2']
-        tm.assert_frame_equal(result, expected)
-
     def test_astype_assignment(self):
 
         # GH4312 (iloc)
@@ -570,22 +508,6 @@ class TestFancy(Base):
         df.loc[:, 'A'] = df['A'].astype(np.int64)
         expected = DataFrame({'A': [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
-
-    def test_astype_assignment_with_dups(self):
-
-        # GH 4686
-        # assignment with dups that has a dtype change
-        cols = MultiIndex.from_tuples([('A', '1'), ('B', '1'), ('A', '2')])
-        df = DataFrame(np.arange(3).reshape((1, 3)),
-                       columns=cols, dtype=object)
-        index = df.index.copy()
-
-        df['A'] = df['A'].astype(np.float64)
-        tm.assert_index_equal(df.index, index)
-
-        # TODO(wesm): unused variables
-        # result = df.get_dtype_counts().sort_index()
-        # expected = Series({'float64': 2, 'object': 1}).sort_index()
 
     @pytest.mark.parametrize("index,val", [
         (Index([0, 1, 2]), 2),
@@ -706,21 +628,6 @@ class TestFancy(Base):
 
 class TestMisc(Base):
 
-    def test_indexer_caching(self):
-        # GH5727
-        # make sure that indexers are in the _internal_names_set
-        n = 1000001
-        arrays = [lrange(n), lrange(n)]
-        index = MultiIndex.from_tuples(lzip(*arrays))
-        s = Series(np.zeros(n), index=index)
-        str(s)
-
-        # setitem
-        expected = Series(np.ones(n), index=index)
-        s = Series(np.zeros(n), index=index)
-        s[s == 0] = 1
-        tm.assert_series_equal(s, expected)
-
     def test_float_index_to_mixed(self):
         df = DataFrame({0.0: np.random.rand(10), 1.0: np.random.rand(10)})
         df['a'] = 10
@@ -768,34 +675,34 @@ class TestMisc(Base):
         # assigned to. covers both uniform data-type & multi-type cases
         def run_tests(df, rhs, right):
             # label, index, slice
-            r, i, s = list('bcd'), [1, 2, 3], slice(1, 4)
-            c, j, l = ['joe', 'jolie'], [1, 2], slice(1, 3)
+            lbl_one, idx_one, slice_one = list('bcd'), [1, 2, 3], slice(1, 4)
+            lbl_two, idx_two, slice_two = ['joe', 'jolie'], [1, 2], slice(1, 3)
 
             left = df.copy()
-            left.loc[r, c] = rhs
+            left.loc[lbl_one, lbl_two] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
-            left.iloc[i, j] = rhs
+            left.iloc[idx_one, idx_two] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
             with catch_warnings(record=True):
                 # XXX: finer-filter here.
                 simplefilter("ignore")
-                left.ix[s, l] = rhs
+                left.ix[slice_one, slice_two] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
             with catch_warnings(record=True):
                 simplefilter("ignore")
-                left.ix[i, j] = rhs
+                left.ix[idx_one, idx_two] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
             with catch_warnings(record=True):
                 simplefilter("ignore")
-                left.ix[r, c] = rhs
+                left.ix[lbl_one, lbl_two] = rhs
             tm.assert_frame_equal(left, right)
 
         xs = np.arange(20).reshape(5, 4)
@@ -841,15 +748,14 @@ class TestMisc(Base):
 
     def test_slice_with_zero_step_raises(self):
         s = Series(np.arange(20), index=_mklbl('A', 20))
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: s[::0])
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: s.loc[::0])
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            s[::0]
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            s.loc[::0]
         with catch_warnings(record=True):
             simplefilter("ignore")
-            tm.assert_raises_regex(ValueError,
-                                   'slice step cannot be zero',
-                                   lambda: s.ix[::0])
+            with pytest.raises(ValueError, match='slice step cannot be zero'):
+                s.ix[::0]
 
     def test_indexing_assignment_dict_already_exists(self):
         df = DataFrame({'x': [1, 2, 6],
@@ -1066,16 +972,44 @@ def test_validate_indices_ok():
 
 def test_validate_indices_low():
     indices = np.asarray([0, -2])
-    with tm.assert_raises_regex(ValueError, "'indices' contains"):
+    with pytest.raises(ValueError, match="'indices' contains"):
         validate_indices(indices, 2)
 
 
 def test_validate_indices_high():
     indices = np.asarray([0, 1, 2])
-    with tm.assert_raises_regex(IndexError, "indices are out"):
+    with pytest.raises(IndexError, match="indices are out"):
         validate_indices(indices, 2)
 
 
 def test_validate_indices_empty():
-    with tm.assert_raises_regex(IndexError, "indices are out"):
+    with pytest.raises(IndexError, match="indices are out"):
         validate_indices(np.array([0, 1]), 0)
+
+
+def test_extension_array_cross_section():
+    # A cross-section of a homogeneous EA should be an EA
+    df = pd.DataFrame({
+        "A": pd.core.arrays.integer_array([1, 2]),
+        "B": pd.core.arrays.integer_array([3, 4])
+    }, index=['a', 'b'])
+    expected = pd.Series(pd.core.arrays.integer_array([1, 3]),
+                         index=['A', 'B'], name='a')
+    result = df.loc['a']
+    tm.assert_series_equal(result, expected)
+
+    result = df.iloc[0]
+    tm.assert_series_equal(result, expected)
+
+
+def test_extension_array_cross_section_converts():
+    df = pd.DataFrame({
+        "A": pd.core.arrays.integer_array([1, 2]),
+        "B": np.array([1, 2]),
+    }, index=['a', 'b'])
+    result = df.loc['a']
+    expected = pd.Series([1, 1], dtype=object, index=['A', 'B'], name='a')
+    tm.assert_series_equal(result, expected)
+
+    result = df.iloc[0]
+    tm.assert_series_equal(result, expected)

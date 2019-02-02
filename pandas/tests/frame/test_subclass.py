@@ -2,14 +2,13 @@
 
 from __future__ import print_function
 
-import pytest
 import numpy as np
+import pytest
 
-from pandas import DataFrame, Series, MultiIndex, Panel, Index
 import pandas as pd
-import pandas.util.testing as tm
-
+from pandas import DataFrame, Index, MultiIndex, Panel, Series
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
 
 
 class TestDataFrameSubclassing(TestData):
@@ -156,7 +155,7 @@ class TestDataFrameSubclassing(TestData):
             @property
             def bar(self):
                 return self.i_dont_exist
-        with tm.assert_raises_regex(AttributeError, '.*i_dont_exist.*'):
+        with pytest.raises(AttributeError, match='.*i_dont_exist.*'):
             A().bar
 
     def test_subclass_align(self):
@@ -235,10 +234,12 @@ class TestDataFrameSubclassing(TestData):
 
         tm.assert_sp_series_equal(ssdf.loc[1],
                                   tm.SubclassedSparseSeries(rows[1]),
-                                  check_names=False)
+                                  check_names=False,
+                                  check_kind=False)
         tm.assert_sp_series_equal(ssdf.iloc[1],
                                   tm.SubclassedSparseSeries(rows[1]),
-                                  check_names=False)
+                                  check_names=False,
+                                  check_kind=False)
 
     def test_subclass_sparse_transpose(self):
         ossdf = tm.SubclassedSparseDataFrame([[1, 2, 3],

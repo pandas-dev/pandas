@@ -1,32 +1,25 @@
 import string
-import warnings
 
 import numpy as np
-import pandas.util.testing as tm
-from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
-                    isnull, NaT)
 
-from .pandas_vb_common import setup  # noqa
+from pandas import (
+    DataFrame, MultiIndex, NaT, Series, date_range, isnull, period_range)
+import pandas.util.testing as tm
 
 
 class GetNumericData(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.df = DataFrame(np.random.randn(10000, 25))
         self.df['foo'] = 'bar'
         self.df['bar'] = 'baz'
-        with warnings.catch_warnings(record=True):
-            self.df = self.df.consolidate()
+        self.df = self.df._consolidate()
 
     def time_frame_get_numeric_data(self):
         self.df._get_numeric_data()
 
 
 class Lookup(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.df = DataFrame(np.random.randn(10000, 8),
@@ -48,8 +41,6 @@ class Lookup(object):
 
 class Reindex(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 10**3
         self.df = DataFrame(np.random.randn(N * 10, N))
@@ -70,16 +61,41 @@ class Reindex(object):
     def time_reindex_both_axes(self):
         self.df.reindex(index=self.idx, columns=self.idx)
 
-    def time_reindex_both_axes_ix(self):
-        self.df.ix[self.idx, self.idx]
-
     def time_reindex_upcast(self):
         self.df2.reindex(np.random.permutation(range(1200)))
 
 
-class Iteration(object):
+class Rename(object):
 
-    goal_time = 0.2
+    def setup(self):
+        N = 10**3
+        self.df = DataFrame(np.random.randn(N * 10, N))
+        self.idx = np.arange(4 * N, 7 * N)
+        self.dict_idx = {k: k for k in self.idx}
+        self.df2 = DataFrame(
+            {c: {0: np.random.randint(0, 2, N).astype(np.bool_),
+                 1: np.random.randint(0, N, N).astype(np.int16),
+                 2: np.random.randint(0, N, N).astype(np.int32),
+                 3: np.random.randint(0, N, N).astype(np.int64)}
+                [np.random.randint(0, 4)] for c in range(N)})
+
+    def time_rename_single(self):
+        self.df.rename({0: 0})
+
+    def time_rename_axis0(self):
+        self.df.rename(self.dict_idx)
+
+    def time_rename_axis1(self):
+        self.df.rename(columns=self.dict_idx)
+
+    def time_rename_both_axes(self):
+        self.df.rename(index=self.dict_idx, columns=self.dict_idx)
+
+    def time_dict_rename_both_axes(self):
+        self.df.rename(index=self.dict_idx, columns=self.dict_idx)
+
+
+class Iteration(object):
 
     def setup(self):
         N = 1000
@@ -87,6 +103,7 @@ class Iteration(object):
         self.df2 = DataFrame(np.random.randn(N * 50, 10))
         self.df3 = DataFrame(np.random.randn(N, 5 * N),
                              columns=['C' + str(c) for c in range(N * 5)])
+        self.df4 = DataFrame(np.random.randn(N * 1000, 10))
 
     def time_iteritems(self):
         # (monitor no-copying behaviour)
@@ -103,9 +120,69 @@ class Iteration(object):
         for col in self.df3:
             self.df3[col]
 
+    def time_itertuples_start(self):
+        self.df4.itertuples()
+
+    def time_itertuples_read_first(self):
+        next(self.df4.itertuples())
+
     def time_itertuples(self):
-        for row in self.df2.itertuples():
+        for row in self.df4.itertuples():
             pass
+
+    def time_itertuples_to_list(self):
+        list(self.df4.itertuples())
+
+    def mem_itertuples_start(self):
+        return self.df4.itertuples()
+
+    def peakmem_itertuples_start(self):
+        self.df4.itertuples()
+
+    def mem_itertuples_read_first(self):
+        return next(self.df4.itertuples())
+
+    def peakmem_itertuples(self):
+        for row in self.df4.itertuples():
+            pass
+
+    def mem_itertuples_to_list(self):
+        return list(self.df4.itertuples())
+
+    def peakmem_itertuples_to_list(self):
+        list(self.df4.itertuples())
+
+    def time_itertuples_raw_start(self):
+        self.df4.itertuples(index=False, name=None)
+
+    def time_itertuples_raw_read_first(self):
+        next(self.df4.itertuples(index=False, name=None))
+
+    def time_itertuples_raw_tuples(self):
+        for row in self.df4.itertuples(index=False, name=None):
+            pass
+
+    def time_itertuples_raw_tuples_to_list(self):
+        list(self.df4.itertuples(index=False, name=None))
+
+    def mem_itertuples_raw_start(self):
+        return self.df4.itertuples(index=False, name=None)
+
+    def peakmem_itertuples_raw_start(self):
+        self.df4.itertuples(index=False, name=None)
+
+    def peakmem_itertuples_raw_read_first(self):
+        next(self.df4.itertuples(index=False, name=None))
+
+    def peakmem_itertuples_raw(self):
+        for row in self.df4.itertuples(index=False, name=None):
+            pass
+
+    def mem_itertuples_raw_to_list(self):
+        return list(self.df4.itertuples(index=False, name=None))
+
+    def peakmem_itertuples_raw_to_list(self):
+        list(self.df4.itertuples(index=False, name=None))
 
     def time_iterrows(self):
         for row in self.df.iterrows():
@@ -113,8 +190,6 @@ class Iteration(object):
 
 
 class ToString(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.df = DataFrame(np.random.randn(100, 10))
@@ -124,8 +199,6 @@ class ToString(object):
 
 
 class ToHTML(object):
-
-    goal_time = 0.2
 
     def setup(self):
         nrows = 500
@@ -138,8 +211,6 @@ class ToHTML(object):
 
 
 class Repr(object):
-
-    goal_time = 0.2
 
     def setup(self):
         nrows = 10000
@@ -166,8 +237,6 @@ class Repr(object):
 
 class MaskBool(object):
 
-    goal_time = 0.2
-
     def setup(self):
         data = np.random.randn(1000, 500)
         df = DataFrame(data)
@@ -183,8 +252,6 @@ class MaskBool(object):
 
 
 class Isnull(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**3
@@ -218,7 +285,6 @@ class Isnull(object):
 
 class Fillna(object):
 
-    goal_time = 0.2
     params = ([True, False], ['pad', 'bfill'])
     param_names = ['inplace', 'method']
 
@@ -233,7 +299,6 @@ class Fillna(object):
 
 class Dropna(object):
 
-    goal_time = 0.2
     params = (['all', 'any'], [0, 1])
     param_names = ['how', 'axis']
 
@@ -253,8 +318,6 @@ class Dropna(object):
 
 
 class Count(object):
-
-    goal_time = 0.2
 
     params = [0, 1]
     param_names = ['axis']
@@ -284,8 +347,6 @@ class Count(object):
 
 class Apply(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(1000, 100))
 
@@ -314,8 +375,6 @@ class Apply(object):
 
 class Dtypes(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(1000, 1000))
 
@@ -324,8 +383,6 @@ class Dtypes(object):
 
 
 class Equals(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**3
@@ -363,7 +420,6 @@ class Equals(object):
 
 class Interpolate(object):
 
-    goal_time = 0.2
     params = [None, 'infer']
     param_names = ['downcast']
 
@@ -389,7 +445,6 @@ class Interpolate(object):
 
 class Shift(object):
     # frame shift speedup issue-5609
-    goal_time = 0.2
     params = [0, 1]
     param_names = ['axis']
 
@@ -411,8 +466,6 @@ class Nunique(object):
 
 class Duplicated(object):
 
-    goal_time = 0.2
-
     def setup(self):
         n = (1 << 20)
         t = date_range('2015-01-01', freq='S', periods=(n // 64))
@@ -431,7 +484,6 @@ class Duplicated(object):
 
 class XS(object):
 
-    goal_time = 0.2
     params = [0, 1]
     param_names = ['axis']
 
@@ -445,7 +497,6 @@ class XS(object):
 
 class SortValues(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['ascending']
 
@@ -457,8 +508,6 @@ class SortValues(object):
 
 
 class SortIndexByColumns(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10000
@@ -473,7 +522,6 @@ class SortIndexByColumns(object):
 
 class Quantile(object):
 
-    goal_time = 0.2
     params = [0, 1]
     param_names = ['axis']
 
@@ -486,8 +534,6 @@ class Quantile(object):
 
 class GetDtypeCounts(object):
     # 2807
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(10, 10000))
 
@@ -500,23 +546,27 @@ class GetDtypeCounts(object):
 
 class NSort(object):
 
-    goal_time = 0.2
     params = ['first', 'last', 'all']
     param_names = ['keep']
 
     def setup(self, keep):
-        self.df = DataFrame(np.random.randn(1000, 3), columns=list('ABC'))
+        self.df = DataFrame(np.random.randn(100000, 3),
+                            columns=list('ABC'))
 
-    def time_nlargest(self, keep):
+    def time_nlargest_one_column(self, keep):
         self.df.nlargest(100, 'A', keep=keep)
 
-    def time_nsmallest(self, keep):
+    def time_nlargest_two_columns(self, keep):
+        self.df.nlargest(100, ['A', 'B'], keep=keep)
+
+    def time_nsmallest_one_column(self, keep):
         self.df.nsmallest(100, 'A', keep=keep)
+
+    def time_nsmallest_two_columns(self, keep):
+        self.df.nsmallest(100, ['A', 'B'], keep=keep)
 
 
 class Describe(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.df = DataFrame({
@@ -530,3 +580,6 @@ class Describe(object):
 
     def time_dataframe_describe(self):
         self.df.describe()
+
+
+from .pandas_vb_common import setup  # noqa: F401

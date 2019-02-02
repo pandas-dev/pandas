@@ -1,27 +1,26 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytz
-import pytest
-
-from datetime import timedelta, datetime
-
+from datetime import datetime, timedelta
 from distutils.version import LooseVersion
-from numpy import nan
-import numpy as np
-import pandas as pd
 
-from pandas import (Series, DataFrame, isna, date_range,
-                    MultiIndex, Index, Timestamp, NaT, IntervalIndex,
-                    Categorical)
-from pandas.compat import range
+import numpy as np
+from numpy import nan
+import pytest
+import pytz
+
 from pandas._libs.tslib import iNaT
-from pandas.core.series import remove_na
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-import pandas.util.testing as tm
+from pandas.compat import range
+from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
-from .common import TestData
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
+    Timestamp, date_range, isna)
+from pandas.core.series import remove_na
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 try:
     import scipy
@@ -52,7 +51,7 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-class TestSeriesMissingData(TestData):
+class TestSeriesMissingData():
 
     def test_remove_na_deprecation(self):
         # see gh-16971
@@ -66,14 +65,17 @@ class TestSeriesMissingData(TestData):
         td = s.diff()
 
         # reg fillna
-        result = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = td.fillna(0)
         expected = Series([timedelta(0), timedelta(0), timedelta(1),
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
-        # interprested as seconds
-        result = td.fillna(1)
-        expected = Series([timedelta(seconds=1), timedelta(0), timedelta(1),
+        # interpreted as seconds, deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            result = td.fillna(1)
+        expected = Series([timedelta(seconds=1),
+                           timedelta(0), timedelta(1),
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
@@ -97,14 +99,16 @@ class TestSeriesMissingData(TestData):
         # ffill
         td[2] = np.nan
         result = td.ffill()
-        expected = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = td.fillna(0)
         expected[0] = np.nan
         assert_series_equal(result, expected)
 
         # bfill
         td[2] = np.nan
         result = td.bfill()
-        expected = td.fillna(0)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = td.fillna(0)
         expected[2] = timedelta(days=1, seconds=9 * 3600 + 60 + 1)
         assert_series_equal(result, expected)
 
@@ -356,14 +360,24 @@ class TestSeriesMissingData(TestData):
 
     def test_fillna_raise(self):
         s = Series(np.random.randint(-100, 100, 50))
-        pytest.raises(TypeError, s.fillna, [1, 2])
-        pytest.raises(TypeError, s.fillna, (1, 2))
+        msg = ('"value" parameter must be a scalar or dict, but you passed a'
+               ' "list"')
+        with pytest.raises(TypeError, match=msg):
+            s.fillna([1, 2])
+
+        msg = ('"value" parameter must be a scalar or dict, but you passed a'
+               ' "tuple"')
+        with pytest.raises(TypeError, match=msg):
+            s.fillna((1, 2))
 
         # related GH 9217, make sure limit is an int and greater than 0
         s = Series([1, 2, 3, None])
+        msg = (r"Cannot specify both 'value' and 'method'\.|"
+               r"Limit must be greater than 0|"
+               "Limit must be an integer")
         for limit in [-1, 0, 1., 2.]:
             for method in ['backfill', 'bfill', 'pad', 'ffill', None]:
-                with pytest.raises(ValueError):
+                with pytest.raises(ValueError, match=msg):
                     s.fillna(1, limit=limit, method=method)
 
     def test_categorical_nan_equality(self):
@@ -402,31 +416,31 @@ class TestSeriesMissingData(TestData):
         data = ['a', np.nan, 'b', np.nan, np.nan]
         s = Series(Categorical(data, categories=['a', 'b']))
 
-        with tm.assert_raises_regex(ValueError,
-                                    "fill value must be in categories"):
+        with pytest.raises(ValueError,
+                           match="fill value must be in categories"):
             s.fillna('d')
 
-        with tm.assert_raises_regex(ValueError,
-                                    "fill value must be in categories"):
+        with pytest.raises(ValueError,
+                           match="fill value must be in categories"):
             s.fillna(Series('d'))
 
-        with tm.assert_raises_regex(ValueError,
-                                    "fill value must be in categories"):
+        with pytest.raises(ValueError,
+                           match="fill value must be in categories"):
             s.fillna({1: 'd', 3: 'a'})
 
-        with tm.assert_raises_regex(TypeError,
-                                    '"value" parameter must be a scalar or '
-                                    'dict, but you passed a "list"'):
+        msg = ('"value" parameter must be a scalar or '
+               'dict, but you passed a "list"')
+        with pytest.raises(TypeError, match=msg):
             s.fillna(['a', 'b'])
 
-        with tm.assert_raises_regex(TypeError,
-                                    '"value" parameter must be a scalar or '
-                                    'dict, but you passed a "tuple"'):
+        msg = ('"value" parameter must be a scalar or '
+               'dict, but you passed a "tuple"')
+        with pytest.raises(TypeError, match=msg):
             s.fillna(('a', 'b'))
 
-        with tm.assert_raises_regex(TypeError,
-                                    '"value" parameter must be a scalar, dict '
-                                    'or Series, but you passed a "DataFrame"'):
+        msg = ('"value" parameter must be a scalar, dict '
+               'or Series, but you passed a "DataFrame"')
+        with pytest.raises(TypeError, match=msg):
             s.fillna(DataFrame({1: ['a'], 3: ['b']}))
 
     def test_fillna_nat(self):
@@ -476,7 +490,6 @@ class TestSeriesMissingData(TestData):
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
-    @tm.capture_stdout
     def test_isnull_for_inf_deprecated(self):
         # gh-17115
         s = Series(['a', np.inf, np.nan, 1.0])
@@ -489,7 +502,7 @@ class TestSeriesMissingData(TestData):
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
-    def test_fillna(self):
+    def test_fillna(self, datetime_series):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
 
         tm.assert_series_equal(ts, ts.fillna(method='ffill'))
@@ -505,8 +518,13 @@ class TestSeriesMissingData(TestData):
         exp = Series([0., 1., 5., 3., 4.], index=ts.index)
         tm.assert_series_equal(ts.fillna(value=5), exp)
 
-        pytest.raises(ValueError, ts.fillna)
-        pytest.raises(ValueError, self.ts.fillna, value=0, method='ffill')
+        msg = "Must specify a fill 'value' or 'method'"
+        with pytest.raises(ValueError, match=msg):
+            ts.fillna()
+
+        msg = "Cannot specify both 'value' and 'method'"
+        with pytest.raises(ValueError, match=msg):
+            datetime_series.fillna(value=0, method='ffill')
 
         # GH 5703
         s1 = Series([np.nan])
@@ -576,9 +594,9 @@ class TestSeriesMissingData(TestData):
         expected = x.fillna(value=0)
         assert_series_equal(y, expected)
 
-    def test_fillna_invalid_method(self):
+    def test_fillna_invalid_method(self, datetime_series):
         try:
-            self.ts.fillna(method='ffil')
+            datetime_series.fillna(method='ffil')
         except ValueError as inst:
             assert 'ffil' in str(inst)
 
@@ -632,8 +650,8 @@ class TestSeriesMissingData(TestData):
 
         # def test_logical_range_select(self):
         #     np.random.seed(12345)
-        #     selector = -0.5 <= self.ts <= 0.5
-        #     expected = (self.ts >= -0.5) & (self.ts <= 0.5)
+        #     selector = -0.5 <= datetime_series <= 0.5
+        #     expected = (datetime_series >= -0.5) & (datetime_series <= 0.5)
         #     assert_series_equal(selector, expected)
 
     def test_dropna_empty(self):
@@ -643,7 +661,9 @@ class TestSeriesMissingData(TestData):
         assert len(s) == 0
 
         # invalid axis
-        pytest.raises(ValueError, s.dropna, axis=1)
+        msg = r"No axis named 1 for object type <(class|type) 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            s.dropna(axis=1)
 
     def test_datetime64_tz_dropna(self):
         # DatetimeBlock
@@ -688,8 +708,8 @@ class TestSeriesMissingData(TestData):
         expected = s.iloc[1:]
         assert_series_equal(result, expected)
 
-    def test_valid(self):
-        ts = self.ts.copy()
+    def test_valid(self, datetime_series):
+        ts = datetime_series.copy()
         ts[::2] = np.NaN
 
         result = ts.dropna()
@@ -732,14 +752,16 @@ class TestSeriesMissingData(TestData):
         # neither monotonic increasing or decreasing
         rng2 = rng[[1, 0, 2]]
 
-        pytest.raises(ValueError, rng2.get_indexer, rng, method='pad')
+        msg = "index must be monotonic increasing or decreasing"
+        with pytest.raises(ValueError, match=msg):
+            rng2.get_indexer(rng, method='pad')
 
-    def test_dropna_preserve_name(self):
-        self.ts[:5] = np.nan
-        result = self.ts.dropna()
-        assert result.name == self.ts.name
-        name = self.ts.name
-        ts = self.ts.copy()
+    def test_dropna_preserve_name(self, datetime_series):
+        datetime_series[:5] = np.nan
+        result = datetime_series.dropna()
+        assert result.name == datetime_series.name
+        name = datetime_series.name
+        ts = datetime_series.copy()
         ts.dropna(inplace=True)
         assert ts.name == name
 
@@ -774,16 +796,21 @@ class TestSeriesMissingData(TestData):
         s = Series(np.random.randn(10), index=index)
 
         ss = s[:2].reindex(index).to_sparse()
-        result = ss.fillna(method='pad', limit=5)
-        expected = ss.fillna(method='pad', limit=5)
+        # TODO: what is this test doing? why are result an expected
+        # the same call to fillna?
+        with tm.assert_produces_warning(PerformanceWarning):
+            # TODO: release-note fillna performance warning
+            result = ss.fillna(method='pad', limit=5)
+            expected = ss.fillna(method='pad', limit=5)
         expected = expected.to_dense()
         expected[-3:] = np.nan
         expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
         ss = s[-2:].reindex(index).to_sparse()
-        result = ss.fillna(method='backfill', limit=5)
-        expected = ss.fillna(method='backfill')
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = ss.fillna(method='backfill', limit=5)
+            expected = ss.fillna(method='backfill')
         expected = expected.to_dense()
         expected[:3] = np.nan
         expected = expected.to_sparse()
@@ -795,14 +822,16 @@ class TestSeriesMissingData(TestData):
         s = s.to_sparse()
 
         result = s[:2].reindex(index, method='pad', limit=5)
-        expected = s[:2].reindex(index).fillna(method='pad')
+        with tm.assert_produces_warning(PerformanceWarning):
+            expected = s[:2].reindex(index).fillna(method='pad')
         expected = expected.to_dense()
         expected[-3:] = np.nan
         expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
         result = s[-2:].reindex(index, method='backfill', limit=5)
-        expected = s[-2:].reindex(index).fillna(method='backfill')
+        with tm.assert_produces_warning(PerformanceWarning):
+            expected = s[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected[:3] = np.nan
         expected = expected.to_sparse()
@@ -825,10 +854,11 @@ class TestSeriesMissingData(TestData):
         assert_series_equal(result, expected)
 
 
-class TestSeriesInterpolateData(TestData):
+class TestSeriesInterpolateData():
 
-    def test_interpolate(self):
-        ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)
+    def test_interpolate(self, datetime_series, string_series):
+        ts = Series(np.arange(len(datetime_series), dtype=float),
+                    datetime_series.index)
 
         ts_copy = ts.copy()
         ts_copy[5:10] = np.NaN
@@ -836,8 +866,8 @@ class TestSeriesInterpolateData(TestData):
         linear_interp = ts_copy.interpolate(method='linear')
         tm.assert_series_equal(linear_interp, ts)
 
-        ord_ts = Series([d.toordinal() for d in self.ts.index],
-                        index=self.ts.index).astype(float)
+        ord_ts = Series([d.toordinal() for d in datetime_series.index],
+                        index=datetime_series.index).astype(float)
 
         ord_ts_copy = ord_ts.copy()
         ord_ts_copy[5:10] = np.NaN
@@ -847,9 +877,12 @@ class TestSeriesInterpolateData(TestData):
 
         # try time interpolation on a non-TimeSeries
         # Only raises ValueError if there are NaNs.
-        non_ts = self.series.copy()
+        non_ts = string_series.copy()
         non_ts[0] = np.NaN
-        pytest.raises(ValueError, non_ts.interpolate, method='time')
+        msg = ("time-weighted interpolation only works on Series or DataFrames"
+               " with a DatetimeIndex")
+        with pytest.raises(ValueError, match=msg):
+            non_ts.interpolate(method='time')
 
     @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
@@ -944,7 +977,9 @@ class TestSeriesInterpolateData(TestData):
 
     def test_interpolate_non_ts(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
-        with pytest.raises(ValueError):
+        msg = ("time-weighted interpolation only works on Series or DataFrames"
+               " with a DatetimeIndex")
+        with pytest.raises(ValueError, match=msg):
             s.interpolate(method='time')
 
     @pytest.mark.parametrize("kwargs", [
@@ -1032,9 +1067,14 @@ class TestSeriesInterpolateData(TestData):
                    'polynomial', 'spline', 'piecewise_polynomial', None,
                    'from_derivatives', 'pchip', 'akima']
         s = pd.Series([1, 2, np.nan, np.nan, 5])
+        msg = (r"Limit must be greater than 0|"
+               "time-weighted interpolation only works on Series or"
+               r" DataFrames with a DatetimeIndex|"
+               r"invalid method '(polynomial|spline|None)' to interpolate|"
+               "Limit must be an integer")
         for limit in [-1, 0, 1., 2.]:
             for method in methods:
-                with pytest.raises(ValueError):
+                with pytest.raises(ValueError, match=msg):
                     s.interpolate(limit=limit, method=method)
 
     def test_interp_limit_forward(self):
@@ -1072,12 +1112,14 @@ class TestSeriesInterpolateData(TestData):
     def test_interp_limit_bad_direction(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
 
-        pytest.raises(ValueError, s.interpolate, method='linear', limit=2,
-                      limit_direction='abc')
+        msg = (r"Invalid limit_direction: expecting one of \['forward',"
+               r" 'backward', 'both'\], got 'abc'")
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method='linear', limit=2, limit_direction='abc')
 
         # raises an error even if no limit is specified.
-        pytest.raises(ValueError, s.interpolate, method='linear',
-                      limit_direction='abc')
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method='linear', limit_direction='abc')
 
     # limit_area introduced GH #16284
     def test_interp_limit_area(self):
@@ -1115,8 +1157,10 @@ class TestSeriesInterpolateData(TestData):
                                direction='backward')
 
         # raises an error even if limit type is wrong.
-        pytest.raises(ValueError, s.interpolate, method='linear',
-                      limit_area='abc')
+        msg = (r"Invalid limit_area: expecting one of \['inside', 'outside'\],"
+               " got abc")
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method='linear', limit_area='abc')
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
@@ -1202,14 +1246,16 @@ class TestSeriesInterpolateData(TestData):
         result = s.interpolate()
         assert_series_equal(result, expected)
 
+        msg = "Only `method=linear` interpolation is supported on MultiIndexes"
         if check_scipy:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 s.interpolate(method='polynomial', order=1)
 
     @td.skip_if_no_scipy
     def test_interp_nonmono_raise(self):
         s = Series([1, np.nan, 3], index=[0, 2, 1])
-        with pytest.raises(ValueError):
+        msg = "krogh interpolation requires that the index be monotonic"
+        with pytest.raises(ValueError, match=msg):
             s.interpolate(method='krogh')
 
     @td.skip_if_no_scipy
@@ -1231,7 +1277,8 @@ class TestSeriesInterpolateData(TestData):
     @pytest.mark.parametrize("method", ['polynomial', 'spline'])
     def test_no_order(self, method):
         s = Series([0, 1, np.nan, 3])
-        with pytest.raises(ValueError):
+        msg = "invalid method '{}' to interpolate".format(method)
+        with pytest.raises(ValueError, match=msg):
             s.interpolate(method=method)
 
     @td.skip_if_no_scipy
@@ -1271,10 +1318,12 @@ class TestSeriesInterpolateData(TestData):
         # see gh-10633
         s = pd.Series(np.arange(10) ** 2)
         s[np.random.randint(0, 9, 3)] = np.nan
-        with pytest.raises(ValueError):
+        msg = "invalid method 'spline' to interpolate"
+        with pytest.raises(ValueError, match=msg):
             s.interpolate(method='spline')
 
-        with pytest.raises(ValueError):
+        msg = "order needs to be specified and greater than 0"
+        with pytest.raises(ValueError, match=msg):
             s.interpolate(method='spline', order=0)
 
     def test_interp_timedelta64(self):
@@ -1317,3 +1366,9 @@ class TestSeriesInterpolateData(TestData):
         result = ts.reindex(new_index).interpolate(method='time')
 
         tm.assert_numpy_array_equal(result.values, exp.values)
+
+    def test_nonzero_warning(self):
+        # GH 24048
+        ser = pd.Series([1, 0, 3, 4])
+        with tm.assert_produces_warning(FutureWarning):
+            ser.nonzero()

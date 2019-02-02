@@ -10,10 +10,10 @@ import itertools
 
 import numpy as np
 import pyarrow as pa
+
 import pandas as pd
 from pandas.api.extensions import (
-    ExtensionDtype, ExtensionArray, take, register_extension_dtype
-)
+    ExtensionArray, ExtensionDtype, register_extension_dtype, take)
 
 
 @register_extension_dtype
@@ -67,10 +67,22 @@ class ArrowBoolArray(ExtensionArray):
         return cls.from_scalars(scalars)
 
     def __getitem__(self, item):
-        return self._data.to_pandas()[item]
+        if pd.api.types.is_scalar(item):
+            return self._data.to_pandas()[item]
+        else:
+            vals = self._data.to_pandas()[item]
+            return type(self).from_scalars(vals)
 
     def __len__(self):
         return len(self._data)
+
+    def astype(self, dtype, copy=True):
+        # needed to fix this astype for the Series constructor.
+        if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
+            if copy:
+                return self.copy()
+            return self
+        return super(ArrowBoolArray, self).astype(dtype, copy)
 
     @property
     def dtype(self):
@@ -83,7 +95,8 @@ class ArrowBoolArray(ExtensionArray):
                    if x is not None)
 
     def isna(self):
-        return pd.isna(self._data.to_pandas())
+        nas = pd.isna(self._data.to_pandas())
+        return type(self).from_scalars(nas)
 
     def take(self, indices, allow_fill=False, fill_value=None):
         data = self._data.to_pandas()
@@ -97,12 +110,35 @@ class ArrowBoolArray(ExtensionArray):
 
     def copy(self, deep=False):
         if deep:
-            return copy.deepcopy(self._data)
+            return type(self)(copy.deepcopy(self._data))
         else:
-            return copy.copy(self._data)
+            return type(self)(copy.copy(self._data))
 
     def _concat_same_type(cls, to_concat):
         chunks = list(itertools.chain.from_iterable(x._data.chunks
                                                     for x in to_concat))
         arr = pa.chunked_array(chunks)
         return cls(arr)
+
+    def __invert__(self):
+        return type(self).from_scalars(
+            ~self._data.to_pandas()
+        )
+
+    def _reduce(self, method, skipna=True, **kwargs):
+        if skipna:
+            arr = self[~self.isna()]
+        else:
+            arr = self
+
+        try:
+            op = getattr(arr, method)
+        except AttributeError:
+            raise TypeError
+        return op(**kwargs)
+
+    def any(self, axis=0, out=None):
+        return self._data.to_pandas().any()
+
+    def all(self, axis=0, out=None):
+        return self._data.to_pandas().all()
