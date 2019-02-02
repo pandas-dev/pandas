@@ -50,6 +50,21 @@ def ignore_xlrd_time_clock_warning():
         yield
 
 
+@contextlib.contextmanager
+def ignore_openpyxl_unknown_extension_warning():
+    """
+    Context manager to ignore warnings raised by the xlrd library,
+    regarding the deprecation of `time.clock` in Python 3.7.
+    """
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            action='ignore',
+            message='Unknown extension is not supported and will be removed',
+            category=UserWarning)
+        yield
+
+
 @td.skip_if_no('xlrd', '1.0.0')
 class SharedItems(object):
 
@@ -137,23 +152,27 @@ class ReadingTestsBase(SharedItems):
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
+
             with ignore_xlrd_time_clock_warning():
-                df1 = self.get_exceldf("test1", ext, "Sheet1",
-                                       index_col=0, usecols=3)
+                with ignore_openpyxl_unknown_extension_warning():
+                    df1 = self.get_exceldf("test1", ext, "Sheet1",
+                                           index_col=0, usecols=3)
 
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             with ignore_xlrd_time_clock_warning():
-                df2 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
-                                       index_col=0, usecols=3)
+                with ignore_openpyxl_unknown_extension_warning():
+                    df2 = self.get_exceldf(
+                        "test1", ext, "Sheet2", skiprows=[1], index_col=0, usecols=3)
 
         # parse_cols instead of usecols, usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             with ignore_xlrd_time_clock_warning():
-                df3 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
-                                       index_col=0, parse_cols=3)
+                with ignore_openpyxl_unknown_extension_warning():
+                    df3 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[
+                                           1], index_col=0, parse_cols=3)
 
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, df_ref, check_names=False)
@@ -170,10 +189,8 @@ class ReadingTestsBase(SharedItems):
         df2 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
                                index_col=0, usecols=[0, 2, 3])
 
-        with tm.assert_produces_warning(FutureWarning):
-            with ignore_xlrd_time_clock_warning():
-                df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                       index_col=0, parse_cols=[0, 2, 3])
+        df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+                               index_col=0, parse_cols=[0, 2, 3])
 
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
@@ -193,8 +210,9 @@ class ReadingTestsBase(SharedItems):
 
         with tm.assert_produces_warning(FutureWarning):
             with ignore_xlrd_time_clock_warning():
-                df4 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                       index_col=0, parse_cols='A:D')
+                with ignore_openpyxl_unknown_extension_warning():
+                    df4 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[
+                                           1], index_col=0, parse_cols='A:D')
 
         # TODO add index to xls, read xls ignores index name ?
         tm.assert_frame_equal(df2, df1, check_names=False)
@@ -659,8 +677,9 @@ class ReadingTestsBase(SharedItems):
                                sheet_name=sheet_name, index_col=0)  # doc
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             with ignore_xlrd_time_clock_warning():
-                df2 = self.get_exceldf(filename, ext, index_col=0,
-                                       sheetname=sheet_name)  # backward compat
+                with ignore_openpyxl_unknown_extension_warning():
+                    df2 = self.get_exceldf(
+                        filename, ext, index_col=0, sheetname=sheet_name)  # backward compat
 
         excel = self.get_excelfile(filename, ext)
         df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
