@@ -5157,8 +5157,7 @@ class DataFrame(NDFrame):
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
-        Perform column-wise combine with another DataFrame based on a
-        passed function.
+        Perform column-wise combine with another DataFrame.
 
         Combines a DataFrame with `other` DataFrame using `func`
         to element-wise combine columns. The row and column indexes of the
@@ -5174,13 +5173,14 @@ class DataFrame(NDFrame):
         fill_value : scalar value, default None
             The value to fill NaNs with prior to passing any column to the
             merge func.
-        overwrite : boolean, default True
+        overwrite : bool, default True
             If True, columns in `self` that do not exist in `other` will be
             overwritten with NaNs.
 
         Returns
         -------
-        result : DataFrame
+        DataFrame
+            Combination of the provided DataFrames.
 
         See Also
         --------
@@ -5232,7 +5232,7 @@ class DataFrame(NDFrame):
         the axis differ between the dataframes.
 
         >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [4, 4]})
-        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [-10, 1],}, index=[1, 2])
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [-10, 1], }, index=[1, 2])
         >>> df1.combine(df2, take_smaller)
              A    B     C
         0  NaN  NaN   NaN
@@ -5247,7 +5247,7 @@ class DataFrame(NDFrame):
 
         Demonstrating the preference of the passed in dataframe.
 
-        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1], }, index=[1, 2])
         >>> df2.combine(df1, take_smaller)
            A    B   C
         0  0.0  NaN NaN
