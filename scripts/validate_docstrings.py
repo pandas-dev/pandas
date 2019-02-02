@@ -490,11 +490,15 @@ class Docstring(object):
     @property
     def method_source(self):
         try:
-            src = inspect.getsource(self.obj)
-            doc = re.search(r'""".*"""', src, re.DOTALL)  # Find docstring.
-            return src[:doc.start()] + src[doc.end():] if doc else src
+            return inspect.getsource(self.obj)
         except TypeError:
             return ''
+
+    @property
+    def clean_method_source(self):
+        src = self.method_source
+        src = re.sub(r'""".*"""', '', src, flags=re.DOTALL)  # Remove docstring.
+        return src
 
     @property
     def first_line_ends_in_dot(self):
@@ -694,7 +698,7 @@ def get_validation_data(doc):
     if doc.is_function_or_method:
         if not doc.returns:
             if re.search(r"\nreturn(?!(None)?[\n#])",
-                         re.sub(' ', '', doc.method_source)):
+                         re.sub(' ', '', doc.clean_method_source)):
                 errs.append(error('RT01'))
         else:
             if len(doc.returns) == 1 and doc.returns[0][1]:
