@@ -2091,6 +2091,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         other : Series
+            Series with which to compute the correlation.
         method : {'pearson', 'kendall', 'spearman'} or callable
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
@@ -2135,6 +2136,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         other : Series
+            Series with which to compute the covariance.
         min_periods : int, optional
             Minimum number of observations needed to have a valid result.
 
@@ -2300,7 +2302,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         8
         >>> s @ other
         8
-        >>> df = pd.DataFrame([[0 ,1], [-2, 3], [4, -5], [6, 7]])
+        >>> df = pd.DataFrame([[0, 1], [-2, 3], [4, -5], [6, 7]])
         >>> s.dot(df)
         0    24
         1    14
@@ -2369,6 +2371,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         to_append : Series or list/tuple of Series
+            Series to append with self.
         ignore_index : bool, default False
             If True, do not use the index labels.
 
