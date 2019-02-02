@@ -1,5 +1,5 @@
 """
-Routines for filling missing data
+Routines for filling missing data.
 """
 from distutils.version import LooseVersion
 import operator
@@ -116,7 +116,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     xvalues and yvalues will each be 1-d arrays of the same length.
 
     Bounds_error is currently hardcoded to False since non-scipy ones don't
-    take it as an argumnet.
+    take it as an argument.
     """
     # Treat the original, non-scipy methods first.
 
@@ -244,9 +244,9 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
                                bounds_error=False, order=None, **kwargs):
     """
-    passed off to scipy.interpolate.interp1d. method is scipy's kind.
+    Passed off to scipy.interpolate.interp1d. method is scipy's kind.
     Returns an array interpolated at new_x.  Add any new methods to
-    the list in _clean_interp_method
+    the list in _clean_interp_method.
     """
     try:
         from scipy import interpolate
@@ -314,7 +314,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
 
 def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     """
-    Convenience function for interpolate.BPoly.from_derivatives
+    Convenience function for interpolate.BPoly.from_derivatives.
 
     Construct a piecewise polynomial in the Bernstein basis, compatible
     with the specified values and derivatives at breakpoints.
@@ -325,7 +325,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
         sorted 1D array of x-coordinates
     yi : array_like or list of array-likes
         yi[i][j] is the j-th derivative known at xi[i]
-    orders : None or int or array_like of ints. Default: None.
+    order: None or int or array_like of ints. Default: None.
         Specifies the degree of local polynomials. If not None, some
         derivatives are ignored.
     der : int or list
@@ -344,8 +344,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     Returns
     -------
     y : scalar or array_like
-        The result, of length R or length M or M by R,
-
+        The result, of length R or length M or M by R.
     """
     import scipy
     from scipy import interpolate
@@ -418,8 +417,9 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
 def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None,
                    dtype=None):
-    """ perform an actual interpolation of values, values will be make 2-d if
-    needed fills inplace, returns the result
+    """
+    Perform an actual interpolation of values, values will be make 2-d if
+    needed fills inplace, returns the result.
     """
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
@@ -533,13 +533,13 @@ def clean_reindex_fill_method(method):
 
 def fill_zeros(result, x, y, name, fill):
     """
-    if this is a reversed op, then flip x,y
+    If this is a reversed op, then flip x,y
 
-    if we have an integer value (or array in y)
+    If we have an integer value (or array in y)
     and we have 0's, fill them with the fill,
-    return the result
+    return the result.
 
-    mask the nan's from x
+    Mask the nan's from x.
     """
     if fill is None or is_float_dtype(result):
         return result

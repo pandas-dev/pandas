@@ -36,7 +36,6 @@ _shared_docs_kwargs = dict()
 
 
 class Resampler(_GroupBy):
-
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -107,7 +106,7 @@ class Resampler(_GroupBy):
         Returns
         -------
         Generator yielding sequence of (name, subsetted object)
-        for each group
+        for each group.
 
         See Also
         --------
@@ -286,8 +285,8 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        func : function
-            To apply to each group. Should return a Series with the same index
+        arg : function
+            To apply to each group. Should return a Series with the same index.
 
         Returns
         -------
@@ -423,7 +422,7 @@ class Resampler(_GroupBy):
 
         Returns
         -------
-        an upsampled Series
+        An upsampled Series.
 
         See Also
         --------
