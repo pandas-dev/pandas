@@ -2131,7 +2131,8 @@ class EWM(_Rolling):
         :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`.
     halflife : float, optional
         Specify decay in terms of half-life,
-        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for } halflife > 0`.
+        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for }
+            halflife > 0`.
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
         :math:`0 < \alpha \leq 1`.
@@ -2143,7 +2144,8 @@ class EWM(_Rolling):
         (otherwise result is NA).
     adjust : bool, default True
         Divide by decaying adjustment factor in beginning periods to account
-        for imbalance in relative weightings (viewing EWMA as a moving average).
+        for imbalance in relative weightings
+        (viewing EWMA as a moving average).
     ignore_na : bool, default False
         Ignore missing values when calculating weights;
         specify True to reproduce pre-0.15.0 behavior.
