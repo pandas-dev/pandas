@@ -523,10 +523,6 @@ class TestUnique(object):
         expected = np.array(['a', 'b', 'c'], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = pd.unique(Series(Categorical(list('aabc'))))
-        expected = Categorical(list('abc'))
-        tm.assert_categorical_equal(result, expected)
-
     @pytest.mark.parametrize("arg ,expected", [
         (('1', '1', '2'), np.array(['1', '2'], dtype=object)),
         (('foo',), np.array(['foo'], dtype=object))
