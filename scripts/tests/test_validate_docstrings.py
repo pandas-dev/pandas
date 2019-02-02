@@ -241,7 +241,8 @@ class GoodDocStrings(object):
         x : int
             Useless parameter.
         """
-        if random.random() % 2:
+        var_with_return_on_the_name = random.random()
+        if var_with_return_on_the_name % 2:
             return  # the method might return here
         else:
             return None  # or perhaps here
