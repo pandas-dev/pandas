@@ -112,7 +112,6 @@ def _get_terminal_size_tput():
             return None
     except OSError:
         return None
-    
 
 
 def _get_terminal_size_linux():
