@@ -78,6 +78,12 @@ class TestCategoricalIndex(object):
         result = s[cats[0]]
         assert result == expected
 
+    def test_contains_interval_range(self):
+        """Check we can use contains """
+        intervals = pd.interval_range(0.0, 1.0)
+        cats = pd.Categorical(intervals)
+        assert 'gg' not in cats
+
     def test_slicing_directly(self):
         cat = Categorical(["a", "b", "c", "d", "a", "b", "c"])
         sliced = cat[3]
