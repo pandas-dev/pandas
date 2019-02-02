@@ -2245,17 +2245,36 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
-    def union(self, other, sort=True):
+    def _validate_sort_keyword(self, sort):
+        if sort not in [None, False]:
+            raise ValueError("The 'sort' keyword only takes the values of "
+                             "None or False; {0} was passed.".format(sort))
+
+    def union(self, other, sort=None):
         """
         Form the union of two Index objects.
 
         Parameters
         ----------
         other : Index or array-like
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : bool or None, default None
+            Whether to sort the resulting Index.
+
+            * None : Sort the result, except when
+
+              1. `self` and `other` are equal.
+              2. `self` or `other` has length 0.
+              3. Some values in `self` or `other` cannot be compared.
+                 A RuntimeWarning is issued in this case.
+
+            * False : do not sort the result.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2269,6 +2288,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.union(idx2)
         Int64Index([1, 2, 3, 4, 5, 6], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
@@ -2319,7 +2339,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 result = lvals
 
-            if sort:
+            if sort is None:
                 try:
                     result = sorting.safe_sort(result)
                 except TypeError as e:
@@ -2333,7 +2353,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _wrap_setop_result(self, other, result):
         return self._constructor(result, name=get_op_result_name(self, other))
 
-    def intersection(self, other, sort=True):
+    def intersection(self, other, sort=False):
         """
         Form the intersection of two Index objects.
 
@@ -2342,10 +2362,19 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : False or None, default False
+            Whether to sort the resulting index.
+
+            * False : do not sort the result.
+            * None : sort the result, except when `self` and `other` are equal
+              or when the values cannot be compared.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default from ``True`` to ``False``, to match
+               the behaviour of 0.23.4 and earlier.
 
         Returns
         -------
@@ -2359,6 +2388,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.intersection(idx2)
         Int64Index([3, 4], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
@@ -2398,7 +2428,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         taken = other.take(indexer)
 
-        if sort:
+        if sort is None:
             taken = sorting.safe_sort(taken.values)
             if self.name != other.name:
                 name = None
@@ -2411,7 +2441,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return taken
 
-    def difference(self, other, sort=True):
+    def difference(self, other, sort=None):
         """
         Return a new Index with elements from the index that are not in
         `other`.
@@ -2421,10 +2451,21 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : False or None, default None
+            Whether to sort the resulting index. By default, the
+            values are attempted to be sorted, but any TypeError from
+            incomparable elements is caught by pandas.
+
+            * None : Attempt to sort the result, but catch any TypeErrors
+              from comparing incomparable elements.
+            * False : Do not sort the result.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2440,6 +2481,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.difference(idx2, sort=False)
         Int64Index([2, 1], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
 
         if self.equals(other):
@@ -2456,7 +2498,7 @@ class Index(IndexOpsMixin, PandasObject):
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
                                   assume_unique=True)
         the_diff = this.values.take(label_diff)
-        if sort:
+        if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)
             except TypeError:
@@ -2464,7 +2506,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
-    def symmetric_difference(self, other, result_name=None, sort=True):
+    def symmetric_difference(self, other, result_name=None, sort=None):
         """
         Compute the symmetric difference of two Index objects.
 
@@ -2472,10 +2514,21 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         other : Index or array-like
         result_name : str
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : False or None, default None
+            Whether to sort the resulting index. By default, the
+            values are attempted to be sorted, but any TypeError from
+            incomparable elements is caught by pandas.
+
+            * None : Attempt to sort the result, but catch any TypeErrors
+              from comparing incomparable elements.
+            * False : Do not sort the result.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2500,6 +2553,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1 ^ idx2
         Int64Index([1, 5], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_name_update = self._convert_can_do_setop(other)
         if result_name is None:
@@ -2520,7 +2574,7 @@ class Index(IndexOpsMixin, PandasObject):
         right_diff = other.values.take(right_indexer)
 
         the_diff = _concat._concat_compat([left_diff, right_diff])
-        if sort:
+        if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)
             except TypeError:

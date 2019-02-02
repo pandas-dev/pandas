@@ -1,12 +1,13 @@
 .. _whatsnew_0240:
 
-What's New in 0.24.0 (January XX, 2019)
+What's New in 0.24.0 (January 25, 2019)
 ---------------------------------------
 
 .. warning::
 
    The 0.24.x series of releases will be the last to support Python 2. Future feature
-   releases will support Python 3 only. See :ref:`install.dropping-27` for more.
+   releases will support Python 3 only. See :ref:`install.dropping-27` for more
+   details.
 
 {{ header }}
 
@@ -225,7 +226,7 @@ from the ``Series``:
    ser.array
    pser.array
 
-These return an instance of :class:`IntervalArray` or :class:`arrays.PeriodArray`,
+These return an instance of :class:`arrays.IntervalArray` or :class:`arrays.PeriodArray`,
 the new extension arrays that back interval and period data.
 
 .. warning::
@@ -244,7 +245,7 @@ the new extension arrays that back interval and period data.
 Joining with two multi-indexes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:func:`DataFrame.merge` and :func:`DataFrame.join` can now be used to join multi-indexed ``Dataframe`` instances on the overlaping index levels (:issue:`6360`)
+:func:`DataFrame.merge` and :func:`DataFrame.join` can now be used to join multi-indexed ``Dataframe`` instances on the overlapping index levels (:issue:`6360`)
 
 See the :ref:`Merge, join, and concatenate
 <merging.Join_with_two_multi_indexes>` documentation section.
@@ -411,7 +412,7 @@ Other Enhancements
 - :meth:`Categorical.from_codes` now can take a ``dtype`` parameter as an alternative to passing ``categories`` and ``ordered`` (:issue:`24398`).
 - New attribute ``__git_version__`` will return git commit sha of current build (:issue:`21295`).
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
-- Added :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` for determining overlaps between interval-like objects (:issue:`21998`)
+- Added :meth:`Interval.overlaps`, :meth:`arrays.IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` for determining overlaps between interval-like objects (:issue:`21998`)
 - :func:`read_fwf` now accepts keyword ``infer_nrows`` (:issue:`15138`).
 - :func:`~DataFrame.to_parquet` now supports writing a ``DataFrame`` as a directory of parquet files partitioned by a subset of the columns when ``engine = 'pyarrow'`` (:issue:`23283`)
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have gained the ``nonexistent`` argument for alternative handling of nonexistent times. See :ref:`timeseries.timezone_nonexistent` (:issue:`8917`, :issue:`24466`)
@@ -646,6 +647,52 @@ that the dates have been converted to UTC
 
     pd.to_datetime(["2015-11-18 15:30:00+05:30",
                     "2015-11-18 16:30:00+06:30"], utc=True)
+
+
+.. _whatsnew_0240.api_breaking.read_csv_mixed_tz:
+
+Parsing mixed-timezones with :func:`read_csv`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_csv` no longer silently converts mixed-timezone columns to UTC (:issue:`24987`).
+
+*Previous Behavior*
+
+.. code-block:: python
+
+   >>> import io
+   >>> content = """\
+   ... a
+   ... 2000-01-01T00:00:00+05:00
+   ... 2000-01-01T00:00:00+06:00"""
+   >>> df = pd.read_csv(io.StringIO(content), parse_dates=['a'])
+   >>> df.a
+   0   1999-12-31 19:00:00
+   1   1999-12-31 18:00:00
+   Name: a, dtype: datetime64[ns]
+
+*New Behavior*
+
+.. ipython:: python
+
+   import io
+   content = """\
+   a
+   2000-01-01T00:00:00+05:00
+   2000-01-01T00:00:00+06:00"""
+   df = pd.read_csv(io.StringIO(content), parse_dates=['a'])
+   df.a
+
+As can be seen, the ``dtype`` is object; each value in the column is a string.
+To convert the strings to an array of datetimes, the ``date_parser`` argument
+
+.. ipython:: python
+
+   df = pd.read_csv(io.StringIO(content), parse_dates=['a'],
+                    date_parser=lambda col: pd.to_datetime(col, utc=True))
+   df.a
+
+See :ref:`whatsnew_0240.api.timezone_offset_parsing` for more.
 
 .. _whatsnew_0240.api_breaking.period_end_time:
 

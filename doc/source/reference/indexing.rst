@@ -15,14 +15,14 @@ that contain an index (Series/DataFrame) and those should most likely be
 used before calling these methods directly.**
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Index
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Index.values
    Index.is_monotonic
@@ -51,7 +51,7 @@ Properties
 Modifying and Computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Index.all
    Index.any
@@ -90,7 +90,7 @@ Modifying and Computations
 Compatibility with MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Index.set_names
    Index.is_lexsorted_for_tuple
@@ -99,7 +99,7 @@ Compatibility with MultiIndex
 Missing Values
 ~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Index.fillna
    Index.dropna
@@ -109,7 +109,7 @@ Missing Values
 Conversion
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Index.astype
    Index.item
@@ -124,7 +124,7 @@ Conversion
 Sorting
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Index.argsort
    Index.searchsorted
@@ -133,14 +133,14 @@ Sorting
 Time-specific operations
 ~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Index.shift
 
 Combining / joining / set operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Index.append
    Index.join
@@ -152,7 +152,7 @@ Combining / joining / set operations
 Selecting
 ~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Index.asof
    Index.asof_locs
@@ -176,7 +176,7 @@ Selecting
 Numeric Index
 -------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    RangeIndex
@@ -188,7 +188,7 @@ Numeric Index
 .. Separate block, since they aren't classes.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    RangeIndex.from_range
 
@@ -197,7 +197,7 @@ Numeric Index
 CategoricalIndex
 ----------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    CategoricalIndex
@@ -205,7 +205,7 @@ CategoricalIndex
 Categorical Components
 ~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    CategoricalIndex.codes
    CategoricalIndex.categories
@@ -222,7 +222,7 @@ Categorical Components
 Modifying and Computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    CategoricalIndex.map
    CategoricalIndex.equals
@@ -232,7 +232,7 @@ Modifying and Computations
 IntervalIndex
 -------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    IntervalIndex
@@ -240,7 +240,7 @@ IntervalIndex
 IntervalIndex Components
 ~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    IntervalIndex.from_arrays
    IntervalIndex.from_tuples
@@ -265,20 +265,20 @@ IntervalIndex Components
 MultiIndex
 ----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    MultiIndex
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    IndexSlice
 
 MultiIndex Constructors
 ~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    MultiIndex.from_arrays
    MultiIndex.from_tuples
@@ -288,7 +288,7 @@ MultiIndex Constructors
 MultiIndex Properties
 ~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    MultiIndex.names
    MultiIndex.levels
@@ -299,7 +299,7 @@ MultiIndex Properties
 MultiIndex Components
 ~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    MultiIndex.set_levels
    MultiIndex.set_codes
@@ -316,7 +316,7 @@ MultiIndex Components
 MultiIndex Selecting
 ~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    MultiIndex.get_loc
    MultiIndex.get_loc_level
@@ -328,7 +328,7 @@ MultiIndex Selecting
 DatetimeIndex
 -------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    DatetimeIndex
@@ -336,7 +336,7 @@ DatetimeIndex
 Time/Date Components
 ~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    DatetimeIndex.year
    DatetimeIndex.month
@@ -370,7 +370,7 @@ Time/Date Components
 Selecting
 ~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    DatetimeIndex.indexer_at_time
    DatetimeIndex.indexer_between_time
@@ -379,7 +379,7 @@ Selecting
 Time-specific operations
 ~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    DatetimeIndex.normalize
    DatetimeIndex.strftime
@@ -395,7 +395,7 @@ Time-specific operations
 Conversion
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    DatetimeIndex.to_period
    DatetimeIndex.to_perioddelta
@@ -406,7 +406,7 @@ Conversion
 TimedeltaIndex
 --------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    TimedeltaIndex
@@ -414,7 +414,7 @@ TimedeltaIndex
 Components
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    TimedeltaIndex.days
    TimedeltaIndex.seconds
@@ -426,7 +426,7 @@ Components
 Conversion
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    TimedeltaIndex.to_pytimedelta
    TimedeltaIndex.to_series
@@ -440,7 +440,7 @@ Conversion
 PeriodIndex
 -----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    PeriodIndex
@@ -448,7 +448,7 @@ PeriodIndex
 Properties
 ~~~~~~~~~~
 .. autosummary::
-    :toctree: generated/
+    :toctree: api/
 
     PeriodIndex.day
     PeriodIndex.dayofweek
@@ -474,7 +474,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-    :toctree: generated/
+    :toctree: api/
 
     PeriodIndex.asfreq
     PeriodIndex.strftime

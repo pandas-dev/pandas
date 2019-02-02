@@ -10,7 +10,7 @@ Series
 Constructor
 -----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series
 
@@ -19,12 +19,12 @@ Attributes
 **Axes**
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.index
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.array
    Series.values
@@ -52,7 +52,7 @@ Attributes
 Conversion
 ----------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.astype
    Series.infer_objects
@@ -69,7 +69,7 @@ Conversion
 Indexing, iteration
 -------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.get
    Series.at
@@ -90,7 +90,7 @@ For more information on ``.at``, ``.iat``, ``.loc``, and
 Binary operator functions
 -------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.add
    Series.sub
@@ -123,7 +123,7 @@ Binary operator functions
 Function application, GroupBy & Window
 --------------------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.apply
    Series.agg
@@ -141,7 +141,7 @@ Function application, GroupBy & Window
 Computations / Descriptive Stats
 --------------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.abs
    Series.all
@@ -192,7 +192,7 @@ Computations / Descriptive Stats
 Reindexing / Selection / Label manipulation
 -------------------------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.align
    Series.drop
@@ -226,7 +226,7 @@ Reindexing / Selection / Label manipulation
 Missing data handling
 ---------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.isna
    Series.notna
@@ -237,7 +237,7 @@ Missing data handling
 Reshaping, sorting
 ------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.argsort
    Series.argmin
@@ -256,7 +256,7 @@ Reshaping, sorting
 Combining / joining / merging
 -----------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.append
    Series.replace
@@ -265,7 +265,7 @@ Combining / joining / merging
 Time series-related
 -------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.asfreq
    Series.asof
@@ -309,7 +309,7 @@ Datetime Properties
 ^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/accessor_attribute.rst
 
    Series.dt.date
@@ -345,7 +345,7 @@ Datetime Methods
 ^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/accessor_method.rst
 
    Series.dt.to_period
@@ -364,7 +364,7 @@ Period Properties
 ^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/accessor_attribute.rst
 
    Series.dt.qyear
@@ -375,7 +375,7 @@ Timedelta Properties
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/accessor_attribute.rst
 
    Series.dt.days
@@ -388,7 +388,7 @@ Timedelta Methods
 ^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/accessor_method.rst
 
    Series.dt.to_pytimedelta
@@ -405,7 +405,7 @@ strings and apply several methods to it. These can be accessed like
 ``Series.str.<function/property>``.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/accessor_method.rst
 
    Series.str.capitalize
@@ -467,7 +467,7 @@ strings and apply several methods to it. These can be accessed like
 
 ..
     .. autosummary::
-       :toctree: generated/
+       :toctree: api/
        :template: autosummary/accessor.rst
 
        Series.str
@@ -484,7 +484,7 @@ Categorical-dtype specific methods and attributes are available under
 the ``Series.cat`` accessor.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/accessor_attribute.rst
 
    Series.cat.categories
@@ -492,7 +492,7 @@ the ``Series.cat`` accessor.
    Series.cat.codes
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/accessor_method.rst
 
    Series.cat.rename_categories
@@ -514,7 +514,7 @@ Sparse-dtype specific methods and attributes are provided under the
 ``Series.sparse`` accessor.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/accessor_attribute.rst
 
    Series.sparse.npoints
@@ -523,7 +523,7 @@ Sparse-dtype specific methods and attributes are provided under the
    Series.sparse.sp_values
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.sparse.from_coo
    Series.sparse.to_coo
@@ -535,13 +535,13 @@ Plotting
 specific plotting methods of the form ``Series.plot.<kind>``.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/accessor_callable.rst
 
    Series.plot
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/accessor_method.rst
 
    Series.plot.area
@@ -555,14 +555,14 @@ specific plotting methods of the form ``Series.plot.<kind>``.
    Series.plot.pie
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.hist
 
 Serialization / IO / Conversion
 -------------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Series.to_pickle
    Series.to_csv
@@ -585,7 +585,7 @@ Sparse
 ------
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    SparseSeries.to_coo
    SparseSeries.from_coo

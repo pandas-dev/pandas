@@ -10,14 +10,14 @@ Input/Output
 Pickling
 ~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_pickle
 
 Flat File
 ~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_table
    read_csv
@@ -27,20 +27,20 @@ Flat File
 Clipboard
 ~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_clipboard
 
 Excel
 ~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_excel
    ExcelFile.parse
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    ExcelWriter
@@ -48,14 +48,14 @@ Excel
 JSON
 ~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_json
 
 .. currentmodule:: pandas.io.json
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    json_normalize
    build_table_schema
@@ -65,14 +65,14 @@ JSON
 HTML
 ~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_html
 
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_hdf
    HDFStore.put
@@ -87,28 +87,28 @@ HDFStore: PyTables (HDF5)
 Feather
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_feather
 
 Parquet
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_parquet
 
 SAS
 ~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_sas
 
 SQL
 ~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_sql_table
    read_sql_query
@@ -117,21 +117,21 @@ SQL
 Google BigQuery
 ~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_gbq
 
 STATA
 ~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    read_stata
 
 .. currentmodule:: pandas.io.stata
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    StataReader.data
    StataReader.data_label
