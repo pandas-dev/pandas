@@ -499,6 +499,8 @@ class Docstring(object):
         src = self.method_source
         src = re.sub(r'""".*"""', '', src, flags=re.DOTALL)  # Remove docstring.
         src = re.sub(r'#.*\n', r'\n', src)  # Remove comments.
+        src = re.sub(r' +', ' ', src)  # Remove duplicate whitespaces.
+        src = re.sub(r' \n', r'\n', src)  # Remove trailing whitespaces.
         return src
 
     @property
@@ -698,8 +700,7 @@ def get_validation_data(doc):
 
     if doc.is_function_or_method:
         if not doc.returns:
-            if re.search(r"\nreturn(?!(None)?\n)",
-                         re.sub(' ', '', doc.clean_method_source)):
+            if re.search(r"return(?!( None)?\n)", doc.clean_method_source):
                 errs.append(error('RT01'))
         else:
             if len(doc.returns) == 1 and doc.returns[0][1]:
