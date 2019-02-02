@@ -4615,7 +4615,8 @@ class DataFrame(NDFrame):
                 else:
                     raise TypeError('must specify how or thresh')
 
-            result = self._take(mask.to_numpy().nonzero()[0], axis=axis)
+            #result = self._take(mask.to_numpy().nonzero()[0], axis=axis)
+            result = self.loc(axis=axis)[mask]
 
         if inplace:
             self._update_inplace(result)
