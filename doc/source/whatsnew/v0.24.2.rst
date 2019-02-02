@@ -51,7 +51,7 @@ Bug Fixes
 
 **I/O**
 
--
+- Fixed an output formatting exception in pandas/io/formats/terminal.py;
 -
 -
 
@@ -95,5 +95,5 @@ Bug Fixes
 
 Contributors
 ~~~~~~~~~~~~
-
+EternalLearner42
 .. contributors:: v0.24.1..v0.24.2
