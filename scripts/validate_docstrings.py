@@ -700,7 +700,7 @@ def get_validation_data(doc):
 
     if doc.is_function_or_method:
         if not doc.returns:
-            if re.search(r"return(?!( None)?\n)", doc.clean_method_source):
+            if re.search(r"\breturn\b(?!( None)?\n)", doc.clean_method_source):
                 errs.append(error('RT01'))
         else:
             if len(doc.returns) == 1 and doc.returns[0][1]:
