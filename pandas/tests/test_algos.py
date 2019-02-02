@@ -435,49 +435,28 @@ class TestUnique(object):
         expected_inverse = np.array([0, 1, 2, 2], dtype='int64')
         tm.assert_numpy_array_equal(result_inverse, expected_inverse)
 
-    def test_categorical(self):
+    @pytest.mark.parametrize('ordered', [True, False])
+    @pytest.mark.parametrize('box', [lambda x: x, Series, Index],
+                             ids=['Categorical', 'Series', 'Index'])
+    @pytest.mark.parametrize('method', [lambda x, **kwargs: x.unique(**kwargs),
+                                        pd.unique],
+                             ids=['classmethod', 'toplevel'])
+    def test_categorical(self, method, box, ordered):
 
-        # we are expecting to return in the order
-        # of appearance
-        expected = Categorical(list('bac'), categories=list('bac'))
+        categories = list('abc') if ordered else list('bac')
+        expected = Categorical(list('bac'), categories=categories,
+                               ordered=ordered)
 
-        # we are expecting to return in the order
-        # of the categories
-        expected_o = Categorical(
-            list('bac'), categories=list('abc'), ordered=True)
+        # Index.unique always returns Index
+        # pd.unique(Index) stays Index (only) for Categorical
+        expected = box(expected) if box == Index else expected
 
         # GH 15939
-        c = Categorical(list('baabc'))
-        result = c.unique()
-        tm.assert_categorical_equal(result, expected)
+        c = box(Categorical(list('baabc'), categories=categories,
+                            ordered=ordered))
+        result = method(c)
 
-        result = algos.unique(c)
-        tm.assert_categorical_equal(result, expected)
-
-        c = Categorical(list('baabc'), ordered=True)
-        result = c.unique()
-        tm.assert_categorical_equal(result, expected_o)
-
-        result = algos.unique(c)
-        tm.assert_categorical_equal(result, expected_o)
-
-        # Series of categorical dtype
-        s = Series(Categorical(list('baabc')), name='foo')
-        result = s.unique()
-        tm.assert_categorical_equal(result, expected)
-
-        result = pd.unique(s)
-        tm.assert_categorical_equal(result, expected)
-
-        # CI -> return CI
-        ci = CategoricalIndex(Categorical(list('baabc'),
-                                          categories=list('bac')))
-        expected = CategoricalIndex(expected)
-        result = ci.unique()
-        tm.assert_index_equal(result, expected)
-
-        result = pd.unique(ci)
-        tm.assert_index_equal(result, expected)
+        assert_series_or_index_or_array_or_categorical_equal(result, expected)
 
     def test_datetime64tz_aware(self):
         # GH 15939
