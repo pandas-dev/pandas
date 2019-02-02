@@ -824,7 +824,14 @@ class IntervalIndex(IntervalMixin, Index):
             return np.arange(len(self), dtype='intp')
 
         if self.is_non_overlapping_monotonic:
-            start, stop = self._find_non_overlapping_monotonic_bounds(target)
+            try:
+                start, stop = (
+                    self._find_non_overlapping_monotonic_bounds()
+                )
+            except TypeError:
+                # This is probably wrong
+                # but not sure what I should do here
+                return np.array([-1])
 
             start_plus_one = start + 1
             if not ((start_plus_one < stop).any()):
