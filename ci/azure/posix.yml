@@ -21,7 +21,7 @@ jobs:
           PATTERN: "not slow and not network"
 
         py36_locale_slow_old_np:
-          ENV_FILE: ci/deps/azure36-locale.yaml
+          ENV_FILE: ci/deps/azure-36-locale.yaml
           CONDA_PY: "36"
           PATTERN: "slow"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
