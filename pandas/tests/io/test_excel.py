@@ -119,11 +119,11 @@ class SharedItems(object):
 class ReadingTestsBase(SharedItems):
     # This is based on ExcelWriterBase
 
-    @pytest.fixture(autouse=True, params=['xlrd', None])
-    def set_engine(self, request):
+    @pytest.fixture(autouse=True)
+    def set_engine(self, engine):
         func_name = "get_exceldf"
         old_func = getattr(self, func_name)
-        new_func = partial(old_func, engine=request.param)
+        new_func = partial(old_func, engine=engine)
         setattr(self, func_name, new_func)
         yield
         setattr(self, func_name, old_func)
@@ -1143,6 +1143,7 @@ class ReadingTestsBase(SharedItems):
 
 
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
+@pytest.mark.parametrize("engine", ['xlrd'])
 class TestXlrdReader(ReadingTestsBase):
     """
     This is the base class for the xlrd tests, and 3 different file formats
