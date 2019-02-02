@@ -381,7 +381,7 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_field(ndarray[int64_t] dtindex, object field):
+def get_date_field(int64_t[:] dtindex, object field):
     """
     Given a int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.

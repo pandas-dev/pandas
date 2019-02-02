@@ -1,0 +1,99 @@
+:orphan:
+
+.. _whatsnew_0242:
+
+Whats New in 0.24.2 (February XX, 2019)
+---------------------------------------
+
+.. warning::
+
+   The 0.24.x series of releases will be the last to support Python 2. Future feature
+   releases will support Python 3 only. See :ref:`install.dropping-27` for more.
+
+{{ header }}
+
+These are the changes in pandas 0.24.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+.. _whatsnew_0242.regressions:
+
+Fixed Regressions
+^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+.. _whatsnew_0242.enhancements:
+
+Enhancements
+^^^^^^^^^^^^
+
+-
+-
+
+.. _whatsnew_0242.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+**Conversion**
+
+-
+-
+-
+
+**Indexing**
+
+-
+-
+-
+
+**I/O**
+
+-
+-
+-
+
+**Categorical**
+
+-
+-
+-
+
+**Timezones**
+
+-
+-
+-
+
+**Timedelta**
+
+-
+-
+-
+
+**Reshaping**
+
+-
+-
+-
+
+**Visualization**
+
+-
+-
+-
+
+**Other**
+
+-
+-
+-
+
+.. _whatsnew_0.242.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.24.1..v0.24.2
