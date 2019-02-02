@@ -94,6 +94,8 @@ def _get_terminal_size_tput():
     # get terminal width
     # src: http://stackoverflow.com/questions/263890/how-do-i-find-the-width
     # -height-of-a-terminal-window
+    output_cols = None
+    output_rows = None
     try:
         import subprocess
         proc = subprocess.Popen(["tput", "cols"],
@@ -104,13 +106,13 @@ def _get_terminal_size_tput():
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
         output_rows = proc.communicate(input=None)
-        try:
-            cols = int(output_cols[0])
-            rows = int(output_rows[0])
-            return (cols, rows)
-        except ValueError:
-            return None
     except OSError:
+        return None
+    try:
+        cols = int(output_cols[0])
+        rows = int(output_rows[0])
+        return (cols, rows)
+    except ValueError:
         return None
 
 
