@@ -886,11 +886,12 @@ class TestIntervalIndex(Base):
         result = index.symmetric_difference(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
-    def test_get_indexer_errors(self):
+    def test_interval_range_get_indexer_with_different_input_type(self):
         # not sure about this one
         index = pd.interval_range(0, 1)
-        with pytest.raises(KeyError):
-            index.get_indexer(['gg'])
+        # behaviour should be the same as Int64Index and return an
+        # array with values of -1
+        assert np.all(index.get_indexer(['gg']) == np.array([-1]))
 
     @pytest.mark.parametrize('op_name', [
         'union', 'intersection', 'difference', 'symmetric_difference'])
