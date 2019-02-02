@@ -72,7 +72,6 @@ Fixed Regressions
 
 **Other**
 
-- Bug in :func:`pandas.merge` doesn't work correctly if None is in suffixes (:issue: `24782`).
 
 .. _whatsnew_0.241.contributors:
 
