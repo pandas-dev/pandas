@@ -886,6 +886,12 @@ class TestIntervalIndex(Base):
         result = index.symmetric_difference(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
+    def test_get_indexer_errors(self):
+        # not sure about this one
+        index = pd.interval_range(0, 1)
+        with pytest.raises(KeyError):
+            index.get_indexer(['gg'])
+
     @pytest.mark.parametrize('op_name', [
         'union', 'intersection', 'difference', 'symmetric_difference'])
     @pytest.mark.parametrize("sort", [None, False])
