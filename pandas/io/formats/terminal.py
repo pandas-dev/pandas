@@ -99,15 +99,18 @@ def _get_terminal_size_tput():
         proc = subprocess.Popen(["tput", "cols"],
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
-        output = proc.communicate(input=None)
-        cols = int(output[0])
+        output_cols = proc.communicate(input=None)
         proc = subprocess.Popen(["tput", "lines"],
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
-        output = proc.communicate(input=None)
-        rows = int(output[0])
-        return (cols, rows)
+        output_rows = proc.communicate(input=None)
     except OSError:
+        return None
+    try:
+        cols = int(output_cols[0])
+        rows = int(output_rows[0])
+        return (cols, rows)
+    except ValueError:
         return None
 
 
