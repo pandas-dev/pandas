@@ -1,5 +1,6 @@
 """ test the scalar Timedelta """
 from datetime import timedelta
+import re
 
 import numpy as np
 import pytest
@@ -11,8 +12,6 @@ import pandas as pd
 from pandas import (
     Series, Timedelta, TimedeltaIndex, timedelta_range, to_timedelta)
 import pandas.util.testing as tm
-
-import re
 
 
 class TestTimedeltaArithmetic(object):
@@ -319,6 +318,7 @@ class TestTimedeltas(object):
         assert result.dtype.kind == 'm'
         assert result.astype('int64') == iNaT
 
+    @pytest.mark.filterwarnings("ignore:M and Y units are deprecated")
     @pytest.mark.parametrize('units, np_unit',
                              [(['Y', 'y'], 'Y'),
                               (['M'], 'M'),

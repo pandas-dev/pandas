@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 
 import numpy as np
 import pytest
@@ -12,9 +13,6 @@ from pandas.util.testing import (
     assert_almost_equal, assert_index_equal, assert_series_equal)
 
 from ..datetimelike import DatetimeLike
-
-import re
-
 
 randn = np.random.randn
 
