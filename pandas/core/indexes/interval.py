@@ -766,8 +766,13 @@ class IntervalIndex(IntervalMixin, Index):
                 key = Interval(left, right, key.closed)
             else:
                 key = self._maybe_cast_slice_bound(key, 'left', None)
-
-            start, stop = self._find_non_overlapping_monotonic_bounds(key)
+            try:
+                start, stop = self._find_non_overlapping_monotonic_bounds(key)
+            except TypeError:
+                # get loc should raise KeyError
+                # if key is hashable but
+                # of an incorrect type
+                raise KeyError
 
             if start is None or stop is None:
                 return slice(start, stop)
