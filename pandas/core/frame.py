@@ -483,7 +483,7 @@ class DataFrame(NDFrame):
         --------
         >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
         >>> df.axes
-        [RangeIndex(start=0, stop=2, step=1), Index(['coll', 'col2'],
+        [RangeIndex(start=0, stop=2, step=1), Index(['col1', 'col2'],
         dtype='object')]
         """
         return [self.index, self.columns]
