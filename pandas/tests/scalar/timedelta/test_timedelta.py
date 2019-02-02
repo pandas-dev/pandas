@@ -380,11 +380,13 @@ class TestTimedeltas(object):
 
     @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
     def test_unit_m_y_deprecated(self, unit):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w1:
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as w1:
             Timedelta(10, unit)
         msg = r'.* units are deprecated .*'
         assert re.match(msg, str(w1[0].message))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w2:
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as w2:
             to_timedelta(10, unit)
         msg = r'.* units are deprecated .*'
         assert re.match(msg, str(w2[0].message))

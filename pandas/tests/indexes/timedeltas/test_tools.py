@@ -10,8 +10,6 @@ from pandas import Series, TimedeltaIndex, isna, to_timedelta
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
-import re
-
 
 class TestTimedeltas(object):
 
