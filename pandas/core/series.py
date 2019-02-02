@@ -3304,7 +3304,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, 4],
-        ...     index=pd.MultiIndex.from_product([['one', 'two'], ['a', 'b']]))
+        ...               index=pd.MultiIndex.from_product([['one', 'two'],
+        ...                                                 ['a', 'b']]))
         >>> s
         one  a    1
              b    2
