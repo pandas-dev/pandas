@@ -458,6 +458,20 @@ class TestUnique(object):
 
         assert_series_or_index_or_array_or_categorical_equal(result, expected)
 
+        if method == pd.unique:
+            # [Series/Index].unique do not yet support return_inverse=True
+
+            # reuse result as expected outcome of return_inverse case
+            expected_uniques = result.copy()
+            result_uniques, result_inverse = method(c, return_inverse=True)
+
+            assert_series_or_index_or_array_or_categorical_equal(
+                result_uniques, expected_uniques)
+
+            # reconstruction can only work if inverse is correct
+            reconstr = box(result_uniques[result_inverse])
+            assert_series_or_index_or_array_or_categorical_equal(reconstr, c)
+
     def test_datetime64tz_aware(self):
         # GH 15939
 
