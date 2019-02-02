@@ -51,7 +51,7 @@ Bug Fixes
 
 **I/O**
 
-- Fixed an output formatting exception in pandas/io/formats/terminal.py;
+- Better handling of terminal printing when the terminal dimensions are not known (#25080);
 -
 -
 
@@ -95,5 +95,5 @@ Bug Fixes
 
 Contributors
 ~~~~~~~~~~~~
-EternalLearner42
+
 .. contributors:: v0.24.1..v0.24.2
