@@ -311,8 +311,13 @@ class TestTimedeltas(object):
         assert to_timedelta('P0DT0H0M1S') == expected
 
     def test_nat_converters(self):
-        assert to_timedelta('nat', box=False).astype('int64') == iNaT
-        assert to_timedelta('nan', box=False).astype('int64') == iNaT
+        result = to_timedelta('nat', box=False)
+        assert result.dtype.kind == 'm'
+        assert result.astype('int64') == iNaT
+
+        result = to_timedelta('nan', box=False)
+        assert result.dtype.kind == 'm'
+        assert result.astype('int64') == iNaT
 
     @pytest.mark.parametrize('units, np_unit',
                              [(['Y', 'y'], 'Y'),
