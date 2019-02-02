@@ -104,14 +104,15 @@ def _get_terminal_size_tput():
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
         output_rows = proc.communicate(input=None)
+        try:
+            cols = int(output_cols[0])
+            rows = int(output_rows[0])
+            return (cols, rows)
+        except ValueError:
+            return None
     except OSError:
         return None
-    try:
-        cols = int(output_cols[0])
-        rows = int(output_rows[0])
-        return (cols, rows)
-    except ValueError:
-        return None
+    
 
 
 def _get_terminal_size_linux():
