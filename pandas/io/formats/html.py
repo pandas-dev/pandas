@@ -12,7 +12,6 @@ from pandas.compat import OrderedDict, lzip, map, range, u, unichr, zip
 from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import compat
-import pandas.core.common as com
 from pandas.core.config import get_option
 
 from pandas.io.common import _is_url
