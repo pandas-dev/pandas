@@ -350,7 +350,8 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
 
 def dict_compat(d):
     """
-    Helper function to convert datetimelike-keyed dicts to Timestamp-keyed dict.
+    Helper function to convert datetimelike-keyed dicts
+    to Timestamp-keyed dict.
 
     Parameters
     ----------
