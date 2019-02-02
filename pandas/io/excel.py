@@ -31,7 +31,8 @@ from pandas.io.common import (
     _NA_VALUES, _is_url, _stringify_path, _urlopen, _validate_header_arg,
     get_filepath_or_buffer)
 from pandas.io.formats.printing import pprint_thing
-from pandas.io.parsers import TextParser, _validate_usecols_names, _validate_usecols_arg
+from pandas.io.parsers import (
+    TextParser, _validate_usecols_arg, _validate_usecols_names)
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 
@@ -672,7 +673,8 @@ class _OpenpyxlReader(_BaseExcelReader):
         # can't pass to get_filepath_or_buffer()
         if _is_url(filepath_or_buffer):
             filepath_or_buffer = _urlopen(filepath_or_buffer)
-        elif not isinstance(filepath_or_buffer, (ExcelFile, openpyxl.Workbook)):
+        elif not isinstance(filepath_or_buffer,
+                            (ExcelFile, openpyxl.Workbook)):
             filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
                 filepath_or_buffer)
 
@@ -688,7 +690,8 @@ class _OpenpyxlReader(_BaseExcelReader):
                     # GH 20434
                     pass
 
-            data = filepath_or_buffer.read()
+            # TODO: is this all necessary?
+            # data = filepath_or_buffer.read()
             self.book = openpyxl.load_workbook(
                 filepath_or_buffer, data_only=True)
         elif isinstance(filepath_or_buffer, compat.string_types):
@@ -712,7 +715,10 @@ class _OpenpyxlReader(_BaseExcelReader):
     def _replace_type_error_with_nan(rows):
         nan = float('nan')
         for row in rows:
-            yield [nan if cell.data_type == cell.TYPE_ERROR else cell.value for cell in row]
+            yield [nan
+                   if cell.data_type == cell.TYPE_ERROR
+                   else cell.value
+                   for cell in row]
 
     def get_sheet_data(self, sheet, convert_float):
         data = self._replace_type_error_with_nan(sheet.rows)
@@ -781,6 +787,7 @@ class _OpenpyxlReader(_BaseExcelReader):
             if is_list_like(header) and len(header) == 1:
                 header = header[0]
 
+            # TODO: scrutinize what is going here
             # forward fill and pull out names for MultiIndex column
             header_names = None
             if header is not None and is_list_like(header):
@@ -798,7 +805,8 @@ class _OpenpyxlReader(_BaseExcelReader):
                         header_name, _ = _pop_header_name(data[row], index_col)
                         header_names.append(header_name)
 
-            has_index_names = is_list_like(header) and len(header) > 1
+            # TODO: implement whatever this should do
+            # has_index_names = is_list_like(header) and len(header) > 1
 
             if skiprows:
                 data = [row for i, row in enumerate(data) if i not in skiprows]
@@ -818,6 +826,8 @@ class _OpenpyxlReader(_BaseExcelReader):
             if index_col is not None:
                 if is_list_like(index_col):
                     if any(isinstance(i, str) for i in index_col):
+                        # TODO: see if there is already a method for this in
+                        # pandas.io.parsers
                         frame = frame.set_index(index_col)
                         if len(index_col) == 1:
                             # TODO: understand why this is needed
