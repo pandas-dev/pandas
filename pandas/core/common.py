@@ -401,13 +401,6 @@ def standardize_mapping(into):
     return into
 
 
-def sentinel_factory():
-    class Sentinel(object):
-        pass
-
-    return Sentinel()
-
-
 def random_state(state=None):
     """
     Helper function for processing random_state arguments.

@@ -1322,7 +1322,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
     Result is a dictionary of (level, inital_position): span
     """
-    sentinel = com.sentinel_factory()
+    sentinel = object()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
 
     if hidden_elements is None:
