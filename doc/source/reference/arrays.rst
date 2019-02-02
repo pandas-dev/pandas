@@ -31,7 +31,7 @@ The top-level :meth:`array` method can be used to create a new array, which may 
 stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFrame`.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    array
 
@@ -48,14 +48,14 @@ or timezone-aware values.
 scalar type for timezone-naive or timezone-aware datetime data.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Timestamp
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Timestamp.asm8
    Timestamp.day
@@ -91,7 +91,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Timestamp.astimezone
    Timestamp.ceil
@@ -142,7 +142,7 @@ is used.
 If the data are tz-aware, then every value in the array must have the same timezone.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    arrays.DatetimeArray
    DatetimeTZDtype
@@ -156,14 +156,14 @@ NumPy can natively represent timedeltas. Pandas provides :class:`Timedelta`
 for symmetry with :class:`Timestamp`.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Timedelta
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Timedelta.asm8
    Timedelta.components
@@ -183,7 +183,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Timedelta.ceil
    Timedelta.floor
@@ -196,7 +196,7 @@ Methods
 A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    arrays.TimedeltaArray
 
@@ -210,14 +210,14 @@ Pandas represents spans of times as :class:`Period` objects.
 Period
 ------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Period
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Period.day
    Period.dayofweek
@@ -244,7 +244,7 @@ Properties
 Methods
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Period.asfreq
    Period.now
@@ -255,7 +255,7 @@ A collection of timedeltas may be stored in a :class:`arrays.PeriodArray`.
 Every period in a ``PeriodArray`` must have the same ``freq``.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    arrays.DatetimeArray
    PeriodDtype
@@ -268,14 +268,14 @@ Interval Data
 Arbitrary intervals can be represented as :class:`Interval` objects.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     Interval
 
 Properties
 ~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Interval.closed
    Interval.closed_left
@@ -288,12 +288,12 @@ Properties
    Interval.overlaps
    Interval.right
 
-A collection of intervals may be stored in an :class:`IntervalArray`.
+A collection of intervals may be stored in an :class:`arrays.IntervalArray`.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
-   IntervalArray
+   arrays.IntervalArray
    IntervalDtype
 
 .. _api.arrays.integer_na:
@@ -305,7 +305,7 @@ Nullable Integer
 Pandas provides this through :class:`arrays.IntegerArray`.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    arrays.IntegerArray
    Int8Dtype
@@ -327,13 +327,13 @@ limited, fixed set of values. The dtype of a ``Categorical`` can be described by
 a :class:`pandas.api.types.CategoricalDtype`.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    CategoricalDtype
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    CategoricalDtype.categories
    CategoricalDtype.ordered
@@ -341,7 +341,7 @@ a :class:`pandas.api.types.CategoricalDtype`.
 Categorical data can be stored in a :class:`pandas.Categorical`
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    Categorical
@@ -350,14 +350,14 @@ The alternative :meth:`Categorical.from_codes` constructor can be used when you
 have the categories and integer codes already:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Categorical.from_codes
 
 The dtype information is available on the ``Categorical``
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Categorical.dtype
    Categorical.categories
@@ -368,7 +368,7 @@ The dtype information is available on the ``Categorical``
 the Categorical back to a NumPy array, so categories and order information is not preserved!
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    Categorical.__array__
 
@@ -391,7 +391,7 @@ Data where a single value is repeated many times (e.g. ``0`` or ``NaN``) may
 be stored efficiently as a :class:`SparseArray`.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    SparseArray
    SparseDtype

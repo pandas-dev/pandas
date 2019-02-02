@@ -9,7 +9,7 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize("case", [0.5, "xxx"])
-@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("sort", [None, False])
 @pytest.mark.parametrize("method", ["intersection", "union",
                                     "difference", "symmetric_difference"])
 def test_set_ops_error_cases(idx, case, sort, method):
@@ -19,13 +19,13 @@ def test_set_ops_error_cases(idx, case, sort, method):
         getattr(idx, method)(case, sort=sort)
 
 
-@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("sort", [None, False])
 def test_intersection_base(idx, sort):
     first = idx[:5]
     second = idx[:3]
     intersect = first.intersection(second, sort=sort)
 
-    if sort:
+    if sort is None:
         tm.assert_index_equal(intersect, second.sort_values())
     assert tm.equalContents(intersect, second)
 
@@ -34,7 +34,7 @@ def test_intersection_base(idx, sort):
              for klass in [np.array, Series, list]]
     for case in cases:
         result = first.intersection(case, sort=sort)
-        if sort:
+        if sort is None:
             tm.assert_index_equal(result, second.sort_values())
         assert tm.equalContents(result, second)
 
@@ -43,13 +43,13 @@ def test_intersection_base(idx, sort):
         first.intersection([1, 2, 3], sort=sort)
 
 
-@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("sort", [None, False])
 def test_union_base(idx, sort):
     first = idx[3:]
     second = idx[:5]
     everything = idx
     union = first.union(second, sort=sort)
-    if sort:
+    if sort is None:
         tm.assert_index_equal(union, everything.sort_values())
     assert tm.equalContents(union, everything)
 
@@ -58,7 +58,7 @@ def test_union_base(idx, sort):
              for klass in [np.array, Series, list]]
     for case in cases:
         result = first.union(case, sort=sort)
-        if sort:
+        if sort is None:
             tm.assert_index_equal(result, everything.sort_values())
         assert tm.equalContents(result, everything)
 
@@ -67,13 +67,13 @@ def test_union_base(idx, sort):
         first.union([1, 2, 3], sort=sort)
 
 
-@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("sort", [None, False])
 def test_difference_base(idx, sort):
     second = idx[4:]
     answer = idx[:4]
     result = idx.difference(second, sort=sort)
 
-    if sort:
+    if sort is None:
         answer = answer.sort_values()
 
     assert result.equals(answer)
@@ -91,14 +91,14 @@ def test_difference_base(idx, sort):
         idx.difference([1, 2, 3], sort=sort)
 
 
-@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("sort", [None, False])
 def test_symmetric_difference(idx, sort):
     first = idx[1:]
     second = idx[:-1]
     answer = idx[[-1, 0]]
     result = first.symmetric_difference(second, sort=sort)
 
-    if sort:
+    if sort is None:
         answer = answer.sort_values()
 
     tm.assert_index_equal(result, answer)
@@ -121,14 +121,14 @@ def test_empty(idx):
     assert idx[:0].empty
 
 
-@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("sort", [None, False])
 def test_difference(idx, sort):
 
     first = idx
     result = first.difference(idx[-3:], sort=sort)
     vals = idx[:-3].values
 
-    if sort:
+    if sort is None:
         vals = sorted(vals)
 
     expected = MultiIndex.from_tuples(vals,
@@ -189,14 +189,62 @@ def test_difference(idx, sort):
         first.difference([1, 2, 3, 4, 5], sort=sort)
 
 
-@pytest.mark.parametrize("sort", [True, False])
+def test_difference_sort_special():
+    # GH-24959
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+    # sort=None, the default
+    result = idx.difference([])
+    tm.assert_index_equal(result, idx)
+
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_difference_sort_special_true():
+    # TODO decide on True behaviour
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+    result = idx.difference([], sort=True)
+    expected = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
+    tm.assert_index_equal(result, expected)
+
+
+def test_difference_sort_incomparable():
+    # GH-24959
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp('2000'), 2],
+                                      ['a', 'b']])
+
+    other = pd.MultiIndex.from_product([[3, pd.Timestamp('2000'), 4],
+                                        ['c', 'd']])
+    # sort=None, the default
+    # MultiIndex.difference deviates here from other difference
+    # implementations in not catching the TypeError
+    with pytest.raises(TypeError):
+        result = idx.difference(other)
+
+    # sort=False
+    result = idx.difference(other, sort=False)
+    tm.assert_index_equal(result, idx)
+
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_difference_sort_incomparable_true():
+    # TODO decide on True behaviour
+    # # sort=True, raises
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp('2000'), 2],
+                                      ['a', 'b']])
+    other = pd.MultiIndex.from_product([[3, pd.Timestamp('2000'), 4],
+                                        ['c', 'd']])
+
+    with pytest.raises(TypeError):
+        idx.difference(other, sort=True)
+
+
+@pytest.mark.parametrize("sort", [None, False])
 def test_union(idx, sort):
     piece1 = idx[:5][::-1]
     piece2 = idx[3:]
 
     the_union = piece1.union(piece2, sort=sort)
 
-    if sort:
+    if sort is None:
         tm.assert_index_equal(the_union, idx.sort_values())
 
     assert tm.equalContents(the_union, idx)
@@ -225,14 +273,14 @@ def test_union(idx, sort):
     #     assert result.equals(result2)
 
 
-@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("sort", [None, False])
 def test_intersection(idx, sort):
     piece1 = idx[:5][::-1]
     piece2 = idx[3:]
 
     the_int = piece1.intersection(piece2, sort=sort)
 
-    if sort:
+    if sort is None:
         tm.assert_index_equal(the_int, idx[3:5])
     assert tm.equalContents(the_int, idx[3:5])
 
@@ -249,3 +297,76 @@ def test_intersection(idx, sort):
     # tuples = _index.values
     # result = _index & tuples
     # assert result.equals(tuples)
+
+
+def test_intersect_equal_sort():
+    # GH-24959
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+    tm.assert_index_equal(idx.intersection(idx, sort=False), idx)
+    tm.assert_index_equal(idx.intersection(idx, sort=None), idx)
+
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_intersect_equal_sort_true():
+    # TODO decide on True behaviour
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+    sorted_ = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
+    tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
+
+
+@pytest.mark.parametrize('slice_', [slice(None), slice(0)])
+def test_union_sort_other_empty(slice_):
+    # https://github.com/pandas-dev/pandas/issues/24959
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+
+    # default, sort=None
+    other = idx[slice_]
+    tm.assert_index_equal(idx.union(other), idx)
+    # MultiIndex does not special case empty.union(idx)
+    # tm.assert_index_equal(other.union(idx), idx)
+
+    # sort=False
+    tm.assert_index_equal(idx.union(other, sort=False), idx)
+
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_union_sort_other_empty_sort(slice_):
+    # TODO decide on True behaviour
+    # # sort=True
+    idx = pd.MultiIndex.from_product([[1, 0], ['a', 'b']])
+    other = idx[:0]
+    result = idx.union(other, sort=True)
+    expected = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_sort_other_incomparable():
+    # https://github.com/pandas-dev/pandas/issues/24959
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp('2000')], ['a', 'b']])
+
+    # default, sort=None
+    result = idx.union(idx[:1])
+    tm.assert_index_equal(result, idx)
+
+    # sort=False
+    result = idx.union(idx[:1], sort=False)
+    tm.assert_index_equal(result, idx)
+
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_union_sort_other_incomparable_sort():
+    # TODO decide on True behaviour
+    # # sort=True
+    idx = pd.MultiIndex.from_product([[1, pd.Timestamp('2000')], ['a', 'b']])
+    with pytest.raises(TypeError, match='Cannot compare'):
+        idx.union(idx[:1], sort=True)
+
+
+@pytest.mark.parametrize("method", ['union', 'intersection', 'difference',
+                                    'symmetric_difference'])
+def test_setops_disallow_true(method):
+    idx1 = pd.MultiIndex.from_product([['a', 'b'], [1, 2]])
+    idx2 = pd.MultiIndex.from_product([['b', 'c'], [1, 2]])
+
+    with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
+        getattr(idx1, method)(idx2, sort=True)

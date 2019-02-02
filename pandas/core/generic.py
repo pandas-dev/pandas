@@ -61,6 +61,10 @@ _shared_doc_kwargs = dict(
         by : str or list of str
             Name or list of names to sort by""")
 
+# sentinel value to use as kwarg in place of None when None has special meaning
+# and needs to be distinguished from a user explicitly passing None.
+sentinel = object()
+
 
 def _single_replace(self, to_replace, method, inplace, limit):
     """
@@ -290,11 +294,16 @@ class NDFrame(PandasObject, SelectionMixin):
         d.update(kwargs)
         return d
 
-    def _construct_axes_from_arguments(self, args, kwargs, require_all=False):
+    def _construct_axes_from_arguments(
+            self, args, kwargs, require_all=False, sentinel=None):
         """Construct and returns axes if supplied in args/kwargs.
 
         If require_all, raise if all axis arguments are not supplied
         return a tuple of (axes, kwargs).
+
+        sentinel specifies the default parameter when an axis is not
+        supplied; useful to distinguish when a user explicitly passes None
+        in scenarios where None has special meaning.
         """
 
         # construct the args
@@ -322,7 +331,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         raise TypeError("not enough/duplicate arguments "
                                         "specified!")
 
-        axes = {a: kwargs.pop(a, None) for a in self._AXIS_ORDERS}
+        axes = {a: kwargs.pop(a, sentinel) for a in self._AXIS_ORDERS}
         return axes, kwargs
 
     @classmethod
@@ -530,7 +539,7 @@ class NDFrame(PandasObject, SelectionMixin):
             The axis to update. The value 0 identifies the rows, and 1
             identifies the columns.
 
-        inplace : boolean, default None
+        inplace : bool, default None
             Whether to return a new %(klass)s instance.
 
             .. warning::
@@ -1089,7 +1098,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @rewrite_axis_style_signature('mapper', [('copy', True),
                                              ('inplace', False)])
-    def rename_axis(self, mapper=None, **kwargs):
+    def rename_axis(self, mapper=sentinel, **kwargs):
         """
         Set the name of the axis for the index or columns.
 
@@ -1218,7 +1227,8 @@ class NDFrame(PandasObject, SelectionMixin):
                cat            4         0
                monkey         2         2
         """
-        axes, kwargs = self._construct_axes_from_arguments((), kwargs)
+        axes, kwargs = self._construct_axes_from_arguments(
+            (), kwargs, sentinel=sentinel)
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
         axis = kwargs.pop('axis', 0)
@@ -1231,7 +1241,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
-        if (mapper is not None):
+        if (mapper is not sentinel):
             # Use v0.23 behavior if a scalar or list
             non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
                                                is_dict_like(mapper))
@@ -1254,7 +1264,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             for axis in lrange(self._AXIS_LEN):
                 v = axes.get(self._AXIS_NAMES[axis])
-                if v is None:
+                if v is sentinel:
                     continue
                 non_mapper = is_scalar(v) or (is_list_like(v) and not
                                               is_dict_like(v))
@@ -3966,35 +3976,37 @@ class NDFrame(PandasObject, SelectionMixin):
     def sort_values(self, by=None, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
         """
-        Sort by the values along either axis
+        Sort by the values along either axis.
 
         Parameters
         ----------%(optional_by)s
         axis : %(axes_single_arg)s, default 0
-             Axis to be sorted
+             Axis to be sorted.
         ascending : bool or list of bool, default True
              Sort ascending vs. descending. Specify list for multiple sort
              orders.  If this is a list of bools, must match the length of
              the by.
         inplace : bool, default False
-             if True, perform operation in-place
+             If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
              Choice of sorting algorithm. See also ndarray.np.sort for more
              information.  `mergesort` is the only stable algorithm. For
              DataFrames, this option is only applied when sorting on a single
              column or label.
         na_position : {'first', 'last'}, default 'last'
-             `first` puts NaNs at the beginning, `last` puts NaNs at the end
+             Puts NaNs at the beginning if `first`; `last` puts NaNs at the
+             end.
 
         Returns
         -------
-        sorted_obj : %(klass)s
+        sorted_obj : DataFrame or None
+            DataFrame with sorted values if inplace=False, None otherwise.
 
         Examples
         --------
         >>> df = pd.DataFrame({
-        ...     'col1' : ['A', 'A', 'B', np.nan, 'D', 'C'],
-        ...     'col2' : [2, 1, 9, 8, 7, 4],
+        ...     'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
+        ...     'col2': [2, 1, 9, 8, 7, 4],
         ...     'col3': [0, 1, 9, 4, 2, 3],
         ... })
         >>> df
@@ -4056,32 +4068,35 @@ class NDFrame(PandasObject, SelectionMixin):
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True):
         """
-        Sort object by labels (along an axis)
+        Sort object by labels (along an axis).
 
         Parameters
         ----------
-        axis : %(axes)s to direct sorting
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis along which to sort.  The value 0 identifies the rows,
+            and 1 identifies the columns.
         level : int or level name or list of ints or list of level names
-            if not None, sort on values in specified index level(s)
-        ascending : boolean, default True
-            Sort ascending vs. descending
+            If not None, sort on values in specified index level(s).
+        ascending : bool, default True
+            Sort ascending vs. descending.
         inplace : bool, default False
-            if True, perform operation in-place
+            If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
-             Choice of sorting algorithm. See also ndarray.np.sort for more
-             information.  `mergesort` is the only stable algorithm. For
-             DataFrames, this option is only applied when sorting on a single
-             column or label.
+            Choice of sorting algorithm. See also ndarray.np.sort for more
+            information.  `mergesort` is the only stable algorithm. For
+            DataFrames, this option is only applied when sorting on a single
+            column or label.
         na_position : {'first', 'last'}, default 'last'
-             `first` puts NaNs at the beginning, `last` puts NaNs at the end.
-             Not implemented for MultiIndex.
+            Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
+            Not implemented for MultiIndex.
         sort_remaining : bool, default True
-            if true and sorting by level and index is multilevel, sort by other
-            levels too (in order) after sorting by specified level
+            If True and sorting by level and index is multilevel, sort by other
+            levels too (in order) after sorting by specified level.
 
         Returns
         -------
-        sorted_obj : %(klass)s
+        sorted_obj : DataFrame or None
+            DataFrame with sorted index if inplace=False, None otherwise.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
@@ -6596,7 +6611,7 @@ class NDFrame(PandasObject, SelectionMixin):
               'barycentric', 'polynomial': Passed to
               `scipy.interpolate.interp1d`. Both 'polynomial' and 'spline'
               require that you also specify an `order` (int),
-              e.g. ``df.interpolate(method='polynomial', order=4)``.
+              e.g. ``df.interpolate(method='polynomial', order=5)``.
               These use the numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
               Wrappers around the SciPy interpolation methods of similar

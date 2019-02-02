@@ -989,6 +989,36 @@ a single date rather than the entire array.
 
    os.remove('tmp.csv')
 
+
+.. _io.csv.mixed_timezones:
+
+Parsing a CSV with mixed Timezones
+++++++++++++++++++++++++++++++++++
+
+Pandas cannot natively represent a column or index with mixed timezones. If your CSV
+file contains columns with a mixture of timezones, the default result will be
+an object-dtype column with strings, even with ``parse_dates``.
+
+
+.. ipython:: python
+
+   content = """\
+   a
+   2000-01-01T00:00:00+05:00
+   2000-01-01T00:00:00+06:00"""
+   df = pd.read_csv(StringIO(content), parse_dates=['a'])
+   df['a']
+
+To parse the mixed-timezone values as a datetime column, pass a partially-applied
+:func:`to_datetime` with ``utc=True`` as the ``date_parser``.
+
+.. ipython:: python
+
+   df = pd.read_csv(StringIO(content), parse_dates=['a'],
+                    date_parser=lambda col: pd.to_datetime(col, utc=True))
+   df['a']
+
+
 .. _io.dayfirst:
 
 
@@ -4850,7 +4880,7 @@ See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategi
 The key functions are:
 
 .. autosummary::
-    :toctree: generated/
+    :toctree: ../reference/api/
 
     read_sql_table
     read_sql_query

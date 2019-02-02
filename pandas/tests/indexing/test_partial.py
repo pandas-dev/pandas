@@ -246,7 +246,10 @@ class TestPartialSetting(object):
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # raises as nothing in in the index
-        pytest.raises(KeyError, lambda: ser.loc[[3, 3, 3]])
+        msg = (r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            ser.loc[[3, 3, 3]]
 
         expected = Series([0.2, 0.2, np.nan], index=[2, 2, 3])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -342,7 +345,10 @@ class TestPartialSetting(object):
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # raises as nothing in in the index
-        pytest.raises(KeyError, lambda: ser.loc[[3, 3, 3]])
+        msg = (r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64',"
+               r" name=u?'idx'\)\] are in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            ser.loc[[3, 3, 3]]
 
         exp_idx = Index([2, 2, 3], dtype='int64', name='idx')
         expected = Series([0.2, 0.2, np.nan], index=exp_idx, name='s')

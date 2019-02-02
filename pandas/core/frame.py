@@ -17,6 +17,7 @@ import functools
 import itertools
 import sys
 import warnings
+from distutils.version import LooseVersion
 from textwrap import dedent
 
 import numpy as np
@@ -646,9 +647,15 @@ class DataFrame(NDFrame):
         # XXX: In IPython 3.x and above, the Qt console will not attempt to
         # display HTML, so this check can be removed when support for
         # IPython 2.x is no longer needed.
-        if console.in_qtconsole():
-            # 'HTML output is disabled in QtConsole'
-            return None
+        try:
+            import IPython
+        except ImportError:
+            pass
+        else:
+            if LooseVersion(IPython.__version__) < LooseVersion('3.0'):
+                if console.in_qtconsole():
+                    # 'HTML output is disabled in QtConsole'
+                    return None
 
         if self._info_repr():
             buf = StringIO(u(""))
@@ -847,7 +854,7 @@ class DataFrame(NDFrame):
         ----------
         index : bool, default True
             If True, return the index as the first element of the tuple.
-        name : str, default "Pandas"
+        name : str or None, default "Pandas"
             The name of the returned namedtuples or None to return regular
             tuples.
 
@@ -1290,23 +1297,26 @@ class DataFrame(NDFrame):
                            ('columns', self.columns.tolist()),
                            ('data', [
                                list(map(com.maybe_box_datetimelike, t))
-                               for t in self.itertuples(index=False)]
-                            )))
+                               for t in self.itertuples(index=False, name=None)
+                           ])))
         elif orient.lower().startswith('s'):
             return into_c((k, com.maybe_box_datetimelike(v))
                           for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
+            columns = self.columns.tolist()
+            rows = (dict(zip(columns, row))
+                    for row in self.itertuples(index=False, name=None))
             return [
                 into_c((k, com.maybe_box_datetimelike(v))
-                       for k, v in compat.iteritems(row._asdict()))
-                for row in self.itertuples(index=False)]
+                       for k, v in compat.iteritems(row))
+                for row in rows]
         elif orient.lower().startswith('i'):
             if not self.index.is_unique:
                 raise ValueError(
                     "DataFrame index must be unique for orient='index'."
                 )
             return into_c((t[0], dict(zip(self.columns, t[1:])))
-                          for t in self.itertuples())
+                          for t in self.itertuples(name=None))
         else:
             raise ValueError("orient '{o}' not understood".format(o=orient))
 
@@ -1716,7 +1726,8 @@ class DataFrame(NDFrame):
             # string naming a type.
             if dtype_mapping is None:
                 formats.append(v.dtype)
-            elif isinstance(dtype_mapping, (type, compat.string_types)):
+            elif isinstance(dtype_mapping, (type, np.dtype,
+                                            compat.string_types)):
                 formats.append(dtype_mapping)
             else:
                 element = "row" if i < index_len else "column"
@@ -4615,7 +4626,8 @@ class DataFrame(NDFrame):
     def drop_duplicates(self, subset=None, keep='first', inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
-        considering certain columns.
+        considering certain columns. Indexes, including time indexes
+        are ignored.
 
         Parameters
         ----------
