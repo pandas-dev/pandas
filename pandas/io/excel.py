@@ -31,7 +31,7 @@ from pandas.io.common import (
     _NA_VALUES, _is_url, _stringify_path, _urlopen, _validate_header_arg,
     get_filepath_or_buffer)
 from pandas.io.formats.printing import pprint_thing
-from pandas.io.parsers import TextParser
+from pandas.io.parsers import TextParser, _validate_usecols_names, _validate_usecols_arg
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 
@@ -449,7 +449,7 @@ class _BaseExcelReader(object):
             data = self.get_sheet_data(sheet, convert_float)
             usecols = _maybe_convert_usecols(usecols)
 
-            if sheet.nrows == 0:
+            if not data:
                 output[asheetname] = DataFrame()
                 continue
 
@@ -651,6 +651,209 @@ class _XlrdReader(_BaseExcelReader):
         return data
 
 
+class _OpenpyxlReader(_BaseExcelReader):
+
+    def __init__(self, filepath_or_buffer):
+        """Reader using openpyxl engine.
+
+        Parameters
+        ----------
+        filepath_or_buffer : string, path object or Workbook
+            Object to be parsed.
+        """
+        err_msg = "Install xlrd >= 1.0.0 for Excel support"
+
+        try:
+            import openpyxl
+        except ImportError:
+            raise ImportError(err_msg)
+
+        # If filepath_or_buffer is a url, want to keep the data as bytes so
+        # can't pass to get_filepath_or_buffer()
+        if _is_url(filepath_or_buffer):
+            filepath_or_buffer = _urlopen(filepath_or_buffer)
+        elif not isinstance(filepath_or_buffer, (ExcelFile, openpyxl.Workbook)):
+            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+                filepath_or_buffer)
+
+        if isinstance(filepath_or_buffer, openpyxl.Workbook):
+            self.book = filepath_or_buffer
+        elif hasattr(filepath_or_buffer, "read"):
+            if hasattr(filepath_or_buffer, 'seek'):
+                try:
+                    # GH 19779
+                    filepath_or_buffer.seek(0)
+                except UnsupportedOperation:
+                    # HTTPResponse does not support seek()
+                    # GH 20434
+                    pass
+
+            data = filepath_or_buffer.read()
+            self.book = openpyxl.load_workbook(
+                filepath_or_buffer, data_only=True)
+        elif isinstance(filepath_or_buffer, compat.string_types):
+            self.book = openpyxl.load_workbook(
+                filepath_or_buffer, data_only=True)
+        else:
+            raise ValueError('Must explicitly set engine if not passing in'
+                             ' buffer or path for io.')
+
+    @property
+    def sheet_names(self):
+        return self.book.sheetnames
+
+    def get_sheet_by_name(self, name):
+        return self.book[name]
+
+    def get_sheet_by_index(self, index):
+        return self.book.worksheets[index]
+
+    @staticmethod
+    def _replace_type_error_with_nan(rows):
+        nan = float('nan')
+        for row in rows:
+            yield [nan if cell.data_type == cell.TYPE_ERROR else cell.value for cell in row]
+
+    def get_sheet_data(self, sheet, convert_float):
+        data = self._replace_type_error_with_nan(sheet.rows)
+        # TODO: support using iterator
+        # TODO: don't make strings out of data
+        return list(data)
+
+    def parse(self,
+              sheet_name=0,
+              header=0,
+              names=None,
+              index_col=None,
+              usecols=None,
+              squeeze=False,
+              dtype=None,
+              true_values=None,
+              false_values=None,
+              skiprows=None,
+              nrows=None,
+              na_values=None,
+              verbose=False,
+              parse_dates=False,
+              date_parser=None,
+              thousands=None,
+              comment=None,
+              skipfooter=0,
+              convert_float=True,
+              mangle_dupe_cols=True,
+              **kwds):
+
+        _validate_header_arg(header)
+
+        ret_dict = False
+
+        # Keep sheetname to maintain backwards compatibility.
+        if isinstance(sheet_name, list):
+            sheets = sheet_name
+            ret_dict = True
+        elif sheet_name is None:
+            sheets = self.sheet_names
+            ret_dict = True
+        else:
+            sheets = [sheet_name]
+
+        # handle same-type duplicates.
+        sheets = list(OrderedDict.fromkeys(sheets).keys())
+
+        output = OrderedDict()
+
+        for asheetname in sheets:
+            if verbose:
+                print("Reading sheet {sheet}".format(sheet=asheetname))
+
+            if isinstance(asheetname, compat.string_types):
+                sheet = self.get_sheet_by_name(asheetname)
+            else:  # assume an integer if not a string
+                sheet = self.get_sheet_by_index(asheetname)
+
+            data = self.get_sheet_data(sheet, convert_float)
+            usecols = _maybe_convert_usecols(usecols)
+
+            if not data:
+                output[asheetname] = DataFrame()
+                continue
+
+            if is_list_like(header) and len(header) == 1:
+                header = header[0]
+
+            # forward fill and pull out names for MultiIndex column
+            header_names = None
+            if header is not None and is_list_like(header):
+                header_names = []
+                control_row = [True] * len(data[0])
+
+                for row in header:
+                    if is_integer(skiprows):
+                        row += skiprows
+
+                    data[row], control_row = _fill_mi_header(data[row],
+                                                             control_row)
+
+                    if index_col is not None:
+                        header_name, _ = _pop_header_name(data[row], index_col)
+                        header_names.append(header_name)
+
+            has_index_names = is_list_like(header) and len(header) > 1
+
+            if skiprows:
+                data = [row for i, row in enumerate(data) if i not in skiprows]
+
+            column_names = [cell for i, cell in enumerate(data.pop(0))]
+
+            frame = DataFrame(data, columns=column_names)
+            if usecols:
+                _validate_usecols_arg(usecols)
+                usecols = sorted(usecols)
+                if any(isinstance(i, str) for i in usecols):
+                    _validate_usecols_names(usecols, column_names)
+                    frame = frame[usecols]
+                else:
+                    frame = frame.iloc[:, usecols]
+
+            if index_col is not None:
+                if is_list_like(index_col):
+                    if any(isinstance(i, str) for i in index_col):
+                        frame = frame.set_index(index_col)
+                        if len(index_col) == 1:
+                            # TODO: understand why this is needed
+                            raise TypeError(
+                                "list indices must be integers.*, not str")
+                    else:
+                        frame = frame.set_index(
+                            [column_names[i] for i in index_col])
+                else:
+                    if isinstance(index_col, str):
+                        frame = frame.set_index(index_col)
+                    else:
+                        frame = frame.set_index(column_names[index_col])
+
+            output[asheetname] = frame
+            if not squeeze or isinstance(output[asheetname], DataFrame):
+                if header_names:
+                    output[asheetname].columns = output[
+                        asheetname].columns.set_names(header_names)
+                elif compat.PY2:
+                    output[asheetname].columns = _maybe_convert_to_string(
+                        output[asheetname].columns)
+
+            # name unnamed columns
+            unnamed = 0
+            for i, col_name in enumerate(frame.columns.values):
+                if col_name is None:
+                    frame.columns.values[i] = "Unnamed: {n}".format(n=unnamed)
+                    unnamed += 1
+
+        if ret_dict:
+            return output
+        else:
+            return output[asheetname]
+
+
 class ExcelFile(object):
     """
     Class for parsing tabular excel sheets into DataFrame objects.
@@ -668,6 +871,7 @@ class ExcelFile(object):
 
     _engines = {
         'xlrd': _XlrdReader,
+        'openpyxl': _OpenpyxlReader,
     }
 
     def __init__(self, io, engine=None):
