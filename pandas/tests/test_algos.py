@@ -493,6 +493,20 @@ class TestUnique(object):
         result = method(obj)
         assert_series_or_index_or_array_or_categorical_equal(result, expected)
 
+        if method == pd.unique:
+            # [Series/Index].unique do not yet support return_inverse=True
+
+            # reuse result as expected outcome of return_inverse case
+            expected_uniques = result.copy()
+            result_uniques, result_inverse = method(obj, return_inverse=True)
+
+            assert_series_or_index_or_array_or_categorical_equal(
+                result_uniques, expected_uniques)
+
+            # reconstruction can only work if inverse is correct
+            reconstr = box(result_uniques[result_inverse])
+            assert_series_or_index_or_array_or_categorical_equal(reconstr, obj)
+
     def test_order_of_appearance(self):
         # 9346
         # light testing of guarantee of order of appearance
