@@ -472,36 +472,26 @@ class TestUnique(object):
             reconstr = box(result_uniques[result_inverse])
             assert_series_or_index_or_array_or_categorical_equal(reconstr, c)
 
-    def test_datetime64tz_aware(self):
+    @pytest.mark.parametrize('box', [Series, Index])
+    @pytest.mark.parametrize('method', [lambda x, **kwargs: x.unique(**kwargs),
+                                        pd.unique],
+                             ids=['classmethod', 'toplevel'])
+    def test_datetime64tz_aware(self, method, box):
         # GH 15939
 
-        result = Series(
-            Index([Timestamp('20160101', tz='US/Eastern'),
-                   Timestamp('20160101', tz='US/Eastern')])).unique()
-        expected = DatetimeArray._from_sequence(np.array([
-            Timestamp('2016-01-01 00:00:00-0500', tz="US/Eastern")
-        ]))
-        tm.assert_extension_array_equal(result, expected)
+        ts = Timestamp('20160101', tz='US/Eastern')
+        obj = box([ts, ts])
 
-        result = Index([Timestamp('20160101', tz='US/Eastern'),
-                        Timestamp('20160101', tz='US/Eastern')]).unique()
-        expected = DatetimeIndex(['2016-01-01 00:00:00'],
-                                 dtype='datetime64[ns, US/Eastern]', freq=None)
-        tm.assert_index_equal(result, expected)
-
-        result = pd.unique(
-            Series(Index([Timestamp('20160101', tz='US/Eastern'),
-                          Timestamp('20160101', tz='US/Eastern')])))
-        expected = DatetimeArray._from_sequence(np.array([
-            Timestamp('2016-01-01', tz="US/Eastern"),
-        ]))
-        tm.assert_extension_array_equal(result, expected)
-
-        result = pd.unique(Index([Timestamp('20160101', tz='US/Eastern'),
-                                  Timestamp('20160101', tz='US/Eastern')]))
-        expected = DatetimeIndex(['2016-01-01 00:00:00'],
-                                 dtype='datetime64[ns, US/Eastern]', freq=None)
-        tm.assert_index_equal(result, expected)
+        if box == Series:
+            expected = DatetimeArray._from_sequence(np.array([
+                Timestamp('2016-01-01 00:00:00-0500', tz="US/Eastern")
+            ]))
+        else:  # Index
+            expected = DatetimeIndex(['2016-01-01 00:00:00'],
+                                     dtype='datetime64[ns, US/Eastern]',
+                                     freq=None)
+        result = method(obj)
+        assert_series_or_index_or_array_or_categorical_equal(result, expected)
 
     def test_order_of_appearance(self):
         # 9346
@@ -514,20 +504,6 @@ class TestUnique(object):
         result = pd.unique(Series([2] + [1] * 5))
         tm.assert_numpy_array_equal(result,
                                     np.array([2, 1], dtype='int64'))
-
-        result = pd.unique(Series([Timestamp('20160101'),
-                                   Timestamp('20160101')]))
-        expected = np.array(['2016-01-01T00:00:00.000000000'],
-                            dtype='datetime64[ns]')
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = pd.unique(Index(
-            [Timestamp('20160101', tz='US/Eastern'),
-             Timestamp('20160101', tz='US/Eastern')]))
-        expected = DatetimeIndex(['2016-01-01 00:00:00'],
-                                 dtype='datetime64[ns, US/Eastern]',
-                                 freq=None)
-        tm.assert_index_equal(result, expected)
 
         result = pd.unique(list('aabc'))
         expected = np.array(['a', 'b', 'c'], dtype=object)
