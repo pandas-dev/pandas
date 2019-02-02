@@ -15,7 +15,7 @@ from __future__ import print_function
 
 import os
 import shutil
-
+import subprocess
 from pandas.compat import PY3
 
 __all__ = ['get_terminal_size', 'is_terminal']
@@ -94,10 +94,7 @@ def _get_terminal_size_tput():
     # get terminal width
     # src: http://stackoverflow.com/questions/263890/how-do-i-find-the-width
     # -height-of-a-terminal-window
-    output_cols = None
-    output_rows = None
     try:
-        import subprocess
         proc = subprocess.Popen(["tput", "cols"],
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
