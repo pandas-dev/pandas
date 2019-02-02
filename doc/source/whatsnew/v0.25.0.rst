@@ -28,6 +28,30 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_0250.api_breaking.deps:
+
+Dependencies have increased minimum versions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Due to dropping support for Python 2.7, a number of optional dependencies have updated
+minimum versions. If installed, we now require:
+
++-----------------+-----------------+----------+
+| Package         | Minimum Version | Required |
++=================+=================+==========+
+| openpyxl        | 2.2.6           |          |
++-----------------+-----------------+----------+
+| pymysql         | 0.6.6           |          |
++-----------------+-----------------+----------+
+| pytz            | 2015.4          |          |
++-----------------+-----------------+----------+
+| sqlalchemy      | 1.0.8           |          |
++-----------------+-----------------+----------+
+| xlsxwriter      | 0.7.7           |          |
++-----------------+-----------------+----------+
+| xlwt            | 1.0.0           |          |
++-----------------+-----------------+----------+
+
 .. _whatsnew_0250.api.other:
 
 Other API Changes

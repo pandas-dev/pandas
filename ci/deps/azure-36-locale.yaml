@@ -13,12 +13,12 @@ dependencies:
   - python-blosc
   - python=3.6
   - pytz
-  - pytz=2013b
+  - pytz=2016.10
   - scipy
-  - sqlalchemy=0.8.1
+  - sqlalchemy=1.1.4
   - xlrd=1.0.0
-  - xlsxwriter=0.5.2
-  - xlwt=0.7.5
+  - xlsxwriter=0.9.4
+  - xlwt=1.2.0
   # universal
   - pytest
   - pytest-xdist
