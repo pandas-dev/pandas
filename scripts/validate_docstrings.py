@@ -490,7 +490,9 @@ class Docstring(object):
     @property
     def method_source(self):
         try:
-            return inspect.getsource(self.obj)
+            src = inspect.getsource(self.obj)
+            doc = re.search(r'""".*"""', src, re.DOTALL)  # Find docstring.
+            return src[:doc.start()] + src[doc.end():] if doc else src
         except TypeError:
             return ''
 
@@ -691,11 +693,10 @@ def get_validation_data(doc):
 
     if doc.is_function_or_method:
         if not doc.returns:
-            if re.search(r""" \"\"\".*\"\"\".*  # Skip the docstring.
-                              \n\s*return  # Find a return command.
+            if re.search(r""" \n\s*return  # Find a return command.
                               # Check if it's not bare or simply returns None.
                               (?!\s*(None)?\s*[\n#]) """,
-                         doc.method_source, re.DOTALL | re.VERBOSE):
+                         doc.method_source, re.VERBOSE):
                 errs.append(error('RT01'))
         else:
             if len(doc.returns) == 1 and doc.returns[0][1]:
