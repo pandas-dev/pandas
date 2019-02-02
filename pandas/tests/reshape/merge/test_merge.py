@@ -1554,6 +1554,9 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
     result = a.merge(b, left_index=True, right_index=True, **kwargs)
     tm.assert_frame_equal(result, expected)
 
+    result = pd.merge(a, b, left_index=True, right_index=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize("col, suffixes", [
     ('a', (None, None)),
