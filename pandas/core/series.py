@@ -2105,11 +2105,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         float
+            Correlation with other.
 
         Examples
-        --------
-        >>> histogram_intersection = lambda a, b: np.minimum(a, b
-        ... ).sum().round(decimals=1)
+        >>> def histogram_intersection(a, b):
+        ...     v = np.minimum(a, b).sum().round(decimals=1)
+        ...     return v
         >>> s1 = pd.Series([.2, .0, .6, .2])
         >>> s2 = pd.Series([.3, .6, .0, .1])
         >>> s1.corr(s2, method=histogram_intersection)
