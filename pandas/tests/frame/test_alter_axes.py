@@ -196,7 +196,6 @@ class TestDataFrameAlterAxes():
 
         # == gives ambiguous Boolean for Series
         if drop and keys[0] is 'A' and keys[1] is 'A':
-            print('hello')
             pytest.xfail(reason='broken due to reversion, see GH 25085')
 
         result = df.set_index(keys, drop=drop, append=append)
