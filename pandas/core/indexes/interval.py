@@ -769,10 +769,8 @@ class IntervalIndex(IntervalMixin, Index):
             try:
                 start, stop = self._find_non_overlapping_monotonic_bounds(key)
             except TypeError:
-                # get loc should raise KeyError
-                # if key is hashable but
-                # of an incorrect type
-                raise KeyError
+                # get_loc should raise KeyError
+                raise KeyError('key is hashable but of incorrect type')
 
             if start is None or stop is None:
                 return slice(start, stop)
