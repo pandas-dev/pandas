@@ -802,6 +802,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return self._apply_meta(result), lidx, ridx
         return self._apply_meta(result)
 
+    def intersection(self, other, sort=False):
+        return Index.intersection(self, other, sort=sort)
+
     def _assert_can_do_setop(self, other):
         super(PeriodIndex, self)._assert_can_do_setop(other)
 
