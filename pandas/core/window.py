@@ -2116,7 +2116,7 @@ _pairwise_template = """
 
 
 class EWM(_Rolling):
-    """
+    r"""
     Provide exponential weighted functions.
 
     .. versionadded:: 0.18.0
