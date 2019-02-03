@@ -64,6 +64,7 @@ Fixed Regressions
 **Reshaping**
 
 - Bug in :meth:`DataFrame.groupby` with :class:`Grouper` when there is a time change (DST) and grouping frequency is ``'1d'`` (:issue:`24972`)
+- Fixed regression where custom hashable types could not be used as column keys in :meth:`DataFrame.set_index` (:issue:`24969`)
 
 **Visualization**
 
