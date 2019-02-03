@@ -24,11 +24,12 @@ from pandas._libs.tslibs.util cimport (
     is_string_object, is_integer_object, get_nat)
 
 cdef int64_t NPY_NAT = get_nat()
+cdef tzinfo utc_stdlib = timezone.utc
 
 # ----------------------------------------------------------------------
 
 cpdef inline bint is_utc(object tz):
-    return tz is UTC or isinstance(tz, _dateutil_tzutc) or tz is timezone.utc
+    return tz is UTC or isinstance(tz, _dateutil_tzutc) or tz is utc_stdlib
 
 
 cdef inline bint is_tzlocal(object tz):
