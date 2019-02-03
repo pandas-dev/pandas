@@ -2792,3 +2792,12 @@ def test_repr_html_ipython_config(ip):
     """)
     result = ip.run_cell(code)
     assert not result.error_in_exec
+
+
+def test_terminal_unknown_dimensions():
+    from pandas.io.formats.terminal import _get_terminal_size_tput
+    monkeypatch.setattr(get_terminal_size_tput, proc, None)
+    assert OSError
+    
+    monkeypatch.setattr(get_terminal_size_tput, output_cols, None)
+    assert ValueError
