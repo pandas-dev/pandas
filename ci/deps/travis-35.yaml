@@ -22,7 +22,7 @@ dependencies:
   - py
   - pyarrow=0.9.0
   - PyCrypto
-  - pymysql
+  - pymysql=0.6.6
   - pytables
   - blosc=1.14.3
   - python-blosc

@@ -17,7 +17,7 @@ dependencies:
   - pytz=2015.4
   - scipy=0.18.1
   - xlrd=1.0.0
-  - xlsxwriter
+  - xlsxwriter=0.7.7
   - xlwt=1.0.0
   # universal
   - pytest
