@@ -1836,7 +1836,8 @@ class _TestMySQLAlchemy(object):
         # Bool column with NA = int column with NA values => becomes float
         assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
 
-    @pytest.mark.xfail(PY35 and not PY36, reason='?')
+    @pytest.mark.xfail(PY35 and not PY36, reason='unkown; also flaky',
+                       strict=False)
     def test_read_procedure(self):
         import pymysql
         # see GH7324. Although it is more an api test, it is added to the
