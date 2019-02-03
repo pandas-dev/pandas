@@ -830,9 +830,6 @@ class IntervalIndex(IntervalMixin, Index):
                     self._find_non_overlapping_monotonic_bounds()
                 )
             except TypeError:
-                # This is probably wrong
-                # but not sure what I should do here
-                #return np.array([-1])
                 return np.repeat(np.int(-1), len(target))
 
             start_plus_one = start + 1

@@ -621,7 +621,8 @@ class TestIntervalIndex(Base):
         pd.IntervalIndex.from_tuples([(1, 3), (2, 4), (0, 2)])
     ])
     def test_get_indexer_errors(self, index):
-        assert np.all(index.get_indexer(['gg']) == np.array([-1]))
+        expected = np.array([-1], dtype='intp')
+        assert tm.assert_numpy_array_equal(index.get_indexer(['gg']), expected)
 
     # Make consistent with test_interval_new.py (see #16316, #16386)
     @pytest.mark.parametrize('arrays', [
