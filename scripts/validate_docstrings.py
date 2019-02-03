@@ -837,7 +837,14 @@ def validate_all(prefix, ignore_deprecated=False):
     return result
 
 
-def main(func_name, prefix, errors, output_format, ignore_deprecated):
+def main(func_name, prefix, errors, output_format, ignore_deprecated,
+         list_errors):
+
+    if list_errors:
+        for code, msg in ERROR_MSGS.items():
+            sys.stdout.write('[{}] {}\n'.format(code, msg))
+        return 0
+
     def header(title, width=80, char='#'):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -952,9 +959,14 @@ if __name__ == '__main__':
                            action='store_true',
                            help='if this flag is set, deprecated objects are '
                            'ignored when validating all docstrings')
+    argparser.add_argument('--list-errors',
+                           default=False,
+                           action='store_true',
+                           help='list error codes / descriptions checked for')
 
     args = argparser.parse_args()
     sys.exit(main(args.function, args.prefix,
                   args.errors.split(',') if args.errors else None,
                   args.format,
-                  args.ignore_deprecated))
+                  args.ignore_deprecated,
+                  args.list_errors))
