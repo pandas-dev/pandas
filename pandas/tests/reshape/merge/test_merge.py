@@ -1539,16 +1539,9 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
     ("a", "b", dict(suffixes=("_x", None)), ["a", "b"]),
     ("a", "a", dict(suffixes=[None, "_x"]), ["a", "a_x"]),
     (0, 0, dict(suffixes=["_a", None]), ["0_a", 0]),
-    (0, 0, dict(suffixes=('', None)), ["0", 0]),
+    (0, 0, dict(suffixes=(None, "")), [0, "0"]),
     ("a", "a", dict(), ["a_x", "a_y"]),
-    (0, 0, dict(), ["0_x", "0_y"]),
-    ("a", "a", dict(suffixes=(None, None)), ["a", "a"]),
-    ("a", "a", dict(suffixes=[None, None]), ["a", "a"]),
-    (0, 0, dict(suffixes=(None, None)), [0, 0]),
-    ("a", "a", dict(suffixes=['', None]), ["a", "a"]),
-    (0, 0, dict(suffixes=['', None]), ["0", 0]),
-    (0, 0, dict(suffixes=None), [0, 0]),
-    ("a", "a", dict(suffixes=None), ["a", "a"])
+    (0, 0, dict(), ["0_x", "0_y"])
 ])
 def test_merge_suffix(col1, col2, kwargs, expected_cols):
     # issue: 24782
@@ -1563,3 +1556,19 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
 
     result = pd.merge(a, b, left_index=True, right_index=True, **kwargs)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("col1, col2, suffixes", [
+    ("a", "a", [None, None]),
+    ("a", "a", (None, None)),
+    ("a", "a", ("", None)),
+    (0, 0, [None, None])
+])
+def test_merge_error(col1, col2, suffixes):
+    # issue: 24782
+    a = pd.DataFrame({col1: [1, 2, 3]})
+    b = pd.DataFrame({col2: [3, 4, 5]})
+
+    msg = "columns overlap but no suffix specified"
+    with pytest.raises(ValueError, match=msg):
+        pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
