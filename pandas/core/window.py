@@ -2117,7 +2117,7 @@ _pairwise_template = """
 
 class EWM(_Rolling):
     r"""
-    Provides exponential weighted functions.
+    Provide exponential weighted functions.
 
     .. versionadded:: 0.18.0
 
@@ -2125,16 +2125,17 @@ class EWM(_Rolling):
     ----------
     com : float, optional
         Specify decay in terms of center of mass,
-        :math:`\alpha = 1 / (1 + com),\text{ for } com \geq 0`
+        :math:`\alpha = 1 / (1 + com),\text{ for } com \geq 0`.
     span : float, optional
         Specify decay in terms of span,
-        :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`
+        :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`.
     halflife : float, optional
         Specify decay in terms of half-life,
-        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for } halflife > 0`
+        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for }
+            halflife > 0`.
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
-        :math:`0 < \alpha \leq 1`
+        :math:`0 < \alpha \leq 1`.
 
         .. versionadded:: 0.18.0
 
@@ -2143,14 +2144,19 @@ class EWM(_Rolling):
         (otherwise result is NA).
     adjust : bool, default True
         Divide by decaying adjustment factor in beginning periods to account
-        for imbalance in relative weightings (viewing EWMA as a moving average)
+        for imbalance in relative weightings
+        (viewing EWMA as a moving average).
     ignore_na : bool, default False
         Ignore missing values when calculating weights;
-        specify True to reproduce pre-0.15.0 behavior
+        specify True to reproduce pre-0.15.0 behavior.
+    axis : {0 or 'index', 1 or 'columns'}, default 0
+        The axis to use. The value 0 identifies the rows, and 1
+        identifies the columns.
 
     Returns
     -------
-    a Window sub-classed for the particular operation
+    DataFrame
+        A Window sub-classed for the particular operation.
 
     See Also
     --------
@@ -2188,6 +2194,7 @@ class EWM(_Rolling):
     --------
 
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df
          B
     0  0.0
     1  1.0
