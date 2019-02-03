@@ -20,7 +20,7 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
--
+- :meth:`DatetimeIndex.intersection` and :meth:`TimedeltaIndex.intersection` have been moved to :meth:`Datetimelike.intersection` and tests were added for :meth:`TimedeltaIndex.intersection` (:issue:`24966`).
 -
 
 .. _whatsnew_0250.api_breaking:
