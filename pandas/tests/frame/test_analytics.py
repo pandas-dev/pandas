@@ -1450,7 +1450,7 @@ class TestDataFrameAnalytics():
                         "col3": [None, None, None]})
 
         result = df.all(bool_only=True)
-        expected = Series()
+        expected = Series(dtype=np.bool)
         tm.assert_equal(result, expected)
 
         df = DataFrame({"col1": [1, 2, 3],
@@ -1459,7 +1459,7 @@ class TestDataFrameAnalytics():
                         "col4": [False, False, True]})
 
         result = df.all(bool_only=True)
-        expected = Series()
+        expected = Series({"col4": False})
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize('func, data, expected', [
