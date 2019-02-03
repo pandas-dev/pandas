@@ -815,28 +815,34 @@ cdef class _Timedelta(timedelta):
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
-        return an actual datetime.timedelta object
-        note: we lose nanosecond resolution if any
+        Return an actual datetime.timedelta object.
+        Note: we lose nanosecond resolution if any.
         """
         return timedelta(microseconds=int(self.value) / 1000)
 
     def to_timedelta64(self):
-        """ Returns a numpy.timedelta64 object with 'ns' precision """
+        """
+        Returns a numpy.timedelta64 object with 'ns' precision.
+        """
         return np.timedelta64(self.value, 'ns')
 
     def total_seconds(self):
         """
-        Total duration of timedelta in seconds (to ns precision)
+        Total duration of timedelta in seconds (to ns precision).
         """
         return self.value / 1e9
 
     def view(self, dtype):
-        """ array view compat """
+        """
+        Array view compatibility.
+        """
         return np.timedelta64(self.value).view(dtype)
 
     @property
     def components(self):
-        """ Return a Components NamedTuple-like """
+        """
+        Return a Components NamedTuple-like.
+        """
         self._ensure_components()
         # return the named tuple
         return Components(self._d, self._h, self._m, self._s,
@@ -1135,8 +1141,8 @@ class Timedelta(_Timedelta):
     Notes
     -----
     The ``.value`` attribute is always in ns.
-
     """
+
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
 
