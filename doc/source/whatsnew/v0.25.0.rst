@@ -20,7 +20,7 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
--
+- ``datetime.timezone`` objects are now supported (:issue:`25065`)
 -
 
 .. _whatsnew_0250.api_breaking:
