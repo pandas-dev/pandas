@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import math
 import sys
 
@@ -413,8 +413,7 @@ class TestIndex(Base):
         modules = [sys.modules['pandas.core.indexes.base']]
 
         if (tz_naive_fixture and attr == "asi8" and
-                (str(tz_naive_fixture) not in ('UTC', 'tzutc()')
-                 or tz_naive_fixture is not timezone.utc)):
+                str(tz_naive_fixture) not in ('UTC', 'tzutc()')):
             ex_warn = FutureWarning
         else:
             ex_warn = None

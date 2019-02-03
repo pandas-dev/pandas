@@ -1,4 +1,4 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 from functools import partial
 from operator import attrgetter
 
@@ -119,7 +119,7 @@ class TestDatetimeIndex(object):
         i = pd.date_range('20130101', periods=5, freq='H', tz=tz)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
-        if str(tz) in ('UTC', 'tzutc()') or tz is timezone.utc:
+        if str(tz) in ('UTC', 'tzutc()'):
             warn = None
         else:
             warn = FutureWarning
