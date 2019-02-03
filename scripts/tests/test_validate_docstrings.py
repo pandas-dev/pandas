@@ -612,20 +612,10 @@ class BadReturns(object):
         """
         Lacks section for Returns
         """
-        return "Hello world!"
-
-    def return_not_documented_some_bare_returns(self):
-        """
-        Lacks section for Returns.
-
-        A section for Returns is needed if at least one
-        return is not bare or simply returns None.
-        """
-        return None
-        return
-        return  # just an empty return
-        return None  # another empty return
-        return "Hello world!"
+        if random.random() % 2:
+            return None
+        else:
+            return "Hello world!"
 
     def yield_not_documented(self):
         """
@@ -894,8 +884,6 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         # Returns tests
         ('BadReturns', 'return_not_documented', ('No Returns section found',)),
-        ('BadReturns', 'return_not_documented_some_bare_returns',
-         ('No Returns section found',)),
         ('BadReturns', 'yield_not_documented', ('No Yields section found',)),
         pytest.param('BadReturns', 'no_type', ('foo',),
                      marks=pytest.mark.xfail),
