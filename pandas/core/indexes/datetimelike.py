@@ -25,6 +25,7 @@ from pandas.core.arrays.datetimelike import (
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.tools.timedeltas import to_timedelta
+from pandas.tseries.frequencies import to_offset
 
 import pandas.io.formats.printing as printing
 
@@ -529,6 +530,83 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
                 return self.astype(object).isin(values)
 
         return algorithms.isin(self.asi8, values.asi8)
+
+    def intersection(self, other, sort=False):
+        """
+        Specialized intersection for DatetimeIndex and TimedeltaIndex objects.
+        May be much faster than Index.intersection
+
+        Parameters
+        ----------
+        other : DatetimeIndex or TimedeltaIndex or array-like
+        sort : False or None, default False
+            Sort the resulting index if possible.
+
+            .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default to ``False`` to match the behaviour
+               from before 0.24.0.
+
+        Returns
+        -------
+        y : Index or DatetimeIndex or TimedeltaIndex
+        """
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
+
+        if not isinstance(other, type(self)):
+            try:
+                other = self(other)
+            except (TypeError, ValueError):
+                pass
+            result = Index.intersection(self, other, sort=sort)
+            if isinstance(result, type(self)):
+                if result.freq is None:
+                    result.freq = to_offset(result.inferred_freq)
+            return result
+
+        elif (other.freq is None or self.freq is None or
+              other.freq != self.freq or
+              not other.freq.isAnchored() or
+              (not self.is_monotonic or not other.is_monotonic)):
+            result = Index.intersection(self, other, sort=sort)
+            # Invalidate the freq of `result`, which may not be correct at
+            # this point, depending on the values.
+            result.freq = None
+            if hasattr(self, 'tz'):
+                result = self._shallow_copy(result._values, name=result.name,
+                                            tz=result.tz, freq=None)
+            else:
+                result = self._shallow_copy(result._values, name=result.name,
+                                            freq=None)
+            if result.freq is None:
+                result.freq = to_offset(result.inferred_freq)
+            return result
+
+        if len(self) == 0:
+            return self
+        if len(other) == 0:
+            return other
+        # to make our life easier, "sort" the two ranges
+        if self[0] <= other[0]:
+            left, right = self, other
+        else:
+            left, right = other, self
+
+        end = min(left[-1], right[-1])
+        start = right[0]
+
+        if end < start:
+            return type(self)(data=[])
+        else:
+            lslice = slice(*left.slice_locs(start, end))
+            left_chunk = left.values[lslice]
+            return self._shallow_copy(left_chunk)
 
     @Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
