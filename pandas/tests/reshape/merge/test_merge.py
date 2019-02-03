@@ -1539,7 +1539,6 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
     ("a", "b", dict(suffixes=("_x", None)), ["a", "b"]),
     ("a", "a", dict(suffixes=[None, "_x"]), ["a", "a_x"]),
     (0, 0, dict(suffixes=["_a", None]), ["0_a", 0]),
-    (0, 0, dict(suffixes=(None, "")), [0, "0"]),
     ("a", "a", dict(), ["a_x", "a_y"]),
     (0, 0, dict(), ["0_x", "0_y"])
 ])
@@ -1562,7 +1561,8 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
     ("a", "a", [None, None]),
     ("a", "a", (None, None)),
     ("a", "a", ("", None)),
-    (0, 0, [None, None])
+    (0, 0, [None, None]),
+    (0, 0, (None, ""))
 ])
 def test_merge_error(col1, col2, suffixes):
     # issue: 24782

@@ -1967,17 +1967,9 @@ def items_overlap_with_suffix(left, lsuffix, right, rsuffix):
     if len(to_rename) == 0:
         return left, right
     else:
-        # if column name is string, raise error if suffix is a combination of
-        # empty string and None, or two Nones
-        if isinstance(to_rename[0], str):
-            if not lsuffix and not rsuffix:
-                raise ValueError('columns overlap but no suffix specified: '
-                                 '{rename}'.format(rename=to_rename))
-        else:
-            # if not, only suffix with (None, None) will raise error
-            if lsuffix is None and rsuffix is None:
-                raise ValueError('columns overlap but no suffix specified: '
-                                 '{rename}'.format(rename=to_rename))
+        if not lsuffix and not rsuffix:
+            raise ValueError('columns overlap but no suffix specified: '
+                             '{rename}'.format(rename=to_rename))
 
         def renamer(x, suffix):
             """Rename the left and right indices.
