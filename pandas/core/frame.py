@@ -71,7 +71,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms
@@ -483,7 +483,7 @@ class DataFrame(NDFrame):
         --------
         >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
         >>> df.axes
-        [RangeIndex(start=0, stop=2, step=1), Index(['coll', 'col2'],
+        [RangeIndex(start=0, stop=2, step=1), Index(['col1', 'col2'],
         dtype='object')]
         """
         return [self.index, self.columns]
@@ -3016,28 +3016,30 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        expr : string
+        expr : str
             The query string to evaluate.  You can refer to variables
             in the environment by prefixing them with an '@' character like
             ``@a + b``.
         inplace : bool
             Whether the query should modify the data in place or return
-            a modified copy
-
-            .. versionadded:: 0.18.0
-
-        kwargs : dict
+            a modified copy.
+        **kwargs
             See the documentation for :func:`pandas.eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
 
+            .. versionadded:: 0.18.0
+
         Returns
         -------
-        q : DataFrame
+        DataFrame
+            DataFrame resulting from the provided query expression.
 
         See Also
         --------
-        pandas.eval
-        DataFrame.eval
+        eval : Evaluate a string describing operations on
+            DataFrame columns.
+        DataFrame.eval : Evaluate a string describing operations on
+            DataFrame columns.
 
         Notes
         -----
@@ -3076,9 +3078,23 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.randn(10, 2), columns=list('ab'))
-        >>> df.query('a > b')
-        >>> df[df.a > df.b]  # same result as the previous expression
+        >>> df = pd.DataFrame({'A': range(1, 6), 'B': range(10, 0, -2)})
+        >>> df
+           A   B
+        0  1  10
+        1  2   8
+        2  3   6
+        3  4   4
+        4  5   2
+        >>> df.query('A > B')
+           A  B
+        4  5  2
+
+        The previous expression is equivalent to
+
+        >>> df[df.A > df.B]
+           A  B
+        4  5  2
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(expr, compat.string_types):
@@ -4138,13 +4154,12 @@ class DataFrame(NDFrame):
         4 16     10  2014    31
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
+        if not isinstance(keys, list):
+            keys = [keys]
 
         err_msg = ('The parameter "keys" may be a column key, one-dimensional '
                    'array, or a list containing only valid column keys and '
                    'one-dimensional arrays.')
-
-        if not isinstance(keys, list):
-            keys = [keys]
 
         missing = []
         for col in keys:
@@ -4183,7 +4198,7 @@ class DataFrame(NDFrame):
         names = []
         if append:
             names = [x for x in self.index.names]
-            if isinstance(self.index, ABCMultiIndex):
+            if isinstance(self.index, MultiIndex):
                 for i in range(self.index.nlevels):
                     arrays.append(self.index._get_level_values(i))
             else:
@@ -4191,23 +4206,29 @@ class DataFrame(NDFrame):
 
         to_remove = []
         for col in keys:
-            if isinstance(col, ABCMultiIndex):
-                for n in range(col.nlevels):
+            if isinstance(col, MultiIndex):
+                # append all but the last column so we don't have to modify
+                # the end of this loop
+                for n in range(col.nlevels - 1):
                     arrays.append(col._get_level_values(n))
+
+                level = col._get_level_values(col.nlevels - 1)
                 names.extend(col.names)
-            elif isinstance(col, (ABCIndexClass, ABCSeries)):
-                # if Index then not MultiIndex (treated above)
-                arrays.append(col)
+            elif isinstance(col, Series):
+                level = col._values
                 names.append(col.name)
-            elif isinstance(col, (list, np.ndarray)):
-                arrays.append(col)
+            elif isinstance(col, Index):
+                level = col
+                names.append(col.name)
+            elif isinstance(col, (list, np.ndarray, Index)):
+                level = col
                 names.append(None)
-            # from here, col can only be a column label
             else:
-                arrays.append(frame[col]._values)
+                level = frame[col]._values
                 names.append(col)
                 if drop:
                     to_remove.append(col)
+            arrays.append(level)
 
         index = ensure_index_from_sequences(arrays, names)
 
@@ -5150,8 +5171,7 @@ class DataFrame(NDFrame):
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
-        Perform column-wise combine with another DataFrame based on a
-        passed function.
+        Perform column-wise combine with another DataFrame.
 
         Combines a DataFrame with `other` DataFrame using `func`
         to element-wise combine columns. The row and column indexes of the
@@ -5167,13 +5187,14 @@ class DataFrame(NDFrame):
         fill_value : scalar value, default None
             The value to fill NaNs with prior to passing any column to the
             merge func.
-        overwrite : boolean, default True
+        overwrite : bool, default True
             If True, columns in `self` that do not exist in `other` will be
             overwritten with NaNs.
 
         Returns
         -------
-        result : DataFrame
+        DataFrame
+            Combination of the provided DataFrames.
 
         See Also
         --------
@@ -5217,15 +5238,15 @@ class DataFrame(NDFrame):
         >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [None, 4]})
         >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [None, 3]})
         >>> df1.combine(df2, take_smaller, fill_value=-5)
-           A    B
-        0  0  NaN
+            A    B
+        0  0 -5.0
         1  0  3.0
 
         Example that demonstrates the use of `overwrite` and behavior when
         the axis differ between the dataframes.
 
         >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [4, 4]})
-        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [-10, 1],}, index=[1, 2])
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [-10, 1], }, index=[1, 2])
         >>> df1.combine(df2, take_smaller)
              A    B     C
         0  NaN  NaN   NaN
@@ -5240,7 +5261,7 @@ class DataFrame(NDFrame):
 
         Demonstrating the preference of the passed in dataframe.
 
-        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1], }, index=[1, 2])
         >>> df2.combine(df1, take_smaller)
            A    B   C
         0  0.0  NaN NaN
@@ -5724,19 +5745,19 @@ class DataFrame(NDFrame):
 
         This first example aggregates values by taking the sum.
 
-        >>> table = pivot_table(df, values='D', index=['A', 'B'],
+        >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
         ...                     columns=['C'], aggfunc=np.sum)
         >>> table
         C        large  small
         A   B
-        bar one      4      5
-            two      7      6
-        foo one      4      1
-            two    NaN      6
+        bar one    4.0    5.0
+            two    7.0    6.0
+        foo one    4.0    1.0
+            two    NaN    6.0
 
         We can also fill missing values using the `fill_value` parameter.
 
-        >>> table = pivot_table(df, values='D', index=['A', 'B'],
+        >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
         ...                     columns=['C'], aggfunc=np.sum, fill_value=0)
         >>> table
         C        large  small
@@ -5748,12 +5769,11 @@ class DataFrame(NDFrame):
 
         The next example aggregates by taking the mean across multiple columns.
 
-        >>> table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
+        >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
         ...                     aggfunc={'D': np.mean,
         ...                              'E': np.mean})
         >>> table
-                          D         E
-                       mean      mean
+                        D         E
         A   C
         bar large  5.500000  7.500000
             small  5.500000  8.500000
@@ -5763,17 +5783,17 @@ class DataFrame(NDFrame):
         We can also calculate multiple types of aggregations for any given
         value column.
 
-        >>> table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
+        >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
         ...                     aggfunc={'D': np.mean,
         ...                              'E': [min, max, np.mean]})
         >>> table
-                          D   E
-                       mean max      mean min
+                        D    E
+                    mean  max      mean  min
         A   C
-        bar large  5.500000  9   7.500000   6
-            small  5.500000  9   8.500000   8
-        foo large  2.000000  5   4.500000   4
-            small  2.333333  6   4.333333   2
+        bar large  5.500000  9.0  7.500000  6.0
+            small  5.500000  9.0  8.500000  8.0
+        foo large  2.000000  5.0  4.500000  4.0
+            small  2.333333  6.0  4.333333  2.0
         """
 
     @Substitution('')
@@ -6911,41 +6931,67 @@ class DataFrame(NDFrame):
             columns not included in `decimals` will be left as is. Elements
             of `decimals` which are not columns of the input will be
             ignored.
+        *args
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
+        **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
 
         Returns
         -------
-        DataFrame
+        DataFrame :
+            A DataFrame with the affected columns rounded to the specified
+            number of decimal places.
 
         See Also
         --------
-        numpy.around
-        Series.round
+        numpy.around : Round a numpy array to the given number of decimals.
+        Series.round : Round a Series to the given number of decimals.
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.random([3, 3]),
-        ...     columns=['A', 'B', 'C'], index=['first', 'second', 'third'])
+        >>> df = pd.DataFrame([(.21, .32), (.01, .67), (.66, .03), (.21, .18)],
+        ...                   columns=['dogs', 'cats'])
         >>> df
-                       A         B         C
-        first   0.028208  0.992815  0.173891
-        second  0.038683  0.645646  0.577595
-        third   0.877076  0.149370  0.491027
-        >>> df.round(2)
-                   A     B     C
-        first   0.03  0.99  0.17
-        second  0.04  0.65  0.58
-        third   0.88  0.15  0.49
-        >>> df.round({'A': 1, 'C': 2})
-                  A         B     C
-        first   0.0  0.992815  0.17
-        second  0.0  0.645646  0.58
-        third   0.9  0.149370  0.49
-        >>> decimals = pd.Series([1, 0, 2], index=['A', 'B', 'C'])
+            dogs  cats
+        0  0.21  0.32
+        1  0.01  0.67
+        2  0.66  0.03
+        3  0.21  0.18
+
+        By providing an integer each column is rounded to the same number
+        of decimal places
+
+        >>> df.round(1)
+            dogs  cats
+        0   0.2   0.3
+        1   0.0   0.7
+        2   0.7   0.0
+        3   0.2   0.2
+
+        With a dict, the number of places for specific columns can be
+        specfified with the column names as key and the number of decimal
+        places as value
+
+        >>> df.round({'dogs': 1, 'cats': 0})
+            dogs  cats
+        0   0.2   0.0
+        1   0.0   1.0
+        2   0.7   0.0
+        3   0.2   0.0
+
+        Using a Series, the number of places for specific columns can be
+        specfified with the column names as index and the number of
+        decimal places as value
+
+        >>> decimals = pd.Series([0, 1], index=['cats', 'dogs'])
         >>> df.round(decimals)
-                  A  B     C
-        first   0.0  1  0.17
-        second  0.0  1  0.58
-        third   0.9  0  0.49
+            dogs  cats
+        0   0.2   0.0
+        1   0.0   1.0
+        2   0.7   0.0
+        3   0.2   0.0
         """
         from pandas.core.reshape.concat import concat
 
