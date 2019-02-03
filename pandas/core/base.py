@@ -556,7 +556,7 @@ class SelectionMixin(object):
             # we require a list, but not an 'str'
             return self._aggregate_multiple_funcs(arg,
                                                   _level=_level,
-                                                  _axis=_axis), None
+                                                  _axis=_axis), True
         else:
             result = None
 
