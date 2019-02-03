@@ -7745,10 +7745,10 @@ class DataFrame(NDFrame):
         -------
         quantiles : Series or DataFrame
 
-            - If ``q`` is an array, a DataFrame will be returned where the
+            If ``q`` is an array, a DataFrame will be returned where the
               index is ``q``, the columns are the columns of self, and the
               values are the quantiles.
-            - If ``q`` is a float, a Series will be returned where the
+            If ``q`` is a float, a Series will be returned where the
               index is the columns of self and the values are the quantiles.
 
         See Also

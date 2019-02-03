@@ -4951,10 +4951,10 @@ class NDFrame(PandasObject, SelectionMixin):
     Returns
     -------
     DataFrame, Series or scalar
-        if DataFrame.agg is called with a single function, returns a Series
-        if DataFrame.agg is called with several functions, returns a DataFrame
-        if Series.agg is called with single function, returns a scalar
-        if Series.agg is called with several functions, returns a Series
+        If DataFrame.agg is called with a single function, returns a Series
+        If DataFrame.agg is called with several functions, returns a DataFrame
+        If Series.agg is called with single function, returns a scalar
+        If Series.agg is called with several functions, returns a Series
 
     %(see_also)s
 
@@ -6878,10 +6878,10 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         scalar, Series, or DataFrame
 
-           * scalar : when `self` is a Series and `where` is a scalar
-           * Series: when `self` is a Series and `where` is an array-like,
+           Scalar : when `self` is a Series and `where` is a scalar
+           Series: when `self` is a Series and `where` is an array-like,
              or when `self` is a DataFrame and `where` is a scalar
-           * DataFrame : when `self` is a DataFrame and `where` is an
+           DataFrame : when `self` is a DataFrame and `where` is an
              array-like
 
         See Also
