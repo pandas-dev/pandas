@@ -34,8 +34,8 @@ try:
 except ImportError:
     from cStringIO import StringIO
 
-# Template backend makes matplotlib to not plot anything. This is useful
-# to avoid that plot windows are open from the doctests while running the
+# Template backend makes matplotlib not plot anything. This is useful
+# to avoid plot windows opening from the doctests while running the
 # script. Setting here before matplotlib is loaded.
 # We don't warn for the number of open plots, as none is actually being opened
 os.environ['MPLBACKEND'] = 'Template'
@@ -897,14 +897,14 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
             for err_code, err_desc in result['errors']:
                 # Failing examples are printed at the end
                 if err_code == 'EX02':
-                    sys.stderr.write('\tExamples do not pass tests\n')
+                    sys.stderr.write('  [EX02] Examples do not pass tests\n')
                     continue
-                sys.stderr.write('\t{}\n'.format(err_desc))
+                sys.stderr.write('  [{}] {}\n'.format(err_code, err_desc))
         if result['warnings']:
             sys.stderr.write('{} Warnings found:\n'.format(
                 len(result['warnings'])))
             for wrn_code, wrn_desc in result['warnings']:
-                sys.stderr.write('\t{}\n'.format(wrn_desc))
+                sys.stderr.write('  [{}] {}\n'.format(wrn_code, wrn_desc))
 
         if not result['errors']:
             sys.stderr.write('Docstring for "{}" correct. :)\n'.format(
@@ -928,24 +928,30 @@ if __name__ == '__main__':
                            nargs='?',
                            default=None,
                            help=func_help)
-    argparser.add_argument('--format', default='default', choices=format_opts,
+    argparser.add_argument('--format',
+                           default='default',
+                           choices=format_opts,
                            help='format of the output when validating '
                            'multiple docstrings (ignored when validating one).'
                            'It can be {}'.format(str(format_opts)[1:-1]))
-    argparser.add_argument('--prefix', default=None, help='pattern for the '
-                           'docstring names, in order to decide which ones '
-                           'will be validated. A prefix "pandas.Series.str.'
-                           'will make the script validate all the docstrings'
-                           'of methods starting by this pattern. It is '
-                           'ignored if parameter function is provided')
-    argparser.add_argument('--errors', default=None, help='comma separated '
-                           'list of error codes to validate. By default it '
-                           'validates all errors (ignored when validating '
-                           'a single docstring)')
-    argparser.add_argument('--ignore_deprecated', default=False,
-                           action='store_true', help='if this flag is set, '
-                           'deprecated objects are ignored when validating '
-                           'all docstrings')
+    argparser.add_argument('--prefix',
+                           default=None,
+                           help='pattern for the docstring names, in order '
+                           'to decide which ones will be validated. A prefix '
+                           '"pandas.Series.str." will make the script '
+                           'validate all the docstrings of methods starting '
+                           'by this pattern. It is ignored if parameter '
+                           'function is provided')
+    argparser.add_argument('--errors',
+                           default=None,
+                           help='comma separated list of error codes to '
+                           'validate. By default it validates all errors '
+                           '(ignored when validating a single docstring)')
+    argparser.add_argument('--ignore_deprecated',
+                           default=False,
+                           action='store_true',
+                           help='if this flag is set, deprecated objects are '
+                           'ignored when validating all docstrings')
 
     args = argparser.parse_args()
     sys.exit(main(args.function, args.prefix,
