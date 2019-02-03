@@ -1337,7 +1337,7 @@ class IndexOpsMixin(object):
 
         Examples
         --------
-        >>> s = pd.Series([1,3,5,7,7])
+        >>> s = pd.Series([1, 3, 5, 7, 7])
         >>> s
         0    1
         1    3
