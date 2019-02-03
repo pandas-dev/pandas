@@ -3295,8 +3295,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         level : int, str, or list of these, default last level
             Level(s) to unstack, can pass level name.
-        fill_value : replace NaN with this value if the unstack produces
-            missing values
+        fill_value : scalar value, default None
+            Value to use when replacing NaN values.
 
             .. versionadded:: 0.18.0
 
@@ -3709,7 +3709,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.
         copy : bool, default True
-            Also copy underlying data
+            Whether to copy underlying data.
         inplace : bool, default False
             Whether to return a new Series. If True then value of copy is
             ignored.
@@ -3720,10 +3720,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         Series
+            Series with index labels or name altered.
 
         See Also
         --------
-        Series.rename_axis
+        Series.rename_axis : Set the name of the axis.
 
         Examples
         --------
@@ -3733,7 +3734,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1    2
         2    3
         dtype: int64
-        >>> s.rename("my_name") # scalar, changes Series.name
+        >>> s.rename("my_name")  # scalar, changes Series.name
         0    1
         1    2
         2    3
@@ -3793,6 +3794,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         Series
+            Series with specified index labels removed.
 
         Raises
         ------
