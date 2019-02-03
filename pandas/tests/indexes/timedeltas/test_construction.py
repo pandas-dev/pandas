@@ -18,7 +18,7 @@ class TestTimedeltaIndex(object):
 
     def test_range_kwargs_deprecated(self):
         # GH#23919
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             TimedeltaIndex(start='1 Day', end='3 Days', freq='D')
 
     def test_int64_nocopy(self):

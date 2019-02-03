@@ -197,7 +197,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
             warnings.warn("Creating a TimedeltaIndex by passing range "
                           "endpoints is deprecated.  Use "
                           "`pandas.timedelta_range` instead.",
-                          FutureWarning, stacklevel=3)
+                          FutureWarning, stacklevel=2)
             result = TimedeltaArray._generate_range(start, end, periods, freq,
                                                     closed=closed)
             return cls._simple_new(result._data, freq=freq, name=name)
