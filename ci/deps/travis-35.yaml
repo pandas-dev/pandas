@@ -31,7 +31,7 @@ dependencies:
   - pytz=2015.4
   - s3fs
   - scipy
-  - sqlalchemy=0.9.6
+  - sqlalchemy=1.0.8
   - xarray=0.9.6
   - xlrd=1.0.0
   - xlsxwriter=0.7.7

@@ -3,6 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - beautifulsoup4==4.5.1
   - bottleneck=1.2.0
   - cython=0.28.2
   - lxml
@@ -12,7 +13,6 @@ dependencies:
   - python-dateutil
   - python-blosc
   - python=3.6
-  - pytz
   - pytz=2016.10
   - scipy
   - sqlalchemy=1.1.4
@@ -25,4 +25,3 @@ dependencies:
   - hypothesis>=3.58.0
   - pip:
     - html5lib==1.0b2
-    - beautifulsoup4==4.2.1

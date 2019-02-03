@@ -5,7 +5,6 @@ channels:
 dependencies:
   - beautifulsoup4
   - bottleneck
-  - dateutil
   - gcsfs
   - html5lib
   - jinja2
@@ -16,6 +15,7 @@ dependencies:
   - openpyxl
   - pytables
   - python=3.7.*
+  - python-dateutil
   - pytz
   - s3fs
   - scipy
