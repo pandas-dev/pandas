@@ -193,11 +193,6 @@ class TestDataFrameAlterAxes():
         df.index.name = index_name
 
         keys = [box1(df['A']), box2(df['A'])]
-
-        # == gives ambiguous Boolean for Series
-        if drop and keys[0] is 'A' and keys[1] is 'A':
-            pytest.xfail(reason='broken due to reversion, see GH 25085')
-
         result = df.set_index(keys, drop=drop, append=append)
 
         # need to adapt first drop for case that both keys are 'A' --
