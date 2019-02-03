@@ -616,6 +616,13 @@ class TestIntervalIndex(Base):
         expected = np.array([0] * len(item), dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize('index', [
+        pd.interval_range(0, 1),
+        pd.IntervalIndex.from_tuples([(1, 3), (2, 4), (0, 2)])
+    ])
+    def test_get_indexer_errors(self, index):
+        assert np.all(index.get_indexer(['gg']) == np.array([-1]))
+
     # Make consistent with test_interval_new.py (see #16316, #16386)
     @pytest.mark.parametrize('arrays', [
         (date_range('20180101', periods=4), date_range('20180103', periods=4)),
@@ -885,13 +892,6 @@ class TestIntervalIndex(Base):
                                           index.right, closed=closed)
         result = index.symmetric_difference(other, sort=sort)
         tm.assert_index_equal(result, expected)
-
-    def test_interval_range_get_indexer_with_different_input_type(self):
-        # not sure about this one
-        index = pd.interval_range(0, 1)
-        # behaviour should be the same as Int64Index and return an
-        # array with values of -1
-        assert np.all(index.get_indexer(['gg']) == np.array([-1]))
 
     @pytest.mark.parametrize('op_name', [
         'union', 'intersection', 'difference', 'symmetric_difference'])

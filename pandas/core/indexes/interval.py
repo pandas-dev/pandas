@@ -788,7 +788,10 @@ class IntervalIndex(IntervalMixin, Index):
                 left, right = _get_interval_closed_bounds(key)
                 return self._engine.get_loc_interval(left, right)
             else:
-                return self._engine.get_loc(key)
+                try:
+                    return self._engine.get_loc(key)
+                except TypeError:
+                    raise KeyError('No engine for key {!r}'.format(key))
 
     def get_value(self, series, key):
         if com.is_bool_indexer(key):
@@ -829,7 +832,8 @@ class IntervalIndex(IntervalMixin, Index):
             except TypeError:
                 # This is probably wrong
                 # but not sure what I should do here
-                return np.array([-1])
+                #return np.array([-1])
+                return np.repeat(np.int(-1), len(target))
 
             start_plus_one = start + 1
             if not ((start_plus_one < stop).any()):
@@ -844,7 +848,13 @@ class IntervalIndex(IntervalMixin, Index):
 
         # non IntervalIndex
         else:
-            indexer = np.concatenate([self.get_loc(i) for i in target])
+            vals = []
+            for i in target:
+                try:
+                    vals.append(self.get_loc(i))
+                except KeyError:
+                    vals.append(np.array([-1]))
+                indexer = np.concatenate(vals)
 
         return ensure_platform_int(indexer)
 
