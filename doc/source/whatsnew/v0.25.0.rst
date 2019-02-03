@@ -183,6 +183,7 @@ Reshaping
 
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
+- Bug in :func:`concat` creating a malformed :class:`MultiIndex` when passed multiple frames indexed by identical :class:`MultiIndex`es (:issue:`20565`)
 -
 
 
