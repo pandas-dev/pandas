@@ -47,7 +47,8 @@ class TestDataFrameAlterAxes():
         tm.assert_frame_equal(df, df2)
 
     # A has duplicate values, C does not
-    @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B']])
+    @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B'],
+                                      ('tuple', 'as', 'label')])
     @pytest.mark.parametrize('inplace', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
     def test_set_index_drop_inplace(self, frame_of_index_cols,
@@ -70,7 +71,8 @@ class TestDataFrameAlterAxes():
         tm.assert_frame_equal(result, expected)
 
     # A has duplicate values, C does not
-    @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B']])
+    @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B'],
+                                      ('tuple', 'as', 'label')])
     @pytest.mark.parametrize('drop', [True, False])
     def test_set_index_append(self, frame_of_index_cols, drop, keys):
         df = frame_of_index_cols
@@ -86,7 +88,8 @@ class TestDataFrameAlterAxes():
         tm.assert_frame_equal(result, expected)
 
     # A has duplicate values, C does not
-    @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B']])
+    @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B'],
+                                      ('tuple', 'as', 'label')])
     @pytest.mark.parametrize('drop', [True, False])
     def test_set_index_append_to_multiindex(self, frame_of_index_cols,
                                             drop, keys):
@@ -128,7 +131,7 @@ class TestDataFrameAlterAxes():
         key = box(df['B'])
         if box == list:
             # list of strings gets interpreted as list of keys
-            msg = "'one'"
+            msg = "['one', 'two', 'three', 'one', 'two']"
             with pytest.raises(KeyError, match=msg):
                 df.set_index(key, drop=drop, append=append)
         else:
@@ -159,8 +162,8 @@ class TestDataFrameAlterAxes():
         df.index.name = index_name
 
         keys = ['A', box(df['B'])]
-        # np.array and list "forget" the name of B
-        names = ['A', None if box in [np.array, list] else 'B']
+        # np.array/list "forget" the name of B
+        names = ['A', None if box in [np.array, list, tuple, iter] else 'B']
 
         result = df.set_index(keys, drop=drop, append=append)
 
@@ -193,18 +196,22 @@ class TestDataFrameAlterAxes():
 
         # == gives ambiguous Boolean for Series
         if drop and keys[0] is 'A' and keys[1] is 'A':
-            with pytest.raises(KeyError, match='.*'):
-                df.set_index(keys, drop=drop, append=append)
-        else:
-            result = df.set_index(keys, drop=drop, append=append)
+            print('hello')
+            pytest.xfail(reason='broken due to reversion, see GH 25085')
 
-            # to test against already-tested behavior, we add sequentially,
-            # hence second append always True; must wrap in list, otherwise
-            # list-box will be illegal
-            expected = df.set_index([keys[0]], drop=drop, append=append)
-            expected = expected.set_index([keys[1]], drop=drop, append=True)
+        result = df.set_index(keys, drop=drop, append=append)
 
-            tm.assert_frame_equal(result, expected)
+        # need to adapt first drop for case that both keys are 'A' --
+        # cannot drop the same column twice;
+        # use "is" because == would give ambiguous Boolean error for containers
+        first_drop = False if (keys[0] is 'A' and keys[1] is 'A') else drop
+
+        # to test against already-tested behaviour, we add sequentially,
+        # hence second append always True; must wrap keys in list, otherwise
+        # box = list would be interpreted as keys
+        expected = df.set_index([keys[0]], drop=first_drop, append=append)
+        expected = expected.set_index([keys[1]], drop=drop, append=True)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
@@ -231,15 +238,149 @@ class TestDataFrameAlterAxes():
 
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_raise(self, frame_of_index_cols, drop, append):
+    def test_set_index_raise_keys(self, frame_of_index_cols, drop, append):
         df = frame_of_index_cols
 
-        with pytest.raises(KeyError, match='.*'):  # column names are A-E
+        with pytest.raises(KeyError, match="['foo', 'bar', 'baz']"):
+            # column names are A-E, as well as one tuple
             df.set_index(['foo', 'bar', 'baz'], drop=drop, append=append)
 
         # non-existent key in list with arrays
-        with pytest.raises(KeyError, match='.*'):
+        with pytest.raises(KeyError, match='X'):
             df.set_index([df['A'], df['B'], 'X'], drop=drop, append=append)
+
+        msg = "[('foo', 'foo', 'foo', 'bar', 'bar')]"
+        # tuples always raise KeyError
+        with pytest.raises(KeyError, match=msg):
+            df.set_index(tuple(df['A']), drop=drop, append=append)
+
+        # also within a list
+        with pytest.raises(KeyError, match=msg):
+            df.set_index(['A', df['A'], tuple(df['A'])],
+                         drop=drop, append=append)
+
+    @pytest.mark.xfail(reason='broken due to revert, see GH 25085')
+    @pytest.mark.parametrize('append', [True, False])
+    @pytest.mark.parametrize('drop', [True, False])
+    @pytest.mark.parametrize('box', [set, iter, lambda x: (y for y in x)],
+                             ids=['set', 'iter', 'generator'])
+    def test_set_index_raise_on_type(self, frame_of_index_cols, box,
+                                     drop, append):
+        df = frame_of_index_cols
+
+        msg = 'The parameter "keys" may be a column key, .*'
+        # forbidden type, e.g. set/iter/generator
+        with pytest.raises(TypeError, match=msg):
+            df.set_index(box(df['A']), drop=drop, append=append)
+
+        # forbidden type in list, e.g. set/iter/generator
+        with pytest.raises(TypeError, match=msg):
+            df.set_index(['A', df['A'], box(df['A'])],
+                         drop=drop, append=append)
+
+    def test_set_index_custom_label_type(self):
+        # GH 24969
+
+        class Thing(object):
+            def __init__(self, name, color):
+                self.name = name
+                self.color = color
+
+            def __str__(self):
+                return "<Thing %r>" % (self.name,)
+
+            # necessary for pretty KeyError
+            __repr__ = __str__
+
+        thing1 = Thing('One', 'red')
+        thing2 = Thing('Two', 'blue')
+        df = DataFrame({thing1: [0, 1], thing2: [2, 3]})
+        expected = DataFrame({thing1: [0, 1]},
+                             index=Index([2, 3], name=thing2))
+
+        # use custom label directly
+        result = df.set_index(thing2)
+        tm.assert_frame_equal(result, expected)
+
+        # custom label wrapped in list
+        result = df.set_index([thing2])
+        tm.assert_frame_equal(result, expected)
+
+        # missing key
+        thing3 = Thing('Three', 'pink')
+        msg = "<Thing 'Three'>"
+        with pytest.raises(KeyError, match=msg):
+            # missing label directly
+            df.set_index(thing3)
+
+        with pytest.raises(KeyError, match=msg):
+            # missing label in list
+            df.set_index([thing3])
+
+    def test_set_index_custom_label_hashable_iterable(self):
+        # GH 24969
+
+        # actual example discussed in GH 24984 was e.g. for shapely.geometry
+        # objects (e.g. a collection of Points) that can be both hashable and
+        # iterable; using frozenset as a stand-in for testing here
+
+        class Thing(frozenset):
+            # need to stabilize repr for KeyError (due to random order in sets)
+            def __repr__(self):
+                tmp = sorted(list(self))
+                # double curly brace prints one brace in format string
+                return "frozenset({{{}}})".format(', '.join(map(repr, tmp)))
+
+        thing1 = Thing(['One', 'red'])
+        thing2 = Thing(['Two', 'blue'])
+        df = DataFrame({thing1: [0, 1], thing2: [2, 3]})
+        expected = DataFrame({thing1: [0, 1]},
+                             index=Index([2, 3], name=thing2))
+
+        # use custom label directly
+        result = df.set_index(thing2)
+        tm.assert_frame_equal(result, expected)
+
+        # custom label wrapped in list
+        result = df.set_index([thing2])
+        tm.assert_frame_equal(result, expected)
+
+        # missing key
+        thing3 = Thing(['Three', 'pink'])
+        msg = '.*'  # due to revert, see GH 25085
+        with pytest.raises(KeyError, match=msg):
+            # missing label directly
+            df.set_index(thing3)
+
+        with pytest.raises(KeyError, match=msg):
+            # missing label in list
+            df.set_index([thing3])
+
+    def test_set_index_custom_label_type_raises(self):
+        # GH 24969
+
+        # purposefully inherit from something unhashable
+        class Thing(set):
+            def __init__(self, name, color):
+                self.name = name
+                self.color = color
+
+            def __str__(self):
+                return "<Thing %r>" % (self.name,)
+
+        thing1 = Thing('One', 'red')
+        thing2 = Thing('Two', 'blue')
+        df = DataFrame([[0, 2], [1, 3]], columns=[thing1, thing2])
+
+        msg = 'unhashable type.*'
+
+        with pytest.raises(TypeError, match=msg):
+            # use custom label directly
+            df.set_index(thing2)
+
+        with pytest.raises(TypeError, match=msg):
+            # custom label wrapped in list
+            df.set_index([thing2])
 
     def test_construction_with_categorical_index(self):
         ci = tm.makeCategoricalIndex(10)
