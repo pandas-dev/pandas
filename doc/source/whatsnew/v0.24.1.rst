@@ -56,6 +56,7 @@ Fixed Regressions
 - Fixed regression in :class:`Index.intersection` incorrectly sorting the values by default (:issue:`24959`).
 - Fixed regression in :func:`merge` when merging an empty ``DataFrame`` with multiple timezone-aware columns on one of the timezone-aware columns (:issue:`25014`).
 - Fixed regression in :meth:`Series.rename_axis` and :meth:`DataFrame.rename_axis` where passing ``None`` failed to remove the axis name (:issue:`25034`)
+- Fixed regression in :meth:`DataFrame.all` and :meth:`DataFrame.any` where ``bool_only`` as ``True`` was ignored (:issue:`25101`)
 
 **Timedelta**
 
