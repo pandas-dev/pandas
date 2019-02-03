@@ -1120,7 +1120,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        repeated_series : Series
+        Series
             Newly created Series with repeated elements.
 
         See Also
