@@ -2183,7 +2183,8 @@ class TestOpenpyxlTests(_WriterBase):
             assert xcell_b1.font == openpyxl_sty_merged
             assert xcell_a2.font == openpyxl_sty_merged
 
-    @pytest.mark.xfail(PY35 and not PY36, reason='only fails on Linux?')
+    @pytest.mark.xfail(PY35 and not PY36, reason='only fails on Linux?',
+                       strict=False)
     @pytest.mark.parametrize("mode,expected", [
         ('w', ['baz']), ('a', ['foo', 'bar', 'baz'])])
     def test_write_append_mode(self, merge_cells, ext, engine, mode, expected):
