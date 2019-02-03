@@ -9,13 +9,13 @@ jobs:
   strategy:
     matrix:
       ${{ if eq(parameters.name, 'macOS') }}:
-        py35_np_120:
+        py35_macos:
           ENV_FILE: ci/deps/azure-macos-35.yaml
           CONDA_PY: "35"
           PATTERN: "not slow and not network"
 
       ${{ if eq(parameters.name, 'Linux') }}:
-        py35_np_120:
+        py35_compat:
           ENV_FILE: ci/deps/azure-35-compat.yaml
           CONDA_PY: "35"
           PATTERN: "not slow and not network"
