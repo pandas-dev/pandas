@@ -4387,6 +4387,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         freq : str, default None
             Frequency associated with the PeriodIndex.
+        copy : bool, default True
+            Whether or not to return a copy.
 
         Returns
         -------
