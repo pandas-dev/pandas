@@ -2321,8 +2321,7 @@ class Categorical(ExtensionArray, PandasObject):
     @classmethod
     def _from_factorized(cls, uniques, original):
         return original._constructor(original.categories.take(uniques),
-                                     categories=original.categories,
-                                     ordered=original.ordered)
+                                     dtype=original.dtype)
 
     def equals(self, other):
         """
@@ -2674,9 +2673,7 @@ def _factorize_from_iterable(values):
     if is_categorical(values):
         if isinstance(values, (ABCCategoricalIndex, ABCSeries)):
             values = values._values
-        categories = CategoricalIndex(values.categories,
-                                      categories=values.categories,
-                                      ordered=values.ordered)
+        categories = CategoricalIndex(values.categories, dtype=values.dtype)
         codes = values.codes
     else:
         # The value of ordered is irrelevant since we don't use cat as such,
