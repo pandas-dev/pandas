@@ -1,6 +1,7 @@
 """ test the scalar Timedelta """
 from datetime import timedelta
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -378,6 +379,8 @@ class TestTimedeltas(object):
             result = Timedelta('2{}'.format(unit))
             assert result == expected
 
+    @pytest.mark.skipif(sys.version_info < (3, 6),
+                        reason="requires python3.6 or higher")
     @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
     def test_unit_m_y_deprecated(self, unit):
         with tm.assert_produces_warning(FutureWarning,
