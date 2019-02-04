@@ -38,7 +38,7 @@ Bug Fixes
 
 **Conversion**
 
-- Fixed bug in :meth:`lib.pyx` where `tuple` to `list` conversion failed ([:issue:25075](https://github.com/pandas-dev/pandas/pull/25089#issue-249804406))
+- Fixed bug in :meth:`lib.pyx` where `tuple` to `list` conversion failed (:issue:`25089`)
 
 **Indexing**
 
