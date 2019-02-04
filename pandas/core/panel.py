@@ -802,7 +802,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-            index -> minor axis, columns -> items.
+            Index -> minor axis, columns -> items.
 
         Notes
         -----
@@ -826,13 +826,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-<<<<<<< HEAD
-            index -> major axis, columns -> items.
-||||||| merged common ancestors
-            index -> major axis, columns -> items
-=======
-            Index -> major axis, columns -> items
->>>>>>> upstream/master
+            Index -> major axis, columns -> items.
 
         Notes
         -----

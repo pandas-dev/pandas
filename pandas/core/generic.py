@@ -6882,7 +6882,7 @@ class NDFrame(PandasObject, SelectionMixin):
            Scalar : when `self` is a Series and `where` is a scalar
            Series: when `self` is a Series and `where` is an array-like,
              or when `self` is a DataFrame and `where` is a scalar
-           * DataFrame : when `self` is a DataFrame and `where` is an
+           DataFrame : when `self` is a DataFrame and `where` is an
              array-like.
 
         See Also
