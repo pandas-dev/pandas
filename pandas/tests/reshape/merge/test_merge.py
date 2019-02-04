@@ -1585,6 +1585,6 @@ def test_merge_suffix_none_error(col1, col2, suffixes):
     b = pd.DataFrame({col2: [3, 4, 5]})
 
     # TODO: might reconsider current raise behaviour, see issue 24782
-    msg = "'NoneType' object is not iterable"
+    msg = "iterable"
     with pytest.raises(TypeError, match=msg):
         pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
