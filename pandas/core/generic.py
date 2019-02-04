@@ -6649,10 +6649,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.21.0
         maxgap : int, optional
-            Maximum number of consecutive NaN values up to which a NaN-gap 
-            will be interpolated. For all NaN-gaps wider than that no 
+            Maximum number of consecutive NaN values up to which a NaN-gap
+            will be interpolated. For all NaN-gaps wider than that no
             interpolation is carried out. Must be greater than 0.
-            
+
             .. versionadded:: 0.25.0
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
