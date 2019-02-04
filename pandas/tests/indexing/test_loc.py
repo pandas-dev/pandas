@@ -778,9 +778,3 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         msg = "cannot copy sequence with size 2 to array axis with dimension 0"
         with pytest.raises(ValueError, match=msg):
             df.loc[0:2, 'x'] = data
-
-    def test_loc_getitem_interval_index(self):
-        """ GH25087, test get_loc returns key error for interval indexes"""
-        idx = pd.interval_range(0, 1.0)
-        with pytest.raises(KeyError):
-            idx.get_loc('gg')

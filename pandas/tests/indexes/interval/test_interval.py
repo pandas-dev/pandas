@@ -435,6 +435,14 @@ class TestIntervalIndex(Base):
         idx = IntervalIndex.from_arrays([0, 2], [1, 3])
         pytest.raises(KeyError, idx.get_loc, 1.5)
 
+        # GH25087, test get_loc returns key error for interval indexes
+        msg = 'key is hashable but of incorrect type'
+        with pytest.raises(KeyError, match=msg):
+            idx.get_loc('a')
+        idx = pd.interval_range(0, 1.0)
+        with pytest.raises(KeyError, match=msg):
+            idx.get_loc('a')
+
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def slice_locs_cases(self, breaks):
         # TODO: same tests for more index types
