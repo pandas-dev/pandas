@@ -625,7 +625,7 @@ b  2""")
 
     def get_group(self, name, obj=None):
         """
-        Constructs NDFrame from group with provided name.
+        Construct NDFrame from group with provided name.
 
         Parameters
         ----------
@@ -1047,7 +1047,7 @@ class GroupBy(_GroupBy):
     @Appender(_common_see_also)
     def any(self, skipna=True):
         """
-        Returns True if any value in the group is truthful, else False.
+        Return True if any value in the group is truthful, else False.
 
         Parameters
         ----------
@@ -1060,7 +1060,7 @@ class GroupBy(_GroupBy):
     @Appender(_common_see_also)
     def all(self, skipna=True):
         """
-        Returns True if all values in the group are truthful, else False.
+        Return True if all values in the group are truthful, else False.
 
         Parameters
         ----------
@@ -1813,7 +1813,7 @@ class GroupBy(_GroupBy):
     def rank(self, method='average', ascending=True, na_option='keep',
              pct=False, axis=0):
         """
-        Provides the rank of values within each group.
+        Provide the rank of values within each group.
 
         Parameters
         ----------
@@ -2039,7 +2039,7 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby', see_also=_common_see_also)
     def head(self, n=5):
         """
-        Returns first n rows of each group.
+        Return first n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
@@ -2067,7 +2067,7 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby', see_also=_common_see_also)
     def tail(self, n=5):
         """
-        Returns last n rows of each group.
+        Return last n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.

@@ -17,7 +17,8 @@ from .inference import is_list_like
 
 
 def register_extension_dtype(cls):
-    """Class decorator to register an ExtensionType with pandas.
+    """
+    Register an ExtensionType with pandas as class decorator.
 
     .. versionadded:: 0.24.0
 

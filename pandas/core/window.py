@@ -438,7 +438,7 @@ class _Window(PandasObject, SelectionMixin):
 
 class Window(_Window):
     """
-    Provides rolling window calculations.
+    Provide rolling window calculations.
 
     .. versionadded:: 0.18.0
 
@@ -1803,7 +1803,7 @@ class Rolling(_Rolling_and_Expanding):
 
 class RollingGroupby(_GroupByMixin, Rolling):
     """
-    Provides a rolling groupby implementation.
+    Provide a rolling groupby implementation.
 
     .. versionadded:: 0.18.1
 
@@ -1834,7 +1834,7 @@ class RollingGroupby(_GroupByMixin, Rolling):
 
 class Expanding(_Rolling_and_Expanding):
     """
-    Provides expanding transformations.
+    Provide expanding transformations.
 
     .. versionadded:: 0.18.0
 
@@ -2076,7 +2076,7 @@ class Expanding(_Rolling_and_Expanding):
 
 class ExpandingGroupby(_GroupByMixin, Expanding):
     """
-    Provides a expanding groupby implementation.
+    Provide a expanding groupby implementation.
 
     .. versionadded:: 0.18.1
 
