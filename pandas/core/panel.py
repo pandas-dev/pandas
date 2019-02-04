@@ -826,7 +826,13 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
+<<<<<<< HEAD
             index -> major axis, columns -> items.
+||||||| merged common ancestors
+            index -> major axis, columns -> items
+=======
+            Index -> major axis, columns -> items
+>>>>>>> upstream/master
 
         Notes
         -----

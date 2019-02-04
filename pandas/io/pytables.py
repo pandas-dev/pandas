@@ -3288,7 +3288,7 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, 'nan_rep', None)
         self.encoding = _ensure_encoding(
             getattr(self.attrs, 'encoding', None))
-        self.errors = getattr(self.attrs, 'errors', 'strict')
+        self.errors = _ensure_decoded(getattr(self.attrs, 'errors', 'strict'))
         self.levels = getattr(
             self.attrs, 'levels', None) or []
         self.index_axes = [

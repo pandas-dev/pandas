@@ -2025,7 +2025,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         quantile : float or Series
-            if ``q`` is an array, a Series will be returned where the
+            If ``q`` is an array, a Series will be returned where the
             index is ``q`` and the values are the quantiles.
 
         See Also
