@@ -166,6 +166,8 @@ def merge_ordered(left, right, on=None,
         of a string to indicate that the column name from `left` or
         `right` should be left as-is, with no suffix. At least one of the
         values must not be None.
+
+        .. versionchanged:: 0.25.0
     how : {'left', 'right', 'outer', 'inner'}, default 'outer'
         * left: use only keys from left frame (SQL: left outer join)
         * right: use only keys from right frame (SQL: right outer join)

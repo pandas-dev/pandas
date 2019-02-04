@@ -1976,6 +1976,15 @@ def items_overlap_with_suffix(left, lsuffix, right, rsuffix):
 
             If there is overlap, and suffix is not None, add
             suffix, otherwise, leave it as-is.
+
+            Parameters
+            ----------
+            x : original column name
+            suffix : str or None
+
+            Returns
+            -------
+            x : renamed column name
             """
             if x in to_rename and suffix is not None:
                 return '{x}{suffix}'.format(x=x, suffix=suffix)
