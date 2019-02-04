@@ -1556,11 +1556,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         grouper : Index
-            Index of values to group on
+            Index of values to group on.
         labels : ndarray of int or None
-            Array of locations in level_index
+            Array of locations in level_index.
         uniques : Index or None
-            Index of unique values for level
+            Index of unique values for level.
         """
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
@@ -1828,7 +1828,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         numpy.ndarray
-            A boolean array of whether my values are NA
+            A boolean array of whether my values are NA.
 
         See Also
         --------
@@ -2972,7 +2972,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         tuple (indexer, keyarr)
             indexer is an ndarray or None if cannot convert
-            keyarr are tuple-safe keys
+            keyarr are tuple-safe keys.
         """
         if isinstance(keyarr, Index):
             keyarr = self._convert_index_indexer(keyarr)
@@ -3098,9 +3098,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         new_index : pd.Index
-            Resulting index
+            Resulting index.
         indexer : np.ndarray or None
-            Indices of output values in original index
+            Indices of output values in original index.
 
         """
         # GH6552: preserve names when reindexing to non-named target
@@ -3156,9 +3156,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         new_index : pd.Index
-            Resulting index
+            Resulting index.
         indexer : np.ndarray or None
-            Indices of output values in original index
+            Indices of output values in original index.
 
         """
 
@@ -4259,7 +4259,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         pandas.Index
-            shifted index
+            Shifted index.
 
         See Also
         --------
@@ -4422,7 +4422,7 @@ class Index(IndexOpsMixin, PandasObject):
             in the target are marked by -1.
         missing : ndarray of int
             An indexer into the target of the values not found.
-            These correspond to the -1 in the indexer array
+            These correspond to the -1 in the indexer array.
         """
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)

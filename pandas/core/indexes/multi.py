@@ -61,7 +61,7 @@ class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine,
         Returns
         ------
         int_keys : scalar or 1-dimensional array, of dtype uint64
-            Integer(s) representing one combination (each)
+            Integer(s) representing one combination (each).
         """
         # Shift the representation of each level by the pre-calculated number
         # of bits:
@@ -101,7 +101,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
         Returns
         ------
         int_keys : int, or 1-dimensional array of dtype object
-            Integer(s) representing one combination (each)
+            Integer(s) representing one combination (each).
         """
 
         # Shift the representation of each level by the pre-calculated number
@@ -1956,7 +1956,7 @@ class MultiIndex(Index):
         Returns
         -------
         MultiIndex
-            A new MultiIndex
+            A new MultiIndex.
 
         .. versionchanged:: 0.18.1
 
@@ -2053,9 +2053,9 @@ class MultiIndex(Index):
         Returns
         -------
         sorted_index : pd.MultiIndex
-            Resulting index
+            Resulting index.
         indexer : np.ndarray
-            Indices of output values in original index
+            Indices of output values in original index.
         """
         from pandas.core.sorting import indexer_from_factorized
 
@@ -2189,7 +2189,7 @@ class MultiIndex(Index):
         new_index : pd.MultiIndex
             Resulting index
         indexer : np.ndarray or None
-            Indices of output values in original index
+            Indices of output values in original index.
 
         """
         # GH6552: preserve names when reindexing to non-named target

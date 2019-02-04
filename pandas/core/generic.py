@@ -4951,10 +4951,10 @@ class NDFrame(PandasObject, SelectionMixin):
     Returns
     -------
     DataFrame, Series or scalar
-        if DataFrame.agg is called with a single function, returns a Series
-        if DataFrame.agg is called with several functions, returns a DataFrame
-        if Series.agg is called with single function, returns a scalar
-        if Series.agg is called with several functions, returns a Series
+        - If DataFrame.agg is called with a single function, returns a Series.
+        - If DataFrame.agg is called with several functions, returns a DataFrame.
+        - If Series.agg is called with single function, returns a scalar.
+        - If Series.agg is called with several functions, returns a Series.
 
     %(see_also)s
 
@@ -5350,7 +5350,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         numpy.ndarray
-            Numpy representation of DataFrame
+            Numpy representation of DataFrame.
 
         See Also
         --------
@@ -5429,7 +5429,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         dtype : Series
             Series with the count of columns with each type and
-            sparsity (dense/sparse)
+            sparsity (dense/sparse).
 
         See Also
         --------
@@ -6658,7 +6658,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         Series or DataFrame
             Returns the same object type as the caller, interpolated at
-            some or all ``NaN`` values
+            some or all ``NaN`` values.
 
         See Also
         --------
@@ -6882,7 +6882,7 @@ class NDFrame(PandasObject, SelectionMixin):
            * Series: when `self` is a Series and `where` is an array-like,
              or when `self` is a DataFrame and `where` is a scalar
            * DataFrame : when `self` is a DataFrame and `where` is an
-             array-like
+             array-like.
 
         See Also
         --------
@@ -7236,7 +7236,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         Series or DataFrame
             Same type as calling object with the values outside the
-            clip boundaries replaced
+            clip boundaries replaced.
 
         Examples
         --------
@@ -8387,7 +8387,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         (left, right) : (%(klass)s, type of other)
-            Aligned objects
+            Aligned objects.
         """)
 
     @Appender(_shared_docs['align'] % _shared_doc_kwargs)

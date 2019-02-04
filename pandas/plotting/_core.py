@@ -2056,12 +2056,12 @@ _shared_docs['boxplot'] = """
 
         * 'axes' : object of class matplotlib.axes.Axes
         * 'dict' : dict of matplotlib.lines.Line2D objects
-        * 'both' : a namedtuple with structure (ax, lines)
+        * 'both' : a namedtuple with structure (ax, lines).
 
         For data grouped with ``by``:
 
         * :class:`~pandas.Series`
-        * :class:`~numpy.array` (for ``return_type = None``)
+        * :class:`~numpy.array` (for ``return_type = None``).
 
     See Also
     --------
@@ -2885,7 +2885,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them.
         """
         return self(kind='area', **kwds)
 
@@ -2901,7 +2901,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them.
         """
         return self(kind='pie', **kwds)
 
@@ -3332,7 +3332,7 @@ class FramePlotMethods(BasePlotMethods):
         Returns
         -------
         matplotlib.axes.Axes or numpy.ndarray
-            Area plot, or array of area plots if subplots is True
+            Area plot, or array of area plots if subplots is True.
 
         See Also
         --------

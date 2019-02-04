@@ -1209,7 +1209,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         series : Series
             If label is contained, will be reference to calling Series,
-            otherwise a new object
+            otherwise a new object.
         """
         warnings.warn("set_value is deprecated and will be removed "
                       "in a future release. Please use "
@@ -1629,7 +1629,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             * Datetime with Timezone
             * Interval
             * Sparse
-            * IntegerNA
+            * IntegerNA .
 
         See Also
         --------

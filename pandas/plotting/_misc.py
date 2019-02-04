@@ -390,7 +390,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     Returns
     -------
     fig : matplotlib.figure.Figure
-        Matplotlib figure
+        Matplotlib figure.
 
     See Also
     --------
