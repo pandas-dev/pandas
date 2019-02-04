@@ -383,8 +383,7 @@ class TestTimedeltas(object):
                         reason="requires python3.5 or higher")
     @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
     def test_unit_m_y_deprecated(self, unit):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False) as w1:
+        with tm.assert_produces_warning(FutureWarning) as w1:
             Timedelta(10, unit)
         msg = r'.* units are deprecated .*'
         assert re.match(msg, str(w1[0].message))
