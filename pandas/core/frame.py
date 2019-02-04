@@ -7498,7 +7498,8 @@ class DataFrame(NDFrame):
                 if filter_type is None or filter_type == 'numeric':
                     data = self._get_numeric_data()
                 elif filter_type == 'bool':
-                    data = self
+                    # GH 25101, # GH 24434
+                    data = self._get_bool_data() if axis == 0 else self
                 else:  # pragma: no cover
                     msg = ("Generating numeric_only data with filter_type {f}"
                            "not supported.".format(f=filter_type))
@@ -7767,10 +7768,10 @@ class DataFrame(NDFrame):
         -------
         quantiles : Series or DataFrame
 
-            - If ``q`` is an array, a DataFrame will be returned where the
+            If ``q`` is an array, a DataFrame will be returned where the
               index is ``q``, the columns are the columns of self, and the
               values are the quantiles.
-            - If ``q`` is a float, a Series will be returned where the
+            If ``q`` is a float, a Series will be returned where the
               index is the columns of self and the values are the quantiles.
 
         See Also

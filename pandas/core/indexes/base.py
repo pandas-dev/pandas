@@ -4259,7 +4259,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         pandas.Index
-            shifted index
+            Shifted index
 
         See Also
         --------
