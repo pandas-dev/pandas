@@ -108,7 +108,7 @@ def clean_interp_method(method, **kwargs):
     return method
 
 
-def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
+def interpolate_1d(xvalues, yvalues, method='linear', limit=None, maxgap=None,
                    limit_direction='forward', limit_area=None, fill_value=None,
                    bounds_error=False, order=None, **kwargs):
     """
@@ -165,6 +165,16 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     elif limit < 1:
         raise ValueError('Limit must be greater than 0')
 
+    if (maxgap is not None) and (limit is not None):
+        raise ValueError('maxgap cannot be used together with limit')
+
+    if maxgap is None:
+        pass
+    elif not is_integer(maxgap):
+        raise ValueError('maxgap must be an integer')
+    elif maxgap < 1:
+        raise ValueError('maxgap must be greater than 0')
+
     from pandas import Series
     ys = Series(yvalues)
 
@@ -182,14 +192,40 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     # contain indices of NaNs at the beginning of the series, and NaNs that
     # are more than'limit' away from the prior non-NaN.
 
+    # In case that maxgap is provided, preserve_nans is derived so that
+    # gaps with continuous NaN values of width > maxgap will be preserved.
+
     # set preserve_nans based on direction using _interp_limit
-    if limit_direction == 'forward':
-        preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
-    elif limit_direction == 'backward':
-        preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))
+    if maxgap is None:
+        if limit_direction == 'forward':
+            preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
+        elif limit_direction == 'backward':
+            preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))
+        else:
+            # both directions... just use _interp_limit
+            preserve_nans = set(_interp_limit(invalid, limit, limit))
     else:
-        # both directions... just use _interp_limit
-        preserve_nans = set(_interp_limit(invalid, limit, limit))
+        def bfill_nan(arr):
+            """ Backward-fill NaNs """
+            mask = np.isnan(arr)
+            idx = np.where(~mask, np.arange(mask.shape[0]), mask.shape[0] - 1)
+            idx = np.minimum.accumulate(idx[::-1], axis=0)[::-1]
+            out = arr[idx]
+            return out
+
+        # Generate array where the NaN-gap-width is filled in as value
+        # at each NaN location.
+        cumsum = np.cumsum(invalid).astype('float')
+        diff = np.zeros_like(yvalues)
+        diff[~invalid] = np.pad(np.diff(cumsum[~invalid]),
+                                (1, 0), mode='constant')
+        diff[invalid] = np.nan
+        diff = bfill_nan(diff)
+        # hack to avoid having trailing NaNs in `diff`. Fill these
+        # with `maxgap`. Everthing smaller than `maxgap` won't matter
+        # in the following.
+        diff[np.isnan(diff)] = maxgap
+        preserve_nans = set(np.flatnonzero((diff > maxgap) & invalid))
 
     # if limit_area is set, add either mid or outside indices
     # to preserve_nans GH #16284

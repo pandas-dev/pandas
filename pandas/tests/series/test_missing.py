@@ -1204,6 +1204,41 @@ class TestSeriesInterpolateData():
                                limit_direction='both')
         assert_series_equal(result, expected)
 
+    def test_interp_maxgap(self):
+        s = Series([
+            np.nan,
+            1., np.nan,
+            2., np.nan, np.nan,
+            5., np.nan, np.nan, np.nan,
+            -1., np.nan, np.nan
+        ])
+
+        excpected = Series([
+            1.,
+            1., 1.5,
+            2., 3., 4.,
+            5., np.nan, np.nan, np.nan,
+            -1., -1, -1
+        ])
+
+        result = s.interpolate(method='linear', maxgap=2)
+        assert_series_equal(result, excpected)
+
+        excpected = Series([
+            np.nan,
+            1., 1.5,
+            2., 3., 4.,
+            5., np.nan, np.nan, np.nan,
+            -1., np.nan, np.nan
+        ])
+
+        result = s.interpolate(method='linear', maxgap=2, limit_area='inside')
+        assert_series_equal(result, excpected)
+
+        with pytest.raises(ValueError,
+                           match='maxgap cannot be used together with limit'):
+            s.interpolate(method='linear', maxgap=2, limit=3)
+
     def test_interp_limit_before_ends(self):
         # These test are for issue #11115 -- limit ends properly.
         s = Series([np.nan, np.nan, 5, 7, np.nan, np.nan])
