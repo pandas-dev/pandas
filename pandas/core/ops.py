@@ -495,6 +495,28 @@ c    1.0
 d    1.0
 e    NaN
 dtype: float64
+>>> a.subtract(b, fill_value=0)
+a    0.0
+b    1.0
+c    1.0
+d   -1.0
+e    NaN
+dtype: float64
+>>> a.multiply(b)
+dtype: float64
+a    1.0
+b    NaN
+c    NaN
+d    NaN
+e    NaN
+dtype: float64
+>>> a.divide(b, fill_value=0)
+a    1.0
+b    inf
+c    inf
+d    0.0
+e    NaN
+dtype: float64
 """
 
 _arith_doc_FRAME = """
