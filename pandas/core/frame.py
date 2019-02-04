@@ -7455,7 +7455,8 @@ class DataFrame(NDFrame):
                 if filter_type is None or filter_type == 'numeric':
                     data = self._get_numeric_data()
                 elif filter_type == 'bool':
-                    data = self
+                    # GH 25101, # GH 24434
+                    data = self._get_bool_data() if axis == 0 else self
                 else:  # pragma: no cover
                     msg = ("Generating numeric_only data with filter_type {f}"
                            "not supported.".format(f=filter_type))
