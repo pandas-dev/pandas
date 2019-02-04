@@ -1980,7 +1980,7 @@ def _validate_date_like_dtype(dtype):
 
 def pandas_dtype(dtype):
     """
-    Converts input into a pandas only dtype object or a numpy dtype object.
+    Convert input into a pandas only dtype object or a numpy dtype object.
 
     Parameters
     ----------

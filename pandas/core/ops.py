@@ -447,7 +447,7 @@ for key in _op_names:
         _op_descriptions[reverse_op]['reverse'] = key
 
 _flex_doc_SERIES = """
-{desc} of series and other, element-wise (binary operator `{op_name}`).
+Generate {desc} of series and other, element-wise (binary operator `{op_name}`).
 
 Equivalent to ``{equiv}``, but with support to substitute a fill_value for
 missing data in one of the inputs.
@@ -525,7 +525,7 @@ Mismatched indices will be unioned together
 """
 
 _flex_doc_FRAME = """
-{desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+Generate {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 
 Equivalent to ``{equiv}``, but with support to substitute a fill_value
 for missing data in one of the inputs. With reverse version, `{reverse}`.
@@ -679,7 +679,7 @@ B square        0.0      0.0
 """
 
 _flex_comp_doc_FRAME = """
-{desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+Generate {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 
 Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
 operators.
@@ -825,7 +825,7 @@ Q2 A  False     True
 """
 
 _flex_doc_PANEL = """
-{desc} of series and other, element-wise (binary operator `{op_name}`).
+Generate {desc} of series and other, element-wise (binary operator `{op_name}`).
 Equivalent to ``{equiv}``.
 
 Parameters
