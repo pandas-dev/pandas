@@ -51,7 +51,7 @@ Bug Fixes
 
 **I/O**
 
--
+- Bug in reading a HDF5 table-format ``DataFrame`` created in Python 2, in Python 3 (:issue:`24925`)
 -
 -
 
