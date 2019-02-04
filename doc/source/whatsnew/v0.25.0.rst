@@ -28,9 +28,9 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas 0.24.0 includes a number of API breaking changes.
+Pandas 0.25.0 includes a number of API breaking changes.
 
-.. _whatsnew_0240.api_breaking.deps:
+.. _whatsnew_0250.api_breaking.deps:
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
