@@ -96,6 +96,7 @@ class Hashing(object):
                 np.random.randint(0, 10000, size=N))),
              'floats': np.random.randn(N),
              'ints': np.arange(N),
+             'int_na': pd.Series(np.arange(N), dtype=pd.Int64Dtype()),
              'dates': pd.date_range('20110101', freq='s', periods=N),
              'timedeltas': pd.timedelta_range('1 day', freq='s', periods=N)})
         df['categories'] = df['strings'].astype('category')
@@ -123,6 +124,8 @@ class Hashing(object):
     def time_series_dates(self, df):
         hashing.hash_pandas_object(df['dates'])
 
+    def time_series_integer_arr(self, df):
+        hashing.hash_pandas_object(df['int_na'])
 
 class Quantile(object):
     params = [[0, 0.5, 1],
