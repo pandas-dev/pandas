@@ -340,7 +340,9 @@ cdef class _Timestamp(datetime):
                         self.microsecond, self.tzinfo)
 
     cpdef to_datetime64(self):
-        """ Returns a numpy.datetime64 object with 'ns' precision """
+        """
+        Return a numpy.datetime64 object with 'ns' precision.
+        """
         return np.datetime64(self.value, 'ns')
 
     def __add__(self, other):
@@ -614,7 +616,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.now(tz=None)
 
-        Returns new Timestamp object representing current time local to
+        Return new Timestamp object representing current time local to
         tz.
 
         Parameters

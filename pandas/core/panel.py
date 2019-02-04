@@ -999,7 +999,7 @@ class Panel(NDFrame):
 
     def apply(self, func, axis='major', **kwargs):
         """
-        Applies function along axis (or axes) of the Panel.
+        Apply function along axis (or axes) of the Panel.
 
         Parameters
         ----------
