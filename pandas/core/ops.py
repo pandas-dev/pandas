@@ -459,14 +459,15 @@ fill_value : None or float value, default None (NaN)
     Fill existing missing (NaN) values, and any new element needed for
     successful Series alignment, with this value before computation.
     If data in both corresponding Series locations is missing
-    the result will be missing
+    the result will be missing.
 level : int or name
     Broadcast across a level, matching Index values on the
-    passed MultiIndex level
+    passed MultiIndex level.
 
 Returns
 -------
-result : Series
+Series
+    The result of the operation.
 
 See Also
 --------
@@ -493,6 +494,27 @@ a    2.0
 b    1.0
 c    1.0
 d    1.0
+e    NaN
+dtype: float64
+>>> a.subtract(b, fill_value=0)
+a    0.0
+b    1.0
+c    1.0
+d   -1.0
+e    NaN
+dtype: float64
+>>> a.multiply(b)
+a    1.0
+b    NaN
+c    NaN
+d    NaN
+e    NaN
+dtype: float64
+>>> a.divide(b, fill_value=0)
+a    1.0
+b    inf
+c    inf
+d    0.0
 e    NaN
 dtype: float64
 """
