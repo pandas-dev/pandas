@@ -25,7 +25,7 @@ See the :ref:`overview` for more detail about what's in the library.
 
 {% if single_doc and single_doc.endswith('.rst') -%}
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
 
     {{ single_doc[:-4] }}
 {% elif single_doc %}
@@ -35,7 +35,7 @@ See the :ref:`overview` for more detail about what's in the library.
     {{ single_doc }}
 {% else -%}
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
 {% endif %}
 
     {% if not single_doc -%}
