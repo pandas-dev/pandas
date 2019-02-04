@@ -17,7 +17,6 @@ import functools
 import itertools
 import sys
 import warnings
-from distutils.version import LooseVersion
 from textwrap import dedent
 
 import numpy as np
@@ -641,22 +640,6 @@ class DataFrame(NDFrame):
 
         Mainly for IPython notebook.
         """
-        # qtconsole doesn't report its line width, and also
-        # behaves badly when outputting an HTML table
-        # that doesn't fit the window, so disable it.
-        # XXX: In IPython 3.x and above, the Qt console will not attempt to
-        # display HTML, so this check can be removed when support for
-        # IPython 2.x is no longer needed.
-        try:
-            import IPython
-        except ImportError:
-            pass
-        else:
-            if LooseVersion(IPython.__version__) < LooseVersion('3.0'):
-                if console.in_qtconsole():
-                    # 'HTML output is disabled in QtConsole'
-                    return None
-
         if self._info_repr():
             buf = StringIO(u(""))
             self.info(buf=buf)
