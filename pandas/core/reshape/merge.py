@@ -159,7 +159,7 @@ def merge_ordered(left, right, on=None,
         left DataFrame
     fill_method : {'ffill', None}, default None
         Interpolation method for data
-    suffixes : Sequence or None, default is ("_x", "_y")
+    suffixes : Sequence, default is ("_x", "_y")
         A length-2 sequence where each element is optionally a string
         indicating the suffix to add to overlapping column names in
         `left` and `right` respectively. Pass a value of `None` instead
