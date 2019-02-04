@@ -6788,7 +6788,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['interpolate'] % _shared_doc_kwargs)
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    maxgap=None, limit_direction='forward', limit_area=None,
+                    limit_direction='forward', limit_area=None, maxgap=None,
                     downcast=None, **kwargs):
         """
         Interpolate values according to different methods.
