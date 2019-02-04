@@ -20,9 +20,7 @@ including other versions of pandas.
 Fixed Regressions
 ^^^^^^^^^^^^^^^^^
 
--
--
--
+- Fixed regression in :meth:`DataFrame.all` and :meth:`DataFrame.any` where ``bool_only=True`` was ignored (:issue:`25101`)
 
 .. _whatsnew_0242.enhancements:
 
