@@ -815,8 +815,51 @@ cdef class _Timedelta(timedelta):
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
-        Return an actual datetime.timedelta object.
-        Note: we lose nanosecond resolution if any.
+        Converts a Timedelta object into a python datetime.timedelta object.
+
+        Timedelta objects are typecast to numpy datetime64[ns] dtype,
+        use to_pytimedelta() to convert back to object dtype.
+
+        Returns
+        -------
+        datetime.timedelta or numpy.array of datetime.timedelta
+
+        See Also
+        --------
+        to_timedelta : Convert argument to Timedelta type.
+
+        Notes
+        -----
+        Any nanosecond resolution will be lost.
+
+        Examples
+        --------
+        Converting an array of Timedeltas:
+
+        >>> arr = pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
+        >>> arr
+        TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015',
+                       NaT],
+                       dtype='timedelta64[ns]', freq=None)
+        >>> arr.to_pytimedelta()
+        array([datetime.timedelta(1, 21901, 30), datetime.timedelta(0, 0, 16),
+        NaT], dtype=object)
+
+        Loss of nanosecond resolution:
+
+        >>> diff = pd.to_timedelta('1 days 06:05:01.00003')
+        >>> diff
+        Timedelta('1 days 06:05:01.000030')
+        >>> diff.delta
+        108301000030000
+        >>> diff += np.timedelta64(22, 'ns')
+        >>> diff.delta
+        108301000030022
+        >>> py_diff = diff.to_pytimedelta()
+        >>> py_diff
+        datetime.timedelta(1, 21901, 30)
+        >>> pd.to_timedelta(py_diff).delta
+        108301000030000
         """
         return timedelta(microseconds=int(self.value) / 1000)
 
