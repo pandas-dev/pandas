@@ -827,7 +827,7 @@ class IntervalIndex(IntervalMixin, Index):
         if self.is_non_overlapping_monotonic:
             try:
                 start, stop = (
-                    self._find_non_overlapping_monotonic_bounds()
+                    self._find_non_overlapping_monotonic_bounds(target)
                 )
             except TypeError:
                 return np.repeat(np.int(-1), len(target))
