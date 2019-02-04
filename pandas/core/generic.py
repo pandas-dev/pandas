@@ -61,6 +61,10 @@ _shared_doc_kwargs = dict(
         by : str or list of str
             Name or list of names to sort by""")
 
+# sentinel value to use as kwarg in place of None when None has special meaning
+# and needs to be distinguished from a user explicitly passing None.
+sentinel = object()
+
 
 def _single_replace(self, to_replace, method, inplace, limit):
     """
@@ -290,11 +294,16 @@ class NDFrame(PandasObject, SelectionMixin):
         d.update(kwargs)
         return d
 
-    def _construct_axes_from_arguments(self, args, kwargs, require_all=False):
+    def _construct_axes_from_arguments(
+            self, args, kwargs, require_all=False, sentinel=None):
         """Construct and returns axes if supplied in args/kwargs.
 
         If require_all, raise if all axis arguments are not supplied
         return a tuple of (axes, kwargs).
+
+        sentinel specifies the default parameter when an axis is not
+        supplied; useful to distinguish when a user explicitly passes None
+        in scenarios where None has special meaning.
         """
 
         # construct the args
@@ -322,7 +331,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         raise TypeError("not enough/duplicate arguments "
                                         "specified!")
 
-        axes = {a: kwargs.pop(a, None) for a in self._AXIS_ORDERS}
+        axes = {a: kwargs.pop(a, sentinel) for a in self._AXIS_ORDERS}
         return axes, kwargs
 
     @classmethod
@@ -1089,7 +1098,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @rewrite_axis_style_signature('mapper', [('copy', True),
                                              ('inplace', False)])
-    def rename_axis(self, mapper=None, **kwargs):
+    def rename_axis(self, mapper=sentinel, **kwargs):
         """
         Set the name of the axis for the index or columns.
 
@@ -1218,7 +1227,8 @@ class NDFrame(PandasObject, SelectionMixin):
                cat            4         0
                monkey         2         2
         """
-        axes, kwargs = self._construct_axes_from_arguments((), kwargs)
+        axes, kwargs = self._construct_axes_from_arguments(
+            (), kwargs, sentinel=sentinel)
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
         axis = kwargs.pop('axis', 0)
@@ -1231,7 +1241,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
-        if (mapper is not None):
+        if (mapper is not sentinel):
             # Use v0.23 behavior if a scalar or list
             non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
                                                is_dict_like(mapper))
@@ -1254,7 +1264,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             for axis in lrange(self._AXIS_LEN):
                 v = axes.get(self._AXIS_NAMES[axis])
-                if v is None:
+                if v is sentinel:
                     continue
                 non_mapper = is_scalar(v) or (is_list_like(v) and not
                                               is_dict_like(v))
@@ -4941,10 +4951,10 @@ class NDFrame(PandasObject, SelectionMixin):
     Returns
     -------
     DataFrame, Series or scalar
-        if DataFrame.agg is called with a single function, returns a Series
-        if DataFrame.agg is called with several functions, returns a DataFrame
-        if Series.agg is called with single function, returns a scalar
-        if Series.agg is called with several functions, returns a Series
+        If DataFrame.agg is called with a single function, returns a Series
+        If DataFrame.agg is called with several functions, returns a DataFrame
+        If Series.agg is called with single function, returns a scalar
+        If Series.agg is called with several functions, returns a Series
 
     %(see_also)s
 
@@ -6868,10 +6878,10 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         scalar, Series, or DataFrame
 
-           * scalar : when `self` is a Series and `where` is a scalar
-           * Series: when `self` is a Series and `where` is an array-like,
+           Scalar : when `self` is a Series and `where` is a scalar
+           Series: when `self` is a Series and `where` is an array-like,
              or when `self` is a DataFrame and `where` is a scalar
-           * DataFrame : when `self` is a DataFrame and `where` is an
+           DataFrame : when `self` is a DataFrame and `where` is an
              array-like
 
         See Also
@@ -9984,8 +9994,7 @@ class NDFrame(PandasObject, SelectionMixin):
             cls, 'all', name, name2, axis_descr, _all_desc, nanops.nanall,
             _all_see_also, _all_examples, empty_value=True)
 
-        @Substitution(outname='mad',
-                      desc="Return the mean absolute deviation of the values "
+        @Substitution(desc="Return the mean absolute deviation of the values "
                            "for the requested axis.",
                       name1=name, name2=name2, axis_descr=axis_descr,
                       min_count='', see_also='', examples='')
@@ -10026,8 +10035,7 @@ class NDFrame(PandasObject, SelectionMixin):
             "ddof argument",
             nanops.nanstd)
 
-        @Substitution(outname='compounded',
-                      desc="Return the compound percentage of the values for "
+        @Substitution(desc="Return the compound percentage of the values for "
                       "the requested axis.", name1=name, name2=name2,
                       axis_descr=axis_descr,
                       min_count='', see_also='', examples='')
@@ -10264,7 +10272,7 @@ numeric_only : bool, default None
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)
+%(name1)s or %(name2)s (if level specified)
 %(see_also)s
 %(examples)s\
 """
@@ -10290,7 +10298,7 @@ numeric_only : boolean, default None
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)\n"""
+%(name1)s or %(name2)s (if level specified)\n"""
 
 _bool_doc = """
 %(desc)s
@@ -10409,7 +10417,7 @@ skipna : boolean, default True
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s\n
+%(name1)s or %(name2)s\n
 See Also
 --------
 core.window.Expanding.%(accum_func_name)s : Similar functionality
@@ -10902,7 +10910,7 @@ min_count : int, default 0
 
 def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
                                   f, see_also='', examples=''):
-    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+    @Substitution(desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, min_count=_min_count_stub,
                   see_also=see_also, examples=examples)
     @Appender(_num_doc)
@@ -10930,7 +10938,7 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
 
 def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
                         see_also='', examples=''):
-    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+    @Substitution(desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, min_count='', see_also=see_also,
                   examples=examples)
     @Appender(_num_doc)
@@ -10954,7 +10962,7 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
 
 
 def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
-    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+    @Substitution(desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr)
     @Appender(_num_ddof_doc)
     def stat_func(self, axis=None, skipna=None, level=None, ddof=1,
@@ -10975,7 +10983,7 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
 
 def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
                        accum_func, accum_func_name, mask_a, mask_b, examples):
-    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+    @Substitution(desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, accum_func_name=accum_func_name,
                   examples=examples)
     @Appender(_cnum_doc)
@@ -11010,7 +11018,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
 
 def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
                            see_also, examples, empty_value):
-    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+    @Substitution(desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, see_also=see_also, examples=examples,
                   empty_value=empty_value)
     @Appender(_bool_doc)
