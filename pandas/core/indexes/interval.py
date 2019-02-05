@@ -463,7 +463,7 @@ class IntervalIndex(IntervalMixin, Index):
         """
         Return True if the IntervalIndex contains unique elements, else False
         """
-        return self._multiindex.is_unique
+        return len(self) == len(self.unique())
 
     @cache_readonly
     @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
