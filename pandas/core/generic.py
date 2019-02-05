@@ -2740,9 +2740,9 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
                  sparsify=None, index_names=True, bold_rows=False,
-                 column_format=None, longtable=None, escape=None,
-                 encoding=None, decimal='.', multicolumn=None,
-                 multicolumn_format=None, multirow=None):
+                 column_format=None, longtable=None, lt_caption=None,
+                 lt_label=None, escape=None, encoding=None, decimal='.',
+                 multicolumn=None, multicolumn_format=None, multirow=None):
         r"""
         Render an object to a LaTeX tabular environment table.
 
@@ -2790,6 +2790,10 @@ class NDFrame(PandasObject, SelectionMixin):
             By default, the value will be read from the pandas config
             module. Use a longtable environment instead of tabular. Requires
             adding a \usepackage{longtable} to your LaTeX preamble.
+        lt_caption : str, optional
+            The caption to use when longtable is True
+        lt_label : str, optional
+            The label to use with \ref{} when longtable is True
         escape : bool, optional
             By default, the value will be read from the pandas config
             module. When set to False prevents from escaping latex special
@@ -2863,6 +2867,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                        index_names=index_names,
                                        escape=escape, decimal=decimal)
         formatter.to_latex(column_format=column_format, longtable=longtable,
+                           lt_caption=lt_caption, lt_label=lt_label,
                            encoding=encoding, multicolumn=multicolumn,
                            multicolumn_format=multicolumn_format,
                            multirow=multirow)

@@ -4,6 +4,8 @@ Module for formatting output data in Latex.
 """
 from __future__ import print_function
 
+from warnings import warn
+
 import numpy as np
 
 from pandas.compat import map, range, u, zip
@@ -34,12 +36,15 @@ class LatexFormatter(TableFormatter):
     """
 
     def __init__(self, formatter, column_format=None, longtable=False,
-                 multicolumn=False, multicolumn_format=None, multirow=False):
+                 lt_caption=None, lt_label=None, multicolumn=False,
+                 multicolumn_format=None, multirow=False):
         self.fmt = formatter
         self.frame = self.fmt.frame
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.column_format = column_format
         self.longtable = longtable
+        self.lt_caption = lt_caption
+        self.lt_label = lt_label
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
@@ -113,6 +118,24 @@ class LatexFormatter(TableFormatter):
         else:
             buf.write('\\begin{{longtable}}{{{fmt}}}\n'
                       .format(fmt=column_format))
+
+            if self.lt_caption is None and self.lt_label is None:
+                pass
+            else:
+                if self.lt_caption is not None:
+                    buf.write('\\caption{{{}}}'.format(self.lt_caption))
+                else:
+                    pass
+
+                if self.lt_label is not None:
+                    buf.write('\\label{{{}}}'.format(self.lt_label))
+                else:
+                    warn('no LaTeX label has been provided; referencing with \\ref{} will not work')
+
+                # a double-backslash is required at the end of the line as discussed here:
+                # https://tex.stackexchange.com/questions/219138
+                buf.write('\\\\\n')
+
             buf.write('\\toprule\n')
 
         ilevels = self.frame.index.nlevels
