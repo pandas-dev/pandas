@@ -310,22 +310,19 @@ class TestJSONNormalize(object):
         expected = DataFrame(ex_data)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("max_level, columns", [
-        (0, ['TextField', 'UserField', 'CreatedBy', "Image"]),
-        (1, ['TextField', 'UserField.Id',
-             'UserField.Name', 'CreatedBy', "Image"]),
-    ])
+    @pytest.mark.parametrize("max_level", [0, 1])
     def test_records_path_with_nested_data(self,
                                            data_records_path_with_nested_data,
-                                           max_level, columns):
+                                           max_level):
         test_input = data_records_path_with_nested_data
         expected_data = expected_data_test_path_with_nested_data()[max_level]
         result = json_normalize(test_input,
                                 record_path=["Lookup"],
                                 meta=[["CreatedBy"], ["Image"]],
                                 max_level=max_level)
-        expected_df = DataFrame(data=expected_data, columns=columns)
-        tm.assert_frame_equal(expected_df, result)
+        expected_df = DataFrame(data=expected_data,
+                                columns=result.columns.values)
+        tm.assert_equal(expected_df, result)
 
 
 class TestNestedToRecord(object):
