@@ -8,7 +8,6 @@ import pandas.util.testing as tm
 
 from . import base
 
-
 NP_VERSION_INFO = tuple(int(x) for x in np.__version__.split('.'))
 
 
