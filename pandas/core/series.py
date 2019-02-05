@@ -1515,6 +1515,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         DataFrame
             DataFrame representation of Series.
+
+        Examples
+        --------
+        >>> s = pd.Series(["a", "b", "c"],
+        ...               name="vals")
+        >>> s.to_frame()
+          vals
+        0    a
+        1    b
+        2    c
         """
         if name is None:
             df = self._constructor_expanddim(self)
@@ -1580,6 +1590,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         int or Series (if level specified)
             Number of non-null values in the Series.
+
+        Examples
+        --------
+        >>> s = pd.Series([0.0, 1.0, np.nan])
+        >>> s.count()
+        2
         """
         if level is None:
             return notna(com.values_from_object(self)).sum()
