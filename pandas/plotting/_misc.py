@@ -273,7 +273,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                    colormap=None, **kwds):
     """
-    Generates a matplotlib plot of Andrews curves, for visualising clusters of
+    Generate a matplotlib plot of Andrews curves, for visualising clusters of
     multivariate data.
 
     Andrews curves have the functional form:
@@ -598,7 +598,8 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
 
 def autocorrelation_plot(series, ax=None, **kwds):
-    """Autocorrelation plot for time series.
+    """
+    Autocorrelation plot for time series.
 
     Parameters:
     -----------

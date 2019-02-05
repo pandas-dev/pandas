@@ -4049,7 +4049,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def equals(self, other):
         """
-        Determines if two Index objects contain the same elements.
+        Determine if two Index objects contain the same elements.
         """
         if self.is_(other):
             return True
@@ -4144,7 +4144,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof_locs(self, where, mask):
         """
-        Finds the locations (indices) of the labels from the index for
+        Find the locations (indices) of the labels from the index for
         every entry in the `where` argument.
 
         As in the `asof` function, if the label (a particular entry in

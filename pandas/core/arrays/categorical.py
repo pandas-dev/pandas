@@ -214,7 +214,7 @@ setter to change values in the categorical.
 
 class Categorical(ExtensionArray, PandasObject):
     """
-    Represents a categorical variable in classic R / S-plus fashion
+    Represent a categorical variable in classic R / S-plus fashion
 
     `Categoricals` can only take on only a limited, and usually fixed, number
     of possible values (`categories`). In contrast to statistical categorical
@@ -747,7 +747,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def set_ordered(self, value, inplace=False):
         """
-        Sets the ordered attribute to the boolean value
+        Set the ordered attribute to the boolean value
 
         Parameters
         ----------
@@ -793,7 +793,7 @@ class Categorical(ExtensionArray, PandasObject):
     def set_categories(self, new_categories, ordered=None, rename=False,
                        inplace=False):
         """
-        Sets the categories to the specified new_categories.
+        Set the categories to the specified new_categories.
 
         `new_categories` can include new categories (which will result in
         unused categories) or remove old categories (which results in values
@@ -864,7 +864,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def rename_categories(self, new_categories, inplace=False):
         """
-        Renames categories.
+        Rename categories.
 
         Parameters
         ----------
@@ -958,7 +958,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def reorder_categories(self, new_categories, ordered=None, inplace=False):
         """
-        Reorders categories as specified in new_categories.
+        Reorder categories as specified in new_categories.
 
         `new_categories` need to include all old categories and no new category
         items.
@@ -1051,7 +1051,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def remove_categories(self, removals, inplace=False):
         """
-        Removes the specified categories.
+        Remove the specified categories.
 
         `removals` must be included in the old categories. Values which were in
         the removed categories will be set to NaN
@@ -1104,7 +1104,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def remove_unused_categories(self, inplace=False):
         """
-        Removes categories which are not used.
+        Remove categories which are not used.
 
         Parameters
         ----------
@@ -1454,7 +1454,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def value_counts(self, dropna=True):
         """
-        Returns a Series containing counts of each category.
+        Return a Series containing counts of each category.
 
         Every category will have an entry, even those with a count of 0.
 
@@ -1570,7 +1570,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """
-        Sorts the Categorical by category value returning a new
+        Sort the Categorical by category value returning a new
         Categorical by default.
 
         While an ordering is applied to the category values, sorting in this
