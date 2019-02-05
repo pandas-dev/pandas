@@ -242,7 +242,7 @@ class GoodDocStrings(object):
             Useless parameter.
         """
         var_with_return_on_the_name = None
-        if True:
+        if var_with_return_on_the_name:
             return  # the method might return here
         else:
             return None  # or perhaps here
