@@ -9,7 +9,7 @@ from pandas.compat import range, zip
 
 from pandas.io.common import (
     _is_url, _urlopen, get_filepath_or_buffer)
-from pandas.io.excel._base import _BaseExcelReader, ExcelFile
+from pandas.io.excel._base import _BaseExcelReader
 
 
 class _XlrdReader(_BaseExcelReader):
@@ -33,6 +33,7 @@ class _XlrdReader(_BaseExcelReader):
                 raise ImportError(err_msg +
                                   ". Current version " + xlrd.__VERSION__)
 
+        from pandas.io.excel._base import ExcelFile
         # If filepath_or_buffer is a url, want to keep the data as bytes so
         # can't pass to get_filepath_or_buffer()
         if _is_url(filepath_or_buffer):

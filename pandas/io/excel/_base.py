@@ -16,7 +16,6 @@ from pandas.core import config
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import _NA_VALUES, _stringify_path, _validate_header_arg
-from pandas.io.excel._xlrd import _XlrdReader
 from pandas.io.excel._util import (
     _fill_mi_header, _get_default_writer, _maybe_convert_to_string,
     _maybe_convert_usecols, _pop_header_name, get_writer)
@@ -748,6 +747,8 @@ class ExcelFile(object):
         If io is not a buffer or path, this must be set to identify io.
         Acceptable values are None or ``xlrd``.
     """
+
+    from pandas.io.excel._xlrd import _XlrdReader
 
     _engines = {
         'xlrd': _XlrdReader,
