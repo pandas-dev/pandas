@@ -26,6 +26,7 @@ import inspect
 import importlib
 import doctest
 import tempfile
+import ast
 
 import flake8.main.application
 
@@ -699,8 +700,14 @@ def get_validation_data(doc):
                 errs.append(error('PR09', param_name=param))
 
     if doc.is_function_or_method:
+        (tree, ) = ast.parse(doc.method_source.strip()).body
         if not doc.returns:
-            if re.search(r"\breturn\b(?!( None)?\n)", doc.clean_method_source):
+            returns = [node.value for node in ast.walk(tree)
+                       if isinstance(node, ast.Return)]
+            non_bare_returns = [r for r in returns if r is not None and
+                                not (isinstance(r, ast.NameConstant) and
+                                     r.value is None)]
+            if any(non_bare_returns):
                 errs.append(error('RT01'))
         else:
             if len(doc.returns) == 1 and doc.returns[0][1]:
