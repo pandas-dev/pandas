@@ -1,7 +1,7 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
+
+from pandas.compat.numpy import _np_version_under1p16
 
 import pandas as pd
 from pandas import compat
@@ -50,7 +50,7 @@ def data_missing(allow_in_pandas, dtype):
     # For NumPy <1.16, np.array([np.nan, (1,)]) raises
     # ValueError: setting an array element with a sequence.
     if dtype.numpy_dtype == 'object':
-        if LooseVersion(np.__version__) < LooseVersion("1.16"):
+        if _np_version_under1p16:
             raise pytest.skip("Skipping for NumPy <1.16")
         return PandasArray(np.array([np.nan, (1,)]))
     return PandasArray(np.array([np.nan, 1.0]))
