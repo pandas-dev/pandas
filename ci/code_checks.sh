@@ -174,6 +174,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
     set -o pipefail
     if [[ "$AZURE" == "true" ]]; then
+        # we exclude all c/cpp files as the c/cpp files of pandas code base are tested when Linting .c and .h files
         ! grep -n '--exclude=*.'{svg,c,cpp,html} -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
     else
         ! grep -n '--exclude=*.'{svg,c,cpp,html}  -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
