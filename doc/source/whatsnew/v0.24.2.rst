@@ -73,7 +73,7 @@ Bug Fixes
 
 **Reshaping**
 
--
+- Fixed bug in :meth:`DataFrame.groupby` where using ``observed=True`` didn't sort properly (:issue:`25167`)
 -
 -
 

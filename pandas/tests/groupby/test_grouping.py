@@ -269,7 +269,7 @@ class TestGrouping():
             # if we are not-observed we undergo a reindex
             # so need to adjust the output as our expected sets us up
             # to be non-observed
-            expected_columns = CategoricalIndex(['A', 'B'],
+            expected_columns = CategoricalIndex(['B', 'A'],
                                                 categories=categories,
                                                 ordered=True)
         else:

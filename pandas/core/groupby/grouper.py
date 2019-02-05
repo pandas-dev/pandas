@@ -300,6 +300,8 @@ class Grouping(object):
                 if observed:
                     codes = algorithms.unique1d(self.grouper.codes)
                     codes = codes[codes != -1]
+                    if sort:
+                        codes = np.sort(codes)
                 else:
                     codes = np.arange(len(categories))
 

@@ -360,6 +360,14 @@ def test_observed(observed):
     expected = groups2.agg('mean').reset_index()
     tm.assert_frame_equal(result, expected)
 
+    # GH 25167
+    df = pd.DataFrame({'A': pd.Categorical(['b', 'a']), 'B': [1, 2]})
+    expected = pd.DataFrame([2, 1],
+                            index=pd.CategoricalIndex(['a', 'b'], name='A'),
+                            columns=['B'])
+    result = df.groupby('A', observed=observed).sum()
+    tm.assert_frame_equal(result, expected)
+
 
 def test_observed_codes_remap(observed):
     d = {'C1': [3, 3, 4, 5], 'C2': [1, 2, 3, 4], 'C3': [10, 100, 200, 34]}
