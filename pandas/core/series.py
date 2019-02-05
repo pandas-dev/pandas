@@ -2170,6 +2170,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         float
             Covariance between Series and other normalized by N-1
             (unbiased estimator).
+
+        Examples
+        --------
+        >>> s1 = pd.Series([0.90010907, 0.13484424, 0.62036035])
+        >>> s2 = pd.Series([0.12528585, 0.26962463, 0.51111198])
+        >>> s1.cov(s2)
+        -0.01685762652715874
         """
         this, other = self.align(other, join='inner', copy=False)
         if len(this) == 0:
