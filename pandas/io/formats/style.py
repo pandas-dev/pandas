@@ -424,9 +424,10 @@ class Styler(object):
 
         Parameters
         ----------
-        `**kwargs` : Any additional keyword arguments are passed through
-        to ``self.template.render``. This is useful when you need to provide
-        additional variables for a custom template.
+        kwargs : Any additional keyword arguments
+            keywords are passed throught o ``self.template.render``.
+            This is useful when you need to provide
+            additional variables for a custom template.
 
             .. versionadded:: 0.20
 
