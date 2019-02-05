@@ -13,7 +13,7 @@ import pandas.compat as compat
 from pandas.compat import range
 from pandas.compat.numpy import np_datetime64_compat
 
-from pandas.core.indexes.datetimes import DatetimeIndex, _to_m8, date_range
+from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
 from pandas.core.series import Series
 import pandas.util.testing as tm
 
@@ -47,9 +47,9 @@ class WeekDay(object):
 ####
 
 
-def test_to_m8():
+def test_to_M8():
     valb = datetime(2007, 10, 1)
-    valu = _to_m8(valb)
+    valu = _to_M8(valb)
     assert isinstance(valu, np.datetime64)
 
 
@@ -256,6 +256,26 @@ class TestCommon(Base):
 
         mul_offset = offset * 3
         assert mul_offset.n == 3
+
+    def test_offset_timedelta64_arg(self, offset_types):
+        # check that offset._validate_n raises TypeError on a timedelt64
+        #  object
+        off = self._get_offset(offset_types)
+
+        td64 = np.timedelta64(4567, 's')
+        with pytest.raises(TypeError, match="argument must be an integer"):
+            type(off)(n=td64, **off.kwds)
+
+    def test_offset_mul_ndarray(self, offset_types):
+        off = self._get_offset(offset_types)
+
+        expected = np.array([[off, off * 2], [off * 3, off * 4]])
+
+        result = np.array([[1, 2], [3, 4]]) * off
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = off * np.array([[1, 2], [3, 4]])
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_offset_freqstr(self, offset_types):
         offset = self._get_offset(offset_types)

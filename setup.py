@@ -401,20 +401,6 @@ class DummyBuildSrc(Command):
 cmdclass.update({'clean': CleanCommand,
                  'build': build})
 
-try:
-    from wheel.bdist_wheel import bdist_wheel
-
-    class BdistWheel(bdist_wheel):
-        def get_tag(self):
-            tag = bdist_wheel.get_tag(self)
-            repl = 'macosx_10_6_intel.macosx_10_9_intel.macosx_10_9_x86_64'
-            if tag[2] == 'macosx_10_6_intel':
-                tag = (tag[0], tag[1], repl)
-            return tag
-    cmdclass['bdist_wheel'] = BdistWheel
-except ImportError:
-    pass
-
 if cython:
     suffix = '.pyx'
     cmdclass['build_ext'] = CheckingBuildExt
@@ -471,6 +457,11 @@ if linetrace:
     directives['linetrace'] = True
     macros = [('CYTHON_TRACE', '1'), ('CYTHON_TRACE_NOGIL', '1')]
 
+# in numpy>=1.16.0, silence build warnings about deprecated API usage
+#  we can't do anything about these warnings because they stem from
+#  cython+numpy version mismatches.
+macros.append(('NPY_NO_DEPRECATED_API', '0'))
+
 
 # ----------------------------------------------------------------------
 # Specification of Dependencies
@@ -505,7 +496,7 @@ def srcpath(name=None, suffix='.pyx', subdir='src'):
 
 
 common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
-ts_include = ['pandas/_libs/tslibs/src']
+ts_include = ['pandas/_libs/tslibs/src', 'pandas/_libs/tslibs']
 
 
 lib_depends = ['pandas/_libs/src/parse_helper.h',

@@ -14,7 +14,8 @@ from pandas.core.dtypes.common import (
     _get_dtype, is_any_int_dtype, is_bool_dtype, is_complex, is_complex_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
     is_float, is_float_dtype, is_integer, is_integer_dtype, is_numeric_dtype,
-    is_object_dtype, is_scalar, is_timedelta64_dtype)
+    is_object_dtype, is_scalar, is_timedelta64_dtype, pandas_dtype)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.common as com
@@ -57,7 +58,7 @@ class disallow(object):
 
     def __init__(self, *dtypes):
         super(disallow, self).__init__()
-        self.dtypes = tuple(np.dtype(dtype).type for dtype in dtypes)
+        self.dtypes = tuple(pandas_dtype(dtype).type for dtype in dtypes)
 
     def check(self, obj):
         return hasattr(obj, 'dtype') and issubclass(obj.dtype.type,
@@ -144,7 +145,9 @@ class bottleneck_switch(object):
 
 def _bn_ok_dtype(dt, name):
     # Bottleneck chokes on datetime64
-    if (not is_object_dtype(dt) and not is_datetime_or_timedelta_dtype(dt)):
+    if (not is_object_dtype(dt) and
+            not (is_datetime_or_timedelta_dtype(dt) or
+                 is_datetime64tz_dtype(dt))):
 
         # GH 15507
         # bottleneck does not properly upcast during the sum
@@ -435,6 +438,7 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
     return _wrap_results(the_sum, dtype)
 
 
+@disallow('M8', DatetimeTZDtype)
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """
@@ -1194,3 +1198,75 @@ nanlt = make_nancomp(operator.lt)
 nanle = make_nancomp(operator.le)
 naneq = make_nancomp(operator.eq)
 nanne = make_nancomp(operator.ne)
+
+
+def _nanpercentile_1d(values, mask, q, na_value, interpolation):
+    """
+    Wraper for np.percentile that skips missing values, specialized to
+    1-dimensional case.
+
+    Parameters
+    ----------
+    values : array over which to find quantiles
+    mask : ndarray[bool]
+        locations in values that should be considered missing
+    q : scalar or array of quantile indices to find
+    na_value : scalar
+        value to return for empty or all-null values
+    interpolation : str
+
+    Returns
+    -------
+    quantiles : scalar or array
+    """
+    # mask is Union[ExtensionArray, ndarray]
+    values = values[~mask]
+
+    if len(values) == 0:
+        if lib.is_scalar(q):
+            return na_value
+        else:
+            return np.array([na_value] * len(q),
+                            dtype=values.dtype)
+
+    return np.percentile(values, q, interpolation=interpolation)
+
+
+def nanpercentile(values, q, axis, na_value, mask, ndim, interpolation):
+    """
+    Wraper for np.percentile that skips missing values.
+
+    Parameters
+    ----------
+    values : array over which to find quantiles
+    q : scalar or array of quantile indices to find
+    axis : {0, 1}
+    na_value : scalar
+        value to return for empty or all-null values
+    mask : ndarray[bool]
+        locations in values that should be considered missing
+    ndim : {1, 2}
+    interpolation : str
+
+    Returns
+    -------
+    quantiles : scalar or array
+    """
+    if not lib.is_scalar(mask) and mask.any():
+        if ndim == 1:
+            return _nanpercentile_1d(values, mask, q, na_value,
+                                     interpolation=interpolation)
+        else:
+            # for nonconsolidatable blocks mask is 1D, but values 2D
+            if mask.ndim < values.ndim:
+                mask = mask.reshape(values.shape)
+            if axis == 0:
+                values = values.T
+                mask = mask.T
+            result = [_nanpercentile_1d(val, m, q, na_value,
+                                        interpolation=interpolation)
+                      for (val, m) in zip(list(values), list(mask))]
+            result = np.array(result, dtype=values.dtype, copy=False).T
+            return result
+    else:
+        return np.percentile(values, q, axis=axis, interpolation=interpolation)

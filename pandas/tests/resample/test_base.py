@@ -95,7 +95,10 @@ def test_resample_interpolate_all_ts(frame):
 def test_raises_on_non_datetimelike_index():
     # this is a non datetimelike index
     xp = DataFrame()
-    pytest.raises(TypeError, lambda: xp.resample('A').mean())
+    msg = ("Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex,"
+           " but got an instance of 'Index'")
+    with pytest.raises(TypeError, match=msg):
+        xp.resample('A').mean()
 
 
 @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
@@ -109,7 +112,10 @@ def test_resample_empty_series_all_ts(freq, empty_series, resample_method):
     result = getattr(s.resample(freq), resample_method)()
 
     expected = s.copy()
-    expected.index = s.index._shallow_copy(freq=freq)
+    if isinstance(s.index, PeriodIndex):
+        expected.index = s.index.asfreq(freq=freq)
+    else:
+        expected.index = s.index._shallow_copy(freq=freq)
     assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
     assert_series_equal(result, expected, check_dtype=False)
@@ -127,7 +133,10 @@ def test_resample_empty_dataframe_all_ts(empty_frame, freq, resample_method):
         # GH14962
         expected = Series([])
 
-    expected.index = df.index._shallow_copy(freq=freq)
+    if isinstance(df.index, PeriodIndex):
+        expected.index = df.index.asfreq(freq=freq)
+    else:
+        expected.index = df.index._shallow_copy(freq=freq)
     assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
     assert_almost_equal(result, expected, check_dtype=False)
@@ -183,8 +192,10 @@ def test_resample_loffset_arg_type_all_ts(frame, create_index):
 
         # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
         if isinstance(expected.index, TimedeltaIndex):
-            with pytest.raises(AssertionError):
+            msg = "DataFrame are different"
+            with pytest.raises(AssertionError, match=msg):
                 assert_frame_equal(result_agg, expected)
+            with pytest.raises(AssertionError, match=msg):
                 assert_frame_equal(result_how, expected)
         else:
             assert_frame_equal(result_agg, expected)
@@ -218,5 +229,5 @@ def test_resample_quantile_all_ts(series):
     q = 0.75
     freq = 'H'
     result = s.resample(freq).quantile(q)
-    expected = s.resample(freq).agg(lambda x: x.quantile(q))
+    expected = s.resample(freq).agg(lambda x: x.quantile(q)).rename(s.name)
     tm.assert_series_equal(result, expected)

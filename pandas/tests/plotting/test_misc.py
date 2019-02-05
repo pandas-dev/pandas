@@ -2,19 +2,19 @@
 
 """ Test cases for misc plot functions """
 
-import pytest
-
-from pandas import DataFrame
-from pandas.compat import lmap
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
 import numpy as np
 from numpy import random
 from numpy.random import randn
+import pytest
+
+from pandas.compat import lmap
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+import pandas.util.testing as tm
 
 import pandas.plotting as plotting
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 
 @td.skip_if_mpl
@@ -215,8 +215,8 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame({"feat": [i for i in range(30)],
                         "class": [2 for _ in range(10)] +
-                        [3 for _ in range(10)] +
-                        [1 for _ in range(10)]})
+                                 [3 for _ in range(10)] +
+                                 [1 for _ in range(10)]})
         ax = parallel_coordinates(df, 'class', sort_labels=True)
         polylines, labels = ax.get_legend_handles_labels()
         color_label_tuples = \
@@ -309,6 +309,33 @@ class TestDataFramePlots(TestPlotBase):
         color1 = _get_standard_colors(1, color_type='random')
         color2 = _get_standard_colors(1, color_type='random')
         assert color1 == color2
+
+    def test_get_standard_colors_default_num_colors(self):
+        from pandas.plotting._style import _get_standard_colors
+
+        # Make sure the default color_types returns the specified amount
+        color1 = _get_standard_colors(1, color_type='default')
+        color2 = _get_standard_colors(9, color_type='default')
+        color3 = _get_standard_colors(20, color_type='default')
+        assert len(color1) == 1
+        assert len(color2) == 9
+        assert len(color3) == 20
+
+    def test_plot_single_color(self):
+        # Example from #20585. All 3 bars should have the same color
+        df = DataFrame({'account-start': ['2017-02-03', '2017-03-03',
+                                          '2017-01-01'],
+                        'client': ['Alice Anders', 'Bob Baker',
+                                   'Charlie Chaplin'],
+                        'balance': [-1432.32, 10.43, 30000.00],
+                        'db-id': [1234, 2424, 251],
+                        'proxy-id': [525, 1525, 2542],
+                        'rank': [52, 525, 32],
+                        })
+        ax = df.client.value_counts().plot.bar()
+        colors = lmap(lambda rect: rect.get_facecolor(),
+                      ax.get_children()[0:3])
+        assert all(color == colors[0] for color in colors)
 
     def test_get_standard_colors_no_appending(self):
         # GH20726

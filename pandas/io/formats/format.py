@@ -435,9 +435,6 @@ class DataFrameFormatter(TableFormatter):
         """
         from pandas.core.reshape.concat import concat
 
-        # Column of which first element is used to determine width of a dot col
-        self.tr_size_col = -1
-
         # Cut the data to the information actually printed
         max_cols = self.max_cols
         max_rows = self.max_rows
@@ -556,10 +553,7 @@ class DataFrameFormatter(TableFormatter):
 
         if truncate_h:
             col_num = self.tr_col_num
-            # infer from column header
-            col_width = self.adj.len(strcols[self.tr_size_col][0])
-            strcols.insert(self.tr_col_num + 1, ['...'.center(col_width)] *
-                           (len(str_index)))
+            strcols.insert(self.tr_col_num + 1, [' ...'] * (len(str_index)))
         if truncate_v:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
@@ -577,8 +571,8 @@ class DataFrameFormatter(TableFormatter):
                 if ix == 0:
                     dot_mode = 'left'
                 elif is_dot_col:
-                    cwidth = self.adj.len(strcols[self.tr_size_col][0])
-                    dot_mode = 'center'
+                    cwidth = 4
+                    dot_mode = 'right'
                 else:
                     dot_mode = 'right'
                 dot_str = self.adj.justify([my_str], cwidth, mode=dot_mode)[0]
@@ -730,15 +724,14 @@ class DataFrameFormatter(TableFormatter):
 
             .. versionadded:: 0.19.0
          """
-        from pandas.io.formats.html import HTMLFormatter
-        html_renderer = HTMLFormatter(self, classes=classes, notebook=notebook,
-                                      border=border, table_id=self.table_id,
-                                      render_links=self.render_links)
+        from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
+        Klass = NotebookFormatter if notebook else HTMLFormatter
+        html = Klass(self, classes=classes, border=border).render()
         if hasattr(self.buf, 'write'):
-            html_renderer.write_result(self.buf)
+            buffer_put_lines(self.buf, html)
         elif isinstance(self.buf, compat.string_types):
             with open(self.buf, 'w') as f:
-                html_renderer.write_result(f)
+                buffer_put_lines(f, html)
         else:
             raise TypeError('buf is not a file name and it has no write '
                             ' method')
@@ -778,7 +771,7 @@ class DataFrameFormatter(TableFormatter):
                            for i, (col, x) in enumerate(zip(columns,
                                                             fmt_columns))]
 
-        if self.show_index_names and self.has_index_names:
+        if self.show_row_idx_names:
             for x in str_columns:
                 x.append('')
 
@@ -793,22 +786,33 @@ class DataFrameFormatter(TableFormatter):
     def has_column_names(self):
         return _has_names(self.frame.columns)
 
+    @property
+    def show_row_idx_names(self):
+        return all((self.has_index_names,
+                    self.index,
+                    self.show_index_names))
+
+    @property
+    def show_col_idx_names(self):
+        return all((self.has_column_names,
+                    self.show_index_names,
+                    self.header))
+
     def _get_formatted_index(self, frame):
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html().
         index = frame.index
         columns = frame.columns
-
-        show_index_names = self.show_index_names and self.has_index_names
-        show_col_names = (self.show_index_names and self.has_column_names)
-
         fmt = self._get_formatter('__index__')
 
         if isinstance(index, ABCMultiIndex):
-            fmt_index = index.format(sparsify=self.sparsify, adjoin=False,
-                                     names=show_index_names, formatter=fmt)
+            fmt_index = index.format(
+                sparsify=self.sparsify, adjoin=False,
+                names=self.show_row_idx_names, formatter=fmt)
         else:
-            fmt_index = [index.format(name=show_index_names, formatter=fmt)]
+            fmt_index = [index.format(
+                name=self.show_row_idx_names, formatter=fmt)]
+
         fmt_index = [tuple(_make_fixed_width(list(x), justify='left',
                                              minimum=(self.col_space or 0),
                                              adj=self.adj)) for x in fmt_index]
@@ -816,7 +820,7 @@ class DataFrameFormatter(TableFormatter):
         adjoined = self.adj.adjoin(1, *fmt_index).split('\n')
 
         # empty space for columns
-        if show_col_names:
+        if self.show_col_idx_names:
             col_header = ['{x}'.format(x=x)
                           for x in self._get_column_name_list()]
         else:
@@ -1404,16 +1408,20 @@ def _trim_zeros(str_floats, na_rep='NaN'):
     """
     trimmed = str_floats
 
+    def _is_number(x):
+        return (x != na_rep and not x.endswith('inf'))
+
     def _cond(values):
-        non_na = [x for x in values if x != na_rep]
-        return (len(non_na) > 0 and all(x.endswith('0') for x in non_na) and
-                not (any(('e' in x) or ('E' in x) for x in non_na)))
+        finite = [x for x in values if _is_number(x)]
+        return (len(finite) > 0 and all(x.endswith('0') for x in finite) and
+                not (any(('e' in x) or ('E' in x) for x in finite)))
 
     while _cond(trimmed):
-        trimmed = [x[:-1] if x != na_rep else x for x in trimmed]
+        trimmed = [x[:-1] if _is_number(x) else x for x in trimmed]
 
     # leave one 0 after the decimal points if need be.
-    return [x + "0" if x.endswith('.') and x != na_rep else x for x in trimmed]
+    return [x + "0" if x.endswith('.') and _is_number(x) else x
+            for x in trimmed]
 
 
 def _has_names(index):

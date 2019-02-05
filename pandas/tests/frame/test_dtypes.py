@@ -2,24 +2,24 @@
 
 from __future__ import print_function
 
-import pytest
-
 from datetime import timedelta
 
 import numpy as np
-from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
-                    Categorical, compat, concat, option_context)
-from pandas.compat import u
-from pandas import _np_version_under1p14
+import pytest
 
-from pandas.core.arrays import integer_array
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, CategoricalDtype
-from pandas.tests.frame.common import TestData
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 makeCustomDataframe as mkdf)
-import pandas.util.testing as tm
+from pandas.compat import u
+
+from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype
+
 import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Series, Timedelta, Timestamp,
+    _np_version_under1p14, compat, concat, date_range, option_context)
+from pandas.core.arrays import integer_array
+from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_frame_equal, assert_series_equal, makeCustomDataframe as mkdf)
 
 
 @pytest.fixture(params=[str, compat.text_type])
@@ -708,6 +708,17 @@ class TestDataFrameDataTypes(TestData):
 
         tm.assert_frame_equal(df.astype(dtype), expected1)
         tm.assert_frame_equal(df.astype('int64').astype(dtype), expected1)
+
+    @pytest.mark.parametrize("dtype", ['category', 'Int64'])
+    def test_astype_extension_dtypes_duplicate_col(self, dtype):
+        # GH 24704
+        a1 = Series([0, np.nan, 4], name='a')
+        a2 = Series([np.nan, 3, 5], name='a')
+        df = concat([a1, a2], axis=1)
+
+        result = df.astype(dtype)
+        expected = concat([a1.astype(dtype), a2.astype(dtype)], axis=1)
+        assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('dtype', [
         {100: 'float64', 200: 'uint64'}, 'category', 'float64'])

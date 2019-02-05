@@ -4,25 +4,21 @@ from __future__ import print_function
 
 from datetime import datetime, time
 
+import numpy as np
 import pytest
 
-from numpy.random import randn
-import numpy as np
-
-from pandas import (DataFrame, Series, Index,
-                    Timestamp, DatetimeIndex, MultiIndex,
-                    to_datetime, date_range, period_range)
-import pandas as pd
-import pandas.tseries.offsets as offsets
-
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assert_index_equal)
-
-import pandas.util.testing as tm
 from pandas.compat import product
 
+import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, MultiIndex, Series, Timestamp, date_range,
+    period_range, to_datetime)
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_frame_equal, assert_index_equal, assert_series_equal)
+
+import pandas.tseries.offsets as offsets
 
 
 @pytest.fixture(params=product([True, False], [True, False]))
@@ -533,7 +529,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
     def test_first_last_valid(self, data, idx,
                               expected_first, expected_last):
         N = len(self.frame.index)
-        mat = randn(N)
+        mat = np.random.randn(N)
         mat[:5] = np.nan
         mat[-5:] = np.nan
 
@@ -815,7 +811,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         dr = date_range('1/1/2000', '1/1/2001')
         pr = period_range('1/1/2000', '1/1/2001')
-        df = DataFrame(randn(len(dr), K), index=dr)
+        df = DataFrame(np.random.randn(len(dr), K), index=dr)
         df['mix'] = 'a'
 
         pts = df.to_period()

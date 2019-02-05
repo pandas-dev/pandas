@@ -581,7 +581,12 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         setter(item, v)
 
                 # we have an equal len ndarray/convertible to our labels
-                elif np.array(value).ndim == 2:
+                # hasattr first, to avoid coercing to ndarray without reason.
+                # But we may be relying on the ndarray coercion to check ndim.
+                # Why not just convert to an ndarray earlier on if needed?
+                elif ((hasattr(value, 'ndim') and value.ndim == 2)
+                      or (not hasattr(value, 'ndim') and
+                          np.array(value).ndim) == 2):
 
                     # note that this coerces the dtype if we are mixed
                     # GH 7551
@@ -1400,17 +1405,16 @@ class _IXIndexer(_NDFrameIndexer):
     See more at :ref:`Advanced Indexing <advanced>`.
     """
 
+    _ix_deprecation_warning = textwrap.dedent("""
+        .ix is deprecated. Please use
+        .loc for label based indexing or
+        .iloc for positional indexing
+
+        See the documentation here:
+        http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated""")  # noqa
+
     def __init__(self, name, obj):
-
-        _ix_deprecation_warning = textwrap.dedent("""
-            .ix is deprecated. Please use
-            .loc for label based indexing or
-            .iloc for positional indexing
-
-            See the documentation here:
-            http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated""")  # noqa
-
-        warnings.warn(_ix_deprecation_warning,
+        warnings.warn(self._ix_deprecation_warning,
                       DeprecationWarning, stacklevel=2)
         super(_IXIndexer, self).__init__(name, obj)
 
@@ -2732,8 +2736,10 @@ def _non_reducing_slice(slice_):
         slice_ = IndexSlice[:, slice_]
 
     def pred(part):
-        # true when slice does *not* reduce
-        return isinstance(part, slice) or is_list_like(part)
+        # true when slice does *not* reduce, False when part is a tuple,
+        # i.e. MultiIndex slice
+        return ((isinstance(part, slice) or is_list_like(part))
+                and not isinstance(part, tuple))
 
     if not is_list_like(slice_):
         if not isinstance(slice_, slice):

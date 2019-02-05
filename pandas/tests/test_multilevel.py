@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101,W0141
-from warnings import catch_warnings, simplefilter
 import datetime
 import itertools
+from warnings import catch_warnings, simplefilter
 
+import numpy as np
+from numpy.random import randn
 import pytest
 import pytz
 
-from numpy.random import randn
-import numpy as np
-
-from pandas.core.index import Index, MultiIndex
-from pandas import (Panel, DataFrame, Series, isna, Timestamp)
+from pandas.compat import (
+    StringIO, lrange, lzip, product as cart_product, range, u, zip)
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
-import pandas.util.testing as tm
-from pandas.compat import (range, lrange, StringIO, lzip, u, product as
-                           cart_product, zip)
+
 import pandas as pd
+from pandas import DataFrame, Panel, Series, Timestamp, isna
+from pandas.core.index import Index, MultiIndex
+import pandas.util.testing as tm
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
                  'std', 'var', 'sem']
@@ -47,8 +47,7 @@ class Base(object):
         s[3] = np.NaN
         self.series = s
 
-        tm.N = 100
-        self.tdf = tm.makeTimeDataFrame()
+        self.tdf = tm.makeTimeDataFrame(100)
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
                                      lambda x: x.day]).sum()
 

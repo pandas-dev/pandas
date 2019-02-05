@@ -18,7 +18,6 @@ cnp.import_array()
 
 
 cimport pandas._libs.util as util
-util.import_array()
 
 from pandas._libs.hashtable cimport Int64Vector, Int64VectorData
 
@@ -389,8 +388,8 @@ cdef class Interval(IntervalMixin):
 
         See Also
         --------
-        IntervalArray.overlaps : The corresponding method for IntervalArray
-        IntervalIndex.overlaps : The corresponding method for IntervalIndex
+        IntervalArray.overlaps : The corresponding method for IntervalArray.
+        IntervalIndex.overlaps : The corresponding method for IntervalIndex.
 
         Examples
         --------

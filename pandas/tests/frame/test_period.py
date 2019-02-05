@@ -1,12 +1,13 @@
-import pytest
-import numpy as np
-from numpy.random import randn
 from datetime import timedelta
 
+import numpy as np
+import pytest
+
 import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, PeriodIndex, Timedelta, date_range,
+    period_range, to_datetime)
 import pandas.util.testing as tm
-from pandas import (PeriodIndex, period_range, DataFrame, date_range,
-                    Index, to_datetime, DatetimeIndex, Timedelta)
 
 
 def _permute(obj):
@@ -17,7 +18,7 @@ class TestPeriodIndex(object):
 
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)
-        df = DataFrame(randn(10, 5), columns=rng)
+        df = DataFrame(np.random.randn(10, 5), columns=rng)
 
         ts = df[rng[0]]
         tm.assert_series_equal(ts, df.iloc[:, 0])
@@ -30,7 +31,7 @@ class TestPeriodIndex(object):
 
     def test_frame_setitem(self):
         rng = period_range('1/1/2000', periods=5, name='index')
-        df = DataFrame(randn(5, 3), index=rng)
+        df = DataFrame(np.random.randn(5, 3), index=rng)
 
         df['Index'] = rng
         rs = Index(df['Index'])
@@ -45,7 +46,7 @@ class TestPeriodIndex(object):
     def test_frame_to_time_stamp(self):
         K = 5
         index = period_range(freq='A', start='1/1/2001', end='12/1/2009')
-        df = DataFrame(randn(len(index), K), index=index)
+        df = DataFrame(np.random.randn(len(index), K), index=index)
         df['mix'] = 'a'
 
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')

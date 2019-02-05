@@ -7,6 +7,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import NaT, Timestamp
+from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -28,15 +29,13 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
-from pandas.tseries.frequencies import is_subperiod, is_superperiod, to_offset
-from pandas.tseries.offsets import (
-    DateOffset, Day, Nano, Tick, delta_to_nanoseconds)
+from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
 _shared_docs_kwargs = dict()
 
 
 class Resampler(_GroupBy):
-
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -107,7 +106,7 @@ class Resampler(_GroupBy):
         Returns
         -------
         Generator yielding sequence of (name, subsetted object)
-        for each group
+        for each group.
 
         See Also
         --------
@@ -286,8 +285,8 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        func : function
-            To apply to each group. Should return a Series with the same index
+        arg : function
+            To apply to each group. Should return a Series with the same index.
 
         Returns
         -------
@@ -404,7 +403,10 @@ class Resampler(_GroupBy):
 
         if isinstance(result, ABCSeries) and result.empty:
             obj = self.obj
-            result.index = obj.index._shallow_copy(freq=to_offset(self.freq))
+            if isinstance(obj.index, PeriodIndex):
+                result.index = obj.index.asfreq(self.freq)
+            else:
+                result.index = obj.index._shallow_copy(freq=self.freq)
             result.name = getattr(obj, 'name', None)
 
         return result
@@ -420,7 +422,7 @@ class Resampler(_GroupBy):
 
         Returns
         -------
-        an upsampled Series
+        An upsampled Series.
 
         See Also
         --------
@@ -1407,7 +1409,7 @@ class TimeGrouper(Grouper):
                                      tz=ax.tz,
                                      name=ax.name,
                                      ambiguous='infer',
-                                     nonexistent='shift')
+                                     nonexistent='shift_forward')
 
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
@@ -1609,20 +1611,20 @@ def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
     if isinstance(offset, Tick):
-        is_day = isinstance(offset, Day)
-        day_nanos = delta_to_nanoseconds(timedelta(1))
+        if isinstance(offset, Day):
+            # _adjust_dates_anchored assumes 'D' means 24H, but first/last
+            # might contain a DST transition (23H, 24H, or 25H).
+            # So "pretend" the dates are naive when adjusting the endpoints
+            tz = first.tz
+            first = first.tz_localize(None)
+            last = last.tz_localize(None)
 
-        # #1165 and #24127
-        if (is_day and not offset.nanos % day_nanos) or not is_day:
-            first, last = _adjust_dates_anchored(first, last, offset,
-                                                 closed=closed, base=base)
-            if is_day and first.tz is not None:
-                # _adjust_dates_anchored assumes 'D' means 24H, but first/last
-                # might contain a DST transition (23H, 24H, or 25H).
-                # Ensure first/last snap to midnight.
-                first = first.normalize()
-                last = last.normalize()
-            return first, last
+        first, last = _adjust_dates_anchored(first, last, offset,
+                                             closed=closed, base=base)
+        if isinstance(offset, Day):
+            first = first.tz_localize(tz)
+            last = last.tz_localize(tz)
+        return first, last
 
     else:
         first = first.normalize()

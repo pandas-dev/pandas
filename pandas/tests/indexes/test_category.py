@@ -3,14 +3,16 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.core.config as cf
-import pandas.util.testing as tm
-from pandas import Categorical, IntervalIndex, compat
 from pandas._libs import index as libindex
 from pandas.compat import PY3, range
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import Categorical, IntervalIndex, compat
+import pandas.core.config as cf
 from pandas.core.indexes.api import CategoricalIndex, Index
+import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 from .common import Base
@@ -156,7 +158,7 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # error when combining categories/ordered and dtype kwargs
-        msg = 'Cannot specify both `dtype` and `categories` or `ordered`.'
+        msg = "Cannot specify `categories` or `ordered` together with `dtype`."
         with pytest.raises(ValueError, match=msg):
             CategoricalIndex(data, categories=cats, dtype=dtype)
 
@@ -248,17 +250,6 @@ class TestCategoricalIndex(Base):
         ci = CategoricalIndex(
             list('aabbca') + [np.nan], categories=list('cabdef'))
         assert np.nan in ci
-
-    def test_min_max(self):
-
-        ci = self.create_index(ordered=False)
-        pytest.raises(TypeError, lambda: ci.min())
-        pytest.raises(TypeError, lambda: ci.max())
-
-        ci = self.create_index(ordered=True)
-
-        assert ci.min() == 'c'
-        assert ci.max() == 'b'
 
     def test_map(self):
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('CBA'),

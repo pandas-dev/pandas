@@ -1,19 +1,19 @@
 """ test with the .transform """
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-from pandas.util import testing as tm
-from pandas import Series, DataFrame, Timestamp, MultiIndex, concat, date_range
-from pandas.core.dtypes.common import (
-    ensure_platform_int, is_timedelta64_dtype)
-from pandas.compat import StringIO
 from pandas._libs import groupby
+from pandas.compat import StringIO
 
-from pandas.util.testing import assert_frame_equal, assert_series_equal
-from pandas.core.groupby.groupby import DataError
+from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
+
+import pandas as pd
+from pandas import DataFrame, MultiIndex, Series, Timestamp, concat, date_range
 from pandas.core.config import option_context
+from pandas.core.groupby.groupby import DataError
+from pandas.util import testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 def assert_fp_equal(a, b):
@@ -637,8 +637,11 @@ def test_cython_transform_frame(op, args, targop):
             for c in df:
                 if c not in ['float', 'int', 'float_missing'
                              ] and op != 'shift':
-                    pytest.raises(DataError, gb[c].transform, op)
-                    pytest.raises(DataError, getattr(gb[c], op))
+                    msg = "No numeric types to aggregate"
+                    with pytest.raises(DataError, match=msg):
+                        gb[c].transform(op)
+                    with pytest.raises(DataError, match=msg):
+                        getattr(gb[c], op)()
                 else:
                     expected = gb[c].apply(targop)
                     expected.name = c

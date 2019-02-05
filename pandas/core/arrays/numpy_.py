@@ -38,8 +38,12 @@ class PandasDtype(ExtensionDtype):
         self._name = dtype.name
         self._type = dtype.type
 
+    def __repr__(self):
+        return "PandasDtype({!r})".format(self.name)
+
     @property
     def numpy_dtype(self):
+        """The NumPy dtype this PandasDtype wraps."""
         return self._dtype
 
     @property
@@ -72,6 +76,7 @@ class PandasDtype(ExtensionDtype):
 
     @property
     def itemsize(self):
+        """The element size of this data-type object."""
         return self._dtype.itemsize
 
 
@@ -217,7 +222,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             item = item._ndarray
 
         result = self._ndarray[item]
-        if not lib.is_scalar(result):
+        if not lib.is_scalar(item):
             result = type(self)(result)
         return result
 

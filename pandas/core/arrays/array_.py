@@ -1,6 +1,7 @@
 from pandas._libs import lib, tslibs
 
-from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_ns_dtype, is_extension_array_dtype, is_timedelta64_ns_dtype)
 from pandas.core.dtypes.dtypes import registry
 
 from pandas import compat
@@ -46,12 +47,14 @@ def array(data,         # type: Sequence[object]
 
         Currently, pandas will infer an extension dtype for sequences of
 
-        ========================== ==================================
-        scalar type                Array Type
-        ========================== ==================================
-        * :class:`pandas.Interval` :class:`pandas.IntervalArray`
-        * :class:`pandas.Period`   :class:`pandas.arrays.PeriodArray`
-        ========================== ==================================
+        ============================== =====================================
+        Scalar Type                    Array Type
+        ============================== =====================================
+        :class:`pandas.Interval`       :class:`pandas.arrays.IntervalArray`
+        :class:`pandas.Period`         :class:`pandas.arrays.PeriodArray`
+        :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
+        :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
+        ============================== =====================================
 
         For all other cases, NumPy's usual inference rules will be used.
 
@@ -62,7 +65,8 @@ def array(data,         # type: Sequence[object]
 
     Returns
     -------
-    array : ExtensionArray
+    ExtensionArray
+        The newly created array.
 
     Raises
     ------
@@ -72,9 +76,10 @@ def array(data,         # type: Sequence[object]
     See Also
     --------
     numpy.array : Construct a NumPy array.
-    arrays.PandasArray : ExtensionArray wrapping a NumPy array.
     Series : Construct a pandas Series.
     Index : Construct a pandas Index.
+    arrays.PandasArray : ExtensionArray wrapping a NumPy array.
+    Series.array : Extract the array stored within a Series.
 
     Notes
     -----
@@ -116,6 +121,26 @@ def array(data,         # type: Sequence[object]
     <PandasArray>
     ['a', 'b']
     Length: 2, dtype: str32
+
+    Finally, Pandas has arrays that mostly overlap with NumPy
+
+      * :class:`arrays.DatetimeArray`
+      * :class:`arrays.TimedeltaArray`
+
+    When data with a ``datetime64[ns]`` or ``timedelta64[ns]`` dtype is
+    passed, pandas will always return a ``DatetimeArray`` or ``TimedeltaArray``
+    rather than a ``PandasArray``. This is for symmetry with the case of
+    timezone-aware data, which NumPy does not natively support.
+
+    >>> pd.array(['2015', '2016'], dtype='datetime64[ns]')
+    <DatetimeArray>
+    ['2015-01-01 00:00:00', '2016-01-01 00:00:00']
+    Length: 2, dtype: datetime64[ns]
+
+    >>> pd.array(["1H", "2H"], dtype='timedelta64[ns]')
+    <TimedeltaArray>
+    ['01:00:00', '02:00:00']
+    Length: 2, dtype: timedelta64[ns]
 
     Examples
     --------
@@ -180,7 +205,9 @@ def array(data,         # type: Sequence[object]
     ValueError: Cannot pass scalar '1' to 'pandas.array'.
     """
     from pandas.core.arrays import (
-        period_array, ExtensionArray, IntervalArray, PandasArray
+        period_array, ExtensionArray, IntervalArray, PandasArray,
+        DatetimeArray,
+        TimedeltaArray,
     )
     from pandas.core.internals.arrays import extract_array
 
@@ -204,7 +231,7 @@ def array(data,         # type: Sequence[object]
         return cls._from_sequence(data, dtype=dtype, copy=copy)
 
     if dtype is None:
-        inferred_dtype = lib.infer_dtype(data)
+        inferred_dtype = lib.infer_dtype(data, skipna=False)
         if inferred_dtype == 'period':
             try:
                 return period_array(data, copy=copy)
@@ -220,8 +247,28 @@ def array(data,         # type: Sequence[object]
                 # We choose to return an ndarray, rather than raising.
                 pass
 
-        # TODO(DatetimeArray): handle this type
+        elif inferred_dtype.startswith('datetime'):
+            # datetime, datetime64
+            try:
+                return DatetimeArray._from_sequence(data, copy=copy)
+            except ValueError:
+                # Mixture of timezones, fall back to PandasArray
+                pass
+
+        elif inferred_dtype.startswith('timedelta'):
+            # timedelta, timedelta64
+            return TimedeltaArray._from_sequence(data, copy=copy)
+
         # TODO(BooleanArray): handle this type
+
+    # Pandas overrides NumPy for
+    #   1. datetime64[ns]
+    #   2. timedelta64[ns]
+    # so that a DatetimeArray is returned.
+    if is_datetime64_ns_dtype(dtype):
+        return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
+    elif is_timedelta64_ns_dtype(dtype):
+        return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
     result = PandasArray._from_sequence(data, dtype=dtype, copy=copy)
     return result

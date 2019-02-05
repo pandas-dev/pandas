@@ -1,0 +1,97 @@
+:orphan:
+
+.. _whatsnew_0242:
+
+Whats New in 0.24.2 (February XX, 2019)
+---------------------------------------
+
+.. warning::
+
+   The 0.24.x series of releases will be the last to support Python 2. Future feature
+   releases will support Python 3 only. See :ref:`install.dropping-27` for more.
+
+{{ header }}
+
+These are the changes in pandas 0.24.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+.. _whatsnew_0242.regressions:
+
+Fixed Regressions
+^^^^^^^^^^^^^^^^^
+
+- Fixed regression in :meth:`DataFrame.all` and :meth:`DataFrame.any` where ``bool_only=True`` was ignored (:issue:`25101`)
+
+.. _whatsnew_0242.enhancements:
+
+Enhancements
+^^^^^^^^^^^^
+
+-
+-
+
+.. _whatsnew_0242.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+**Conversion**
+
+-
+-
+-
+
+**Indexing**
+
+-
+-
+-
+
+**I/O**
+
+- Bug in reading a HDF5 table-format ``DataFrame`` created in Python 2, in Python 3 (:issue:`24925`)
+-
+-
+
+**Categorical**
+
+-
+-
+-
+
+**Timezones**
+
+-
+-
+-
+
+**Timedelta**
+
+-
+-
+-
+
+**Reshaping**
+
+-
+-
+-
+
+**Visualization**
+
+-
+-
+-
+
+**Other**
+
+-
+-
+-
+
+.. _whatsnew_0.242.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.24.1..v0.24.2

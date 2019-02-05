@@ -101,7 +101,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort ' ; echo $MSG
-    isort --recursive --check-only pandas
+    isort --recursive --check-only pandas asv_bench
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -112,6 +112,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
     MSG='Check for non-standard imports' ; echo $MSG
     invgrep -R --include="*.py*" -E "from pandas.core.common import " pandas
+    # invgrep -R --include="*.py*" -E "from numpy import nan " pandas  # GH#24822 not yet implemented since the offending imports have not all been removed
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for pytest warns' ; echo $MSG
@@ -148,6 +149,11 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_util.py assert_raises_regex pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
+    MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instead)' ; echo $MSG
+    invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # Check that we use pytest.raises only as a context manager
     #
     # For any flake8-compliant code, the only way this regex gets
@@ -156,6 +162,14 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='TODO: This check is currently skipped because so many files fail this. Please enable when all are corrected (xref gh-24332)' ; echo $MSG
     # invgrep -R --include '*.py' -E '[[:space:]] pytest.raises' pandas/tests
     # RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for wrong space after code-block directive and before colon (".. code-block ::" instead of ".. code-block::")' ; echo $MSG
+    invgrep -R --include="*.rst" ".. code-block ::" doc/source
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for wrong space after ipython directive and before colon (".. ipython ::" instead of ".. ipython::")' ; echo $MSG
+    invgrep -R --include="*.rst" ".. ipython ::" doc/source
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
     set -o pipefail
@@ -192,7 +206,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -pivot_table -query -reindex -reindex_axis -round"
+        -k" -itertuples -join -reindex -reindex_axis -round"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
@@ -226,8 +240,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL06, GL07, GL09, SS04, PR03, PR05, EX04)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,GL07,GL09,SS04,PR03,PR05,EX04
+    MSG='Validate docstrings (GL06, GL07, GL09, SS04, PR03, PR05, EX04, RT04, SS05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,GL07,GL09,SS04,PR03,PR05,EX04,RT04,SS05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

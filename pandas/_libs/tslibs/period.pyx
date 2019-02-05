@@ -52,9 +52,10 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.offsets import _Tick
 
-cdef bint PY2 = str == bytes
-cdef enum:
-    INT32_MIN = -2147483648
+cdef:
+    bint PY2 = str == bytes
+    enum:
+        INT32_MIN = -2147483648
 
 
 ctypedef struct asfreq_info:
@@ -1830,9 +1831,8 @@ cdef class _Period(object):
 
         See Also
         --------
-        Period.dayofweek : Get the day of the week
-
-        Period.dayofyear : Get the day of the year
+        Period.dayofweek : Get the day of the week.
+        Period.dayofyear : Get the day of the year.
 
         Examples
         --------
@@ -2189,8 +2189,8 @@ cdef class _Period(object):
 
         See Also
         --------
-        Period.days_in_month : Return the days of the month
-        Period.dayofyear : Return the day of the year
+        Period.days_in_month : Return the days of the month.
+        Period.dayofyear : Return the day of the year.
 
         Examples
         --------

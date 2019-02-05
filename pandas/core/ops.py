@@ -447,7 +447,7 @@ for key in _op_names:
         _op_descriptions[reverse_op]['reverse'] = key
 
 _flex_doc_SERIES = """
-{desc} of series and other, element-wise (binary operator `{op_name}`).
+Return {desc} of series and other, element-wise (binary operator `{op_name}`).
 
 Equivalent to ``{equiv}``, but with support to substitute a fill_value for
 missing data in one of the inputs.
@@ -459,14 +459,15 @@ fill_value : None or float value, default None (NaN)
     Fill existing missing (NaN) values, and any new element needed for
     successful Series alignment, with this value before computation.
     If data in both corresponding Series locations is missing
-    the result will be missing
+    the result will be missing.
 level : int or name
     Broadcast across a level, matching Index values on the
-    passed MultiIndex level
+    passed MultiIndex level.
 
 Returns
 -------
-result : Series
+Series
+    The result of the operation.
 
 See Also
 --------
@@ -493,6 +494,27 @@ a    2.0
 b    1.0
 c    1.0
 d    1.0
+e    NaN
+dtype: float64
+>>> a.subtract(b, fill_value=0)
+a    0.0
+b    1.0
+c    1.0
+d   -1.0
+e    NaN
+dtype: float64
+>>> a.multiply(b)
+a    1.0
+b    NaN
+c    NaN
+d    NaN
+e    NaN
+dtype: float64
+>>> a.divide(b, fill_value=0)
+a    1.0
+b    inf
+c    inf
+d    0.0
 e    NaN
 dtype: float64
 """
@@ -525,7 +547,7 @@ Mismatched indices will be unioned together
 """
 
 _flex_doc_FRAME = """
-{desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 
 Equivalent to ``{equiv}``, but with support to substitute a fill_value
 for missing data in one of the inputs. With reverse version, `{reverse}`.
@@ -679,7 +701,7 @@ B square        0.0      0.0
 """
 
 _flex_comp_doc_FRAME = """
-{desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 
 Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
 operators.
@@ -732,8 +754,7 @@ A   250      100
 B   150      250
 C   100      300
 
-Compare to a scalar and operator version which return the same
-results.
+Comparison with a scalar, using either the operator or method:
 
 >>> df == 100
     cost  revenue
@@ -747,33 +768,40 @@ A  False     True
 B  False    False
 C   True    False
 
-Compare to a list and Series by axis and operator version. As shown,
-for list axis is by default 'index', but for Series axis is by
-default 'columns'.
+When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+with the index of `other` and broadcast:
 
->>> df != [100, 250, 300]
+>>> df != pd.Series([100, 250], index=["cost", "revenue"])
+    cost  revenue
+A   True     True
+B   True    False
+C  False     True
+
+Use the method to control the broadcast axis:
+
+>>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis='index')
    cost  revenue
 A  True    False
-B  True    False
-C  True    False
+B  True     True
+C  True     True
+D  True     True
 
->>> df.ne([100, 250, 300], axis='index')
-   cost  revenue
-A  True    False
-B  True    False
-C  True    False
+When comparing to an arbitrary sequence, the number of columns must
+match the number elements in `other`:
 
->>> df != pd.Series([100, 250, 300])
-   cost  revenue     0     1     2
-A  True     True  True  True  True
-B  True     True  True  True  True
-C  True     True  True  True  True
+>>> df == [250, 100]
+    cost  revenue
+A   True     True
+B  False    False
+C  False    False
 
->>> df.ne(pd.Series([100, 250, 300]), axis='columns')
-   cost  revenue     0     1     2
-A  True     True  True  True  True
-B  True     True  True  True  True
-C  True     True  True  True  True
+Use the method to control the axis:
+
+>>> df.eq([250, 250, 100], axis='index')
+    cost  revenue
+A   True    False
+B  False     True
+C   True    False
 
 Compare to a DataFrame of different shape.
 
@@ -798,7 +826,7 @@ Compare to a MultiIndex by level.
 >>> df_multindex = pd.DataFrame({{'cost': [250, 150, 100, 150, 300, 220],
 ...                              'revenue': [100, 250, 300, 200, 175, 225]}},
 ...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
-...                                    ['A', 'B', 'C', 'A', 'B' ,'C']])
+...                                    ['A', 'B', 'C', 'A', 'B', 'C']])
 >>> df_multindex
       cost  revenue
 Q1 A   250      100
@@ -819,7 +847,7 @@ Q2 A  False     True
 """
 
 _flex_doc_PANEL = """
-{desc} of series and other, element-wise (binary operator `{op_name}`).
+Return {desc} of series and other, element-wise (binary operator `{op_name}`).
 Equivalent to ``{equiv}``.
 
 Parameters
@@ -1539,16 +1567,19 @@ def _arith_method_SERIES(cls, op, special):
             raise TypeError("{typ} cannot perform the operation "
                             "{op}".format(typ=type(left).__name__, op=str_rep))
 
-        elif (is_extension_array_dtype(left) or
-                (is_extension_array_dtype(right) and not is_scalar(right))):
-            # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
-            return dispatch_to_extension_op(op, left, right)
-
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
+            # Give dispatch_to_index_op a chance for tests like
+            # test_dt64_series_add_intlike, which the index dispatching handles
+            # specifically.
             result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
+
+        elif (is_extension_array_dtype(left) or
+                (is_extension_array_dtype(right) and not is_scalar(right))):
+            # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
+            return dispatch_to_extension_op(op, left, right)
 
         elif is_timedelta64_dtype(left):
             result = dispatch_to_index_op(op, left, right, pd.TimedeltaIndex)

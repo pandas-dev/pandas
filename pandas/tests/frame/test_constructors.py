@@ -6,26 +6,23 @@ from datetime import datetime, timedelta
 import functools
 import itertools
 
-import pytest
-from numpy.random import randn
-
 import numpy as np
 import numpy.ma as ma
-import numpy.ma.mrecords as mrecords
+import pytest
 
-from pandas.core.dtypes.common import is_integer_dtype
-from pandas.compat import (lmap, long, zip, range, lrange, lzip,
-                           OrderedDict, is_platform_little_endian, PY3, PY36)
-from pandas import compat
-from pandas import (DataFrame, Index, Series, isna,
-                    MultiIndex, Timedelta, Timestamp,
-                    date_range, Categorical)
-import pandas as pd
-import pandas.util.testing as tm
+from pandas.compat import (
+    PY3, PY36, OrderedDict, is_platform_little_endian, lmap, long, lrange,
+    lzip, range, zip)
+
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.common import is_integer_dtype
 
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, MultiIndex, Series, Timedelta, Timestamp,
+    compat, date_range, isna)
 from pandas.tests.frame.common import TestData
-
+import pandas.util.testing as tm
 
 MIXED_FLOAT_DTYPES = ['float16', 'float32', 'float64']
 MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
@@ -387,11 +384,21 @@ class TestDataFrameConstructors(TestData):
                        'B': ['a', 'b', 'c']})
 
         # wrong size ndarray, GH 3105
-        msg = r"Shape of passed values is \(3, 4\), indices imply \(3, 3\)"
+        msg = r"Shape of passed values is \(4, 3\), indices imply \(3, 3\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.arange(12).reshape((4, 3)),
                       columns=['foo', 'bar', 'baz'],
                       index=pd.date_range('2000-01-01', periods=3))
+
+        arr = np.array([[4, 5, 6]])
+        msg = r"Shape of passed values is \(1, 3\), indices imply \(1, 4\)"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(index=[0], columns=range(0, 4), data=arr)
+
+        arr = np.array([4, 5, 6])
+        msg = r"Shape of passed values is \(3, 1\), indices imply \(1, 4\)"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(index=[0], columns=range(0, 4), data=arr)
 
         # higher dim raise exception
         with pytest.raises(ValueError, match='Must pass 2-d input'):
@@ -399,13 +406,13 @@ class TestDataFrameConstructors(TestData):
 
         # wrong size axis labels
         msg = ("Shape of passed values "
-               r"is \(3, 2\), indices "
-               r"imply \(3, 1\)")
+               r"is \(2, 3\), indices "
+               r"imply \(1, 3\)")
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B', 'C'], index=[1])
 
         msg = ("Shape of passed values "
-               r"is \(3, 2\), indices "
+               r"is \(2, 3\), indices "
                r"imply \(2, 2\)")
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B'], index=[1, 2])
@@ -480,7 +487,7 @@ class TestDataFrameConstructors(TestData):
         # can't cast to float
         test_data = {
             'A': dict(zip(range(20), tm.makeStringIndex(20))),
-            'B': dict(zip(range(15), randn(15)))
+            'B': dict(zip(range(15), np.random.randn(15)))
         }
         frame = DataFrame(test_data, dtype=float)
         assert len(frame) == 20
@@ -596,7 +603,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range('1/1/2000', periods=5)
-        df = DataFrame(randn(10, 5), columns=rng)
+        df = DataFrame(np.random.randn(10, 5), columns=rng)
 
         data = {}
         for col in df.columns:
@@ -639,10 +646,10 @@ class TestDataFrameConstructors(TestData):
         assert frame.values.dtype == np.int64
 
         # wrong size axis labels
-        msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
+        msg = r'Shape of passed values is \(2, 3\), indices imply \(1, 3\)'
         with pytest.raises(ValueError, match=msg):
             DataFrame(mat, columns=['A', 'B', 'C'], index=[1])
-        msg = r'Shape of passed values is \(3, 2\), indices imply \(2, 2\)'
+        msg = r'Shape of passed values is \(2, 3\), indices imply \(2, 2\)'
         with pytest.raises(ValueError, match=msg):
             DataFrame(mat, columns=['A', 'B'], index=[1, 2])
 
@@ -758,6 +765,39 @@ class TestDataFrameConstructors(TestData):
         assert frame['A'][1] is True
         assert frame['C'][2] is False
 
+    def test_constructor_maskedarray_hardened(self):
+        # Check numpy masked arrays with hard masks -- from GH24574
+        mat_hard = ma.masked_all((2, 2), dtype=float).harden_mask()
+        result = pd.DataFrame(mat_hard, columns=['A', 'B'], index=[1, 2])
+        expected = pd.DataFrame({
+            'A': [np.nan, np.nan],
+            'B': [np.nan, np.nan]},
+            columns=['A', 'B'],
+            index=[1, 2],
+            dtype=float)
+        tm.assert_frame_equal(result, expected)
+        # Check case where mask is hard but no data are masked
+        mat_hard = ma.ones((2, 2), dtype=float).harden_mask()
+        result = pd.DataFrame(mat_hard, columns=['A', 'B'], index=[1, 2])
+        expected = pd.DataFrame({
+            'A': [1.0, 1.0],
+            'B': [1.0, 1.0]},
+            columns=['A', 'B'],
+            index=[1, 2],
+            dtype=float)
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_maskedrecarray_dtype(self):
+        # Ensure constructor honors dtype
+        data = np.ma.array(
+            np.ma.zeros(5, dtype=[('date', '<f8'), ('price', '<f8')]),
+            mask=[False] * 5)
+        data = data.view(ma.mrecords.mrecarray)
+        result = pd.DataFrame(data, dtype=int)
+        expected = pd.DataFrame(np.zeros((5, 2), dtype=int),
+                                columns=['date', 'price'])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479
@@ -781,7 +821,7 @@ class TestDataFrameConstructors(TestData):
         # call assert_frame_equal for all selections of 3 arrays
         for comb in itertools.combinations(arrays, 3):
             names, data = zip(*comb)
-            mrecs = mrecords.fromarrays(data, names=names)
+            mrecs = ma.mrecords.fromarrays(data, names=names)
 
             # fill the comb
             comb = {k: (v.filled() if hasattr(v, 'filled') else v)
@@ -828,7 +868,7 @@ class TestDataFrameConstructors(TestData):
         assert df['object'].dtype == np.object_
 
     def test_constructor_arrays_and_scalars(self):
-        df = DataFrame({'a': randn(10), 'b': True})
+        df = DataFrame({'a': np.random.randn(10), 'b': True})
         exp = DataFrame({'a': df['a'].values, 'b': [True] * 10})
 
         tm.assert_frame_equal(df, exp)
@@ -844,11 +884,11 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_more(self):
         # used to be in test_matrix.py
-        arr = randn(10)
+        arr = np.random.randn(10)
         dm = DataFrame(arr, columns=['A'], index=np.arange(10))
         assert dm.values.ndim == 2
 
-        arr = randn(0)
+        arr = np.random.randn(0)
         dm = DataFrame(arr)
         assert dm.values.ndim == 2
         assert dm.values.ndim == 2
@@ -1109,8 +1149,8 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, result_custom)
 
     def test_constructor_ragged(self):
-        data = {'A': randn(10),
-                'B': randn(8)}
+        data = {'A': np.random.randn(10),
+                'B': np.random.randn(8)}
         with pytest.raises(ValueError, match='arrays must all be same length'):
             DataFrame(data)
 
@@ -1784,7 +1824,7 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
 
         # wrong length
-        msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
+        msg = r'Shape of passed values is \(2, 3\), indices imply \(1, 3\)'
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_records(arr, index=index[:-1])
 

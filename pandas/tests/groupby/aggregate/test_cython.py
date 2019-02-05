@@ -6,13 +6,12 @@ test cython .agg behavior
 
 from __future__ import print_function
 
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
-
-from pandas import (bdate_range, DataFrame, Index, Series, Timestamp,
-                    Timedelta, NaT)
+from pandas import (
+    DataFrame, Index, NaT, Series, Timedelta, Timestamp, bdate_range)
 from pandas.core.groupby.groupby import DataError
 import pandas.util.testing as tm
 

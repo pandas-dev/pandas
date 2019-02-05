@@ -36,8 +36,8 @@ from pandas import (
     IntervalIndex, MultiIndex, Panel, RangeIndex, Series, bdate_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
-    DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
-    PeriodArray, TimedeltaArrayMixin as TimedeltaArray, period_array)
+    DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
+    period_array)
 import pandas.core.common as com
 
 from pandas.io.common import urlopen
@@ -1199,6 +1199,11 @@ def assert_extension_array_equal(left, right, check_dtype=True,
     if check_dtype:
         assert_attr_equal('dtype', left, right, obj='ExtensionArray')
 
+    if hasattr(left, "asi8") and type(right) == type(left):
+        # Avoid slow object-dtype comparisons
+        assert_numpy_array_equal(left.asi8, right.asi8)
+        return
+
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
     assert_numpy_array_equal(left_na, right_na, obj='ExtensionArray NA mask')
@@ -1312,6 +1317,13 @@ def assert_series_equal(left, right, check_dtype=True,
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
         assert_interval_array_equal(left.array, right.array)
+
+    elif (is_extension_array_dtype(left.dtype) and
+          is_datetime64tz_dtype(left.dtype)):
+        # .values is an ndarray, but ._values is the ExtensionArray.
+        # TODO: Use .array
+        assert is_extension_array_dtype(right.dtype)
+        return assert_extension_array_equal(left._values, right._values)
 
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
@@ -1854,10 +1866,6 @@ def getCols(k):
     return string.ascii_uppercase[:k]
 
 
-def getArangeMat():
-    return np.arange(N * K).reshape((N, K))
-
-
 # make index
 def makeStringIndex(k=10, name=None):
     return Index(rands_array(nchars=10, size=k), name=name)
@@ -2313,13 +2321,6 @@ def add_nans(panel):
         for j, col in enumerate(dm.columns):
             dm[col][:i + j] = np.NaN
     return panel
-
-
-def add_nans_panel4d(panel4d):
-    for l, label in enumerate(panel4d.labels):
-        panel = panel4d[label]
-        add_nans(panel)
-    return panel4d
 
 
 class TestSubDict(dict):
