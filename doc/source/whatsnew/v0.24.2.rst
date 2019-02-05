@@ -22,14 +22,15 @@ Fixed Regressions
 
 - Fixed regression in :meth:`DataFrame.all` and :meth:`DataFrame.any` where ``bool_only=True`` was ignored (:issue:`25101`)
 
-- Fixed regression in :meth:`DataFrame.__init__`  where mixed type of rows generated `Segmentation fault` (:issue:`25075`)
+- Fixed issue in ``DataFrame`` construction with passing a mixed list of mixed types could segfault. (:issue:`25075`)
 
 .. _whatsnew_0242.enhancements:
 
 Enhancements
 ^^^^^^^^^^^^
 
-- The DataFrame class supports list as well as tuples in the ndarray, which previously raised `TypeError`
+-
+-
 
 .. _whatsnew_0242.bug_fixes:
 
@@ -38,7 +39,9 @@ Bug Fixes
 
 **Conversion**
 
-- Fixed bug in :meth:`lib.pyx` where `tuple` to `list` conversion failed (:issue:`25089`)
+-
+-
+-
 
 **Indexing**
 

@@ -1184,10 +1184,10 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_mixed_type_rows(self):
+    	# Issue #25075
         data = [[1, 2], (3, 4)]
         result = DataFrame(data)
-        data2 = [[1, 2], [3, 4]]
-        expected = DataFrame(data2)
+        expected = DataFrame([[1, 2], [3, 4]])
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_tuples(self):
