@@ -2012,6 +2012,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         numpy.around : Round values of an np.array.
         DataFrame.round : Round values of a DataFrame.
+
+        Examples
+        --------
+        >>> s = pd.Series([0.1, 1.3, 2.7])
+        >>> s.round()
+        0    0.0
+        1    1.0
+        2    3.0
+        dtype: float64
         """
         nv.validate_round(args, kwargs)
         result = com.values_from_object(self).round(decimals)
