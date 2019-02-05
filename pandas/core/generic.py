@@ -4951,12 +4951,11 @@ class NDFrame(PandasObject, SelectionMixin):
     Returns
     -------
     DataFrame, Series or scalar
-        The return can be:
-        - If DataFrame.agg is called with a single function, returns a Series.
-        - If DataFrame.agg is called with several functions, returns
-          a DataFrame.
-        - If Series.agg is called with single function, returns a scalar.
-        - If Series.agg is called with several functions, returns a Series.
+        If DataFrame.agg is called with a single function, returns a Series.\n
+        If DataFrame.agg is called with several functions, returns
+        a DataFrame.\n
+        If Series.agg is called with single function, returns a scalar.\n
+        If Series.agg is called with several functions, returns a Series.
 
     %(see_also)s
 
