@@ -505,7 +505,7 @@ cdef class _Timestamp(datetime):
     @property
     def asm8(self):
         """
-        Return numpy datetime64 format in nanoseconds
+        Return numpy datetime64 format in nanoseconds.
         """
         return np.datetime64(self.value, 'ns')
 
@@ -1032,7 +1032,7 @@ class Timestamp(_Timestamp):
     @property
     def is_month_start(self):
         """
-        Return true if date is first day of month.
+        Return True if date is first day of month.
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -1042,7 +1042,7 @@ class Timestamp(_Timestamp):
     @property
     def is_month_end(self):
         """
-        Return true if date is last day of month.
+        Return True if date is last day of month.
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -1052,7 +1052,7 @@ class Timestamp(_Timestamp):
     @property
     def is_quarter_start(self):
         """
-        Return true if date is first day of the quarter.
+        Return True if date is first day of the quarter.
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -1062,7 +1062,7 @@ class Timestamp(_Timestamp):
     @property
     def is_quarter_end(self):
         """
-        Return true if date is last day of the quarter.
+        Return True if date is last day of the quarter.
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -1072,7 +1072,7 @@ class Timestamp(_Timestamp):
     @property
     def is_year_start(self):
         """
-        Return true if date is first day of the year.
+        Return True if date is first day of the year.
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -1082,7 +1082,7 @@ class Timestamp(_Timestamp):
     @property
     def is_year_end(self):
         """
-        Return true if date is last day of the year.
+        Return True if date is last day of the year.
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -1092,7 +1092,7 @@ class Timestamp(_Timestamp):
     @property
     def is_leap_year(self):
         """
-        Return true if year is a leap year.
+        Return True if year is a leap year.
         """
         return bool(ccalendar.is_leapyear(self.year))
 
