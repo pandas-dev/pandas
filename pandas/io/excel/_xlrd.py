@@ -7,8 +7,7 @@ import numpy as np
 import pandas.compat as compat
 from pandas.compat import range, zip
 
-from pandas.io.common import (
-    _is_url, _urlopen, get_filepath_or_buffer)
+from pandas.io.common import _is_url, _urlopen, get_filepath_or_buffer
 from pandas.io.excel._base import _BaseExcelReader
 
 

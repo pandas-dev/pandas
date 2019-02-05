@@ -22,7 +22,6 @@ from pandas.io.excel._util import (
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
-
 _read_excel_doc = """
 Read an Excel file into a pandas DataFrame.
 
