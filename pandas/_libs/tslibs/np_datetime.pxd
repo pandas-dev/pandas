@@ -75,5 +75,5 @@ cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil
 cdef int _string_to_dts(object val, npy_datetimestruct* dts,
                         int* out_local, int* out_tzoffset) except? -1
 # see np_datetime.pyx for reasons of second _noexc version
-cdef int _string_to_dts_noexc(object val, pandas_datetimestruct* dts,
-                              int* out_local, int* out_tzoffset) except? -2
+cdef int _string_to_dts_noexc(object val, npy_datetimestruct* dts,
+                              int* out_local, int* out_tzoffset)

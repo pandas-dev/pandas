@@ -66,11 +66,11 @@ This file implements string parsing and creation for NumPy datetime.
  *
  * Returns 0 on success, -1 on failure.
  */
-static int __parse_iso_8601_datetime(char *str, int len, int want_exc,
-                            pandas_datetimestruct *out,
+static int __parse_iso_8601_datetime(const char *str, int len, int want_exc,
+                            npy_datetimestruct *out,
                             int *out_local, int *out_tzoffset);
 
-int parse_iso_8601_datetime(char *str, int len,
+int parse_iso_8601_datetime(const char *str, int len,
                             npy_datetimestruct *out,
                             int *out_local, int *out_tzoffset) {
     return __parse_iso_8601_datetime(str, len, 1, out, out_local, out_tzoffset);
@@ -78,14 +78,14 @@ int parse_iso_8601_datetime(char *str, int len,
 
 // slightly faster version of parse_iso_8601_datetime which
 // doesn't set Python exceptions but still returns -1 on error
-int parse_iso_8601_datetime_noexc(char *str, int len,
-                            pandas_datetimestruct *out,
+int parse_iso_8601_datetime_noexc(const char *str, int len,
+                            npy_datetimestruct *out,
                             int *out_local, int *out_tzoffset) {
     return __parse_iso_8601_datetime(str, len, 0, out, out_local, out_tzoffset);
 }
 
-static int __parse_iso_8601_datetime(char *str, int len, int want_exc,
-                            pandas_datetimestruct *out,
+static int __parse_iso_8601_datetime(const char *str, int len, int want_exc,
+                            npy_datetimestruct *out,
                             int *out_local, int *out_tzoffset) {
     int year_leap = 0;
     int i, numdigits;

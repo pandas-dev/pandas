@@ -19,7 +19,7 @@ from pandas._libs.util cimport (
 
 from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
-from pandas._libs.tslibs.np_datetime cimport (
+from pandas._libs.tslibs.np_datetime cimport (_string_to_dts_noexc,
     check_dts_bounds, npy_datetimestruct, _string_to_dts, dt64_to_dtstruct,
     dtstruct_to_dt64, pydatetime_to_dt64, pydate_to_dt64, get_datetime64_value)
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
@@ -511,6 +511,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
         int out_local=0, out_tzoffset=0
         float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
+        bint string_to_dts_failed
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
@@ -579,58 +580,65 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                         continue
 
                     try:
-                        _string_to_dts(val, &dts, &out_local, &out_tzoffset)
-                    except ValueError:
-                        # A ValueError at this point is a _parsing_ error
-                        # specifically _not_ OutOfBoundsDatetime
-                        if _parse_today_now(val, &iresult[i]):
-                            continue
-                        elif require_iso8601:
-                            # if requiring iso8601 strings, skip trying
-                            # other formats
-                            if is_coerce:
-                                iresult[i] = NPY_NAT
+                        string_to_dts_failed = _string_to_dts_noexc(
+                            val, &dts, &out_local,
+                            &out_tzoffset
+                        ) != 0
+                        if string_to_dts_failed:
+                            # An error at this point is a _parsing_ error
+                            # specifically _not_ OutOfBoundsDatetime
+                            if _parse_today_now(val, &iresult[i]):
                                 continue
-                            elif is_raise:
-                                raise ValueError("time data {val} doesn't "
-                                                 "match format specified"
-                                                 .format(val=val))
-                            return values, tz_out
+                            elif require_iso8601:
+                                # if requiring iso8601 strings, skip trying
+                                # other formats
+                                if is_coerce:
+                                    iresult[i] = NPY_NAT
+                                    continue
+                                elif is_raise:
+                                    raise ValueError("time data {val} doesn't "
+                                                     "match format specified"
+                                                     .format(val=val))
+                                return values, tz_out
 
-                        try:
-                            py_dt = parse_datetime_string(val,
-                                                          dayfirst=dayfirst,
-                                                          yearfirst=yearfirst)
-                        except Exception:
-                            if is_coerce:
-                                iresult[i] = NPY_NAT
-                                continue
-                            raise TypeError("invalid string coercion to "
-                                            "datetime")
+                            try:
+                                py_dt = parse_datetime_string(
+                                    val,
+                                    dayfirst=dayfirst,
+                                    yearfirst=yearfirst
+                                )
+                            except Exception:
+                                if is_coerce:
+                                    iresult[i] = NPY_NAT
+                                    continue
+                                raise TypeError("invalid string coercion to "
+                                                "datetime")
 
-                        # If the dateutil parser returned tzinfo, capture it
-                        # to check if all arguments have the same tzinfo
-                        tz = py_dt.utcoffset()
-                        if tz is not None:
-                            seen_datetime_offset = 1
-                            # dateutil timezone objects cannot be hashed, so
-                            # store the UTC offsets in seconds instead
-                            out_tzoffset_vals.add(tz.total_seconds())
-                        else:
-                            # Add a marker for naive string, to track if we are
-                            # parsing mixed naive and aware strings
-                            out_tzoffset_vals.add('naive')
+                            # If the dateutil parser returned tzinfo,
+                            # capture it to check if all arguments
+                            # have the same tzinfo
+                            tz = py_dt.utcoffset()
+                            if tz is not None:
+                                seen_datetime_offset = 1
+                                # dateutil timezone objects cannot be hashed,
+                                # so store the UTC offsets in seconds instead
+                                out_tzoffset_vals.add(tz.total_seconds())
+                            else:
+                                # Add a marker for naive string,
+                                # to track if we are
+                                # parsing mixed naive and aware strings
+                                out_tzoffset_vals.add('naive')
 
-                        _ts = convert_datetime_to_tsobject(py_dt, None)
-                        iresult[i] = _ts.value
+                            _ts = convert_datetime_to_tsobject(py_dt, None)
+                            iresult[i] = _ts.value
                     except:
                         # TODO: What exception are we concerned with here?
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
                         raise
-                    else:
-                        # No error raised by string_to_dts, pick back up
+                    if not string_to_dts_failed:
+                        # No error reported by string_to_dts, pick back up
                         # where we left off
                         value = dtstruct_to_dt64(&dts)
                         if out_local == 1:
