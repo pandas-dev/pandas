@@ -504,6 +504,9 @@ cdef class _Timestamp(datetime):
 
     @property
     def asm8(self):
+        """
+        Return numpy datetime64 format in nanoseconds
+        """
         return np.datetime64(self.value, 'ns')
 
     @property
@@ -570,15 +573,18 @@ class Timestamp(_Timestamp):
     Using the primary calling convention:
 
     This converts a datetime-like string
+
     >>> pd.Timestamp('2017-01-01T12')
     Timestamp('2017-01-01 12:00:00')
 
     This converts a float representing a Unix epoch in units of seconds
+
     >>> pd.Timestamp(1513393355.5, unit='s')
     Timestamp('2017-12-16 03:02:35.500000')
 
     This converts an int representing a Unix-epoch in units of seconds
     and for a particular timezone
+
     >>> pd.Timestamp(1513393355, unit='s', tz='US/Pacific')
     Timestamp('2017-12-15 19:02:35-0800', tz='US/Pacific')
 
@@ -934,6 +940,9 @@ class Timestamp(_Timestamp):
 
     @property
     def dayofweek(self):
+        """
+        Return day of whe week.
+        """
         return self.weekday()
 
     def day_name(self, locale=None):
@@ -983,30 +992,48 @@ class Timestamp(_Timestamp):
 
     @property
     def dayofyear(self):
+        """
+        Return the day of the year.
+        """
         return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
     @property
     def week(self):
+        """
+        Return the week number of the year.
+        """
         return ccalendar.get_week_of_year(self.year, self.month, self.day)
 
     weekofyear = week
 
     @property
     def quarter(self):
+        """
+        Return the quarter of the year.
+        """
         return ((self.month - 1) // 3) + 1
 
     @property
     def days_in_month(self):
+        """
+        Return the number of days in the month.
+        """
         return ccalendar.get_days_in_month(self.year, self.month)
 
     daysinmonth = days_in_month
 
     @property
     def freqstr(self):
+        """
+        Return the total number of days in the month.
+        """
         return getattr(self.freq, 'freqstr', self.freq)
 
     @property
     def is_month_start(self):
+        """
+        Return true if date is first day of month.
+        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == 1
@@ -1014,6 +1041,9 @@ class Timestamp(_Timestamp):
 
     @property
     def is_month_end(self):
+        """
+        Return true if date is last day of month.
+        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == self.days_in_month
@@ -1021,6 +1051,9 @@ class Timestamp(_Timestamp):
 
     @property
     def is_quarter_start(self):
+        """
+        Return true if date is first day of the quarter.
+        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == 1 and self.month % 3 == 1
@@ -1028,6 +1061,9 @@ class Timestamp(_Timestamp):
 
     @property
     def is_quarter_end(self):
+        """
+        Return true if date is last day of the quarter.
+        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return (self.month % 3) == 0 and self.day == self.days_in_month
@@ -1035,6 +1071,9 @@ class Timestamp(_Timestamp):
 
     @property
     def is_year_start(self):
+        """
+        Return true if date is first day of the year.
+        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == self.month == 1
@@ -1042,6 +1081,9 @@ class Timestamp(_Timestamp):
 
     @property
     def is_year_end(self):
+        """
+        Return true if date is last day of the year.
+        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.month == 12 and self.day == 31
@@ -1049,6 +1091,9 @@ class Timestamp(_Timestamp):
 
     @property
     def is_leap_year(self):
+        """
+        Return true if year is a leap year.
+        """
         return bool(ccalendar.is_leapyear(self.year))
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
