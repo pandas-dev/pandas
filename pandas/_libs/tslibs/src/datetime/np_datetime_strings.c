@@ -66,8 +66,26 @@ This file implements string parsing and creation for NumPy datetime.
  *
  * Returns 0 on success, -1 on failure.
  */
-int parse_iso_8601_datetime(const char *str, int len,
+static int __parse_iso_8601_datetime(char *str, int len, int want_exc,
+                            pandas_datetimestruct *out,
+                            int *out_local, int *out_tzoffset);
+
+int parse_iso_8601_datetime(char *str, int len,
                             npy_datetimestruct *out,
+                            int *out_local, int *out_tzoffset) {
+    return __parse_iso_8601_datetime(str, len, 1, out, out_local, out_tzoffset);
+}
+
+// slightly faster version of parse_iso_8601_datetime which
+// doesn't set Python exceptions but still returns -1 on error
+int parse_iso_8601_datetime_noexc(char *str, int len,
+                            pandas_datetimestruct *out,
+                            int *out_local, int *out_tzoffset) {
+    return __parse_iso_8601_datetime(str, len, 0, out, out_local, out_tzoffset);
+}
+
+static int __parse_iso_8601_datetime(char *str, int len, int want_exc,
+                            pandas_datetimestruct *out,
                             int *out_local, int *out_tzoffset) {
     int year_leap = 0;
     int i, numdigits;
@@ -173,8 +191,10 @@ int parse_iso_8601_datetime(const char *str, int len,
         goto parse_error;
     }
     if (out->month < 1 || out->month > 12) {
-        PyErr_Format(PyExc_ValueError,
-                     "Month out of range in datetime string \"%s\"", str);
+        if (want_exc) {
+            PyErr_Format(PyExc_ValueError,
+                        "Month out of range in datetime string \"%s\"", str);
+        }
         goto error;
     }
 
@@ -217,8 +237,10 @@ int parse_iso_8601_datetime(const char *str, int len,
     }
     if (out->day < 1 ||
         out->day > days_per_month_table[year_leap][out->month - 1]) {
-        PyErr_Format(PyExc_ValueError,
-                     "Day out of range in datetime string \"%s\"", str);
+        if (want_exc) {
+            PyErr_Format(PyExc_ValueError,
+                        "Day out of range in datetime string \"%s\"", str);
+        }
         goto error;
     }
 
@@ -251,8 +273,10 @@ int parse_iso_8601_datetime(const char *str, int len,
         ++substr;
         --sublen;
         if (out->hour >= 24) {
-            PyErr_Format(PyExc_ValueError,
-                         "Hours out of range in datetime string \"%s\"", str);
+            if (want_exc) {
+                PyErr_Format(PyExc_ValueError,
+                            "Hours out of range in datetime string \"%s\"", str);
+            }
             goto error;
         }
     }
@@ -291,8 +315,10 @@ int parse_iso_8601_datetime(const char *str, int len,
         ++substr;
         --sublen;
         if (out->min >= 60) {
-            PyErr_Format(PyExc_ValueError,
-                         "Minutes out of range in datetime string \"%s\"", str);
+            if (want_exc) {
+                PyErr_Format(PyExc_ValueError,
+                            "Minutes out of range in datetime string \"%s\"", str);
+            }
             goto error;
         }
     } else if (!has_hms_sep) {
@@ -328,8 +354,10 @@ int parse_iso_8601_datetime(const char *str, int len,
         ++substr;
         --sublen;
         if (out->sec >= 60) {
-            PyErr_Format(PyExc_ValueError,
-                         "Seconds out of range in datetime string \"%s\"", str);
+            if (want_exc) {
+                PyErr_Format(PyExc_ValueError,
+                            "Seconds out of range in datetime string \"%s\"", str);
+            }
             goto error;
         }
     } else if (!has_hms_sep) {
@@ -438,10 +466,12 @@ parse_timezone:
             substr += 2;
             sublen -= 2;
             if (offset_hour >= 24) {
-                PyErr_Format(PyExc_ValueError,
-                             "Timezone hours offset out of range "
-                             "in datetime string \"%s\"",
-                             str);
+                if (want_exc) {
+                    PyErr_Format(PyExc_ValueError,
+                                "Timezone hours offset out of range "
+                                "in datetime string \"%s\"",
+                                str);
+                }
                 goto error;
             }
         } else if (sublen >= 1 && isdigit(substr[0])) {
@@ -466,10 +496,12 @@ parse_timezone:
                 substr += 2;
                 sublen -= 2;
                 if (offset_minute >= 60) {
-                    PyErr_Format(PyExc_ValueError,
-                                 "Timezone minutes offset out of range "
-                                 "in datetime string \"%s\"",
-                                 str);
+                    if (want_exc) {
+                        PyErr_Format(PyExc_ValueError,
+                                    "Timezone minutes offset out of range "
+                                    "in datetime string \"%s\"",
+                                    str);
+                    }
                     goto error;
                 }
             } else if (sublen >= 1 && isdigit(substr[0])) {
@@ -507,9 +539,11 @@ finish:
     return 0;
 
 parse_error:
-    PyErr_Format(PyExc_ValueError,
-                 "Error parsing datetime string \"%s\" at position %d", str,
-                 (int)(substr - str));
+    if (want_exc) {
+        PyErr_Format(PyExc_ValueError,
+                    "Error parsing datetime string \"%s\" at position %d", str,
+                    (int)(substr - str));
+    }
     return -1;
 
 error:

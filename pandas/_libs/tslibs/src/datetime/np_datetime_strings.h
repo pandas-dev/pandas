@@ -58,6 +58,13 @@ parse_iso_8601_datetime(const char *str, int len,
                         npy_datetimestruct *out,
                         int *out_local,
                         int *out_tzoffset);
+// slightly faster version of parse_iso_8601_datetime which
+// doesn't set Python exceptions but still returns -1 on error
+int
+parse_iso_8601_datetime_noexc(char *str, int len,
+                    pandas_datetimestruct *out,
+                    int *out_local,
+                    int *out_tzoffset);
 
 /*
  * Provides a string length to use for converting datetime
@@ -79,5 +86,4 @@ get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base);
 int
 make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
                        NPY_DATETIMEUNIT base);
-
 #endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_

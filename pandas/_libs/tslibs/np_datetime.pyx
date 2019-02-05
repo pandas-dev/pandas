@@ -34,6 +34,9 @@ cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len,
                                 npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)
+    int parse_iso_8601_datetime_noexc(char *str, int len,
+                                      pandas_datetimestruct *out,
+                                      int *out_local, int *out_tzoffset)
 
 
 # ----------------------------------------------------------------------
@@ -175,6 +178,57 @@ cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
         Py_ssize_t length
         const char* buf
 
-    buf = get_c_string_buf_and_size(val, &length)
-    return parse_iso_8601_datetime(buf, length,
-                                   dts, out_local, out_tzoffset)
+    if isinstance(val, unicode):
+        val = PyUnicode_AsASCIIString(val)
+
+    tmp = val
+    result = _cstring_to_dts(tmp, len(val), dts, out_local, out_tzoffset)
+
+    if result == -1:
+        raise ValueError('Unable to parse %s' % str(val))
+    return result
+
+
+cdef inline int _cstring_to_dts(char *val, int length,
+                                npy_datetimestruct* dts,
+                                int* out_local, int* out_tzoffset) except? -1:
+    # Note: without this "extra layer" between _string_to_dts
+    # and parse_iso_8601_datetime, calling _string_to_dts raises
+    # `SystemError: <class 'str'> returned a result with an error set`
+    # in Python3
+    cdef:
+        int result
+
+    result = parse_iso_8601_datetime(val, length,
+                                     dts, out_local, out_tzoffset)
+    return result
+
+# Slightly faster version that doesn't raise a ValueError
+# if a date cannot be parsed, but it does raise ValueError if 
+# "val" supplied is not a valid ASCII string.
+# Caller must check that return value == 0 to determine if parsing succeeded.
+# NOTE: to stop exception propagation when date parsing failed
+# this function is marked to cause an exception on a return value
+# that can never happen in a real life.
+cdef inline int _string_to_dts_noexc(object val, pandas_datetimestruct* dts,
+                               int* out_local, int* out_tzoffset) except -2:
+    cdef:
+        int result
+        char *tmp
+
+    if PyUnicode_Check(val):
+        val = PyUnicode_AsASCIIString(val)
+
+    tmp = val
+    result = _cstring_to_dts_noexc(tmp, len(val), dts, out_local, out_tzoffset)
+    return result
+
+cdef inline int _cstring_to_dts_noexc(char *val, int length,
+                                pandas_datetimestruct* dts,
+                                int* out_local, int* out_tzoffset):
+    cdef:
+        int result
+
+    result = parse_iso_8601_datetime_noexc(val, length,
+                                           dts, out_local, out_tzoffset)
+    return result
