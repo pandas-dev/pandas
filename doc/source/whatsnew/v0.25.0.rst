@@ -28,24 +28,6 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas 0.25.0 includes a number of API breaking changes.
-
-.. _whatsnew_0250.api_breaking.deps:
-
-Increased minimum versions for dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-We have updated our minimum supported versions of dependencies (:issue:`25036`).
-If installed, we now require:
-
-+-----------------+-----------------+----------+
-| Package         | Minimum Version | Required |
-+=================+=================+==========+
-| IPython         | 3.0.0           |          |
-+-----------------+-----------------+----------+
-
-
-
 .. _whatsnew_0250.api.other:
 
 Other API Changes
