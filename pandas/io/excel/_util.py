@@ -201,7 +201,7 @@ def _maybe_convert_to_string(row):
 
 
 def _fill_mi_header(row, control_row):
-    """Forward fills blank entries in row, but only inside the same parent index
+    """Forward fill blank entries in row but only inside the same parent index.
 
     Used for creating headers in Multiindex.
     Parameters
