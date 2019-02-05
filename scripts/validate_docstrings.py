@@ -496,15 +496,6 @@ class Docstring(object):
             return ''
 
     @property
-    def clean_method_source(self):
-        src = self.method_source
-        src = re.sub(r'""".*"""', '', src, 0, re.DOTALL)  # Remove docstring.
-        src = re.sub(r'#.*\n', r'\n', src)  # Remove comments.
-        src = re.sub(r' +', ' ', src)  # Remove duplicate whitespaces.
-        src = re.sub(r' \n', r'\n', src)  # Remove trailing whitespaces.
-        return src
-
-    @property
     def first_line_ends_in_dot(self):
         if self.doc:
             return self.doc.split('\n')[0][-1] == '.'
