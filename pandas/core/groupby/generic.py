@@ -1020,7 +1020,9 @@ class SeriesGroupBy(GroupBy):
         return filtered
 
     def nunique(self, dropna=True):
-        """ Returns number of unique elements in the group """
+        """
+        Return number of unique elements in the group.
+        """
         ids, _, _ = self.grouper.group_info
 
         val = self.obj.get_values()

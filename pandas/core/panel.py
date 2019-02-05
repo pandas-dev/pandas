@@ -802,7 +802,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-            index -> minor axis, columns -> items
+            Index -> minor axis, columns -> items
 
         Notes
         -----
@@ -826,7 +826,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-            index -> major axis, columns -> items
+            Index -> major axis, columns -> items
 
         Notes
         -----
@@ -997,7 +997,7 @@ class Panel(NDFrame):
 
     def apply(self, func, axis='major', **kwargs):
         """
-        Applies function along axis (or axes) of the Panel.
+        Apply function along axis (or axes) of the Panel.
 
         Parameters
         ----------

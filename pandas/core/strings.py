@@ -2869,7 +2869,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     _shared_docs['len'] = ("""
-    Computes the length of each element in the Series/Index. The element may be
+    Compute the length of each element in the Series/Index. The element may be
     a sequence (such as a string, tuple or list) or a collection
     (such as a dictionary).
 

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -43,9 +44,10 @@ from pandas._libs.tslibs.timezones import UTC
 # Constants
 _zero_time = datetime_time(0, 0)
 _no_input = object()
-
+PY36 = sys.version_info >= (3, 6)
 
 # ----------------------------------------------------------------------
+
 
 def maybe_integer_op_deprecated(obj):
     # GH#22535 add/sub of integers and int-arrays is deprecated
@@ -338,7 +340,9 @@ cdef class _Timestamp(datetime):
                         self.microsecond, self.tzinfo)
 
     cpdef to_datetime64(self):
-        """ Returns a numpy.datetime64 object with 'ns' precision """
+        """
+        Return a numpy.datetime64 object with 'ns' precision.
+        """
         return np.datetime64(self.value, 'ns')
 
     def __add__(self, other):
@@ -612,7 +616,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.now(tz=None)
 
-        Returns new Timestamp object representing current time local to
+        Return new Timestamp object representing current time local to
         tz.
 
         Parameters
@@ -1195,7 +1199,6 @@ class Timestamp(_Timestamp):
         nanosecond : int, optional
         tzinfo : tz-convertible, optional
         fold : int, optional, default is 0
-            added in 3.6, NotImplemented
 
         Returns
         -------
@@ -1252,12 +1255,16 @@ class Timestamp(_Timestamp):
             # see GH#18319
             ts_input = _tzinfo.localize(datetime(dts.year, dts.month, dts.day,
                                                  dts.hour, dts.min, dts.sec,
-                                                 dts.us))
+                                                 dts.us),
+                                        is_dst=not bool(fold))
             _tzinfo = ts_input.tzinfo
         else:
-            ts_input = datetime(dts.year, dts.month, dts.day,
-                                dts.hour, dts.min, dts.sec, dts.us,
-                                tzinfo=_tzinfo)
+            kwargs = {'year': dts.year, 'month': dts.month, 'day': dts.day,
+                      'hour': dts.hour, 'minute': dts.min, 'second': dts.sec,
+                      'microsecond': dts.us, 'tzinfo': _tzinfo}
+            if PY36:
+                kwargs['fold'] = fold
+            ts_input = datetime(**kwargs)
 
         ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
         value = ts.value + (dts.ps // 1000)
