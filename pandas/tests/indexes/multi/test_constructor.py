@@ -254,7 +254,7 @@ def test_from_arrays_empty():
 
 
 @pytest.mark.parametrize('invalid_sequence_of_arrays', [
-    1, [1], [1, 2], [[1], 2], 'a', ['a'], ['a', 'b'], [['a'], 'b']])
+    1, [1], [1, 2], [[1], 2], [1, [2]], 'a', ['a'], ['a', 'b'], [['a'], 'b']])
 def test_from_arrays_invalid_input(invalid_sequence_of_arrays):
     msg = "Input must be a list / sequence of array-likes"
     with pytest.raises(TypeError, match=msg):
