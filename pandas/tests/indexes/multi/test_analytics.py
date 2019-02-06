@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import lrange
+from pandas.compat.numpy import _np_version_under1p16
 
 import pandas as pd
 from pandas import Index, MultiIndex, date_range, period_range
@@ -285,8 +286,14 @@ def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
     # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
-    msg = "'tuple' object has no attribute '{}'".format(func.__name__)
-    with pytest.raises(AttributeError, match=msg):
+    if _np_version_under1p16:
+        expected_exception = AttributeError
+        msg = "'tuple' object has no attribute '{}'".format(func.__name__)
+    else:
+        expected_exception = TypeError
+        msg = ("loop of ufunc does not support argument 0 of type tuple which"
+               " has no callable {} method").format(func.__name__)
+    with pytest.raises(expected_exception, match=msg):
         func(idx)
 
 

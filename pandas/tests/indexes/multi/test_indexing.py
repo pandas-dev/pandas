@@ -6,7 +6,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
+from pandas.compat import PY2, lrange
 
 import pandas as pd
 from pandas import (
@@ -255,6 +255,7 @@ def test_getitem_bool_index_single(ind1, ind2):
     tm.assert_index_equal(idx[ind2], expected)
 
 
+@pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
 def test_get_loc(idx):
     assert idx.get_loc(('foo', 'two')) == 1
     assert idx.get_loc(('baz', 'two')) == 3
