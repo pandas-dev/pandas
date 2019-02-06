@@ -1219,26 +1219,6 @@ def test_groupby_nat_exclude():
             grouped.get_group(pd.NaT)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-def test_sparse_friendly(df):
-    sdf = df[['C', 'D']].to_sparse()
-    panel = tm.makePanel()
-    tm.add_nans(panel)
-
-    def _check_work(gp):
-        gp.mean()
-        gp.agg(np.mean)
-        dict(iter(gp))
-
-    # it works!
-    _check_work(sdf.groupby(lambda x: x // 2))
-    _check_work(sdf['C'].groupby(lambda x: x // 2))
-    _check_work(sdf.groupby(df['A']))
-
-    # do this someday
-    # _check_work(panel.groupby(lambda x: x.month, axis=1))
-
-
 def test_groupby_2d_malformed():
     d = DataFrame(index=lrange(2))
     d['group'] = ['g1', 'g2']

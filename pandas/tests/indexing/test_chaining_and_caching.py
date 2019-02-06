@@ -356,8 +356,6 @@ class TestChaining(object):
         result4 = df['A'].iloc[2]
         check(result4, expected)
 
-    @pytest.mark.filterwarnings("ignore::DeprecationWarning")
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
@@ -366,12 +364,6 @@ class TestChaining(object):
         df.ix["Hello Friend"] = df.ix[0]
         assert "Hello Friend" in df['A'].index
         assert "Hello Friend" in df['B'].index
-
-        panel = tm.makePanel()
-        panel.ix[0]  # get first item into cache
-        panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
-        assert "A+1" in panel.ix[0].columns
-        assert "A+1" in panel.ix[1].columns
 
         # 10264
         df = DataFrame(np.zeros((5, 5), dtype='int64'), columns=[

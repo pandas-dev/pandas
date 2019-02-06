@@ -2059,14 +2059,6 @@ def makePanel(nper=None):
         return Panel.fromDict(data)
 
 
-def makePeriodPanel(nper=None):
-    with warnings.catch_warnings(record=True):
-        warnings.filterwarnings("ignore", "\\nPanel", FutureWarning)
-        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-        data = {c: makePeriodFrame(nper) for c in cols}
-        return Panel.fromDict(data)
-
-
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
                     idx_type=None):
     """Create an index/multindex with given dimensions, levels, names, etc'
