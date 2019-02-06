@@ -70,8 +70,7 @@ def test_unique_data_ownership():
 def test_is_unique(data, expected):
     # GH11946 / GH25180
     s = Series(data)
-    result = s.is_unique
-    assert result is expected
+    assert s.is_unique is expected
 
 
 def test_is_unique_class_ne(capsys):
