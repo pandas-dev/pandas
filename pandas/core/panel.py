@@ -917,9 +917,7 @@ class Panel(NDFrame):
         -------
         grouped : PanelGroupBy
         """
-        from pandas.core.groupby import PanelGroupBy
-        axis = self._get_axis_number(axis)
-        return PanelGroupBy(self, function, axis=axis)
+        raise NotImplementedError("Panel is removed in pandas 0.25.0")
 
     def to_frame(self, filter_observations=True):
         """
