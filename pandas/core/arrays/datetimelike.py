@@ -142,8 +142,8 @@ class DatelikeOps(object):
         Convert to Index using specified date_format.
 
         Return an Index of formatted strings specified by date_format, which
-        supports the same string format as the python standard library. Details
-        of the string format can be found in `python string format
+        only supports the string format in the the python standard library.
+        Details of the string format can be found in `python string format
         doc <%(URL)s>`__
 
         Parameters
@@ -460,7 +460,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     def __setitem__(
             self,
-            key,    # type: Union[int, Sequence[int], Sequence[bool], slice]
+            key,  # type: Union[int, Sequence[int], Sequence[bool], slice]
             value,  # type: Union[NaTType, Scalar, Sequence[Scalar]]
     ):
         # type: (...) -> None
