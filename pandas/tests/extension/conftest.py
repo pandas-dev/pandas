@@ -119,30 +119,49 @@ def box_in_series(request):
     lambda x: x,
 ], ids=['scalar', 'list', 'series', 'object'])
 def groupby_apply_op(request):
-    """functions to test groupby.apply()"""
+    """
+    Functions to test groupby.apply().
+    """
     return request.param
 
 
 @pytest.fixture(params=[True, False])
 def as_frame(request):
+    """
+    Boolean fixture to support Series and Series.to_frame() comparison testing.
+    """
     return request.param
 
 
 @pytest.fixture(params=[True, False])
 def as_series(request):
+    """
+    Boolean fixture to support arr and Series(arr) comparison testing.
+    """
     return request.param
 
 
 @pytest.fixture(params=[True, False])
 def use_numpy(request):
+    """
+    Boolean fixture to support comparison testing of ExtensionDtype array
+    and numpy array.
+    """
     return request.param
 
 
 @pytest.fixture(params=['ffill', 'bfill'])
 def fillna_method(request):
+    """
+    Parametrized fixture giving method parameters 'ffill' and 'bfill' for
+    Series.fillna(method=<method>) testing.
+    """
     return request.param
 
 
 @pytest.fixture(params=[True, False])
 def as_array(request):
+    """
+    Boolean fixture to support ExtensionDtype _from_sequence method testing.
+    """
     return request.param
