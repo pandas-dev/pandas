@@ -1809,26 +1809,26 @@ df_coord = """x : label or position, default None
         Allows plotting of one column versus another"""
 series_coord = ""
 
-df_unique = """stacked : boolean, default False in line and
+df_unique = """stacked : bool, default False in line and
         bar plots, and True in area plot. If True, create stacked plot.
-    sort_columns : boolean, default False
+    sort_columns : bool, default False
         Sort column names to determine plot ordering
-    secondary_y : boolean or sequence, default False
+    secondary_y : bool or sequence, default False
         Whether to plot on the secondary y-axis
         If a list/tuple, which columns to plot on secondary y-axis"""
 series_unique = """label : label argument to provide to plot
-    secondary_y : boolean or sequence of ints, default False
+    secondary_y : bool or sequence of ints, default False
         If True then y-axis will be on the right"""
 
 df_ax = """ax : matplotlib axes object, default None
-    subplots : boolean, default False
+    subplots : bool, default False
         Make separate subplots for each column
-    sharex : boolean, default True if ax is None else False
+    sharex : bool, default True if ax is None else False
         In case subplots=True, share x axis and set some x axis labels to
         invisible; defaults to True if ax is None otherwise False if an ax
         is passed in; Be aware, that passing in both an ax and sharex=True
         will alter all x axis labels for all axis in a figure!
-    sharey : boolean, default False
+    sharey : bool, default False
         In case subplots=True, share y axis and set some y axis labels to
         invisible
     layout : tuple (optional)
@@ -1882,23 +1882,23 @@ _shared_docs['plot'] = """
         %(klass_kind)s
     %(klass_ax)s
     figsize : a tuple (width, height) in inches
-    use_index : boolean, default True
+    use_index : bool, default True
         Use index as ticks for x axis
     title : string or list
         Title to use for the plot. If a string is passed, print the string at
         the top of the figure. If a list is passed and `subplots` is True,
         print each item in the list above the corresponding subplot.
-    grid : boolean, default None (matlab style default)
+    grid : bool, default None (matlab style default)
         Axis grid lines
     legend : False/True/'reverse'
         Place legend on axis subplots
     style : list or dict
         matplotlib line style per column
-    logx : boolean, default False
+    logx : bool, default False
         Use log scaling on x axis
-    logy : boolean, default False
+    logy : bool, default False
         Use log scaling on y axis
-    loglog : boolean, default False
+    loglog : bool, default False
         Use log scaling on both x and y axes
     xticks : sequence
         Values to use for the xticks
@@ -1913,12 +1913,12 @@ _shared_docs['plot'] = """
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that name
         from matplotlib.
-    colorbar : boolean, optional
+    colorbar : bool, optional
         If True, plot colorbar (only relevant for 'scatter' and 'hexbin' plots)
     position : float
         Specify relative alignments for bar plot layout.
         From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
-    table : boolean, Series or DataFrame, default False
+    table : bool, Series or DataFrame, default False
         If True, draw a table using the data in the DataFrame and the data will
         be transposed to meet matplotlib's default layout.
         If a Series or DataFrame is passed, use passed data to draw a table.
@@ -1927,7 +1927,7 @@ _shared_docs['plot'] = """
         detail.
     xerr : same types as yerr.
     %(klass_unique)s
-    mark_right : boolean, default True
+    mark_right : bool, default True
         When using a secondary_y axis, automatically mark the column
         labels with "(right)" in the legend
     `**kwds` : keywords
@@ -2025,7 +2025,7 @@ _shared_docs['boxplot'] = """
     rot : int or float, default 0
         The rotation angle of labels (in degrees)
         with respect to the screen coordinate system.
-    grid : boolean, default True
+    grid : bool, default True
         Setting this to True will show the grid.
     figsize : A tuple (width, height) in inches
         The size of the figure to create in matplotlib.
@@ -2062,6 +2062,7 @@ _shared_docs['boxplot'] = """
 
         * :class:`~pandas.Series`
         * :class:`~numpy.array` (for ``return_type = None``)
+        Return N-dimentional array.
 
     See Also
     --------
@@ -2320,7 +2321,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         If passed, will be used to limit data to a subset of columns.
     by : object, optional
         If passed, then used to form histograms for separate groups.
-    grid : boolean, default True
+    grid : bool, default True
         Whether to show axis grid lines.
     xlabelsize : int, default None
         If specified changes the x-axis label size.
@@ -2334,13 +2335,13 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         y labels rotated 90 degrees clockwise.
     ax : Matplotlib axes object, default None
         The axes to plot the histogram on.
-    sharex : boolean, default True if ax is None else False
+    sharex : bool, default True if ax is None else False
         In case subplots=True, share x axis and set some x axis labels to
         invisible; defaults to True if ax is None otherwise False if an ax
         is passed in.
         Note that passing in both an ax and sharex=True will alter all x axis
         labels for all subplots in a figure.
-    sharey : boolean, default False
+    sharey : bool, default False
         In case subplots=True, share y axis and set some y axis labels to
         invisible.
     figsize : tuple
@@ -2427,7 +2428,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         If passed, then used to form histograms for separate groups
     ax : matplotlib axis object
         If not passed, uses gca()
-    grid : boolean, default True
+    grid : bool, default True
         Whether to show axis grid lines
     xlabelsize : int, default None
         If specified changes the x-axis label size
@@ -2509,8 +2510,8 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     bins : int, default 50
     figsize : tuple, optional
     layout : optional
-    sharex : boolean, default False
-    sharey : boolean, default False
+    sharex : bool, default False
+    sharey : bool, default False
     rot : int, default 90
     grid : bool, default True
     kwargs : dict, keyword arguments passed to matplotlib.Axes.hist
