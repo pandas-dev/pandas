@@ -330,20 +330,20 @@ class MultiIndex(Index):
         elif is_iterator(arrays):
             arrays = list(arrays)
 
+        # Check if elements of array are list-like
+        for array in arrays:
+            if not is_list_like(array):
+                raise TypeError(error_msg)
+
         # Check if lengths of all arrays are equal or not,
         # raise ValueError, if not
         for i in range(1, len(arrays)):
-            if not is_list_like(arrays[i]):
-                raise TypeError(error_msg)
             if len(arrays[i]) != len(arrays[i - 1]):
                 raise ValueError('all arrays must be same length')
 
         from pandas.core.arrays.categorical import _factorize_from_iterables
 
-        try:
-            codes, levels = _factorize_from_iterables(arrays)
-        except TypeError:
-            raise TypeError(error_msg)
+        codes, levels = _factorize_from_iterables(arrays)
         if names is None:
             names = [getattr(arr, "name", None) for arr in arrays]
 
