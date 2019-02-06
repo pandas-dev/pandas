@@ -324,20 +324,26 @@ class MultiIndex(Index):
                    codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
                    names=['number', 'color'])
         """
+        error_msg = "Input must be a list / sequence of array-likes."
         if not is_list_like(arrays):
-            raise TypeError("Input must be a list / sequence of array-likes.")
+            raise TypeError(error_msg)
         elif is_iterator(arrays):
             arrays = list(arrays)
 
         # Check if lengths of all arrays are equal or not,
         # raise ValueError, if not
         for i in range(1, len(arrays)):
+            if not is_list_like(arrays[i]):
+                raise TypeError(error_msg)
             if len(arrays[i]) != len(arrays[i - 1]):
                 raise ValueError('all arrays must be same length')
 
         from pandas.core.arrays.categorical import _factorize_from_iterables
 
-        codes, levels = _factorize_from_iterables(arrays)
+        try:
+            codes, levels = _factorize_from_iterables(arrays)
+        except TypeError:
+            raise TypeError(error_msg)
         if names is None:
             names = [getattr(arr, "name", None) for arr in arrays]
 

@@ -256,9 +256,7 @@ def test_from_arrays_empty():
 @pytest.mark.parametrize('invalid_sequence_of_arrays', [
     1, [1], [1, 2], [[1], 2], 'a', ['a'], ['a', 'b'], [['a'], 'b']])
 def test_from_arrays_invalid_input(invalid_sequence_of_arrays):
-    msg = (r"Input must be a list / sequence of array-likes|"
-           r"Input must be list-like|"
-           r"object of type 'int' has no len\(\)")
+    msg = "Input must be a list / sequence of array-likes"
     with pytest.raises(TypeError, match=msg):
         MultiIndex.from_arrays(arrays=invalid_sequence_of_arrays)
 
