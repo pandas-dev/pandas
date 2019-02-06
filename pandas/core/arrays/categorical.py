@@ -1292,7 +1292,7 @@ class Categorical(ExtensionArray, PandasObject):
         values : numpy array
             A numpy array of either the specified dtype or,
             if dtype==None (default), the same dtype as
-            categorical.categories.dtype .
+            categorical.categories.dtype
         """
         ret = take_1d(self.categories.values, self._codes)
         if dtype and not is_dtype_equal(dtype, self.categories.dtype):
