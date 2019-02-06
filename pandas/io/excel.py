@@ -5,6 +5,7 @@ Module parse to/from Excel
 # ---------------------------------------------------------------------
 # ExcelFile class
 import abc
+from collections import OrderedDict
 from datetime import date, datetime, time, timedelta
 from distutils.version import LooseVersion
 from io import UnsupportedOperation
@@ -17,7 +18,7 @@ import numpy as np
 import pandas._libs.json as json
 import pandas.compat as compat
 from pandas.compat import (
-    OrderedDict, add_metaclass, lrange, map, range, string_types, u, zip)
+    add_metaclass, lrange, map, range, string_types, u, zip)
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -274,7 +275,7 @@ def register_writer(klass):
     """Adds engine to the excel writer registry. You must use this method to
     integrate with ``to_excel``. Also adds config options for any new
     ``supported_extensions`` defined on the writer."""
-    if not compat.callable(klass):
+    if not callable(klass):
         raise ValueError("Can only register callables as engines")
     engine_name = klass.engine
     _writers[engine_name] = klass

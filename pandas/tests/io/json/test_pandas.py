@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
+from collections import OrderedDict
 from datetime import timedelta
 import json
 import os
@@ -7,8 +8,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    OrderedDict, StringIO, is_platform_32bit, lrange, range)
+from pandas.compat import StringIO, is_platform_32bit, lrange, range
 import pandas.util._test_decorators as td
 
 import pandas as pd

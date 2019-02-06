@@ -3,7 +3,9 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes SparseSeries.to_coo helpers.
 """
-from pandas.compat import OrderedDict, lmap
+from collections import OrderedDict
+
+from pandas.compat import lmap
 
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series

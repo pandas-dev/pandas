@@ -4,12 +4,13 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 # pylint: disable=E1103,W0231,W0212,W0621
 from __future__ import division
 
+from collections import OrderedDict
 import warnings
 
 import numpy as np
 
 import pandas.compat as compat
-from pandas.compat import OrderedDict, map, range, u, zip
+from pandas.compat import map, range, u, zip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_axis_style_args

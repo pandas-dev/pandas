@@ -5,6 +5,7 @@ Note: pandas.core.common is *not* part of the public API.
 """
 
 import collections
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
@@ -13,7 +14,7 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 import pandas.compat as compat
-from pandas.compat import PY36, OrderedDict, iteritems
+from pandas.compat import PY36, iteritems
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (

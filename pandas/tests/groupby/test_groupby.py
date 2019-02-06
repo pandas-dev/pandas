@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    OrderedDict, StringIO, lmap, lrange, lzip, map, range, zip)
+from pandas.compat import StringIO, lmap, lrange, lzip, map, range, zip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd

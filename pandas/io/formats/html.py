@@ -5,9 +5,10 @@ Module for formatting output data in HTML.
 
 from __future__ import print_function
 
+from collections import OrderedDict
 from textwrap import dedent
 
-from pandas.compat import OrderedDict, lzip, map, range, u, unichr, zip
+from pandas.compat import lzip, map, range, u, unichr, zip
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 

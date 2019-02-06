@@ -3,6 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import division
 
+from collections import OrderedDict
 from textwrap import dedent
 import warnings
 
@@ -10,7 +11,7 @@ import numpy as np
 
 from pandas._libs import iNaT, index as libindex, lib, tslibs
 import pandas.compat as compat
-from pandas.compat import PY36, OrderedDict, StringIO, u, zip
+from pandas.compat import PY36, StringIO, u, zip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg

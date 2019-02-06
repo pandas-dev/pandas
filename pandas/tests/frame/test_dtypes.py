@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from collections import OrderedDict
 from datetime import timedelta
 
 import numpy as np
@@ -66,7 +67,7 @@ class TestDataFrameDataTypes(TestData):
         assert_series_equal(norows_int_df.ftypes, pd.Series(
             'int32:dense', index=list("abc")))
 
-        odict = compat.OrderedDict
+        odict = OrderedDict
         df = pd.DataFrame(odict([('a', 1), ('b', True), ('c', 1.0)]),
                           index=[1, 2, 3])
         ex_dtypes = pd.Series(odict([('a', np.int64),
@@ -100,7 +101,7 @@ class TestDataFrameDataTypes(TestData):
     def test_dtypes_are_correct_after_column_slice(self):
         # GH6525
         df = pd.DataFrame(index=range(5), columns=list("abc"), dtype=np.float_)
-        odict = compat.OrderedDict
+        odict = OrderedDict
         assert_series_equal(df.dtypes,
                             pd.Series(odict([('a', np.float_),
                                              ('b', np.float_),
@@ -295,7 +296,7 @@ class TestDataFrameDataTypes(TestData):
 
     def test_select_dtypes_duplicate_columns(self):
         # GH20839
-        odict = compat.OrderedDict
+        odict = OrderedDict
         df = DataFrame(odict([('a', list('abc')),
                               ('b', list(range(1, 4))),
                               ('c', np.arange(3, 6).astype('u1')),
