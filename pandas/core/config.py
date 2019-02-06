@@ -53,7 +53,6 @@ from contextlib import contextmanager
 import re
 import warnings
 
-
 try:
     unicode
     PY3 = False
