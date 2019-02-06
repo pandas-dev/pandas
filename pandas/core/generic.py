@@ -653,7 +653,6 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         ----------
         y : same as input
-            asdadasd
 
         Examples
         ----------

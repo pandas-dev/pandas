@@ -65,11 +65,13 @@ class Grouper(object):
     Returns
     -------
     A specification for a groupby instruction
+
     Note
     -------
     Kwargs to control time-like groupers:
     closed, label, convetion, base and loffset
     are taken into account when `freq` parameter is passed
+
     Examples
     --------
 
