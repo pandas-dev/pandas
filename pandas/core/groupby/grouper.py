@@ -55,18 +55,21 @@ class Grouper(object):
     sort : boolean, default to False
         whether to sort the resulting labels
 
-    additional kwargs to control time-like groupers (when `freq` is passed)
-
     closed : closed end of interval; 'left' or 'right'
     label : interval boundary to use for labeling; 'left' or 'right'
     convention : {'start', 'end', 'e', 's'}
         If grouper is PeriodIndex
-    base, loffset
+    base : int, default 0
+    loffset : string / DateOffset / timedelta object
 
     Returns
     -------
     A specification for a groupby instruction
-
+    Note
+    -------
+    Kwargs to control time-like groupers:
+    closed, label, convetion, base and loffset
+    are taken into account when `freq` parameter is passed
     Examples
     --------
 
