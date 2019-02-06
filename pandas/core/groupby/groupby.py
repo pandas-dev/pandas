@@ -18,7 +18,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, groupby as libgroupby
 import pandas.compat as compat
-from pandas.compat import callable, range, set_function_name, zip
+from pandas.compat import range, set_function_name, zip
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
