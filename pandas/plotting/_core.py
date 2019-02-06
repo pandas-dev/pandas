@@ -1413,7 +1413,7 @@ _kde_docstring = """
 
         Returns
         -------
-        axes : matplotlib.axes.Axes or numpy.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
 
         See Also
         --------
@@ -1935,7 +1935,7 @@ _shared_docs['plot'] = """
 
     Returns
     -------
-    axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+    :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
     Notes
     -----
@@ -2050,18 +2050,18 @@ _shared_docs['boxplot'] = """
 
     Returns
     -------
-    result :
+    result
 
         The return type depends on the `return_type` parameter:
 
         * 'axes' : object of class matplotlib.axes.Axes
         * 'dict' : dict of matplotlib.lines.Line2D objects
-        * 'both' : a namedtuple with structure (ax, lines).
+        * 'both' : a namedtuple with structure (ax, lines)
 
         For data grouped with ``by``:
 
         * :class:`~pandas.Series`
-        * :class:`~numpy.array` (for ``return_type = None``).
+        * :class:`~numpy.array` (for ``return_type = None``)
 
     See Also
     --------
@@ -2271,7 +2271,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False,
 
     Returns
     -------
-    fig : matplotlib.Figure
+    matplotlib.Figure
     """
     import matplotlib.pyplot as plt
 
@@ -2359,7 +2359,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
     Returns
     -------
-    axes : matplotlib.AxesSubplot or numpy.ndarray of them
+    matplotlib.AxesSubplot or numpy.ndarray of them
 
     See Also
     --------
@@ -2517,7 +2517,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 
     Returns
     -------
-    axes : collection of Matplotlib Axes
+    collection of Matplotlib Axes
     """
     _raise_if_no_mpl()
     _converter._WARN = False
@@ -2751,7 +2751,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
         Examples
         --------
@@ -2776,7 +2776,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='bar', **kwds)
 
@@ -2792,7 +2792,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='barh', **kwds)
 
@@ -2808,7 +2808,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='box', **kwds)
 
@@ -2826,7 +2826,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='hist', bins=bins, **kwds)
 
@@ -2885,7 +2885,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them.
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='area', **kwds)
 
@@ -2901,7 +2901,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them.
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='pie', **kwds)
 
@@ -2961,8 +2961,8 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or :class:`numpy.ndarray`
-            Returns an ndarray when ``subplots=True``.
+        :class:`matplotlib.axes.Axes` or :class:`numpy.ndarray`
+            Return an ndarray when ``subplots=True``.
 
         See Also
         --------
@@ -3026,7 +3026,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.axes.Axes or np.ndarray of them
+        matplotlib.axes.Axes or np.ndarray of them
             An ndarray is returned with one :class:`matplotlib.axes.Axes`
             per column when ``subplots=True``.
 
@@ -3108,7 +3108,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them.
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
         See Also
         --------
@@ -3195,7 +3195,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
         See Also
         --------
@@ -3238,7 +3238,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot histogram.
+        matplotlib.AxesSubplot histogram.
 
         See Also
         --------
@@ -3402,7 +3402,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.axes.Axes or np.ndarray of them.
+        matplotlib.axes.Axes or np.ndarray of them
             A NumPy array is returned when `subplots` is True.
 
         See Also
@@ -3478,7 +3478,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
         See Also
         --------

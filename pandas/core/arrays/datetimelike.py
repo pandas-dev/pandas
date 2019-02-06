@@ -144,7 +144,7 @@ class DatelikeOps(object):
         Return an Index of formatted strings specified by date_format, which
         supports the same string format as the python standard library. Details
         of the string format can be found in `python string format
-        doc <%(URL)s>`__ .
+        doc <%(URL)s>`__.
 
         Parameters
         ----------
