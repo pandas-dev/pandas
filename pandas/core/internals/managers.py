@@ -584,10 +584,6 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
-    def reshape_nd(self, axes, **kwargs):
-        """ a 2d-nd reshape operation on a BlockManager """
-        return self.apply('reshape_nd', axes=axes, **kwargs)
-
     def is_consolidated(self):
         """
         Return True if more than one block with the same dtype
