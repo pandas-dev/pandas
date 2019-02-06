@@ -809,7 +809,7 @@ class IntervalIndex(IntervalMixin, Index):
 
             try:
                 loc = self.get_loc(key)
-            except TypeError:
+            except KeyError:
                 # we didn't find exact intervals or are non-unique
                 msg = "unable to slice with this key: {key}".format(key=key)
                 raise ValueError(msg)
