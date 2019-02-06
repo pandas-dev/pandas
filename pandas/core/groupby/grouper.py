@@ -60,7 +60,7 @@ class Grouper(object):
     convention : {'start', 'end', 'e', 's'}
         If grouper is PeriodIndex
     base : int, default 0
-    loffset : string / DateOffset / timedelta object
+    loffset : string, DateOffset, timedelta object
 
     Returns
     -------

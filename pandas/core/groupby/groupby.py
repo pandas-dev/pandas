@@ -1835,7 +1835,7 @@ class GroupBy(_GroupBy):
             The axis of the object over which to compute the rank.
 
         Returns
-        ----------
+        -------
         DataFrame with ranking of values within each group
         """
         if na_option not in {'keep', 'top', 'bottom'}:
