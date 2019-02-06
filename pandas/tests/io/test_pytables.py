@@ -19,8 +19,8 @@ from pandas.core.dtypes.common import is_categorical_dtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex,
-    RangeIndex, Series, Timestamp, bdate_range, compat, concat,
-    date_range, isna, timedelta_range)
+    RangeIndex, Series, Timestamp, bdate_range, compat, concat, date_range,
+    isna, timedelta_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, set_timezone)
