@@ -44,9 +44,10 @@ class DateParseError(ValueError):
 _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
 
-cdef object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
+cdef:
+    object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
 
-cdef set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
+    set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 # ----------------------------------------------------------------------
 

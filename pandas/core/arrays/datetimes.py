@@ -218,6 +218,13 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
     .. versionadded:: 0.24.0
 
+    .. warning::
+
+       DatetimeArray is currently experimental, and its API may change
+       without warning. In particular, :attr:`DatetimeArray.dtype` is
+       expected to change to always be an instance of an ``ExtensionDtype``
+       subclass.
+
     Parameters
     ----------
     values : Series, Index, DatetimeArray, ndarray
@@ -510,6 +517,12 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         # type: () -> Union[np.dtype, DatetimeTZDtype]
         """
         The dtype for the DatetimeArray.
+
+        .. warning::
+
+           A future version of pandas will change dtype to never be a
+           ``numpy.dtype``. Instead, :attr:`DatetimeArray.dtype` will
+           always be an instance of an ``ExtensionDtype`` subclass.
 
         Returns
         -------
@@ -2045,7 +2058,7 @@ def validate_tz_from_dtype(dtype, tz):
             #  tz-naive dtype (i.e. datetime64[ns])
             if tz is not None and not timezones.tz_compare(tz, dtz):
                 raise ValueError("cannot supply both a tz and a "
-                                 "timezone-naive dtype (i.e. datetime64[ns]")
+                                 "timezone-naive dtype (i.e. datetime64[ns])")
 
     return tz
 

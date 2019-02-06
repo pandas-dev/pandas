@@ -450,12 +450,18 @@ if '--with-cython-coverage' in sys.argv:
 # Note: if not using `cythonize`, coverage can be enabled by
 # pinning `ext.cython_directives = directives` to each ext in extensions.
 # github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
-directives = {'linetrace': False, 'language_level': 3}
+directives = {'linetrace': False,
+              'language_level': 3}
 macros = []
 if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py
     directives['linetrace'] = True
     macros = [('CYTHON_TRACE', '1'), ('CYTHON_TRACE_NOGIL', '1')]
+
+# in numpy>=1.16.0, silence build warnings about deprecated API usage
+#  we can't do anything about these warnings because they stem from
+#  cython+numpy version mismatches.
+macros.append(('NPY_NO_DEPRECATED_API', '0'))
 
 
 # ----------------------------------------------------------------------
