@@ -12,7 +12,6 @@ from pandas.compat import OrderedDict, lzip, map, range, u, unichr, zip
 from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import compat
-import pandas.core.common as com
 from pandas.core.config import get_option
 
 from pandas.io.common import _is_url
@@ -190,7 +189,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = com.sentinel_factory()
+                sentinel = object()
             else:
                 sentinel = False
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
@@ -386,7 +385,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = com.sentinel_factory()
+            sentinel = object()
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 

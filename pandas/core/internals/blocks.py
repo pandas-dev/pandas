@@ -87,7 +87,8 @@ class Block(PandasObject):
                 '{mgr}'.format(val=len(self.values), mgr=len(self.mgr_locs)))
 
     def _check_ndim(self, values, ndim):
-        """ndim inference and validation.
+        """
+        ndim inference and validation.
 
         Infers ndim from 'values' if not provided to __init__.
         Validates that values.ndim and ndim are consistent if and only if
@@ -2072,17 +2073,9 @@ class DatetimeLikeBlockMixin(object):
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
         if is_object_dtype(dtype):
-            values = self.values
-
-            if self.ndim > 1:
-                values = values.ravel()
-
-            values = lib.map_infer(values, self._box_func)
-
-            if self.ndim > 1:
-                values = values.reshape(self.values.shape)
-
-            return values
+            values = self.values.ravel()
+            result = self._holder(values).astype(object)
+            return result.reshape(self.values.shape)
         return self.values
 
 
