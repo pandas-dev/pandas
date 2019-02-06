@@ -2134,6 +2134,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Correlation with other.
 
         Examples
+        --------
         >>> def histogram_intersection(a, b):
         ...     v = np.minimum(a, b).sum().round(decimals=1)
         ...     return v
