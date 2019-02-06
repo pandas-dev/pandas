@@ -2060,7 +2060,7 @@ _shared_docs['boxplot'] = """
 
         For data grouped with ``by``:
 
-        * :class:`~pandas.Series` \n
+        * :class:`~pandas.Series`
         * :class:`~numpy.array` (for ``return_type = None``)
         Return Series or numpy.array.
 
