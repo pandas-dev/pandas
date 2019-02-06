@@ -2277,7 +2277,7 @@ def to_object_array(rows: object, int min_width=0):
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = <list>input_rows[i]
+        row = list(input_rows[i])
 
         for j in range(len(row)):
             result[i, j] = row[j]

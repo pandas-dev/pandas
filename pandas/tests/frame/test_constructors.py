@@ -1183,6 +1183,13 @@ class TestDataFrameConstructors(TestData):
                              index=['a', 'b'])
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_mixed_type_rows(self):
+        # Issue 25075
+        data = [[1, 2], (3, 4)]
+        result = DataFrame(data)
+        expected = DataFrame([[1, 2], [3, 4]])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_tuples(self):
         result = DataFrame({'A': [(1, 2), (3, 4)]})
         expected = DataFrame({'A': Series([(1, 2), (3, 4)])})
