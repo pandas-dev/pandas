@@ -395,7 +395,7 @@ class TestIndex(TestPackers):
 
     def test_timezone_encode_decode(self):
         expected = date_range(start='2018-12-02 14:50:00-07:00',
-                                 end='2018-12-03 03:11:00-07:00', freq='1min')
+                              end='2018-12-03 03:11:00-07:00', freq='1min')
         result = self.encode_decode(expected)
         tm.assert_index_equal(result, expected)
 
