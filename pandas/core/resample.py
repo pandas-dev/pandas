@@ -348,7 +348,7 @@ class Resampler(_GroupBy):
             grouped = PanelGroupBy(obj, grouper=grouper, axis=self.axis)
 
         try:
-            if isinstance(obj, ABCDataFrame) and compat.callable(how):
+            if isinstance(obj, ABCDataFrame) and callable(how):
                 # Check if the function is reducing or not.
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
