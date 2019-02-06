@@ -802,7 +802,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-            index -> minor axis, columns -> items
+            Index -> minor axis, columns -> items
 
         Notes
         -----
@@ -826,7 +826,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-            index -> major axis, columns -> items
+            Index -> major axis, columns -> items
 
         Notes
         -----
@@ -917,9 +917,7 @@ class Panel(NDFrame):
         -------
         grouped : PanelGroupBy
         """
-        from pandas.core.groupby import PanelGroupBy
-        axis = self._get_axis_number(axis)
-        return PanelGroupBy(self, function, axis=axis)
+        raise NotImplementedError("Panel is removed in pandas 0.25.0")
 
     def to_frame(self, filter_observations=True):
         """
@@ -999,7 +997,7 @@ class Panel(NDFrame):
 
     def apply(self, func, axis='major', **kwargs):
         """
-        Applies function along axis (or axes) of the Panel.
+        Apply function along axis (or axes) of the Panel.
 
         Parameters
         ----------

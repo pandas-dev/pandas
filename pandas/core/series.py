@@ -580,7 +580,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def put(self, *args, **kwargs):
         """
-        Applies the `put` method to its `values` attribute if it has one.
+        Apply the `put` method to its `values` attribute if it has one.
 
         See Also
         --------
@@ -1456,7 +1456,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def keys(self):
         """
-        Alias for index.
+        Return alias for index.
         """
         return self.index
 
@@ -2025,7 +2025,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         quantile : float or Series
-            if ``q`` is an array, a Series will be returned where the
+            If ``q`` is an array, a Series will be returned where the
             index is ``q`` and the values are the quantiles.
 
         See Also
@@ -2987,7 +2987,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def argsort(self, axis=0, kind='quicksort', order=None):
         """
-        Overrides ndarray.argsort. Argsorts the value, omitting NA/null values,
+        Override ndarray.argsort. Argsorts the value, omitting NA/null values,
         and places the result in the same locations as the non-NA values.
 
         Parameters
