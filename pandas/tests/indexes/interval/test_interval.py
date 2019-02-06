@@ -436,9 +436,10 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, idx.get_loc, 1.5)
 
         # GH25087, test get_loc returns key error for interval indexes
-        msg = 'key is hashable but of incorrect type'
+        key = 'a'
+        msg = 'Key {!r} is hashable but of incorrect type'.format(key)
         with pytest.raises(KeyError, match=msg):
-            idx.get_loc('a')
+            idx.get_loc(key)
         idx = pd.interval_range(0, 1.0)
         with pytest.raises(KeyError, match=msg):
             idx.get_loc('a')

@@ -771,7 +771,8 @@ class IntervalIndex(IntervalMixin, Index):
             except TypeError:
                 # get_loc should raise KeyError
                 # TODO(py3): use raise from.
-                raise KeyError('key is hashable but of incorrect type')
+                raise KeyError('Key {!r} is hashable but of incorrect type.'
+                               .format(key))
 
             if start is None or stop is None:
                 return slice(start, stop)
@@ -792,7 +793,9 @@ class IntervalIndex(IntervalMixin, Index):
                 try:
                     return self._engine.get_loc(key)
                 except TypeError:
-                    raise KeyError('No engine for key {!r}'.format(key))
+                    msg = ('Key {!r} not found (does match index type {}).'
+                           .format(key, self.dtype))
+                    raise KeyError(msg)
 
     def get_value(self, series, key):
         if com.is_bool_indexer(key):
