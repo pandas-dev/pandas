@@ -378,6 +378,34 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
                           return_indexers=return_indexers,
                           sort=sort)
 
+    def intersection(self, other, sort=False):
+        """
+        Specialized intersection for TimedeltaIndex objects.
+        May be much faster than Index.intersection
+
+        Parameters
+        ----------
+        other : TimedeltaIndex or array-like
+        sort : False or None, default False
+            Sort the resulting index if possible.
+
+            .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default to ``False`` to match the behaviour
+               from before 0.24.0.
+
+            .. versionchanged:: 0.25.0
+
+               The `sort` keyword has been added to TimedeltaIndex as well.
+
+        Returns
+        -------
+        y : Index or DatetimeIndex or TimedeltaIndex
+        """
+        return super().intersection(other, sort=sort)
+
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
         if (isinstance(other, TimedeltaIndex) and self.freq == other.freq and
