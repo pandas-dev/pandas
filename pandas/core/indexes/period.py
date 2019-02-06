@@ -802,6 +802,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return self._apply_meta(result), lidx, ridx
         return self._apply_meta(result)
 
+    @Appender(Index.intersection.__doc__)
     def intersection(self, other, sort=False):
         return Index.intersection(self, other, sort=sort)
 

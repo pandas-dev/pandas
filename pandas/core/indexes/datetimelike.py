@@ -534,27 +534,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return algorithms.isin(self.asi8, values.asi8)
 
     def intersection(self, other, sort=False):
-        """
-        Specialized intersection for DatetimeIndex and TimedeltaIndex objects.
-        May be much faster than Index.intersection
-
-        Parameters
-        ----------
-        other : DatetimeIndex or TimedeltaIndex or array-like
-        sort : False or None, default False
-            Sort the resulting index if possible.
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default to ``False`` to match the behaviour
-               from before 0.24.0.
-
-        Returns
-        -------
-        y : Index or DatetimeIndex or TimedeltaIndex
-        """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
 
@@ -577,6 +556,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
               not other.freq.isAnchored() or
               (not self.is_monotonic or not other.is_monotonic)):
             result = Index.intersection(self, other, sort=sort)
+
             # Invalidate the freq of `result`, which may not be correct at
             # this point, depending on the values.
             result.freq = None
@@ -594,6 +574,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return self
         if len(other) == 0:
             return other
+
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
             left, right = self, other
