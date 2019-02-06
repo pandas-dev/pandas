@@ -450,7 +450,8 @@ if '--with-cython-coverage' in sys.argv:
 # Note: if not using `cythonize`, coverage can be enabled by
 # pinning `ext.cython_directives = directives` to each ext in extensions.
 # github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
-directives = {'linetrace': False}
+directives = {'linetrace': False,
+              'language_level': 2}
 macros = []
 if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py
