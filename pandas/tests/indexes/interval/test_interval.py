@@ -627,6 +627,7 @@ class TestIntervalIndex(Base):
 
     @pytest.mark.parametrize('index', [
         pd.interval_range(0, 1),
+        pd.interval_range(0, 3),
         pd.IntervalIndex.from_tuples([(1, 3), (2, 4), (0, 2)])
     ])
     def test_get_indexer_errors(self, index):
