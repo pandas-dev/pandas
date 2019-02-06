@@ -20,7 +20,7 @@ import pandas as pd
 import pandas.core.algorithms as algos
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
-from pandas.core.groupby.generic import PanelGroupBy, SeriesGroupBy
+from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     GroupBy, _GroupBy, _pipe_template, groupby)
 from pandas.core.groupby.grouper import Grouper
@@ -340,12 +340,7 @@ class Resampler(_GroupBy):
 
         obj = self._selected_obj
 
-        try:
-            grouped = groupby(obj, by=None, grouper=grouper, axis=self.axis)
-        except TypeError:
-
-            # panel grouper
-            grouped = PanelGroupBy(obj, grouper=grouper, axis=self.axis)
+        grouped = groupby(obj, by=None, grouper=grouper, axis=self.axis)
 
         try:
             if isinstance(obj, ABCDataFrame) and compat.callable(how):

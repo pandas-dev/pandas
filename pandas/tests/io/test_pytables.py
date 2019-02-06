@@ -3050,29 +3050,6 @@ class TestHDFStore(Base):
             result = store.select('df', columns=['B', 'A'])
             assert_frame_equal(result, expected, by_blocks=True)
 
-    @pytest.mark.filterwarnings(
-        "ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning"
-    )
-    def test_wide_table_dups(self):
-        with ensure_clean_store(self.path) as store:
-            with catch_warnings(record=True):
-
-                wp = tm.makePanel()
-                store.put('panel', wp, format='table')
-                store.put('panel', wp, format='table', append=True)
-
-                recons = store['panel']
-
-                assert_panel_equal(recons, wp)
-
-    def test_long(self):
-        def _check(left, right):
-            assert_panel_equal(left.to_panel(), right.to_panel())
-
-        with catch_warnings(record=True):
-            wp = tm.makePanel()
-            self._check_roundtrip(wp.to_frame(), _check)
-
     def test_overwrite_node(self):
 
         with ensure_clean_store(self.path) as store:
