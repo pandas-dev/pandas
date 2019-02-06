@@ -1,3 +1,12 @@
+/*
+Copyright (c) 2019, PyData Development Team
+All rights reserved.
+
+Distributed under the terms of the BSD Simplified License.
+
+The full license is in the LICENSE file, distributed with this software.
+*/
+
 #include <Python.h>
 
 #define COMPILING_IN_PY2 (PY_VERSION_HEX <= 0x03000000)
