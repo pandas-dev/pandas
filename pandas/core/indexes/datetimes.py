@@ -1284,7 +1284,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     def indexer_at_time(self, time, asof=False):
         """
-        Returns index locations of index values at particular time of day
+        Return index locations of index values at particular time of day
         (e.g. 9:30AM).
 
         Parameters

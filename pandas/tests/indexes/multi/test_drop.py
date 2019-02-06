@@ -4,7 +4,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
+from pandas.compat import PY2, lrange
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -12,6 +12,7 @@ from pandas import Index, MultiIndex
 import pandas.util.testing as tm
 
 
+@pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
 def test_drop(idx):
     dropped = idx.drop([('foo', 'two'), ('qux', 'one')])
 
@@ -31,13 +32,17 @@ def test_drop(idx):
     tm.assert_index_equal(dropped, expected)
 
     index = MultiIndex.from_tuples([('bar', 'two')])
-    pytest.raises(KeyError, idx.drop, [('bar', 'two')])
-    pytest.raises(KeyError, idx.drop, index)
-    pytest.raises(KeyError, idx.drop, ['foo', 'two'])
+    with pytest.raises(KeyError, match=r"^10$"):
+        idx.drop([('bar', 'two')])
+    with pytest.raises(KeyError, match=r"^10$"):
+        idx.drop(index)
+    with pytest.raises(KeyError, match=r"^'two'$"):
+        idx.drop(['foo', 'two'])
 
     # partially correct argument
     mixed_index = MultiIndex.from_tuples([('qux', 'one'), ('bar', 'two')])
-    pytest.raises(KeyError, idx.drop, mixed_index)
+    with pytest.raises(KeyError, match=r"^10$"):
+        idx.drop(mixed_index)
 
     # error='ignore'
     dropped = idx.drop(index, errors='ignore')
@@ -59,7 +64,8 @@ def test_drop(idx):
 
     # mixed partial / full drop / error='ignore'
     mixed_index = ['foo', ('qux', 'one'), 'two']
-    pytest.raises(KeyError, idx.drop, mixed_index)
+    with pytest.raises(KeyError, match=r"^'two'$"):
+        idx.drop(mixed_index)
     dropped = idx.drop(mixed_index, errors='ignore')
     expected = idx[[2, 3, 5]]
     tm.assert_index_equal(dropped, expected)
@@ -98,10 +104,12 @@ def test_droplevel_list():
     expected = index[:2]
     assert dropped.equals(expected)
 
-    with pytest.raises(ValueError):
+    msg = ("Cannot remove 3 levels from an index with 3 levels: at least one"
+           " level must be left")
+    with pytest.raises(ValueError, match=msg):
         index[:2].droplevel(['one', 'two', 'three'])
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="'Level four not found'"):
         index[:2].droplevel(['one', 'four'])
 
 
