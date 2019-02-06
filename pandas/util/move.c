@@ -31,15 +31,13 @@ typedef struct {
 static PyTypeObject stolenbuf_type;  /* forward declare type */
 
 static void
-stolenbuf_dealloc(stolenbufobject *self)
-{
+stolenbuf_dealloc(stolenbufobject *self) {
     Py_DECREF(self->invalid_bytes);
     PyObject_Del(self);
 }
 
 static int
-stolenbuf_getbuffer(stolenbufobject *self, Py_buffer *view, int flags)
-{
+stolenbuf_getbuffer(stolenbufobject *self, Py_buffer *view, int flags) {
     return PyBuffer_FillInfo(view,
                              (PyObject*) self,
                              (void*) PyString_AS_STRING(self->invalid_bytes),
@@ -51,8 +49,8 @@ stolenbuf_getbuffer(stolenbufobject *self, Py_buffer *view, int flags)
 #if COMPILING_IN_PY2
 
 static Py_ssize_t
-stolenbuf_getreadwritebuf(stolenbufobject *self, Py_ssize_t segment, void **out)
-{
+stolenbuf_getreadwritebuf(stolenbufobject *self,
+                          Py_ssize_t segment, void **out) {
     if (segment != 0) {
         PyErr_SetString(PyExc_SystemError,
                         "accessing non-existent string segment");
@@ -63,8 +61,7 @@ stolenbuf_getreadwritebuf(stolenbufobject *self, Py_ssize_t segment, void **out)
 }
 
 static Py_ssize_t
-stolenbuf_getsegcount(stolenbufobject *self, Py_ssize_t *len)
-{
+stolenbuf_getsegcount(stolenbufobject *self, Py_ssize_t *len) {
     if (len) {
         *len = PyString_GET_SIZE(self->invalid_bytes);
     }
@@ -157,8 +154,7 @@ PyDoc_STRVAR(
    however, if called through *unpacking like ``stolenbuf(*(a,))`` it would
    only have the one reference (the tuple). */
 static PyObject*
-move_into_mutable_buffer(PyObject *self, PyObject *bytes_rvalue)
-{
+move_into_mutable_buffer(PyObject *self, PyObject *bytes_rvalue) {
     stolenbufobject *ret;
 
     if (!PyString_CheckExact(bytes_rvalue)) {
