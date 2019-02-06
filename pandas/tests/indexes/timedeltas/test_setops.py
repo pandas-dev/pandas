@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 from pandas import Int64Index, TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
+from pandas.tseries.offsets import Hour
 
 
 class TestTimedeltaIndex(object):
@@ -89,65 +90,75 @@ class TestTimedeltaIndex(object):
         inter = first.intersection(first, sort=sort)
         assert inter is first
 
+    @pytest.mark.parametrize("period_1, period_2", [(0, 4), (4, 0)])
     @pytest.mark.parametrize("sort", [None, False])
-    def test_intersection_zero_length(self, sort):
-        index_1 = timedelta_range('1 day', periods=4, freq='h')
-        index_2 = timedelta_range('1 day', periods=0, freq='h')
+    def test_intersection_zero_length(self, period_1, period_2, sort):
+        index_1 = timedelta_range('1 day', periods=period_1, freq='h')
+        index_2 = timedelta_range('1 day', periods=period_2, freq='h')
         inter = index_1.intersection(index_2, sort=sort)
-        tm.assert_index_equal(index_2, inter)
-        inter_2 = index_2.intersection(index_1, sort=sort)
-        tm.assert_index_equal(index_2, inter_2)
+        tm.assert_index_equal(timedelta_range('1 day', periods=0, freq='h'),
+                              inter)
 
+    @pytest.mark.parametrize("rng, expected",
+                             # if target has the same name, it is preserved
+                             [(timedelta_range('1 day', periods=5,
+                                               freq='h', name='idx'),
+                               timedelta_range('1 day', periods=4,
+                                               freq='h', name='idx')),
+                              # if target name is different, it will be reset
+                              (timedelta_range('1 day', periods=5,
+                                               freq='h', name='other'),
+                               timedelta_range('1 day', periods=4,
+                                               freq='h', name=None)),
+                              # if no overlap exists return empty index
+                              (timedelta_range('1 day', periods=10,
+                                               freq='h', name='idx')[5:],
+                               TimedeltaIndex([], name='idx'))
+                              ])
     @pytest.mark.parametrize("sort", [None, False])
-    def test_intersection(self, sort):
+    def test_intersection(self, rng, expected, sort):
         # GH 4690 (with tz)
         base = timedelta_range('1 day', periods=4, freq='h', name='idx')
+        result = base.intersection(rng, sort=sort)
+        if sort is None:
+            expected = expected.sort_values()
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+        assert result.freq == expected.freq
 
-        # if target has the same name, it is preserved
-        rng2 = timedelta_range('1 day', periods=5, freq='h', name='idx')
-        expected2 = timedelta_range('1 day', periods=4, freq='h', name='idx')
-
-        # if target name is different, it will be reset
-        rng3 = timedelta_range('1 day', periods=5, freq='h', name='other')
-        expected3 = timedelta_range('1 day', periods=4, freq='h', name=None)
-
-        rng4 = timedelta_range('1 day', periods=10, freq='h', name='idx')[5:]
-        expected4 = TimedeltaIndex([], name='idx')
-
-        for (rng, expected) in [(rng2, expected2), (rng3, expected3),
-                                (rng4, expected4)]:
-            result = base.intersection(rng)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-
+    @pytest.mark.parametrize("rng, expected",
+                             # part intersection works
+                             [(TimedeltaIndex(['5 hour', '2 hour',
+                                               '4 hour', '9 hour'],
+                                              name='idx'),
+                               TimedeltaIndex(['2 hour', '4 hour'],
+                                              name='idx')),
+                              # reordered part intersection
+                              (TimedeltaIndex(['2 hour', '5 hour',
+                                               '5 hour', '1 hour'],
+                                              name='other'),
+                               TimedeltaIndex(['1 hour', '2 hour'],
+                                              name=None)),
+                              # reveresed index
+                              (TimedeltaIndex(['1 hour', '2 hour',
+                                               '4 hour', '3 hour'],
+                                              name='idx')[::-1],
+                               TimedeltaIndex(['1 hour', '2 hour',
+                                               '4 hour', '3 hour'],
+                                              name='idx'))])
     @pytest.mark.parametrize("sort", [None, False])
-    def intersection_non_monotonic(self, sort):
+    def test_intersection_non_monotonic(self, rng, expected, sort):
         # non-monotonic
-        base = TimedeltaIndex(['1 hour', '2 hour',
-                              '4 hour', '3 hour'],
+        base = TimedeltaIndex(['1 hour', '2 hour', '4 hour', '3 hour'],
                               name='idx')
+        result = base.intersection(rng, sort=sort)
+        if sort is None:
+            expected = expected.sort_values()
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
 
-        rng2 = TimedeltaIndex(['5 hour', '2 hour',
-                              '4 hour', '9 hour'],
-                              name='idx')
-        expected2 = TimedeltaIndex(['2 hour', '4 hour'],
-                                   name='idx')
-
-        rng3 = TimedeltaIndex(['2 hour', '5 hour',
-                              '5 hour', '1 hour'],
-                              name='other')
-        expected3 = TimedeltaIndex(['1 hour', '2 hour'],
-                                   name=None)
-
-        rng4 = base[::-1]
-        expected4 = base
-
-        for (rng, expected) in [(rng2, expected2), (rng3, expected3),
-                                (rng4, expected4)]:
-            result = base.intersection(rng, sort=sort)
-            if sort is None:
-                expected = expected.sort_values()
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
+        # if reveresed order, frequency is still the same
+        if all(base == rng[::-1]) and sort is None:
+            assert isinstance(result.freq, Hour)
+        else:
             assert result.freq is None
