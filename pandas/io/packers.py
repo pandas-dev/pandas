@@ -69,7 +69,7 @@ from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 
 from pandas.io.common import _stringify_path, get_filepath_or_buffer
 from pandas.io.msgpack import ExtType, Packer as _Packer, Unpacker as _Unpacker
-
+from pytz import FixedOffset, _FixedOffset
 # check which compression libs we have installed
 try:
     import zlib
@@ -390,7 +390,8 @@ def encode(obj):
 
             # store tz info and data as UTC
             if tz is not None:
-                tz = u(tz.zone)
+                tz = u(tz.zone) if not isinstance(tz, _FixedOffset) \
+                    else u(tz._minutes)
                 obj = obj.tz_convert('UTC')
             return {u'typ': u'datetime_index',
                     u'klass': u(obj.__class__.__name__),
@@ -608,7 +609,8 @@ def decode(obj):
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
         d = dict(name=obj[u'name'], freq=obj[u'freq'])
         result = DatetimeIndex(data, **d)
-        tz = obj[u'tz']
+        tz = FixedOffset(obj[u'tz']) if (isinstance(obj['tz'], int)) \
+            else obj[u'tz']
 
         # reverse tz conversion
         if tz is not None:
