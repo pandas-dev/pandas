@@ -1,11 +1,12 @@
 import abc
+from collections import OrderedDict
 from datetime import date, datetime, timedelta
 import os
 from textwrap import fill
 import warnings
 
 import pandas.compat as compat
-from pandas.compat import OrderedDict, add_metaclass, range, string_types, u
+from pandas.compat import add_metaclass, range, string_types, u
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 

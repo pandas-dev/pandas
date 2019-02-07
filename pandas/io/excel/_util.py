@@ -17,7 +17,7 @@ def register_writer(klass):
     """Adds engine to the excel writer registry. You must use this method to
     integrate with ``to_excel``. Also adds config options for any new
     ``supported_extensions`` defined on the writer."""
-    if not compat.callable(klass):
+    if not callable(klass):
         raise ValueError("Can only register callables as engines")
     engine_name = klass.engine
     _writers[engine_name] = klass
