@@ -24,7 +24,6 @@ class BaseSetitemTests(BaseExtensionTests):
         assert data[0] == original[1]
         assert data[1] == original[0]
 
-    @pytest.mark.parametrize('as_array', [True, False])
     def test_setitem_sequence_mismatched_length_raises(self, data, as_array):
         ser = pd.Series(data)
         original = ser.copy()
