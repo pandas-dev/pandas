@@ -1105,23 +1105,31 @@ class Index(IndexOpsMixin, PandasObject):
 
     def to_flat_index(self):
         """
-        Identity method.
+        Convert a MultiIndex to an Index of Tuples containing the level values.
 
         .. versionadded:: 0.24.0
-
-        This is implemented for compatability with subclass implementations
-        when chaining.
 
         Returns
         -------
         pd.Index
-            Caller.
+            Index with the MultiIndex data represented in Tuples.
 
-        See Also
+        Examples
         --------
-        MultiIndex.to_flat_index : Subclass implementation.
+        >>> index = pd.MultiIndex.from_product(
+        ...     [['foo', 'bar'], ['baz', 'qux']],
+        ...     names=['a', 'b'])
+        >>> index.to_flat_index()
+        Index([('foo', 'baz'), ('foo', 'qux'),
+               ('bar', 'baz'), ('bar', 'qux')],
+              dtype='object')
         """
-        return self
+
+        from .multi import MultiIndex
+        if not isinstance(self, MultiIndex):
+            self = MultiIndex.from_product([self])
+
+        return Index(self.values, tupleize_cols=False)
 
     def to_series(self, index=None, name=None):
         """

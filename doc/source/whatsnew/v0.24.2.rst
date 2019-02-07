@@ -45,7 +45,7 @@ Bug Fixes
 
 **Indexing**
 
--
+- :meth:`Index.to_flat_index` now always returns an :class:`Index` containing tuples, even in the case the original object was already a flat :class:`Index` (:issue:`23670`).
 -
 -
 

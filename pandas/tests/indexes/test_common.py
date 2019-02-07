@@ -113,12 +113,17 @@ class TestCommon(object):
         tm.assert_index_equal(union, expected)
 
     def test_to_flat_index(self, indices):
-        # 22866
-        if isinstance(indices, MultiIndex):
-            pytest.skip("Separate expectation for MultiIndex")
+        # 22866, 23670
 
         result = indices.to_flat_index()
-        tm.assert_index_equal(result, indices)
+
+        if isinstance(indices, MultiIndex):
+            values = [tuple(v) for v in indices]
+        else:
+            values = [(v,) for v in indices]
+        expected = pd.Index(values, tupleize_cols=False)
+
+        tm.assert_index_equal(result, expected)
 
     def test_wrong_number_names(self, indices):
         with pytest.raises(ValueError, match="^Length"):
