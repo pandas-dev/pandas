@@ -504,7 +504,7 @@ class Docstring(object):
 
     @property
     def method_returns(self):
-        tree = ast.parse(self.method_source).body[0]
+        (tree, ) = ast.parse(self.method_source).body
 
         def gather_returns(node):
             gathered = [node] if isinstance(node, ast.Return) else []
