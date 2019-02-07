@@ -233,10 +233,11 @@ def fast_unique_multiple(list arrays, sort: bool=True):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    if sort:
+    if sort is None:
         try:
             uniques.sort()
         except Exception:
+            # TODO: RuntimeWarning?
             pass
 
     return uniques
@@ -2276,7 +2277,7 @@ def to_object_array(rows: object, int min_width=0):
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = <list>input_rows[i]
+        row = list(input_rows[i])
 
         for j in range(len(row)):
             result[i, j] = row[j]

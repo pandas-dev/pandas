@@ -183,7 +183,9 @@ cdef class _NaT(datetime):
         return np.datetime64(NPY_NAT, 'ns')
 
     def to_datetime64(self):
-        """ Returns a numpy.datetime64 object with 'ns' precision """
+        """
+        Return a numpy.datetime64 object with 'ns' precision.
+        """
         return np.datetime64('NaT', 'ns')
 
     def __repr__(self):
@@ -448,7 +450,7 @@ class NaTType(_NaT):
         """
         Timestamp.now(tz=None)
 
-        Returns new Timestamp object representing current time local to
+        Return new Timestamp object representing current time local to
         tz.
 
         Parameters
@@ -669,7 +671,6 @@ class NaTType(_NaT):
         nanosecond : int, optional
         tzinfo : tz-convertible, optional
         fold : int, optional, default is 0
-            added in 3.6, NotImplemented
 
         Returns
         -------
