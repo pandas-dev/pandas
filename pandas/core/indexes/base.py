@@ -1832,9 +1832,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.notna : Boolean inverse of isna.
-        pandas.Index.dropna : Omit entries with missing values.
-        pandas.isna : Top-level isna.
+        Index.notna : Boolean inverse of isna.
+        Index.dropna : Omit entries with missing values.
+        isna : Top-level isna.
         Series.isna : Detect missing values in Series object.
 
         Examples
@@ -1892,7 +1892,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.notnull : Alias of notna.
         Index.isna: Inverse of notna.
-        pandas.notna : Top-level notna.
+        notna : Top-level notna.
 
         Examples
         --------
@@ -2074,9 +2074,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.duplicated : Equivalent method on pandas.Series.
-        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
-        pandas.Index.drop_duplicates : Remove duplicate values from Index.
+        Series.duplicated : Equivalent method on pandas.Series.
+        DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        Index.drop_duplicates : Remove duplicate values from Index.
 
         Examples
         --------
@@ -4204,8 +4204,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.sort_values : Sort values of a Series.
-        pandas.DataFrame.sort_values : Sort values in a DataFrame.
+        Series.sort_values : Sort values of a Series.
+        DataFrame.sort_values : Sort values in a DataFrame.
 
         Examples
         --------
@@ -5177,9 +5177,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.any : Return whether any element in an Index is True.
-        pandas.Series.any : Return whether any element in a Series is True.
-        pandas.Series.all : Return whether all elements in a Series are True.
+        Index.any : Return whether any element in an Index is True.
+        Series.any : Return whether any element in a Series is True.
+        Series.all : Return whether all elements in a Series are True.
 
         Notes
         -----
@@ -5217,8 +5217,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.all : Return whether all elements are True.
-        pandas.Series.all : Return whether all elements are True.
+        Index.all : Return whether all elements are True.
+        Series.all : Return whether all elements are True.
 
         Notes
         -----

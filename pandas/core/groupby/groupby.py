@@ -44,9 +44,9 @@ from pandas.core.sorting import get_group_index_sorter
 _common_see_also = """
         See Also
         --------
-        pandas.Series.%(name)s
-        pandas.DataFrame.%(name)s
-        pandas.Panel.%(name)s
+        Series.%(name)s
+        DataFrame.%(name)s
+        Panel.%(name)s
 """
 
 _apply_docs = dict(
@@ -206,8 +206,8 @@ object : the return type of `func`.
 
 See Also
 --------
-pandas.Series.pipe : Apply a function with arguments to a series.
-pandas.DataFrame.pipe: Apply a function with arguments to a dataframe.
+Series.pipe : Apply a function with arguments to a series.
+DataFrame.pipe: Apply a function with arguments to a dataframe.
 apply : Apply function to each group instead of to the
     full %(klass)s object.
 
@@ -1351,7 +1351,7 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        pandas.Grouper : Specify a frequency to resample with when
+        Grouper : Specify a frequency to resample with when
             grouping by a key.
         DatetimeIndex.resample : Frequency conversion and resampling of
             time series.

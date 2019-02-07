@@ -295,8 +295,8 @@ def unique(values):
 
     See Also
     --------
-    pandas.Index.unique
-    pandas.Series.unique
+    Index.unique
+    Series.unique
 
     Examples
     --------

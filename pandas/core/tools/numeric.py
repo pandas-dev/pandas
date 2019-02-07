@@ -63,9 +63,9 @@ def to_numeric(arg, errors='raise', downcast=None):
 
     See Also
     --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_datetime : Convert argument to datetime.
-    pandas.to_timedelta : Convert argument to timedelta.
+    DataFrame.astype : Cast argument to a specified dtype.
+    to_datetime : Convert argument to datetime.
+    to_timedelta : Convert argument to timedelta.
     numpy.ndarray.astype : Cast a numpy array to a specified type.
 
     Examples

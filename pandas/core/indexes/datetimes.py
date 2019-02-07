@@ -1413,10 +1413,10 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
 
     See Also
     --------
-    pandas.DatetimeIndex : An immutable container for datetimes.
-    pandas.timedelta_range : Return a fixed frequency TimedeltaIndex.
-    pandas.period_range : Return a fixed frequency PeriodIndex.
-    pandas.interval_range : Return a fixed frequency IntervalIndex.
+    DatetimeIndex : An immutable container for datetimes.
+    timedelta_range : Return a fixed frequency TimedeltaIndex.
+    period_range : Return a fixed frequency PeriodIndex.
+    interval_range : Return a fixed frequency IntervalIndex.
 
     Notes
     -----

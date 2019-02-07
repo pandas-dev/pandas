@@ -900,9 +900,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.%(name)s : Calling object with Series data.
-    pandas.DataFrame.%(name)s : Calling object with DataFrames.
-    pandas.DataFrame.count : Count of the full DataFrame.
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    DataFrame.count : Count of the full DataFrame.
 
     Examples
     --------
@@ -1322,9 +1322,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.quantile : Computes value at the given quantile over all data
+    Series.quantile : Computes value at the given quantile over all data
         in Series.
-    pandas.DataFrame.quantile : Computes values at the given quantile over
+    DataFrame.quantile : Computes values at the given quantile over
         requested axis in DataFrame.
 
     Examples
@@ -1626,8 +1626,8 @@ class Rolling(_Rolling_and_Expanding):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.Series.rolling
-    pandas.DataFrame.rolling
+    Series.rolling
+    DataFrame.rolling
     """)
 
     _agg_examples_doc = dedent("""
@@ -1916,9 +1916,9 @@ class Expanding(_Rolling_and_Expanding):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.DataFrame.expanding.aggregate
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
+    DataFrame.expanding.aggregate
+    DataFrame.rolling.aggregate
+    DataFrame.aggregate
     """)
 
     _agg_examples_doc = dedent("""

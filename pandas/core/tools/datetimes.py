@@ -497,8 +497,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     See Also
     --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_timedelta : Convert argument to timedelta.
+    DataFrame.astype : Cast argument to a specified dtype.
+    to_timedelta : Convert argument to timedelta.
 
     Examples
     --------
