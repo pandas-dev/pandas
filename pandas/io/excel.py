@@ -7,7 +7,7 @@ Module parse to/from Excel
 import abc
 from datetime import date, datetime, time, timedelta
 from distutils.version import LooseVersion
-from io import UnsupportedOperation
+from io import UnsupportedOperation, BytesIO
 import os
 from textwrap import fill
 import warnings
@@ -672,7 +672,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         # If filepath_or_buffer is a url, want to keep the data as bytes so
         # can't pass to get_filepath_or_buffer()
         if _is_url(filepath_or_buffer):
-            filepath_or_buffer = _urlopen(filepath_or_buffer)
+            filepath_or_buffer = BytesIO(_urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer,
                             (ExcelFile, openpyxl.Workbook)):
             filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
@@ -682,16 +682,7 @@ class _OpenpyxlReader(_BaseExcelReader):
             self.book = filepath_or_buffer
         elif hasattr(filepath_or_buffer, "read"):
             if hasattr(filepath_or_buffer, 'seek'):
-                try:
-                    # GH 19779
-                    filepath_or_buffer.seek(0)
-                except UnsupportedOperation:
-                    # HTTPResponse does not support seek()
-                    # GH 20434
-                    pass
-
-            # TODO: is this all necessary?
-            # data = filepath_or_buffer.read()
+                filepath_or_buffer.seek(0)
             self.book = openpyxl.load_workbook(
                 filepath_or_buffer, data_only=True)
         elif isinstance(filepath_or_buffer, compat.string_types):
@@ -733,6 +724,7 @@ class _OpenpyxlReader(_BaseExcelReader):
               index_col=None,
               usecols=None,
               squeeze=False,
+              converters=None,
               dtype=None,
               true_values=None,
               false_values=None,
@@ -778,11 +770,11 @@ class _OpenpyxlReader(_BaseExcelReader):
                 sheet = self.get_sheet_by_index(asheetname)
 
             data = self.get_sheet_data(sheet, convert_float)
-            usecols = _maybe_convert_usecols(usecols)
-
-            if not data:
+            if not data or data == [[None]]:
                 output[asheetname] = DataFrame()
                 continue
+
+            usecols = _maybe_convert_usecols(usecols)
 
             if is_list_like(header) and len(header) == 1:
                 header = header[0]
@@ -811,6 +803,9 @@ class _OpenpyxlReader(_BaseExcelReader):
             if skiprows:
                 data = [row for i, row in enumerate(data) if i not in skiprows]
 
+            if skipfooter:
+                data = data[:-skipfooter]
+                
             column_names = [cell for i, cell in enumerate(data.pop(0))]
 
             frame = DataFrame(data, columns=column_names)
@@ -822,6 +817,52 @@ class _OpenpyxlReader(_BaseExcelReader):
                     frame = frame[usecols]
                 else:
                     frame = frame.iloc[:, usecols]
+
+            if not converters:
+                converters = dict()
+            if not dtype:
+                dtype = dict()
+
+            # handle columns referenced by number so all references are by
+            #  column name
+            handled_converters = {}
+            for k, v in converters.items():
+                if k not in frame.columns and isinstance(k, int):
+                    k = frame.columns[k]
+                handled_converters[k] = v
+            converters = handled_converters
+
+            # attempt to convert object columns to integer. Only because this
+            # is implicitly done when reading and excel file with xlrd
+            # TODO: question if this should be default behaviour
+            if len(frame) > 0:
+                for column in set(frame) - set(dtype.keys()):
+                    if frame[column].dtype == object:
+                        try:
+                            frame[column] = frame[column].astype(int)
+                        except (ValueError, TypeError):
+                            try:
+                                frame[column] = frame[column].astype(float)
+                            except (ValueError, TypeError):
+                                continue
+                    elif (convert_float and
+                            frame[column].dtype == float and
+                            all(frame[column] % 1 == 0)):
+                        frame[column] = frame[column].astype(int)
+                    elif not convert_float:
+                        if frame[column].dtype == int:
+                            frame[column] = frame[column].astype(float)
+
+            if converters:
+                for k, v in converters.items():
+                    # for compatibiliy reasons
+                    if frame[k].dtype == float and convert_float:
+                        frame[k] = frame[k].fillna('')
+                    frame[k] = frame[k].apply(v)
+
+            if dtype:
+                for k, v in dtype.items():
+                    frame[k] = frame[k].astype(v)
 
             if index_col is not None:
                 if is_list_like(index_col):
