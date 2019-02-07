@@ -3050,29 +3050,6 @@ class TestHDFStore(Base):
             result = store.select('df', columns=['B', 'A'])
             assert_frame_equal(result, expected, by_blocks=True)
 
-    @pytest.mark.filterwarnings(
-        "ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning"
-    )
-    def test_wide_table_dups(self):
-        with ensure_clean_store(self.path) as store:
-            with catch_warnings(record=True):
-
-                wp = tm.makePanel()
-                store.put('panel', wp, format='table')
-                store.put('panel', wp, format='table', append=True)
-
-                recons = store['panel']
-
-                assert_panel_equal(recons, wp)
-
-    def test_long(self):
-        def _check(left, right):
-            assert_panel_equal(left.to_panel(), right.to_panel())
-
-        with catch_warnings(record=True):
-            wp = tm.makePanel()
-            self._check_roundtrip(wp.to_frame(), _check)
-
     def test_overwrite_node(self):
 
         with ensure_clean_store(self.path) as store:
@@ -4540,7 +4517,7 @@ class TestHDFStore(Base):
 
     def test_legacy_table_fixed_format_read_py2(self, datapath):
         # GH 24510
-        # legacy table with fixed format written en Python 2
+        # legacy table with fixed format written in Python 2
         with ensure_clean_store(
                 datapath('io', 'data', 'legacy_hdf',
                          'legacy_table_fixed_py2.h5'),
@@ -4551,6 +4528,21 @@ class TestHDFStore(Base):
                                     index=pd.Index(['ABC'],
                                                    name='INDEX_NAME'))
             assert_frame_equal(expected, result)
+
+    def test_legacy_table_read_py2(self, datapath):
+        # issue: 24925
+        # legacy table written in Python 2
+        with ensure_clean_store(
+                datapath('io', 'data', 'legacy_hdf',
+                         'legacy_table_py2.h5'),
+                mode='r') as store:
+            result = store.select('table')
+
+        expected = pd.DataFrame({
+            "a": ["a", "b"],
+            "b": [2, 3]
+        })
+        assert_frame_equal(expected, result)
 
     def test_legacy_table_read(self, datapath):
         # legacy table types
