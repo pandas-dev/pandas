@@ -182,7 +182,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
     See Also
     --------
-    pandas.plotting.andrews_curves : Plot clustering visualization.
+    plotting.andrews_curves : Plot clustering visualization.
 
     Examples
     --------
@@ -394,8 +394,8 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     See Also
     --------
-    pandas.DataFrame.plot : Basic plotting for DataFrame objects.
-    pandas.Series.plot : Basic plotting for Series objects.
+    DataFrame.plot : Basic plotting for DataFrame objects.
+    Series.plot : Basic plotting for Series objects.
 
     Examples
     --------

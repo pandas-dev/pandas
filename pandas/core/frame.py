@@ -13,6 +13,7 @@ labeling information
 from __future__ import division
 
 import collections
+from collections import OrderedDict
 import functools
 import itertools
 import sys
@@ -33,7 +34,7 @@ from pandas.util._validators import (validate_bool_kwarg,
 
 from pandas import compat
 from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
-                           OrderedDict, PY36, raise_with_traceback,
+                           PY36, raise_with_traceback,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
@@ -71,7 +72,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms
@@ -319,7 +320,7 @@ class DataFrame(NDFrame):
     DataFrame.from_records : Constructor from tuples, also record arrays.
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
     DataFrame.from_items : From sequence of (key, value) pairs
-        pandas.read_csv, pandas.read_table, pandas.read_clipboard.
+        read_csv, pandas.read_table, pandas.read_clipboard.
 
     Examples
     --------
@@ -734,7 +735,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.io.formats.style.Styler
+        io.formats.style.Styler
         """
         from pandas.io.formats.style import Styler
         return Styler(self)
@@ -1416,7 +1417,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas_gbq.to_gbq : This function in the pandas-gbq library.
-        pandas.read_gbq : Read a DataFrame from Google BigQuery.
+        read_gbq : Read a DataFrame from Google BigQuery.
         """
         from pandas.io import gbq
         return gbq.to_gbq(
@@ -1842,14 +1843,14 @@ class DataFrame(NDFrame):
         Read CSV file.
 
         .. deprecated:: 0.21.0
-            Use :func:`pandas.read_csv` instead.
+            Use :func:`read_csv` instead.
 
-        It is preferable to use the more powerful :func:`pandas.read_csv`
+        It is preferable to use the more powerful :func:`read_csv`
         for most general purposes, but ``from_csv`` makes for an easy
         roundtrip to and from a file (the exact counterpart of
         ``to_csv``), especially with a DataFrame of time series data.
 
-        This method only differs from the preferred :func:`pandas.read_csv`
+        This method only differs from the preferred :func:`read_csv`
         in some defaults:
 
         - `index_col` is ``0`` instead of ``None`` (take first column as index
@@ -1886,7 +1887,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.read_csv
+        read_csv
         """
 
         warnings.warn("from_csv is deprecated. Please use read_csv(...) "
@@ -1974,45 +1975,7 @@ class DataFrame(NDFrame):
         -------
         Panel
         """
-        # only support this kind for now
-        if (not isinstance(self.index, MultiIndex) or  # pragma: no cover
-                len(self.index.levels) != 2):
-            raise NotImplementedError('Only 2-level MultiIndex are supported.')
-
-        if not self.index.is_unique:
-            raise ValueError("Can't convert non-uniquely indexed "
-                             "DataFrame to Panel")
-
-        self._consolidate_inplace()
-
-        # minor axis must be sorted
-        if self.index.lexsort_depth < 2:
-            selfsorted = self.sort_index(level=0)
-        else:
-            selfsorted = self
-
-        major_axis, minor_axis = selfsorted.index.levels
-        major_codes, minor_codes = selfsorted.index.codes
-        shape = len(major_axis), len(minor_axis)
-
-        # preserve names, if any
-        major_axis = major_axis.copy()
-        major_axis.name = self.index.names[0]
-
-        minor_axis = minor_axis.copy()
-        minor_axis.name = self.index.names[1]
-
-        # create new axes
-        new_axes = [selfsorted.columns, major_axis, minor_axis]
-
-        # create new manager
-        new_mgr = selfsorted._data.reshape_nd(axes=new_axes,
-                                              labels=[major_codes,
-                                                      minor_codes],
-                                              shape=shape,
-                                              ref_items=selfsorted.columns)
-
-        return self._constructor_expanddim(new_mgr)
+        raise NotImplementedError("Panel is being removed in pandas 0.25.0.")
 
     @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,
@@ -2541,7 +2504,7 @@ class DataFrame(NDFrame):
         numpy.ndarray.nbytes : Total bytes consumed by the elements of an
             ndarray.
         Series.memory_usage : Bytes consumed by a Series.
-        pandas.Categorical : Memory-efficient array for string values with
+        Categorical : Memory-efficient array for string values with
             many repeated values.
         DataFrame.info : Concise summary of a DataFrame.
 
@@ -3024,7 +2987,7 @@ class DataFrame(NDFrame):
             Whether the query should modify the data in place or return
             a modified copy.
         **kwargs
-            See the documentation for :func:`pandas.eval` for complete details
+            See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
 
             .. versionadded:: 0.18.0
@@ -3048,7 +3011,7 @@ class DataFrame(NDFrame):
         multidimensional key (e.g., a DataFrame) then the result will be passed
         to :meth:`DataFrame.__getitem__`.
 
-        This method uses the top-level :func:`pandas.eval` function to
+        This method uses the top-level :func:`eval` function to
         evaluate the passed query.
 
         The :meth:`~pandas.DataFrame.query` method uses a slightly
@@ -3135,7 +3098,7 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.18.0.
         kwargs : dict
-            See the documentation for :func:`~pandas.eval` for complete details
+            See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
             :meth:`~pandas.DataFrame.query`.
 
@@ -3150,12 +3113,12 @@ class DataFrame(NDFrame):
             of a frame.
         DataFrame.assign : Can evaluate an expression or function to create new
             values for a column.
-        pandas.eval : Evaluate a Python expression as a string using various
+        eval : Evaluate a Python expression as a string using various
             backends.
 
         Notes
         -----
-        For more details see the API documentation for :func:`~pandas.eval`.
+        For more details see the API documentation for :func:`~eval`.
         For detailed examples see :ref:`enhancing performance with eval
         <enhancingperf.eval>`.
 
@@ -3994,7 +3957,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.DataFrame.rename_axis
+        DataFrame.rename_axis
 
         Examples
         --------
@@ -4166,7 +4129,7 @@ class DataFrame(NDFrame):
         names = []
         if append:
             names = [x for x in self.index.names]
-            if isinstance(self.index, MultiIndex):
+            if isinstance(self.index, ABCMultiIndex):
                 for i in range(self.index.nlevels):
                     arrays.append(self.index._get_level_values(i))
             else:
@@ -4174,29 +4137,23 @@ class DataFrame(NDFrame):
 
         to_remove = []
         for col in keys:
-            if isinstance(col, MultiIndex):
-                # append all but the last column so we don't have to modify
-                # the end of this loop
-                for n in range(col.nlevels - 1):
+            if isinstance(col, ABCMultiIndex):
+                for n in range(col.nlevels):
                     arrays.append(col._get_level_values(n))
-
-                level = col._get_level_values(col.nlevels - 1)
                 names.extend(col.names)
-            elif isinstance(col, Series):
-                level = col._values
+            elif isinstance(col, (ABCIndexClass, ABCSeries)):
+                # if Index then not MultiIndex (treated above)
+                arrays.append(col)
                 names.append(col.name)
-            elif isinstance(col, Index):
-                level = col
-                names.append(col.name)
-            elif isinstance(col, (list, np.ndarray, Index)):
-                level = col
+            elif isinstance(col, (list, np.ndarray)):
+                arrays.append(col)
                 names.append(None)
+            # from here, col can only be a column label
             else:
-                level = frame[col]._values
+                arrays.append(frame[col]._values)
                 names.append(col)
                 if drop:
                     to_remove.append(col)
-            arrays.append(level)
 
         index = ensure_index_from_sequences(arrays, names)
 
@@ -6246,11 +6203,11 @@ class DataFrame(NDFrame):
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    pandas.core.groupby.GroupBy : Perform operations over groups.
-    pandas.core.resample.Resampler : Perform operations over resampled bins.
-    pandas.core.window.Rolling : Perform operations over rolling window.
-    pandas.core.window.Expanding : Perform operations over expanding window.
-    pandas.core.window.EWM : Perform operation over exponential weighted
+    core.groupby.GroupBy : Perform operations over groups.
+    core.resample.Resampler : Perform operations over resampled bins.
+    core.window.Rolling : Perform operations over rolling window.
+    core.window.Expanding : Perform operations over expanding window.
+    core.window.EWM : Perform operation over exponential weighted
         window.
     """)
 
@@ -6602,7 +6559,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.concat : General function to concatenate DataFrame, Series
+        concat : General function to concatenate DataFrame, Series
             or Panel objects.
 
         Notes
@@ -7112,10 +7069,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.Series.cov : Compute covariance with another Series.
-        pandas.core.window.EWM.cov: Exponential weighted sample covariance.
-        pandas.core.window.Expanding.cov : Expanding sample covariance.
-        pandas.core.window.Rolling.cov : Rolling sample covariance.
+        Series.cov : Compute covariance with another Series.
+        core.window.EWM.cov: Exponential weighted sample covariance.
+        core.window.Expanding.cov : Expanding sample covariance.
+        core.window.Rolling.cov : Rolling sample covariance.
 
         Notes
         -----
