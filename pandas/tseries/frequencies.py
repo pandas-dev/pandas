@@ -77,7 +77,7 @@ def to_offset(freq):
 
     See Also
     --------
-    pandas.DateOffset
+    DateOffset
 
     Examples
     --------
