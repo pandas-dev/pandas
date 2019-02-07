@@ -496,6 +496,16 @@ class Docstring(object):
             return ''
 
     @property
+    def method_returns(self):
+        (tree, ) = ast.parse(self.method_source.strip()).body
+        returns = [node.value for node in ast.walk(tree)
+                   if isinstance(node, ast.Return)]
+        non_bare_returns = [r for r in returns if r is not None and
+                            not (isinstance(r, ast.NameConstant) and
+                                 r.value is None)]
+        return non_bare_returns
+
+    @property
     def first_line_ends_in_dot(self):
         if self.doc:
             return self.doc.split('\n')[0][-1] == '.'
@@ -691,14 +701,8 @@ def get_validation_data(doc):
                 errs.append(error('PR09', param_name=param))
 
     if doc.is_function_or_method:
-        (tree, ) = ast.parse(doc.method_source.strip()).body
         if not doc.returns:
-            returns = [node.value for node in ast.walk(tree)
-                       if isinstance(node, ast.Return)]
-            non_bare_returns = [r for r in returns if r is not None and
-                                not (isinstance(r, ast.NameConstant) and
-                                     r.value is None)]
-            if any(non_bare_returns):
+            if any(ret is not None for ret in doc.method_returns):
                 errs.append(error('RT01'))
         else:
             if len(doc.returns) == 1 and doc.returns[0][1]:
