@@ -81,7 +81,7 @@ class Styler(object):
 
     See Also
     --------
-    pandas.DataFrame.style
+    DataFrame.style
 
     Notes
     -----
