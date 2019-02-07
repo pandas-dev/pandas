@@ -1832,9 +1832,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.notna : Boolean inverse of isna.
-        pandas.Index.dropna : Omit entries with missing values.
-        pandas.isna : Top-level isna.
+        Index.notna : Boolean inverse of isna.
+        Index.dropna : Omit entries with missing values.
+        isna : Top-level isna.
         Series.isna : Detect missing values in Series object.
 
         Examples
@@ -1892,7 +1892,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.notnull : Alias of notna.
         Index.isna: Inverse of notna.
-        pandas.notna : Top-level notna.
+        notna : Top-level notna.
 
         Examples
         --------
@@ -2074,9 +2074,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.duplicated : Equivalent method on pandas.Series.
-        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
-        pandas.Index.drop_duplicates : Remove duplicate values from Index.
+        Series.duplicated : Equivalent method on pandas.Series.
+        DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        Index.drop_duplicates : Remove duplicate values from Index.
 
         Examples
         --------
@@ -4049,7 +4049,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def equals(self, other):
         """
-        Determines if two Index objects contain the same elements.
+        Determine if two Index objects contain the same elements.
         """
         if self.is_(other):
             return True
@@ -4144,7 +4144,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof_locs(self, where, mask):
         """
-        Finds the locations (indices) of the labels from the index for
+        Find the locations (indices) of the labels from the index for
         every entry in the `where` argument.
 
         As in the `asof` function, if the label (a particular entry in
@@ -4204,8 +4204,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.sort_values : Sort values of a Series.
-        pandas.DataFrame.sort_values : Sort values in a DataFrame.
+        Series.sort_values : Sort values of a Series.
+        DataFrame.sort_values : Sort values in a DataFrame.
 
         Examples
         --------
@@ -4259,7 +4259,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         pandas.Index
-            shifted index
+            Shifted index
 
         See Also
         --------
@@ -5177,9 +5177,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.any : Return whether any element in an Index is True.
-        pandas.Series.any : Return whether any element in a Series is True.
-        pandas.Series.all : Return whether all elements in a Series are True.
+        Index.any : Return whether any element in an Index is True.
+        Series.any : Return whether any element in a Series is True.
+        Series.all : Return whether all elements in a Series are True.
 
         Notes
         -----
@@ -5217,8 +5217,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.all : Return whether all elements are True.
-        pandas.Series.all : Return whether all elements are True.
+        Index.all : Return whether all elements are True.
+        Series.all : Return whether all elements are True.
 
         Notes
         -----

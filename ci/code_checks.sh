@@ -206,7 +206,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -pivot_table -query -reindex -reindex_axis -round"
+        -k" -itertuples -join -reindex -reindex_axis -round"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
@@ -240,8 +240,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL06, GL07, GL09, SS04, PR03, PR05, PR10, EX04)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,GL07,GL09,SS04,PR03,PR05,PR10,EX04
+    MSG='Validate docstrings (GL06, GL07, GL09, SS04, PR03, PR05, PR10, EX04, RT04, SS05, SA05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,GL07,GL09,SS04,PR03,PR05,EX04,RT04,SS05,SA05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
