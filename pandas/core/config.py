@@ -55,10 +55,8 @@ import warnings
 
 try:
     unicode
-    PY3 = False
 except NameError:
     unicode = str
-    PY3 = True
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
 RegisteredOption = namedtuple('RegisteredOption',
