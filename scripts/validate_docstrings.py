@@ -498,12 +498,20 @@ class Docstring(object):
     @property
     def method_returns(self):
         (tree, ) = ast.parse(self.method_source.strip()).body
-        returns = [node.value for node in ast.walk(tree)
-                   if isinstance(node, ast.Return)]
-        non_bare_returns = [r for r in returns if r is not None and
-                            not (isinstance(r, ast.NameConstant) and
-                                 r.value is None)]
-        return non_bare_returns
+        # Walk the tree recursively and gather the return nodes.
+        def gather_returns(node):
+            gathered = [node] if isinstance(node, ast.Return) else []
+            for child in ast.iter_child_nodes(node):
+                # Ignore nested functions and its subtrees.
+                if not isinstance(child, ast.FunctionDef):
+                    gathered.extend(gather_returns(child))
+            return gathered
+        return_values = [r.value for r in gather_returns(tree)]
+        # Replace NameConstant nodes valued None for None.
+        for i,v in enumerate(return_values):
+            if isinstance(v, ast.NameConstant) and v.value is None:
+                return_values[i] = None
+        return return_values
 
     @property
     def first_line_ends_in_dot(self):
