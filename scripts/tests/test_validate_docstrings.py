@@ -229,23 +229,26 @@ class GoodDocStrings(object):
         """
         pass
 
-    def does_nothing(self, x):
+    def no_returns(self):
         """
-        Do nothing and always return none.
-
-        But in other cases it might also
-        return nothing at all.
-
-        Parameters
-        ----------
-        x : int
-            Useless parameter.
+        Say hello and have no returns.
         """
-        var_with_return_on_the_name = None
-        if var_with_return_on_the_name:
-            return  # the method might return here
+        print("Hello World!")
+
+    def empty_returns(self):
+        """
+        Say hello and always return None.
+
+        Since this function never returns a value, this
+        docstring doesn't need a return section.
+        """
+        def say_hello():
+            return "Hello World!"
+        say_hello()
+        if True:
+            return
         else:
-            return None  # or perhaps here
+            return None
 
 
 class BadGenericDocStrings(object):
@@ -615,7 +618,7 @@ class BadReturns(object):
         if False:
             return None
         else:
-            return "Hello world!"
+            return True
 
     def yield_not_documented(self):
         """
@@ -804,7 +807,7 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains', 'mode', 'good_imports', 'does_nothing'])
+        'contains', 'mode', 'good_imports', 'no_returns', 'empty_returns'])
     def test_good_functions(self, capsys, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
