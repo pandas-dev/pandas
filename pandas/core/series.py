@@ -2126,7 +2126,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional
-            Minimum number of observations needed to have a valid result
+            Minimum number of observations needed to have a valid result.
 
         Returns
         -------
