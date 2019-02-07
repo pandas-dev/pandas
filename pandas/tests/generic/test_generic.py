@@ -1016,6 +1016,26 @@ class TestNDFrame(object):
             with pytest.raises(ValueError):
                 wp.pipe((f, 'y'), x=1, y=1)
 
+    def test_interpolate_axis(self):
+        # Issue 25190
+        x = np.linspace(0, 100, 1000)
+        y = np.sin(x)
+
+        pairs = [('index', 0), ('columns', 1)]
+
+        for string_value, integer_value in pairs:
+
+            df1 = pd.DataFrame(data=np.tile(y, (10, 1)), index=np.arange(10), columns=x)
+            try:
+                df1.reindex(columns=x*1.005).interpolate(method='linear', axis=string_value)
+            except UnboundLocalError:
+                assert False
+
+            df2 = pd.DataFrame(data=np.tile(y, (10, 1)), index=np.arange(10), columns=x)
+            df2.reindex(columns=x*1.005).interpolate(method='linear', axis=integer_value)
+
+            assert_frame_equal(df1, df2)
+
     @pytest.mark.parametrize('box', [pd.Series, pd.DataFrame])
     def test_axis_classmethods(self, box):
         obj = box()
