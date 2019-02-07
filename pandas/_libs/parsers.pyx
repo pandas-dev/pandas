@@ -39,9 +39,9 @@ import pandas._libs.lib as lib
 from pandas._libs.khash cimport (
     khiter_t,
     kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
-    kh_get_str, kh_destroy_str,
+    kh_get_str, kh_destroy_str, kh_resize_str,
     kh_float64_t, kh_get_float64, kh_destroy_float64,
-    kh_put_float64, kh_init_float64,
+    kh_put_float64, kh_init_float64, kh_resize_float64,
     kh_strbox_t, kh_put_strbox, kh_get_strbox, kh_init_strbox,
     kh_destroy_strbox)
 
@@ -2106,6 +2106,13 @@ cdef kh_str_t* kset_from_list(list values) except NULL:
 
         k = kh_put_str(table, PyBytes_AsString(val), &ret)
 
+    if table.n_buckets <= 128:
+        # Resize the hash table to make it almost empty, this
+        # reduces amount of hash collisions on lookup thus
+        # "key not in table" case is faster.
+        # Note that this trades table memory footprint for lookup speed.
+        kh_resize_str(table, table.n_buckets * 8)
+
     return table
 
 
@@ -2126,6 +2133,9 @@ cdef kh_float64_t* kset_float64_from_list(values) except NULL:
 
         k = kh_put_float64(table, val, &ret)
 
+    if table.n_buckets <= 128:
+        # See reasoning in kset_from_list
+        kh_resize_float64(table, table.n_buckets * 8)
     return table
 
 
