@@ -1202,6 +1202,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert size_before == size_after
 
+    def test_from_json_to_json_table_dtypes(self):
+        expected = pd.DataFrame({'a': [1, 2], 'b': [3., 4.], 'c': ['5', '6']})
+        dfjson = expected.to_json(orient='table')
+        result = pd.read_json(dfjson, orient='table')
+        assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize('data, expected', [
         (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']),
             {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),

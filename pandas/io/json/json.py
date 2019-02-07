@@ -226,7 +226,7 @@ class JSONTableWriter(FrameWriter):
         return serialized
 
 
-def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
+def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
               lines=False, chunksize=None, compression='infer'):
@@ -277,9 +277,24 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
            'table' as an allowed value for the ``orient`` argument
 
     typ : type of object to recover (series or frame), default 'frame'
-    dtype : boolean or dict, default True
-        If True, infer dtypes, if a dict of column to dtype, then use those,
+    dtype : boolean or dict
+        If True, infer dtypes; if a dict of column to dtype, then use those;
         if False, then don't infer dtypes at all, applies only to the data.
+
+        The allowed and default values depend on the value of the `orient`
+        parameter:
+
+        - if ``orient != 'table'``:
+
+          - allowed ``dtype`` values are True, False or a dict
+          - default is True
+
+        - if ``orient == 'table'``:
+
+          - allowed and default ``dtype`` is False
+
+        .. versionchanged:: 0.24.2 set default False for ``orient='table'``
+
     convert_axes : boolean, default True
         Try to convert the axes to the proper dtypes.
     convert_dates : boolean, default True
@@ -407,6 +422,9 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         "data": [{"index": "row 1", "col 1": "a", "col 2": "b"},
                 {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
     """
+
+    if dtype and orient == 'table':
+        raise ValueError("'dtype' is only valid when 'orient' is not 'table'")
 
     compression = _infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
@@ -600,15 +618,19 @@ class Parser(object):
         'us': long(31536000000000),
         'ns': long(31536000000000000)}
 
-    def __init__(self, json, orient, dtype=True, convert_axes=True,
+    def __init__(self, json, orient, dtype=None, convert_axes=True,
                  convert_dates=True, keep_default_dates=False, numpy=False,
                  precise_float=False, date_unit=None):
         self.json = json
 
         if orient is None:
             orient = self._default_orient
-
         self.orient = orient
+
+        if orient == 'table':
+            dtype = False
+        if dtype is None:
+            dtype = True
         self.dtype = dtype
 
         if orient == "split":
