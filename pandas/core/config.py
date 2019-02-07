@@ -282,7 +282,7 @@ pat : str
     Note: partial matches are supported for convenience, but unless you use the
     full option name (e.g. x.y.z.option_name), your code may break in future
     versions if new options with similar names are introduced.
-value : str, int, float, bool
+value : object
     New value of option.
 
 Returns
