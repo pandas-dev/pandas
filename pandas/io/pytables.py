@@ -31,7 +31,7 @@ from pandas import (
     PeriodIndex, Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat,
     concat, isna, to_datetime)
 from pandas.core import config
-from pandas.core.algorithms import match, unique
+from pandas.core.algorithms import unique
 from pandas.core.arrays.categorical import (
     Categorical, _factorize_from_iterables)
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
@@ -326,8 +326,8 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
 
     See Also
     --------
-    pandas.DataFrame.to_hdf : Write a HDF file from a DataFrame.
-    pandas.HDFStore : Low-level access to HDF files.
+    DataFrame.to_hdf : Write a HDF file from a DataFrame.
+    HDFStore : Low-level access to HDF files.
 
     Examples
     --------
@@ -3288,7 +3288,7 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, 'nan_rep', None)
         self.encoding = _ensure_encoding(
             getattr(self.attrs, 'encoding', None))
-        self.errors = getattr(self.attrs, 'errors', 'strict')
+        self.errors = _ensure_decoded(getattr(self.attrs, 'errors', 'strict'))
         self.levels = getattr(
             self.attrs, 'levels', None) or []
         self.index_axes = [
@@ -3944,29 +3944,7 @@ class LegacyTable(Table):
                 objs.append(obj)
 
         else:
-            warnings.warn(duplicate_doc, DuplicateWarning, stacklevel=5)
-
-            # reconstruct
-            long_index = MultiIndex.from_arrays(
-                [i.values for i in self.index_axes])
-
-            for c in self.values_axes:
-                lp = DataFrame(c.data, index=long_index, columns=c.values)
-
-                # need a better algorithm
-                tuple_index = long_index.values
-
-                unique_tuples = unique(tuple_index)
-                unique_tuples = com.asarray_tuplesafe(unique_tuples)
-
-                indexer = match(unique_tuples, tuple_index)
-                indexer = ensure_platform_int(indexer)
-
-                new_index = long_index.take(indexer)
-                new_values = lp.values.take(indexer, axis=0)
-
-                lp = DataFrame(new_values, index=new_index, columns=lp.columns)
-                objs.append(lp.to_panel())
+            raise NotImplementedError("Panel is removed in pandas 0.25.0")
 
         # create the composite object
         if len(objs) == 1:
@@ -4875,16 +4853,3 @@ class Selection(object):
             return self.coordinates
 
         return np.arange(start, stop)
-
-# utilities ###
-
-
-def timeit(key, df, fn=None, remove=True, **kwargs):
-    if fn is None:
-        fn = 'timeit.h5'
-    store = HDFStore(fn, mode='w')
-    store.append(key, df, **kwargs)
-    store.close()
-
-    if remove:
-        os.remove(fn)
