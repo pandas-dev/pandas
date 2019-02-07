@@ -635,7 +635,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         -------
         y : Index or DatetimeIndex or TimedeltaIndex
         """
-        return super().intersection(other, sort=sort)
+        return super(DatetimeIndex, self).intersection(other, sort=sort)
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
