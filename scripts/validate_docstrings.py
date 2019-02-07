@@ -497,7 +497,7 @@ class Docstring(object):
 
     @property
     def method_returns(self):
-        (tree, ) = ast.parse(self.method_source.strip()).body
+        tree = ast.parse(self.method_source.strip()).body[0]
         # Walk the tree recursively and gather the return nodes.
         def gather_returns(node):
             gathered = [node] if isinstance(node, ast.Return) else []
