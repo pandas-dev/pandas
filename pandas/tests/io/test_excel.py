@@ -1214,7 +1214,7 @@ class TestXlrdReader(ReadingTestsBase):
             tm.assert_frame_equal(df, result)
 
 
-@pytest.mark.parametrize("ext", ['.xlsx', ])
+@pytest.mark.parametrize("ext", ['.xlsx', '.xlsm'])
 class TestOpenpyxlReader(ReadingTestsBase):
     """
     This is the base class for the openpyxl tests, and 2 different file formats
