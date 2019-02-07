@@ -837,3 +837,23 @@ def is_callable(obj):
     if not callable(obj):
         raise ValueError("Value must be a callable")
     return True
+
+
+# -----------------------------------------------------------------------
+# Options needed in _libs
+
+pc_date_dayfirst_doc = """
+: boolean
+    When True, prints and parses dates with the day first, eg 20/01/2005
+"""
+
+pc_date_yearfirst_doc = """
+: boolean
+    When True, prints and parses dates with the year first, eg 2005/01/20
+"""
+
+with config_prefix('display'):
+    register_option('date_dayfirst', False, pc_date_dayfirst_doc,
+                    validator=is_bool)
+    register_option('date_yearfirst', False, pc_date_yearfirst_doc,
+                    validator=is_bool)

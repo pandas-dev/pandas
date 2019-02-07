@@ -110,16 +110,6 @@ pc_nb_repr_h_doc = """
     pandas objects (if it is available).
 """
 
-pc_date_dayfirst_doc = """
-: boolean
-    When True, prints and parses dates with the day first, eg 20/01/2005
-"""
-
-pc_date_yearfirst_doc = """
-: boolean
-    When True, prints and parses dates with the year first, eg 2005/01/20
-"""
-
 pc_pprint_nest_depth = """
 : int
     Controls the number of nested levels to process when pretty-printing
@@ -330,10 +320,6 @@ with cf.config_prefix('display'):
     cf.register_option('colheader_justify', 'right', colheader_justify_doc,
                        validator=is_text)
     cf.register_option('notebook_repr_html', True, pc_nb_repr_h_doc,
-                       validator=is_bool)
-    cf.register_option('date_dayfirst', False, pc_date_dayfirst_doc,
-                       validator=is_bool)
-    cf.register_option('date_yearfirst', False, pc_date_yearfirst_doc,
                        validator=is_bool)
     cf.register_option('pprint_nest_depth', 3, pc_pprint_nest_depth,
                        validator=is_int)
