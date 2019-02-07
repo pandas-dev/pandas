@@ -1025,14 +1025,18 @@ class TestNDFrame(object):
 
         for string_value, integer_value in pairs:
 
-            df1 = pd.DataFrame(data=np.tile(y, (10, 1)), index=np.arange(10), columns=x)
+            df1 = pd.DataFrame(data=np.tile(y, (10, 1)),
+                               index=np.arange(10), columns=x)
             try:
-                df1.reindex(columns=x*1.005).interpolate(method='linear', axis=string_value)
+                df1.reindex(columns=x * 1.005)
+                df1.interpolate(method='linear', axis=string_value)
             except UnboundLocalError:
                 assert False
 
-            df2 = pd.DataFrame(data=np.tile(y, (10, 1)), index=np.arange(10), columns=x)
-            df2.reindex(columns=x*1.005).interpolate(method='linear', axis=integer_value)
+            df2 = pd.DataFrame(data=np.tile(y, (10, 1)),
+                               index=np.arange(10), columns=x)
+            df2.reindex(columns=x * 1.005)
+            df2.interpolate(method='linear', axis=integer_value)
 
             assert_frame_equal(df1, df2)
 
