@@ -491,13 +491,19 @@ class Docstring(object):
     @property
     def method_source(self):
         try:
-            return inspect.getsource(self.obj)
+            source = inspect.getsource(self.obj)
+            # Remove common indentation.
+            first_spaces = re.match(' +', source).group(0)
+            if first_spaces:
+                source = re.sub('^' + first_spaces, '', source)
+                source = re.sub(r'\n' + first_spaces, r'\n', source)
+            return source
         except TypeError:
             return ''
 
     @property
     def method_returns(self):
-        tree = ast.parse(self.method_source.strip()).body[0]
+        tree = ast.parse(self.method_source).body[0]
 
         def gather_returns(node):
             gathered = [node] if isinstance(node, ast.Return) else []
