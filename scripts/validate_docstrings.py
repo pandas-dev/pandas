@@ -493,8 +493,9 @@ class Docstring(object):
         try:
             source = inspect.getsource(self.obj)
             # Remove common indentation.
-            first_spaces = re.match(' +', source).group(0)
+            first_spaces = re.match(' +', source)
             if first_spaces:
+                first_spaces = first_spaces.group(0)
                 source = re.sub('^' + first_spaces, '', source)
                 source = re.sub(r'\n' + first_spaces, r'\n', source)
             return source
