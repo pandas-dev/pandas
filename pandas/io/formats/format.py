@@ -1060,6 +1060,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
         def format_values_with(float_format):
             formatter = self._value_formatter(float_format, threshold)
 
+            # default formatter leaves a space to the left when formatting
+            # floats, must be consistent for left-justifying NaNs (GH #25061)
+            if self.justify == 'left':
+                self.na_rep = ' ' + self.na_rep
+
             # separate the wheat from the chaff
             values = self.values
             mask = isna(values)

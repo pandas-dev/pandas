@@ -52,7 +52,7 @@ Bug Fixes
 **I/O**
 
 - Bug in reading a HDF5 table-format ``DataFrame`` created in Python 2, in Python 3 (:issue:`24925`)
--
+- Bug where float indexes could have misaligned values when printing (:issue:`25061`)
 -
 
 **Categorical**
