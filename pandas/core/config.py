@@ -742,205 +742,8 @@ def config_prefix(prefix):
 
 
 # -----------------------------------------------------------------------
-# Unicode consolidation
-# ---------------------
-#
-# pprinting utility functions for generating Unicode text or
-# bytes(3.x)/str(2.x) representations of objects.
-# Try to use these as much as possible rather then rolling your own.
-#
-# When to use
-# -----------
-#
-# 1) If you're writing code internal to pandas (no I/O directly involved),
-#    use pprint_thing().
-#
-#    It will always return unicode text which can handled by other
-#    parts of the package without breakage.
-#
-# 2) if you need to write something out to file, use
-#    pprint_thing_encoded(encoding).
-#
-#    If no encoding is specified, it defaults to utf-8. Since encoding pure
-#    ascii with utf-8 is a no-op you can safely use the default utf-8 if you're
-#    working with straight ascii.
-
-
-def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
-    """
-    internal. pprinter for iterables. you should probably use pprint_thing()
-    rather then calling this directly.
-
-    bounds length of printed sequence, depending on options
-    """
-    if isinstance(seq, set):
-        fmt = u"{{{body}}}"
-    else:
-        fmt = u"[{body}]" if hasattr(seq, '__setitem__') else u"({body})"
-
-    if max_seq_items is False:
-        nitems = len(seq)
-    else:
-        nitems = max_seq_items or get_option("max_seq_items") or len(seq)
-
-    s = iter(seq)
-    # handle sets, no slicing
-    r = [pprint_thing(next(s),
-                      _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)
-         for i in range(min(nitems, len(seq)))]
-    body = ", ".join(r)
-
-    if nitems < len(seq):
-        body += ", ..."
-    elif isinstance(seq, tuple) and len(seq) == 1:
-        body += ','
-
-    return fmt.format(body=body)
-
-
-def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
-    """
-    internal. pprinter for iterables. you should probably use pprint_thing()
-    rather then calling this directly.
-    """
-    fmt = u"{{{things}}}"
-    pairs = []
-
-    pfmt = u"{key}: {val}"
-
-    if max_seq_items is False:
-        nitems = len(seq)
-    else:
-        nitems = max_seq_items or get_option("max_seq_items") or len(seq)
-
-    for k, v in list(seq.items())[:nitems]:
-        pairs.append(
-            pfmt.format(
-                key=pprint_thing(k, _nest_lvl + 1,
-                                 max_seq_items=max_seq_items, **kwds),
-                val=pprint_thing(v, _nest_lvl + 1,
-                                 max_seq_items=max_seq_items, **kwds)))
-
-    if nitems < len(seq):
-        return fmt.format(things=", ".join(pairs) + ", ...")
-    else:
-        return fmt.format(things=", ".join(pairs))
-
-
-def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
-                 quote_strings=False, max_seq_items=None):
-    """
-    This function is the sanctioned way of converting objects
-    to a unicode representation.
-
-    properly handles nested sequences containing unicode strings
-    (unicode(object) does not)
-
-    Parameters
-    ----------
-    thing : anything to be formatted
-    _nest_lvl : internal use only. pprint_thing() is mutually-recursive
-        with pprint_sequence, this argument is used to keep track of the
-        current nesting level, and limit it.
-    escape_chars : list or dict, optional
-        Characters to escape. If a dict is passed the values are the
-        replacements
-    default_escapes : bool, default False
-        Whether the input escape characters replaces or adds to the defaults
-    max_seq_items : False, int, default None
-        Pass thru to other pretty printers to limit sequence printing
-
-    Returns
-    -------
-    result - unicode object on py2, str on py3. Always Unicode.
-
-    """
-
-    def as_escaped_unicode(thing, escape_chars=escape_chars):
-        # Unicode is fine, else we try to decode using utf-8 and 'replace'
-        # if that's not it either, we have no way of knowing and the user
-        # should deal with it himself.
-
-        try:
-            result = unicode(thing)  # we should try this first
-        except UnicodeDecodeError:
-            # either utf-8 or we replace errors
-            result = str(thing).decode('utf-8', "replace")
-
-        translate = {'\t': r'\t', '\n': r'\n', '\r': r'\r', }
-        if isinstance(escape_chars, dict):
-            if default_escapes:
-                translate.update(escape_chars)
-            else:
-                translate = escape_chars
-            escape_chars = list(escape_chars.keys())
-        else:
-            escape_chars = escape_chars or tuple()
-        for c in escape_chars:
-            result = result.replace(c, translate[c])
-
-        return unicode(result)
-
-    if (PY3 and hasattr(thing, '__next__')) or hasattr(thing, 'next'):
-        return unicode(thing)
-    elif (isinstance(thing, dict) and
-          _nest_lvl < get_option("display.pprint_nest_depth")):
-        result = _pprint_dict(thing, _nest_lvl, quote_strings=True,
-                              max_seq_items=max_seq_items)
-    elif (is_sequence(thing) and
-          _nest_lvl < get_option("display.pprint_nest_depth")):
-        result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
-                             quote_strings=quote_strings,
-                             max_seq_items=max_seq_items)
-    elif isinstance(thing, (str, unicode)) and quote_strings:
-        if PY3:
-            fmt = u"'{thing}'"
-        else:
-            fmt = u"u'{thing}'"
-        result = fmt.format(thing=as_escaped_unicode(thing))
-    else:
-        result = as_escaped_unicode(thing)
-
-    return unicode(result)  # always unicode
-
-
-# TODO: de-duplicate with version in core.dtypes.inference
-def is_sequence(obj):
-    """
-    Check if the object is a sequence of objects.
-    String types are not included as sequences here.
-
-    Parameters
-    ----------
-    obj : The object to check
-
-    Returns
-    -------
-    is_sequence : bool
-        Whether `obj` is a sequence of objects.
-
-    Examples
-    --------
-    >>> l = [1, 2, 3]
-    >>>
-    >>> is_sequence(l)
-    True
-    >>> is_sequence(iter(l))
-    False
-    """
-
-    try:
-        iter(obj)  # Can iterate over it.
-        len(obj)   # Has a length associated with it.
-        return not isinstance(obj, (bytes, unicode))
-    except (TypeError, AttributeError):
-        return False
-
-
-# -----------------------------------------------------------------------
 # These factories and methods are handy for use as the validator
 # arg in register_option
-
 
 def is_type_factory(_type):
     """
@@ -979,7 +782,7 @@ def is_instance_factory(_type):
     """
     if isinstance(_type, (tuple, list)):
         _type = tuple(_type)
-        type_repr = "|".join(map(pprint_thing, _type))
+        type_repr = "|".join(map(str, _type))
     else:
         type_repr = "'{typ}'".format(typ=_type)
 
@@ -1000,8 +803,8 @@ def is_one_of_factory(legal_values):
         if x not in legal_values:
 
             if not any(c(x) for c in callables):
-                uvals = [pprint_thing(lval) for lval in legal_values]
-                pp_values = pprint_thing("|".join(uvals))
+                uvals = [str(lval) for lval in legal_values]
+                pp_values = "|".join(uvals)
                 msg = "Value must be one of {pp_values}"
                 if len(callables):
                     msg += " or a callable"
