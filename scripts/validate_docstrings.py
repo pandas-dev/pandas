@@ -498,7 +498,7 @@ class Docstring(object):
     @property
     def method_returns(self):
         tree = ast.parse(self.method_source.strip()).body[0]
-        # Walk the tree recursively and gather the return nodes.
+
         def gather_returns(node):
             gathered = [node] if isinstance(node, ast.Return) else []
             for child in ast.iter_child_nodes(node):
@@ -506,9 +506,11 @@ class Docstring(object):
                 if not isinstance(child, ast.FunctionDef):
                     gathered.extend(gather_returns(child))
             return gathered
+        # Walk the tree recursively and gather the return nodes.
         return_values = [r.value for r in gather_returns(tree)]
+
         # Replace NameConstant nodes valued None for None.
-        for i,v in enumerate(return_values):
+        for i, v in enumerate(return_values):
             if isinstance(v, ast.NameConstant) and v.value is None:
                 return_values[i] = None
         return return_values
