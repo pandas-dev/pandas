@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0612,E1101
-
+from collections import OrderedDict
 from datetime import datetime
 import operator
 from warnings import catch_warnings, simplefilter
@@ -8,7 +8,7 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
-from pandas.compat import OrderedDict, StringIO, lrange, range, signature
+from pandas.compat import StringIO, lrange, range, signature
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_float_dtype
