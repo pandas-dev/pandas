@@ -1454,9 +1454,7 @@ class ParserBase(object):
         # the names are the tuples of the header that are not the index cols
         # 0 is the name of the index, assuming index_col is a list of column
         # numbers
-        ic = self.index_col
-        if ic is None:
-            ic = []
+        ic = self.index_col if self.index_col is not None else []
 
         if not isinstance(ic, (list, tuple, np.ndarray)):
             ic = [ic]
@@ -1568,12 +1566,8 @@ class ParserBase(object):
                 return col
             raise ValueError('Index %s invalid' % col)
 
-        to_remove = []
-        index = []
-        for idx in self.index_col:
-            i = ix(idx)
-            to_remove.append(i)
-            index.append(data[i])
+        to_remove = [ix(idx) for idx in self.index_col]
+        index = [data[name] for name in to_remove]
 
         # remove index items from content and columns, don't pop in
         # loop
@@ -1597,12 +1591,8 @@ class ParserBase(object):
                 if i == icol:
                     return c
 
-        to_remove = []
-        index = []
-        for idx in self.index_col:
-            name = _get_name(idx)
-            to_remove.append(name)
-            index.append(data[name])
+        to_remove = [_get_name(idx) for idx in self.index_col]
+        index = [data[name] for name in to_remove]
 
         # remove index items from content and columns, don't pop in
         # loop
@@ -2205,9 +2195,7 @@ class PythonParser(ParserBase):
 
         self.names_passed = kwds['names'] or None
 
-        self.has_index_names = False
-        if 'has_index_names' in kwds:
-            self.has_index_names = kwds['has_index_names']
+        self.has_index_names = kwds.get('has_index_names', False)
 
         self.verbose = kwds['verbose']
         self.converters = kwds['converters']
