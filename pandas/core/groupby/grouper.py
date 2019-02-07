@@ -54,23 +54,20 @@ class Grouper(object):
     axis : number/name of the axis, defaults to 0
     sort : boolean, default to False
         whether to sort the resulting labels
-
     closed : closed end of interval; 'left' or 'right'
+        Only when `freq` parameter is passed.
     label : interval boundary to use for labeling; 'left' or 'right'
+        Only when `freq` parameter is passed.
     convention : {'start', 'end', 'e', 's'}
-        If grouper is PeriodIndex
+        If grouper is PeriodIndex and `freq` parameter is passed.
     base : int, default 0
+        Only when `freq` parameter is passed.
     loffset : string, DateOffset, timedelta object
+        Only when `freq` parameter is passed.
 
     Returns
     -------
     A specification for a groupby instruction
-
-    Note
-    -------
-    Kwargs to control time-like groupers:
-    closed, label, convetion, base and loffset
-    are taken into account when `freq` parameter is passed
 
     Examples
     --------

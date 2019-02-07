@@ -424,7 +424,7 @@ class Styler(object):
 
         Parameters
         ----------
-        **kwargs :
+        **kwargs
             Any additional keyword arguments are passed
             through to ``self.template.render``.
             This is useful when you need to provide
