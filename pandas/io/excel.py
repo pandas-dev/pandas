@@ -840,19 +840,19 @@ class _OpenpyxlReader(_BaseExcelReader):
                 for column in set(frame) - set(dtype.keys()):
                     if frame[column].dtype == object:
                         try:
-                            frame[column] = frame[column].astype(int)
+                            frame[column] = frame[column].astype('int64')
                         except (ValueError, TypeError):
                             try:
-                                frame[column] = frame[column].astype(float)
+                                frame[column] = frame[column].astype('float64')
                             except (ValueError, TypeError):
                                 continue
                     elif (convert_float and
                             frame[column].dtype == float and
                             all(frame[column] % 1 == 0)):
-                        frame[column] = frame[column].astype(int)
+                        frame[column] = frame[column].astype('int64')
                     elif not convert_float:
                         if frame[column].dtype == int:
-                            frame[column] = frame[column].astype(float)
+                            frame[column] = frame[column].astype('float64')
 
             if converters:
                 for k, v in converters.items():
