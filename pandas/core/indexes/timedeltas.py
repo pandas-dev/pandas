@@ -404,7 +404,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         -------
         y : Index or DatetimeIndex or TimedeltaIndex
         """
-        return super().intersection(other, sort=sort)
+        return super(TimedeltaIndex, self).intersection(other, sort=sort)
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
