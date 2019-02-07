@@ -805,7 +805,7 @@ class _OpenpyxlReader(_BaseExcelReader):
 
             if skipfooter:
                 data = data[:-skipfooter]
-                
+
             column_names = [cell for i, cell in enumerate(data.pop(0))]
 
             frame = DataFrame(data, columns=column_names)

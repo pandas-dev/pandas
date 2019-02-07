@@ -164,7 +164,8 @@ class ReadingTestsBase(SharedItems):
             with ignore_xlrd_time_clock_warning():
                 with ignore_openpyxl_unknown_extension_warning():
                     df2 = self.get_exceldf(
-                        "test1", ext, "Sheet2", skiprows=[1], index_col=0, usecols=3)
+                        "test1", ext, "Sheet2", skiprows=[1], index_col=0,
+                        usecols=3)
 
         # parse_cols instead of usecols, usecols as int
         with tm.assert_produces_warning(FutureWarning,
@@ -690,7 +691,8 @@ class ReadingTestsBase(SharedItems):
             with ignore_xlrd_time_clock_warning():
                 with ignore_openpyxl_unknown_extension_warning():
                     df2 = self.get_exceldf(
-                        filename, ext, index_col=0, sheetname=sheet_name)  # backward compat
+                        filename, ext, index_col=0,
+                        sheetname=sheet_name)  # backward compat
 
         excel = self.get_excelfile(filename, ext)
         df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
