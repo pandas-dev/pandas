@@ -2549,7 +2549,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     Parameters
     ----------
     grouped : Grouped DataFrame
-    subplots :
+    subplots : bool
         * ``False`` - no subplots will be used
         * ``True`` - create a subplot for each group
     column : column name or list of names, or vector
