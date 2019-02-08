@@ -127,6 +127,7 @@ class Hashing(object):
     def time_series_integer_arr(self, df):
         hashing.hash_pandas_object(df['int_na'])
 
+
 class Quantile(object):
     params = [[0, 0.5, 1],
               ['linear', 'nearest', 'lower', 'higher', 'midpoint'],
