@@ -6,7 +6,6 @@ import numpy as np
 
 import pandas.core.dtypes.concat as _concat
 
-from collections import OrderedDict
 from pandas import DataFrame, Index, MultiIndex, Series, compat
 from pandas.core import common as com
 from pandas.core.arrays.categorical import (

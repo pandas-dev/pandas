@@ -14,7 +14,7 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 import pandas.compat as compat
-from pandas.compat import PY36, PY37, iteritems
+from pandas.compat import PY37, iteritems
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
