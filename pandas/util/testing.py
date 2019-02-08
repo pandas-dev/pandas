@@ -2299,15 +2299,6 @@ def makeMissingDataframe(density=.9, random_state=None):
     return df
 
 
-def add_nans(panel):
-    I, J, N = panel.shape
-    for i, item in enumerate(panel.items):
-        dm = panel[item]
-        for j, col in enumerate(dm.columns):
-            dm[col][:i + j] = np.NaN
-    return panel
-
-
 class TestSubDict(dict):
 
     def __init__(self, *args, **kwargs):
