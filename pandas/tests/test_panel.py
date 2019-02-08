@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0612,E1101
-
+from collections import OrderedDict
 from datetime import datetime
 import operator
 from warnings import catch_warnings, simplefilter
@@ -8,7 +8,7 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
-from pandas.compat import OrderedDict, StringIO, lrange, range, signature
+from pandas.compat import StringIO, lrange, range, signature
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_float_dtype
@@ -1858,21 +1858,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         assert_series_equal(mixed_panel.dtypes, shifted.dtypes)
 
     def test_tshift(self):
-        # PeriodIndex
-        ps = tm.makePeriodPanel()
-        shifted = ps.tshift(1)
-        unshifted = shifted.tshift(-1)
-
-        assert_panel_equal(unshifted, ps)
-
-        shifted2 = ps.tshift(freq='B')
-        assert_panel_equal(shifted, shifted2)
-
-        shifted3 = ps.tshift(freq=BDay())
-        assert_panel_equal(shifted, shifted3)
-
-        with pytest.raises(ValueError, match='does not match'):
-            ps.tshift(freq='M')
 
         # DatetimeIndex
         panel = make_test_panel()
