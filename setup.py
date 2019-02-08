@@ -17,6 +17,15 @@ import shutil
 from distutils.version import LooseVersion
 from setuptools import setup, Command, find_packages
 
+# Taken from https://github.com/jupyterhub/traefik-proxy/
+# commit: 0f16dc307b72e613e71067b6498f82728461434a
+#
+# ensure cwd is on sys.path
+# workaround bug in pip 19.0
+here = os.path.dirname(__file__)
+if here not in sys.path:
+    sys.path.insert(0, here)
+
 # versioning
 import versioneer
 cmdclass = versioneer.get_cmdclass()
@@ -30,6 +39,7 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
+# When changing the version numbers here, also adjust them in `pyproject.toml`
 min_numpy_ver = '1.12.0'
 setuptools_kwargs = {
     'install_requires': [

@@ -3,6 +3,7 @@ include LICENSE
 include RELEASE.md
 include README.md
 include setup.py
+include pyproject.toml
 
 graft doc
 prune doc/build

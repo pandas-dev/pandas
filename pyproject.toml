@@ -1,0 +1,3 @@
+# When changing the version numbers here, also adjust them in `setup.py`
+[build-system]
+requires = ["setuptools", "wheel", "cython >= 0.28.2", "numpy >= 1.12.0"]

@@ -196,7 +196,7 @@ Sparse
 Other
 ^^^^^
 
--
+- Specify build-time requirement in ``pyproject.toml`` (:issue:`25193`)
 -
 -
 
