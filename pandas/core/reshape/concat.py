@@ -6,6 +6,7 @@ import numpy as np
 
 import pandas.core.dtypes.concat as _concat
 
+from collections import OrderedDict
 from pandas import DataFrame, Index, MultiIndex, Series, compat
 from pandas.core import common as com
 from pandas.core.arrays.categorical import (
@@ -253,7 +254,7 @@ class _Concatenator(object):
 
         if isinstance(objs, dict):
             if keys is None:
-                keys = sorted(objs)
+                keys = com.dict_keys_to_ordered_list(objs)
             objs = [objs[k] for k in keys]
         else:
             objs = list(objs)

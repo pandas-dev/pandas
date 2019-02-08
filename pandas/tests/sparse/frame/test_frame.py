@@ -129,7 +129,7 @@ class TestSparseDataFrame(SharedWithSparse):
         # order by value
         d = {'b': [2, 3], 'a': [0, 1]}
         frame = SparseDataFrame(data=d)
-        if compat.PY36:
+        if compat.PY37:
             expected = SparseDataFrame(data=d, columns=list('ba'))
         else:
             expected = SparseDataFrame(data=d, columns=list('ab'))
