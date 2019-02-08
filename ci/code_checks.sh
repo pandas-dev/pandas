@@ -241,16 +241,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-<<<<<<< HEAD
     MSG='Validate docstrings (GL06, GL07, GL09, SS04, SS05, PR03, PR05, EX04, RT04, RT05, SA05)' ; echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,GL07,GL09,SS04,SS05,PR03,PR05,EX04,RT04,RT05,SA05
-||||||| merged common ancestors
-    MSG='Validate docstrings (GL06, GL07, GL09, SS04, PR03, PR05, EX04, RT04, SS05, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,GL07,GL09,SS04,PR03,PR05,EX04,RT04,SS05,SA05
-=======
-    MSG='Validate docstrings (GL06, GL07, GL09, SS04, PR03, PR05, PR10, EX04, RT04, SS05, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,GL07,GL09,SS04,PR03,PR05,EX04,RT04,SS05,SA05
->>>>>>> upstream/master
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
