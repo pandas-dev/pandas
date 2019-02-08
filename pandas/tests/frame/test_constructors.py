@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from collections import OrderedDict
 from datetime import datetime, timedelta
 import functools
 import itertools
@@ -11,8 +12,7 @@ import numpy.ma as ma
 import pytest
 
 from pandas.compat import (
-    PY3, PY36, PY37, OrderedDict, is_platform_little_endian, lmap, long, lrange,
-    lzip, range, zip)
+    PY3, PY36, PY37, is_platform_little_endian, lmap, long, lrange, lzip, range, zip)
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
@@ -1181,6 +1181,13 @@ class TestDataFrameConstructors(TestData):
                             'B': Series(['a', 'b'], index=['a', 'b'])})
         expected = DataFrame({'A': ['a', 'b'], 'B': ['a', 'b']},
                              index=['a', 'b'])
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_mixed_type_rows(self):
+        # Issue 25075
+        data = [[1, 2], (3, 4)]
+        result = DataFrame(data)
+        expected = DataFrame([[1, 2], [3, 4]])
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_tuples(self):

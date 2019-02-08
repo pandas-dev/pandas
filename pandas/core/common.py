@@ -5,6 +5,7 @@ Note: pandas.core.common is *not* part of the public API.
 """
 
 import collections
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
@@ -13,7 +14,7 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 import pandas.compat as compat
-from pandas.compat import PY36, PY37, OrderedDict, iteritems
+from pandas.compat import PY36, PY37, iteritems
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -32,7 +33,8 @@ class SettingWithCopyWarning(Warning):
 
 
 def flatten(l):
-    """Flatten an arbitrarily nested sequence.
+    """
+    Flatten an arbitrarily nested sequence.
 
     Parameters
     ----------
@@ -160,12 +162,16 @@ def cast_scalar_indexer(val):
 
 
 def _not_none(*args):
-    """Returns a generator consisting of the arguments that are not None"""
+    """
+    Returns a generator consisting of the arguments that are not None.
+    """
     return (arg for arg in args if arg is not None)
 
 
 def _any_none(*args):
-    """Returns a boolean indicating if any argument is None"""
+    """
+    Returns a boolean indicating if any argument is None.
+    """
     for arg in args:
         if arg is None:
             return True
@@ -173,7 +179,9 @@ def _any_none(*args):
 
 
 def _all_none(*args):
-    """Returns a boolean indicating if all arguments are None"""
+    """
+    Returns a boolean indicating if all arguments are None.
+    """
     for arg in args:
         if arg is not None:
             return False
@@ -181,7 +189,9 @@ def _all_none(*args):
 
 
 def _any_not_none(*args):
-    """Returns a boolean indicating if any argument is not None"""
+    """
+    Returns a boolean indicating if any argument is not None.
+    """
     for arg in args:
         if arg is not None:
             return True
@@ -189,7 +199,9 @@ def _any_not_none(*args):
 
 
 def _all_not_none(*args):
-    """Returns a boolean indicating if all arguments are not None"""
+    """
+    Returns a boolean indicating if all arguments are not None.
+    """
     for arg in args:
         if arg is None:
             return False
@@ -197,7 +209,9 @@ def _all_not_none(*args):
 
 
 def count_not_none(*args):
-    """Returns the count of arguments that are not None"""
+    """
+    Returns the count of arguments that are not None.
+    """
     return sum(x is not None for x in args)
 
 
@@ -277,7 +291,9 @@ def maybe_make_list(obj):
 
 
 def is_null_slice(obj):
-    """ we have a null slice """
+    """
+    We have a null slice.
+    """
     return (isinstance(obj, slice) and obj.start is None and
             obj.stop is None and obj.step is None)
 
@@ -291,7 +307,9 @@ def is_true_slices(l):
 
 # TODO: used only once in indexing; belongs elsewhere?
 def is_full_slice(obj, l):
-    """ we have a full length slice """
+    """
+    We have a full length slice.
+    """
     return (isinstance(obj, slice) and obj.start == 0 and obj.stop == l and
             obj.step is None)
 
@@ -316,7 +334,7 @@ def get_callable_name(obj):
 def apply_if_callable(maybe_callable, obj, **kwargs):
     """
     Evaluate possibly callable input using obj and kwargs if it is callable,
-    otherwise return as it is
+    otherwise return as it is.
 
     Parameters
     ----------
@@ -333,7 +351,8 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
 
 def dict_compat(d):
     """
-    Helper function to convert datetimelike-keyed dicts to Timestamp-keyed dict
+    Helper function to convert datetimelike-keyed dicts
+    to Timestamp-keyed dict.
 
     Parameters
     ----------
@@ -381,13 +400,6 @@ def standardize_mapping(into):
         raise TypeError(
             'to_dict() only accepts initialized defaultdicts')
     return into
-
-
-def sentinel_factory():
-    class Sentinel(object):
-        pass
-
-    return Sentinel()
 
 
 def random_state(state=None):
