@@ -142,6 +142,15 @@ def test_from_arrays_iterator(idx):
         MultiIndex.from_arrays(0)
 
 
+def test_from_arrays_tuples(idx):
+    arrays = tuple(tuple(np.asarray(lev).take(level_codes))
+                   for lev, level_codes in zip(idx.levels, idx.codes))
+
+    # tuple of tuples as input
+    result = MultiIndex.from_arrays(arrays, names=idx.names)
+    tm.assert_index_equal(result, idx)
+
+
 def test_from_arrays_index_series_datetimetz():
     idx1 = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
                          tz='US/Eastern')
