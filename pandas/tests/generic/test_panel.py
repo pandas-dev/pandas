@@ -3,11 +3,8 @@
 
 from warnings import catch_warnings, simplefilter
 
-import pandas.util._test_decorators as td
-
 from pandas import Panel
-import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal, assert_panel_equal
+from pandas.util.testing import assert_panel_equal
 
 from .test_generic import Generic
 
@@ -15,24 +12,6 @@ from .test_generic import Generic
 class TestPanel(Generic):
     _typ = Panel
     _comparator = lambda self, x, y: assert_panel_equal(x, y, by_blocks=True)
-
-    @td.skip_if_no('xarray', min_version='0.7.0')
-    def test_to_xarray(self):
-        from xarray import DataArray
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            p = tm.makePanel()
-
-            result = p.to_xarray()
-            assert isinstance(result, DataArray)
-            assert len(result.coords) == 3
-            assert_almost_equal(list(result.coords.keys()),
-                                ['items', 'major_axis', 'minor_axis'])
-            assert len(result.dims) == 3
-
-            # idempotency
-            assert_panel_equal(result.to_pandas(), p)
 
 
 # run all the tests, but wrap each in a warning catcher
