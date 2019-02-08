@@ -44,7 +44,9 @@ from textwrap import dedent
 import warnings
 
 from dateutil.parser import parse
+from dateutil.tz import tzfile, tzlocal, tzutc
 import numpy as np
+from pytz import FixedOffset, _FixedOffset
 
 import pandas.compat as compat
 from pandas.compat import u, u_safe
@@ -69,7 +71,7 @@ from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 
 from pandas.io.common import _stringify_path, get_filepath_or_buffer
 from pandas.io.msgpack import ExtType, Packer as _Packer, Unpacker as _Unpacker
-from pytz import FixedOffset, _FixedOffset
+
 # check which compression libs we have installed
 try:
     import zlib
@@ -387,11 +389,19 @@ def encode(obj):
                     u'compress': compressor}
         elif isinstance(obj, DatetimeIndex):
             tz = getattr(obj, 'tz', None)
-
+            tztype = None
             # store tz info and data as UTC
             if tz is not None:
-                tz = u(tz.zone) if not isinstance(tz, _FixedOffset) \
-                    else u(tz._minutes)
+                if isinstance(tz, _FixedOffset):
+                    tz, tztype = u(str(tz._minutes)), u('fixedoffset')
+                elif isinstance(tz, tzutc):
+                    tz, tztype = u('UTC'), u('tzutc')
+                elif isinstance(tz, tzfile):
+                    tz, tztype = u(tz._filename), u('tzfile')
+                elif isinstance(tz, tzlocal):
+                    tz, tztype = u('local'), u('tzlocal')
+                else:
+                    tz, tztype = u(tz.zone), u('zone')
                 obj = obj.tz_convert('UTC')
             return {u'typ': u'datetime_index',
                     u'klass': u(obj.__class__.__name__),
@@ -400,6 +410,7 @@ def encode(obj):
                     u'data': convert(obj.asi8),
                     u'freq': u_safe(getattr(obj, 'freqstr', None)),
                     u'tz': tz,
+                    u'tztype': tztype,
                     u'compress': compressor}
         elif isinstance(obj, (IntervalIndex, IntervalArray)):
             if isinstance(obj, IntervalIndex):
@@ -609,9 +620,16 @@ def decode(obj):
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
         d = dict(name=obj[u'name'], freq=obj[u'freq'])
         result = DatetimeIndex(data, **d)
-        tz = FixedOffset(obj[u'tz']) if (isinstance(obj['tz'], int)) \
-            else obj[u'tz']
-
+        tz = obj[u'tz']
+        tztype = obj['tztype'] if 'tztype' in obj.keys() else None
+        if tztype == u'fixedoffset':
+            tz = FixedOffset(int(tz))
+        elif tztype == u'tzfile':
+            tz = tzfile(tz)
+        elif tztype == u'tzlocal':
+            tz = tzlocal()
+        elif tztype == u'tzutc':
+            tz = tzutc()
         # reverse tz conversion
         if tz is not None:
             result = result.tz_localize('UTC').tz_convert(tz)
