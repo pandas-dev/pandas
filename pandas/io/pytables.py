@@ -15,34 +15,29 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos, lib, writers as libwriters
+from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
 from pandas.compat import PY3, filter, lrange, range, string_types
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
-    ensure_int64, ensure_object, ensure_platform_int, is_categorical_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype, is_list_like,
-    is_timedelta64_dtype)
+    ensure_object, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_list_like, is_timedelta64_dtype)
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
-    DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, Panel,
-    PeriodIndex, Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat,
-    concat, isna, to_datetime)
+    DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, PeriodIndex,
+    Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat, concat,
+    isna, to_datetime)
 from pandas.core import config
-from pandas.core.algorithms import unique
-from pandas.core.arrays.categorical import (
-    Categorical, _factorize_from_iterables)
+from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.core.computation.pytables import Expr, maybe_expression
 from pandas.core.config import get_option
 from pandas.core.index import ensure_index
-from pandas.core.internals import (
-    BlockManager, _block2d_to_blocknd, _block_shape, _factor_indexer,
-    make_block)
+from pandas.core.internals import BlockManager, _block_shape, make_block
 
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
@@ -175,7 +170,6 @@ _TYPE_MAP = {
     SparseSeries: u'sparse_series',
     DataFrame: u'frame',
     SparseDataFrame: u'sparse_frame',
-    Panel: u'wide',
 }
 
 # storer class map
@@ -187,7 +181,6 @@ _STORER_MAP = {
     u'sparse_series': 'SparseSeriesFixed',
     u'frame': 'FrameFixed',
     u'sparse_frame': 'SparseFrameFixed',
-    u'wide': 'PanelFixed',
 }
 
 # table class map
@@ -198,14 +191,11 @@ _TABLE_MAP = {
     u'appendable_frame': 'AppendableFrameTable',
     u'appendable_multiframe': 'AppendableMultiFrameTable',
     u'worm': 'WORMTable',
-    u'legacy_frame': 'LegacyFrameTable',
-    u'legacy_panel': 'LegacyPanelTable',
 }
 
 # axes map
 _AXES_MAP = {
     DataFrame: [0],
-    Panel: [1, 2]
 }
 
 # register our configuration options
@@ -864,7 +854,7 @@ class HDFStore(StringMixin):
         Parameters
         ----------
         key      : object
-        value    : {Series, DataFrame, Panel}
+        value    : {Series, DataFrame}
         format   : 'fixed(f)|table(t)', default is 'fixed'
             fixed(f) : Fixed format
                        Fast writing/reading. Not-appendable, nor searchable
@@ -946,7 +936,7 @@ class HDFStore(StringMixin):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, Panel}
+        value : {Series, DataFrame}
         format : 'table' is the default
             table(t) : table format
                        Write as a PyTables Table structure which may perform
@@ -3027,16 +3017,6 @@ class FrameFixed(BlockManagerFixed):
     obj_type = DataFrame
 
 
-class PanelFixed(BlockManagerFixed):
-    pandas_kind = u'wide'
-    obj_type = Panel
-    is_shape_reversed = True
-
-    def write(self, obj, **kwargs):
-        obj._consolidate_inplace()
-        return super(PanelFixed, self).write(obj, **kwargs)
-
-
 class Table(Fixed):
 
     """ represent a table:
@@ -3899,85 +3879,11 @@ class LegacyTable(Table):
         if not self.read_axes(where=where, **kwargs):
             return None
 
-        lst_vals = [a.values for a in self.index_axes]
-        labels, levels = _factorize_from_iterables(lst_vals)
-        # labels and levels are tuples but lists are expected
-        labels = list(labels)
-        levels = list(levels)
-        N = [len(lvl) for lvl in levels]
-
-        # compute the key
-        key = _factor_indexer(N[1:], labels)
-
-        objs = []
-        if len(unique(key)) == len(key):
-
-            sorter, _ = algos.groupsort_indexer(
-                ensure_int64(key), np.prod(N))
-            sorter = ensure_platform_int(sorter)
-
-            # create the objs
-            for c in self.values_axes:
-
-                # the data need to be sorted
-                sorted_values = c.take_data().take(sorter, axis=0)
-                if sorted_values.ndim == 1:
-                    sorted_values = sorted_values.reshape(
-                        (sorted_values.shape[0], 1))
-
-                take_labels = [l.take(sorter) for l in labels]
-                items = Index(c.values)
-                block = _block2d_to_blocknd(
-                    values=sorted_values, placement=np.arange(len(items)),
-                    shape=tuple(N), labels=take_labels, ref_items=items)
-
-                # create the object
-                mgr = BlockManager([block], [items] + levels)
-                obj = self.obj_type(mgr)
-
-                # permute if needed
-                if self.is_transposed:
-                    obj = obj.transpose(
-                        *tuple(Series(self.data_orientation).argsort()))
-
-                objs.append(obj)
-
-        else:
-            raise NotImplementedError("Panel is removed in pandas 0.25.0")
-
-        # create the composite object
-        if len(objs) == 1:
-            wp = objs[0]
-        else:
-            wp = concat(objs, axis=0, verify_integrity=False)._consolidate()
-
-        # apply the selection filters & axis orderings
-        wp = self.process_axes(wp, columns=columns)
-
-        return wp
-
-
-class LegacyFrameTable(LegacyTable):
-
-    """ support the legacy frame table """
-    pandas_kind = u'frame_table'
-    table_type = u'legacy_frame'
-    obj_type = Panel
-
-    def read(self, *args, **kwargs):
-        return super(LegacyFrameTable, self).read(*args, **kwargs)['value']
-
-
-class LegacyPanelTable(LegacyTable):
-
-    """ support the legacy panel table """
-    table_type = u'legacy_panel'
-    obj_type = Panel
+        raise NotImplementedError("Panel is removed in pandas 0.25.0")
 
 
 class AppendableTable(LegacyTable):
-
-    """ suppor the new appendable table formats """
+    """ support the new appendable table formats """
     _indexables = None
     table_type = u'appendable'
 
@@ -4209,8 +4115,7 @@ class AppendableTable(LegacyTable):
 
 
 class AppendableFrameTable(AppendableTable):
-
-    """ suppor the new appendable table formats """
+    """ support the new appendable table formats """
     pandas_kind = u'frame_table'
     table_type = u'appendable_frame'
     ndim = 2

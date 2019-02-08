@@ -141,7 +141,6 @@ class Base(object):
 
 
 @pytest.mark.single
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
 
     def test_format_kwarg_in_constructor(self):
@@ -3983,30 +3982,6 @@ class TestHDFStore(Base):
             "b": [2, 3]
         })
         assert_frame_equal(expected, result)
-
-    def test_legacy_table_read(self, datapath):
-        # legacy table types
-        with ensure_clean_store(
-                datapath('io', 'data', 'legacy_hdf', 'legacy_table.h5'),
-                mode='r') as store:
-
-            with catch_warnings():
-                simplefilter("ignore", pd.io.pytables.IncompatibilityWarning)
-                store.select('df1')
-                store.select('df2')
-                store.select('wp1')
-
-                # force the frame
-                store.select('df2', typ='legacy_frame')
-
-                # old version warning
-                pytest.raises(
-                    Exception, store.select, 'wp1', 'minor_axis=B')
-
-                df2 = store.select('df2')
-                result = store.select('df2', 'index>df2.index[2]')
-                expected = df2[df2.index > df2.index[2]]
-                assert_frame_equal(expected, result)
 
     def test_copy(self):
 
