@@ -507,6 +507,7 @@ class Docstring(object):
         tree = ast.parse(self.method_source).body
         if tree:
             root = tree[0]
+
             def gather_returns(node):
                 gathered = [node] if isinstance(node, ast.Return) else []
                 for child in ast.iter_child_nodes(node):
