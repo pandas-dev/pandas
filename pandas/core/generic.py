@@ -6793,11 +6793,13 @@ class NDFrame(PandasObject, SelectionMixin):
         if self.ndim > 2:
             raise NotImplementedError("Interpolate has not been implemented "
                                       "on Panel and Panel 4D objects.")
+            
+        axis = self._get_axis_number(axis)
 
-        if axis in (0, 'index'):
+        if axis == 0:
             ax = self._info_axis_name
             _maybe_transposed_self = self
-        elif axis in (1, 'columns'):
+        elif axis == 1:
             _maybe_transposed_self = self.T
             ax = 1
         else:
@@ -6840,12 +6842,12 @@ class NDFrame(PandasObject, SelectionMixin):
                                     **kwargs)
 
         if inplace:
-            if axis in (1, 'columns'):
+            if axis == 1:
                 new_data = self._constructor(new_data).T._data
             self._update_inplace(new_data)
         else:
             res = self._constructor(new_data).__finalize__(self)
-            if axis in (1, 'columns'):
+            if axis == 1:
                 res = res.T
             return res
 
