@@ -1158,6 +1158,11 @@ class Timedelta(_Timedelta):
                                  "[weeks, days, hours, minutes, seconds, "
                                  "milliseconds, microseconds, nanoseconds]")
 
+        if unit in {'Y', 'y', 'M'}:
+            warnings.warn("M and Y units are deprecated and "
+                          "will be removed in a future version.",
+                          FutureWarning, stacklevel=1)
+
         if isinstance(value, Timedelta):
             value = value.value
         elif is_string_object(value):
@@ -1184,11 +1189,6 @@ class Timedelta(_Timedelta):
             raise ValueError(
                 "Value must be Timedelta, string, integer, "
                 "float, timedelta or convertible")
-
-        if unit in {'Y', 'y', 'M'}:
-            warnings.warn("M and Y units are deprecated and "
-                          "will be removed in a future version.",
-                          FutureWarning, stacklevel=1)
 
         if is_timedelta64_object(value):
             value = value.view('i8')
