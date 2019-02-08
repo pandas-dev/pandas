@@ -87,7 +87,7 @@ Bug Fixes
 
 **Other**
 
--
+- Bug in :meth:`Series.is_unique` where single occurrences of ``NaN`` were not considered unique (:issue:`25180`)
 -
 -
 
