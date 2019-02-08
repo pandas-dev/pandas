@@ -197,7 +197,6 @@ _TABLE_MAP = {
     u'appendable_multiseries': 'AppendableMultiSeriesTable',
     u'appendable_frame': 'AppendableFrameTable',
     u'appendable_multiframe': 'AppendableMultiFrameTable',
-    u'appendable_panel': 'AppendablePanelTable',
     u'worm': 'WORMTable',
     u'legacy_frame': 'LegacyFrameTable',
     u'legacy_panel': 'LegacyPanelTable',
@@ -326,8 +325,8 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
 
     See Also
     --------
-    pandas.DataFrame.to_hdf : Write a HDF file from a DataFrame.
-    pandas.HDFStore : Low-level access to HDF files.
+    DataFrame.to_hdf : Write a HDF file from a DataFrame.
+    HDFStore : Low-level access to HDF files.
 
     Examples
     --------
@@ -4418,24 +4417,6 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         ])
 
         return df
-
-
-class AppendablePanelTable(AppendableTable):
-
-    """ suppor the new appendable table formats """
-    table_type = u'appendable_panel'
-    ndim = 3
-    obj_type = Panel
-
-    def get_object(self, obj):
-        """ these are written transposed """
-        if self.is_transposed:
-            obj = obj.transpose(*self.data_orientation)
-        return obj
-
-    @property
-    def is_transposed(self):
-        return self.data_orientation != tuple(range(self.ndim))
 
 
 def _reindex_axis(obj, axis, labels, other=None):

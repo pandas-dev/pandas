@@ -195,7 +195,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     See Also
     --------
-    pandas.Categorical
+    Categorical
 
     Notes
     -----
