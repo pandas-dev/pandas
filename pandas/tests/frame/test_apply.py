@@ -319,9 +319,11 @@ class TestDataFrameApply():
         assert_series_equal(result, expected)
 
     def test_apply_reduce_rows_to_dict(self):
+        # GH 25196
         data = pd.DataFrame([[1, 2], [3, 4]])
         expected = pd.Series([{0: 1, 1: 3}, {0: 2, 1: 4}])
-        assert_series_equal(data.apply(dict), expected)
+        result = data.apply(dict)
+        assert_series_equal(result, expected)
 
     def test_apply_differently_indexed(self):
         df = DataFrame(np.random.randn(20, 10))
