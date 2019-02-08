@@ -242,12 +242,10 @@ class TestIntervalIndex(Base):
             [0, 0, 1], [1, 1, 2], closed=closed)
         tm.assert_index_equal(result, expected)
 
-    def test_unique(self, closed):
-        # unique non-overlapping
-        idx = IntervalIndex.from_tuples(
-            [(0, 1), (2, 3), (4, 5)], closed=closed)
-        assert idx.is_unique is True
-
+    def test_is_unique_interval(self, closed):
+        """
+        Interval specific tests for is_unique in addition to base class tests
+        """
         # unique overlapping - distinct endpoints
         idx = IntervalIndex.from_tuples([(0, 1), (0.5, 1.5)], closed=closed)
         assert idx.is_unique is True
@@ -259,15 +257,6 @@ class TestIntervalIndex(Base):
 
         # unique nested
         idx = IntervalIndex.from_tuples([(-1, 1), (-2, 2)], closed=closed)
-        assert idx.is_unique is True
-
-        # duplicate
-        idx = IntervalIndex.from_tuples(
-            [(0, 1), (0, 1), (2, 3)], closed=closed)
-        assert idx.is_unique is False
-
-        # empty
-        idx = IntervalIndex([], closed=closed)
         assert idx.is_unique is True
 
     def test_monotonic(self, closed):
