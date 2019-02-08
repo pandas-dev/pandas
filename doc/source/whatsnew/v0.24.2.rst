@@ -75,7 +75,7 @@ Bug Fixes
 
 **Reshaping**
 
--
+- Bug in generic ``interpolate`` function which failed to accept string values for axis parameter (:issue:`25190`)
 -
 -
 
