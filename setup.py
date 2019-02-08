@@ -22,6 +22,7 @@ from setuptools import setup, Command, find_packages
 #
 # ensure cwd is on sys.path
 # workaround bug in pip 19.0
+# This is needed to load versioneer that lies alongside the setup.py
 here = os.path.dirname(__file__)
 if here not in sys.path:
     sys.path.insert(0, here)
