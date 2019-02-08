@@ -166,7 +166,7 @@ def test_is_dict_like_passes(ll):
 
 @pytest.mark.parametrize("ll", [
     '1', 1, [1, 2], (1, 2), range(2), Index([1]),
-    dict, collections.defaultdict
+    dict, collections.defaultdict, Series
 ])
 def test_is_dict_like_fails(ll):
     assert not inference.is_dict_like(ll)
