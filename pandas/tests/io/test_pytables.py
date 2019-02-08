@@ -141,7 +141,6 @@ class Base(object):
 
 
 @pytest.mark.single
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
 
     def test_format_kwarg_in_constructor(self):

@@ -26,9 +26,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
-    DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, Panel,
-    PeriodIndex, Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat,
-    concat, isna, to_datetime)
+    DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, PeriodIndex,
+    Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat, concat,
+    isna, to_datetime)
 from pandas.core import config
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
@@ -170,7 +170,6 @@ _TYPE_MAP = {
     SparseSeries: u'sparse_series',
     DataFrame: u'frame',
     SparseDataFrame: u'sparse_frame',
-    Panel: u'wide',
 }
 
 # storer class map
@@ -182,7 +181,6 @@ _STORER_MAP = {
     u'sparse_series': 'SparseSeriesFixed',
     u'frame': 'FrameFixed',
     u'sparse_frame': 'SparseFrameFixed',
-    u'wide': 'PanelFixed',
 }
 
 # table class map
@@ -193,14 +191,11 @@ _TABLE_MAP = {
     u'appendable_frame': 'AppendableFrameTable',
     u'appendable_multiframe': 'AppendableMultiFrameTable',
     u'worm': 'WORMTable',
-    u'legacy_frame': 'LegacyFrameTable',
-    u'legacy_panel': 'LegacyPanelTable',
 }
 
 # axes map
 _AXES_MAP = {
     DataFrame: [0],
-    Panel: [1, 2]
 }
 
 # register our configuration options
@@ -859,7 +854,7 @@ class HDFStore(StringMixin):
         Parameters
         ----------
         key      : object
-        value    : {Series, DataFrame, Panel}
+        value    : {Series, DataFrame}
         format   : 'fixed(f)|table(t)', default is 'fixed'
             fixed(f) : Fixed format
                        Fast writing/reading. Not-appendable, nor searchable
@@ -941,7 +936,7 @@ class HDFStore(StringMixin):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, Panel}
+        value : {Series, DataFrame}
         format : 'table' is the default
             table(t) : table format
                        Write as a PyTables Table structure which may perform
@@ -3022,16 +3017,6 @@ class FrameFixed(BlockManagerFixed):
     obj_type = DataFrame
 
 
-class PanelFixed(BlockManagerFixed):
-    pandas_kind = u'wide'
-    obj_type = Panel
-    is_shape_reversed = True
-
-    def write(self, obj, **kwargs):
-        obj._consolidate_inplace()
-        return super(PanelFixed, self).write(obj, **kwargs)
-
-
 class Table(Fixed):
 
     """ represent a table:
@@ -3895,24 +3880,6 @@ class LegacyTable(Table):
             return None
 
         raise NotImplementedError("Panel is removed in pandas 0.25.0")
-
-
-class LegacyFrameTable(LegacyTable):
-
-    """ support the legacy frame table """
-    pandas_kind = u'frame_table'
-    table_type = u'legacy_frame'
-    obj_type = Panel
-
-    def read(self, *args, **kwargs):
-        return super(LegacyFrameTable, self).read(*args, **kwargs)['value']
-
-
-class LegacyPanelTable(LegacyTable):
-
-    """ support the legacy panel table """
-    table_type = u'legacy_panel'
-    obj_type = Panel
 
 
 class AppendableTable(LegacyTable):
