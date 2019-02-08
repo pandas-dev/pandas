@@ -441,18 +441,6 @@ class TestIndexing(object):
         assert idx_dec1.is_monotonic_decreasing is True
         assert idx.is_monotonic_decreasing is False
 
-    def test_is_unique(self):
-        # GH 17717
-        p0 = pd.Period('2017-09-01')
-        p1 = pd.Period('2017-09-02')
-        p2 = pd.Period('2017-09-03')
-
-        idx0 = pd.PeriodIndex([p0, p1, p2])
-        assert idx0.is_unique is True
-
-        idx1 = pd.PeriodIndex([p1, p1, p2])
-        assert idx1.is_unique is False
-
     def test_contains(self):
         # GH 17717
         p0 = pd.Period('2017-09-01')
