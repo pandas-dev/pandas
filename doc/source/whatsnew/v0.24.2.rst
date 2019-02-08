@@ -52,7 +52,7 @@ Bug Fixes
 **I/O**
 
 - Bug in reading a HDF5 table-format ``DataFrame`` created in Python 2, in Python 3 (:issue:`24925`)
-- Bug in retaining timezone in DateTimeIndex when saving and loading the DataFrame from msgpack. (:issue:`25148`)
+- Bug in retaining timezone in :class:`DateTimeIndex` when saving and loading the :class"`DataFrame` from ``msgpack``. (:issue:`25148`)
 -
 
 **Categorical**
