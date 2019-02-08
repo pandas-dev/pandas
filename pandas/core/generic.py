@@ -8576,7 +8576,7 @@ class NDFrame(PandasObject, SelectionMixin):
             cond = self._constructor(cond, **self._construct_axes_dict())
 
         # make sure we are boolean
-        fill_value = True if inplace else False
+        fill_value = bool(inplace)
         cond = cond.fillna(fill_value)
 
         msg = "Boolean array expected for the condition, not {dtype}"

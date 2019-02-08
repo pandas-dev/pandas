@@ -442,7 +442,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                            " with multiple grouping keys")
                     raise ValueError(msg)
 
-            converters = (get_converter(s) for s in index_sample)
+            converters = [get_converter(s) for s in index_sample]
             names = (tuple(f(n) for f, n in zip(converters, name))
                      for name in names)
 
