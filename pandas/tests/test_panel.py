@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0612,E1101
-
+from collections import OrderedDict
 from datetime import datetime
 import operator
 from warnings import catch_warnings, simplefilter
@@ -8,7 +8,7 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
-from pandas.compat import OrderedDict, StringIO, lrange, range, signature
+from pandas.compat import StringIO, lrange, range, signature
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_float_dtype
@@ -1653,61 +1653,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         panel.values[0, 1, 1] = np.nan
         assert notna(result.values[1, 0, 1])
 
-    def test_to_frame(self):
-        # filtered
-        filtered = self.panel.to_frame()
-        expected = self.panel.to_frame().dropna(how='any')
-        assert_frame_equal(filtered, expected)
-
-        # unfiltered
-        unfiltered = self.panel.to_frame(filter_observations=False)
-        assert_panel_equal(unfiltered.to_panel(), self.panel)
-
-        # names
-        assert unfiltered.index.names == ('major', 'minor')
-
-        # unsorted, round trip
-        df = self.panel.to_frame(filter_observations=False)
-        unsorted = df.take(np.random.permutation(len(df)))
-        pan = unsorted.to_panel()
-        assert_panel_equal(pan, self.panel)
-
-        # preserve original index names
-        df = DataFrame(np.random.randn(6, 2),
-                       index=[['a', 'a', 'b', 'b', 'c', 'c'],
-                              [0, 1, 0, 1, 0, 1]],
-                       columns=['one', 'two'])
-        df.index.names = ['foo', 'bar']
-        df.columns.name = 'baz'
-
-        rdf = df.to_panel().to_frame()
-        assert rdf.index.names == df.index.names
-        assert rdf.columns.names == df.columns.names
-
-    def test_to_frame_mixed(self):
-        panel = self.panel.fillna(0)
-        panel['str'] = 'foo'
-        panel['bool'] = panel['ItemA'] > 0
-
-        lp = panel.to_frame()
-        wp = lp.to_panel()
-        assert wp['bool'].values.dtype == np.bool_
-        # Previously, this was mutating the underlying
-        # index and changing its name
-        assert_frame_equal(wp['bool'], panel['bool'], check_names=False)
-
-        # GH 8704
-        # with categorical
-        df = panel.to_frame()
-        df['category'] = df['str'].astype('category')
-
-        # to_panel
-        # TODO: this converts back to object
-        p = df.to_panel()
-        expected = panel.copy()
-        expected['category'] = 'foo'
-        assert_panel_equal(p, expected)
-
     def test_to_frame_multi_major(self):
         idx = MultiIndex.from_tuples(
             [(1, 'one'), (1, 'two'), (2, 'one'), (2, 'two')])
@@ -1807,22 +1752,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             names=[None, None, 'minor'])
         expected = DataFrame({'i1': [1., 2], 'i2': [1., 2]}, index=exp_idx)
         assert_frame_equal(result, expected)
-
-    def test_to_panel_na_handling(self):
-        df = DataFrame(np.random.randint(0, 10, size=20).reshape((10, 2)),
-                       index=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
-                              [0, 1, 2, 3, 4, 5, 2, 3, 4, 5]])
-
-        panel = df.to_panel()
-        assert isna(panel[0].loc[1, [0, 1]]).all()
-
-    def test_to_panel_duplicates(self):
-        # #2441
-        df = DataFrame({'a': [0, 0, 1], 'b': [1, 1, 1], 'c': [1, 2, 3]})
-        idf = df.set_index(['a', 'b'])
-
-        with pytest.raises(ValueError, match='non-uniquely indexed'):
-            idf.to_panel()
 
     def test_panel_dups(self):
 
@@ -1929,21 +1858,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         assert_series_equal(mixed_panel.dtypes, shifted.dtypes)
 
     def test_tshift(self):
-        # PeriodIndex
-        ps = tm.makePeriodPanel()
-        shifted = ps.tshift(1)
-        unshifted = shifted.tshift(-1)
-
-        assert_panel_equal(unshifted, ps)
-
-        shifted2 = ps.tshift(freq='B')
-        assert_panel_equal(shifted, shifted2)
-
-        shifted3 = ps.tshift(freq=BDay())
-        assert_panel_equal(shifted, shifted3)
-
-        with pytest.raises(ValueError, match='does not match'):
-            ps.tshift(freq='M')
 
         # DatetimeIndex
         panel = make_test_panel()
@@ -2120,14 +2034,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         assert_frame_equal(self.panel['a'], self.panel.a)
         self.panel['i'] = self.panel['ItemA']
         assert_frame_equal(self.panel['i'], self.panel.i)
-
-    def test_from_frame_level1_unsorted(self):
-        tuples = [('MSFT', 3), ('MSFT', 2), ('AAPL', 2), ('AAPL', 1),
-                  ('MSFT', 1)]
-        midx = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.rand(5, 4), index=midx)
-        p = df.to_panel()
-        assert_frame_equal(p.minor_xs(2), df.xs(2, level=1).sort_index())
 
     def test_to_excel(self):
         try:
@@ -2404,39 +2310,10 @@ class TestPanelFrame(object):
         self.panel = panel.to_frame()
         self.unfiltered_panel = panel.to_frame(filter_observations=False)
 
-    def test_ops_differently_indexed(self):
-        # trying to set non-identically indexed panel
-        wp = self.panel.to_panel()
-        wp2 = wp.reindex(major=wp.major_axis[:-1])
-        lp2 = wp2.to_frame()
-
-        result = self.panel + lp2
-        assert_frame_equal(result.reindex(lp2.index), lp2 * 2)
-
-        # careful, mutation
-        self.panel['foo'] = lp2['ItemA']
-        assert_series_equal(self.panel['foo'].reindex(lp2.index),
-                            lp2['ItemA'],
-                            check_names=False)
-
     def test_ops_scalar(self):
         result = self.panel.mul(2)
         expected = DataFrame.__mul__(self.panel, 2)
         assert_frame_equal(result, expected)
-
-    def test_combineFrame(self):
-        wp = self.panel.to_panel()
-        result = self.panel.add(wp['ItemA'].stack(), axis=0)
-        assert_frame_equal(result.to_panel()['ItemA'], wp['ItemA'] * 2)
-
-    def test_combinePanel(self):
-        wp = self.panel.to_panel()
-        result = self.panel.add(self.panel)
-        wide_result = result.to_panel()
-        assert_frame_equal(wp['ItemA'] * 2, wide_result['ItemA'])
-
-        # one item
-        result = self.panel.add(self.panel.filter(['ItemA']))
 
     def test_combine_scalar(self):
         result = self.panel.mul(2)
@@ -2453,34 +2330,6 @@ class TestPanelFrame(object):
         result = self.panel + s
         expected = DataFrame.add(self.panel, s, axis=1)
         assert_frame_equal(result, expected)
-
-    def test_operators(self):
-        wp = self.panel.to_panel()
-        result = (self.panel + 1).to_panel()
-        assert_frame_equal(wp['ItemA'] + 1, result['ItemA'])
-
-    def test_arith_flex_panel(self):
-        ops = ['add', 'sub', 'mul', 'div',
-               'truediv', 'pow', 'floordiv', 'mod']
-        if not compat.PY3:
-            aliases = {}
-        else:
-            aliases = {'div': 'truediv'}
-        self.panel = self.panel.to_panel()
-
-        for n in [np.random.randint(-50, -1), np.random.randint(1, 50), 0]:
-            for op in ops:
-                alias = aliases.get(op, op)
-                f = getattr(operator, alias)
-                exp = f(self.panel, n)
-                result = getattr(self.panel, op)(n)
-                assert_panel_equal(result, exp, check_panel_type=True)
-
-                # rops
-                r_f = lambda x, y: f(y, x)
-                exp = r_f(self.panel, n)
-                result = getattr(self.panel, 'r' + op)(n)
-                assert_panel_equal(result, exp)
 
     def test_sort(self):
         def is_sorted(arr):
@@ -2501,45 +2350,6 @@ class TestPanelFrame(object):
             msg = 'sparsifying is not supported'
             with pytest.raises(NotImplementedError, match=msg):
                 self.panel.to_sparse
-
-    def test_truncate(self):
-        dates = self.panel.index.levels[0]
-        start, end = dates[1], dates[5]
-
-        trunced = self.panel.truncate(start, end).to_panel()
-        expected = self.panel.to_panel()['ItemA'].truncate(start, end)
-
-        # TODO truncate drops index.names
-        assert_frame_equal(trunced['ItemA'], expected, check_names=False)
-
-        trunced = self.panel.truncate(before=start).to_panel()
-        expected = self.panel.to_panel()['ItemA'].truncate(before=start)
-
-        # TODO truncate drops index.names
-        assert_frame_equal(trunced['ItemA'], expected, check_names=False)
-
-        trunced = self.panel.truncate(after=end).to_panel()
-        expected = self.panel.to_panel()['ItemA'].truncate(after=end)
-
-        # TODO truncate drops index.names
-        assert_frame_equal(trunced['ItemA'], expected, check_names=False)
-
-        # truncate on dates that aren't in there
-        wp = self.panel.to_panel()
-        new_index = wp.major_axis[::5]
-
-        wp2 = wp.reindex(major=new_index)
-
-        lp2 = wp2.to_frame()
-        lp_trunc = lp2.truncate(wp.major_axis[2], wp.major_axis[-2])
-
-        wp_trunc = wp2.truncate(wp.major_axis[2], wp.major_axis[-2])
-
-        assert_panel_equal(wp_trunc, lp_trunc.to_panel())
-
-        # throw proper exception
-        pytest.raises(Exception, lp2.truncate, wp.major_axis[-2],
-                      wp.major_axis[2])
 
     def test_axis_dummies(self):
         from pandas.core.reshape.reshape import make_axis_dummies
@@ -2566,20 +2376,6 @@ class TestPanelFrame(object):
         minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
         dummies = get_dummies(self.panel['Label'])
         tm.assert_numpy_array_equal(dummies.values, minor_dummies.values)
-
-    def test_mean(self):
-        means = self.panel.mean(level='minor')
-
-        # test versus Panel version
-        wide_means = self.panel.to_panel().mean('major')
-        assert_frame_equal(means, wide_means)
-
-    def test_sum(self):
-        sums = self.panel.sum(level='minor')
-
-        # test versus Panel version
-        wide_sums = self.panel.to_panel().sum('major')
-        assert_frame_equal(sums, wide_sums)
 
     def test_count(self):
         index = self.panel.index
