@@ -6793,7 +6793,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if self.ndim > 2:
             raise NotImplementedError("Interpolate has not been implemented "
                                       "on Panel and Panel 4D objects.")
-            
+
         axis = self._get_axis_number(axis)
 
         if axis == 0:
