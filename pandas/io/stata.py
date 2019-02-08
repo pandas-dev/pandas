@@ -100,8 +100,8 @@ DataFrame or StataReader
 
 See Also
 --------
-pandas.io.stata.StataReader : Low-level reader for Stata data files.
-pandas.DataFrame.to_stata: Export Stata data files.
+io.stata.StataReader : Low-level reader for Stata data files.
+DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------

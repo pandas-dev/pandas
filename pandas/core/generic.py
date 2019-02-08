@@ -988,7 +988,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.NDFrame.rename_axis
+        NDFrame.rename_axis
 
         Examples
         --------
@@ -1863,8 +1863,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.Series.dropna
-        pandas.DataFrame.dropna
+        Series.dropna
+        DataFrame.dropna
 
         Notes
         -----
@@ -5274,8 +5274,8 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         DataFrame.to_numpy : Recommended alternative to this method.
-        pandas.DataFrame.index : Retrieve the index labels.
-        pandas.DataFrame.columns : Retrieving the column names.
+        DataFrame.index : Retrieve the index labels.
+        DataFrame.columns : Retrieving the column names.
 
         Notes
         -----
@@ -5346,7 +5346,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Return an ndarray after converting sparse values to dense.
 
         This is the same as ``.values`` for non-sparse data. For sparse
-        data contained in a `pandas.SparseArray`, the data are first
+        data contained in a `SparseArray`, the data are first
         converted to a dense representation.
 
         Returns
@@ -5357,7 +5357,7 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         values : Numpy representation of DataFrame.
-        pandas.SparseArray : Container for sparse data.
+        SparseArray : Container for sparse data.
 
         Examples
         --------
@@ -5478,7 +5478,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.ftypes : Dtype and sparsity information.
+        DataFrame.ftypes : Dtype and sparsity information.
 
         Examples
         --------
@@ -5514,8 +5514,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.dtypes: Series with just dtype information.
-        pandas.SparseDataFrame : Container for sparse tabular data.
+        DataFrame.dtypes: Series with just dtype information.
+        SparseDataFrame : Container for sparse tabular data.
 
         Notes
         -----
