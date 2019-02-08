@@ -51,7 +51,7 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- Removed (parts of) :class:`Panel` (:issue:`25047`)
+- Removed (parts of) :class:`Panel` (:issue:`25047`,:issue:`25191`,:issue:`25231`)
 -
 -
 -
