@@ -3883,8 +3883,7 @@ class LegacyTable(Table):
 
 
 class AppendableTable(LegacyTable):
-
-    """ suppor the new appendable table formats """
+    """ support the new appendable table formats """
     _indexables = None
     table_type = u'appendable'
 
@@ -4116,8 +4115,7 @@ class AppendableTable(LegacyTable):
 
 
 class AppendableFrameTable(AppendableTable):
-
-    """ suppor the new appendable table formats """
+    """ support the new appendable table formats """
     pandas_kind = u'frame_table'
     table_type = u'appendable_frame'
     ndim = 2
