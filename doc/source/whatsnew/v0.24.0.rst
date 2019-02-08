@@ -1327,7 +1327,6 @@ Deprecations
 - ``Series.cat.categorical``, ``Series.cat.name`` and ``Sersies.cat.index`` have been deprecated. Use the attributes on ``Series.cat`` or ``Series`` directly. (:issue:`24751`).
 - Passing a dtype without a precision like ``np.dtype('datetime64')`` or ``timedelta64`` to :class:`Index`, :class:`DatetimeIndex` and :class:`TimedeltaIndex` is now deprecated. Use the nanosecond-precision dtype instead (:issue:`24753`).
 
-
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
 Integer Addition/Subtraction with Datetimes and Timedeltas is Deprecated
