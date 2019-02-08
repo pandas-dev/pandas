@@ -42,10 +42,7 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
--
--
--
-
+- Deprecated the `M (months)` and `Y (year)` `units` parameter of :func: `pandas.to_timedelta`, :func: `pandas.Timedelta` and :func: `pandas.TimedeltaIndex` (:issue:`16344`)
 
 .. _whatsnew_0250.prior_deprecations:
 
