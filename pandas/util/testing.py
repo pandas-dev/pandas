@@ -34,7 +34,7 @@ from pandas.core.dtypes.missing import array_equivalent
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
-    IntervalIndex, MultiIndex, Panel, RangeIndex, Series, bdate_range)
+    IntervalIndex, MultiIndex, RangeIndex, Series, bdate_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
@@ -2050,14 +2050,6 @@ def makeMixedDataFrame():
 def makePeriodFrame(nper=None):
     data = getPeriodData(nper)
     return DataFrame(data)
-
-
-def makePanel(nper=None):
-    with warnings.catch_warnings(record=True):
-        warnings.filterwarnings("ignore", "\\nPanel", FutureWarning)
-        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-        data = {c: makeTimeDataFrame(nper) for c in cols}
-        return Panel.fromDict(data)
 
 
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
