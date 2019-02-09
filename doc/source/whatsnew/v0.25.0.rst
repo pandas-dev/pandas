@@ -158,6 +158,7 @@ I/O
 ^^^
 
 - Fixed bug in missing text when using :meth:`to_clipboard` if copying utf-16 characters in Python 3 on Windows (:issue:`25040`)
+- Bug in :func:`read_json` doing type coercion for ``orient='table'`` (:issue:`21345`)
 -
 -
 -
