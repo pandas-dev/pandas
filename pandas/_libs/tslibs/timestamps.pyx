@@ -1187,12 +1187,12 @@ class Timestamp(_Timestamp):
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous,
                                        nonexistent=nonexistent)[0]
-            return Timestamp(value, tz=tz)
+            return Timestamp(value, tz=self.tz)
         else:
             if tz is None:
                 # reset tz
                 value = tz_convert_single(self.value, UTC, self.tz)
-                return Timestamp(value, tz=None)
+                return Timestamp(value, tz=self.tz)
             else:
                 raise TypeError('Cannot localize tz-aware Timestamp, use '
                                 'tz_convert for conversions')
@@ -1222,7 +1222,7 @@ class Timestamp(_Timestamp):
                             'tz_localize to localize')
         else:
             # Same UTC timestamp, different time zone
-            return Timestamp(self.value, tz=tz)
+            return Timestamp(self.value, tz=self.tz)
 
     astimezone = tz_convert
 
