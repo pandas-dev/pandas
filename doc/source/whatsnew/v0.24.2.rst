@@ -24,6 +24,8 @@ Fixed Regressions
 
 - Fixed issue in ``DataFrame`` construction with passing a mixed list of mixed types could segfault. (:issue:`25075`)
 
+- Fixed regression in :meth:`DataFrame.duplicated()`, where empty dataframe was not returning a boolean dtyped Series. (:issue:`25184`)
+
 .. _whatsnew_0242.enhancements:
 
 Enhancements

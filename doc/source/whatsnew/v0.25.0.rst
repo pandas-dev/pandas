@@ -68,7 +68,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Bug in using duplicated with empty dataframes (:issue:`25184`)
+-
 
 Categorical
 ^^^^^^^^^^^
