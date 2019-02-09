@@ -182,6 +182,12 @@ def test_drop_duplicates():
         assert df.duplicated(keep=keep).sum() == 0
 
 
+def test_duplicated_on_empty_frame_gives_back_frame():
+    df = DataFrame(columns=['a', 'b'])
+    dupes = df.duplicated('a')
+    tm.assert_frame_equal(df[dupes], df)
+
+
 def test_drop_duplicates_with_duplicate_column_names():
     # GH17836
     df = DataFrame([
