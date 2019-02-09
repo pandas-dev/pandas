@@ -2167,8 +2167,7 @@ class Categorical(ExtensionArray, PandasObject):
         r, counts = libalgos.groupsort_indexer(self.codes.astype('int64'),
                                                categories.size)
         counts = counts.cumsum()
-        result = [r[counts[indexer]:counts[indexer + 1]]
-                  for indexer in range(len(counts) - 1)]
+        result = (r[start:end] for start, end in zip(counts, counts[1:]))
         result = dict(zip(categories, result))
         return result
 
