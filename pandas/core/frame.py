@@ -1535,8 +1535,8 @@ class DataFrame(NDFrame):
                     result_index = Index([], name=index)
             else:
                 try:
-                    to_remove = [arr_columns.get_loc(field) for field in index]
-                    index_data = [arrays[i] for i in to_remove]
+                    index_data = [arrays[arr_columns.get_loc(field)]
+                                  for field in index]
                     result_index = ensure_index_from_sequences(index_data,
                                                                names=index)
 

@@ -89,9 +89,9 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         # the original values are ints
         # as we grouped with a NaN value
         # and then dropped, coercing to floats
-        for v in [v for v in values if v in data and v in agged]:
-            if (is_integer_dtype(data[v]) and
-                    not is_integer_dtype(agged[v])):
+        for v in values:
+            if (v in data and is_integer_dtype(data[v]) and
+                    v in agged and not is_integer_dtype(agged[v])):
                 agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
