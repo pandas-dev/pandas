@@ -252,7 +252,7 @@ class FilterBinOp(BinOp):
                              .format(slf=self))
 
         rhs = self.conform(self.rhs)
-        values = [TermValue(v, v, self.kind) for v in rhs]
+        values = [TermValue(v, v, self.kind).value for v in rhs]
 
         if self.is_in_table:
 
@@ -263,7 +263,7 @@ class FilterBinOp(BinOp):
                 self.filter = (
                     self.lhs,
                     filter_op,
-                    pd.Index([v.value for v in values]))
+                    pd.Index(values))
 
                 return self
             return None
@@ -275,7 +275,7 @@ class FilterBinOp(BinOp):
             self.filter = (
                 self.lhs,
                 filter_op,
-                pd.Index([v.value for v in values]))
+                pd.Index(values))
 
         else:
             raise TypeError("passing a filterable condition to a non-table "

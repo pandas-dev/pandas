@@ -561,7 +561,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             else:
                 mask = self._mask | mask
 
-            result[mask] = True if op_name == 'ne' else False
+            result[mask] = op_name == 'ne'
             return result
 
         name = '__{name}__'.format(name=op.__name__)

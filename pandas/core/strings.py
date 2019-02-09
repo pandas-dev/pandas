@@ -1872,7 +1872,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if expand is None:
             # infer from ndim if expand is not specified
-            expand = False if result.ndim == 1 else True
+            expand = result.ndim != 1
 
         elif expand is True and not isinstance(self._orig, Index):
             # required when expand=True is explicitly specified

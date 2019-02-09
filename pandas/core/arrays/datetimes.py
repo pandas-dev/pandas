@@ -128,7 +128,7 @@ def _dt_array_cmp(cls, op):
     Wrap comparison operations to convert datetime-like to datetime64
     """
     opname = '__{name}__'.format(name=op.__name__)
-    nat_result = True if opname == '__ne__' else False
+    nat_result = opname == '__ne__'
 
     def wrapper(self, other):
         if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):

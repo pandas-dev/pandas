@@ -1462,8 +1462,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
         # reindex `result`, and then reset the in-axis grouper columns.
 
         # Select in-axis groupers
-        in_axis_grps = [(i, ping.name) for (i, ping)
-                        in enumerate(groupings) if ping.in_axis]
+        in_axis_grps = ((i, ping.name) for (i, ping)
+                        in enumerate(groupings) if ping.in_axis)
         g_nums, g_names = zip(*in_axis_grps)
 
         result = result.drop(labels=list(g_names), axis=1)

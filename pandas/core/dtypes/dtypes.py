@@ -414,8 +414,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             cat_array = hash_tuples(categories)
         else:
             if categories.dtype == 'O':
-                types = [type(x) for x in categories]
-                if not len(set(types)) == 1:
+                if len({type(x) for x in categories}) != 1:
                     # TODO: hash_array doesn't handle mixed types. It casts
                     # everything to a str first, which means we treat
                     # {'1', '2'} the same as {'1', 2}
