@@ -1,4 +1,4 @@
-import subprocess
+import subprocess  # noqa: F401
 
 import pytest
 
@@ -78,14 +78,16 @@ def test_detect_console_encoding_fallback_to_default(monkeypatch, std, locale):
 
 
 @pytest.mark.parametrize("size", ['', ['']])
-def test_terminal_unknown_dimensions(size):
+def test_terminal_unknown_dimensions(monkeypatch, size):
     mock = pytest.importorskip("unittest.mock")
 
     def communicate(*args, **kwargs):
         return size
 
-    with mock.patch.object(subprocess.Popen, "communicate",
-                           side_effect=communicate):
-        result = _get_terminal_size_tput()
+    monkeypatch.setattr('subprocess.Popen', mock.Mock())
+    monkeypatch.setattr('subprocess.Popen.return_value.returncode', None)
+    monkeypatch.setattr(
+        'subprocess.Popen.return_value.communicate', communicate)
+    result = _get_terminal_size_tput()
 
     assert result is None
