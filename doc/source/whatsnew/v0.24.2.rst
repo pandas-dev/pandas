@@ -51,7 +51,7 @@ Bug Fixes
 
 **I/O**
 
-- Better handling of terminal printing when the terminal dimensions are not known (#25080);
+- Better handling of terminal printing when the terminal dimensions are not known (:issue:`25080`);
 -
 -
 
