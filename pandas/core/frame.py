@@ -34,7 +34,7 @@ from pandas.util._validators import (validate_bool_kwarg,
 
 from pandas import compat
 from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
-                           PY36, raise_with_traceback,
+                           PY36, raise_with_traceback, Iterator,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
@@ -4130,10 +4130,9 @@ class DataFrame(NDFrame):
                 # arrays are fine as long as they are one-dimensional
                 if getattr(col, 'ndim', 1) > 1:
                     raise ValueError(err_msg)
-            elif is_list_like(col) and not hasattr(col, '__len__'):
+            elif isinstance(col, Iterator):
                 # various iterators/generators are hashable, but should not
-                # raise a KeyError; we identify them by their lack of __len__.
-                # hashable listlikes with __len__ get tested as keys below.
+                # raise a KeyError; other list-likes get tested as keys below.
                 tipo = type(col)
                 raise TypeError(err_msg + ' Received column of '
                                 'type {}'.format(tipo))
