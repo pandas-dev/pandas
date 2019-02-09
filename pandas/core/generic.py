@@ -986,7 +986,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.NDFrame.rename_axis
+        NDFrame.rename_axis
 
         Examples
         --------
@@ -1564,13 +1564,13 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         is_label: bool
         """
-        axis = self._get_axis_number(axis)
-        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_is_label_reference is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
+        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
         return (key is not None and
                 is_hashable(key) and
@@ -1623,14 +1623,13 @@ class NDFrame(PandasObject, SelectionMixin):
         ------
         ValueError: `key` is ambiguous
         """
-
-        axis = self._get_axis_number(axis)
-        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_check_label_or_level_ambiguity is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
+        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
         if (key is not None and
                 is_hashable(key) and
@@ -1689,14 +1688,13 @@ class NDFrame(PandasObject, SelectionMixin):
             if `key` is ambiguous. This will become an ambiguity error in a
             future version
         """
-
-        axis = self._get_axis_number(axis)
-        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_get_label_or_level_values is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
+        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
 
         if self._is_label_reference(key, axis=axis):
             self._check_label_or_level_ambiguity(key, axis=axis)
@@ -1753,13 +1751,12 @@ class NDFrame(PandasObject, SelectionMixin):
         ValueError
             if any `keys` match neither a label nor a level
         """
-
-        axis = self._get_axis_number(axis)
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_drop_labels_or_levels is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
 
         # Validate keys
         keys = com.maybe_make_list(keys)
@@ -1861,8 +1858,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.Series.dropna
-        pandas.DataFrame.dropna
+        Series.dropna
+        DataFrame.dropna
 
         Notes
         -----
@@ -4951,10 +4948,10 @@ class NDFrame(PandasObject, SelectionMixin):
     Returns
     -------
     DataFrame, Series or scalar
-        if DataFrame.agg is called with a single function, returns a Series
-        if DataFrame.agg is called with several functions, returns a DataFrame
-        if Series.agg is called with single function, returns a scalar
-        if Series.agg is called with several functions, returns a Series
+        If DataFrame.agg is called with a single function, returns a Series
+        If DataFrame.agg is called with several functions, returns a DataFrame
+        If Series.agg is called with single function, returns a scalar
+        If Series.agg is called with several functions, returns a Series
 
     %(see_also)s
 
@@ -5272,8 +5269,8 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         DataFrame.to_numpy : Recommended alternative to this method.
-        pandas.DataFrame.index : Retrieve the index labels.
-        pandas.DataFrame.columns : Retrieving the column names.
+        DataFrame.index : Retrieve the index labels.
+        DataFrame.columns : Retrieving the column names.
 
         Notes
         -----
@@ -5344,7 +5341,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Return an ndarray after converting sparse values to dense.
 
         This is the same as ``.values`` for non-sparse data. For sparse
-        data contained in a `pandas.SparseArray`, the data are first
+        data contained in a `SparseArray`, the data are first
         converted to a dense representation.
 
         Returns
@@ -5355,7 +5352,7 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         values : Numpy representation of DataFrame.
-        pandas.SparseArray : Container for sparse data.
+        SparseArray : Container for sparse data.
 
         Examples
         --------
@@ -5476,7 +5473,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.ftypes : Dtype and sparsity information.
+        DataFrame.ftypes : Dtype and sparsity information.
 
         Examples
         --------
@@ -5512,8 +5509,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.dtypes: Series with just dtype information.
-        pandas.SparseDataFrame : Container for sparse tabular data.
+        DataFrame.dtypes: Series with just dtype information.
+        SparseDataFrame : Container for sparse tabular data.
 
         Notes
         -----
@@ -6878,10 +6875,10 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         scalar, Series, or DataFrame
 
-           * scalar : when `self` is a Series and `where` is a scalar
-           * Series: when `self` is a Series and `where` is an array-like,
+           Scalar : when `self` is a Series and `where` is a scalar
+           Series: when `self` is a Series and `where` is an array-like,
              or when `self` is a DataFrame and `where` is a scalar
-           * DataFrame : when `self` is a DataFrame and `where` is an
+           DataFrame : when `self` is a DataFrame and `where` is an
              array-like
 
         See Also
@@ -8579,7 +8576,7 @@ class NDFrame(PandasObject, SelectionMixin):
             cond = self._constructor(cond, **self._construct_axes_dict())
 
         # make sure we are boolean
-        fill_value = True if inplace else False
+        fill_value = bool(inplace)
         cond = cond.fillna(fill_value)
 
         msg = "Boolean array expected for the condition, not {dtype}"
@@ -9994,8 +9991,7 @@ class NDFrame(PandasObject, SelectionMixin):
             cls, 'all', name, name2, axis_descr, _all_desc, nanops.nanall,
             _all_see_also, _all_examples, empty_value=True)
 
-        @Substitution(outname='mad',
-                      desc="Return the mean absolute deviation of the values "
+        @Substitution(desc="Return the mean absolute deviation of the values "
                            "for the requested axis.",
                       name1=name, name2=name2, axis_descr=axis_descr,
                       min_count='', see_also='', examples='')
@@ -10036,8 +10032,7 @@ class NDFrame(PandasObject, SelectionMixin):
             "ddof argument",
             nanops.nanstd)
 
-        @Substitution(outname='compounded',
-                      desc="Return the compound percentage of the values for "
+        @Substitution(desc="Return the compound percentage of the values for "
                       "the requested axis.", name1=name, name2=name2,
                       axis_descr=axis_descr,
                       min_count='', see_also='', examples='')
@@ -10127,7 +10122,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.ptp = _make_stat_function(
             cls, 'ptp', name, name2, axis_descr,
-            """Returns the difference between the maximum value and the
+            """Return the difference between the maximum value and the
             minimum value in the object. This is the equivalent of the
             ``numpy.ndarray`` method ``ptp``.\n\n.. deprecated:: 0.24.0
                 Use numpy.ptp instead""",
@@ -10245,8 +10240,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
 def _doc_parms(cls):
     """Return a tuple of the doc parms."""
-    axis_descr = "{%s}" % ', '.join(["{0} ({1})".format(a, i)
-                                     for i, a in enumerate(cls._AXIS_ORDERS)])
+    axis_descr = "{%s}" % ', '.join("{0} ({1})".format(a, i)
+                                    for i, a in enumerate(cls._AXIS_ORDERS))
     name = (cls._constructor_sliced.__name__
             if cls._AXIS_LEN > 1 else 'scalar')
     name2 = cls.__name__
@@ -10274,7 +10269,7 @@ numeric_only : bool, default None
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)
+%(name1)s or %(name2)s (if level specified)
 %(see_also)s
 %(examples)s\
 """
@@ -10300,7 +10295,7 @@ numeric_only : boolean, default None
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)\n"""
+%(name1)s or %(name2)s (if level specified)\n"""
 
 _bool_doc = """
 %(desc)s
@@ -10419,7 +10414,7 @@ skipna : boolean, default True
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s\n
+%(name1)s or %(name2)s\n
 See Also
 --------
 core.window.Expanding.%(accum_func_name)s : Similar functionality
@@ -10912,7 +10907,7 @@ min_count : int, default 0
 
 def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
                                   f, see_also='', examples=''):
-    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+    @Substitution(desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, min_count=_min_count_stub,
                   see_also=see_also, examples=examples)
     @Appender(_num_doc)
@@ -10940,7 +10935,7 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
 
 def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
                         see_also='', examples=''):
-    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+    @Substitution(desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, min_count='', see_also=see_also,
                   examples=examples)
     @Appender(_num_doc)
@@ -10964,7 +10959,7 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
 
 
 def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
-    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+    @Substitution(desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr)
     @Appender(_num_ddof_doc)
     def stat_func(self, axis=None, skipna=None, level=None, ddof=1,
@@ -10985,7 +10980,7 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
 
 def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
                        accum_func, accum_func_name, mask_a, mask_b, examples):
-    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+    @Substitution(desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, accum_func_name=accum_func_name,
                   examples=examples)
     @Appender(_cnum_doc)
@@ -11020,7 +11015,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
 
 def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
                            see_also, examples, empty_value):
-    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+    @Substitution(desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, see_also=see_also, examples=examples,
                   empty_value=empty_value)
     @Appender(_bool_doc)

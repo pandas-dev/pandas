@@ -45,8 +45,8 @@ class DtypeWarning(Warning):
 
     See Also
     --------
-    pandas.read_csv : Read CSV (comma-separated) file into a DataFrame.
-    pandas.read_table : Read general delimited file into a DataFrame.
+    read_csv : Read CSV (comma-separated) file into a DataFrame.
+    read_table : Read general delimited file into a DataFrame.
 
     Notes
     -----

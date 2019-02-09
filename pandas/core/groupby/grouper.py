@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 
 import pandas.compat as compat
-from pandas.compat import callable, zip
+from pandas.compat import zip
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -195,9 +195,9 @@ class Grouper(object):
         return self.grouper.groups
 
     def __repr__(self):
-        attrs_list = ["{}={!r}".format(attr_name, getattr(self, attr_name))
+        attrs_list = ("{}={!r}".format(attr_name, getattr(self, attr_name))
                       for attr_name in self._attributes
-                      if getattr(self, attr_name) is not None]
+                      if getattr(self, attr_name) is not None)
         attrs = ", ".join(attrs_list)
         cls_name = self.__class__.__name__
         return "{}({})".format(cls_name, attrs)

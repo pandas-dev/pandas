@@ -81,7 +81,7 @@ class Styler(object):
 
     See Also
     --------
-    pandas.DataFrame.style
+    DataFrame.style
 
     Notes
     -----
@@ -433,7 +433,7 @@ class Styler(object):
         Returns
         -------
         rendered : str
-            the rendered HTML
+            The rendered HTML
 
         Notes
         -----
@@ -1223,7 +1223,7 @@ class Styler(object):
         Returns
         -------
         MyStyler : subclass of Styler
-            has the correct ``env`` and ``template`` class attributes set.
+            Has the correct ``env`` and ``template`` class attributes set.
         """
         loader = ChoiceLoader([
             FileSystemLoader(searchpath),
