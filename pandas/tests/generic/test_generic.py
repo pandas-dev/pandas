@@ -740,22 +740,10 @@ class TestNDFrame(object):
             tm.assert_series_equal(s.squeeze(), s)
         for df in [tm.makeTimeDataFrame()]:
             tm.assert_frame_equal(df.squeeze(), df)
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            for p in [tm.makePanel()]:
-                tm.assert_panel_equal(p.squeeze(), p)
 
         # squeezing
         df = tm.makeTimeDataFrame().reindex(columns=['A'])
         tm.assert_series_equal(df.squeeze(), df['A'])
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            p = tm.makePanel().reindex(items=['ItemA'])
-            tm.assert_frame_equal(p.squeeze(), p['ItemA'])
-
-            p = tm.makePanel().reindex(items=['ItemA'], minor_axis=['A'])
-            tm.assert_series_equal(p.squeeze(), p.loc['ItemA', :, 'A'])
 
         # don't fail with 0 length dimensions GH11229 & GH8999
         empty_series = Series([], name='five')
@@ -789,22 +777,12 @@ class TestNDFrame(object):
         tm.assert_series_equal(np.squeeze(df), df['A'])
 
     def test_transpose(self):
-        msg = (r"transpose\(\) got multiple values for "
-               r"keyword argument 'axes'")
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
                   tm.makeObjectSeries()]:
             # calls implementation in pandas/core/base.py
             tm.assert_series_equal(s.transpose(), s)
         for df in [tm.makeTimeDataFrame()]:
             tm.assert_frame_equal(df.transpose().transpose(), df)
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            for p in [tm.makePanel()]:
-                tm.assert_panel_equal(p.transpose(2, 0, 1)
-                                      .transpose(1, 2, 0), p)
-                with pytest.raises(TypeError, match=msg):
-                    p.transpose(2, 0, 1, axes=(2, 0, 1))
 
     def test_numpy_transpose(self):
         msg = "the 'axes' parameter is not supported"
@@ -821,13 +799,6 @@ class TestNDFrame(object):
         with pytest.raises(ValueError, match=msg):
             np.transpose(df, axes=1)
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            p = tm.makePanel()
-            tm.assert_panel_equal(np.transpose(
-                np.transpose(p, axes=(2, 0, 1)),
-                axes=(1, 2, 0)), p)
-
     def test_take(self):
         indices = [1, 5, -2, 6, 3, -1]
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
@@ -843,27 +814,12 @@ class TestNDFrame(object):
                                  columns=df.columns)
             tm.assert_frame_equal(out, expected)
 
-        indices = [-3, 2, 0, 1]
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            for p in [tm.makePanel()]:
-                out = p.take(indices)
-                expected = Panel(data=p.values.take(indices, axis=0),
-                                 items=p.items.take(indices),
-                                 major_axis=p.major_axis,
-                                 minor_axis=p.minor_axis)
-                tm.assert_panel_equal(out, expected)
-
     def test_take_invalid_kwargs(self):
         indices = [-3, 2, 0, 1]
         s = tm.makeFloatSeries()
         df = tm.makeTimeDataFrame()
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            p = tm.makePanel()
-
-        for obj in (s, df, p):
+        for obj in (s, df):
             msg = r"take\(\) got an unexpected keyword argument 'foo'"
             with pytest.raises(TypeError, match=msg):
                 obj.take(indices, foo=2)
@@ -965,12 +921,6 @@ class TestNDFrame(object):
         assert a.equals(d)
         assert a.equals(e)
         assert e.equals(f)
-
-    def test_describe_raises(self):
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            with pytest.raises(NotImplementedError):
-                tm.makePanel().describe()
 
     def test_pipe(self):
         df = DataFrame({'A': [1, 2, 3]})

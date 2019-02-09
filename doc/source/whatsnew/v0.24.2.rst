@@ -22,6 +22,8 @@ Fixed Regressions
 
 - Fixed regression in :meth:`DataFrame.all` and :meth:`DataFrame.any` where ``bool_only=True`` was ignored (:issue:`25101`)
 
+- Fixed issue in ``DataFrame`` construction with passing a mixed list of mixed types could segfault. (:issue:`25075`)
+
 .. _whatsnew_0242.enhancements:
 
 Enhancements
@@ -86,7 +88,7 @@ Bug Fixes
 
 **Other**
 
--
+- Bug in :meth:`Series.is_unique` where single occurrences of ``NaN`` were not considered unique (:issue:`25180`)
 -
 -
 
