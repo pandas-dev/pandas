@@ -1209,6 +1209,15 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = pd.read_json(dfjson, orient='table')
         assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(raises=ValueError)
+    @pytest.mark.parametrize('dtype', [True, False, {'b': int, 'c': int}])
+    def test_error_read_json_table_dtype(self, dtype):
+        # GH21345
+        expected = pd.DataFrame({'a': [1, 2], 'b': [3., 4.], 'c': ['5', '6']})
+        dfjson = expected.to_json(orient='table')
+        result = pd.read_json(dfjson, orient='table', dtype=dtype)
+        assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize('data, expected', [
         (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']),
             {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
