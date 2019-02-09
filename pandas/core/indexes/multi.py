@@ -1391,7 +1391,7 @@ class MultiIndex(Index):
         Returns
         -------
         values : Index
-            ``values`` is a level of this MultiIndex converted to
+            Values is a level of this MultiIndex converted to
             a single :class:`Index` (or subclass thereof).
 
         Examples
