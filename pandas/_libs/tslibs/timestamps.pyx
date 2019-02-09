@@ -1192,7 +1192,7 @@ class Timestamp(_Timestamp):
             if tz is None:
                 # reset tz
                 value = tz_convert_single(self.value, UTC, self.tz)
-                return Timestamp(value, tz=None, freq=self.freq)
+                return Timestamp(value, tz=tz, freq=self.freq)
             else:
                 raise TypeError('Cannot localize tz-aware Timestamp, use '
                                 'tz_convert for conversions')
