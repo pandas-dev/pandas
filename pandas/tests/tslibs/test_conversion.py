@@ -66,12 +66,3 @@ def test_length_zero_copy(dtype, copy):
     arr = np.array([], dtype=dtype)
     result = conversion.ensure_datetime64ns(arr, copy=copy)
     assert result.base is (None if copy else arr)
-
-
-def test_tz_convert_freq():
-    import pandas as pd
-    import pytz
-    t1 = pd.Timestamp('2019-01-01 10:00', freq='H')
-    assert t1.tz_localize(pytz.utc).freq == t1.freq
-    t2 = pd.Timestamp('2019-01-02 12:00', tz=pytz.utc, freq='T')
-    assert t2.tz_convert(pytz.utc).freq == t2.freq

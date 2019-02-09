@@ -780,6 +780,13 @@ class TestTimestamp(object):
         stamp = Timestamp(datetime(2011, 1, 1))
         assert d[stamp] == 5
 
+    def test_tz_convert_freq(self, tz_naive_fixture):
+        # GH25241
+        t1 = Timestamp('2019-01-01 10:00', freq='H')
+        assert t1.tz_localize(tz=tz_naive_fixture).freq == t1.freq
+        t2 = Timestamp('2019-01-02 12:00', tz='UTC', freq='T')
+        assert t2.tz_convert(tz='UTC') == t2
+
 
 class TestTimestampNsOperations(object):
 

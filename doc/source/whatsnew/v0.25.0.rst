@@ -93,7 +93,7 @@ Timezones
 ^^^^^^^^^
 
 - Bug in :func:`to_datetime` with ``utc=True`` and datetime strings that would apply previously parsed UTC offsets to subsequent arguments (:issue:`24992`)
--
+- Bug in :func:`tz_localize` and :func:`tz_convert` does not propagate freq if ``Timestamp`` is initiated with freq (:issue:`25241`)
 -
 
 Numeric
