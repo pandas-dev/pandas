@@ -1060,19 +1060,26 @@ class FloatArrayFormatter(GenericArrayFormatter):
         def format_values_with(float_format):
             formatter = self._value_formatter(float_format, threshold)
 
+            # default formatter leaves a space to the left when formatting
+            # floats, must be consistent for left-justifying NaNs (GH #25061)
+            if self.justify == 'left':
+                na_rep = ' ' + self.na_rep
+            else:
+                na_rep = self.na_rep
+
             # separate the wheat from the chaff
             values = self.values
             mask = isna(values)
             if hasattr(values, 'to_dense'):  # sparse numpy ndarray
                 values = values.to_dense()
             values = np.array(values, dtype='object')
-            values[mask] = self.na_rep
+            values[mask] = na_rep
             imask = (~mask).ravel()
             values.flat[imask] = np.array([formatter(val)
                                            for val in values.ravel()[imask]])
 
             if self.fixed_width:
-                return _trim_zeros(values, self.na_rep)
+                return _trim_zeros(values, na_rep)
 
             return values
 
