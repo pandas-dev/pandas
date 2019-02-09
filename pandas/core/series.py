@@ -693,7 +693,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.array : Create a new array from data.
+        array : Create a new array from data.
         Series.array : Zero-copy view to the array backing the Series.
         Series.to_numpy : Series method for similar behavior.
 

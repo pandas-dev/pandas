@@ -1158,6 +1158,11 @@ class Timedelta(_Timedelta):
                                  "[weeks, days, hours, minutes, seconds, "
                                  "milliseconds, microseconds, nanoseconds]")
 
+        if unit in {'Y', 'y', 'M'}:
+            warnings.warn("M and Y units are deprecated and "
+                          "will be removed in a future version.",
+                          FutureWarning, stacklevel=1)
+
         if isinstance(value, Timedelta):
             value = value.value
         elif is_string_object(value):
