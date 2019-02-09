@@ -104,7 +104,7 @@ jobs:
       if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
           cd asv_bench
           asv machine --yes
-          ASV_OUTPUT="$(asv dev)"
+          ASV_OUTPUT="$(asv run --quick --show-stderr --python=same --launch-method=spawn)"
           if [[ $(echo "$ASV_OUTPUT" | grep "failed") ]]; then
               echo "##vso[task.logissue type=error]Benchmarks run with errors"
               echo "$ASV_OUTPUT"
