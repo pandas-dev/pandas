@@ -281,10 +281,11 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
         If True, infer dtypes; if a dict of column to dtype, then use those;
         if False, then don't infer dtypes at all, applies only to the data.
 
-        Not applicable with orient='table'.
+        Not applicable with ``orient='table'``.
 
         .. versionchanged:: 0.25
-           Not applicable with ``orient='table'``
+
+           Not applicable with ``orient='table'``.
 
     convert_axes : boolean, default True
         Try to convert the axes to the proper dtypes.
