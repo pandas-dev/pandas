@@ -2,6 +2,8 @@
 timedelta support tools
 """
 
+import warnings
+
 import numpy as np
 
 from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
@@ -90,6 +92,11 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
         raise ValueError("errors must be one of 'ignore', "
                          "'raise', or 'coerce'}")
 
+    if unit in {'Y', 'y', 'M'}:
+        warnings.warn("M and Y units are deprecated and "
+                      "will be removed in a future version.",
+                      FutureWarning, stacklevel=2)
+
     if arg is None:
         return arg
     elif isinstance(arg, ABCSeries):
@@ -120,7 +127,8 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
     try:
         result = Timedelta(r, unit)
         if not box:
-            result = result.asm8
+            # explicitly view as timedelta64 for case when result is pd.NaT
+            result = result.asm8.view('timedelta64[ns]')
     except ValueError:
         if errors == 'raise':
             raise

@@ -19,6 +19,14 @@ def to_numeric(arg, errors='raise', downcast=None):
     depending on the data supplied. Use the `downcast` parameter
     to obtain other dtypes.
 
+    Please note that precision loss may occur if really large numbers
+    are passed in. Due to the internal limitations of `ndarray`, if
+    numbers smaller than `-9223372036854775808` (np.iinfo(np.int64).min)
+    or larger than `18446744073709551615` (np.iinfo(np.uint64).max) are
+    passed in, it is very likely they will be converted to float so that
+    they can stored in an `ndarray`. These warnings apply similarly to
+    `Series` since it internally leverages `ndarray`.
+
     Parameters
     ----------
     arg : scalar, list, tuple, 1-d array, or Series
@@ -55,9 +63,9 @@ def to_numeric(arg, errors='raise', downcast=None):
 
     See Also
     --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_datetime : Convert argument to datetime.
-    pandas.to_timedelta : Convert argument to timedelta.
+    DataFrame.astype : Cast argument to a specified dtype.
+    to_datetime : Convert argument to datetime.
+    to_timedelta : Convert argument to timedelta.
     numpy.ndarray.astype : Cast a numpy array to a specified type.
 
     Examples
