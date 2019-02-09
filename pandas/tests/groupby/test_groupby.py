@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    OrderedDict, StringIO, lmap, lrange, lzip, map, range, zip)
+from pandas.compat import StringIO, lmap, lrange, lzip, map, range, zip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -1217,26 +1216,6 @@ def test_groupby_nat_exclude():
             grouped.get_group(np.nan)
         with pytest.raises(KeyError, match=r"^NaT$"):
             grouped.get_group(pd.NaT)
-
-
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-def test_sparse_friendly(df):
-    sdf = df[['C', 'D']].to_sparse()
-    panel = tm.makePanel()
-    tm.add_nans(panel)
-
-    def _check_work(gp):
-        gp.mean()
-        gp.agg(np.mean)
-        dict(iter(gp))
-
-    # it works!
-    _check_work(sdf.groupby(lambda x: x // 2))
-    _check_work(sdf['C'].groupby(lambda x: x // 2))
-    _check_work(sdf.groupby(df['A']))
-
-    # do this someday
-    # _check_work(panel.groupby(lambda x: x.month, axis=1))
 
 
 def test_groupby_2d_malformed():

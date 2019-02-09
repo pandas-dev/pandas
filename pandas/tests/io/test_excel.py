@@ -5,7 +5,6 @@ from distutils.version import LooseVersion
 from functools import partial
 import os
 import warnings
-from warnings import catch_warnings
 
 import numpy as np
 from numpy import nan
@@ -2382,15 +2381,12 @@ class TestExcelWriterEngineTests(object):
             assert isinstance(writer, DummyClass)
             df = tm.makeCustomDataframe(1, 1)
 
-            with catch_warnings(record=True):
-                panel = tm.makePanel()
-                func = lambda: df.to_excel('something.test')
-                check_called(func)
-                check_called(lambda: panel.to_excel('something.test'))
-                check_called(lambda: df.to_excel('something.xlsx'))
-                check_called(
-                    lambda: df.to_excel(
-                        'something.xls', engine='dummy'))
+            func = lambda: df.to_excel('something.test')
+            check_called(func)
+            check_called(lambda: df.to_excel('something.xlsx'))
+            check_called(
+                lambda: df.to_excel(
+                    'something.xls', engine='dummy'))
 
 
 @pytest.mark.parametrize('engine', [

@@ -1,6 +1,7 @@
 """
 Base and utility classes for pandas objects.
 """
+from collections import OrderedDict
 import textwrap
 import warnings
 
@@ -8,7 +9,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, OrderedDict, builtins, map, range
+from pandas.compat import PYPY, builtins, map, range
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -376,7 +377,7 @@ class SelectionMixin(object):
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
             if any(is_aggregator(x) for x in compat.itervalues(arg)):
-                new_arg = compat.OrderedDict()
+                new_arg = OrderedDict()
                 for k, v in compat.iteritems(arg):
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
@@ -444,14 +445,14 @@ class SelectionMixin(object):
                 run the aggregations over the arg with func
                 return an OrderedDict
                 """
-                result = compat.OrderedDict()
+                result = OrderedDict()
                 for fname, agg_how in compat.iteritems(arg):
                     result[fname] = func(fname, agg_how)
                 return result
 
             # set the final keys
             keys = list(compat.iterkeys(arg))
-            result = compat.OrderedDict()
+            result = OrderedDict()
 
             # nested renamer
             if is_nested_renamer:
@@ -459,7 +460,7 @@ class SelectionMixin(object):
 
                 if all(isinstance(r, dict) for r in result):
 
-                    result, results = compat.OrderedDict(), result
+                    result, results = OrderedDict(), result
                     for r in results:
                         result.update(r)
                     keys = list(compat.iterkeys(result))
@@ -1364,7 +1365,7 @@ class IndexOpsMixin(object):
         -------
         is_unique : boolean
         """
-        return self.nunique() == len(self)
+        return self.nunique(dropna=False) == len(self)
 
     @property
     def is_monotonic(self):
