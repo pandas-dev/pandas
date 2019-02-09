@@ -1336,8 +1336,9 @@ class TestSeriesInterpolateData():
             s.interpolate(method='spline')
 
         msg = "order needs to be specified and greater than 0"
-        with pytest.raises(ValueError, match=msg):
-            s.interpolate(method='spline', order=0)
+        for invalid_order in [-1, -1., 0, 0., np.nan]:
+            with pytest.raises(ValueError, match=msg):
+                s.interpolate(method='spline', order=invalid_order)
 
     def test_interp_timedelta64(self):
         # GH 6424
