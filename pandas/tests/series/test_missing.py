@@ -1064,18 +1064,31 @@ class TestSeriesInterpolateData():
         # GH 9217, make sure limit is an int and greater than 0
         methods = ['linear', 'time', 'index', 'values', 'nearest', 'zero',
                    'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
-                   'polynomial', 'spline', 'piecewise_polynomial', None,
+                   'polynomial', 'spline', 'piecewise_polynomial',
                    'from_derivatives', 'pchip', 'akima']
         s = pd.Series([1, 2, np.nan, np.nan, 5])
         msg = (r"Limit must be greater than 0|"
                "time-weighted interpolation only works on Series or"
                r" DataFrames with a DatetimeIndex|"
-               r"invalid method '(polynomial|spline|None)' to interpolate|"
-               "Limit must be an integer")
+               r"Limit must be an integer|"
+               r"You must specify the order of the spline")
         for limit in [-1, 0, 1., 2.]:
             for method in methods:
                 with pytest.raises(ValueError, match=msg):
                     s.interpolate(limit=limit, method=method)
+
+    def test_interp_invalid_method(self):
+        s = Series([1, 3, np.nan, 12, np.nan, 25])
+
+        invalid_methods = [None, 'nonexistent_method']
+        for method in invalid_methods:
+            msg = "method must be one of.*\\. Got '{}' instead".format(method)
+            with pytest.raises(ValueError, match=msg):
+                s.interpolate(method=method)
+            # When an invalid method and invalid limit (such as -1) are
+            # provided, the error message reflects the invalid method.
+            with pytest.raises(ValueError, match=msg):
+                s.interpolate(method=method, limit=-1)
 
     def test_interp_limit_forward(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
@@ -1277,7 +1290,7 @@ class TestSeriesInterpolateData():
     @pytest.mark.parametrize("method", ['polynomial', 'spline'])
     def test_no_order(self, method):
         s = Series([0, 1, np.nan, 3])
-        msg = "invalid method '{}' to interpolate".format(method)
+        msg = "You must specify the order of the spline or polynomial"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=method)
 
@@ -1315,10 +1328,10 @@ class TestSeriesInterpolateData():
 
     @td.skip_if_no_scipy
     def test_spline_error(self):
-        # see gh-10633
+        # see GH-10633, GH-24014
         s = pd.Series(np.arange(10) ** 2)
         s[np.random.randint(0, 9, 3)] = np.nan
-        msg = "invalid method 'spline' to interpolate"
+        msg = "You must specify the order of the spline or polynomial"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method='spline')
 

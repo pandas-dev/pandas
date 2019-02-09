@@ -1115,11 +1115,8 @@ class Block(PandasObject):
                                                fill_value=fill_value,
                                                coerce=coerce,
                                                downcast=downcast)
-        # try an interp method
-        try:
-            m = missing.clean_interp_method(method, **kwargs)
-        except ValueError:
-            m = None
+        # validate the interp method
+        m = missing.clean_interp_method(method, **kwargs)
 
         if m is not None:
             r = check_int_bool(self, inplace)
