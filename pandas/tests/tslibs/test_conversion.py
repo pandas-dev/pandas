@@ -73,3 +73,5 @@ def test_tz_convert_freq():
     import pytz
     t1 = pd.Timestamp('2019-01-01 10:00', freq='H')
     assert t1.tz_localize(pytz.utc).freq == t1.freq
+    t2 = pd.Timestamp('2019-01-02 12:00', tz=pytz.utc, freq='T')
+    assert t2.tz_convert(pytz.utc).freq == t2.freq
