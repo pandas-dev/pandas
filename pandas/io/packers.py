@@ -43,8 +43,8 @@ import os
 from textwrap import dedent
 import warnings
 
+import dateutil
 from dateutil.parser import parse
-from dateutil.tz import tzfile, tzlocal, tzutc
 import numpy as np
 from pytz import FixedOffset, _FixedOffset
 
@@ -394,11 +394,11 @@ def encode(obj):
             if tz is not None:
                 if isinstance(tz, _FixedOffset):
                     tz, tztype = u(str(tz._minutes)), u('fixedoffset')
-                elif isinstance(tz, tzutc):
+                elif isinstance(tz, dateutil.tz.tzutc):
                     tz, tztype = u('UTC'), u('tzutc')
-                elif isinstance(tz, tzfile):
+                elif isinstance(tz, dateutil.tz.tzfile):
                     tz, tztype = u(tz._filename), u('tzfile')
-                elif isinstance(tz, tzlocal):
+                elif isinstance(tz, dateutil.tz.tzlocal):
                     tz, tztype = u('local'), u('tzlocal')
                 else:
                     tz, tztype = u(tz.zone), u('zone')
@@ -625,11 +625,11 @@ def decode(obj):
         if tztype == u'fixedoffset':
             tz = FixedOffset(int(tz))
         elif tztype == u'tzfile':
-            tz = tzfile(tz)
+            tz = dateutil.tz.gettz(tz)
         elif tztype == u'tzlocal':
-            tz = tzlocal()
+            tz = dateutil.tz.tzlocal()
         elif tztype == u'tzutc':
-            tz = tzutc()
+            tz = dateutil.tz.tzutc()
         # reverse tz conversion
         if tz is not None:
             result = result.tz_localize('UTC').tz_convert(tz)
