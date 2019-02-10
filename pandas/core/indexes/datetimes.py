@@ -481,6 +481,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
             * False : do not sort the result
 
+            .. versionadded:: 0.25.0
+
         Returns
         -------
         y : Index or DatetimeIndex
@@ -588,7 +590,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             left, right = self, other
         # DTIs are not in the "correct" order and we don't want
         # to sort but want to remove overlaps
-        elif sort is not None:
+        elif sort is False:
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side='left')
