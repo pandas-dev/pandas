@@ -633,14 +633,23 @@ class TestIntervalIndex(Base):
         expected = np.array([0] * len(item), dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize('index', [
-        pd.interval_range(0, 1),
-        pd.interval_range(0, 3),
-        pd.IntervalIndex.from_tuples([(1, 3), (2, 4), (0, 2)])
+    @pytest.mark.parametrize('index,value,expected_index', [
+        (pd.interval_range(0, 1), 0.5, 0),
+        (pd.interval_range(0, 3), 0.5, 0),
+        (pd.IntervalIndex.from_tuples([(1, 3), (2, 4), (0, 2)]), 0.5, 2)
     ])
-    def test_get_indexer_errors(self, index):
+    def test_get_indexer_errors(self, index, value, expected_index):
+        actual = index.get_indexer(['a'])
         expected = np.array([-1], dtype='intp')
-        assert tm.assert_numpy_array_equal(index.get_indexer(['gg']), expected)
+        assert tm.assert_numpy_array_equal(actual, expected)
+
+        actual = index.get_indexer(['a', 'b'])
+        expected = np.array([-1, -1], dtype='intp')
+        assert tm.assert_numpy_array_equal(actual, expected)
+
+        actual = index.get_indexer(['a', value, 'b'])
+        expected = np.array([-1, expected_index, -1], dtype='intp')
+        assert tm.assert_numpy_array_equal(actual, expected)
 
     # Make consistent with test_interval_new.py (see #16316, #16386)
     @pytest.mark.parametrize('arrays', [
