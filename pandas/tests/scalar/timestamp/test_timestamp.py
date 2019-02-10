@@ -19,7 +19,7 @@ from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
-from pandas import NaT, Period, Timedelta, Timestamp, DatetimeIndex
+from pandas import DatetimeIndex, NaT, Period, Timedelta, Timestamp
 import pandas.util.testing as tm
 
 from pandas.tseries import offsets
