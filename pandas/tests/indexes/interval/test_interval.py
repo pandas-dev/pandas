@@ -591,6 +591,14 @@ class TestIntervalIndex(Base):
         expected = np.array([-1, 1], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
 
+        actual = self.index.get_indexer(['a', 1])
+        expected = np.array([-1, 0], dtype='intp')
+        tm.assert_numpy_array_equal(actual, expected)
+
+        actual = self.index.get_indexer(['a', 1, 'b'])
+        expected = np.array([-1, 0, -1], dtype='intp')
+        tm.assert_numpy_array_equal(actual, expected)
+
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer_subintervals(self):
 

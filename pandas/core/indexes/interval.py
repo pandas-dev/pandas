@@ -833,12 +833,11 @@ class IntervalIndex(IntervalMixin, Index):
                 start, stop = (
                     self._find_non_overlapping_monotonic_bounds(target)
                 )
+                start_plus_one = start + 1
+                if not ((start_plus_one < stop).any()):
+                    return np.where(start_plus_one == stop, start, -1)
             except TypeError:
-                return np.repeat(np.int(-1), len(target))
-
-            start_plus_one = start + 1
-            if not ((start_plus_one < stop).any()):
-                return np.where(start_plus_one == stop, start, -1)
+                pass
 
         if not self.is_unique:
             raise ValueError("cannot handle non-unique indices")
@@ -854,8 +853,8 @@ class IntervalIndex(IntervalMixin, Index):
                 try:
                     vals.append(self.get_loc(i))
                 except KeyError:
-                    vals.append(np.array([-1]))
-                indexer = np.concatenate(vals)
+                    vals.append(-1)
+            indexer = np.array(vals)
 
         return ensure_platform_int(indexer)
 
