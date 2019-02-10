@@ -608,9 +608,13 @@ class SQLTable(PandasObject):
         data = [dict(zip(keys, row)) for row in data_iter]
         conn.execute(self.table.insert(data))
 
-    def insert_data(self):
+    def insert_data(self, start_index, end_index):
+        """
+        Creates list of col vectors for a slice of the dataframe.
+        Slice range specified by start_index, end_index
+        """
         if self.index is not None:
-            temp = self.frame.copy()
+            temp = self.frame[start_index:end_index].copy()
             temp.index.names = self.index
             try:
                 temp.reset_index(inplace=True)
@@ -618,7 +622,11 @@ class SQLTable(PandasObject):
                 raise ValueError(
                     "duplicate name in index/columns: {0}".format(err))
         else:
-            temp = self.frame
+            if start_index == 0 and end_index == len(self.frame.index):
+                #avoid unnecessary copy by avoiding slicing
+                temp = self.frame
+            else:
+                temp = self.frame[start_index:end_index]
 
         column_names = list(map(text_type, temp.columns))
         ncols = len(column_names)
@@ -661,8 +669,6 @@ class SQLTable(PandasObject):
         else:
             raise ValueError('Invalid parameter `method`: {}'.format(method))
 
-        keys, data_list = self.insert_data()
-
         nrows = len(self.frame)
 
         if nrows == 0:
@@ -681,8 +687,9 @@ class SQLTable(PandasObject):
                 end_i = min((i + 1) * chunksize, nrows)
                 if start_i >= end_i:
                     break
+                keys, data_list = self.insert_data(start_i, end_i)
 
-                chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
+                chunk_iter = zip(*[arr for arr in data_list])
                 exec_insert(conn, keys, chunk_iter)
 
     def _query_iterator(self, result, chunksize, columns, coerce_float=True,
