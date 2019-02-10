@@ -787,7 +787,7 @@ class TestTimestamp(object):
         t2 = Timestamp('2019-01-02 12:00', tz='UTC', freq='T')
         assert t2.tz_convert(tz='UTC').freq == t2.freq
 
-        # freq propagation doesn't apply to DatetimeIndex
+        # freq propagation error doesn't happen with DatetimeIndex
         t3 = DatetimeIndex(['2019-01-01 10:00'], freq='H')
         assert t3.tz_localize(tz=tz_naive_fixture).freq == t3.freq
         t4 = DatetimeIndex(['2019-01-02 12:00'], tz='UTC', freq='T')
