@@ -897,7 +897,6 @@ class _MergeOperation(object):
                         left_keys.append(left.index)
                         join_names.append(left.index.name)
         elif _any(self.left_on):
-
             for k in self.left_on:
                 if is_lkey(k):
                     left_keys.append(k)
