@@ -1,5 +1,6 @@
 """ test the scalar Timedelta """
 from datetime import timedelta
+import re
 
 import numpy as np
 import pytest
@@ -309,9 +310,15 @@ class TestTimedeltas(object):
         assert to_timedelta('P0DT0H0M1S') == expected
 
     def test_nat_converters(self):
-        assert to_timedelta('nat', box=False).astype('int64') == iNaT
-        assert to_timedelta('nan', box=False).astype('int64') == iNaT
+        result = to_timedelta('nat', box=False)
+        assert result.dtype.kind == 'm'
+        assert result.astype('int64') == iNaT
 
+        result = to_timedelta('nan', box=False)
+        assert result.dtype.kind == 'm'
+        assert result.astype('int64') == iNaT
+
+    @pytest.mark.filterwarnings("ignore:M and Y units are deprecated")
     @pytest.mark.parametrize('units, np_unit',
                              [(['Y', 'y'], 'Y'),
                               (['M'], 'M'),
@@ -370,6 +377,24 @@ class TestTimedeltas(object):
             assert result == expected
             result = Timedelta('2{}'.format(unit))
             assert result == expected
+
+    @pytest.mark.skipif(compat.PY2, reason="requires python3.5 or higher")
+    @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
+    def test_unit_m_y_deprecated(self, unit):
+        with tm.assert_produces_warning(FutureWarning) as w1:
+            Timedelta(10, unit)
+        msg = r'.* units are deprecated .*'
+        assert re.match(msg, str(w1[0].message))
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as w2:
+            to_timedelta(10, unit)
+        msg = r'.* units are deprecated .*'
+        assert re.match(msg, str(w2[0].message))
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as w3:
+            to_timedelta([1, 2], unit)
+        msg = r'.* units are deprecated .*'
+        assert re.match(msg, str(w3[0].message))
 
     def test_numeric_conversions(self):
         assert Timedelta(0) == np.timedelta64(0, 'ns')

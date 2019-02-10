@@ -1,9 +1,12 @@
-:orphan:
-
 .. _whatsnew_0250:
 
 What's New in 0.25.0 (April XX, 2019)
 -------------------------------------
+
+.. warning::
+
+   Starting with the 0.25.x series of releases, pandas only supports Python 3.5 and higher.
+   See :ref:`install.dropping-27` for more details.
 
 {{ header }}
 
@@ -16,10 +19,9 @@ including other versions of pandas.
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
 -
 -
--
-
 
 .. _whatsnew_0250.api_breaking:
 
@@ -40,16 +42,13 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
--
--
--
-
+- Deprecated the `M (months)` and `Y (year)` `units` parameter of :func: `pandas.to_timedelta`, :func: `pandas.Timedelta` and :func: `pandas.TimedeltaIndex` (:issue:`16344`)
 
 .. _whatsnew_0250.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+- Removed (parts of) :class:`Panel` (:issue:`25047`,:issue:`25191`,:issue:`25231`)
 -
 -
 -
@@ -59,8 +58,8 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
--
--
+- Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
+- `DataFrame.to_stata()` is now faster when outputting data with any string or non-native endian columns (:issue:`25045`)
 -
 
 
@@ -93,13 +92,15 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
--
+- Bug in :func:`to_datetime` with ``utc=True`` and datetime strings that would apply previously parsed UTC offsets to subsequent arguments (:issue:`24992`)
 -
 -
 
 Numeric
 ^^^^^^^
 
+- Bug in :meth:`to_numeric` in which large negative numbers were being improperly handled (:issue:`24910`)
+- Bug in :meth:`to_numeric` in which numbers were being coerced to float, even though ``errors`` was not ``coerce`` (:issue:`24910`)
 -
 -
 -
@@ -154,6 +155,8 @@ I/O
 ^^^
 
 - Bug in :func:`DataFrame.to_html()` where values were truncated using display options instead of outputting the full content (:issue:`17004`)
+- Fixed bug in missing text when using :meth:`to_clipboard` if copying utf-16 characters in Python 3 on Windows (:issue:`25040`)
+-
 -
 -
 
@@ -176,15 +179,16 @@ Groupby/Resample/Rolling
 Reshaping
 ^^^^^^^^^
 
--
--
+- Bug in :func:`pandas.merge` adds a string of ``None`` if ``None`` is assigned in suffixes instead of remain the column name as-is (:issue:`24782`).
+- Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
+- :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
 -
 
 
 Sparse
 ^^^^^^
 
--
+- Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
 -
 -
 
@@ -203,4 +207,3 @@ Contributors
 ~~~~~~~~~~~~
 
 .. contributors:: v0.24.x..HEAD
-
