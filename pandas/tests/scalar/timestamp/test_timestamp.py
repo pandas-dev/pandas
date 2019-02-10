@@ -788,9 +788,9 @@ class TestTimestamp(object):
         assert t2.tz_convert(tz='UTC').freq == t2.freq
 
         # freq propagation doesn't apply to DatetimeIndex
-        t3 = DatetimeIndex('2019-01-01 10:00', freq='H')
+        t3 = DatetimeIndex(['2019-01-01 10:00'], freq='H')
         assert t3.freq is None
-        t4 = DatetimeIndex('2019-01-02 12:00', tz='UTC', freq='T')
+        t4 = DatetimeIndex(['2019-01-02 12:00'], tz='UTC', freq='T')
         assert t4.freq is None
 
 
