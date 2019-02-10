@@ -54,9 +54,10 @@ class Grouper(object):
     axis : number/name of the axis, defaults to 0
     sort : boolean, default to False
         whether to sort the resulting labels
-    closed : closed end of interval; 'left' or 'right'
-        Only when `freq` parameter is passed.
-    label : interval boundary to use for labeling; 'left' or 'right'
+    closed : {'left' or 'right'}
+        Closed end of interval. Only when `freq` parameter is passed.
+    label : {'left' or 'right'}
+        Interval boundary to use for labeling.
         Only when `freq` parameter is passed.
     convention : {'start', 'end', 'e', 's'}
         If grouper is PeriodIndex and `freq` parameter is passed.
