@@ -19,7 +19,7 @@ from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
-from pandas import DatetimeIndex, NaT, Period, Timedelta, Timestamp
+from pandas import NaT, Period, Timedelta, Timestamp
 import pandas.util.testing as tm
 
 from pandas.tseries import offsets
@@ -786,12 +786,6 @@ class TestTimestamp(object):
         assert t1.tz_localize(tz=tz_naive_fixture).freq == t1.freq
         t2 = Timestamp('2019-01-02 12:00', tz='UTC', freq='T')
         assert t2.tz_convert(tz='UTC').freq == t2.freq
-
-        # freq propagation error doesn't happen with DatetimeIndex
-        t3 = DatetimeIndex(['2019-01-01 10:00'], freq='H')
-        assert t3.tz_localize(tz=tz_naive_fixture).freq == t3.freq
-        t4 = DatetimeIndex(['2019-01-02 12:00'], tz='UTC', freq='T')
-        assert t4.tz_convert(tz='UTC').freq == t4.freq
 
 
 class TestTimestampNsOperations(object):
