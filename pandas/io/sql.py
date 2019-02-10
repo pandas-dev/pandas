@@ -623,7 +623,7 @@ class SQLTable(PandasObject):
                     "duplicate name in index/columns: {0}".format(err))
         else:
             if start_index == 0 and end_index == len(self.frame.index):
-                #avoid unnecessary copy by avoiding slicing
+                # avoid unnecessary copy by avoiding slicing
                 temp = self.frame
             else:
                 temp = self.frame[start_index:end_index]
