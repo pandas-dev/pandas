@@ -153,7 +153,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- Bug in :func:`DataFrame.to_html()` where values were truncated using display options instead of outputting the full content (:issue:`17004`)
 -
 -
 
