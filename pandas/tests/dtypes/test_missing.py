@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from decimal import Decimal
-from warnings import catch_warnings, filterwarnings
+from warnings import catch_warnings, filterwarnings, simplefilter
 
 import numpy as np
 import pytest
@@ -93,6 +93,15 @@ class TestIsNA(object):
             result = isna_f(df)
             expected = df.apply(isna_f)
             tm.assert_frame_equal(result, expected)
+
+        # panel
+        with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
+            for p in [tm.makePanel(), tm.makePeriodPanel(),
+                      tm.add_nans(tm.makePanel())]:
+                result = isna_f(p)
+                expected = p.apply(isna_f)
+                tm.assert_panel_equal(result, expected)
 
     def test_isna_lists(self):
         result = isna([[False]])

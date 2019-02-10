@@ -102,12 +102,7 @@ class TestIX(object):
                 with catch_warnings(record=True):
                     df.ix[key]
 
-                msg = (r"cannot do slice indexing"
-                       r" on {klass} with these indexers \[(0|1)\] of"
-                       r" {kind}"
-                       .format(klass=type(df.index), kind=str(int)))
-                with pytest.raises(TypeError, match=msg):
-                    df.loc[key]
+                pytest.raises(TypeError, lambda: df.loc[key])
 
         df = DataFrame(np.random.randn(5, 4), columns=list('ABCD'),
                        index=pd.date_range('2012-01-01', periods=5))
@@ -127,8 +122,7 @@ class TestIX(object):
                 with catch_warnings(record=True):
                     expected = df.ix[key]
             except KeyError:
-                with pytest.raises(KeyError, match=r"^'2012-01-31'$"):
-                    df.loc[key]
+                pytest.raises(KeyError, lambda: df.loc[key])
                 continue
 
             result = df.loc[key]
@@ -285,18 +279,14 @@ class TestIX(object):
             np.random.randn(2, 5), index=["row%s" % i for i in range(2)],
             columns=["col%s" % i for i in range(5)])
         with catch_warnings(record=True):
-            msg = "cannot set by positional indexing with enlargement"
-            with pytest.raises(ValueError, match=msg):
-                df.ix[2, 0] = 100
+            pytest.raises(ValueError, df.ix.__setitem__, (2, 0), 100)
 
     def test_ix_setitem_out_of_bounds_axis_1(self):
         df = DataFrame(
             np.random.randn(5, 2), index=["row%s" % i for i in range(5)],
             columns=["col%s" % i for i in range(2)])
         with catch_warnings(record=True):
-            msg = "cannot set by positional indexing with enlargement"
-            with pytest.raises(ValueError, match=msg):
-                df.ix[0, 2] = 100
+            pytest.raises(ValueError, df.ix.__setitem__, (0, 2), 100)
 
     def test_ix_empty_list_indexer_is_ok(self):
         with catch_warnings(record=True):

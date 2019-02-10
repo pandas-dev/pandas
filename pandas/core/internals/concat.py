@@ -183,7 +183,7 @@ class JoinUnit(object):
                         is_datetime64tz_dtype(empty_dtype)):
                     if self.block is None:
                         array = empty_dtype.construct_array_type()
-                        return array(np.full(self.shape[1], fill_value.value),
+                        return array(np.full(self.shape[1], fill_value),
                                      dtype=empty_dtype)
                     pass
                 elif getattr(self.block, 'is_categorical', False):
@@ -335,10 +335,8 @@ def get_empty_dtype_and_na(join_units):
     elif 'category' in upcast_classes:
         return np.dtype(np.object_), np.nan
     elif 'datetimetz' in upcast_classes:
-        # GH-25014. We use NaT instead of iNaT, since this eventually
-        # ends up in DatetimeArray.take, which does not allow iNaT.
         dtype = upcast_classes['datetimetz']
-        return dtype[0], tslibs.NaT
+        return dtype[0], tslibs.iNaT
     elif 'datetime' in upcast_classes:
         return np.dtype('M8[ns]'), tslibs.iNaT
     elif 'timedelta' in upcast_classes:

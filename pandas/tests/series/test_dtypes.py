@@ -291,8 +291,8 @@ class TestSeriesDtypes(object):
         expected = s
         tm.assert_series_equal(s.astype('category'), expected)
         tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
-        msg = (r"could not convert string to float|"
-               r"invalid literal for float\(\)")
+        msg = (r"could not convert string to float: '(0 - 499|9500 - 9999)'|"
+               r"invalid literal for float\(\): (0 - 499|9500 - 9999)")
         with pytest.raises(ValueError, match=msg):
             s.astype('float64')
 

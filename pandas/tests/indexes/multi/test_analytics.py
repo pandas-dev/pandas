@@ -3,8 +3,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange
-from pandas.compat.numpy import _np_version_under1p16
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import Index, MultiIndex, date_range, period_range
@@ -14,11 +13,8 @@ import pandas.util.testing as tm
 def test_shift(idx):
 
     # GH8083 test the base class for shift
-    msg = "Not supported for type MultiIndex"
-    with pytest.raises(NotImplementedError, match=msg):
-        idx.shift(1)
-    with pytest.raises(NotImplementedError, match=msg):
-        idx.shift(1, 2)
+    pytest.raises(NotImplementedError, idx.shift, 1)
+    pytest.raises(NotImplementedError, idx.shift, 1, 2)
 
 
 def test_groupby(idx):
@@ -54,26 +50,25 @@ def test_truncate():
     result = index.truncate(before=1, after=2)
     assert len(result.levels[0]) == 2
 
-    msg = "after < before"
-    with pytest.raises(ValueError, match=msg):
-        index.truncate(3, 1)
+    # after < before
+    pytest.raises(ValueError, index.truncate, 3, 1)
 
 
 def test_where():
     i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
 
-    msg = r"\.where is not supported for MultiIndex operations"
-    with pytest.raises(NotImplementedError, match=msg):
+    with pytest.raises(NotImplementedError):
         i.where(True)
 
 
-@pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
-def test_where_array_like(klass):
+def test_where_array_like():
     i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
+    klasses = [list, tuple, np.array, pd.Series]
     cond = [False, True]
-    msg = r"\.where is not supported for MultiIndex operations"
-    with pytest.raises(NotImplementedError, match=msg):
-        i.where(klass(cond))
+
+    for klass in klasses:
+        with pytest.raises(NotImplementedError):
+            i.where(klass(cond))
 
 
 # TODO: reshape
@@ -146,8 +141,7 @@ def test_take(idx):
     # if not isinstance(idx,
     #                   (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
     # GH 10791
-    msg = "'MultiIndex' object has no attribute 'freq'"
-    with pytest.raises(AttributeError, match=msg):
+    with pytest.raises(AttributeError):
         idx.freq
 
 
@@ -205,8 +199,7 @@ def test_take_fill_value():
     with pytest.raises(ValueError, match=msg):
         idx.take(np.array([1, 0, -5]), fill_value=True)
 
-    msg = "index -5 is out of bounds for size 4"
-    with pytest.raises(IndexError, match=msg):
+    with pytest.raises(IndexError):
         idx.take(np.array([1, -5]))
 
 
@@ -222,15 +215,13 @@ def test_sub(idx):
     first = idx
 
     # - now raises (previously was set op difference)
-    msg = "cannot perform __sub__ with this index type: MultiIndex"
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(TypeError):
         first - idx[-3:]
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(TypeError):
         idx[-3:] - first
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(TypeError):
         idx[-3:] - first.tolist()
-    msg = "cannot perform __rsub__ with this index type: MultiIndex"
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(TypeError):
         first.tolist() - idx[-3:]
 
 
@@ -275,35 +266,56 @@ def test_map_dictlike(idx, mapper):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
 @pytest.mark.parametrize('func', [
     np.exp, np.exp2, np.expm1, np.log, np.log2, np.log10,
     np.log1p, np.sqrt, np.sin, np.cos, np.tan, np.arcsin,
     np.arccos, np.arctan, np.sinh, np.cosh, np.tanh,
     np.arcsinh, np.arccosh, np.arctanh, np.deg2rad,
     np.rad2deg
-], ids=lambda func: func.__name__)
-def test_numpy_ufuncs(idx, func):
+])
+def test_numpy_ufuncs(func):
     # test ufuncs of numpy. see:
     # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
-    if _np_version_under1p16:
-        expected_exception = AttributeError
-        msg = "'tuple' object has no attribute '{}'".format(func.__name__)
-    else:
-        expected_exception = TypeError
-        msg = ("loop of ufunc does not support argument 0 of type tuple which"
-               " has no callable {} method").format(func.__name__)
-    with pytest.raises(expected_exception, match=msg):
-        func(idx)
+    # copy and paste from idx fixture as pytest doesn't support
+    # parameters and fixtures at the same time.
+    major_axis = Index(['foo', 'bar', 'baz', 'qux'])
+    minor_axis = Index(['one', 'two'])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
+    index_names = ['first', 'second']
+
+    idx = MultiIndex(
+        levels=[major_axis, minor_axis],
+        codes=[major_codes, minor_codes],
+        names=index_names,
+        verify_integrity=False
+    )
+
+    with pytest.raises(Exception):
+        with np.errstate(all='ignore'):
+            func(idx)
 
 
 @pytest.mark.parametrize('func', [
     np.isfinite, np.isinf, np.isnan, np.signbit
-], ids=lambda func: func.__name__)
-def test_numpy_type_funcs(idx, func):
-    msg = ("ufunc '{}' not supported for the input types, and the inputs"
-           " could not be safely coerced to any supported types according to"
-           " the casting rule ''safe''").format(func.__name__)
-    with pytest.raises(TypeError, match=msg):
+])
+def test_numpy_type_funcs(func):
+    # for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
+    # copy and paste from idx fixture as pytest doesn't support
+    # parameters and fixtures at the same time.
+    major_axis = Index(['foo', 'bar', 'baz', 'qux'])
+    minor_axis = Index(['one', 'two'])
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
+    index_names = ['first', 'second']
+
+    idx = MultiIndex(
+        levels=[major_axis, minor_axis],
+        codes=[major_codes, minor_codes],
+        names=index_names,
+        verify_integrity=False
+    )
+
+    with pytest.raises(Exception):
         func(idx)

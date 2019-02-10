@@ -7,8 +7,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-
 import pandas as pd
 from pandas import DatetimeIndex, Timestamp, date_range
 import pandas.util.testing as tm
@@ -29,14 +27,10 @@ class TestDatetimeIndexOps(object):
         expected = [t.date() for t in rng]
         assert (result == expected).all()
 
-    @pytest.mark.parametrize('data', [
-        ['1400-01-01'],
-        [datetime(1400, 1, 1)]])
-    def test_dti_date_out_of_range(self, data):
+    def test_dti_date_out_of_range(self):
         # GH#1475
-        msg = "Out of bounds nanosecond timestamp: 1400-01-01 00:00:00"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            DatetimeIndex(data)
+        pytest.raises(ValueError, DatetimeIndex, ['1400-01-01'])
+        pytest.raises(ValueError, DatetimeIndex, [datetime(1400, 1, 1)])
 
     @pytest.mark.parametrize('field', [
         'dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
@@ -80,15 +74,9 @@ class TestDatetimeIndexOps(object):
         result = dti.round('s')
         tm.assert_index_equal(result, dti)
 
-    @pytest.mark.parametrize('freq, error_msg', [
-        ('Y', '<YearEnd: month=12> is a non-fixed frequency'),
-        ('M', '<MonthEnd> is a non-fixed frequency'),
-        ('foobar', 'Invalid frequency: foobar')])
-    def test_round_invalid(self, freq, error_msg):
-        dti = date_range('20130101 09:10:11', periods=5)
-        dti = dti.tz_localize('UTC').tz_convert('US/Eastern')
-        with pytest.raises(ValueError, match=error_msg):
-            dti.round(freq)
+        # invalid
+        for freq in ['Y', 'M', 'foobar']:
+            pytest.raises(ValueError, lambda: dti.round(freq))
 
     def test_round(self, tz_naive_fixture):
         tz = tz_naive_fixture

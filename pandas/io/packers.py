@@ -219,7 +219,7 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
         finally:
             if fh is not None:
                 fh.close()
-    elif hasattr(path_or_buf, 'read') and callable(path_or_buf.read):
+    elif hasattr(path_or_buf, 'read') and compat.callable(path_or_buf.read):
         # treat as a buffer like
         return read(path_or_buf)
 

@@ -124,14 +124,14 @@ class TestDatetime64SeriesComparison(object):
             result = x != y
             expected = tm.box_expected([True] * 5, xbox)
             tm.assert_equal(result, expected)
-            msg = 'Invalid comparison between'
-            with pytest.raises(TypeError, match=msg):
+
+            with pytest.raises(TypeError):
                 x >= y
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(TypeError):
                 x > y
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(TypeError):
                 x < y
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(TypeError):
                 x <= y
 
     @pytest.mark.parametrize('data', [
@@ -327,10 +327,9 @@ class TestDatetime64SeriesComparison(object):
         # raise
         naive_series = Series(dr)
         aware_series = Series(dz)
-        msg = 'Cannot compare tz-naive and tz-aware'
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             op(dz, naive_series)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             op(dr, aware_series)
 
         # TODO: implement _assert_tzawareness_compat for the reverse
@@ -429,14 +428,14 @@ class TestDatetimeIndexComparisons(object):
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
         # FIXME: ValueError with transpose
         dtarr = tm.box_expected(dti, box_with_array, transpose=False)
-        msg = 'Invalid comparison between'
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             dtarr < other
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dtarr <= other
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dtarr > other
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dtarr >= other
 
     @pytest.mark.parametrize('dtype', [None, object])
@@ -585,23 +584,22 @@ class TestDatetimeIndexComparisons(object):
         dr = tm.box_expected(dr, box_with_array, transpose=False)
         dz = tm.box_expected(dz, box_with_array, transpose=False)
 
-        msg = 'Cannot compare tz-naive and tz-aware'
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             op(dr, dz)
         if box_with_array is not pd.DataFrame:
             # DataFrame op is invalid until transpose bug is fixed
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(TypeError):
                 op(dr, list(dz))
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(TypeError):
                 op(dr, np.array(list(dz), dtype=object))
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             op(dz, dr)
         if box_with_array is not pd.DataFrame:
             # DataFrame op is invalid until transpose bug is fixed
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(TypeError):
                 op(dz, list(dr))
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(TypeError):
                 op(dz, np.array(list(dr), dtype=object))
 
         # Check that there isn't a problem aware-aware and naive-naive do not
@@ -619,15 +617,15 @@ class TestDatetimeIndexComparisons(object):
         ts_tz = pd.Timestamp('2000-03-14 01:59', tz='Europe/Amsterdam')
 
         assert_all(dr > ts)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             op(dr, ts_tz)
 
         assert_all(dz > ts_tz)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             op(dz, ts)
 
         # GH#12601: Check comparison against Timestamps and DatetimeIndex
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             op(ts, dz)
 
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,
@@ -643,10 +641,10 @@ class TestDatetimeIndexComparisons(object):
 
         # FIXME: ValueError with transpose
         dtarr = tm.box_expected(dti, box_with_array, transpose=False)
-        msg = 'Cannot compare tz-naive and tz-aware'
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             op(dtarr, other)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             op(other, dtarr)
 
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,
@@ -716,14 +714,14 @@ class TestDatetimeIndexComparisons(object):
         expected = np.array([True] * 10)
         expected = tm.box_expected(expected, xbox, transpose=False)
         tm.assert_equal(result, expected)
-        msg = 'Invalid comparison between'
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             rng < other
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             rng <= other
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             rng > other
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             rng >= other
 
     def test_dti_cmp_list(self):
@@ -751,14 +749,14 @@ class TestDatetimeIndexComparisons(object):
         result = dti != other
         expected = np.array([True] * 10)
         tm.assert_numpy_array_equal(result, expected)
-        msg = 'Invalid comparison between'
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             dti < other
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dti <= other
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dti > other
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dti >= other
 
     def test_dti_cmp_object_dtype(self):
@@ -772,8 +770,7 @@ class TestDatetimeIndexComparisons(object):
         tm.assert_numpy_array_equal(result, expected)
 
         other = dti.tz_localize(None)
-        msg = 'Cannot compare tz-naive and tz-aware'
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             # tzawareness failure
             dti != other
 
@@ -781,8 +778,8 @@ class TestDatetimeIndexComparisons(object):
         result = dti == other
         expected = np.array([True] * 5 + [False] * 5)
         tm.assert_numpy_array_equal(result, expected)
-        msg = "Cannot compare type"
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             dti >= other
 
 
@@ -901,8 +898,7 @@ class TestDatetime64Arithmetic(object):
         tm.assert_equal(result, expected)
         result = obj - other
         tm.assert_equal(result, expected)
-        msg = 'cannot subtract'
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             other - obj
 
     def test_dt64arr_add_sub_td64ndarray(self, tz_naive_fixture,
@@ -931,8 +927,8 @@ class TestDatetime64Arithmetic(object):
 
         result = dtarr - tdarr
         tm.assert_equal(result, expected)
-        msg = 'cannot subtract'
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             tdarr - dtarr
 
     # -----------------------------------------------------------------
@@ -1032,10 +1028,10 @@ class TestDatetime64Arithmetic(object):
         dt64vals = dti.values
 
         dtarr = tm.box_expected(dti, box_with_array)
-        msg = 'DatetimeArray subtraction must have the same timezones or'
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             dtarr - dt64vals
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dt64vals - dtarr
 
     # -------------------------------------------------------------
@@ -1052,17 +1048,17 @@ class TestDatetime64Arithmetic(object):
         dt64vals = dti.values
 
         dtarr = tm.box_expected(dti, box_with_array)
-        msg = 'cannot add'
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             dtarr + dt64vals
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dt64vals + dtarr
 
     def test_dt64arr_add_timestamp_raises(self, box_with_array):
         # GH#22163 ensure DataFrame doesn't cast Timestamp to i8
         idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
         idx = tm.box_expected(idx, box_with_array)
-        msg = 'cannot add'
+        msg = "cannot add"
         with pytest.raises(TypeError, match=msg):
             idx + Timestamp('2011-01-01')
         with pytest.raises(TypeError, match=msg):
@@ -1075,14 +1071,13 @@ class TestDatetime64Arithmetic(object):
     def test_dt64arr_add_sub_float(self, other, box_with_array):
         dti = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
         dtarr = tm.box_expected(dti, box_with_array)
-        msg = '|'.join(['unsupported operand type', 'cannot (add|subtract)'])
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dtarr + other
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             other + dtarr
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dtarr - other
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             other - dtarr
 
     @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
@@ -1095,15 +1090,14 @@ class TestDatetime64Arithmetic(object):
 
         dtarr = tm.box_expected(dti, box_with_array)
         parr = tm.box_expected(pi, box_with_array2)
-        msg = '|'.join(['cannot (add|subtract)', 'unsupported operand',
-                        'descriptor.*requires', 'ufunc.*cannot use operands'])
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             dtarr + parr
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             parr + dtarr
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dtarr - parr
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             parr - dtarr
 
     @pytest.mark.parametrize('dti_freq', [None, 'D'])
@@ -1114,14 +1108,14 @@ class TestDatetime64Arithmetic(object):
 
         idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
         dtarr = tm.box_expected(idx, box_with_array)
-        msg = '|'.join(['unsupported operand type', 'cannot (add|subtract)'])
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             dtarr + per
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             per + dtarr
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dtarr - per
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             per - dtarr
 
 
@@ -1162,8 +1156,8 @@ class TestDatetime64DateOffsetArithmetic(object):
 
         result2 = -pd.offsets.Second(5) + ser
         tm.assert_equal(result2, expected)
-        msg = "bad operand type for unary"
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             pd.offsets.Second(5) - ser
 
     @pytest.mark.parametrize('cls_name', ['Day', 'Hour', 'Minute', 'Second',
@@ -1245,8 +1239,8 @@ class TestDatetime64DateOffsetArithmetic(object):
             expected = DatetimeIndex([x - off for x in vec_items])
             expected = tm.box_expected(expected, box_with_array)
             tm.assert_equal(expected, vec - off)
-            msg = "bad operand type for unary"
-            with pytest.raises(TypeError, match=msg):
+
+            with pytest.raises(TypeError):
                 off - vec
 
     # -------------------------------------------------------------
@@ -1326,8 +1320,8 @@ class TestDatetime64DateOffsetArithmetic(object):
             expected = DatetimeIndex([offset + x for x in vec_items])
             expected = tm.box_expected(expected, box_with_array)
             tm.assert_equal(expected, offset + vec)
-            msg = "bad operand type for unary"
-            with pytest.raises(TypeError, match=msg):
+
+            with pytest.raises(TypeError):
                 offset - vec
 
     def test_dt64arr_add_sub_DateOffset(self, box_with_array):
@@ -1446,14 +1440,13 @@ class TestDatetime64OverflowHandling(object):
         td = pd.Timedelta('20000 Days')
         dti = pd.date_range('1949-09-30', freq='100Y', periods=4)
         ser = pd.Series(dti)
-        msg = 'Overflow in int64 addition'
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError):
             ser - dt
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError):
             dt - ser
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError):
             ser + td
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError):
             td + ser
 
         ser.iloc[-1] = pd.NaT
@@ -1487,9 +1480,9 @@ class TestDatetime64OverflowHandling(object):
                            tspos.to_pydatetime(),
                            tspos.to_datetime64().astype('datetime64[ns]'),
                            tspos.to_datetime64().astype('datetime64[D]')]
-        msg = 'Overflow in int64 addition'
+
         for variant in ts_neg_variants:
-            with pytest.raises(OverflowError, match=msg):
+            with pytest.raises(OverflowError):
                 dtimax - variant
 
         expected = pd.Timestamp.max.value - tspos.value
@@ -1503,7 +1496,7 @@ class TestDatetime64OverflowHandling(object):
             assert res[1].value == expected
 
         for variant in ts_pos_variants:
-            with pytest.raises(OverflowError, match=msg):
+            with pytest.raises(OverflowError):
                 dtimin - variant
 
     def test_datetimeindex_sub_datetimeindex_overflow(self):
@@ -1522,22 +1515,22 @@ class TestDatetime64OverflowHandling(object):
         expected = pd.Timestamp.min.value - ts_neg[1].value
         result = dtimin - ts_neg
         assert result[1].value == expected
-        msg = 'Overflow in int64 addition'
-        with pytest.raises(OverflowError, match=msg):
+
+        with pytest.raises(OverflowError):
             dtimax - ts_neg
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError):
             dtimin - ts_pos
 
         # Edge cases
         tmin = pd.to_datetime([pd.Timestamp.min])
         t1 = tmin + pd.Timedelta.max + pd.Timedelta('1us')
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError):
             t1 - tmin
 
         tmax = pd.to_datetime([pd.Timestamp.max])
         t2 = tmax + pd.Timedelta.min - pd.Timedelta('1us')
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError):
             tmax - t2
 
 
@@ -1550,8 +1543,7 @@ class TestTimestampSeriesArithmetic(object):
         tm.assert_series_equal(a, a + b)
         tm.assert_series_equal(a, a - b)
         tm.assert_series_equal(a, b + a)
-        msg = 'cannot subtract'
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             b - a
 
     def test_operators_datetimelike(self):
@@ -1696,13 +1688,12 @@ class TestTimestampSeriesArithmetic(object):
         # subtraction
         tm.assert_series_equal(-NaT + datetime_series,
                                nat_series_dtype_timestamp)
-        msg = 'Unary negative expects'
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             -single_nat_dtype_datetime + datetime_series
 
         tm.assert_series_equal(-NaT + nat_series_dtype_timestamp,
                                nat_series_dtype_timestamp)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             -single_nat_dtype_datetime + nat_series_dtype_timestamp
 
         # addition
@@ -1727,16 +1718,15 @@ class TestTimestampSeriesArithmetic(object):
     @pytest.mark.parametrize('one', [1, 1.0, np.array(1)])
     def test_dt64_mul_div_numeric_invalid(self, one, dt64_series):
         # multiplication
-        msg = 'cannot perform .* with this index type'
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dt64_series * one
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             one * dt64_series
 
         # division
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dt64_series / one
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             one / dt64_series
 
     @pytest.mark.parametrize('op', ['__add__', '__radd__',
@@ -1750,17 +1740,13 @@ class TestTimestampSeriesArithmetic(object):
         other = Series([20, 30, 40], dtype='uint8')
 
         method = getattr(ser, op)
-        msg = '|'.join(['incompatible type for a .* operation',
-                        'cannot evaluate a numeric op',
-                        'ufunc .* cannot use operands',
-                        'cannot (add|subtract)'])
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             method(1)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             method(other)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             method(other.values)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             method(pd.Index(other))
 
     # -------------------------------------------------------------
@@ -1797,14 +1783,13 @@ class TestTimestampSeriesArithmetic(object):
         result = dt1 - td1[0]
         exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
         tm.assert_series_equal(result, exp)
-        msg = "bad operand type for unary"
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             td1[0] - dt1
 
         result = dt2 - td2[0]
         exp = (dt2.dt.tz_localize(None) - td2[0]).dt.tz_localize(tz)
         tm.assert_series_equal(result, exp)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             td2[0] - dt2
 
         result = dt1 + td1
@@ -1822,10 +1807,10 @@ class TestTimestampSeriesArithmetic(object):
         result = dt2 - td2
         exp = (dt2.dt.tz_localize(None) - td2).dt.tz_localize(tz)
         tm.assert_series_equal(result, exp)
-        msg = 'cannot (add|subtract)'
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             td1 - dt1
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             td2 - dt2
 
 
@@ -1924,15 +1909,13 @@ class TestDatetimeIndexArithmetic(object):
         # GH#19959
         dti = pd.DatetimeIndex(['2016-01-01', 'NaT', '2017-04-05 06:07:08'])
         other = int_holder([9, 4, -1])
-        nfmsg = 'Cannot shift with no freq'
-        tmsg = 'cannot subtract DatetimeArray from'
-        with pytest.raises(NullFrequencyError, match=nfmsg):
+        with pytest.raises(NullFrequencyError):
             dti + other
-        with pytest.raises(NullFrequencyError, match=nfmsg):
+        with pytest.raises(NullFrequencyError):
             other + dti
-        with pytest.raises(NullFrequencyError, match=nfmsg):
+        with pytest.raises(NullFrequencyError):
             dti - other
-        with pytest.raises(TypeError, match=tmsg):
+        with pytest.raises(TypeError):
             other - dti
 
     # -------------------------------------------------------------
@@ -2074,14 +2057,14 @@ class TestDatetimeIndexArithmetic(object):
 
         result = dti_tz - dti_tz
         tm.assert_index_equal(result, expected)
-        msg = 'DatetimeArray subtraction must have the same timezones or'
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             dti_tz - dti
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dti - dti_tz
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             dti_tz - dti_tz2
 
         # isub
@@ -2091,8 +2074,7 @@ class TestDatetimeIndexArithmetic(object):
         # different length raises ValueError
         dti1 = date_range('20130101', periods=3)
         dti2 = date_range('20130101', periods=4)
-        msg = 'cannot add indices of unequal length'
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             dti1 - dti2
 
         # NaN propagation
@@ -2166,8 +2148,8 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_series_equal(-single_nat_dtype_timedelta +
                                nat_series_dtype_timestamp,
                                nat_series_dtype_timestamp)
-        msg = 'cannot subtract a datelike'
-        with pytest.raises(TypeError, match=msg):
+
+        with pytest.raises(TypeError):
             timedelta_series - single_nat_dtype_datetime
 
         # addition

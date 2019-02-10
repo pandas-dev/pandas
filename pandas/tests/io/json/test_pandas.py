@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
-from collections import OrderedDict
 from datetime import timedelta
 import json
 import os
@@ -8,7 +7,8 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, is_platform_32bit, lrange, range
+from pandas.compat import (
+    OrderedDict, StringIO, is_platform_32bit, lrange, range)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1262,13 +1262,3 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
                "'orient' is 'split' or 'table'")
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient, index=False)
-
-    @pytest.mark.parametrize('orient', ['split', 'table'])
-    @pytest.mark.parametrize('index', [True, False])
-    def test_index_false_from_json_to_json(self, orient, index):
-        # GH25170
-        # Test index=False in from_json to_json
-        expected = DataFrame({'a': [1, 2], 'b': [3, 4]})
-        dfjson = expected.to_json(orient=orient, index=index)
-        result = read_json(dfjson, orient=orient)
-        assert_frame_equal(result, expected)

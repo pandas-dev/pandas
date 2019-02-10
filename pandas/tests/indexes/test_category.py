@@ -611,6 +611,15 @@ class TestCategoricalIndex(Base):
         assert c.is_monotonic_increasing is True
         assert c.is_monotonic_decreasing is False
 
+    @pytest.mark.parametrize('values, expected', [
+        ([1, 2, 3], True),
+        ([1, 3, 1], False),
+        (list('abc'), True),
+        (list('aba'), False)])
+    def test_is_unique(self, values, expected):
+        ci = CategoricalIndex(values)
+        assert ci.is_unique is expected
+
     def test_has_duplicates(self):
 
         idx = CategoricalIndex([0, 0, 0], name='foo')

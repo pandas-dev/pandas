@@ -25,9 +25,7 @@ def test_get_level_number_integer(idx):
     idx.names = [1, 0]
     assert idx._get_level_number(1) == 0
     assert idx._get_level_number(0) == 1
-    msg = "Too many levels: Index has only 2 levels, not 3"
-    with pytest.raises(IndexError, match=msg):
-        idx._get_level_number(2)
+    pytest.raises(IndexError, idx._get_level_number, 2)
     with pytest.raises(KeyError, match='Level fourth not found'):
         idx._get_level_number('fourth')
 
@@ -64,7 +62,7 @@ def test_get_value_duplicates():
                        names=['tag', 'day'])
 
     assert index.get_loc('D') == slice(0, 3)
-    with pytest.raises(KeyError, match=r"^'D'$"):
+    with pytest.raises(KeyError):
         index._engine.get_value(np.array([]), 'D')
 
 
@@ -127,8 +125,7 @@ def test_set_name_methods(idx, index_names):
     ind = idx.set_names(new_names)
     assert idx.names == index_names
     assert ind.names == new_names
-    msg = "Length of names must match number of levels in MultiIndex"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="^Length"):
         ind.set_names(new_names + new_names)
     new_names2 = [name + "SUFFIX2" for name in new_names]
     res = ind.set_names(new_names2, inplace=True)
@@ -166,10 +163,10 @@ def test_set_levels_codes_directly(idx):
     minor_codes = [(x + 1) % 1 for x in minor_codes]
     new_codes = [major_codes, minor_codes]
 
-    msg = "can't set attribute"
-    with pytest.raises(AttributeError, match=msg):
+    with pytest.raises(AttributeError):
         idx.levels = new_levels
-    with pytest.raises(AttributeError, match=msg):
+
+    with pytest.raises(AttributeError):
         idx.codes = new_codes
 
 

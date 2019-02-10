@@ -584,6 +584,10 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
+    def reshape_nd(self, axes, **kwargs):
+        """ a 2d-nd reshape operation on a BlockManager """
+        return self.apply('reshape_nd', axes=axes, **kwargs)
+
     def is_consolidated(self):
         """
         Return True if more than one block with the same dtype
@@ -1967,27 +1971,15 @@ def items_overlap_with_suffix(left, lsuffix, right, rsuffix):
             raise ValueError('columns overlap but no suffix specified: '
                              '{rename}'.format(rename=to_rename))
 
-        def renamer(x, suffix):
-            """Rename the left and right indices.
-
-            If there is overlap, and suffix is not None, add
-            suffix, otherwise, leave it as-is.
-
-            Parameters
-            ----------
-            x : original column name
-            suffix : str or None
-
-            Returns
-            -------
-            x : renamed column name
-            """
-            if x in to_rename and suffix is not None:
-                return '{x}{suffix}'.format(x=x, suffix=suffix)
+        def lrenamer(x):
+            if x in to_rename:
+                return '{x}{lsuffix}'.format(x=x, lsuffix=lsuffix)
             return x
 
-        lrenamer = partial(renamer, suffix=lsuffix)
-        rrenamer = partial(renamer, suffix=rsuffix)
+        def rrenamer(x):
+            if x in to_rename:
+                return '{x}{rsuffix}'.format(x=x, rsuffix=rsuffix)
+            return x
 
         return (_transform_index(left, lrenamer),
                 _transform_index(right, rrenamer))

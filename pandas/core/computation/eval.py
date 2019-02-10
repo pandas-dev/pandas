@@ -205,7 +205,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         A list of objects implementing the ``__getitem__`` special method that
         you can use to inject an additional collection of namespaces to use for
         variable lookup. For example, this is used in the
-        :meth:`~DataFrame.query` method to inject the
+        :meth:`~pandas.DataFrame.query` method to inject the
         ``DataFrame.index`` and ``DataFrame.columns``
         variables that refer to their respective :class:`~pandas.DataFrame`
         instance attributes.
@@ -248,8 +248,8 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
     See Also
     --------
-    DataFrame.query
-    DataFrame.eval
+    pandas.DataFrame.query
+    pandas.DataFrame.eval
 
     Notes
     -----

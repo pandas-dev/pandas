@@ -35,7 +35,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     ----------
     x : array-like
         The input array to be binned. Must be 1-dimensional.
-    bins : int, sequence of scalars, or IntervalIndex
+    bins : int, sequence of scalars, or pandas.IntervalIndex
         The criteria to bin by.
 
         * int : Defines the number of equal-width bins in the range of `x`. The
@@ -70,16 +70,16 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     Returns
     -------
-    out : Categorical, Series, or ndarray
+    out : pandas.Categorical, Series, or ndarray
         An array-like object representing the respective bin for each value
         of `x`. The type depends on the value of `labels`.
 
         * True (default) : returns a Series for Series `x` or a
-          Categorical for all other inputs. The values stored within
+          pandas.Categorical for all other inputs. The values stored within
           are Interval dtype.
 
         * sequence of scalars : returns a Series for Series `x` or a
-          Categorical for all other inputs. The values stored within
+          pandas.Categorical for all other inputs. The values stored within
           are whatever the type in the sequence is.
 
         * False : returns an ndarray of integers.
@@ -94,15 +94,16 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     --------
     qcut : Discretize variable into equal-sized buckets based on rank
         or based on sample quantiles.
-    Categorical : Array type for storing data that come from a
+    pandas.Categorical : Array type for storing data that come from a
         fixed set of values.
     Series : One-dimensional array with axis labels (including time series).
-    IntervalIndex : Immutable Index implementing an ordered, sliceable set.
+    pandas.IntervalIndex : Immutable Index implementing an ordered,
+        sliceable set.
 
     Notes
     -----
     Any NA values will be NA in the result. Out of bounds values will be NA in
-    the resulting Series or Categorical object.
+    the resulting Series or pandas.Categorical object.
 
     Examples
     --------
@@ -370,6 +371,14 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
             np.putmask(result, na_mask, np.nan)
 
     return result, bins
+
+
+def _trim_zeros(x):
+    while len(x) > 1 and x[-1] == '0':
+        x = x[:-1]
+    if len(x) > 1 and x[-1] == '.':
+        x = x[:-1]
+    return x
 
 
 def _coerce_to_type(x):

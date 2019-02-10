@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import sys
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -44,10 +43,9 @@ from pandas._libs.tslibs.timezones import UTC
 # Constants
 _zero_time = datetime_time(0, 0)
 _no_input = object()
-PY36 = sys.version_info >= (3, 6)
+
 
 # ----------------------------------------------------------------------
-
 
 def maybe_integer_op_deprecated(obj):
     # GH#22535 add/sub of integers and int-arrays is deprecated
@@ -199,7 +197,7 @@ def round_nsint64(values, mode, freq):
 
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
-# (see Timestamp class below). This will serve as a C extension type that
+# (see Timestamp class above). This will serve as a C extension type that
 # shadows the python class, where we do any heavy lifting.
 cdef class _Timestamp(datetime):
 
@@ -340,9 +338,7 @@ cdef class _Timestamp(datetime):
                         self.microsecond, self.tzinfo)
 
     cpdef to_datetime64(self):
-        """
-        Return a numpy.datetime64 object with 'ns' precision.
-        """
+        """ Returns a numpy.datetime64 object with 'ns' precision """
         return np.datetime64(self.value, 'ns')
 
     def __add__(self, other):
@@ -504,9 +500,6 @@ cdef class _Timestamp(datetime):
 
     @property
     def asm8(self):
-        """
-        Return numpy datetime64 format in nanoseconds.
-        """
         return np.datetime64(self.value, 'ns')
 
     @property
@@ -573,18 +566,15 @@ class Timestamp(_Timestamp):
     Using the primary calling convention:
 
     This converts a datetime-like string
-
     >>> pd.Timestamp('2017-01-01T12')
     Timestamp('2017-01-01 12:00:00')
 
     This converts a float representing a Unix epoch in units of seconds
-
     >>> pd.Timestamp(1513393355.5, unit='s')
     Timestamp('2017-12-16 03:02:35.500000')
 
     This converts an int representing a Unix-epoch in units of seconds
     and for a particular timezone
-
     >>> pd.Timestamp(1513393355, unit='s', tz='US/Pacific')
     Timestamp('2017-12-15 19:02:35-0800', tz='US/Pacific')
 
@@ -622,7 +612,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.now(tz=None)
 
-        Return new Timestamp object representing current time local to
+        Returns new Timestamp object representing current time local to
         tz.
 
         Parameters
@@ -680,7 +670,7 @@ class Timestamp(_Timestamp):
     @classmethod
     def combine(cls, date, time):
         """
-        Timestamp.combine(date, time)
+        Timsetamp.combine(date, time)
 
         date, time -> datetime with same date and time fields
         """
@@ -940,9 +930,6 @@ class Timestamp(_Timestamp):
 
     @property
     def dayofweek(self):
-        """
-        Return day of whe week.
-        """
         return self.weekday()
 
     def day_name(self, locale=None):
@@ -992,48 +979,30 @@ class Timestamp(_Timestamp):
 
     @property
     def dayofyear(self):
-        """
-        Return the day of the year.
-        """
         return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
     @property
     def week(self):
-        """
-        Return the week number of the year.
-        """
         return ccalendar.get_week_of_year(self.year, self.month, self.day)
 
     weekofyear = week
 
     @property
     def quarter(self):
-        """
-        Return the quarter of the year.
-        """
         return ((self.month - 1) // 3) + 1
 
     @property
     def days_in_month(self):
-        """
-        Return the number of days in the month.
-        """
         return ccalendar.get_days_in_month(self.year, self.month)
 
     daysinmonth = days_in_month
 
     @property
     def freqstr(self):
-        """
-        Return the total number of days in the month.
-        """
         return getattr(self.freq, 'freqstr', self.freq)
 
     @property
     def is_month_start(self):
-        """
-        Return True if date is first day of month.
-        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == 1
@@ -1041,9 +1010,6 @@ class Timestamp(_Timestamp):
 
     @property
     def is_month_end(self):
-        """
-        Return True if date is last day of month.
-        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == self.days_in_month
@@ -1051,9 +1017,6 @@ class Timestamp(_Timestamp):
 
     @property
     def is_quarter_start(self):
-        """
-        Return True if date is first day of the quarter.
-        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == 1 and self.month % 3 == 1
@@ -1061,9 +1024,6 @@ class Timestamp(_Timestamp):
 
     @property
     def is_quarter_end(self):
-        """
-        Return True if date is last day of the quarter.
-        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return (self.month % 3) == 0 and self.day == self.days_in_month
@@ -1071,9 +1031,6 @@ class Timestamp(_Timestamp):
 
     @property
     def is_year_start(self):
-        """
-        Return True if date is first day of the year.
-        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == self.month == 1
@@ -1081,9 +1038,6 @@ class Timestamp(_Timestamp):
 
     @property
     def is_year_end(self):
-        """
-        Return True if date is last day of the year.
-        """
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.month == 12 and self.day == 31
@@ -1091,9 +1045,6 @@ class Timestamp(_Timestamp):
 
     @property
     def is_leap_year(self):
-        """
-        Return True if year is a leap year.
-        """
         return bool(ccalendar.is_leapyear(self.year))
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
@@ -1244,6 +1195,7 @@ class Timestamp(_Timestamp):
         nanosecond : int, optional
         tzinfo : tz-convertible, optional
         fold : int, optional, default is 0
+            added in 3.6, NotImplemented
 
         Returns
         -------
@@ -1300,16 +1252,12 @@ class Timestamp(_Timestamp):
             # see GH#18319
             ts_input = _tzinfo.localize(datetime(dts.year, dts.month, dts.day,
                                                  dts.hour, dts.min, dts.sec,
-                                                 dts.us),
-                                        is_dst=not bool(fold))
+                                                 dts.us))
             _tzinfo = ts_input.tzinfo
         else:
-            kwargs = {'year': dts.year, 'month': dts.month, 'day': dts.day,
-                      'hour': dts.hour, 'minute': dts.min, 'second': dts.sec,
-                      'microsecond': dts.us, 'tzinfo': _tzinfo}
-            if PY36:
-                kwargs['fold'] = fold
-            ts_input = datetime(**kwargs)
+            ts_input = datetime(dts.year, dts.month, dts.day,
+                                dts.hour, dts.min, dts.sec, dts.us,
+                                tzinfo=_tzinfo)
 
         ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
         value = ts.value + (dts.ps // 1000)

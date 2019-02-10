@@ -108,6 +108,44 @@ def in_interactive_session():
         return check_main()
 
 
+def in_qtconsole():
+    """
+    check if we're inside an IPython qtconsole
+
+    .. deprecated:: 0.14.1
+       This is no longer needed, or working, in IPython 3 and above.
+    """
+    try:
+        ip = get_ipython()  # noqa
+        front_end = (
+            ip.config.get('KernelApp', {}).get('parent_appname', "") or
+            ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
+        if 'qtconsole' in front_end.lower():
+            return True
+    except NameError:
+        return False
+    return False
+
+
+def in_ipnb():
+    """
+    check if we're inside an IPython Notebook
+
+    .. deprecated:: 0.14.1
+       This is no longer needed, or working, in IPython 3 and above.
+    """
+    try:
+        ip = get_ipython()  # noqa
+        front_end = (
+            ip.config.get('KernelApp', {}).get('parent_appname', "") or
+            ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
+        if 'notebook' in front_end.lower():
+            return True
+    except NameError:
+        return False
+    return False
+
+
 def in_ipython_frontend():
     """
     check if we're inside an an IPython zmq frontend

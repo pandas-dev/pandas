@@ -380,7 +380,7 @@ class BaseGrouper(object):
             # otherwise find dtype-specific version, falling back to object
             for dt in [dtype_str, 'object']:
                 f = getattr(libgroupby, "{fname}_{dtype_str}".format(
-                    fname=fname, dtype_str=dt), None)
+                    fname=fname, dtype_str=dtype_str), None)
                 if f is not None:
                     return f
 

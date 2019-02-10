@@ -23,3 +23,4 @@ doc:
 	cd doc; \
 	python make.py clean; \
 	python make.py html
+	python make.py spellcheck

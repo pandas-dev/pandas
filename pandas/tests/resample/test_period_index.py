@@ -11,7 +11,6 @@ from pandas.compat import lrange, range, zip
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
-from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.resample import _get_period_range_edges
@@ -73,19 +72,17 @@ class TestPeriodIndex(object):
 
     @pytest.mark.parametrize('freq', ['H', '12H', '2D', 'W'])
     @pytest.mark.parametrize('kind', [None, 'period', 'timestamp'])
-    @pytest.mark.parametrize('kwargs', [dict(on='date'), dict(level='d')])
-    def test_selection(self, index, freq, kind, kwargs):
+    def test_selection(self, index, freq, kind):
         # This is a bug, these should be implemented
         # GH 14008
         rng = np.arange(len(index), dtype=np.int64)
         df = DataFrame({'date': index, 'a': rng},
                        index=pd.MultiIndex.from_arrays([rng, index],
                                                        names=['v', 'd']))
-        msg = ("Resampling from level= or on= selection with a PeriodIndex is"
-               r" not currently supported, use \.set_index\(\.\.\.\) to"
-               " explicitly set index")
-        with pytest.raises(NotImplementedError, match=msg):
-            df.resample(freq, kind=kind, **kwargs)
+        with pytest.raises(NotImplementedError):
+            df.resample(freq, on='date', kind=kind)
+        with pytest.raises(NotImplementedError):
+            df.resample(freq, level='d', kind=kind)
 
     @pytest.mark.parametrize('month', MONTHS)
     @pytest.mark.parametrize('meth', ['ffill', 'bfill'])
@@ -113,20 +110,13 @@ class TestPeriodIndex(object):
         assert_series_equal(ts.resample('a-dec').mean(), result)
         assert_series_equal(ts.resample('a').mean(), result)
 
-    @pytest.mark.parametrize('rule,expected_error_msg', [
-        ('a-dec', '<YearEnd: month=12>'),
-        ('q-mar', '<QuarterEnd: startingMonth=3>'),
-        ('M', '<MonthEnd>'),
-        ('w-thu', '<Week: weekday=3>')
-    ])
-    def test_not_subperiod(
-            self, simple_period_range_series, rule, expected_error_msg):
+    def test_not_subperiod(self, simple_period_range_series):
         # These are incompatible period rules for resampling
         ts = simple_period_range_series('1/1/1990', '6/30/1995', freq='w-wed')
-        msg = ("Frequency <Week: weekday=2> cannot be resampled to {}, as they"
-               " are not sub or super periods").format(expected_error_msg)
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            ts.resample(rule).mean()
+        pytest.raises(ValueError, lambda: ts.resample('a-dec').mean())
+        pytest.raises(ValueError, lambda: ts.resample('q-mar').mean())
+        pytest.raises(ValueError, lambda: ts.resample('M').mean())
+        pytest.raises(ValueError, lambda: ts.resample('w-thu').mean())
 
     @pytest.mark.parametrize('freq', ['D', '2D'])
     def test_basic_upsample(self, freq, simple_period_range_series):
@@ -222,9 +212,8 @@ class TestPeriodIndex(object):
         assert_series_equal(result, expected)
 
     def test_resample_incompat_freq(self):
-        msg = ("Frequency <MonthEnd> cannot be resampled to <Week: weekday=6>,"
-               " as they are not sub or super periods")
-        with pytest.raises(IncompatibleFrequency, match=msg):
+
+        with pytest.raises(IncompatibleFrequency):
             Series(range(3), index=pd.period_range(
                 start='2000', periods=3, freq='M')).resample('W').mean()
 
@@ -384,9 +373,7 @@ class TestPeriodIndex(object):
     def test_cant_fill_missing_dups(self):
         rng = PeriodIndex([2000, 2005, 2005, 2007, 2007], freq='A')
         s = Series(np.random.randn(5), index=rng)
-        msg = "Reindexing only valid with uniquely valued Index objects"
-        with pytest.raises(InvalidIndexError, match=msg):
-            s.resample('A').ffill()
+        pytest.raises(Exception, lambda: s.resample('A').ffill())
 
     @pytest.mark.parametrize('freq', ['5min'])
     @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])

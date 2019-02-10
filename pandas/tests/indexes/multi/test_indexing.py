@@ -6,7 +6,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -112,14 +112,13 @@ def test_slice_locs_not_contained():
 def test_putmask_with_wrong_mask(idx):
     # GH18368
 
-    msg = "putmask: mask and data must be the same size"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError):
         idx.putmask(np.ones(len(idx) + 1, np.bool), 1)
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError):
         idx.putmask(np.ones(len(idx) - 1, np.bool), 1)
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError):
         idx.putmask('foo', 1)
 
 
@@ -177,12 +176,9 @@ def test_get_indexer():
 
 def test_get_indexer_nearest():
     midx = MultiIndex.from_tuples([('a', 1), ('b', 2)])
-    msg = ("method='nearest' not implemented yet for MultiIndex; see GitHub"
-           " issue 9365")
-    with pytest.raises(NotImplementedError, match=msg):
+    with pytest.raises(NotImplementedError):
         midx.get_indexer(['a'], method='nearest')
-    msg = "tolerance not implemented yet for MultiIndex"
-    with pytest.raises(NotImplementedError, match=msg):
+    with pytest.raises(NotImplementedError):
         midx.get_indexer(['a'], method='pad', tolerance=2)
 
 
@@ -255,26 +251,20 @@ def test_getitem_bool_index_single(ind1, ind2):
     tm.assert_index_equal(idx[ind2], expected)
 
 
-@pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
 def test_get_loc(idx):
     assert idx.get_loc(('foo', 'two')) == 1
     assert idx.get_loc(('baz', 'two')) == 3
-    with pytest.raises(KeyError, match=r"^10$"):
-        idx.get_loc(('bar', 'two'))
-    with pytest.raises(KeyError, match=r"^'quux'$"):
-        idx.get_loc('quux')
+    pytest.raises(KeyError, idx.get_loc, ('bar', 'two'))
+    pytest.raises(KeyError, idx.get_loc, 'quux')
 
-    msg = ("only the default get_loc method is currently supported for"
-           " MultiIndex")
-    with pytest.raises(NotImplementedError, match=msg):
-        idx.get_loc('foo', method='nearest')
+    pytest.raises(NotImplementedError, idx.get_loc, 'foo',
+                  method='nearest')
 
     # 3 levels
     index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
         lrange(4))], codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
             [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
-    with pytest.raises(KeyError, match=r"^\(1, 1\)$"):
-        index.get_loc((1, 1))
+    pytest.raises(KeyError, index.get_loc, (1, 1))
     assert index.get_loc((2, 0)) == slice(3, 5)
 
 
@@ -307,14 +297,11 @@ def test_get_loc_level():
     assert loc == expected
     assert new_index is None
 
-    with pytest.raises(KeyError, match=r"^\(2, 2\)$"):
-        index.get_loc_level((2, 2))
+    pytest.raises(KeyError, index.get_loc_level, (2, 2))
     # GH 22221: unused label
-    with pytest.raises(KeyError, match=r"^2$"):
-        index.drop(2).get_loc_level(2)
+    pytest.raises(KeyError, index.drop(2).get_loc_level, 2)
     # Unused label on unsorted level:
-    with pytest.raises(KeyError, match=r"^2$"):
-        index.drop(1, level=2).get_loc_level(2, level=2)
+    pytest.raises(KeyError, index.drop(1, level=2).get_loc_level, 2, 2)
 
     index = MultiIndex(levels=[[2000], lrange(4)], codes=[np.array(
         [0, 0, 0, 0]), np.array([0, 1, 2, 3])])
@@ -355,10 +342,8 @@ def test_get_loc_cast_bool():
     assert idx.get_loc((0, 1)) == 1
     assert idx.get_loc((1, 0)) == 2
 
-    with pytest.raises(KeyError, match=r"^\(False, True\)$"):
-        idx.get_loc((False, True))
-    with pytest.raises(KeyError, match=r"^\(True, False\)$"):
-        idx.get_loc((True, False))
+    pytest.raises(KeyError, idx.get_loc, (False, True))
+    pytest.raises(KeyError, idx.get_loc, (True, False))
 
 
 @pytest.mark.parametrize('level', [0, 1])
@@ -376,12 +361,9 @@ def test_get_loc_missing_nan():
     # GH 8569
     idx = MultiIndex.from_arrays([[1.0, 2.0], [3.0, 4.0]])
     assert isinstance(idx.get_loc(1), slice)
-    with pytest.raises(KeyError, match=r"^3\.0$"):
-        idx.get_loc(3)
-    with pytest.raises(KeyError, match=r"^nan$"):
-        idx.get_loc(np.nan)
-    with pytest.raises(KeyError, match=r"^\[nan\]$"):
-        idx.get_loc([np.nan])
+    pytest.raises(KeyError, idx.get_loc, 3)
+    pytest.raises(KeyError, idx.get_loc, np.nan)
+    pytest.raises(KeyError, idx.get_loc, [np.nan])
 
 
 def test_get_indexer_categorical_time():

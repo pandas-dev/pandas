@@ -1,12 +1,11 @@
 # pylint: disable=E1101
 
-from collections import OrderedDict
 from datetime import datetime
 
 import numpy as np
 import pytest
 
-from pandas.compat import range
+from pandas.compat import OrderedDict, range
 
 import pandas as pd
 from pandas import DataFrame, Series
@@ -114,14 +113,16 @@ def test_getitem():
                           test_frame.columns[[0, 1]])
 
 
-@pytest.mark.parametrize('key', [['D'], ['A', 'D']])
-def test_select_bad_cols(key):
+def test_select_bad_cols():
+
     g = test_frame.resample('H')
-    # 'A' should not be referenced as a bad column...
-    # will have to rethink regex if you change message!
-    msg = r"^\"Columns not found: 'D'\"$"
-    with pytest.raises(KeyError, match=msg):
-        g[key]
+    pytest.raises(KeyError, g.__getitem__, ['D'])
+
+    pytest.raises(KeyError, g.__getitem__, ['A', 'D'])
+    with pytest.raises(KeyError, match='^[^A]+$'):
+        # A should not be referenced as a bad column...
+        # will have to rethink regex if you change message!
+        g[['A', 'D']]
 
 
 def test_attribute_access():
@@ -215,9 +216,7 @@ def test_fillna():
     result = r.fillna(method='bfill')
     assert_series_equal(result, expected)
 
-    msg = (r"Invalid fill method\. Expecting pad \(ffill\), backfill"
-           r" \(bfill\) or nearest\. Got 0")
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError):
         r.fillna(0)
 
 
@@ -438,11 +437,12 @@ def test_agg_misc():
 
     # errors
     # invalid names in the agg specification
-    msg = "\"Column 'B' does not exist!\""
     for t in cases:
-        with pytest.raises(KeyError, match=msg):
-            t[['A']].agg({'A': ['sum', 'std'],
-                          'B': ['mean', 'std']})
+        with pytest.raises(KeyError):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                t[['A']].agg({'A': ['sum', 'std'],
+                              'B': ['mean', 'std']})
 
 
 def test_agg_nested_dicts():
@@ -464,11 +464,11 @@ def test_agg_nested_dicts():
         df.groupby(pd.Grouper(freq='2D'))
     ]
 
-    msg = r"cannot perform renaming for r(1|2) with a nested dictionary"
     for t in cases:
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        def f():
             t.aggregate({'r1': {'A': ['mean', 'sum']},
                          'r2': {'B': ['mean', 'sum']}})
+            pytest.raises(ValueError, f)
 
     for t in cases:
         expected = pd.concat([t['A'].mean(), t['A'].std(), t['B'].mean(),
@@ -499,8 +499,7 @@ def test_try_aggregate_non_existing_column():
     df = DataFrame(data).set_index('dt')
 
     # Error as we don't have 'z' column
-    msg = "\"Column 'z' does not exist!\""
-    with pytest.raises(KeyError, match=msg):
+    with pytest.raises(KeyError):
         df.resample('30T').agg({'x': ['mean'],
                                 'y': ['median'],
                                 'z': ['sum']})
@@ -518,29 +517,23 @@ def test_selection_api_validation():
     df_exp = DataFrame({'a': rng}, index=index)
 
     # non DatetimeIndex
-    msg = ("Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex,"
-           " but got an instance of 'Int64Index'")
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(TypeError):
         df.resample('2D', level='v')
 
-    msg = "The Grouper cannot specify both a key and a level!"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError):
         df.resample('2D', on='date', level='d')
 
-    msg = "unhashable type: 'list'"
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(TypeError):
         df.resample('2D', on=['a', 'date'])
 
-    msg = r"\"Level \['a', 'date'\] not found\""
-    with pytest.raises(KeyError, match=msg):
+    with pytest.raises(KeyError):
         df.resample('2D', level=['a', 'date'])
 
     # upsampling not allowed
-    msg = ("Upsampling from level= or on= selection is not supported, use"
-           r" \.set_index\(\.\.\.\) to explicitly set index to datetime-like")
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError):
         df.resample('2D', level='d').asfreq()
-    with pytest.raises(ValueError, match=msg):
+
+    with pytest.raises(ValueError):
         df.resample('2D', on='date').asfreq()
 
     exp = df_exp.resample('2D').sum()

@@ -17,8 +17,7 @@ from .inference import is_list_like
 
 
 def register_extension_dtype(cls):
-    """
-    Register an ExtensionType with pandas as class decorator.
+    """Class decorator to register an ExtensionType with pandas.
 
     .. versionadded:: 0.24.0
 
@@ -195,7 +194,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     See Also
     --------
-    Categorical
+    pandas.Categorical
 
     Notes
     -----
@@ -414,7 +413,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             cat_array = hash_tuples(categories)
         else:
             if categories.dtype == 'O':
-                if len({type(x) for x in categories}) != 1:
+                types = [type(x) for x in categories]
+                if not len(set(types)) == 1:
                     # TODO: hash_array doesn't handle mixed types. It casts
                     # everything to a str first, which means we treat
                     # {'1', '2'} the same as {'1', 2}

@@ -64,11 +64,10 @@ from pandas.errors import (ParserError, DtypeWarning,
 CParserError = ParserError
 
 
-cdef:
-    bint PY3 = (sys.version_info[0] >= 3)
+cdef bint PY3 = (sys.version_info[0] >= 3)
 
-    float64_t INF = <float64_t>np.inf
-    float64_t NEGINF = -INF
+cdef float64_t INF = <float64_t>np.inf
+cdef float64_t NEGINF = -INF
 
 
 cdef extern from "errno.h":
@@ -736,7 +735,7 @@ cdef class TextReader:
             int status
             int64_t hr, data_line
             char *errors = "strict"
-            StringPath path = _string_path(self.c_encoding)
+            cdef StringPath path = _string_path(self.c_encoding)
 
         header = []
         unnamed_cols = set()
@@ -1390,9 +1389,8 @@ cdef class TextReader:
                 return None
 
 
-cdef:
-    object _true_values = [b'True', b'TRUE', b'true']
-    object _false_values = [b'False', b'FALSE', b'false']
+cdef object _true_values = [b'True', b'TRUE', b'true']
+cdef object _false_values = [b'False', b'FALSE', b'false']
 
 
 def _ensure_encoded(list lst):
@@ -1639,7 +1637,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         int64_t current_category = 0
 
         char *errors = "strict"
-        StringPath path = _string_path(encoding)
+        cdef StringPath path = _string_path(encoding)
 
         int ret = 0
         kh_str_t *table
@@ -1729,10 +1727,9 @@ cdef inline void _to_fw_string_nogil(parser_t *parser, int64_t col,
         data += width
 
 
-cdef:
-    char* cinf = b'inf'
-    char* cposinf = b'+inf'
-    char* cneginf = b'-inf'
+cdef char* cinf = b'inf'
+cdef char* cposinf = b'+inf'
+cdef char* cneginf = b'-inf'
 
 
 cdef _try_double(parser_t *parser, int64_t col,

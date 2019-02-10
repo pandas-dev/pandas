@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 
 import numpy as np
 
@@ -39,6 +39,9 @@ class TestABCClasses(object):
         assert isinstance(pd.Int64Index([1, 2, 3]), gt.ABCIndexClass)
         assert isinstance(pd.Series([1, 2, 3]), gt.ABCSeries)
         assert isinstance(self.df, gt.ABCDataFrame)
+        with catch_warnings(record=True):
+            simplefilter('ignore', FutureWarning)
+            assert isinstance(self.df.to_panel(), gt.ABCPanel)
         assert isinstance(self.sparse_series, gt.ABCSparseSeries)
         assert isinstance(self.sparse_array, gt.ABCSparseArray)
         assert isinstance(self.sparse_frame, gt.ABCSparseDataFrame)

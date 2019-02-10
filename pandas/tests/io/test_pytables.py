@@ -19,11 +19,11 @@ from pandas.core.dtypes.common import is_categorical_dtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex,
-    RangeIndex, Series, Timestamp, bdate_range, compat, concat, date_range,
-    isna, timedelta_range)
+    Panel, RangeIndex, Series, Timestamp, bdate_range, compat, concat,
+    date_range, isna, timedelta_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_frame_equal, assert_series_equal, set_timezone)
+    assert_frame_equal, assert_panel_equal, assert_series_equal, set_timezone)
 
 from pandas.io import pytables as pytables  # noqa:E402
 from pandas.io.formats.printing import pprint_thing
@@ -141,6 +141,7 @@ class Base(object):
 
 
 @pytest.mark.single
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
 
     def test_format_kwarg_in_constructor(self):
@@ -183,6 +184,11 @@ class TestHDFStore(Base):
 
             o = tm.makeDataFrame()
             assert_frame_equal(o, roundtrip('frame', o))
+
+            with catch_warnings(record=True):
+
+                o = tm.makePanel()
+                assert_panel_equal(o, roundtrip('panel', o))
 
             # table
             df = DataFrame(dict(A=lrange(5), B=lrange(5)))
@@ -342,9 +348,11 @@ class TestHDFStore(Base):
             store['a'] = tm.makeTimeSeries()
             store['b'] = tm.makeStringSeries()
             store['c'] = tm.makeDataFrame()
-
-            assert len(store) == 3
-            expected = {'/a', '/b', '/c'}
+            with catch_warnings(record=True):
+                store['d'] = tm.makePanel()
+                store['foo/bar'] = tm.makePanel()
+            assert len(store) == 5
+            expected = {'/a', '/b', '/c', '/d', '/foo/bar'}
             assert set(store.keys()) == expected
             assert set(store) == expected
 
@@ -379,6 +387,11 @@ class TestHDFStore(Base):
             store['a'] = tm.makeTimeSeries()
             store['b'] = tm.makeStringSeries()
             store['c'] = tm.makeDataFrame()
+
+            with catch_warnings(record=True):
+                store['d'] = tm.makePanel()
+                store['foo/bar'] = tm.makePanel()
+                store.append('e', tm.makePanel())
 
             df = tm.makeDataFrame()
             df['obj1'] = 'foo'
@@ -923,6 +936,21 @@ class TestHDFStore(Base):
                 store.append('/df3 foo', df[10:])
                 tm.assert_frame_equal(store['df3 foo'], df)
 
+                # panel
+                wp = tm.makePanel()
+                _maybe_remove(store, 'wp1')
+                store.append('wp1', wp.iloc[:, :10, :])
+                store.append('wp1', wp.iloc[:, 10:, :])
+                assert_panel_equal(store['wp1'], wp)
+
+                # test using differt order of items on the non-index axes
+                _maybe_remove(store, 'wp1')
+                wp_append1 = wp.iloc[:, :10, :]
+                store.append('wp1', wp_append1)
+                wp_append2 = wp.iloc[:, 10:, :].reindex(items=wp.items[::-1])
+                store.append('wp1', wp_append2)
+                assert_panel_equal(store['wp1'], wp)
+
                 # dtype issues - mizxed type in a single object column
                 df = DataFrame(data=[[1, 2], [0, 1], [1, 2], [0, 0]])
                 df['mixed_column'] = 'testing'
@@ -1226,6 +1254,22 @@ class TestHDFStore(Base):
             reloaded = read_hdf(path, 'df_with_missing')
             tm.assert_frame_equal(df_with_missing, reloaded)
 
+        matrix = [[[np.nan, np.nan, np.nan], [1, np.nan, np.nan]],
+                  [[np.nan, np.nan, np.nan], [np.nan, 5, 6]],
+                  [[np.nan, np.nan, np.nan], [np.nan, 3, np.nan]]]
+
+        with catch_warnings(record=True):
+            panel_with_missing = Panel(matrix,
+                                       items=['Item1', 'Item2', 'Item3'],
+                                       major_axis=[1, 2],
+                                       minor_axis=['A', 'B', 'C'])
+
+            with ensure_clean_path(self.path) as path:
+                panel_with_missing.to_hdf(
+                    path, 'panel_with_missing', format='table')
+                reloaded_panel = read_hdf(path, 'panel_with_missing')
+                tm.assert_panel_equal(panel_with_missing, reloaded_panel)
+
     def test_append_frame_column_oriented(self):
 
         with ensure_clean_store(self.path) as store:
@@ -1298,10 +1342,39 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
             with catch_warnings(record=True):
+                simplefilter("ignore", FutureWarning)
+                wp = tm.makePanel()
+                wp2 = wp.rename(
+                    minor_axis={x: "%s_extra" % x for x in wp.minor_axis})
 
                 def check_col(key, name, size):
                     assert getattr(store.get_storer(key)
                                    .table.description, name).itemsize == size
+
+                store.append('s1', wp, min_itemsize=20)
+                store.append('s1', wp2)
+                expected = concat([wp, wp2], axis=2)
+                expected = expected.reindex(
+                    minor_axis=sorted(expected.minor_axis))
+                assert_panel_equal(store['s1'], expected)
+                check_col('s1', 'minor_axis', 20)
+
+                # test dict format
+                store.append('s2', wp, min_itemsize={'minor_axis': 20})
+                store.append('s2', wp2)
+                expected = concat([wp, wp2], axis=2)
+                expected = expected.reindex(
+                    minor_axis=sorted(expected.minor_axis))
+                assert_panel_equal(store['s2'], expected)
+                check_col('s2', 'minor_axis', 20)
+
+                # apply the wrong field (similar to #1)
+                store.append('s3', wp, min_itemsize={'major_axis': 20})
+                pytest.raises(ValueError, store.append, 's3', wp2)
+
+                # test truncation of bigger strings
+                store.append('s4', wp)
+                pytest.raises(ValueError, store.append, 's4', wp2)
 
                 # avoid truncation on elements
                 df = DataFrame([[123, 'asdqwerty'], [345, 'dggnhebbsdfbdfb']])
@@ -1601,6 +1674,32 @@ class TestHDFStore(Base):
                              (df_dc.string == 'foo')]
             tm.assert_frame_equal(result, expected)
 
+        with ensure_clean_store(self.path) as store:
+            with catch_warnings(record=True):
+                # panel
+                # GH5717 not handling data_columns
+                np.random.seed(1234)
+                p = tm.makePanel()
+
+                store.append('p1', p)
+                tm.assert_panel_equal(store.select('p1'), p)
+
+                store.append('p2', p, data_columns=True)
+                tm.assert_panel_equal(store.select('p2'), p)
+
+                result = store.select('p2', where='ItemA>0')
+                expected = p.to_frame()
+                expected = expected[expected['ItemA'] > 0]
+                tm.assert_frame_equal(result.to_frame(), expected)
+
+                result = store.select(
+                    'p2', where='ItemA>0 & minor_axis=["A","B"]')
+                expected = p.to_frame()
+                expected = expected[expected['ItemA'] > 0]
+                expected = expected[expected.reset_index(
+                    level=['major']).index.isin(['A', 'B'])]
+                tm.assert_frame_equal(result.to_frame(), expected)
+
     def test_create_table_index(self):
 
         with ensure_clean_store(self.path) as store:
@@ -1608,6 +1707,37 @@ class TestHDFStore(Base):
             with catch_warnings(record=True):
                 def col(t, column):
                     return getattr(store.get_storer(t).table.cols, column)
+
+                # index=False
+                wp = tm.makePanel()
+                store.append('p5', wp, index=False)
+                store.create_table_index('p5', columns=['major_axis'])
+                assert(col('p5', 'major_axis').is_indexed is True)
+                assert(col('p5', 'minor_axis').is_indexed is False)
+
+                # index=True
+                store.append('p5i', wp, index=True)
+                assert(col('p5i', 'major_axis').is_indexed is True)
+                assert(col('p5i', 'minor_axis').is_indexed is True)
+
+                # default optlevels
+                store.get_storer('p5').create_index()
+                assert(col('p5', 'major_axis').index.optlevel == 6)
+                assert(col('p5', 'minor_axis').index.kind == 'medium')
+
+                # let's change the indexing scheme
+                store.create_table_index('p5')
+                assert(col('p5', 'major_axis').index.optlevel == 6)
+                assert(col('p5', 'minor_axis').index.kind == 'medium')
+                store.create_table_index('p5', optlevel=9)
+                assert(col('p5', 'major_axis').index.optlevel == 9)
+                assert(col('p5', 'minor_axis').index.kind == 'medium')
+                store.create_table_index('p5', kind='full')
+                assert(col('p5', 'major_axis').index.optlevel == 9)
+                assert(col('p5', 'minor_axis').index.kind == 'full')
+                store.create_table_index('p5', optlevel=1, kind='light')
+                assert(col('p5', 'major_axis').index.optlevel == 1)
+                assert(col('p5', 'minor_axis').index.kind == 'light')
 
                 # data columns
                 df = tm.makeTimeDataFrame()
@@ -1630,6 +1760,19 @@ class TestHDFStore(Base):
                 _maybe_remove(store, 'f2')
                 store.put('f2', df)
                 pytest.raises(TypeError, store.create_table_index, 'f2')
+
+    def test_append_diff_item_order(self):
+
+        with catch_warnings(record=True):
+            wp = tm.makePanel()
+            wp1 = wp.iloc[:, :10, :]
+            wp2 = wp.iloc[wp.items.get_indexer(['ItemC', 'ItemB', 'ItemA']),
+                          10:, :]
+
+            with ensure_clean_store(self.path) as store:
+                store.put('panel', wp1, format='table')
+                pytest.raises(ValueError, store.put, 'panel', wp2,
+                              append=True)
 
     def test_append_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -1844,6 +1987,10 @@ class TestHDFStore(Base):
         df['time2'] = Timestamp('20130102')
         check(df, tm.assert_frame_equal)
 
+        with catch_warnings(record=True):
+            p = tm.makePanel()
+            check(p, assert_panel_equal)
+
         # empty frame, GH4273
         with ensure_clean_store(self.path) as store:
 
@@ -1863,6 +2010,24 @@ class TestHDFStore(Base):
             df = DataFrame(columns=list('ABC'))
             store.put('df2', df)
             assert_frame_equal(store.select('df2'), df)
+
+            with catch_warnings(record=True):
+
+                # 0 len
+                p_empty = Panel(items=list('ABC'))
+                store.append('p', p_empty)
+                pytest.raises(KeyError, store.select, 'p')
+
+                # repeated append of 0/non-zero frames
+                p = Panel(np.random.randn(3, 4, 5), items=list('ABC'))
+                store.append('p', p)
+                assert_panel_equal(store.select('p'), p)
+                store.append('p', p_empty)
+                assert_panel_equal(store.select('p'), p)
+
+                # store
+                store.put('p2', p_empty)
+                assert_panel_equal(store.select('p2'), p_empty)
 
     def test_append_raise(self):
 
@@ -1977,6 +2142,24 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
             store.append('df1_mixed', df)
             tm.assert_frame_equal(store.select('df1_mixed'), df)
+
+        with catch_warnings(record=True):
+
+            # panel
+            wp = tm.makePanel()
+            wp['obj1'] = 'foo'
+            wp['obj2'] = 'bar'
+            wp['bool1'] = wp['ItemA'] > 0
+            wp['bool2'] = wp['ItemB'] > 0
+            wp['int1'] = 1
+            wp['int2'] = 2
+            wp = wp._consolidate()
+
+        with catch_warnings(record=True):
+
+            with ensure_clean_store(self.path) as store:
+                store.append('p1_mixed', wp)
+                assert_panel_equal(store.select('p1_mixed'), wp)
 
     def test_unimplemented_dtypes_table_columns(self):
 
@@ -2125,6 +2308,193 @@ class TestHDFStore(Base):
             del store['b']
             assert len(store) == 0
 
+    def test_remove_where(self):
+
+        with ensure_clean_store(self.path) as store:
+
+            with catch_warnings(record=True):
+
+                # non-existance
+                crit1 = 'index>foo'
+                pytest.raises(KeyError, store.remove, 'a', [crit1])
+
+                # try to remove non-table (with crit)
+                # non-table ok (where = None)
+                wp = tm.makePanel(30)
+                store.put('wp', wp, format='table')
+                store.remove('wp', ["minor_axis=['A', 'D']"])
+                rs = store.select('wp')
+                expected = wp.reindex(minor_axis=['B', 'C'])
+                assert_panel_equal(rs, expected)
+
+                # empty where
+                _maybe_remove(store, 'wp')
+                store.put('wp', wp, format='table')
+
+                # deleted number (entire table)
+                n = store.remove('wp', [])
+                assert n == 120
+
+                # non - empty where
+                _maybe_remove(store, 'wp')
+                store.put('wp', wp, format='table')
+                pytest.raises(ValueError, store.remove,
+                              'wp', ['foo'])
+
+    def test_remove_startstop(self):
+        # GH #4835 and #6177
+
+        with ensure_clean_store(self.path) as store:
+
+            with catch_warnings(record=True):
+                wp = tm.makePanel(30)
+
+                # start
+                _maybe_remove(store, 'wp1')
+                store.put('wp1', wp, format='t')
+                n = store.remove('wp1', start=32)
+                assert n == 120 - 32
+                result = store.select('wp1')
+                expected = wp.reindex(major_axis=wp.major_axis[:32 // 4])
+                assert_panel_equal(result, expected)
+
+                _maybe_remove(store, 'wp2')
+                store.put('wp2', wp, format='t')
+                n = store.remove('wp2', start=-32)
+                assert n == 32
+                result = store.select('wp2')
+                expected = wp.reindex(major_axis=wp.major_axis[:-32 // 4])
+                assert_panel_equal(result, expected)
+
+                # stop
+                _maybe_remove(store, 'wp3')
+                store.put('wp3', wp, format='t')
+                n = store.remove('wp3', stop=32)
+                assert n == 32
+                result = store.select('wp3')
+                expected = wp.reindex(major_axis=wp.major_axis[32 // 4:])
+                assert_panel_equal(result, expected)
+
+                _maybe_remove(store, 'wp4')
+                store.put('wp4', wp, format='t')
+                n = store.remove('wp4', stop=-32)
+                assert n == 120 - 32
+                result = store.select('wp4')
+                expected = wp.reindex(major_axis=wp.major_axis[-32 // 4:])
+                assert_panel_equal(result, expected)
+
+                # start n stop
+                _maybe_remove(store, 'wp5')
+                store.put('wp5', wp, format='t')
+                n = store.remove('wp5', start=16, stop=-16)
+                assert n == 120 - 32
+                result = store.select('wp5')
+                expected = wp.reindex(
+                    major_axis=(wp.major_axis[:16 // 4]
+                                .union(wp.major_axis[-16 // 4:])))
+                assert_panel_equal(result, expected)
+
+                _maybe_remove(store, 'wp6')
+                store.put('wp6', wp, format='t')
+                n = store.remove('wp6', start=16, stop=16)
+                assert n == 0
+                result = store.select('wp6')
+                expected = wp.reindex(major_axis=wp.major_axis)
+                assert_panel_equal(result, expected)
+
+                # with where
+                _maybe_remove(store, 'wp7')
+
+                # TODO: unused?
+                date = wp.major_axis.take(np.arange(0, 30, 3))  # noqa
+
+                crit = 'major_axis=date'
+                store.put('wp7', wp, format='t')
+                n = store.remove('wp7', where=[crit], stop=80)
+                assert n == 28
+                result = store.select('wp7')
+                expected = wp.reindex(major_axis=wp.major_axis.difference(
+                    wp.major_axis[np.arange(0, 20, 3)]))
+                assert_panel_equal(result, expected)
+
+    def test_remove_crit(self):
+
+        with ensure_clean_store(self.path) as store:
+
+            with catch_warnings(record=True):
+                wp = tm.makePanel(30)
+
+                # group row removal
+                _maybe_remove(store, 'wp3')
+                date4 = wp.major_axis.take([0, 1, 2, 4, 5, 6, 8, 9, 10])
+                crit4 = 'major_axis=date4'
+                store.put('wp3', wp, format='t')
+                n = store.remove('wp3', where=[crit4])
+                assert n == 36
+
+                result = store.select('wp3')
+                expected = wp.reindex(
+                    major_axis=wp.major_axis.difference(date4))
+                assert_panel_equal(result, expected)
+
+                # upper half
+                _maybe_remove(store, 'wp')
+                store.put('wp', wp, format='table')
+                date = wp.major_axis[len(wp.major_axis) // 2]
+
+                crit1 = 'major_axis>date'
+                crit2 = "minor_axis=['A', 'D']"
+                n = store.remove('wp', where=[crit1])
+                assert n == 56
+
+                n = store.remove('wp', where=[crit2])
+                assert n == 32
+
+                result = store['wp']
+                expected = wp.truncate(after=date).reindex(minor=['B', 'C'])
+                assert_panel_equal(result, expected)
+
+                # individual row elements
+                _maybe_remove(store, 'wp2')
+                store.put('wp2', wp, format='table')
+
+                date1 = wp.major_axis[1:3]
+                crit1 = 'major_axis=date1'
+                store.remove('wp2', where=[crit1])
+                result = store.select('wp2')
+                expected = wp.reindex(
+                    major_axis=wp.major_axis.difference(date1))
+                assert_panel_equal(result, expected)
+
+                date2 = wp.major_axis[5]
+                crit2 = 'major_axis=date2'
+                store.remove('wp2', where=[crit2])
+                result = store['wp2']
+                expected = wp.reindex(
+                    major_axis=(wp.major_axis
+                                .difference(date1)
+                                .difference(Index([date2]))
+                                ))
+                assert_panel_equal(result, expected)
+
+                date3 = [wp.major_axis[7], wp.major_axis[9]]
+                crit3 = 'major_axis=date3'
+                store.remove('wp2', where=[crit3])
+                result = store['wp2']
+                expected = wp.reindex(major_axis=wp.major_axis
+                                      .difference(date1)
+                                      .difference(Index([date2]))
+                                      .difference(Index(date3)))
+                assert_panel_equal(result, expected)
+
+                # corners
+                _maybe_remove(store, 'wp4')
+                store.put('wp4', wp, format='table')
+                n = store.remove(
+                    'wp4', where="major_axis>wp.major_axis[-1]")
+                result = store.select('wp4')
+                assert_panel_equal(result, wp)
+
     def test_invalid_terms(self):
 
         with ensure_clean_store(self.path) as store:
@@ -2134,16 +2504,27 @@ class TestHDFStore(Base):
                 df = tm.makeTimeDataFrame()
                 df['string'] = 'foo'
                 df.loc[0:4, 'string'] = 'bar'
+                wp = tm.makePanel()
 
                 store.put('df', df, format='table')
+                store.put('wp', wp, format='table')
 
                 # some invalid terms
+                pytest.raises(ValueError, store.select,
+                              'wp', "minor=['A', 'B']")
+                pytest.raises(ValueError, store.select,
+                              'wp', ["index=['20121114']"])
+                pytest.raises(ValueError, store.select, 'wp', [
+                    "index=['20121114', '20121114']"])
                 pytest.raises(TypeError, Term)
 
                 # more invalid
                 pytest.raises(
                     ValueError, store.select, 'df', 'df.index[3]')
                 pytest.raises(SyntaxError, store.select, 'df', 'index>')
+                pytest.raises(
+                    ValueError, store.select, 'wp',
+                    "major_axis<'20000108' & minor_axis['A', 'B']")
 
         # from the docs
         with ensure_clean_path(self.path) as path:
@@ -2164,6 +2545,127 @@ class TestHDFStore(Base):
 
             pytest.raises(ValueError, read_hdf, path,
                           'dfq', where="A>0 or C>0")
+
+    def test_terms(self):
+
+        with ensure_clean_store(self.path) as store:
+
+            with catch_warnings(record=True):
+                simplefilter("ignore", FutureWarning)
+
+                wp = tm.makePanel()
+                wpneg = Panel.fromDict({-1: tm.makeDataFrame(),
+                                        0: tm.makeDataFrame(),
+                                        1: tm.makeDataFrame()})
+
+                store.put('wp', wp, format='table')
+                store.put('wpneg', wpneg, format='table')
+
+                # panel
+                result = store.select(
+                    'wp',
+                    "major_axis<'20000108' and minor_axis=['A', 'B']")
+                expected = wp.truncate(
+                    after='20000108').reindex(minor=['A', 'B'])
+                assert_panel_equal(result, expected)
+
+                # with deprecation
+                result = store.select(
+                    'wp', where=("major_axis<'20000108' "
+                                 "and minor_axis=['A', 'B']"))
+                expected = wp.truncate(
+                    after='20000108').reindex(minor=['A', 'B'])
+                tm.assert_panel_equal(result, expected)
+
+            with catch_warnings(record=True):
+
+                # valid terms
+                terms = [('major_axis=20121114'),
+                         ('major_axis>20121114'),
+                         (("major_axis=['20121114', '20121114']"),),
+                         ('major_axis=datetime.datetime(2012, 11, 14)'),
+                         'major_axis> 20121114',
+                         'major_axis >20121114',
+                         'major_axis > 20121114',
+                         (("minor_axis=['A', 'B']"),),
+                         (("minor_axis=['A', 'B']"),),
+                         ((("minor_axis==['A', 'B']"),),),
+                         (("items=['ItemA', 'ItemB']"),),
+                         ('items=ItemA'),
+                         ]
+
+                for t in terms:
+                    store.select('wp', t)
+
+                with pytest.raises(TypeError,
+                                   match='Only named functions are supported'):
+                    store.select(
+                        'wp',
+                        'major_axis == (lambda x: x)("20130101")')
+
+            with catch_warnings(record=True):
+                # check USub node parsing
+                res = store.select('wpneg', 'items == -1')
+                expected = Panel({-1: wpneg[-1]})
+                tm.assert_panel_equal(res, expected)
+
+                msg = 'Unary addition not supported'
+                with pytest.raises(NotImplementedError, match=msg):
+                    store.select('wpneg', 'items == +1')
+
+    def test_term_compat(self):
+        with ensure_clean_store(self.path) as store:
+
+            with catch_warnings(record=True):
+                wp = Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
+                           major_axis=date_range('1/1/2000', periods=5),
+                           minor_axis=['A', 'B', 'C', 'D'])
+                store.append('wp', wp)
+
+                result = store.select(
+                    'wp', where=("major_axis>20000102 "
+                                 "and minor_axis=['A', 'B']"))
+                expected = wp.loc[:, wp.major_axis >
+                                  Timestamp('20000102'), ['A', 'B']]
+                assert_panel_equal(result, expected)
+
+                store.remove('wp', 'major_axis>20000103')
+                result = store.select('wp')
+                expected = wp.loc[:, wp.major_axis <= Timestamp('20000103'), :]
+                assert_panel_equal(result, expected)
+
+        with ensure_clean_store(self.path) as store:
+
+            with catch_warnings(record=True):
+                wp = Panel(np.random.randn(2, 5, 4),
+                           items=['Item1', 'Item2'],
+                           major_axis=date_range('1/1/2000', periods=5),
+                           minor_axis=['A', 'B', 'C', 'D'])
+                store.append('wp', wp)
+
+                # stringified datetimes
+                result = store.select(
+                    'wp', 'major_axis>datetime.datetime(2000, 1, 2)')
+                expected = wp.loc[:, wp.major_axis > Timestamp('20000102')]
+                assert_panel_equal(result, expected)
+
+                result = store.select(
+                    'wp', 'major_axis>datetime.datetime(2000, 1, 2)')
+                expected = wp.loc[:, wp.major_axis > Timestamp('20000102')]
+                assert_panel_equal(result, expected)
+
+                result = store.select(
+                    'wp',
+                    "major_axis=[datetime.datetime(2000, 1, 2, 0, 0), "
+                    "datetime.datetime(2000, 1, 3, 0, 0)]")
+                expected = wp.loc[:, [Timestamp('20000102'),
+                                      Timestamp('20000103')]]
+                assert_panel_equal(result, expected)
+
+                result = store.select(
+                    'wp', "minor_axis=['A', 'B']")
+                expected = wp.loc[:, :, ['A', 'B']]
+                assert_panel_equal(result, expected)
 
     def test_same_name_scoping(self):
 
@@ -2480,6 +2982,12 @@ class TestHDFStore(Base):
         self._check_roundtrip(df1['int1'], tm.assert_series_equal,
                               compression=compression)
 
+    def test_wide(self):
+
+        with catch_warnings(record=True):
+            wp = tm.makePanel()
+            self._check_roundtrip(wp, assert_panel_equal)
+
     @pytest.mark.filterwarnings(
         "ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning"
     )
@@ -2542,6 +3050,29 @@ class TestHDFStore(Base):
             result = store.select('df', columns=['B', 'A'])
             assert_frame_equal(result, expected, by_blocks=True)
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning"
+    )
+    def test_wide_table_dups(self):
+        with ensure_clean_store(self.path) as store:
+            with catch_warnings(record=True):
+
+                wp = tm.makePanel()
+                store.put('panel', wp, format='table')
+                store.put('panel', wp, format='table', append=True)
+
+                recons = store['panel']
+
+                assert_panel_equal(recons, wp)
+
+    def test_long(self):
+        def _check(left, right):
+            assert_panel_equal(left.to_panel(), right.to_panel())
+
+        with catch_warnings(record=True):
+            wp = tm.makePanel()
+            self._check_roundtrip(wp.to_frame(), _check)
+
     def test_overwrite_node(self):
 
         with ensure_clean_store(self.path) as store:
@@ -2588,6 +3119,34 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             with catch_warnings(record=True):
+                wp = tm.makePanel()
+
+                # put/select ok
+                _maybe_remove(store, 'wp')
+                store.put('wp', wp, format='table')
+                store.select('wp')
+
+                # non-table ok (where = None)
+                _maybe_remove(store, 'wp')
+                store.put('wp2', wp)
+                store.select('wp2')
+
+                # selection on the non-indexable with a large number of columns
+                wp = Panel(np.random.randn(100, 100, 100),
+                           items=['Item%03d' % i for i in range(100)],
+                           major_axis=date_range('1/1/2000', periods=100),
+                           minor_axis=['E%03d' % i for i in range(100)])
+
+                _maybe_remove(store, 'wp')
+                store.append('wp', wp)
+                items = ['Item%03d' % i for i in range(80)]
+                result = store.select('wp', 'items=items')
+                expected = wp.reindex(items=items)
+                assert_panel_equal(expected, result)
+
+                # selectin non-table with a where
+                # pytest.raises(ValueError, store.select,
+                #                  'wp2', ('column', ['A', 'D']))
 
                 # select with columns=
                 df = tm.makeTimeDataFrame()
@@ -3115,6 +3674,31 @@ class TestHDFStore(Base):
                 df2.to_hdf(path, 'data', append=True)
 
             assert read_hdf(path, 'data').index.name is None
+
+    def test_panel_select(self):
+
+        with ensure_clean_store(self.path) as store:
+
+            with catch_warnings(record=True):
+
+                wp = tm.makePanel()
+
+                store.put('wp', wp, format='table')
+                date = wp.major_axis[len(wp.major_axis) // 2]
+
+                crit1 = ('major_axis>=date')
+                crit2 = ("minor_axis=['A', 'D']")
+
+                result = store.select('wp', [crit1, crit2])
+                expected = wp.truncate(before=date).reindex(minor=['A', 'D'])
+                assert_panel_equal(result, expected)
+
+                result = store.select(
+                    'wp', ['major_axis>="20000124"',
+                           ("minor_axis=['A', 'B']")])
+                expected = wp.truncate(
+                    before='20000124').reindex(minor=['A', 'B'])
+                assert_panel_equal(result, expected)
 
     def test_frame_select(self):
 
@@ -3956,7 +4540,7 @@ class TestHDFStore(Base):
 
     def test_legacy_table_fixed_format_read_py2(self, datapath):
         # GH 24510
-        # legacy table with fixed format written in Python 2
+        # legacy table with fixed format written en Python 2
         with ensure_clean_store(
                 datapath('io', 'data', 'legacy_hdf',
                          'legacy_table_fixed_py2.h5'),
@@ -3968,20 +4552,29 @@ class TestHDFStore(Base):
                                                    name='INDEX_NAME'))
             assert_frame_equal(expected, result)
 
-    def test_legacy_table_read_py2(self, datapath):
-        # issue: 24925
-        # legacy table written in Python 2
+    def test_legacy_table_read(self, datapath):
+        # legacy table types
         with ensure_clean_store(
-                datapath('io', 'data', 'legacy_hdf',
-                         'legacy_table_py2.h5'),
+                datapath('io', 'data', 'legacy_hdf', 'legacy_table.h5'),
                 mode='r') as store:
-            result = store.select('table')
 
-        expected = pd.DataFrame({
-            "a": ["a", "b"],
-            "b": [2, 3]
-        })
-        assert_frame_equal(expected, result)
+            with catch_warnings():
+                simplefilter("ignore", pd.io.pytables.IncompatibilityWarning)
+                store.select('df1')
+                store.select('df2')
+                store.select('wp1')
+
+                # force the frame
+                store.select('df2', typ='legacy_frame')
+
+                # old version warning
+                pytest.raises(
+                    Exception, store.select, 'wp1', 'minor_axis=B')
+
+                df2 = store.select('df2')
+                result = store.select('df2', 'index>df2.index[2]')
+                expected = df2[df2.index > df2.index[2]]
+                assert_frame_equal(expected, result)
 
     def test_copy(self):
 
@@ -4715,30 +5308,35 @@ class TestHDFComplexValues(Base):
             reread = read_hdf(path, 'df')
             assert_frame_equal(df, reread)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_complex_across_dimensions_fixed(self):
         with catch_warnings(record=True):
             complex128 = np.array(
                 [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
             s = Series(complex128, index=list('abcd'))
             df = DataFrame({'A': s, 'B': s})
+            p = Panel({'One': df, 'Two': df})
 
-            objs = [s, df]
-            comps = [tm.assert_series_equal, tm.assert_frame_equal]
+            objs = [s, df, p]
+            comps = [tm.assert_series_equal, tm.assert_frame_equal,
+                     tm.assert_panel_equal]
             for obj, comp in zip(objs, comps):
                 with ensure_clean_path(self.path) as path:
                     obj.to_hdf(path, 'obj', format='fixed')
                     reread = read_hdf(path, 'obj')
                     comp(obj, reread)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_complex_across_dimensions(self):
         complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
         s = Series(complex128, index=list('abcd'))
         df = DataFrame({'A': s, 'B': s})
 
         with catch_warnings(record=True):
+            p = Panel({'One': df, 'Two': df})
 
-            objs = [df]
-            comps = [tm.assert_frame_equal]
+            objs = [df, p]
+            comps = [tm.assert_frame_equal, tm.assert_panel_equal]
             for obj, comp in zip(objs, comps):
                 with ensure_clean_path(self.path) as path:
                     obj.to_hdf(path, 'obj', format='table')

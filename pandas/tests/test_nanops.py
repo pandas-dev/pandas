@@ -971,9 +971,6 @@ class TestNankurtFixedValues(object):
 
 class TestDatetime64NaNOps(object):
     @pytest.mark.parametrize('tz', [None, 'UTC'])
-    @pytest.mark.xfail(reason="disabled")
-    # Enabling mean changes the behavior of DataFrame.mean
-    # See https://github.com/pandas-dev/pandas/issues/24752
     def test_nanmean(self, tz):
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         expected = dti[1]

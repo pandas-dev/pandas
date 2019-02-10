@@ -100,8 +100,8 @@ DataFrame or StataReader
 
 See Also
 --------
-io.stata.StataReader : Low-level reader for Stata data files.
-DataFrame.to_stata: Export Stata data files.
+pandas.io.stata.StataReader : Low-level reader for Stata data files.
+pandas.DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------
@@ -119,7 +119,7 @@ Read a Stata dta file in 10,000 line chunks:
        _iterator_params)
 
 _data_method_doc = """\
-Read observations from Stata file, converting them into a dataframe
+Reads observations from Stata file, converting them into a dataframe
 
 .. deprecated::
     This is a legacy method.  Use `read` in new code.
@@ -1726,22 +1726,18 @@ class StataReader(StataParser, BaseIterator):
         return data
 
     def data_label(self):
-        """
-        Return data label of Stata file.
-        """
+        """Returns data label of Stata file"""
         return self.data_label
 
     def variable_labels(self):
-        """
-        Return variable labels as a dict, associating each variable name
-        with corresponding label.
+        """Returns variable labels as a dict, associating each variable name
+        with corresponding label
         """
         return dict(zip(self.varlist, self._variable_labels))
 
     def value_labels(self):
-        """
-        Return a dict, associating each variable name a dict, associating
-        each value its corresponding label.
+        """Returns a dict, associating each variable name a dict, associating
+        each value its corresponding label
         """
         if not self._value_labels_read:
             self._read_value_labels()
@@ -1751,7 +1747,7 @@ class StataReader(StataParser, BaseIterator):
 
 def _open_file_binary_write(fname):
     """
-    Open a binary file or no-op if file-like.
+    Open a binary file or no-op if file-like
 
     Parameters
     ----------
@@ -1782,14 +1778,14 @@ def _set_endianness(endianness):
 
 def _pad_bytes(name, length):
     """
-    Take a char string and pads it with null bytes until it's length chars.
+    Takes a char string and pads it with null bytes until it's length chars
     """
     return name + "\x00" * (length - len(name))
 
 
 def _convert_datetime_to_stata_type(fmt):
     """
-    Convert from one of the stata date formats to a type in TYPE_MAP.
+    Converts from one of the stata date formats to a type in TYPE_MAP
     """
     if fmt in ["tc", "%tc", "td", "%td", "tw", "%tw", "tm", "%tm", "tq",
                "%tq", "th", "%th", "ty", "%ty"]:
@@ -1816,7 +1812,7 @@ def _maybe_convert_to_int_keys(convert_dates, varlist):
 
 def _dtype_to_stata_type(dtype, column):
     """
-    Convert dtype types to stata types. Returns the byte of the given ordinal.
+    Converts dtype types to stata types. Returns the byte of the given ordinal.
     See TYPE_MAP and comments for an explanation. This is also explained in
     the dta spec.
     1 - 244 are strings of this length
@@ -1854,7 +1850,7 @@ def _dtype_to_stata_type(dtype, column):
 def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
                                 force_strl=False):
     """
-    Map numpy dtype to stata's default format for this type. Not terribly
+    Maps numpy dtype to stata's default format for this type. Not terribly
     important since users can change this in Stata. Semantics are
 
     object  -> "%DDs" where DD is the length of the string.  If not a string,
@@ -2389,22 +2385,32 @@ class StataWriter(StataParser):
         data = self._convert_strls(data)
 
         # 3. Convert bad string data to '' and pad to correct length
-        dtypes = {}
+        dtypes = []
+        data_cols = []
+        has_strings = False
         native_byteorder = self._byteorder == _set_endianness(sys.byteorder)
         for i, col in enumerate(data):
             typ = typlist[i]
             if typ <= self._max_string_length:
+                has_strings = True
                 data[col] = data[col].fillna('').apply(_pad_bytes, args=(typ,))
                 stype = 'S{type}'.format(type=typ)
-                dtypes[col] = stype
-                data[col] = data[col].str.encode(self._encoding).astype(stype)
+                dtypes.append(('c' + str(i), stype))
+                string = data[col].str.encode(self._encoding)
+                data_cols.append(string.values.astype(stype))
             else:
+                values = data[col].values
                 dtype = data[col].dtype
                 if not native_byteorder:
                     dtype = dtype.newbyteorder(self._byteorder)
-                dtypes[col] = dtype
+                dtypes.append(('c' + str(i), dtype))
+                data_cols.append(values)
+        dtypes = np.dtype(dtypes)
 
-        self.data = data.to_records(index=False, column_dtypes=dtypes)
+        if has_strings or not native_byteorder:
+            self.data = np.fromiter(zip(*data_cols), dtype=dtypes)
+        else:
+            self.data = data.to_records(index=False)
 
     def _write_data(self):
         data = self.data

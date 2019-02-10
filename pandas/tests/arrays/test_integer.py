@@ -339,7 +339,7 @@ class TestComparisonOps(BaseOpsUtil):
         expected = pd.Series(op(data._data, other))
 
         # fill the nan locations
-        expected[data._mask] = op_name == '__ne__'
+        expected[data._mask] = True if op_name == '__ne__' else False
 
         tm.assert_series_equal(result, expected)
 
@@ -351,7 +351,7 @@ class TestComparisonOps(BaseOpsUtil):
         expected = op(expected, other)
 
         # fill the nan locations
-        expected[data._mask] = op_name == '__ne__'
+        expected[data._mask] = True if op_name == '__ne__' else False
 
         tm.assert_series_equal(result, expected)
 

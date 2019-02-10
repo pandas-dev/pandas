@@ -143,18 +143,6 @@ def test_has_duplicates(idx, idx_dup):
     assert mi.is_unique is False
     assert mi.has_duplicates is True
 
-    # single instance of NaN
-    mi_nan = MultiIndex(levels=[['a', 'b'], [0, 1]],
-                        codes=[[-1, 0, 0, 1, 1], [-1, 0, 1, 0, 1]])
-    assert mi_nan.is_unique is True
-    assert mi_nan.has_duplicates is False
-
-    # multiple instances of NaN
-    mi_nan_dup = MultiIndex(levels=[['a', 'b'], [0, 1]],
-                            codes=[[-1, -1, 0, 0, 1, 1], [-1, -1, 0, 1, 0, 1]])
-    assert mi_nan_dup.is_unique is False
-    assert mi_nan_dup.has_duplicates is True
-
 
 def test_has_duplicates_from_tuples():
     # GH 9075

@@ -3,9 +3,7 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes SparseSeries.to_coo helpers.
 """
-from collections import OrderedDict
-
-from pandas.compat import lmap
+from pandas.compat import OrderedDict, lmap
 
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
@@ -92,8 +90,7 @@ def _to_ijv(ss, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
 
 def _sparse_series_to_coo(ss, row_levels=(0, ), column_levels=(1, ),
                           sort_labels=False):
-    """
-    Convert a SparseSeries to a scipy.sparse.coo_matrix using index
+    """ Convert a SparseSeries to a scipy.sparse.coo_matrix using index
     levels row_levels, column_levels as the row and column
     labels respectively. Returns the sparse_matrix, row and column labels.
     """
@@ -119,8 +116,7 @@ def _sparse_series_to_coo(ss, row_levels=(0, ), column_levels=(1, ),
 
 
 def _coo_to_sparse_series(A, dense_index=False):
-    """
-    Convert a scipy.sparse.coo_matrix to a SparseSeries.
+    """ Convert a scipy.sparse.coo_matrix to a SparseSeries.
     Use the defaults given in the SparseSeries constructor.
     """
     s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))

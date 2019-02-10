@@ -67,9 +67,7 @@ class TestPeriodIndex(object):
         assert pi7.asfreq('H', 'S') == pi5
         assert pi7.asfreq('Min', 'S') == pi6
 
-        msg = "How must be one of S or E"
-        with pytest.raises(ValueError, match=msg):
-            pi7.asfreq('T', 'foo')
+        pytest.raises(ValueError, pi7.asfreq, 'T', 'foo')
         result1 = pi1.asfreq('3M')
         result2 = pi1.asfreq('M')
         expected = period_range(freq='M', start='2001-12', end='2001-12')

@@ -289,14 +289,14 @@ def unique(values):
     Returns
     -------
     unique values.
-      If the input is an Index, the return is an Index
-      If the input is a Categorical dtype, the return is a Categorical
-      If the input is a Series/ndarray, the return will be an ndarray
+      - If the input is an Index, the return is an Index
+      - If the input is a Categorical dtype, the return is a Categorical
+      - If the input is a Series/ndarray, the return will be an ndarray
 
     See Also
     --------
-    Index.unique
-    Series.unique
+    pandas.Index.unique
+    pandas.Series.unique
 
     Examples
     --------

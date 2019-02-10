@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
 
+
 for imp in ['pandas.util', 'pandas.tools.hashing']:
     try:
         hashing = import_module(imp)
@@ -141,4 +142,4 @@ class Quantile(object):
         self.idx.quantile(quantile, interpolation=interpolation)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from .pandas_vb_common import setup  # noqa: F401

@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, lzip, map, range, zip
+from pandas.compat import (
+    OrderedDict, StringIO, lmap, lrange, lzip, map, range, zip)
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -1216,6 +1217,51 @@ def test_groupby_nat_exclude():
             grouped.get_group(np.nan)
         with pytest.raises(KeyError, match=r"^NaT$"):
             grouped.get_group(pd.NaT)
+
+
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+def test_sparse_friendly(df):
+    sdf = df[['C', 'D']].to_sparse()
+    panel = tm.makePanel()
+    tm.add_nans(panel)
+
+    def _check_work(gp):
+        gp.mean()
+        gp.agg(np.mean)
+        dict(iter(gp))
+
+    # it works!
+    _check_work(sdf.groupby(lambda x: x // 2))
+    _check_work(sdf['C'].groupby(lambda x: x // 2))
+    _check_work(sdf.groupby(df['A']))
+
+    # do this someday
+    # _check_work(panel.groupby(lambda x: x.month, axis=1))
+
+
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+def test_panel_groupby():
+    panel = tm.makePanel()
+    tm.add_nans(panel)
+    grouped = panel.groupby({'ItemA': 0, 'ItemB': 0, 'ItemC': 1},
+                            axis='items')
+    agged = grouped.mean()
+    agged2 = grouped.agg(lambda x: x.mean('items'))
+
+    tm.assert_panel_equal(agged, agged2)
+
+    tm.assert_index_equal(agged.items, Index([0, 1]))
+
+    grouped = panel.groupby(lambda x: x.month, axis='major')
+    agged = grouped.mean()
+
+    exp = Index(sorted(list(set(panel.major_axis.month))))
+    tm.assert_index_equal(agged.major_axis, exp)
+
+    grouped = panel.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
+                            axis='minor')
+    agged = grouped.mean()
+    tm.assert_index_equal(agged.minor_axis, Index([0, 1]))
 
 
 def test_groupby_2d_malformed():

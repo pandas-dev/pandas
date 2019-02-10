@@ -104,8 +104,8 @@ class TestMultiIndexPartial(object):
             result = df.ix[('a', 'y'), [1, 0]]
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError, match=r"\('a', 'foo'\)"):
-            df.loc[('a', 'foo'), :]
+        pytest.raises(KeyError, df.loc.__getitem__,
+                      (('a', 'foo'), slice(None, None)))
 
     def test_partial_set(
             self, multiindex_year_month_day_dataframe_random_data):

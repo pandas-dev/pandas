@@ -182,7 +182,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
     See Also
     --------
-    plotting.andrews_curves : Plot clustering visualization.
+    pandas.plotting.andrews_curves : Plot clustering visualization.
 
     Examples
     --------
@@ -273,7 +273,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                    colormap=None, **kwds):
     """
-    Generate a matplotlib plot of Andrews curves, for visualising clusters of
+    Generates a matplotlib plot of Andrews curves, for visualising clusters of
     multivariate data.
 
     Andrews curves have the functional form:
@@ -394,8 +394,8 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     See Also
     --------
-    DataFrame.plot : Basic plotting for DataFrame objects.
-    Series.plot : Basic plotting for Series objects.
+    pandas.DataFrame.plot : Basic plotting for DataFrame objects.
+    pandas.Series.plot : Basic plotting for Series objects.
 
     Examples
     --------
@@ -598,8 +598,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
 
 def autocorrelation_plot(series, ax=None, **kwds):
-    """
-    Autocorrelation plot for time series.
+    """Autocorrelation plot for time series.
 
     Parameters:
     -----------

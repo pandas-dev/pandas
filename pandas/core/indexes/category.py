@@ -232,7 +232,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     def equals(self, other):
         """
-        Determine if two CategorialIndex objects contain the same elements.
+        Determines if two CategorialIndex objects contain the same elements.
         """
         if self.is_(other):
             return True
@@ -780,8 +780,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Concatenate to_concat which has the same class
         ValueError if other is not in the categories
         """
-        codes = np.concatenate([self._is_dtype_compat(c).codes
-                                for c in to_concat])
+        to_concat = [self._is_dtype_compat(c) for c in to_concat]
+        codes = np.concatenate([c.codes for c in to_concat])
         result = self._create_from_codes(codes, name=name)
         # if name is None, _create_from_codes sets self.name
         result.name = name

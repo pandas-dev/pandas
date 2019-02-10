@@ -1,5 +1,7 @@
 # pylint: disable=E1103
 
+from warnings import catch_warnings
+
 import numpy as np
 from numpy.random import randn
 import pytest
@@ -654,6 +656,95 @@ class TestJoin(object):
         expected.columns = ['x_x', 'y_x', 'x_y',
                             'y_y', 'x_x', 'y_x', 'x_y', 'y_y']
         assert_frame_equal(dta, expected)
+
+    def test_panel_join(self):
+        with catch_warnings(record=True):
+            panel = tm.makePanel()
+            tm.add_nans(panel)
+
+            p1 = panel.iloc[:2, :10, :3]
+            p2 = panel.iloc[2:, 5:, 2:]
+
+            # left join
+            result = p1.join(p2)
+            expected = p1.copy()
+            expected['ItemC'] = p2['ItemC']
+            tm.assert_panel_equal(result, expected)
+
+            # right join
+            result = p1.join(p2, how='right')
+            expected = p2.copy()
+            expected['ItemA'] = p1['ItemA']
+            expected['ItemB'] = p1['ItemB']
+            expected = expected.reindex(items=['ItemA', 'ItemB', 'ItemC'])
+            tm.assert_panel_equal(result, expected)
+
+            # inner join
+            result = p1.join(p2, how='inner')
+            expected = panel.iloc[:, 5:10, 2:3]
+            tm.assert_panel_equal(result, expected)
+
+            # outer join
+            result = p1.join(p2, how='outer')
+            expected = p1.reindex(major=panel.major_axis,
+                                  minor=panel.minor_axis)
+            expected = expected.join(p2.reindex(major=panel.major_axis,
+                                                minor=panel.minor_axis))
+            tm.assert_panel_equal(result, expected)
+
+    def test_panel_join_overlap(self):
+        with catch_warnings(record=True):
+            panel = tm.makePanel()
+            tm.add_nans(panel)
+
+            p1 = panel.loc[['ItemA', 'ItemB', 'ItemC']]
+            p2 = panel.loc[['ItemB', 'ItemC']]
+
+            # Expected index is
+            #
+            # ItemA, ItemB_p1, ItemC_p1, ItemB_p2, ItemC_p2
+            joined = p1.join(p2, lsuffix='_p1', rsuffix='_p2')
+            p1_suf = p1.loc[['ItemB', 'ItemC']].add_suffix('_p1')
+            p2_suf = p2.loc[['ItemB', 'ItemC']].add_suffix('_p2')
+            no_overlap = panel.loc[['ItemA']]
+            expected = no_overlap.join(p1_suf.join(p2_suf))
+            tm.assert_panel_equal(joined, expected)
+
+    def test_panel_join_many(self):
+        with catch_warnings(record=True):
+            tm.K = 10
+            panel = tm.makePanel()
+            tm.K = 4
+
+            panels = [panel.iloc[:2], panel.iloc[2:6], panel.iloc[6:]]
+
+            joined = panels[0].join(panels[1:])
+            tm.assert_panel_equal(joined, panel)
+
+            panels = [panel.iloc[:2, :-5],
+                      panel.iloc[2:6, 2:],
+                      panel.iloc[6:, 5:-7]]
+
+            data_dict = {}
+            for p in panels:
+                data_dict.update(p.iteritems())
+
+            joined = panels[0].join(panels[1:], how='inner')
+            expected = pd.Panel.from_dict(data_dict, intersect=True)
+            tm.assert_panel_equal(joined, expected)
+
+            joined = panels[0].join(panels[1:], how='outer')
+            expected = pd.Panel.from_dict(data_dict, intersect=False)
+            tm.assert_panel_equal(joined, expected)
+
+            # edge cases
+            msg = "Suffixes not supported when passing multiple panels"
+            with pytest.raises(ValueError, match=msg):
+                panels[0].join(panels[1:], how='outer', lsuffix='foo',
+                               rsuffix='bar')
+            msg = "Right join not supported with multiple panels"
+            with pytest.raises(ValueError, match=msg):
+                panels[0].join(panels[1:], how='right')
 
     def test_join_multi_to_multi(self, join_type):
         # GH 20475

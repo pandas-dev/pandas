@@ -123,12 +123,10 @@ class TestMultiIndexLoc(object):
         tm.assert_frame_equal(rs, xp)
 
         # missing label
-        with pytest.raises(KeyError, match=r"^2L?$"):
-            mi_int.loc[2]
+        pytest.raises(KeyError, lambda: mi_int.loc[2])
         with catch_warnings(record=True):
             # GH 21593
-            with pytest.raises(KeyError, match=r"^2L?$"):
-                mi_int.ix[2]
+            pytest.raises(KeyError, lambda: mi_int.ix[2])
 
     def test_loc_multiindex_indexer_none(self):
 

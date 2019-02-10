@@ -29,7 +29,6 @@ def init_windows_clipboard():
                                  HINSTANCE, HMENU, BOOL, UINT, HANDLE)
 
     windll = ctypes.windll
-    msvcrt = ctypes.CDLL('msvcrt')
 
     safeCreateWindowExA = CheckedCall(windll.user32.CreateWindowExA)
     safeCreateWindowExA.argtypes = [DWORD, LPCSTR, LPCSTR, DWORD, INT, INT,
@@ -71,10 +70,6 @@ def init_windows_clipboard():
     safeGlobalUnlock = CheckedCall(windll.kernel32.GlobalUnlock)
     safeGlobalUnlock.argtypes = [HGLOBAL]
     safeGlobalUnlock.restype = BOOL
-
-    wcslen = CheckedCall(msvcrt.wcslen)
-    wcslen.argtypes = [c_wchar_p]
-    wcslen.restype = UINT
 
     GMEM_MOVEABLE = 0x0002
     CF_UNICODETEXT = 13
@@ -134,13 +129,13 @@ def init_windows_clipboard():
                     # If the hMem parameter identifies a memory object,
                     # the object must have been allocated using the
                     # function with the GMEM_MOVEABLE flag.
-                    count = wcslen(text) + 1
+                    count = len(text) + 1
                     handle = safeGlobalAlloc(GMEM_MOVEABLE,
                                              count * sizeof(c_wchar))
                     locked_handle = safeGlobalLock(handle)
 
-                    ctypes.memmove(c_wchar_p(locked_handle), c_wchar_p(text),
-                                   count * sizeof(c_wchar))
+                    ctypes.memmove(c_wchar_p(locked_handle),
+                                   c_wchar_p(text), count * sizeof(c_wchar))
 
                     safeGlobalUnlock(handle)
                     safeSetClipboardData(CF_UNICODETEXT, handle)

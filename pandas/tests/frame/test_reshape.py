@@ -4,6 +4,7 @@ from __future__ import print_function
 
 from datetime import datetime
 import itertools
+from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
@@ -47,6 +48,14 @@ class TestDataFrameReshape(TestData):
         pivoted = frame.pivot(index='index', columns='columns')
         assert pivoted.index.name == 'index'
         assert pivoted.columns.names == (None, 'columns')
+
+        with catch_warnings(record=True):
+            # pivot multiple columns
+            simplefilter("ignore", FutureWarning)
+            wp = tm.makePanel()
+            lp = wp.to_frame()
+            df = lp.reset_index()
+            tm.assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
 
     def test_pivot_duplicates(self):
         data = DataFrame({'a': ['bar', 'bar', 'foo', 'foo', 'foo'],

@@ -14,7 +14,8 @@ from pandas import (
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_series_equal)
+    assert_almost_equal, assert_frame_equal, assert_panel_equal,
+    assert_series_equal)
 
 # selection
 # --------------------------------
@@ -562,7 +563,17 @@ class TestGrouping():
 # --------------------------------
 
 class TestGetGroup():
+
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_get_group(self):
+        wp = tm.makePanel()
+        grouped = wp.groupby(lambda x: x.month, axis='major')
+
+        gp = grouped.get_group(1)
+        expected = wp.reindex(
+            major=[x for x in wp.major_axis if x.month == 1])
+        assert_panel_equal(gp, expected)
+
         # GH 5267
         # be datelike friendly
         df = DataFrame({'DATE': pd.to_datetime(
@@ -743,6 +754,19 @@ class TestIteration():
         grouped = three_levels.T.groupby(axis=1, level=(1, 2))
         for key, group in grouped:
             pass
+
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+    def test_multi_iter_panel(self):
+        wp = tm.makePanel()
+        grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
+                             axis=1)
+
+        for (month, wd), group in grouped:
+            exp_axis = [x
+                        for x in wp.major_axis
+                        if x.month == month and x.weekday() == wd]
+            expected = wp.reindex(major=exp_axis)
+            assert_panel_equal(group, expected)
 
     def test_dictify(self, df):
         dict(iter(df.groupby('A')))

@@ -257,7 +257,8 @@ def test_categorical_with_nan_consistency():
     assert result[1] in expected
 
 
-@pytest.mark.parametrize("obj", [pd.Timestamp("20130101")])
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+@pytest.mark.parametrize("obj", [pd.Timestamp("20130101"), tm.makePanel()])
 def test_pandas_errors(obj):
     msg = "Unexpected type for hashing"
     with pytest.raises(TypeError, match=msg):

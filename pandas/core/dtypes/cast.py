@@ -1111,9 +1111,11 @@ def find_common_type(types):
     # this is different from numpy, which casts bool with float/int as int
     has_bools = any(is_bool_dtype(t) for t in types)
     if has_bools:
-        for t in types:
-            if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
-                return np.object
+        has_ints = any(is_integer_dtype(t) for t in types)
+        has_floats = any(is_float_dtype(t) for t in types)
+        has_complex = any(is_complex_dtype(t) for t in types)
+        if has_ints or has_floats or has_complex:
+            return np.object
 
     return np.find_common_type(types, [])
 

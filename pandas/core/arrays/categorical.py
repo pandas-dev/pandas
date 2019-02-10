@@ -214,7 +214,7 @@ setter to change values in the categorical.
 
 class Categorical(ExtensionArray, PandasObject):
     """
-    Represent a categorical variable in classic R / S-plus fashion
+    Represents a categorical variable in classic R / S-plus fashion
 
     `Categoricals` can only take on only a limited, and usually fixed, number
     of possible values (`categories`). In contrast to statistical categorical
@@ -276,7 +276,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     See Also
     --------
-    api.types.CategoricalDtype : Type for categorical data.
+    pandas.api.types.CategoricalDtype : Type for categorical data.
     CategoricalIndex : An Index with an underlying ``Categorical``.
 
     Notes
@@ -747,7 +747,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def set_ordered(self, value, inplace=False):
         """
-        Set the ordered attribute to the boolean value
+        Sets the ordered attribute to the boolean value
 
         Parameters
         ----------
@@ -793,7 +793,7 @@ class Categorical(ExtensionArray, PandasObject):
     def set_categories(self, new_categories, ordered=None, rename=False,
                        inplace=False):
         """
-        Set the categories to the specified new_categories.
+        Sets the categories to the specified new_categories.
 
         `new_categories` can include new categories (which will result in
         unused categories) or remove old categories (which results in values
@@ -864,7 +864,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def rename_categories(self, new_categories, inplace=False):
         """
-        Rename categories.
+        Renames categories.
 
         Parameters
         ----------
@@ -958,7 +958,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def reorder_categories(self, new_categories, ordered=None, inplace=False):
         """
-        Reorder categories as specified in new_categories.
+        Reorders categories as specified in new_categories.
 
         `new_categories` need to include all old categories and no new category
         items.
@@ -1051,7 +1051,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def remove_categories(self, removals, inplace=False):
         """
-        Remove the specified categories.
+        Removes the specified categories.
 
         `removals` must be included in the old categories. Values which were in
         the removed categories will be set to NaN
@@ -1104,7 +1104,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def remove_unused_categories(self, inplace=False):
         """
-        Remove categories which are not used.
+        Removes categories which are not used.
 
         Parameters
         ----------
@@ -1454,7 +1454,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def value_counts(self, dropna=True):
         """
-        Return a Series containing counts of each category.
+        Returns a Series containing counts of each category.
 
         Every category will have an entry, even those with a count of 0.
 
@@ -1570,7 +1570,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """
-        Sort the Categorical by category value returning a new
+        Sorts the Categorical by category value returning a new
         Categorical by default.
 
         While an ordering is applied to the category values, sorting in this
@@ -2167,7 +2167,8 @@ class Categorical(ExtensionArray, PandasObject):
         r, counts = libalgos.groupsort_indexer(self.codes.astype('int64'),
                                                categories.size)
         counts = counts.cumsum()
-        result = (r[start:end] for start, end in zip(counts, counts[1:]))
+        result = [r[counts[indexer]:counts[indexer + 1]]
+                  for indexer in range(len(counts) - 1)]
         result = dict(zip(categories, result))
         return result
 
@@ -2320,7 +2321,8 @@ class Categorical(ExtensionArray, PandasObject):
     @classmethod
     def _from_factorized(cls, uniques, original):
         return original._constructor(original.categories.take(uniques),
-                                     dtype=original.dtype)
+                                     categories=original.categories,
+                                     ordered=original.ordered)
 
     def equals(self, other):
         """
@@ -2672,7 +2674,9 @@ def _factorize_from_iterable(values):
     if is_categorical(values):
         if isinstance(values, (ABCCategoricalIndex, ABCSeries)):
             values = values._values
-        categories = CategoricalIndex(values.categories, dtype=values.dtype)
+        categories = CategoricalIndex(values.categories,
+                                      categories=values.categories,
+                                      ordered=values.ordered)
         codes = values.codes
     else:
         # The value of ordered is irrelevant since we don't use cat as such,

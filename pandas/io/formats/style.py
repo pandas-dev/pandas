@@ -81,7 +81,7 @@ class Styler(object):
 
     See Also
     --------
-    DataFrame.style
+    pandas.DataFrame.style
 
     Notes
     -----
@@ -433,7 +433,7 @@ class Styler(object):
         Returns
         -------
         rendered : str
-            The rendered HTML
+            the rendered HTML
 
         Notes
         -----
@@ -1223,7 +1223,7 @@ class Styler(object):
         Returns
         -------
         MyStyler : subclass of Styler
-            Has the correct ``env`` and ``template`` class attributes set.
+            has the correct ``env`` and ``template`` class attributes set.
         """
         loader = ChoiceLoader([
             FileSystemLoader(searchpath),
@@ -1322,7 +1322,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
     Result is a dictionary of (level, inital_position): span
     """
-    sentinel = object()
+    sentinel = com.sentinel_factory()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
 
     if hidden_elements is None:

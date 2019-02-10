@@ -1,5 +1,4 @@
 from datetime import timedelta
-import re
 
 import numpy as np
 import pytest
@@ -52,7 +51,7 @@ class TestTimedeltaIndex(DatetimeLike):
             [pd.Timedelta('1 day'), 'x', pd.Timedelta('3 day')], dtype=object)
         tm.assert_index_equal(idx.fillna('x'), exp)
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [True, False])
     def test_difference_freq(self, sort):
         # GH14323: Difference of TimedeltaIndex should not preserve frequency
 
@@ -70,7 +69,7 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal('freq', idx_diff, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [True, False])
     def test_difference_sort(self, sort):
 
         index = pd.TimedeltaIndex(["5 days", "3 days", "2 days", "4 days",
@@ -81,7 +80,7 @@ class TestTimedeltaIndex(DatetimeLike):
 
         expected = TimedeltaIndex(["5 days", "0 days"], freq=None)
 
-        if sort is None:
+        if sort:
             expected = expected.sort_values()
 
         tm.assert_index_equal(idx_diff, expected)
@@ -91,7 +90,7 @@ class TestTimedeltaIndex(DatetimeLike):
         idx_diff = index.difference(other, sort)
         expected = TimedeltaIndex(["1 days", "0 days"], freq=None)
 
-        if sort is None:
+        if sort:
             expected = expected.sort_values()
 
         tm.assert_index_equal(idx_diff, expected)
@@ -325,13 +324,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
         result = td.astype('timedelta64[s]')
         assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
-    def test_unit_m_y_deprecated(self, unit):
-        with tm.assert_produces_warning(FutureWarning) as w:
-            TimedeltaIndex([1, 3, 7], unit)
-        msg = r'.* units are deprecated .*'
-        assert re.match(msg, str(w[0].message))
 
 
 class TestTimeSeries(object):

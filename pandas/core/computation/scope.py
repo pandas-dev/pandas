@@ -11,9 +11,9 @@ import sys
 
 import numpy as np
 
-from pandas._libs.tslibs import Timestamp
 from pandas.compat import DeepChainMap, StringIO, map
 
+import pandas as pd  # noqa
 from pandas.core.base import StringMixin
 import pandas.core.computation as compu
 
@@ -48,7 +48,7 @@ def _raw_hex_id(obj):
 
 
 _DEFAULT_GLOBALS = {
-    'Timestamp': Timestamp,
+    'Timestamp': pd._libs.tslib.Timestamp,
     'datetime': datetime.datetime,
     'True': True,
     'False': False,

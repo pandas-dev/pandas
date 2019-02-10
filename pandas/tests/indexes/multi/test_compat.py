@@ -124,6 +124,8 @@ def test_compat(indices):
 
 def test_pickle_compat_construction(holder):
     # this is testing for pickle compat
+    if holder is None:
+        return
+
     # need an object to create with
-    with pytest.raises(TypeError, match="Must pass both levels and codes"):
-        holder()
+    pytest.raises(TypeError, holder)

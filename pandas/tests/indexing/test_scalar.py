@@ -30,9 +30,7 @@ class TestScalar(Base):
 
             for f in [d['labels'], d['ts'], d['floats']]:
                 if f is not None:
-                    msg = "iAt based indexing can only have integer indexers"
-                    with pytest.raises(ValueError, match=msg):
-                        self.check_values(f, 'iat')
+                    pytest.raises(ValueError, self.check_values, f, 'iat')
 
             # at
             for f in [d['ints'], d['uints'], d['labels'],
@@ -59,9 +57,7 @@ class TestScalar(Base):
 
             for f in [d['labels'], d['ts'], d['floats']]:
                 if f is not None:
-                    msg = "iAt based indexing can only have integer indexers"
-                    with pytest.raises(ValueError, match=msg):
-                        _check(f, 'iat')
+                    pytest.raises(ValueError, _check, f, 'iat')
 
             # at
             for f in [d['ints'], d['uints'], d['labels'],
@@ -111,12 +107,8 @@ class TestScalar(Base):
         result = s.iat[2]
         assert result == 2
 
-        msg = "index 10 is out of bounds for axis 0 with size 5"
-        with pytest.raises(IndexError, match=msg):
-            s.iat[10]
-        msg = "index -10 is out of bounds for axis 0 with size 5"
-        with pytest.raises(IndexError, match=msg):
-            s.iat[-10]
+        pytest.raises(IndexError, lambda: s.iat[10])
+        pytest.raises(IndexError, lambda: s.iat[-10])
 
         result = s.iloc[[2, 3]]
         expected = Series([2, 3], [2, 2], dtype='int64')
@@ -136,30 +128,22 @@ class TestScalar(Base):
         s = Series([1, 2, 3], index=list('abc'))
         result = s.at['a']
         assert result == 1
-        msg = ("At based indexing on an non-integer index can only have"
-               " non-integer indexers")
-        with pytest.raises(ValueError, match=msg):
-            s.at[0]
+        pytest.raises(ValueError, lambda: s.at[0])
 
         df = DataFrame({'A': [1, 2, 3]}, index=list('abc'))
         result = df.at['a', 'A']
         assert result == 1
-        with pytest.raises(ValueError, match=msg):
-            df.at['a', 0]
+        pytest.raises(ValueError, lambda: df.at['a', 0])
 
         s = Series([1, 2, 3], index=[3, 2, 1])
         result = s.at[1]
         assert result == 3
-        msg = ("At based indexing on an integer index can only have integer"
-               " indexers")
-        with pytest.raises(ValueError, match=msg):
-            s.at['a']
+        pytest.raises(ValueError, lambda: s.at['a'])
 
         df = DataFrame({0: [1, 2, 3]}, index=[3, 2, 1])
         result = df.at[1, 0]
         assert result == 3
-        with pytest.raises(ValueError, match=msg):
-            df.at['a', 0]
+        pytest.raises(ValueError, lambda: df.at['a', 0])
 
         # GH 13822, incorrect error string with non-unique columns when missing
         # column is accessed

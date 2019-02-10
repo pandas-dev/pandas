@@ -4,6 +4,7 @@
 
 import numpy as np
 
+from pandas.core.arrays import IntervalArray
 from pandas.core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,

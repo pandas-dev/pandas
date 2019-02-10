@@ -55,14 +55,19 @@ class BaseGroupbyTests(BaseExtensionTests):
 
         self.assert_series_equal(result, expected)
 
-    def test_groupby_extension_apply(
-            self, data_for_grouping, groupby_apply_op):
+    @pytest.mark.parametrize('op', [
+        lambda x: 1,
+        lambda x: [1] * len(x),
+        lambda x: pd.Series([1] * len(x)),
+        lambda x: x,
+    ], ids=['scalar', 'list', 'series', 'object'])
+    def test_groupby_extension_apply(self, data_for_grouping, op):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4],
                            "B": data_for_grouping})
-        df.groupby("B").apply(groupby_apply_op)
-        df.groupby("B").A.apply(groupby_apply_op)
-        df.groupby("A").apply(groupby_apply_op)
-        df.groupby("A").B.apply(groupby_apply_op)
+        df.groupby("B").apply(op)
+        df.groupby("B").A.apply(op)
+        df.groupby("A").apply(op)
+        df.groupby("A").B.apply(op)
 
     def test_in_numeric_groupby(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4],

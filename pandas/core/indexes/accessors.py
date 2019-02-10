@@ -140,7 +140,7 @@ class DatetimeProperties(Properties):
         Returns
         -------
         numpy.ndarray
-            Object dtype array containing native Python datetime objects.
+            object dtype array containing native Python datetime objects.
 
         See Also
         --------
@@ -208,7 +208,7 @@ class TimedeltaProperties(Properties):
         Returns
         -------
         a : numpy.ndarray
-            Array of 1D containing data with `datetime.timedelta` type.
+            1D array containing data with `datetime.timedelta` type.
 
         See Also
         --------

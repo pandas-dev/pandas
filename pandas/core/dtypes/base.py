@@ -153,8 +153,8 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     See Also
     --------
-    extensions.register_extension_dtype
-    extensions.ExtensionArray
+    pandas.api.extensions.register_extension_dtype
+    pandas.api.extensions.ExtensionArray
 
     Notes
     -----
@@ -173,7 +173,7 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     Optionally one can override construct_array_type for construction
     with the name of this dtype via the Registry. See
-    :meth:`extensions.register_extension_dtype`.
+    :meth:`pandas.api.extensions.register_extension_dtype`.
 
     * construct_array_type
 

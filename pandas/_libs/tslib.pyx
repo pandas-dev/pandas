@@ -645,8 +645,6 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                             out_tzoffset_vals.add(out_tzoffset * 60.)
                             tz = pytz.FixedOffset(out_tzoffset)
                             value = tz_convert_single(value, tz, UTC)
-                            out_local = 0
-                            out_tzoffset = 0
                         else:
                             # Add a marker for naive string, to track if we are
                             # parsing mixed naive and aware strings

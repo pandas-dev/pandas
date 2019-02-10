@@ -122,6 +122,28 @@ class TestPanel(object):
             test1 = panel.loc[:, "2002"]
             tm.assert_panel_equal(test1, test2)
 
+            # GH8710
+            # multi-element getting with a list
+            panel = tm.makePanel()
+
+            expected = panel.iloc[[0, 1]]
+
+            result = panel.loc[['ItemA', 'ItemB']]
+            tm.assert_panel_equal(result, expected)
+
+            result = panel.loc[['ItemA', 'ItemB'], :, :]
+            tm.assert_panel_equal(result, expected)
+
+            result = panel[['ItemA', 'ItemB']]
+            tm.assert_panel_equal(result, expected)
+
+            result = panel.loc['ItemA':'ItemB']
+            tm.assert_panel_equal(result, expected)
+
+            with catch_warnings(record=True):
+                result = panel.ix[['ItemA', 'ItemB']]
+            tm.assert_panel_equal(result, expected)
+
             # with an object-like
             # GH 9140
             class TestObject(object):

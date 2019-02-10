@@ -127,7 +127,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     See Also
     --------
     pandas_gbq.read_gbq : This function in the pandas-gbq library.
-    DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
+    pandas.DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
     """
     pandas_gbq = _try_import()
 

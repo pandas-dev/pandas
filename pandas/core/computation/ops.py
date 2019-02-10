@@ -8,11 +8,11 @@ import operator as op
 
 import numpy as np
 
-from pandas._libs.tslibs import Timestamp
 from pandas.compat import PY3, string_types, text_type
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
+import pandas as pd
 from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.core.computation.common import _ensure_decoded, _result_type_many
@@ -399,9 +399,8 @@ class BinOp(Op):
             if self.op in eval_in_python:
                 res = self.func(left.value, right.value)
             else:
-                from pandas.core.computation.eval import eval
-                res = eval(self, local_dict=env, engine=engine,
-                           parser=parser)
+                res = pd.eval(self, local_dict=env, engine=engine,
+                              parser=parser)
 
         name = env.add_tmp(res)
         return term_type(name, env=env)
@@ -423,7 +422,7 @@ class BinOp(Op):
             v = rhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = Timestamp(_ensure_decoded(v))
+            v = pd.Timestamp(_ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             self.rhs.update(v)
@@ -432,7 +431,7 @@ class BinOp(Op):
             v = lhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = Timestamp(_ensure_decoded(v))
+            v = pd.Timestamp(_ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             self.lhs.update(v)

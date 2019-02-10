@@ -1,6 +1,5 @@
 from __future__ import division
 
-from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
@@ -21,8 +20,8 @@ from numpy.random import rand, randn
 from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
-    PY2, PY3, filter, httplib, lmap, lrange, lzip, map, raise_with_traceback,
-    range, string_types, u, unichr, zip)
+    PY2, PY3, Counter, callable, filter, httplib, lmap, lrange, lzip, map,
+    raise_with_traceback, range, string_types, u, unichr, zip)
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -34,7 +33,7 @@ from pandas.core.dtypes.missing import array_equivalent
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
-    IntervalIndex, MultiIndex, RangeIndex, Series, bdate_range)
+    IntervalIndex, MultiIndex, Panel, RangeIndex, Series, bdate_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
@@ -2052,6 +2051,22 @@ def makePeriodFrame(nper=None):
     return DataFrame(data)
 
 
+def makePanel(nper=None):
+    with warnings.catch_warnings(record=True):
+        warnings.filterwarnings("ignore", "\\nPanel", FutureWarning)
+        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
+        data = {c: makeTimeDataFrame(nper) for c in cols}
+        return Panel.fromDict(data)
+
+
+def makePeriodPanel(nper=None):
+    with warnings.catch_warnings(record=True):
+        warnings.filterwarnings("ignore", "\\nPanel", FutureWarning)
+        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
+        data = {c: makePeriodFrame(nper) for c in cols}
+        return Panel.fromDict(data)
+
+
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
                     idx_type=None):
     """Create an index/multindex with given dimensions, levels, names, etc'
@@ -2297,6 +2312,15 @@ def makeMissingDataframe(density=.9, random_state=None):
                                random_state=random_state)
     df.values[i, j] = np.nan
     return df
+
+
+def add_nans(panel):
+    I, J, N = panel.shape
+    for i, item in enumerate(panel.items):
+        dm = panel[item]
+        for j, col in enumerate(dm.columns):
+            dm[col][:i + j] = np.NaN
+    return panel
 
 
 class TestSubDict(dict):

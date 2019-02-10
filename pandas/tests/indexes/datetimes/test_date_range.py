@@ -346,10 +346,8 @@ class TestDateRanges(TestData):
     def test_catch_infinite_loop(self):
         offset = offsets.DateOffset(minute=5)
         # blow up, don't loop forever
-        msg = "Offset <DateOffset: minute=5> did not increment date"
-        with pytest.raises(ValueError, match=msg):
-            date_range(datetime(2011, 11, 11), datetime(2011, 11, 12),
-                       freq=offset)
+        pytest.raises(Exception, date_range, datetime(2011, 11, 11),
+                      datetime(2011, 11, 12), freq=offset)
 
     @pytest.mark.parametrize('periods', (1, 2))
     def test_wom_len(self, periods):

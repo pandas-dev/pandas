@@ -447,7 +447,7 @@ for key in _op_names:
         _op_descriptions[reverse_op]['reverse'] = key
 
 _flex_doc_SERIES = """
-Return {desc} of series and other, element-wise (binary operator `{op_name}`).
+{desc} of series and other, element-wise (binary operator `{op_name}`).
 
 Equivalent to ``{equiv}``, but with support to substitute a fill_value for
 missing data in one of the inputs.
@@ -459,15 +459,14 @@ fill_value : None or float value, default None (NaN)
     Fill existing missing (NaN) values, and any new element needed for
     successful Series alignment, with this value before computation.
     If data in both corresponding Series locations is missing
-    the result will be missing.
+    the result will be missing
 level : int or name
     Broadcast across a level, matching Index values on the
-    passed MultiIndex level.
+    passed MultiIndex level
 
 Returns
 -------
-Series
-    The result of the operation.
+result : Series
 
 See Also
 --------
@@ -494,27 +493,6 @@ a    2.0
 b    1.0
 c    1.0
 d    1.0
-e    NaN
-dtype: float64
->>> a.subtract(b, fill_value=0)
-a    0.0
-b    1.0
-c    1.0
-d   -1.0
-e    NaN
-dtype: float64
->>> a.multiply(b)
-a    1.0
-b    NaN
-c    NaN
-d    NaN
-e    NaN
-dtype: float64
->>> a.divide(b, fill_value=0)
-a    1.0
-b    inf
-c    inf
-d    0.0
 e    NaN
 dtype: float64
 """
@@ -547,7 +525,7 @@ Mismatched indices will be unioned together
 """
 
 _flex_doc_FRAME = """
-Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+{desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 
 Equivalent to ``{equiv}``, but with support to substitute a fill_value
 for missing data in one of the inputs. With reverse version, `{reverse}`.
@@ -701,7 +679,7 @@ B square        0.0      0.0
 """
 
 _flex_comp_doc_FRAME = """
-Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+{desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 
 Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
 operators.
@@ -847,7 +825,7 @@ Q2 A  False     True
 """
 
 _flex_doc_PANEL = """
-Return {desc} of series and other, element-wise (binary operator `{op_name}`).
+{desc} of series and other, element-wise (binary operator `{op_name}`).
 Equivalent to ``{equiv}``.
 
 Parameters

@@ -128,7 +128,7 @@ def _dt_array_cmp(cls, op):
     Wrap comparison operations to convert datetime-like to datetime64
     """
     opname = '__{name}__'.format(name=op.__name__)
-    nat_result = opname == '__ne__'
+    nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
         if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
@@ -217,13 +217,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 
     .. versionadded:: 0.24.0
-
-    .. warning::
-
-       DatetimeArray is currently experimental, and its API may change
-       without warning. In particular, :attr:`DatetimeArray.dtype` is
-       expected to change to always be an instance of an ``ExtensionDtype``
-       subclass.
 
     Parameters
     ----------
@@ -517,12 +510,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         # type: () -> Union[np.dtype, DatetimeTZDtype]
         """
         The dtype for the DatetimeArray.
-
-        .. warning::
-
-           A future version of pandas will change dtype to never be a
-           ``numpy.dtype``. Instead, :attr:`DatetimeArray.dtype` will
-           always be an instance of an ``ExtensionDtype`` subclass.
 
         Returns
         -------
@@ -2058,7 +2045,7 @@ def validate_tz_from_dtype(dtype, tz):
             #  tz-naive dtype (i.e. datetime64[ns])
             if tz is not None and not timezones.tz_compare(tz, dtz):
                 raise ValueError("cannot supply both a tz and a "
-                                 "timezone-naive dtype (i.e. datetime64[ns])")
+                                 "timezone-naive dtype (i.e. datetime64[ns]")
 
     return tz
 

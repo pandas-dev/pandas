@@ -242,10 +242,12 @@ class TestIntervalIndex(Base):
             [0, 0, 1], [1, 1, 2], closed=closed)
         tm.assert_index_equal(result, expected)
 
-    def test_is_unique_interval(self, closed):
-        """
-        Interval specific tests for is_unique in addition to base class tests
-        """
+    def test_unique(self, closed):
+        # unique non-overlapping
+        idx = IntervalIndex.from_tuples(
+            [(0, 1), (2, 3), (4, 5)], closed=closed)
+        assert idx.is_unique is True
+
         # unique overlapping - distinct endpoints
         idx = IntervalIndex.from_tuples([(0, 1), (0.5, 1.5)], closed=closed)
         assert idx.is_unique is True
@@ -257,6 +259,15 @@ class TestIntervalIndex(Base):
 
         # unique nested
         idx = IntervalIndex.from_tuples([(-1, 1), (-2, 2)], closed=closed)
+        assert idx.is_unique is True
+
+        # duplicate
+        idx = IntervalIndex.from_tuples(
+            [(0, 1), (0, 1), (2, 3)], closed=closed)
+        assert idx.is_unique is False
+
+        # empty
+        idx = IntervalIndex([], closed=closed)
         assert idx.is_unique is True
 
     def test_monotonic(self, closed):
@@ -772,19 +783,19 @@ class TestIntervalIndex(Base):
 
         assert 1.5 not in index
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [True, False])
     def test_union(self, closed, sort):
         index = self.create_index(closed=closed)
         other = IntervalIndex.from_breaks(range(5, 13), closed=closed)
 
         expected = IntervalIndex.from_breaks(range(13), closed=closed)
         result = index[::-1].union(other, sort=sort)
-        if sort is None:
+        if sort:
             tm.assert_index_equal(result, expected)
         assert tm.equalContents(result, expected)
 
         result = other[::-1].union(index, sort=sort)
-        if sort is None:
+        if sort:
             tm.assert_index_equal(result, expected)
         assert tm.equalContents(result, expected)
 
@@ -801,19 +812,19 @@ class TestIntervalIndex(Base):
         result = index.union(other, sort=sort)
         tm.assert_index_equal(result, index)
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [True, False])
     def test_intersection(self, closed, sort):
         index = self.create_index(closed=closed)
         other = IntervalIndex.from_breaks(range(5, 13), closed=closed)
 
         expected = IntervalIndex.from_breaks(range(5, 11), closed=closed)
         result = index[::-1].intersection(other, sort=sort)
-        if sort is None:
+        if sort:
             tm.assert_index_equal(result, expected)
         assert tm.equalContents(result, expected)
 
         result = other[::-1].intersection(index, sort=sort)
-        if sort is None:
+        if sort:
             tm.assert_index_equal(result, expected)
         assert tm.equalContents(result, expected)
 
@@ -831,14 +842,14 @@ class TestIntervalIndex(Base):
         result = index.intersection(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [True, False])
     def test_difference(self, closed, sort):
         index = IntervalIndex.from_arrays([1, 0, 3, 2],
                                           [1, 2, 3, 4],
                                           closed=closed)
         result = index.difference(index[:1], sort=sort)
         expected = index[1:]
-        if sort is None:
+        if sort:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
 
@@ -853,19 +864,19 @@ class TestIntervalIndex(Base):
         result = index.difference(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [True, False])
     def test_symmetric_difference(self, closed, sort):
         index = self.create_index(closed=closed)
         result = index[1:].symmetric_difference(index[:-1], sort=sort)
         expected = IntervalIndex([index[0], index[-1]])
-        if sort is None:
+        if sort:
             tm.assert_index_equal(result, expected)
         assert tm.equalContents(result, expected)
 
         # GH 19101: empty result, same dtype
         result = index.symmetric_difference(index, sort=sort)
         expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
-        if sort is None:
+        if sort:
             tm.assert_index_equal(result, expected)
         assert tm.equalContents(result, expected)
 
@@ -877,7 +888,7 @@ class TestIntervalIndex(Base):
 
     @pytest.mark.parametrize('op_name', [
         'union', 'intersection', 'difference', 'symmetric_difference'])
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [True, False])
     def test_set_operation_errors(self, closed, op_name, sort):
         index = self.create_index(closed=closed)
         set_op = getattr(index, op_name)

@@ -988,7 +988,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         latest information on table attributes for the modern web.
 
     parse_dates : bool, optional
-        See :func:`~read_csv` for more details.
+        See :func:`~pandas.read_csv` for more details.
 
     tupleize_cols : bool, optional
         If ``False`` try to parse multiple header rows into a
@@ -1043,7 +1043,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
     See Also
     --------
-    read_csv
+    pandas.read_csv
 
     Notes
     -----
@@ -1066,7 +1066,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.21.0
 
-    Similar to :func:`~read_csv` the `header` argument is applied
+    Similar to :func:`~pandas.read_csv` the `header` argument is applied
     **after** `skiprows` is applied.
 
     This function will *always* return a list of :class:`DataFrame` *or*

@@ -26,33 +26,26 @@ class TestiLoc(Base):
         msg = 'positional indexers are out-of-bounds'
         with pytest.raises(IndexError, match=msg):
             df.iloc[:, [0, 1, 2, 3, 4, 5]]
-        with pytest.raises(IndexError, match=msg):
-            df.iloc[[1, 30]]
-        with pytest.raises(IndexError, match=msg):
-            df.iloc[[1, -30]]
-        with pytest.raises(IndexError, match=msg):
-            df.iloc[[100]]
+        pytest.raises(IndexError, lambda: df.iloc[[1, 30]])
+        pytest.raises(IndexError, lambda: df.iloc[[1, -30]])
+        pytest.raises(IndexError, lambda: df.iloc[[100]])
 
         s = df['A']
-        with pytest.raises(IndexError, match=msg):
-            s.iloc[[100]]
-        with pytest.raises(IndexError, match=msg):
-            s.iloc[[-100]]
+        pytest.raises(IndexError, lambda: s.iloc[[100]])
+        pytest.raises(IndexError, lambda: s.iloc[[-100]])
 
         # still raise on a single indexer
         msg = 'single positional indexer is out-of-bounds'
         with pytest.raises(IndexError, match=msg):
             df.iloc[30]
-        with pytest.raises(IndexError, match=msg):
-            df.iloc[-30]
+        pytest.raises(IndexError, lambda: df.iloc[-30])
 
         # GH10779
         # single positive/negative indexer exceeding Series bounds should raise
         # an IndexError
         with pytest.raises(IndexError, match=msg):
             s.iloc[30]
-        with pytest.raises(IndexError, match=msg):
-            s.iloc[-30]
+        pytest.raises(IndexError, lambda: s.iloc[-30])
 
         # slices are ok
         result = df.iloc[:, 4:10]  # 0 < start < len < stop
@@ -111,12 +104,8 @@ class TestiLoc(Base):
         check(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
         check(dfl.iloc[4:6], dfl.iloc[[4]])
 
-        msg = "positional indexers are out-of-bounds"
-        with pytest.raises(IndexError, match=msg):
-            dfl.iloc[[4, 5, 6]]
-        msg = "single positional indexer is out-of-bounds"
-        with pytest.raises(IndexError, match=msg):
-            dfl.iloc[:, 4]
+        pytest.raises(IndexError, lambda: dfl.iloc[[4, 5, 6]])
+        pytest.raises(IndexError, lambda: dfl.iloc[:, 4])
 
     def test_iloc_getitem_int(self):
 
@@ -448,16 +437,10 @@ class TestiLoc(Base):
         assert result == exp
 
         # out-of-bounds exception
-        msg = "single positional indexer is out-of-bounds"
-        with pytest.raises(IndexError, match=msg):
-            df.iloc[10, 5]
+        pytest.raises(IndexError, df.iloc.__getitem__, tuple([10, 5]))
 
         # trying to use a label
-        msg = (r"Location based indexing can only have \[integer, integer"
-               r" slice \(START point is INCLUDED, END point is EXCLUDED\),"
-               r" listlike of integers, boolean array\] types")
-        with pytest.raises(ValueError, match=msg):
-            df.iloc['j', 'D']
+        pytest.raises(ValueError, df.iloc.__getitem__, tuple(['j', 'D']))
 
     def test_iloc_getitem_doc_issue(self):
 
@@ -572,15 +555,10 @@ class TestiLoc(Base):
         # GH 3631, iloc with a mask (of a series) should raise
         df = DataFrame(lrange(5), list('ABCDE'), columns=['a'])
         mask = (df.a % 2 == 0)
-        msg = ("iLocation based boolean indexing cannot use an indexable as"
-               " a mask")
-        with pytest.raises(ValueError, match=msg):
-            df.iloc[mask]
+        pytest.raises(ValueError, df.iloc.__getitem__, tuple([mask]))
         mask.index = lrange(len(mask))
-        msg = ("iLocation based boolean indexing on an integer type is not"
-               " available")
-        with pytest.raises(NotImplementedError, match=msg):
-            df.iloc[mask]
+        pytest.raises(NotImplementedError, df.iloc.__getitem__,
+                      tuple([mask]))
 
         # ndarray ok
         result = df.iloc[np.array([True] * len(mask), dtype=bool)]

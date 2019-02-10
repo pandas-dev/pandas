@@ -3,7 +3,7 @@ import datetime as dt
 from datetime import datetime
 from decimal import Decimal
 from itertools import combinations
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 
 import dateutil
 import numpy as np
@@ -1499,6 +1499,15 @@ class TestConcatenate(ConcatenateBase):
         result = concat([s1, df, s2], ignore_index=True)
         assert_frame_equal(result, expected)
 
+        # invalid concatente of mixed dims
+        with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
+            panel = tm.makePanel()
+            msg = ("cannot concatenate unaligned mixed dimensional NDFrame"
+                   " objects")
+            with pytest.raises(ValueError, match=msg):
+                concat([panel, s1], axis=1)
+
     def test_empty_dtype_coerce(self):
 
         # xref to #12411
@@ -1533,6 +1542,34 @@ class TestConcatenate(ConcatenateBase):
         df = DataFrame({'text': ['some words'] + [None] * 9})
         result = concat([df.iloc[[0]], df.iloc[[1]]])
         tm.assert_series_equal(result.dtypes, df.dtypes)
+
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+    def test_panel_concat_other_axes(self):
+        panel = tm.makePanel()
+
+        p1 = panel.iloc[:, :5, :]
+        p2 = panel.iloc[:, 5:, :]
+
+        result = concat([p1, p2], axis=1)
+        tm.assert_panel_equal(result, panel)
+
+        p1 = panel.iloc[:, :, :2]
+        p2 = panel.iloc[:, :, 2:]
+
+        result = concat([p1, p2], axis=2)
+        tm.assert_panel_equal(result, panel)
+
+        # if things are a bit misbehaved
+        p1 = panel.iloc[:2, :, :2]
+        p2 = panel.iloc[:, :, 2:]
+        p1['ItemC'] = 'baz'
+
+        result = concat([p1, p2], axis=2)
+
+        expected = panel.copy()
+        expected['ItemC'] = expected['ItemC'].astype('O')
+        expected.loc['ItemC', :, :2] = 'baz'
+        tm.assert_panel_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     # Panel.rename warning we don't care about

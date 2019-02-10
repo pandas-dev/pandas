@@ -95,10 +95,7 @@ def test_resample_interpolate_all_ts(frame):
 def test_raises_on_non_datetimelike_index():
     # this is a non datetimelike index
     xp = DataFrame()
-    msg = ("Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex,"
-           " but got an instance of 'Index'")
-    with pytest.raises(TypeError, match=msg):
-        xp.resample('A').mean()
+    pytest.raises(TypeError, lambda: xp.resample('A').mean())
 
 
 @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
@@ -192,10 +189,8 @@ def test_resample_loffset_arg_type_all_ts(frame, create_index):
 
         # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
         if isinstance(expected.index, TimedeltaIndex):
-            msg = "DataFrame are different"
-            with pytest.raises(AssertionError, match=msg):
+            with pytest.raises(AssertionError):
                 assert_frame_equal(result_agg, expected)
-            with pytest.raises(AssertionError, match=msg):
                 assert_frame_equal(result_how, expected)
         else:
             assert_frame_equal(result_agg, expected)

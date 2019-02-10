@@ -16,11 +16,10 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, c_NaT as NaT, is_null_datetimelike)
 
 
-cdef:
-    float64_t INF = <float64_t>np.inf
-    float64_t NEGINF = -INF
+cdef float64_t INF = <float64_t>np.inf
+cdef float64_t NEGINF = -INF
 
-    int64_t NPY_NAT = util.get_nat()
+cdef int64_t NPY_NAT = util.get_nat()
 
 
 cpdef bint checknull(object val):

@@ -159,15 +159,13 @@ def test_is_nested_list_like_fails(obj):
 
 
 @pytest.mark.parametrize(
-    "ll", [{}, {'A': 1}, Series([1]), collections.defaultdict()])
+    "ll", [{}, {'A': 1}, Series([1])])
 def test_is_dict_like_passes(ll):
     assert inference.is_dict_like(ll)
 
 
-@pytest.mark.parametrize("ll", [
-    '1', 1, [1, 2], (1, 2), range(2), Index([1]),
-    dict, collections.defaultdict, Series
-])
+@pytest.mark.parametrize(
+    "ll", ['1', 1, [1, 2], (1, 2), range(2), Index([1])])
 def test_is_dict_like_fails(ll):
     assert not inference.is_dict_like(ll)
 

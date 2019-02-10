@@ -18,7 +18,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, groupby as libgroupby
 import pandas.compat as compat
-from pandas.compat import range, set_function_name, zip
+from pandas.compat import callable, range, set_function_name, zip
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -44,9 +44,9 @@ from pandas.core.sorting import get_group_index_sorter
 _common_see_also = """
         See Also
         --------
-        Series.%(name)s
-        DataFrame.%(name)s
-        Panel.%(name)s
+        pandas.Series.%(name)s
+        pandas.DataFrame.%(name)s
+        pandas.Panel.%(name)s
 """
 
 _apply_docs = dict(
@@ -206,8 +206,8 @@ object : the return type of `func`.
 
 See Also
 --------
-Series.pipe : Apply a function with arguments to a series.
-DataFrame.pipe: Apply a function with arguments to a dataframe.
+pandas.Series.pipe : Apply a function with arguments to a series.
+pandas.DataFrame.pipe: Apply a function with arguments to a dataframe.
 apply : Apply function to each group instead of to the
     full %(klass)s object.
 
@@ -443,12 +443,12 @@ class _GroupBy(PandasObject, SelectionMixin):
                     raise ValueError(msg)
 
             converters = [get_converter(s) for s in index_sample]
-            names = (tuple(f(n) for f, n in zip(converters, name))
-                     for name in names)
+            names = [tuple(f(n) for f, n in zip(converters, name))
+                     for name in names]
 
         else:
             converter = get_converter(index_sample)
-            names = (converter(name) for name in names)
+            names = [converter(name) for name in names]
 
         return [self.indices.get(name, []) for name in names]
 
@@ -625,7 +625,7 @@ b  2""")
 
     def get_group(self, name, obj=None):
         """
-        Construct NDFrame from group with provided name.
+        Constructs NDFrame from group with provided name.
 
         Parameters
         ----------
@@ -1047,7 +1047,7 @@ class GroupBy(_GroupBy):
     @Appender(_common_see_also)
     def any(self, skipna=True):
         """
-        Return True if any value in the group is truthful, else False.
+        Returns True if any value in the group is truthful, else False.
 
         Parameters
         ----------
@@ -1060,7 +1060,7 @@ class GroupBy(_GroupBy):
     @Appender(_common_see_also)
     def all(self, skipna=True):
         """
-        Return True if all values in the group are truthful, else False.
+        Returns True if all values in the group are truthful, else False.
 
         Parameters
         ----------
@@ -1351,7 +1351,7 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        Grouper : Specify a frequency to resample with when
+        pandas.Grouper : Specify a frequency to resample with when
             grouping by a key.
         DatetimeIndex.resample : Frequency conversion and resampling of
             time series.
@@ -1813,7 +1813,7 @@ class GroupBy(_GroupBy):
     def rank(self, method='average', ascending=True, na_option='keep',
              pct=False, axis=0):
         """
-        Provide the rank of values within each group.
+        Provides the rank of values within each group.
 
         Parameters
         ----------
@@ -2039,7 +2039,7 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby', see_also=_common_see_also)
     def head(self, n=5):
         """
-        Return first n rows of each group.
+        Returns first n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
@@ -2067,7 +2067,7 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby', see_also=_common_see_also)
     def tail(self, n=5):
         """
-        Return last n rows of each group.
+        Returns last n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.

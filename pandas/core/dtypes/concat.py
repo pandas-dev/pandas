@@ -123,6 +123,8 @@ def _concat_compat(to_concat, axis=0):
         except Exception:
             return True
 
+    nonempty = [x for x in to_concat if is_nonempty(x)]
+
     # If all arrays are empty, there's nothing to convert, just short-cut to
     # the concatenation, #3121.
     #
@@ -146,11 +148,11 @@ def _concat_compat(to_concat, axis=0):
     elif 'sparse' in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
 
-    all_empty = all(not is_nonempty(x) for x in to_concat)
-    if any(is_extension_array_dtype(x) for x in to_concat) and axis == 1:
+    extensions = [is_extension_array_dtype(x) for x in to_concat]
+    if any(extensions) and axis == 1:
         to_concat = [np.atleast_2d(x.astype('object')) for x in to_concat]
 
-    if all_empty:
+    if not nonempty:
         # we have all empties, but may need to coerce the result dtype to
         # object if we have non-numeric type operands (numpy would otherwise
         # cast this to float)

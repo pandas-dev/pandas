@@ -194,9 +194,7 @@ class SparseDataFrame(DataFrame):
         return to_manager(sdict, columns, index)
 
     def _init_matrix(self, data, index, columns, dtype=None):
-        """
-        Init self from ndarray or list of lists.
-        """
+        """ Init self from ndarray or list of lists """
         data = prep_ndarray(data, copy=False)
         index, columns = self._prep_index(data, index, columns)
         data = {idx: data[:, i] for i, idx in enumerate(columns)}
@@ -204,9 +202,7 @@ class SparseDataFrame(DataFrame):
 
     def _init_spmatrix(self, data, index, columns, dtype=None,
                        fill_value=None):
-        """
-        Init self from scipy.sparse matrix.
-        """
+        """ Init self from scipy.sparse matrix """
         index, columns = self._prep_index(data, index, columns)
         data = data.tocoo()
         N = len(index)
@@ -306,9 +302,7 @@ class SparseDataFrame(DataFrame):
                     _default_kind=self._default_kind)
 
     def _unpickle_sparse_frame_compat(self, state):
-        """
-        Original pickle format
-        """
+        """ original pickle format """
         series, cols, idx, fv, kind = state
 
         if not isinstance(cols, Index):  # pragma: no cover
@@ -344,9 +338,7 @@ class SparseDataFrame(DataFrame):
         return DataFrame(data, index=self.index, columns=self.columns)
 
     def _apply_columns(self, func):
-        """
-        Get new SparseDataFrame applying func to each columns
-        """
+        """ get new SparseDataFrame applying func to each columns """
 
         new_data = {col: func(series)
                     for col, series in compat.iteritems(self)}

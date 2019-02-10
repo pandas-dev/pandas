@@ -5,7 +5,6 @@ from functools import partial
 
 import numpy as np
 
-from pandas._libs.tslibs import Timedelta, Timestamp
 from pandas.compat import DeepChainMap, string_types, u
 
 from pandas.core.dtypes.common import is_list_like
@@ -186,12 +185,12 @@ class BinOp(ops.BinOp):
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = _ensure_decoded(v)
-            v = Timestamp(v)
+            v = pd.Timestamp(v)
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
         elif kind == u('timedelta64') or kind == u('timedelta'):
-            v = Timedelta(v, unit='s').value
+            v = pd.Timedelta(v, unit='s').value
             return TermValue(int(v), v, kind)
         elif meta == u('category'):
             metadata = com.values_from_object(self.metadata)
@@ -252,7 +251,7 @@ class FilterBinOp(BinOp):
                              .format(slf=self))
 
         rhs = self.conform(self.rhs)
-        values = [TermValue(v, v, self.kind).value for v in rhs]
+        values = [TermValue(v, v, self.kind) for v in rhs]
 
         if self.is_in_table:
 
@@ -263,7 +262,7 @@ class FilterBinOp(BinOp):
                 self.filter = (
                     self.lhs,
                     filter_op,
-                    pd.Index(values))
+                    pd.Index([v.value for v in values]))
 
                 return self
             return None
@@ -275,7 +274,7 @@ class FilterBinOp(BinOp):
             self.filter = (
                 self.lhs,
                 filter_op,
-                pd.Index(values))
+                pd.Index([v.value for v in values]))
 
         else:
             raise TypeError("passing a filterable condition to a non-table "

@@ -1,10 +1,10 @@
 # coding: utf-8
-from collections import OrderedDict
+
 import struct
 
 import pytest
 
-from pandas.compat import u
+from pandas.compat import OrderedDict, u
 
 from pandas import compat
 

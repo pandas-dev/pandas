@@ -14,6 +14,7 @@ import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, makeCustomDataframe as mkdf)
 
@@ -353,6 +354,13 @@ class TestDataFrameQueryWithMultiIndex(object):
                 assert_series_equal(v, expected[k])
             else:
                 raise AssertionError("object must be a Series or Index")
+
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
+    def test_raise_on_panel_with_multiindex(self, parser, engine):
+        p = tm.makePanel(7)
+        p.items = tm.makeCustomIndex(len(p.items), nlevels=2)
+        with pytest.raises(NotImplementedError):
+            pd.eval('p + 1', parser=parser, engine=engine)
 
 
 @td.skip_if_no_ne

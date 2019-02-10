@@ -107,8 +107,7 @@ class TestMultiIndexSlicers(object):
         # ambiguous cases
         # these can be multiply interpreted (e.g. in this case
         # as df.loc[slice(None),[1]] as well
-        with pytest.raises(KeyError, match=r"'\[1\] not in index'"):
-            df.loc[slice(None), [1]]
+        pytest.raises(KeyError, lambda: df.loc[slice(None), [1]])
 
         result = df.loc[(slice(None), [1]), :]
         expected = df.iloc[[0, 3]]

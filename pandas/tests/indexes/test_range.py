@@ -503,7 +503,7 @@ class TestRangeIndex(Numeric):
             joined = self.index.join(self.index, how=kind)
             assert self.index is joined
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [True, False])
     def test_intersection(self, sort):
         # intersect with Int64Index
         other = Index(np.arange(1, 6))

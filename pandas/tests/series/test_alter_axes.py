@@ -258,17 +258,6 @@ class TestSeriesAlterAxes(object):
         assert no_return is None
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('kwargs', [{'mapper': None}, {'index': None}, {}])
-    def test_rename_axis_none(self, kwargs):
-        # GH 25034
-        index = Index(list('abc'), name='foo')
-        df = Series([1, 2, 3], index=index)
-
-        result = df.rename_axis(**kwargs)
-        expected_index = index.rename(None) if kwargs else index
-        expected = Series([1, 2, 3], index=expected_index)
-        tm.assert_series_equal(result, expected)
-
     def test_set_axis_inplace_axes(self, axis_series):
         # GH14636
         ser = Series(np.arange(4), index=[1, 3, 5, 7], dtype='int64')

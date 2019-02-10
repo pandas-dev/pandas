@@ -3,10 +3,11 @@
 """
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
-from collections import OrderedDict
 
 import numpy as np
 import pytest
+
+from pandas.compat import OrderedDict
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat

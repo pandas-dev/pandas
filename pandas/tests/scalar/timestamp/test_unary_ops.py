@@ -8,7 +8,7 @@ from pytz import utc
 
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
-from pandas.compat import PY3, PY36
+from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Timestamp
@@ -327,19 +327,6 @@ class TestTimestampUnaryOps(object):
         t = Timestamp('2013-11-3', tz='America/Chicago')
         result = t.replace(hour=3)
         expected = Timestamp('2013-11-3 03:00:00', tz='America/Chicago')
-        assert result == expected
-
-    @pytest.mark.skipif(not PY36, reason='Fold not available until PY3.6')
-    @pytest.mark.parametrize('fold', [0, 1])
-    @pytest.mark.parametrize('tz', ['dateutil/Europe/London', 'Europe/London'])
-    def test_replace_dst_fold(self, fold, tz):
-        # GH 25017
-        d = datetime(2019, 10, 27, 2, 30)
-        ts = Timestamp(d, tz=tz)
-        result = ts.replace(hour=1, fold=fold)
-        expected = Timestamp(datetime(2019, 10, 27, 1, 30)).tz_localize(
-            tz, ambiguous=not fold
-        )
         assert result == expected
 
     # --------------------------------------------------------------

@@ -1,7 +1,6 @@
 """
 Base and utility classes for pandas objects.
 """
-from collections import OrderedDict
 import textwrap
 import warnings
 
@@ -9,7 +8,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, builtins, map, range
+from pandas.compat import PYPY, OrderedDict, builtins, map, range
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -377,7 +376,7 @@ class SelectionMixin(object):
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
             if any(is_aggregator(x) for x in compat.itervalues(arg)):
-                new_arg = OrderedDict()
+                new_arg = compat.OrderedDict()
                 for k, v in compat.iteritems(arg):
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
@@ -445,14 +444,14 @@ class SelectionMixin(object):
                 run the aggregations over the arg with func
                 return an OrderedDict
                 """
-                result = OrderedDict()
+                result = compat.OrderedDict()
                 for fname, agg_how in compat.iteritems(arg):
                     result[fname] = func(fname, agg_how)
                 return result
 
             # set the final keys
             keys = list(compat.iterkeys(arg))
-            result = OrderedDict()
+            result = compat.OrderedDict()
 
             # nested renamer
             if is_nested_renamer:
@@ -460,7 +459,7 @@ class SelectionMixin(object):
 
                 if all(isinstance(r, dict) for r in result):
 
-                    result, results = OrderedDict(), result
+                    result, results = compat.OrderedDict(), result
                     for r in results:
                         result.update(r)
                     keys = list(compat.iterkeys(result))
@@ -1235,7 +1234,7 @@ class IndexOpsMixin(object):
             If True then the object returned will contain the relative
             frequencies of the unique values.
         sort : boolean, default True
-            Sort by frequencies.
+            Sort by values.
         ascending : boolean, default False
             Sort in ascending order.
         bins : integer, optional
@@ -1324,31 +1323,12 @@ class IndexOpsMixin(object):
 
         Parameters
         ----------
-        dropna : bool, default True
+        dropna : boolean, default True
             Don't include NaN in the count.
 
         Returns
         -------
-        int
-
-        See Also
-        --------
-        DataFrame.nunique: Method nunique for DataFrame.
-        Series.count: Count non-NA/null observations in the Series.
-
-        Examples
-        --------
-        >>> s = pd.Series([1, 3, 5, 7, 7])
-        >>> s
-        0    1
-        1    3
-        2    5
-        3    7
-        4    7
-        dtype: int64
-
-        >>> s.nunique()
-        4
+        nunique : int
         """
         uniqs = self.unique()
         n = len(uniqs)
@@ -1365,7 +1345,7 @@ class IndexOpsMixin(object):
         -------
         is_unique : boolean
         """
-        return self.nunique(dropna=False) == len(self)
+        return self.nunique() == len(self)
 
     @property
     def is_monotonic(self):

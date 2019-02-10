@@ -71,15 +71,13 @@ class TestPeriodIndex(DatetimeLike):
             pd.Period('2011-01-01', freq='D')), exp)
 
     def test_no_millisecond_field(self):
-        msg = "type object 'DatetimeIndex' has no attribute 'millisecond'"
-        with pytest.raises(AttributeError, match=msg):
+        with pytest.raises(AttributeError):
             DatetimeIndex.millisecond
 
-        msg = "'DatetimeIndex' object has no attribute 'millisecond'"
-        with pytest.raises(AttributeError, match=msg):
+        with pytest.raises(AttributeError):
             DatetimeIndex([]).millisecond
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [True, False])
     def test_difference_freq(self, sort):
         # GH14323: difference of Period MUST preserve frequency
         # but the ability to union results must be preserved
@@ -100,8 +98,8 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_hash_error(self):
         index = period_range('20010101', periods=10)
-        msg = "unhashable type: '{}'".format(type(index).__name__)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=("unhashable type: %r" %
+                                             type(index).__name__)):
             hash(index)
 
     def test_make_time_series(self):
@@ -126,8 +124,7 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_shallow_copy_changing_freq_raises(self):
         pi = period_range("2018-01-01", periods=3, freq="2D")
-        msg = "specified freq and dtype are different"
-        with pytest.raises(IncompatibleFrequency, match=msg):
+        with pytest.raises(IncompatibleFrequency, match="are different"):
             pi._shallow_copy(pi, freq="H")
 
     def test_dtype_str(self):
@@ -217,17 +214,21 @@ class TestPeriodIndex(DatetimeLike):
         assert (i1 == i2).all()
         assert i1.freq == i2.freq
 
-        msg = "start and end must have same freq"
-        with pytest.raises(ValueError, match=msg):
+        try:
             period_range(start=start, end=end_intv)
+            raise AssertionError('Cannot allow mixed freq for start and end')
+        except ValueError:
+            pass
 
         end_intv = Period('2005-05-01', 'B')
         i1 = period_range(start=start, end=end_intv)
 
-        msg = ("Of the three parameters: start, end, and periods, exactly two"
-               " must be specified")
-        with pytest.raises(ValueError, match=msg):
+        try:
             period_range(start=start)
+            raise AssertionError(
+                'Must specify periods if missing start or end')
+        except ValueError:
+            pass
 
         # infer freq from first element
         i2 = PeriodIndex([end_intv, Period('2005-05-05', 'B')])
@@ -240,12 +241,9 @@ class TestPeriodIndex(DatetimeLike):
 
         # Mixed freq should fail
         vals = [end_intv, Period('2006-12-31', 'w')]
-        msg = r"Input has different freq=W-SUN from PeriodIndex\(freq=B\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            PeriodIndex(vals)
+        pytest.raises(ValueError, PeriodIndex, vals)
         vals = np.array(vals)
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(vals)
+        pytest.raises(ValueError, PeriodIndex, vals)
 
     def test_fields(self):
         # year, month, day, hour, minute
@@ -383,9 +381,7 @@ class TestPeriodIndex(DatetimeLike):
         assert np.nan in idx
 
     def test_periods_number_check(self):
-        msg = ("Of the three parameters: start, end, and periods, exactly two"
-               " must be specified")
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             period_range('2011-1-1', '2012-1-1', 'B')
 
     def test_start_time(self):
@@ -504,8 +500,7 @@ class TestPeriodIndex(DatetimeLike):
         assert index.is_full
 
         index = PeriodIndex([2006, 2005, 2005], freq='A')
-        with pytest.raises(ValueError, match="Index is not monotonic"):
-            index.is_full
+        pytest.raises(ValueError, getattr, index, 'is_full')
 
         assert index[:0].is_full
 
@@ -579,6 +574,5 @@ def test_maybe_convert_timedelta():
     assert pi._maybe_convert_timedelta(2) == 2
 
     offset = offsets.BusinessDay()
-    msg = r"Input has different freq=B from PeriodIndex\(freq=D\)"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match='freq'):
         pi._maybe_convert_timedelta(offset)

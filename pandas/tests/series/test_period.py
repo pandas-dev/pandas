@@ -164,12 +164,3 @@ class TestSeriesPeriod(object):
         result = s.dt.end_time
         expected = s.apply(lambda x: x.end_time)
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('input_vals', [
-        ('2001'), ('NaT')
-    ])
-    def test_to_period(self, input_vals):
-        # GH 21205
-        expected = Series([input_vals], dtype='Period[D]')
-        result = Series([input_vals], dtype='datetime64[ns]').dt.to_period('D')
-        tm.assert_series_equal(result, expected)

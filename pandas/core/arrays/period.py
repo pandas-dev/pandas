@@ -46,7 +46,7 @@ def _period_array_cmp(cls, op):
     Wrap comparison operations to convert Period-like to PeriodDtype
     """
     opname = '__{name}__'.format(name=op.__name__)
-    nat_result = opname == '__ne__'
+    nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
         op = getattr(self.asi8, opname)

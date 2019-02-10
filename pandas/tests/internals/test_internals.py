@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0102
-from collections import OrderedDict
+
 from datetime import date, datetime
 from distutils.version import LooseVersion
 import itertools
@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
-from pandas.compat import lrange, u, zip
+from pandas.compat import OrderedDict, lrange, u, zip
 
 import pandas as pd
 from pandas import (
