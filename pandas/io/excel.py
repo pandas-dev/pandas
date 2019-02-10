@@ -1003,7 +1003,7 @@ class ExcelWriter(object):
     mode : {'w' or 'a'}, default 'w'
         File mode to use (write or append).
 
-    .. versionadded:: 0.24.0
+        .. versionadded:: 0.24.0
 
     Attributes
     ----------
