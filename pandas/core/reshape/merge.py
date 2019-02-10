@@ -897,6 +897,7 @@ class _MergeOperation(object):
                         left_keys.append(left.index)
                         join_names.append(left.index.name)
         elif _any(self.left_on):
+
             for k in self.left_on:
                 if is_lkey(k):
                     left_keys.append(k)
@@ -909,7 +910,7 @@ class _MergeOperation(object):
                               in zip(self.right.index.levels,
                                      self.right.index.codes)]
             else:
-                right_keys = [self.right.index.values]
+                right_keys = [self.right.index._values]
         elif _any(self.right_on):
             for k in self.right_on:
                 if is_rkey(k):
