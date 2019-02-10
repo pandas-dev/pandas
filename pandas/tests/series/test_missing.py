@@ -1077,18 +1077,18 @@ class TestSeriesInterpolateData():
                 with pytest.raises(ValueError, match=msg):
                     s.interpolate(limit=limit, method=method)
 
-    def test_interp_invalid_method(self):
+    @pytest.mark.parametrize("invalid_method", [None, 'nonexistent_method'])
+    def test_interp_invalid_method(self, invalid_method):
         s = Series([1, 3, np.nan, 12, np.nan, 25])
 
-        invalid_methods = [None, 'nonexistent_method']
-        for method in invalid_methods:
-            msg = "method must be one of.*\\. Got '{}' instead".format(method)
-            with pytest.raises(ValueError, match=msg):
-                s.interpolate(method=method)
-            # When an invalid method and invalid limit (such as -1) are
-            # provided, the error message reflects the invalid method.
-            with pytest.raises(ValueError, match=msg):
-                s.interpolate(method=method, limit=-1)
+        msg = "method must be one of.*\\. Got '{}' instead".format(invalid_method)
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method=invalid_method)
+
+        # When an invalid method and invalid limit (such as -1) are
+        # provided, the error message reflects the invalid method.
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method=invalid_method, limit=-1)
 
     def test_interp_limit_forward(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
@@ -1289,10 +1289,19 @@ class TestSeriesInterpolateData():
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("method", ['polynomial', 'spline'])
     def test_no_order(self, method):
+        # see GH-10633, GH-24014
         s = Series([0, 1, np.nan, 3])
         msg = "You must specify the order of the spline or polynomial"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=method)
+
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize('order', [-1, -1.0, 0, 0.0])
+    def test_interpolate_spline_invalid_order(self, order):
+        s = Series([0, 1, np.nan, 3])
+        msg = "order needs to be specified and greater than 0"
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method='spline', order=order)
 
     @td.skip_if_no_scipy
     def test_spline(self):
@@ -1325,20 +1334,6 @@ class TestSeriesInterpolateData():
         result1 = s.interpolate(method='spline', order=1)
         expected1 = s.interpolate(method='spline', order=1)
         assert_series_equal(result1, expected1)
-
-    @td.skip_if_no_scipy
-    def test_spline_error(self):
-        # see GH-10633, GH-24014
-        s = pd.Series(np.arange(10) ** 2)
-        s[np.random.randint(0, 9, 3)] = np.nan
-        msg = "You must specify the order of the spline or polynomial"
-        with pytest.raises(ValueError, match=msg):
-            s.interpolate(method='spline')
-
-        msg = "order needs to be specified and greater than 0"
-        for invalid_order in [-1, -1., 0, 0., np.nan]:
-            with pytest.raises(ValueError, match=msg):
-                s.interpolate(method='spline', order=invalid_order)
 
     def test_interp_timedelta64(self):
         # GH 6424
