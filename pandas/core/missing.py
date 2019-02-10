@@ -294,7 +294,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         new_y = terp(new_x)
     elif method == 'spline':
         # GH #10633, #24014
-        if order is None or (order <= 0):
+        if isna(order) or (order <= 0):
             raise ValueError("order needs to be specified and greater than 0; "
                              "got order: {}".format(order))
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
