@@ -15,15 +15,18 @@ import importlib
 import sys
 import os
 import shutil
+import csv
 import subprocess
 import argparse
 import webbrowser
+import docutils
+import docutils.parsers.rst
 
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
 SOURCE_PATH = os.path.join(DOC_PATH, 'source')
 BUILD_PATH = os.path.join(DOC_PATH, 'build')
-BUILD_DIRS = ['doctrees', 'html', 'latex', 'plots', '_static', '_templates']
+REDIRECTS_FILE = os.path.join(DOC_PATH, 'redirects.csv')
 
 
 class DocBuilder:
@@ -50,7 +53,7 @@ class DocBuilder:
         if single_doc and single_doc.endswith('.rst'):
             self.single_doc_html = os.path.splitext(single_doc)[0] + '.html'
         elif single_doc:
-            self.single_doc_html = 'api/generated/pandas.{}.html'.format(
+            self.single_doc_html = 'reference/api/pandas.{}.html'.format(
                 single_doc)
 
     def _process_single_doc(self, single_doc):
@@ -60,7 +63,7 @@ class DocBuilder:
 
         For example, categorial.rst or pandas.DataFrame.head. For the latter,
         return the corresponding file path
-        (e.g. generated/pandas.DataFrame.head.rst).
+        (e.g. reference/api/pandas.DataFrame.head.rst).
         """
         base_name, extension = os.path.splitext(single_doc)
         if extension in ('.rst', '.ipynb'):
@@ -118,8 +121,6 @@ class DocBuilder:
             raise ValueError('kind must be html or latex, '
                              'not {}'.format(kind))
 
-        self.clean()
-
         cmd = ['sphinx-build', '-b', kind]
         if self.num_jobs:
             cmd += ['-j', str(self.num_jobs)]
@@ -139,6 +140,77 @@ class DocBuilder:
                            single_doc_html)
         webbrowser.open(url, new=2)
 
+    def _get_page_title(self, page):
+        """
+        Open the rst file `page` and extract its title.
+        """
+        fname = os.path.join(SOURCE_PATH, '{}.rst'.format(page))
+        option_parser = docutils.frontend.OptionParser(
+            components=(docutils.parsers.rst.Parser,))
+        doc = docutils.utils.new_document(
+            '<doc>',
+            option_parser.get_default_values())
+        with open(fname) as f:
+            data = f.read()
+
+        parser = docutils.parsers.rst.Parser()
+        # do not generate any warning when parsing the rst
+        with open(os.devnull, 'a') as f:
+            doc.reporter.stream = f
+            parser.parse(data, doc)
+
+        section = next(node for node in doc.children
+                       if isinstance(node, docutils.nodes.section))
+        title = next(node for node in section.children
+                     if isinstance(node, docutils.nodes.title))
+
+        return title.astext()
+
+    def _add_redirects(self):
+        """
+        Create in the build directory an html file with a redirect,
+        for every row in REDIRECTS_FILE.
+        """
+        html = '''
+        <html>
+            <head>
+                <meta http-equiv="refresh" content="0;URL={url}"/>
+            </head>
+            <body>
+                <p>
+                    The page has been moved to <a href="{url}">{title}</a>
+                </p>
+            </body>
+        <html>
+        '''
+        with open(REDIRECTS_FILE) as mapping_fd:
+            reader = csv.reader(mapping_fd)
+            for row in reader:
+                if not row or row[0].strip().startswith('#'):
+                    continue
+
+                path = os.path.join(BUILD_PATH,
+                                    'html',
+                                    *row[0].split('/')) + '.html'
+
+                try:
+                    title = self._get_page_title(row[1])
+                except Exception:
+                    # the file can be an ipynb and not an rst, or docutils
+                    # may not be able to read the rst because it has some
+                    # sphinx specific stuff
+                    title = 'this page'
+
+                if os.path.exists(path):
+                    raise RuntimeError((
+                        'Redirection would overwrite an existing file: '
+                        '{}').format(path))
+
+                with open(path, 'w') as moved_page_fd:
+                    moved_page_fd.write(
+                        html.format(url='{}.html'.format(row[1]),
+                                    title=title))
+
     def html(self):
         """
         Build HTML documentation.
@@ -150,6 +222,8 @@ class DocBuilder:
 
         if self.single_doc_html is not None:
             self._open_browser(self.single_doc_html)
+        else:
+            self._add_redirects()
         return ret_code
 
     def latex(self, force=False):
@@ -184,7 +258,7 @@ class DocBuilder:
         Clean documentation generated files.
         """
         shutil.rmtree(BUILD_PATH, ignore_errors=True)
-        shutil.rmtree(os.path.join(SOURCE_PATH, 'api', 'generated'),
+        shutil.rmtree(os.path.join(SOURCE_PATH, 'reference', 'api'),
                       ignore_errors=True)
 
     def zip_html(self):
