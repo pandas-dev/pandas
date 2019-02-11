@@ -76,7 +76,7 @@ Bug Fixes
 
 **Reshaping**
 
--
+- Bug in :meth:`pandas.core.groupby.GroupBy.transform` where applying a function to a timezone aware column would return a timezone naive result (:issue:`24198`)
 -
 -
 
