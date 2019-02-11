@@ -5,10 +5,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (algos as libalgos, index as libindex,
-                          join as libjoin, lib)
+from pandas._libs import (
+    algos as libalgos, index as libindex, join as libjoin, lib)
 from pandas._libs.lib import is_datetime_array
-from pandas._libs.tslibs import Timedelta, Timestamp, OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
 from pandas.compat import range, set_function_name, u
