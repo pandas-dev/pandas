@@ -1212,7 +1212,7 @@ class TestXlrdReader(ReadingTestsBase):
                                 engine=engine, index_col=0)
             tm.assert_frame_equal(df, result)
 
-
+@td.skip_if_no("openpyxl")
 @pytest.mark.parametrize("ext", ['.xlsx', '.xlsm'])
 class TestOpenpyxlReader(ReadingTestsBase):
     """
