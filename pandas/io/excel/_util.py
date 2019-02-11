@@ -7,7 +7,6 @@ from pandas.core.dtypes.common import is_integer, is_list_like
 
 from pandas.core import config
 
-
 # the following extensions are already registered in pandas/core/config_init.py
 _registered_writer_extensions = ["xlsx", "xls", "xlsm"]
 
