@@ -131,7 +131,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Bug when a date string with a UTC offset would get ignored during indexing. (:issue:`24076`, :issue:`16785`)
 -
 -
 
