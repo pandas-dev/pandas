@@ -1365,7 +1365,7 @@ class IndexOpsMixin(object):
         -------
         is_unique : boolean
         """
-        return self.nunique() == len(self)
+        return self.nunique(dropna=False) == len(self)
 
     @property
     def is_monotonic(self):

@@ -18,7 +18,6 @@ import functools
 import itertools
 import sys
 import warnings
-from distutils.version import LooseVersion
 from textwrap import dedent
 
 import numpy as np
@@ -320,7 +319,7 @@ class DataFrame(NDFrame):
     DataFrame.from_records : Constructor from tuples, also record arrays.
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
     DataFrame.from_items : From sequence of (key, value) pairs
-        pandas.read_csv, pandas.read_table, pandas.read_clipboard.
+        read_csv, pandas.read_table, pandas.read_clipboard.
 
     Examples
     --------
@@ -642,22 +641,6 @@ class DataFrame(NDFrame):
 
         Mainly for IPython notebook.
         """
-        # qtconsole doesn't report its line width, and also
-        # behaves badly when outputting an HTML table
-        # that doesn't fit the window, so disable it.
-        # XXX: In IPython 3.x and above, the Qt console will not attempt to
-        # display HTML, so this check can be removed when support for
-        # IPython 2.x is no longer needed.
-        try:
-            import IPython
-        except ImportError:
-            pass
-        else:
-            if LooseVersion(IPython.__version__) < LooseVersion('3.0'):
-                if console.in_qtconsole():
-                    # 'HTML output is disabled in QtConsole'
-                    return None
-
         if self._info_repr():
             buf = StringIO(u(""))
             self.info(buf=buf)
@@ -735,7 +718,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.io.formats.style.Styler
+        io.formats.style.Styler
         """
         from pandas.io.formats.style import Styler
         return Styler(self)
@@ -1417,7 +1400,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas_gbq.to_gbq : This function in the pandas-gbq library.
-        pandas.read_gbq : Read a DataFrame from Google BigQuery.
+        read_gbq : Read a DataFrame from Google BigQuery.
         """
         from pandas.io import gbq
         return gbq.to_gbq(
@@ -1535,8 +1518,8 @@ class DataFrame(NDFrame):
                     result_index = Index([], name=index)
             else:
                 try:
-                    to_remove = [arr_columns.get_loc(field) for field in index]
-                    index_data = [arrays[i] for i in to_remove]
+                    index_data = [arrays[arr_columns.get_loc(field)]
+                                  for field in index]
                     result_index = ensure_index_from_sequences(index_data,
                                                                names=index)
 
@@ -1843,14 +1826,14 @@ class DataFrame(NDFrame):
         Read CSV file.
 
         .. deprecated:: 0.21.0
-            Use :func:`pandas.read_csv` instead.
+            Use :func:`read_csv` instead.
 
-        It is preferable to use the more powerful :func:`pandas.read_csv`
+        It is preferable to use the more powerful :func:`read_csv`
         for most general purposes, but ``from_csv`` makes for an easy
         roundtrip to and from a file (the exact counterpart of
         ``to_csv``), especially with a DataFrame of time series data.
 
-        This method only differs from the preferred :func:`pandas.read_csv`
+        This method only differs from the preferred :func:`read_csv`
         in some defaults:
 
         - `index_col` is ``0`` instead of ``None`` (take first column as index
@@ -1887,7 +1870,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.read_csv
+        read_csv
         """
 
         warnings.warn("from_csv is deprecated. Please use read_csv(...) "
@@ -2504,7 +2487,7 @@ class DataFrame(NDFrame):
         numpy.ndarray.nbytes : Total bytes consumed by the elements of an
             ndarray.
         Series.memory_usage : Bytes consumed by a Series.
-        pandas.Categorical : Memory-efficient array for string values with
+        Categorical : Memory-efficient array for string values with
             many repeated values.
         DataFrame.info : Concise summary of a DataFrame.
 
@@ -2987,7 +2970,7 @@ class DataFrame(NDFrame):
             Whether the query should modify the data in place or return
             a modified copy.
         **kwargs
-            See the documentation for :func:`pandas.eval` for complete details
+            See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
 
             .. versionadded:: 0.18.0
@@ -3011,7 +2994,7 @@ class DataFrame(NDFrame):
         multidimensional key (e.g., a DataFrame) then the result will be passed
         to :meth:`DataFrame.__getitem__`.
 
-        This method uses the top-level :func:`pandas.eval` function to
+        This method uses the top-level :func:`eval` function to
         evaluate the passed query.
 
         The :meth:`~pandas.DataFrame.query` method uses a slightly
@@ -3098,7 +3081,7 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.18.0.
         kwargs : dict
-            See the documentation for :func:`~pandas.eval` for complete details
+            See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
             :meth:`~pandas.DataFrame.query`.
 
@@ -3113,12 +3096,12 @@ class DataFrame(NDFrame):
             of a frame.
         DataFrame.assign : Can evaluate an expression or function to create new
             values for a column.
-        pandas.eval : Evaluate a Python expression as a string using various
+        eval : Evaluate a Python expression as a string using various
             backends.
 
         Notes
         -----
-        For more details see the API documentation for :func:`~pandas.eval`.
+        For more details see the API documentation for :func:`~eval`.
         For detailed examples see :ref:`enhancing performance with eval
         <enhancingperf.eval>`.
 
@@ -3957,7 +3940,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.DataFrame.rename_axis
+        DataFrame.rename_axis
 
         Examples
         --------
@@ -6203,11 +6186,11 @@ class DataFrame(NDFrame):
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    pandas.core.groupby.GroupBy : Perform operations over groups.
-    pandas.core.resample.Resampler : Perform operations over resampled bins.
-    pandas.core.window.Rolling : Perform operations over rolling window.
-    pandas.core.window.Expanding : Perform operations over expanding window.
-    pandas.core.window.EWM : Perform operation over exponential weighted
+    core.groupby.GroupBy : Perform operations over groups.
+    core.resample.Resampler : Perform operations over resampled bins.
+    core.window.Rolling : Perform operations over rolling window.
+    core.window.Expanding : Perform operations over expanding window.
+    core.window.EWM : Perform operation over exponential weighted
         window.
     """)
 
@@ -6559,7 +6542,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.concat : General function to concatenate DataFrame, Series
+        concat : General function to concatenate DataFrame, Series
             or Panel objects.
 
         Notes
@@ -7069,10 +7052,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.Series.cov : Compute covariance with another Series.
-        pandas.core.window.EWM.cov: Exponential weighted sample covariance.
-        pandas.core.window.Expanding.cov : Expanding sample covariance.
-        pandas.core.window.Rolling.cov : Rolling sample covariance.
+        Series.cov : Compute covariance with another Series.
+        core.window.EWM.cov: Exponential weighted sample covariance.
+        core.window.Expanding.cov : Expanding sample covariance.
+        core.window.Rolling.cov : Rolling sample covariance.
 
         Notes
         -----
