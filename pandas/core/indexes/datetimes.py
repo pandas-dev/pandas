@@ -868,6 +868,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                                  "UTC offset")
             start = start.tz_localize(parsed.tzinfo).tz_convert(self.tz)
             end = end.tz_localize(parsed.tzinfo).tz_convert(self.tz)
+        elif self.tz is not None:
+            start = start.tz_localize(self.tz)
+            end = end.tz_localize(self.tz)
         return start, end
 
     def _partial_date_slice(self, reso, parsed, use_lhs=True, use_rhs=True):
