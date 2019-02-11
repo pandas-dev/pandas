@@ -861,6 +861,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                               parsed.hour, parsed.minute, parsed.second,
                               parsed.microsecond)
             end = start + timedelta(microseconds=1) - Nano(1)
+        # GH 24076
+        # If an incoming date string contained a UTC offset, need to localize
+        # the parsed date to this offset first before aligning with the index's
+        # timezone
         if parsed.tzinfo is not None:
             if self.tz is None:
                 raise ValueError("The index must be timezone aware "
