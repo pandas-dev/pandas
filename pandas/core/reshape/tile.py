@@ -372,14 +372,6 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     return result, bins
 
 
-def _trim_zeros(x):
-    while len(x) > 1 and x[-1] == '0':
-        x = x[:-1]
-    if len(x) > 1 and x[-1] == '.':
-        x = x[:-1]
-    return x
-
-
 def _coerce_to_type(x):
     """
     if the passed data is of datetime/timedelta type,

@@ -2,6 +2,7 @@
 
 import cython
 from cython import Py_ssize_t
+from cython cimport floating
 
 from libc.stdlib cimport malloc, free
 
@@ -381,6 +382,56 @@ def group_any_all(uint8_t[:] out,
             if values[i] == flag_val:
                 out[lab] = flag_val
 
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _group_add(floating[:, :] out,
+               int64_t[:] counts,
+               floating[:, :] values,
+               const int64_t[:] labels,
+               Py_ssize_t min_count=0):
+    """
+    Only aggregates on axis=0
+    """
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        floating val, count
+        ndarray[floating, ndim=2] sumx, nobs
+
+    if not len(values) == len(labels):
+        raise AssertionError("len(index) != len(labels)")
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    N, K = (<object>values).shape
+
+    with nogil:
+
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+
+        for i in range(ncounts):
+            for j in range(K):
+                if nobs[i, j] < min_count:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j]
+
+
+group_add_float32 = _group_add['float']
+group_add_float64 = _group_add['double']
 
 # generated from template
 include "groupby_helper.pxi"
