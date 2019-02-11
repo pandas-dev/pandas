@@ -854,15 +854,23 @@ class TestSeriesMissingData():
         assert_series_equal(result, expected)
 
 
-class TestSeriesInterpolateData():
-    # This list does not include method 'time'.  That method requires a Series
-    # with a DatetimeIndex, and is tested separately below.
-    NONTEMPORAL_INTERPOLATE_METHODS = [
-        'linear', 'index', 'values', 'nearest', 'zero', 'slinear',
-        'quadratic', 'cubic', 'barycentric', 'krogh', 'polynomial', 'spline',
-        'piecewise_polynomial', 'from_derivatives', 'pchip', 'akima',
-    ]
+@pytest.fixture(params=['linear', 'index', 'values', 'nearest', 'slinear',
+                        'zero', 'quadratic', 'cubic', 'barycentric', 'krogh',
+                        'polynomial', 'spline', 'piecewise_polynomial',
+                        'from_derivatives', 'pchip', 'akima', ])
+def nontemporal_method(request):
+    """ Fixture that returns an (method name, required kwargs) pair.
 
+    This fixture does not include method 'time' as a parameterization; that
+    method requires a Series with a DatetimeIndex, and is generally tested
+    separately from these non-temporal methods.
+    """
+    method = request.param
+    kwargs = dict(order=1) if method in ('spline', 'polynomial') else dict()
+    return method, kwargs
+
+
+class TestSeriesInterpolateData():
     def test_interpolate(self, datetime_series, string_series):
         ts = Series(np.arange(len(datetime_series), dtype=float),
                     datetime_series.index)
@@ -1068,23 +1076,22 @@ class TestSeriesInterpolateData():
         result = s.interpolate(method='linear', limit=2)
         assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("method", NONTEMPORAL_INTERPOLATE_METHODS)
     @pytest.mark.parametrize("limit", [-1, 0])
-    def test_interpolate_invalid_nonpositive_limit(self, method, limit):
-        # GH 9217: make sure limit is greater than zero
-        s = pd.Series([1, 2, np.nan, np.nan, 5])
+    def test_interpolate_invalid_nonpositive_limit(self, nontemporal_method,
+                                                   limit):
+        # GH 9217: make sure limit is greater than zero.
+        s = pd.Series([1, 2, np.nan, 4])
+        method, kwargs = nontemporal_method
         with pytest.raises(ValueError, match="Limit must be greater than 0"):
-            # Pass order=1 for 'spline' and 'polynomial'.
-            s.interpolate(limit=limit, method=method, order=1)
+            s.interpolate(limit=limit, method=method, **kwargs)
 
-    @pytest.mark.parametrize("method", NONTEMPORAL_INTERPOLATE_METHODS)
-    def test_interpolate_invalid_float_limit(self, method):
+    def test_interpolate_invalid_float_limit(self, nontemporal_method):
         # GH 9217: make sure limit is an integer.
-        s = pd.Series([1, 2, np.nan, np.nan, 5])
+        s = pd.Series([1, 2, np.nan, 4])
+        method, kwargs = nontemporal_method
         limit = 2.0
         with pytest.raises(ValueError, match="Limit must be an integer"):
-            # Pass order=1 for 'spline' and 'polynomial'.
-            s.interpolate(limit=limit, method=method, order=1)
+            s.interpolate(limit=limit, method=method, **kwargs)
 
     @pytest.mark.parametrize("invalid_method", [None, 'nonexistent_method'])
     def test_interp_invalid_method(self, invalid_method):
