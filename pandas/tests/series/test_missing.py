@@ -882,12 +882,11 @@ class TestSeriesInterpolateData():
         time_interp = ord_ts_copy.interpolate(method='time')
         tm.assert_series_equal(time_interp, ord_ts)
 
-        # try time interpolation on a non-TimeSeries
-        # Only raises ValueError if there are NaNs.
-        non_ts = string_series.copy()
-        non_ts[0] = np.NaN
-        msg = ("time-weighted interpolation only works on Series or DataFrames"
-               " with a DatetimeIndex")
+    def test_interpolate_time_raises_for_non_timeseries(self):
+        # When method='time' is used on a non-TimeSeries that contains a null
+        # value, a ValueError should be raised.
+        non_ts = Series([0, 1, 2, np.NaN])
+        msg = "time-weighted interpolation only works on Series.* with a DatetimeIndex"
         with pytest.raises(ValueError, match=msg):
             non_ts.interpolate(method='time')
 
