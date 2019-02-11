@@ -180,6 +180,7 @@ Reshaping
 
 - Bug in :func:`pandas.merge` adds a string of ``None`` if ``None`` is assigned in suffixes instead of remain the column name as-is (:issue:`24782`).
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
+- Bug in :meth:`pandas.core.groupby.GroupBy.transform` where applying a function to a timezone aware column would return a timezone naive result (:issue:`24198`)
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
 -
 
