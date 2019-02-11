@@ -886,7 +886,8 @@ class TestSeriesInterpolateData():
         # When method='time' is used on a non-TimeSeries that contains a null
         # value, a ValueError should be raised.
         non_ts = Series([0, 1, 2, np.NaN])
-        msg = "time-weighted interpolation only works on Series.* with a DatetimeIndex"
+        msg = ("time-weighted interpolation only works on Series.* "
+               "with a DatetimeIndex")
         with pytest.raises(ValueError, match=msg):
             non_ts.interpolate(method='time')
 
@@ -1089,7 +1090,7 @@ class TestSeriesInterpolateData():
     def test_interp_invalid_method(self, invalid_method):
         s = Series([1, 3, np.nan, 12, np.nan, 25])
 
-        msg = "method must be one of.*\\. Got '{}' instead".format(invalid_method)
+        msg = "method must be one of.* Got '{}' instead".format(invalid_method)
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=invalid_method)
 
