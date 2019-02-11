@@ -33,7 +33,7 @@ Backwards incompatible API changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
--
+- :class:`DatetimeTZDtype` will now standardize pytz timezones to a common timezone instance (:issue:`24713`)
 -
 -
 
@@ -42,16 +42,13 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
--
--
--
-
+- Deprecated the `M (months)` and `Y (year)` `units` parameter of :func: `pandas.to_timedelta`, :func: `pandas.Timedelta` and :func: `pandas.TimedeltaIndex` (:issue:`16344`)
 
 .. _whatsnew_0250.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- Removed (parts of) :class:`Panel` (:issue:`25047`)
+- Removed (parts of) :class:`Panel` (:issue:`25047`,:issue:`25191`,:issue:`25231`)
 -
 -
 -
@@ -70,6 +67,8 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+-
 
 Categorical
 ^^^^^^^^^^^
@@ -96,7 +95,7 @@ Timezones
 ^^^^^^^^^
 
 - Bug in :func:`to_datetime` with ``utc=True`` and datetime strings that would apply previously parsed UTC offsets to subsequent arguments (:issue:`24992`)
--
+- Bug in :func:`Timestamp.tz_localize` and :func:`Timestamp.tz_convert` does not propagate ``freq`` (:issue:`25241`)
 -
 
 Numeric
@@ -142,7 +141,7 @@ Indexing
 Missing
 ^^^^^^^
 
--
+- Fixed misleading exception message in :meth:`Series.missing` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
 -
 -
 
