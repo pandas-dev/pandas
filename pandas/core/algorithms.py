@@ -566,7 +566,7 @@ _shared_docs['factorize'] = """
         coerced to ndarrays before factorization.
     """),
     order=dedent("""\
-    order
+    order : None
         .. deprecated:: 0.23.0
 
            This parameter has no effect and is deprecated.
