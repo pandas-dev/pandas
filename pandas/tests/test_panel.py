@@ -13,10 +13,9 @@ import pandas.core.panel as panelm
 from pandas.core.panel import Panel
 import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_panel_equal,
-    assert_series_equal, makeCustomDataframe as mkdf, makeMixedDataFrame)
+    assert_almost_equal, assert_frame_equal, assert_series_equal,
+    makeCustomDataframe as mkdf, makeMixedDataFrame)
 
-from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.offsets import MonthEnd
 
 
@@ -295,25 +294,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForSparse):
             Panel(np.random.randn(3, 4, 5),
                   lrange(5), lrange(5), lrange(4))
 
-    def test_convert_objects(self):
-        # GH 4937
-        p = Panel(dict(A=dict(a=['1', '1.0'])))
-        expected = Panel(dict(A=dict(a=[1, 1.0])))
-        result = p._convert(numeric=True, coerce=True)
-        assert_panel_equal(result, expected)
-
-    def test_astype(self):
-        # GH7271
-        data = np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
-        panel = Panel(data, ['a', 'b'], ['c', 'd'], ['e', 'f'])
-
-        str_data = np.array([[['1', '2'], ['3', '4']],
-                             [['5', '6'], ['7', '8']]])
-        expected = Panel(str_data, ['a', 'b'], ['c', 'd'], ['e', 'f'])
-        assert_panel_equal(panel.astype(str), expected)
-
-        pytest.raises(NotImplementedError, panel.astype, {0: str})
-
     def test_apply_slabs(self):
         # with multi-indexes
         # GH7469
@@ -350,79 +330,12 @@ class TestPanel(PanelTests, CheckIndexing, SafeForSparse):
         assert_series_equal(result_float, expected_float)
         assert_series_equal(result_float64, expected_float64)
 
-    def test_reindex_axis_style(self):
-        panel = Panel(np.random.rand(5, 5, 5))
-        expected0 = Panel(panel.values).iloc[[0, 1]]
-        expected1 = Panel(panel.values).iloc[:, [0, 1]]
-        expected2 = Panel(panel.values).iloc[:, :, [0, 1]]
-
-        result = panel.reindex([0, 1], axis=0)
-        assert_panel_equal(result, expected0)
-
-        result = panel.reindex([0, 1], axis=1)
-        assert_panel_equal(result, expected1)
-
-        result = panel.reindex([0, 1], axis=2)
-        assert_panel_equal(result, expected2)
-
-        result = panel.reindex([0, 1], axis=2)
-        assert_panel_equal(result, expected2)
-
-    def test_reindex_multi(self):
-
-        # multi-axis indexing consistency
-        # GH 5900
-        df = DataFrame(np.random.randn(4, 3))
-        p = Panel({'Item1': df})
-        expected = Panel({'Item1': df})
-        expected['Item2'] = np.nan
-
-        items = ['Item1', 'Item2']
-        major_axis = np.arange(4)
-        minor_axis = np.arange(3)
-
-        results = []
-        results.append(p.reindex(items=items, major_axis=major_axis,
-                                 copy=True))
-        results.append(p.reindex(items=items, major_axis=major_axis,
-                                 copy=False))
-        results.append(p.reindex(items=items, minor_axis=minor_axis,
-                                 copy=True))
-        results.append(p.reindex(items=items, minor_axis=minor_axis,
-                                 copy=False))
-        results.append(p.reindex(items=items, major_axis=major_axis,
-                                 minor_axis=minor_axis, copy=True))
-        results.append(p.reindex(items=items, major_axis=major_axis,
-                                 minor_axis=minor_axis, copy=False))
-
-        for i, r in enumerate(results):
-            assert_panel_equal(expected, r)
-
     def test_fillna(self):
         # limit not implemented when only value is specified
         p = Panel(np.random.randn(3, 4, 5))
         p.iloc[0:2, 0:2, 0:2] = np.nan
         pytest.raises(NotImplementedError,
                       lambda: p.fillna(999, limit=1))
-
-        # Test in place fillNA
-        # Expected result
-        expected = Panel([[[0, 1], [2, 1]], [[10, 11], [12, 11]]],
-                         items=['a', 'b'], minor_axis=['x', 'y'],
-                         dtype=np.float64)
-        # method='ffill'
-        p1 = Panel([[[0, 1], [2, np.nan]], [[10, 11], [12, np.nan]]],
-                   items=['a', 'b'], minor_axis=['x', 'y'],
-                   dtype=np.float64)
-        p1.fillna(method='ffill', inplace=True)
-        assert_panel_equal(p1, expected)
-
-        # method='bfill'
-        p2 = Panel([[[0, np.nan], [2, 1]], [[10, np.nan], [12, 11]]],
-                   items=['a', 'b'], minor_axis=['x', 'y'],
-                   dtype=np.float64)
-        p2.fillna(method='bfill', inplace=True)
-        assert_panel_equal(p2, expected)
 
     def test_to_frame_multi_major(self):
         idx = MultiIndex.from_tuples(
@@ -542,11 +455,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForSparse):
         result = panel.loc['E']
         assert_frame_equal(result, expected)
 
-        expected = no_dup_panel.loc[['A', 'B']]
-        expected.items = ['A', 'A']
-        result = panel.loc['A']
-        assert_panel_equal(result, expected)
-
         # major
         data = np.random.randn(5, 5, 5)
         no_dup_panel = Panel(data, major_axis=list("ABCDE"))
@@ -559,11 +467,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForSparse):
         expected = no_dup_panel.loc[:, 'E']
         result = panel.loc[:, 'E']
         assert_frame_equal(result, expected)
-
-        expected = no_dup_panel.loc[:, ['A', 'B']]
-        expected.major_axis = ['A', 'A']
-        result = panel.loc[:, 'A']
-        assert_panel_equal(result, expected)
 
         # minor
         data = np.random.randn(5, 100, 5)
@@ -578,11 +481,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForSparse):
         result = panel.loc[:, :, 'E']
         assert_frame_equal(result, expected)
 
-        expected = no_dup_panel.loc[:, :, ['A', 'B']]
-        expected.minor_axis = ['A', 'A']
-        result = panel.loc[:, :, 'A']
-        assert_panel_equal(result, expected)
-
     def test_filter(self):
         pass
 
@@ -595,93 +493,14 @@ class TestPanel(PanelTests, CheckIndexing, SafeForSparse):
         shifted = mixed_panel.shift(1)
         assert_series_equal(mixed_panel.dtypes, shifted.dtypes)
 
-    def test_pct_change(self):
-        df1 = DataFrame({'c1': [1, 2, 5], 'c2': [3, 4, 6]})
-        df2 = df1 + 1
-        df3 = DataFrame({'c1': [3, 4, 7], 'c2': [5, 6, 8]})
-        wp = Panel({'i1': df1, 'i2': df2, 'i3': df3})
-        # major, 1
-        result = wp.pct_change()  # axis='major'
-        expected = Panel({'i1': df1.pct_change(),
-                          'i2': df2.pct_change(),
-                          'i3': df3.pct_change()})
-        assert_panel_equal(result, expected)
-        result = wp.pct_change(axis=1)
-        assert_panel_equal(result, expected)
-        # major, 2
-        result = wp.pct_change(periods=2)
-        expected = Panel({'i1': df1.pct_change(2),
-                          'i2': df2.pct_change(2),
-                          'i3': df3.pct_change(2)})
-        assert_panel_equal(result, expected)
-        # minor, 1
-        result = wp.pct_change(axis='minor')
-        expected = Panel({'i1': df1.pct_change(axis=1),
-                          'i2': df2.pct_change(axis=1),
-                          'i3': df3.pct_change(axis=1)})
-        assert_panel_equal(result, expected)
-        result = wp.pct_change(axis=2)
-        assert_panel_equal(result, expected)
-        # minor, 2
-        result = wp.pct_change(periods=2, axis='minor')
-        expected = Panel({'i1': df1.pct_change(periods=2, axis=1),
-                          'i2': df2.pct_change(periods=2, axis=1),
-                          'i3': df3.pct_change(periods=2, axis=1)})
-        assert_panel_equal(result, expected)
-        # items, 1
-        result = wp.pct_change(axis='items')
-        expected = Panel(
-            {'i1': DataFrame({'c1': [np.nan, np.nan, np.nan],
-                              'c2': [np.nan, np.nan, np.nan]}),
-             'i2': DataFrame({'c1': [1, 0.5, .2],
-                              'c2': [1. / 3, 0.25, 1. / 6]}),
-             'i3': DataFrame({'c1': [.5, 1. / 3, 1. / 6],
-                              'c2': [.25, .2, 1. / 7]})})
-        assert_panel_equal(result, expected)
-        result = wp.pct_change(axis=0)
-        assert_panel_equal(result, expected)
-        # items, 2
-        result = wp.pct_change(periods=2, axis='items')
-        expected = Panel(
-            {'i1': DataFrame({'c1': [np.nan, np.nan, np.nan],
-                              'c2': [np.nan, np.nan, np.nan]}),
-             'i2': DataFrame({'c1': [np.nan, np.nan, np.nan],
-                              'c2': [np.nan, np.nan, np.nan]}),
-             'i3': DataFrame({'c1': [2, 1, .4],
-                              'c2': [2. / 3, .5, 1. / 3]})})
-        assert_panel_equal(result, expected)
-
-    def test_round(self):
-        values = [[[-3.2, 2.2], [0, -4.8213], [3.123, 123.12],
-                   [-1566.213, 88.88], [-12, 94.5]],
-                  [[-5.82, 3.5], [6.21, -73.272], [-9.087, 23.12],
-                   [272.212, -99.99], [23, -76.5]]]
-        evalues = [[[float(np.around(i)) for i in j] for j in k]
-                   for k in values]
-        p = Panel(values, items=['Item1', 'Item2'],
-                  major_axis=date_range('1/1/2000', periods=5),
-                  minor_axis=['A', 'B'])
-        expected = Panel(evalues, items=['Item1', 'Item2'],
-                         major_axis=date_range('1/1/2000', periods=5),
-                         minor_axis=['A', 'B'])
-        result = p.round()
-        assert_panel_equal(expected, result)
-
     def test_numpy_round(self):
         values = [[[-3.2, 2.2], [0, -4.8213], [3.123, 123.12],
                    [-1566.213, 88.88], [-12, 94.5]],
                   [[-5.82, 3.5], [6.21, -73.272], [-9.087, 23.12],
                    [272.212, -99.99], [23, -76.5]]]
-        evalues = [[[float(np.around(i)) for i in j] for j in k]
-                   for k in values]
         p = Panel(values, items=['Item1', 'Item2'],
                   major_axis=date_range('1/1/2000', periods=5),
                   minor_axis=['A', 'B'])
-        expected = Panel(evalues, items=['Item1', 'Item2'],
-                         major_axis=date_range('1/1/2000', periods=5),
-                         minor_axis=['A', 'B'])
-        result = np.round(p)
-        assert_panel_equal(expected, result)
 
         msg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
@@ -699,7 +518,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForSparse):
                    minor_axis=np.arange(5))
         f1 = wp['a']
         f2 = wp.loc['a']
-        assert_panel_equal(f1, f2)
 
         assert (f1.items == [1, 2]).all()
         assert (f2.items == [1, 2]).all()
@@ -710,178 +528,6 @@ class TestPanel(PanelTests, CheckIndexing, SafeForSparse):
     def test_repr_empty(self):
         empty = Panel()
         repr(empty)
-
-    @pytest.mark.filterwarnings("ignore:'.reindex:FutureWarning")
-    def test_dropna(self):
-        p = Panel(np.random.randn(4, 5, 6), major_axis=list('abcde'))
-        p.loc[:, ['b', 'd'], 0] = np.nan
-
-        result = p.dropna(axis=1)
-        exp = p.loc[:, ['a', 'c', 'e'], :]
-        assert_panel_equal(result, exp)
-        inp = p.copy()
-        inp.dropna(axis=1, inplace=True)
-        assert_panel_equal(inp, exp)
-
-        result = p.dropna(axis=1, how='all')
-        assert_panel_equal(result, p)
-
-        p.loc[:, ['b', 'd'], :] = np.nan
-        result = p.dropna(axis=1, how='all')
-        exp = p.loc[:, ['a', 'c', 'e'], :]
-        assert_panel_equal(result, exp)
-
-        p = Panel(np.random.randn(4, 5, 6), items=list('abcd'))
-        p.loc[['b'], :, 0] = np.nan
-
-        result = p.dropna()
-        exp = p.loc[['a', 'c', 'd']]
-        assert_panel_equal(result, exp)
-
-        result = p.dropna(how='all')
-        assert_panel_equal(result, p)
-
-        p.loc['b'] = np.nan
-        result = p.dropna(how='all')
-        exp = p.loc[['a', 'c', 'd']]
-        assert_panel_equal(result, exp)
-
-    def test_drop(self):
-        df = DataFrame({"A": [1, 2], "B": [3, 4]})
-        panel = Panel({"One": df, "Two": df})
-
-        def check_drop(drop_val, axis_number, aliases, expected):
-            try:
-                actual = panel.drop(drop_val, axis=axis_number)
-                assert_panel_equal(actual, expected)
-                for alias in aliases:
-                    actual = panel.drop(drop_val, axis=alias)
-                    assert_panel_equal(actual, expected)
-            except AssertionError:
-                pprint_thing("Failed with axis_number %d and aliases: %s" %
-                             (axis_number, aliases))
-                raise
-        # Items
-        expected = Panel({"One": df})
-        check_drop('Two', 0, ['items'], expected)
-
-        pytest.raises(KeyError, panel.drop, 'Three')
-
-        # errors = 'ignore'
-        dropped = panel.drop('Three', errors='ignore')
-        assert_panel_equal(dropped, panel)
-        dropped = panel.drop(['Two', 'Three'], errors='ignore')
-        expected = Panel({"One": df})
-        assert_panel_equal(dropped, expected)
-
-        # Major
-        exp_df = DataFrame({"A": [2], "B": [4]}, index=[1])
-        expected = Panel({"One": exp_df, "Two": exp_df})
-        check_drop(0, 1, ['major_axis', 'major'], expected)
-
-        exp_df = DataFrame({"A": [1], "B": [3]}, index=[0])
-        expected = Panel({"One": exp_df, "Two": exp_df})
-        check_drop([1], 1, ['major_axis', 'major'], expected)
-
-        # Minor
-        exp_df = df[['B']]
-        expected = Panel({"One": exp_df, "Two": exp_df})
-        check_drop(["A"], 2, ['minor_axis', 'minor'], expected)
-
-        exp_df = df[['A']]
-        expected = Panel({"One": exp_df, "Two": exp_df})
-        check_drop("B", 2, ['minor_axis', 'minor'], expected)
-
-    def test_update(self):
-        pan = Panel([[[1.5, np.nan, 3.], [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.]],
-                     [[1.5, np.nan, 3.], [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.]]])
-
-        other = Panel(
-            [[[3.6, 2., np.nan], [np.nan, np.nan, 7]]], items=[1])
-
-        pan.update(other)
-
-        expected = Panel([[[1.5, np.nan, 3.], [1.5, np.nan, 3.],
-                           [1.5, np.nan, 3.], [1.5, np.nan, 3.]],
-                          [[3.6, 2., 3], [1.5, np.nan, 7],
-                           [1.5, np.nan, 3.],
-                           [1.5, np.nan, 3.]]])
-
-        assert_panel_equal(pan, expected)
-
-    def test_update_from_dict(self):
-        pan = Panel({'one': DataFrame([[1.5, np.nan, 3],
-                                       [1.5, np.nan, 3],
-                                       [1.5, np.nan, 3.],
-                                       [1.5, np.nan, 3.]]),
-                     'two': DataFrame([[1.5, np.nan, 3.],
-                                       [1.5, np.nan, 3.],
-                                       [1.5, np.nan, 3.],
-                                       [1.5, np.nan, 3.]])})
-
-        other = {'two': DataFrame(
-            [[3.6, 2., np.nan], [np.nan, np.nan, 7]])}
-
-        pan.update(other)
-
-        expected = Panel(
-            {'one': DataFrame([[1.5, np.nan, 3.],
-                               [1.5, np.nan, 3.],
-                               [1.5, np.nan, 3.],
-                               [1.5, np.nan, 3.]]),
-             'two': DataFrame([[3.6, 2., 3],
-                              [1.5, np.nan, 7],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.]])
-             }
-        )
-
-        assert_panel_equal(pan, expected)
-
-    def test_update_nooverwrite(self):
-        pan = Panel([[[1.5, np.nan, 3.], [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.]],
-                     [[1.5, np.nan, 3.], [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.]]])
-
-        other = Panel(
-            [[[3.6, 2., np.nan], [np.nan, np.nan, 7]]], items=[1])
-
-        pan.update(other, overwrite=False)
-
-        expected = Panel([[[1.5, np.nan, 3], [1.5, np.nan, 3],
-                           [1.5, np.nan, 3.], [1.5, np.nan, 3.]],
-                          [[1.5, 2., 3.], [1.5, np.nan, 3.],
-                           [1.5, np.nan, 3.],
-                           [1.5, np.nan, 3.]]])
-
-        assert_panel_equal(pan, expected)
-
-    def test_update_filtered(self):
-        pan = Panel([[[1.5, np.nan, 3.], [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.]],
-                     [[1.5, np.nan, 3.], [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.],
-                      [1.5, np.nan, 3.]]])
-
-        other = Panel(
-            [[[3.6, 2., np.nan], [np.nan, np.nan, 7]]], items=[1])
-
-        pan.update(other, filter_func=lambda x: x > 2)
-
-        expected = Panel([[[1.5, np.nan, 3.], [1.5, np.nan, 3.],
-                           [1.5, np.nan, 3.], [1.5, np.nan, 3.]],
-                          [[1.5, np.nan, 3], [1.5, np.nan, 7],
-                           [1.5, np.nan, 3.], [1.5, np.nan, 3.]]])
-
-        assert_panel_equal(pan, expected)
 
     @pytest.mark.parametrize('bad_kwarg, exception, msg', [
         # errors must be 'ignore' or 'raise'

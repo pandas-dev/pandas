@@ -1503,69 +1503,6 @@ def assert_frame_equal(left, right, check_dtype=True,
                 obj='DataFrame.iloc[:, {idx}]'.format(idx=i))
 
 
-def assert_panel_equal(left, right,
-                       check_dtype=True,
-                       check_panel_type=False,
-                       check_less_precise=False,
-                       check_names=False,
-                       by_blocks=False,
-                       obj='Panel'):
-    """Check that left and right Panels are equal.
-
-    Parameters
-    ----------
-    left : Panel (or nd)
-    right : Panel (or nd)
-    check_dtype : bool, default True
-        Whether to check the Panel dtype is identical.
-    check_panel_type : bool, default False
-        Whether to check the Panel class is identical.
-    check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when check_exact is False.
-        5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
-    check_names : bool, default True
-        Whether to check the Index names attribute.
-    by_blocks : bool, default False
-        Specify how to compare internal data. If False, compare by columns.
-        If True, compare by blocks.
-    obj : str, default 'Panel'
-        Specify the object name being compared, internally used to show
-        the appropriate assertion message.
-    """
-
-    if check_panel_type:
-        assert_class_equal(left, right, obj=obj)
-
-    for axis in left._AXIS_ORDERS:
-        left_ind = getattr(left, axis)
-        right_ind = getattr(right, axis)
-        assert_index_equal(left_ind, right_ind, check_names=check_names)
-
-    if by_blocks:
-        rblocks = right._to_dict_of_blocks()
-        lblocks = left._to_dict_of_blocks()
-        for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
-            assert dtype in lblocks
-            assert dtype in rblocks
-            array_equivalent(lblocks[dtype].values, rblocks[dtype].values)
-    else:
-
-        # can potentially be slow
-        for i, item in enumerate(left._get_axis(0)):
-            msg = "non-matching item (right) '{item}'".format(item=item)
-            assert item in right, msg
-            litem = left.iloc[i]
-            ritem = right.iloc[i]
-            assert_frame_equal(litem, ritem,
-                               check_less_precise=check_less_precise,
-                               check_names=check_names)
-
-        for i, item in enumerate(right._get_axis(0)):
-            msg = "non-matching item (left) '{item}'".format(item=item)
-            assert item in left, msg
-
-
 def assert_equal(left, right, **kwargs):
     """
     Wrapper for tm.assert_*_equal to dispatch to the appropriate test function.

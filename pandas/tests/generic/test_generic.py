@@ -14,8 +14,7 @@ from pandas.core.dtypes.common import is_scalar
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Panel, Series, date_range
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_frame_equal, assert_panel_equal, assert_series_equal)
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 import pandas.io.formats.printing as printing
 
@@ -701,16 +700,9 @@ class TestNDFrame(object):
         assert_frame_equal(sample1, df[['colString']])
 
         # Test default axes
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            p = Panel(items=['a', 'b', 'c'], major_axis=[2, 4, 6],
-                      minor_axis=[1, 3, 5])
-            assert_panel_equal(
-                p.sample(n=3, random_state=42), p.sample(n=3, axis=1,
-                                                         random_state=42))
-            assert_frame_equal(
-                df.sample(n=3, random_state=42), df.sample(n=3, axis=0,
-                                                           random_state=42))
+        assert_frame_equal(
+            df.sample(n=3, random_state=42), df.sample(n=3, axis=0,
+                                                       random_state=42))
 
         # Test that function aligns weights with frame
         df = DataFrame(
@@ -949,22 +941,6 @@ class TestNDFrame(object):
 
         with pytest.raises(ValueError):
             df.A.pipe((f, 'y'), x=1, y=0)
-
-    def test_pipe_panel(self):
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            wp = Panel({'r1': DataFrame({"A": [1, 2, 3]})})
-            f = lambda x, y: x + y
-            result = wp.pipe(f, 2)
-            expected = wp + 2
-            assert_panel_equal(result, expected)
-
-            result = wp.pipe((f, 'y'), x=1)
-            expected = wp + 1
-            assert_panel_equal(result, expected)
-
-            with pytest.raises(ValueError):
-                wp.pipe((f, 'y'), x=1, y=1)
 
     @pytest.mark.parametrize('box', [pd.Series, pd.DataFrame])
     def test_axis_classmethods(self, box):

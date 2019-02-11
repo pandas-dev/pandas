@@ -15,7 +15,7 @@ from pandas.compat import (
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Panel, Series, Timestamp, isna
+from pandas import DataFrame, Series, Timestamp, isna
 from pandas.core.index import Index, MultiIndex
 import pandas.util.testing as tm
 
@@ -817,18 +817,6 @@ Thur,Lunch,Yes,51.51,17"""
         swapped = ft.swaplevel('first', 'second', axis=1)
         exp = self.frame.swaplevel('first', 'second').T
         tm.assert_frame_equal(swapped, exp)
-
-    def test_swaplevel_panel(self):
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
-            expected = panel.copy()
-            expected.major_axis = expected.major_axis.swaplevel(0, 1)
-
-            for result in (panel.swaplevel(axis='major'),
-                           panel.swaplevel(0, axis='major'),
-                           panel.swaplevel(0, 1, axis='major')):
-                tm.assert_panel_equal(result, expected)
 
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(['month', 'day', 'year'])

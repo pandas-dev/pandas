@@ -75,6 +75,10 @@ def compare(data, vf, version):
 
     m = globals()
     for typ, dv in data.items():
+        if typ == "panel":
+            # FIXME: kludge; get this key out of the legacy file
+            continue
+
         for dt, result in dv.items():
             try:
                 expected = data[typ][dt]

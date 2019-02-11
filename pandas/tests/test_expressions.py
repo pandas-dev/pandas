@@ -3,19 +3,17 @@ from __future__ import print_function
 
 import operator
 import re
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 from numpy.random import randn
 import pytest
 
 from pandas import _np_version_under1p13, compat
-from pandas.core.api import DataFrame, Panel
+from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_panel_equal,
-    assert_series_equal)
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -38,23 +36,6 @@ _integer = DataFrame(
     columns=list('ABCD'), dtype='int64')
 _integer2 = DataFrame(np.random.randint(1, 100, size=(101, 4)),
                       columns=list('ABCD'), dtype='int64')
-
-with catch_warnings(record=True):
-    simplefilter("ignore", FutureWarning)
-    _frame_panel = Panel(dict(ItemA=_frame.copy(),
-                              ItemB=(_frame.copy() + 3),
-                              ItemC=_frame.copy(),
-                              ItemD=_frame.copy()))
-    _frame2_panel = Panel(dict(ItemA=_frame2.copy(),
-                               ItemB=(_frame2.copy() + 3),
-                               ItemC=_frame2.copy(),
-                               ItemD=_frame2.copy()))
-    _integer_panel = Panel(dict(ItemA=_integer,
-                                ItemB=(_integer + 34).astype('int64')))
-    _integer2_panel = Panel(dict(ItemA=_integer2,
-                                 ItemB=(_integer2 + 34).astype('int64')))
-    _mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
-    _mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
 
 
 @pytest.mark.skipif(not expr._USE_NUMEXPR, reason='not using numexpr')
@@ -173,41 +154,17 @@ class TestExpressions(object):
         # self.run_binary(ser, binary_comp, assert_frame_equal,
         # test_flex=True, **kwargs)
 
-    def run_panel(self, panel, other, binary_comp=None, run_binary=True,
-                  assert_func=assert_panel_equal, **kwargs):
-        self.run_arithmetic(panel, other, assert_func, test_flex=False,
-                            **kwargs)
-        self.run_arithmetic(panel, other, assert_func, test_flex=True,
-                            **kwargs)
-        if run_binary:
-            if binary_comp is None:
-                binary_comp = other + 1
-            self.run_binary(panel, binary_comp, assert_func,
-                            test_flex=False, **kwargs)
-            self.run_binary(panel, binary_comp, assert_func,
-                            test_flex=True, **kwargs)
-
     def test_integer_arithmetic_frame(self):
         self.run_frame(self.integer, self.integer)
 
     def test_integer_arithmetic_series(self):
         self.run_series(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
-    @pytest.mark.slow
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_integer_panel(self):
-        self.run_panel(_integer2_panel, np.random.randint(1, 100))
-
     def test_float_arithemtic_frame(self):
         self.run_frame(self.frame2, self.frame2)
 
     def test_float_arithmetic_series(self):
         self.run_series(self.frame2.iloc[:, 0], self.frame2.iloc[:, 0])
-
-    @pytest.mark.slow
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_float_panel(self):
-        self.run_panel(_frame2_panel, np.random.randn() + 0.1, binary_comp=0.8)
 
     def test_mixed_arithmetic_frame(self):
         # TODO: FIGURE OUT HOW TO GET IT TO WORK...
@@ -218,12 +175,6 @@ class TestExpressions(object):
     def test_mixed_arithmetic_series(self):
         for col in self.mixed2.columns:
             self.run_series(self.mixed2[col], self.mixed2[col], binary_comp=4)
-
-    @pytest.mark.slow
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_mixed_panel(self):
-        self.run_panel(_mixed2_panel, np.random.randint(1, 100),
-                       binary_comp=-2)
 
     def test_float_arithemtic(self):
         self.run_arithmetic(self.frame, self.frame, assert_frame_equal)
