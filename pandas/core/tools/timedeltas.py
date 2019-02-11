@@ -6,12 +6,12 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.tslibs import NaT
 from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
-import pandas as pd
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
@@ -100,10 +100,9 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     if arg is None:
         return arg
     elif isinstance(arg, ABCSeries):
-        from pandas import Series
         values = _convert_listlike(arg._values, unit=unit,
                                    box=False, errors=errors)
-        return Series(values, index=arg.index, name=arg.name)
+        return arg._constructor(values, index=arg.index, name=arg.name)
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, unit=unit, box=box,
                                  errors=errors, name=arg.name)
@@ -136,7 +135,7 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
             return r
 
         # coerce
-        result = pd.NaT
+        result = NaT
 
     return result
 
