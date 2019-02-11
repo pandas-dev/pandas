@@ -1115,24 +1115,18 @@ class Block(PandasObject):
                                                fill_value=fill_value,
                                                coerce=coerce,
                                                downcast=downcast)
-        # try an interp method
-        try:
-            m = missing.clean_interp_method(method, **kwargs)
-        except ValueError:
-            m = None
+        # validate the interp method
+        m = missing.clean_interp_method(method, **kwargs)
 
-        if m is not None:
-            r = check_int_bool(self, inplace)
-            if r is not None:
-                return r
-            return self._interpolate(method=m, index=index, values=values,
-                                     axis=axis, limit=limit,
-                                     limit_direction=limit_direction,
-                                     limit_area=limit_area,
-                                     fill_value=fill_value, inplace=inplace,
-                                     downcast=downcast, **kwargs)
-
-        raise ValueError("invalid method '{0}' to interpolate.".format(method))
+        r = check_int_bool(self, inplace)
+        if r is not None:
+            return r
+        return self._interpolate(method=m, index=index, values=values,
+                                 axis=axis, limit=limit,
+                                 limit_direction=limit_direction,
+                                 limit_area=limit_area,
+                                 fill_value=fill_value, inplace=inplace,
+                                 downcast=downcast, **kwargs)
 
     def _interpolate_with_fill(self, method='pad', axis=0, inplace=False,
                                limit=None, fill_value=None, coerce=False,

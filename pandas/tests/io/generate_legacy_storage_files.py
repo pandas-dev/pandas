@@ -41,7 +41,6 @@ from distutils.version import LooseVersion
 import os
 import platform as pl
 import sys
-from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 
@@ -49,7 +48,7 @@ from pandas.compat import u
 
 import pandas
 from pandas import (
-    Categorical, DataFrame, Index, MultiIndex, NaT, Panel, Period, Series,
+    Categorical, DataFrame, Index, MultiIndex, NaT, Period, Series,
     SparseDataFrame, SparseSeries, Timestamp, bdate_range, date_range,
     period_range, timedelta_range, to_msgpack)
 
@@ -187,18 +186,6 @@ def create_data():
                      u'C': Timestamp('20130603', tz='UTC')}, index=range(5))
                  )
 
-    with catch_warnings(record=True):
-        filterwarnings("ignore", "\\nPanel", FutureWarning)
-        mixed_dup_panel = Panel({u'ItemA': frame[u'float'],
-                                 u'ItemB': frame[u'int']})
-        mixed_dup_panel.items = [u'ItemA', u'ItemA']
-        panel = dict(float=Panel({u'ItemA': frame[u'float'],
-                                  u'ItemB': frame[u'float'] + 1}),
-                     dup=Panel(
-                         np.arange(30).reshape(3, 5, 2).astype(np.float64),
-                         items=[u'A', u'B', u'A']),
-                     mixed_dup=mixed_dup_panel)
-
     cat = dict(int8=Categorical(list('abcdefg')),
                int16=Categorical(np.arange(1000)),
                int32=Categorical(np.arange(10000)))
@@ -241,7 +228,6 @@ def create_data():
 
     return dict(series=series,
                 frame=frame,
-                panel=panel,
                 index=index,
                 scalars=scalars,
                 mi=mi,

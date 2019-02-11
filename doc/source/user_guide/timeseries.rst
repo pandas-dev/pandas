@@ -321,6 +321,15 @@ which can be specified. These are computed from the starting point specified by 
    pd.to_datetime([1349720105100, 1349720105200, 1349720105300,
                    1349720105400, 1349720105500], unit='ms')
 
+Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
+with the ``tz`` argument specified will localize the epoch timestamps to UTC
+first then convert the result to the specified time zone.
+
+.. ipython:: python
+
+   pd.Timestamp(1262347200000000000, tz='US/Pacific')
+   pd.DatetimeIndex([1262347200000000000], tz='US/Pacific')
+
 .. note::
 
    Epoch times will be rounded to the nearest nanosecond.
@@ -2201,6 +2210,21 @@ you can use the ``tz_convert`` method.
 .. ipython:: python
 
    rng_pytz.tz_convert('US/Eastern')
+
+.. note::
+
+    When using ``pytz`` time zones, :class:`DatetimeIndex` will construct a different
+    time zone object than a :class:`Timestamp` for the same time zone input. A :class:`DatetimeIndex`
+    can hold a collection of :class:`Timestamp` objects that may have different UTC offsets and cannot be
+    succinctly represented by one ``pytz`` time zone instance while one :class:`Timestamp`
+    represents one point in time with a specific UTC offset.
+
+    .. ipython:: python
+
+       dti = pd.date_range('2019-01-01', periods=3, freq='D', tz='US/Pacific')
+       dti.tz
+       ts = pd.Timestamp('2019-01-01', tz='US/Pacific')
+       ts.tz
 
 .. warning::
 
