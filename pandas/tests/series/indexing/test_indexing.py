@@ -114,7 +114,8 @@ def test_getitem_get(test_data):
 
     # missing
     d = test_data.ts.index[0] - BDay()
-    with pytest.raises(KeyError, match=r"Timestamp\('1999-12-31 00:00:00'\)"):
+    msg = r"Timestamp\('1999-12-31 00:00:00', freq='B'\)"
+    with pytest.raises(KeyError, match=msg):
         test_data.ts[d]
 
     # None
