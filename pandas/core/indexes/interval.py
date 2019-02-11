@@ -854,7 +854,7 @@ class IntervalIndex(IntervalMixin, Index):
                     vals.append(self.get_loc(i))
                 except KeyError:
                     vals.append(-1)
-            indexer = np.array(vals)
+            indexer = np.array(vals).flatten()
 
         return ensure_platform_int(indexer)
 
