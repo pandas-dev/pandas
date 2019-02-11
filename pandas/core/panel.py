@@ -43,7 +43,7 @@ _shared_doc_kwargs = dict(
     axes_single_arg="{0, 1, 2, 'items', 'major_axis', 'minor_axis'}",
     optional_mapper='', optional_axis='', optional_labels='')
 _shared_doc_kwargs['args_transpose'] = (
-    "three positional arguments: each one of\n{ax_single}".format(
+    "{ax_single}\n\tThree positional arguments from given options.".format(
         ax_single=_shared_doc_kwargs['axes_single_arg']))
 
 
@@ -1009,7 +1009,8 @@ class Panel(NDFrame):
             DataFrames of items & major axis will be passed
         axis : {'items', 'minor', 'major'}, or {0, 1, 2}, or a tuple with two
             axes
-        Additional keyword arguments will be passed as keywords to the function
+        **kwargs
+            Additional keyword arguments will be passed to the function.
 
         Returns
         -------
