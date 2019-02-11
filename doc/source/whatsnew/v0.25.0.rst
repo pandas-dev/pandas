@@ -139,7 +139,7 @@ Indexing
 Missing
 ^^^^^^^
 
--
+- Fixed misleading exception message in :meth:`Series.missing` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
 -
 -
 
