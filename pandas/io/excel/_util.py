@@ -7,7 +7,9 @@ from pandas.core.dtypes.common import is_integer, is_list_like
 
 from pandas.core import config
 
-_writer_extensions = ["xlsx", "xls", "xlsm"]
+
+# the following extensions are already registered in pandas/core/config_init.py
+_registered_writer_extensions = ["xlsx", "xls", "xlsm"]
 
 
 _writers = {}
@@ -24,13 +26,15 @@ def register_writer(klass):
     for ext in klass.supported_extensions:
         if ext.startswith('.'):
             ext = ext[1:]
-        if ext not in _writer_extensions:
+        if ext not in _registered_writer_extensions:
             config.register_option("io.excel.{ext}.writer".format(ext=ext),
                                    engine_name, validator=str)
-            _writer_extensions.append(ext)
+            _registered_writer_extensions.append(ext)
 
 
 def _get_default_writer(ext):
+    """Return the default writer per extension. This default engine is used
+    unles another engine is explicitly defined."""
     _default_writers = {'xlsx': 'openpyxl', 'xlsm': 'openpyxl', 'xls': 'xlwt'}
     try:
         import xlsxwriter  # noqa
@@ -229,8 +233,6 @@ def _fill_mi_header(row, control_row):
             last = row[i]
 
     return _maybe_convert_to_string(row), control_row
-
-# fill blank if index_col not None
 
 
 def _pop_header_name(row, index_col):
