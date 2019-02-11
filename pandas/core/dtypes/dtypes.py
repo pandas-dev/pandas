@@ -639,6 +639,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
         if tz:
             tz = timezones.maybe_get_tz(tz)
+            tz = timezones.tz_standardize(tz)
         elif tz is not None:
             raise pytz.UnknownTimeZoneError(tz)
         elif tz is None:
