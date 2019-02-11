@@ -52,7 +52,7 @@ def ignore_xlrd_time_clock_warning():
 @contextlib.contextmanager
 def ignore_openpyxl_unknown_extension_warning():
     """
-    Context manager to ignore warnings raised by openpyxl library, regarding 
+    Context manager to ignore warnings raised by openpyxl library, regarding
     the use of unsupported extensions within the xlsx files.
     """
 
