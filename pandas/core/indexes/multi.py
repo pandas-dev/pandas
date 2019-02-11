@@ -840,7 +840,7 @@ class MultiIndex(Index):
         try:
             self.get_loc(key)
             return True
-        except (LookupError, TypeError):
+        except (LookupError, TypeError, ValueError):
             return False
 
     contains = __contains__

@@ -1711,6 +1711,14 @@ Thur,Lunch,Yes,51.51,17"""
         m_df = Series(data, index=m_idx)
         assert m_df.repeat(3).shape == (3 * len(data), )
 
+    def test_in(self):
+        # GH 24570
+        tx = pd.timedelta_range('09:30:00', '16:00:00', freq='30 min')
+        idx = MultiIndex.from_arrays([tx, np.arange(len(tx))])
+        assert tx[0] in idx
+        assert 'element_not_exit' not in idx
+        assert '0 day 09:30:00' in idx
+
 
 class TestSorted(Base):
     """ everything you wanted to test about sorting """
