@@ -648,6 +648,8 @@ class NDFrame(PandasObject, SelectionMixin):
         copy : boolean, default False
             Make a copy of the underlying data. Mixed-dtype data will
             always result in a copy
+        **kwargs
+            Additional keyword arguments will be passed to the function.
 
         Returns
         -------
@@ -1564,13 +1566,13 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         is_label: bool
         """
-        axis = self._get_axis_number(axis)
-        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_is_label_reference is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
+        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
         return (key is not None and
                 is_hashable(key) and
@@ -1623,14 +1625,13 @@ class NDFrame(PandasObject, SelectionMixin):
         ------
         ValueError: `key` is ambiguous
         """
-
-        axis = self._get_axis_number(axis)
-        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_check_label_or_level_ambiguity is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
+        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
         if (key is not None and
                 is_hashable(key) and
@@ -1689,14 +1690,13 @@ class NDFrame(PandasObject, SelectionMixin):
             if `key` is ambiguous. This will become an ambiguity error in a
             future version
         """
-
-        axis = self._get_axis_number(axis)
-        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_get_label_or_level_values is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
+        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
 
         if self._is_label_reference(key, axis=axis):
             self._check_label_or_level_ambiguity(key, axis=axis)
@@ -1753,13 +1753,12 @@ class NDFrame(PandasObject, SelectionMixin):
         ValueError
             if any `keys` match neither a label nor a level
         """
-
-        axis = self._get_axis_number(axis)
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_drop_labels_or_levels is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
 
         # Validate keys
         keys = com.maybe_make_list(keys)
@@ -8581,7 +8580,7 @@ class NDFrame(PandasObject, SelectionMixin):
             cond = self._constructor(cond, **self._construct_axes_dict())
 
         # make sure we are boolean
-        fill_value = True if inplace else False
+        fill_value = bool(inplace)
         cond = cond.fillna(fill_value)
 
         msg = "Boolean array expected for the condition, not {dtype}"
@@ -10245,8 +10244,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
 def _doc_parms(cls):
     """Return a tuple of the doc parms."""
-    axis_descr = "{%s}" % ', '.join(["{0} ({1})".format(a, i)
-                                     for i, a in enumerate(cls._AXIS_ORDERS)])
+    axis_descr = "{%s}" % ', '.join("{0} ({1})".format(a, i)
+                                    for i, a in enumerate(cls._AXIS_ORDERS))
     name = (cls._constructor_sliced.__name__
             if cls._AXIS_LEN > 1 else 'scalar')
     name2 = cls.__name__
