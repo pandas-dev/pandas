@@ -855,6 +855,13 @@ class TestSeriesMissingData():
 
 
 class TestSeriesInterpolateData():
+    # This list does not include method 'time'.  That method requires a Series
+    # with a DatetimeIndex, and is tested separately below.
+    NONTEMPORAL_INTERPOLATE_METHODS = [
+        'linear', 'index', 'values', 'nearest', 'zero', 'slinear',
+        'quadratic', 'cubic', 'barycentric', 'krogh', 'polynomial', 'spline',
+        'piecewise_polynomial', 'from_derivatives', 'pchip', 'akima',
+    ]
 
     def test_interpolate(self, datetime_series, string_series):
         ts = Series(np.arange(len(datetime_series), dtype=float),
@@ -1061,21 +1068,23 @@ class TestSeriesInterpolateData():
         result = s.interpolate(method='linear', limit=2)
         assert_series_equal(result, expected)
 
-        # GH 9217, make sure limit is an int and greater than 0
-        methods = ['linear', 'time', 'index', 'values', 'nearest', 'zero',
-                   'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
-                   'polynomial', 'spline', 'piecewise_polynomial',
-                   'from_derivatives', 'pchip', 'akima']
+    @pytest.mark.parametrize("method", NONTEMPORAL_INTERPOLATE_METHODS)
+    @pytest.mark.parametrize("limit", [-1, 0])
+    def test_interpolate_invalid_nonpositive_limit(self, method, limit):
+        # GH 9217: make sure limit is greater than zero
         s = pd.Series([1, 2, np.nan, np.nan, 5])
-        msg = (r"Limit must be greater than 0|"
-               "time-weighted interpolation only works on Series or"
-               r" DataFrames with a DatetimeIndex|"
-               r"Limit must be an integer|"
-               r"You must specify the order of the spline")
-        for limit in [-1, 0, 1., 2.]:
-            for method in methods:
-                with pytest.raises(ValueError, match=msg):
-                    s.interpolate(limit=limit, method=method)
+        with pytest.raises(ValueError, match="Limit must be greater than 0"):
+            # Pass order=1 for 'spline' and 'polynomial'.
+            s.interpolate(limit=limit, method=method, order=1)
+
+    @pytest.mark.parametrize("method", NONTEMPORAL_INTERPOLATE_METHODS)
+    def test_interpolate_invalid_float_limit(self, method):
+        # GH 9217: make sure limit is an integer.
+        s = pd.Series([1, 2, np.nan, np.nan, 5])
+        limit = 2.0
+        with pytest.raises(ValueError, match="Limit must be an integer"):
+            # Pass order=1 for 'spline' and 'polynomial'.
+            s.interpolate(limit=limit, method=method, order=1)
 
     @pytest.mark.parametrize("invalid_method", [None, 'nonexistent_method'])
     def test_interp_invalid_method(self, invalid_method):
