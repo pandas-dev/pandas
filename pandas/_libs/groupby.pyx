@@ -400,9 +400,9 @@ def _group_add(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count
-        ndarray[floating, ndim=2] sumx, nobs
+        floating[:, :] sumx, nobs
 
-    if not len(values) == len(labels):
+    if len(values) != len(labels):
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
@@ -411,7 +411,6 @@ def _group_add(floating[:, :] out,
     N, K = (<object>values).shape
 
     with nogil:
-
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -451,7 +450,7 @@ def _group_prod(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count
-        ndarray[floating, ndim=2] prodx, nobs
+        floating[:, :] prodx, nobs
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
@@ -499,7 +498,7 @@ def _group_var(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, ct, oldmean
-        ndarray[floating, ndim=2] nobs, mean
+        floating[:, :] nobs, mean
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
@@ -554,7 +553,7 @@ def _group_mean(floating[:, :] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, count
-        ndarray[floating, ndim=2] sumx, nobs
+        floating[:, :] sumx, nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
