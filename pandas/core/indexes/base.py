@@ -5,10 +5,11 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    Timedelta, algos as libalgos, index as libindex, join as libjoin, lib,
-    tslibs)
+from pandas._libs import (algos as libalgos, index as libindex,
+                          join as libjoin, lib)
 from pandas._libs.lib import is_datetime_array
+from pandas._libs.tslibs import Timedelta, Timestamp, OutOfBoundsDatetime
+from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
 from pandas.compat import range, set_function_name, u
 from pandas.compat.numpy import function as nv
@@ -447,7 +448,7 @@ class Index(IndexOpsMixin, PandasObject):
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
                                                      name=name, **kwargs)
-                            except tslibs.OutOfBoundsDatetime:
+                            except OutOfBoundsDatetime:
                                 pass
 
                     elif inferred.startswith('timedelta'):
@@ -4865,6 +4866,20 @@ class Index(IndexOpsMixin, PandasObject):
         if not inc:
             # If it's a reverse slice, temporarily swap bounds.
             start, end = end, start
+
+        # GH 16785: If start and end happen to be date strings with UTC offsets
+        # attempt to parse and check that the offsets are the same
+        if (isinstance(start, compat.string_types) and
+                isinstance(end, compat.string_types)):
+            try:
+                ts_start = Timestamp(start)
+                ts_end = Timestamp(end)
+            except ValueError:
+                pass
+            else:
+                if not tz_compare(ts_start.tz, ts_end.tz):
+                    raise ValueError("Both date strings must have the same "
+                                     "UTC offset")
 
         start_slice = None
         if start is not None:
