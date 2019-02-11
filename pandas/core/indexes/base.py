@@ -2314,7 +2314,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.union(idx2)
         Index(['a', 'b', 'c', 'd', 1, 2, 3, 4], dtype='object')
         """
-        print('HIHIHIHI')
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
 
