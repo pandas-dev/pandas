@@ -397,7 +397,6 @@ class TestSlicing(object):
         expected = Series(expected, name='A')
         tm.assert_series_equal(result, expected)
 
-
     def test_getitem_with_datestring_with_UTC_offset(self):
         # GH 24076
         idx = pd.date_range(start='2018-12-02 14:50:00-07:00',
