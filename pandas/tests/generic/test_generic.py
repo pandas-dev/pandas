@@ -674,6 +674,30 @@ class TestNDFrame(object):
         assert_frame_equal(df.sample(n=1, axis='index', weights=weight),
                            df.iloc[5:6])
 
+        # Test axis argument for string and integer values
+        # Issue 25190
+        x = np.linspace(0, 100, 1000)
+        y = np.sin(x)
+
+        pairs = [('index', 0), ('columns', 1)]
+
+        for string_value, integer_value in pairs:
+
+            df1 = pd.DataFrame(data=np.tile(y, (10, 1)),
+                               index=np.arange(10), columns=x)
+            try:
+                df1.reindex(columns=x * 1.005)
+                df1.interpolate(method='linear', axis=string_value)
+            except UnboundLocalError:
+                assert False
+
+            df2 = pd.DataFrame(data=np.tile(y, (10, 1)),
+                               index=np.arange(10), columns=x)
+            df2.reindex(columns=x * 1.005)
+            df2.interpolate(method='linear', axis=integer_value)
+
+            assert_frame_equal(df1, df2)
+
         # Check out of range axis values
         with pytest.raises(ValueError):
             df.sample(n=1, axis=2)
