@@ -4869,17 +4869,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH 16785: If start and end happen to be date strings with UTC offsets
         # attempt to parse and check that the offsets are the same
-        if (isinstance(start, compat.string_types) and
-                isinstance(end, compat.string_types)):
-            try:
-                ts_start = Timestamp(start)
-                ts_end = Timestamp(end)
-            except ValueError:
-                pass
-            else:
-                if not tz_compare(ts_start.tz, ts_end.tz):
-                    raise ValueError("Both date strings must have the same "
-                                     "UTC offset")
+        try:
+            ts_start = Timestamp(start)
+            ts_end = Timestamp(end)
+        except (ValueError, TypeError):
+            pass
+        else:
+            if not tz_compare(ts_start.tzinfo, ts_end.tzinfo):
+                raise ValueError("Both dates must have the same UTC offset")
 
         start_slice = None
         if start is not None:

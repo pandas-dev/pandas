@@ -397,19 +397,27 @@ class TestSlicing(object):
         expected = Series(expected, name='A')
         tm.assert_series_equal(result, expected)
 
-    def test_getitem_with_datestring_with_UTC_offset(self):
+    @pytest.mark.parametrize('start', [
+        '2018-12-02 21:50:00+00:00', pd.Timestamp('2018-12-02 21:50:00+00:00')
+    ])
+    @pytest.mark.parametrize('end', [
+        '2018-12-02 21:52:00+00:00', pd.Timestamp('2018-12-02 21:52:00+00:00')
+    ])
+    def test_getitem_with_datestring_with_UTC_offset(self, start, end):
         # GH 24076
         idx = pd.date_range(start='2018-12-02 14:50:00-07:00',
-                            end='2018-12-03 15:00:00-07:00', freq='1min')
+                            end='2018-12-02 14:50:00-07:00', freq='1min')
         df = pd.DataFrame(1, index=idx, columns=['A'])
-        result = df['2018-12-02 21:50:00+00:00':'2018-12-02 21:52:00+00:00']
+        result = df[start:end]
         expected = df.iloc[0:3, :]
         tm.assert_frame_equal(result, expected)
 
         # GH 16785
-        with pytest.raises(ValueError, match="Both date strings"):
-            df['2018-12-02 21:50:00+00:00':'2018-12-02 21:52:00+01:00']
+        start = str(start)
+        end = str(end)
+        with pytest.raises(ValueError, match="Both dates must"):
+            df[start:end[:-4] + '1:00']
 
         with pytest.raises(ValueError, match="The index must be timezone"):
             df = df.tz_localize(None)
-            df['2018-12-02 21:50:00+00:00':'2018-12-02 21:52:00+00:00']
+            df[start:end]
