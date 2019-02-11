@@ -1009,7 +1009,7 @@ class Panel(NDFrame):
             DataFrames of items & major axis will be passed
         axis : {'items', 'minor', 'major'}, or {0, 1, 2}, or a tuple with two
             axes
-        **kwargs :
+        **kwargs
             Additional keyword arguments will be passed to the function.
 
         Returns
