@@ -148,7 +148,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
--
+- Bug in which the error raised by Timedelta is not handled in the exception of :meth:`__contains__` (:issue:`24570`)
 -
 -
 
