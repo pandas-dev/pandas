@@ -141,7 +141,7 @@ class TestDatetimeIndexSetOps(object):
 
     @pytest.mark.parametrize("tz", [None, 'Asia/Tokyo', 'US/Eastern',
                                     'dateutil/US/Pacific'])
-    @pytest.mark.parametrize("sort", [True, False])
+    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, tz, sort):
         # GH 4690 (with tz)
         base = date_range('6/1/2000', '6/30/2000', freq='D', name='idx')
@@ -190,7 +190,7 @@ class TestDatetimeIndexSetOps(object):
         for (rng, expected) in [(rng2, expected2), (rng3, expected3),
                                 (rng4, expected4)]:
             result = base.intersection(rng, sort=sort)
-            if sort:
+            if sort is None:
                 expected = expected.sort_values()
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
@@ -215,7 +215,7 @@ class TestDatetimeIndexSetOps(object):
         assert len(result) == 0
 
     @pytest.mark.parametrize("tz", tz)
-    @pytest.mark.parametrize("sort", [True, False])
+    @pytest.mark.parametrize("sort", [None, False])
     def test_difference(self, tz, sort):
         rng_dates = ['1/2/2000', '1/3/2000', '1/1/2000', '1/4/2000',
                      '1/5/2000']
@@ -236,11 +236,11 @@ class TestDatetimeIndexSetOps(object):
                                      (rng2, other2, expected2),
                                      (rng3, other3, expected3)]:
             result_diff = rng.difference(other, sort)
-            if sort:
+            if sort is None:
                 expected = expected.sort_values()
             tm.assert_index_equal(result_diff, expected)
 
-    @pytest.mark.parametrize("sort", [True, False])
+    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_freq(self, sort):
         # GH14323: difference of DatetimeIndex should not preserve frequency
 
@@ -257,7 +257,7 @@ class TestDatetimeIndexSetOps(object):
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal('freq', idx_diff, expected)
 
-    @pytest.mark.parametrize("sort", [True, False])
+    @pytest.mark.parametrize("sort", [None, False])
     def test_datetimeindex_diff(self, sort):
         dti1 = date_range(freq='Q-JAN', start=datetime(1997, 12, 31),
                           periods=100)

@@ -1831,9 +1831,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.notna : Boolean inverse of isna.
-        pandas.Index.dropna : Omit entries with missing values.
-        pandas.isna : Top-level isna.
+        Index.notna : Boolean inverse of isna.
+        Index.dropna : Omit entries with missing values.
+        isna : Top-level isna.
         Series.isna : Detect missing values in Series object.
 
         Examples
@@ -1891,7 +1891,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.notnull : Alias of notna.
         Index.isna: Inverse of notna.
-        pandas.notna : Top-level notna.
+        notna : Top-level notna.
 
         Examples
         --------
@@ -2073,9 +2073,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.duplicated : Equivalent method on pandas.Series.
-        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
-        pandas.Index.drop_duplicates : Remove duplicate values from Index.
+        Series.duplicated : Equivalent method on pandas.Series.
+        DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        Index.drop_duplicates : Remove duplicate values from Index.
 
         Examples
         --------
@@ -2263,7 +2263,12 @@ class Index(IndexOpsMixin, PandasObject):
         return (type(self) is type(other)
                 and is_dtype_equal(self.dtype, other.dtype))
 
-    def union(self, other, sort=True):
+    def _validate_sort_keyword(self, sort):
+        if sort not in [None, False]:
+            raise ValueError("The 'sort' keyword only takes the values of "
+                             "None or False; {0} was passed.".format(sort))
+
+    def union(self, other, sort=None):
         """
         Form the union of two Index objects.
 
@@ -2273,10 +2278,24 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : bool or None, default None
+            Whether to sort the resulting Index.
+
+            * None : Sort the result, except when
+
+              1. `self` and `other` are equal.
+              2. `self` or `other` has length 0.
+              3. Some values in `self` or `other` cannot be compared.
+                 A RuntimeWarning is issued in this case.
+
+            * False : do not sort the result.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2295,6 +2314,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.union(idx2)
         Index(['a', 'b', 'c', 'd', 1, 2, 3, 4], dtype='object')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
 
         if not self._is_compatible_with_other(other):
@@ -2346,7 +2366,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 result = lvals
 
-            if sort:
+            if sort is None:
                 try:
                     result = sorting.safe_sort(result)
                 except TypeError as e:
@@ -2370,10 +2390,19 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : False or None, default False
+            Whether to sort the resulting index.
+
+            * False : do not sort the result.
+            * None : sort the result, except when `self` and `other` are equal
+              or when the values cannot be compared.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default from ``True`` to ``False``, to match
+               the behaviour of 0.23.4 and earlier.
 
         Returns
         -------
@@ -2387,6 +2416,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.intersection(idx2)
         Int64Index([3, 4], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
@@ -2426,7 +2456,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         taken = other.take(indexer)
 
-        if sort:
+        if sort is None:
             taken = sorting.safe_sort(taken.values)
             if self.name != other.name:
                 name = None
@@ -2439,7 +2469,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return taken
 
-    def difference(self, other, sort=True):
+    def difference(self, other, sort=None):
         """
         Return a new Index with elements from the index that are not in
         `other`.
@@ -2449,10 +2479,21 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : False or None, default None
+            Whether to sort the resulting index. By default, the
+            values are attempted to be sorted, but any TypeError from
+            incomparable elements is caught by pandas.
+
+            * None : Attempt to sort the result, but catch any TypeErrors
+              from comparing incomparable elements.
+            * False : Do not sort the result.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2468,6 +2509,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.difference(idx2, sort=False)
         Int64Index([2, 1], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
 
         if self.equals(other):
@@ -2484,7 +2526,7 @@ class Index(IndexOpsMixin, PandasObject):
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
                                   assume_unique=True)
         the_diff = this.values.take(label_diff)
-        if sort:
+        if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)
             except TypeError:
@@ -2492,7 +2534,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
-    def symmetric_difference(self, other, result_name=None, sort=True):
+    def symmetric_difference(self, other, result_name=None, sort=None):
         """
         Compute the symmetric difference of two Index objects.
 
@@ -2500,10 +2542,21 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         other : Index or array-like
         result_name : str
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : False or None, default None
+            Whether to sort the resulting index. By default, the
+            values are attempted to be sorted, but any TypeError from
+            incomparable elements is caught by pandas.
+
+            * None : Attempt to sort the result, but catch any TypeErrors
+              from comparing incomparable elements.
+            * False : Do not sort the result.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2528,6 +2581,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1 ^ idx2
         Int64Index([1, 5], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_name_update = self._convert_can_do_setop(other)
         if result_name is None:
@@ -2548,7 +2602,7 @@ class Index(IndexOpsMixin, PandasObject):
         right_diff = other.values.take(right_indexer)
 
         the_diff = _concat._concat_compat([left_diff, right_diff])
-        if sort:
+        if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)
             except TypeError:
@@ -4023,7 +4077,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def equals(self, other):
         """
-        Determines if two Index objects contain the same elements.
+        Determine if two Index objects contain the same elements.
         """
         if self.is_(other):
             return True
@@ -4118,7 +4172,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof_locs(self, where, mask):
         """
-        Finds the locations (indices) of the labels from the index for
+        Find the locations (indices) of the labels from the index for
         every entry in the `where` argument.
 
         As in the `asof` function, if the label (a particular entry in
@@ -4178,8 +4232,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.sort_values : Sort values of a Series.
-        pandas.DataFrame.sort_values : Sort values in a DataFrame.
+        Series.sort_values : Sort values of a Series.
+        DataFrame.sort_values : Sort values in a DataFrame.
 
         Examples
         --------
@@ -4233,7 +4287,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         pandas.Index
-            shifted index
+            Shifted index
 
         See Also
         --------
@@ -5151,9 +5205,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.any : Return whether any element in an Index is True.
-        pandas.Series.any : Return whether any element in a Series is True.
-        pandas.Series.all : Return whether all elements in a Series are True.
+        Index.any : Return whether any element in an Index is True.
+        Series.any : Return whether any element in a Series is True.
+        Series.all : Return whether all elements in a Series are True.
 
         Notes
         -----
@@ -5191,8 +5245,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.all : Return whether all elements are True.
-        pandas.Series.all : Return whether all elements are True.
+        Index.all : Return whether all elements are True.
+        Series.all : Return whether all elements are True.
 
         Notes
         -----

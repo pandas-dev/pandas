@@ -74,7 +74,7 @@ import pandas.util.testing as tm
 
     # Interval
     ([pd.Interval(1, 2), pd.Interval(3, 4)], 'interval',
-     pd.IntervalArray.from_tuples([(1, 2), (3, 4)])),
+     pd.arrays.IntervalArray.from_tuples([(1, 2), (3, 4)])),
 
     # Sparse
     ([0, 1], 'Sparse[int64]', pd.SparseArray([0, 1], dtype='int64')),
@@ -129,7 +129,7 @@ cet = pytz.timezone("CET")
 
     # interval
     ([pd.Interval(0, 1), pd.Interval(1, 2)],
-     pd.IntervalArray.from_breaks([0, 1, 2])),
+     pd.arrays.IntervalArray.from_breaks([0, 1, 2])),
 
     # datetime
     ([pd.Timestamp('2000',), pd.Timestamp('2001')],

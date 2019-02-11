@@ -26,7 +26,6 @@ from pandas.core.config import get_option
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting import _misc as misc
 from pandas.plotting._compat import _mpl_ge_3_0_0
 from pandas.plotting._style import _get_standard_colors, plot_params
 from pandas.plotting._tools import (
@@ -40,7 +39,7 @@ except ImportError:
 else:
     _HAS_MPL = True
     if get_option('plotting.matplotlib.register_converters'):
-        _converter.register(explicit=True)
+        _converter.register(explicit=False)
 
 
 def _raise_if_no_mpl():
@@ -2549,7 +2548,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     Parameters
     ----------
     grouped : Grouped DataFrame
-    subplots :
+    subplots : bool
         * ``False`` - no subplots will be used
         * ``True`` - create a subplot for each group
     column : column name or list of names, or vector
@@ -2906,15 +2905,6 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         return self(kind='pie', **kwds)
 
-    def lag(self, *args, **kwds):
-        return misc.lag_plot(self._parent, *args, **kwds)
-
-    def autocorrelation(self, *args, **kwds):
-        return misc.autocorrelation_plot(self._parent, *args, **kwds)
-
-    def bootstrap(self, *args, **kwds):
-        return misc.bootstrap_plot(self._parent, *args, **kwds)
-
 
 class FramePlotMethods(BasePlotMethods):
     """DataFrame plotting accessor and method
@@ -2967,7 +2957,7 @@ class FramePlotMethods(BasePlotMethods):
             Either the location or the label of the columns to be used.
             By default, it will use the remaining DataFrame numeric columns.
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3032,7 +3022,7 @@ class FramePlotMethods(BasePlotMethods):
             all numerical columns are used.
         **kwds
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3042,8 +3032,8 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        pandas.DataFrame.plot.barh : Horizontal bar plot.
-        pandas.DataFrame.plot : Make plots of a DataFrame.
+        DataFrame.plot.barh : Horizontal bar plot.
+        DataFrame.plot : Make plots of a DataFrame.
         matplotlib.pyplot.bar : Make a bar plot with matplotlib.
 
         Examples
@@ -3114,7 +3104,7 @@ class FramePlotMethods(BasePlotMethods):
         y : label or position, default All numeric columns in dataframe
             Columns to be plotted from the DataFrame.
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3122,8 +3112,8 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        pandas.DataFrame.plot.bar: Vertical bar plot.
-        pandas.DataFrame.plot : Make plots of DataFrame using matplotlib.
+        DataFrame.plot.bar: Vertical bar plot.
+        DataFrame.plot : Make plots of DataFrame using matplotlib.
         matplotlib.axes.Axes.bar : Plot a vertical bar plot using matplotlib.
 
         Examples
@@ -3201,7 +3191,7 @@ class FramePlotMethods(BasePlotMethods):
             Column in the DataFrame to group by.
         **kwds : optional
             Additional keywords are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3209,8 +3199,8 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        pandas.DataFrame.boxplot: Another method to draw a box plot.
-        pandas.Series.plot.box: Draw a box plot from a Series object.
+        DataFrame.boxplot: Another method to draw a box plot.
+        Series.plot.box: Draw a box plot from a Series object.
         matplotlib.pyplot.boxplot: Draw a box plot in matplotlib.
 
         Examples
@@ -3244,7 +3234,7 @@ class FramePlotMethods(BasePlotMethods):
             Number of histogram bins to be used.
         **kwds
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3337,7 +3327,7 @@ class FramePlotMethods(BasePlotMethods):
             unstacked plot.
         **kwds : optional
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3408,7 +3398,7 @@ class FramePlotMethods(BasePlotMethods):
             Label or position of the column to plot.
             If not provided, ``subplots=True`` argument must be passed.
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3484,7 +3474,7 @@ class FramePlotMethods(BasePlotMethods):
               marker points according to a colormap.
 
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3558,7 +3548,7 @@ class FramePlotMethods(BasePlotMethods):
             y-direction.
         **kwds
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3610,16 +3600,3 @@ class FramePlotMethods(BasePlotMethods):
         if gridsize is not None:
             kwds['gridsize'] = gridsize
         return self(kind='hexbin', x=x, y=y, C=C, **kwds)
-
-    def scatter_matrix(self, *args, **kwds):
-        return misc.scatter_matrix(self._parent, *args, **kwds)
-
-    def andrews_curves(self, class_column, *args, **kwds):
-        return misc.andrews_curves(self._parent, class_column, *args, **kwds)
-
-    def parallel_coordinates(self, class_column, *args, **kwds):
-        return misc.parallel_coordinates(self._parent, class_column,
-                                         *args, **kwds)
-
-    def radviz(self, class_column, *args, **kwds):
-        return misc.radviz(self._parent, class_column, *args, **kwds)
