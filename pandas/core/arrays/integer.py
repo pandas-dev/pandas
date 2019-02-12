@@ -187,7 +187,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             raise TypeError("{} cannot be converted to an IntegerDtype".format(
                 values.dtype))
 
-    elif is_bool_dtype(values):
+    elif is_bool_dtype(values) and is_integer_dtype(dtype):
         values = np.array(values, dtype=int, copy=copy)
 
     elif not (is_integer_dtype(values) or is_float_dtype(values)):
