@@ -7235,7 +7235,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         Series or DataFrame
             Same type as calling object with the values outside the
-            clip boundaries replaced
+            clip boundaries replaced.
 
         Examples
         --------
