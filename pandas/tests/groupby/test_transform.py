@@ -836,7 +836,7 @@ def test_groupby_transform_rename():
     tm.assert_series_equal(result_single, expected['value'])
 
 
-@pytest.mark.parametrize('func', [min, max, np.min, np.max])
+@pytest.mark.parametrize('func', [min, max, np.min, np.max, 'first', 'last'])
 def test_groupby_transform_timezone_column(func):
     # GH 24198
     ts = pd.to_datetime('now', utc=True).tz_convert('Asia/Singapore')
