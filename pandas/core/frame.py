@@ -7236,7 +7236,7 @@ class DataFrame(NDFrame):
             If the axis is a `MultiIndex` (hierarchical), count along a
             particular `level`, collapsing into a `DataFrame`.
             A `str` specifies the level name.
-        numeric_only : boolean, default False
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
         Returns
