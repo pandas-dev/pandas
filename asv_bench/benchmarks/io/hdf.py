@@ -1,7 +1,5 @@
-import warnings
-
 import numpy as np
-from pandas import DataFrame, Panel, date_range, HDFStore, read_hdf
+from pandas import DataFrame, date_range, HDFStore, read_hdf
 import pandas.util.testing as tm
 
 from ..pandas_vb_common import BaseIO
