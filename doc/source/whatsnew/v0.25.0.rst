@@ -33,7 +33,7 @@ Backwards incompatible API changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
--
+- :class:`DatetimeTZDtype` will now standardize pytz timezones to a common timezone instance (:issue:`24713`)
 -
 -
 
@@ -141,7 +141,7 @@ Indexing
 Missing
 ^^^^^^^
 
--
+- Fixed misleading exception message in :meth:`Series.missing` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
 -
 -
 
