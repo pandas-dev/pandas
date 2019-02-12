@@ -212,6 +212,18 @@ class TestSeriesAnalytics(object):
         result = s.cummax(skipna=False)
         tm.assert_series_equal(expected, result)
 
+    @pytest.mark.parametrize("periods, expected_vals", [
+        (1, [nan, nan, 1.0, 0.5, nan, 0.333333333333333, nan]),
+        (2, [nan, nan, nan, 2.0, nan, 1.0, nan])
+    ])
+    def test_pct_change_skipna(self, periods, expected_vals):
+        # GH25006
+        vals = [nan,  1.,  2.,  3., nan,  4., nan]
+        s = Series(vals)
+        result = s.pct_change(skipna=True, periods=periods)
+        expected = Series(expected_vals)
+        assert_series_equal(expected, result)
+
     def test_npdiff(self):
         pytest.skip("skipping due to Series no longer being an "
                     "ndarray")

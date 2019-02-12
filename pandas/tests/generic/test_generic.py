@@ -608,6 +608,20 @@ class Generic(object):
         else:
             tm.assert_series_equal(res, Series(exp))
 
+    @pytest.mark.xfail(raises=ValueError)
+    @pytest.mark.parametrize('fill_method, limit', [
+        ('backfill', None),
+        ('bfill', None),
+        ('pad', None),
+        ('ffill', None),
+        (None, 1)
+    ])
+    def test_pct_change_skipna_error(self, fill_method, limit):
+        # GH25006
+        vals = [np.nan, np.nan, 1, 2, np.nan, 4, 10, np.nan]
+        obj = self._typ(vals)
+        _ = obj.pct_change(skipna=True, fill_method=fill_method, limit=limit)
+        assert True
 
 class TestNDFrame(object):
     # tests that don't fit elsewhere
