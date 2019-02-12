@@ -1,9 +1,7 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 
 from dateutil import tz
 import numpy as np
-import pytest
-import pytz
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
@@ -314,24 +312,4 @@ class TestDatetimeIndex(object):
                                 index=idx.append(pd.DatetimeIndex([ts])),
                                 columns=['value'],
                                 dtype=object)
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize('hour', ['1:00', '1:00AM', time(1),
-                                      time(1, tzinfo=pytz.UTC)])
-    def test_at_time(self, hour):
-        dti = pd.date_range('2018', periods=3, freq='H')
-        df = pd.DataFrame(list(range(len(dti))), index=dti)
-        if getattr(hour, 'tzinfo', None) is None:
-            result = df.at_time(hour)
-            expected = df.iloc[1:2]
-            tm.assert_frame_equal(result, expected)
-        else:
-            with pytest.raises(ValueError, match="Index must be timezone"):
-                df.at_time(hour)
-
-    def test_at_time_tz(self):
-        dti = pd.date_range('2018', periods=3, freq='H', tz='US/Pacific')
-        df = pd.DataFrame(list(range(len(dti))), index=dti)
-        result = df.at_time(time(4, tzinfo=pytz.timezone('US/Eastern')))
-        expected = df.iloc[1:2]
         tm.assert_frame_equal(result, expected)
