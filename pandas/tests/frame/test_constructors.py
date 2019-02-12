@@ -12,8 +12,7 @@ import numpy.ma as ma
 import pytest
 
 from pandas.compat import (
-    PY3, PY36, PY37, is_platform_little_endian, lmap, long, lrange, lzip,
-    range, zip)
+    PY3, PY36, is_platform_little_endian, lmap, long, lrange, lzip, range, zip)
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
@@ -341,7 +340,7 @@ class TestDataFrameConstructors(TestData):
         result = DataFrame(data, index=idx, columns=cols)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY37, reason='Insertion order for Python>=3.6')
+    @pytest.mark.skipif(not PY36, reason='Insertion order for Python>=3.6')
     def test_constructor_dict_order_insertion(self):
         # GH19018
         # initialization ordering: by insertion order if python>= 3.6

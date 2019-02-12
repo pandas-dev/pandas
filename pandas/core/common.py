@@ -14,7 +14,7 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 import pandas.compat as compat
-from pandas.compat import PY37, iteritems
+from pandas.compat import PY36, PY37, iteritems
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -226,7 +226,7 @@ def try_sort(iterable):
 def dict_keys_to_ordered_list(mapping):
     # when pandas drops support for Python < 3.6, this function
     # can be replaced by a simple list(mapping.keys())
-    if PY37 or isinstance(mapping, OrderedDict):
+    if PY36 or isinstance(mapping, OrderedDict):
         keys = list(mapping.keys())
     else:
         keys = try_sort(mapping)
