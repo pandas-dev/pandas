@@ -1164,6 +1164,7 @@ class TestConcatenate(ConcatenateBase):
                   'qux': DataFrame(np.random.randn(4, 3))}
 
         sorted_keys = pd.core.common.dict_keys_to_ordered_list(frames)
+
         result = concat(frames)
         expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys)
         tm.assert_frame_equal(result, expected)
