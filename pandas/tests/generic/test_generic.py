@@ -666,19 +666,11 @@ class TestNDFrame(object):
         assert_frame_equal(df.sample(n=1, axis='columns',
                                      weights=second_column_weight),
                            df[['col2']])
-
-        weight = [0] * 10
-        weight[5] = 0.5
-        assert_frame_equal(df.sample(n=1, axis='rows', weights=weight),
-                           df.iloc[5:6])
-        assert_frame_equal(df.sample(n=1, axis='index', weights=weight),
-                           df.iloc[5:6])
-
-        # Test axis argument for string and integer values
         # Issue 25190
         x = np.linspace(0, 100, 1000)
         y = np.sin(x)
 
+        # String and integer value pairs for axis argument
         pairs = [('index', 0), ('columns', 1)]
 
         for string_value, integer_value in pairs:
@@ -695,8 +687,14 @@ class TestNDFrame(object):
                                index=np.arange(10), columns=x)
             df2.reindex(columns=x * 1.005)
             df2.interpolate(method='linear', axis=integer_value)
-
             assert_frame_equal(df1, df2)
+
+        weight = [0] * 10
+        weight[5] = 0.5
+        assert_frame_equal(df.sample(n=1, axis='rows', weights=weight),
+                           df.iloc[5:6])
+        assert_frame_equal(df.sample(n=1, axis='index', weights=weight),
+                           df.iloc[5:6])
 
         # Check out of range axis values
         with pytest.raises(ValueError):
