@@ -677,6 +677,12 @@ class Timestamp(_Timestamp):
         """
         return cls(datetime.fromtimestamp(ts))
 
+    # Issue 25016. As strptime with %z is not supported in Python 2.
+    @classmethod
+    def strptime(cls, date_string, format):
+        raise NotImplementedError("Timestamp.strptime() is not implmented."
+                                  "Use to_datetime() to parse date strings.")
+
     @classmethod
     def combine(cls, date, time):
         """

@@ -355,6 +355,14 @@ class TestTimestampConstructors(object):
             # interpreted as a `freq`
             Timestamp('2012-01-01', 'US/Pacific')
 
+    def test_constructor_strptime(self):
+        # GH25016
+        # Test support for Timestamp.strptime
+        fmt = '%Y%m%d-%H%M%S-%f%z'
+        ts = '20190129-235348-000001+0000'
+        with pytest.raises(NotImplementedError):
+            Timestamp.strptime(ts, fmt)
+
     def test_constructor_tz_or_tzinfo(self):
         # GH#17943, GH#17690, GH#5168
         stamps = [Timestamp(year=2017, month=10, day=22, tz='UTC'),
