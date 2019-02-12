@@ -2248,6 +2248,20 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Casts this and other index to object dtype to allow the formation
         of a union between incompatible types.
+
+        Parameters
+        ----------
+        other : Index or array-like
+        sort : False or None, default False
+            Whether to sort the resulting index.
+
+            * False : do not sort the result.
+            * None : sort the result, except when `self` and `other` are equal
+              or when the values cannot be compared.
+
+        Returns
+        -------
+        Index
         """
         this = self.astype(object, copy=False)
         # cast to Index for when `other` is list-like
@@ -2259,6 +2273,14 @@ class Index(IndexOpsMixin, PandasObject):
         Check whether this and the other dtype are compatible with each other.
         Meaning a union can be formed between them without needing to be cast
         to dtype object.
+
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        bool
         """
         return (type(self) is type(other)
                 and is_dtype_equal(self.dtype, other.dtype))
@@ -2274,6 +2296,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         If the Index objects are incompatible, both Index objects will be
         cast to dtype('object') first.
+
+            .. versionchanged :: 0.25.0
 
         Parameters
         ----------
@@ -2324,8 +2348,22 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _union(self, other, sort):
         """
-        Specific union logic should go here. In subclasses union behavior
-        should be overwritten here rather than in `self.union`
+        Specific union logic should go here. In subclasses, union behavior
+        should be overwritten here rather than in `self.union`.
+
+        Parameters
+        ----------
+        other : Index or array-like
+        sort : False or None, default False
+            Whether to sort the resulting index.
+
+            * False : do not sort the result.
+            * None : sort the result, except when `self` and `other` are equal
+              or when the values cannot be compared.
+
+        Returns
+        -------
+        Index
         """
 
         if not len(other) or self.equals(other):

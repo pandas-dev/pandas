@@ -859,37 +859,6 @@ Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with
 
     df.to_dict(orient='index')
 
-.. _whatsnew_0240.api_breaking.incompatible_index_unions
-
-Incompatible Index Type Unions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When performing an :func:`Index.union` operation, between objects of incompatible dtypes,
-the result will be a base :class:`Index` of dtype `object`. This behavior holds true for
-unions between :class:`Index` objects that previously would have been prohibited. The dtype
-of empty :class:`Index` objects will now be evaluated before performing union operations
-rather than simply returning the other :class:`Index` object. :func:`Index.union` can now be
-considered commutative, such that ``A.union(B) == B.union(A)`` (:issue:`23525`).
-
-
-*Previous Behavior*:
-
-.. code-block:: ipython
-
-    In [1]: pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
-    ...
-    ValueError: can only call with other PeriodIndex-ed objects
-
-    In [2]: pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
-    Out[2]: Int64Index([1, 2, 3], dtype='int64')
-
-*Current Behavior*:
-
-.. ipython:: python
-
-    pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
-    pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
-
 .. _whatsnew_0240.api.datetimelike.normalize:
 
 Tick DateOffset Normalize Restrictions
