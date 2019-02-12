@@ -1,27 +1,27 @@
 import abc
+import os
+import warnings
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
-import os
+from io import BytesIO
 from textwrap import fill
-import warnings
 
 import pandas.compat as compat
 from pandas.compat import add_metaclass, range, string_types, u
-from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender, deprecate_kwarg
-
-from pandas.core.dtypes.common import (
-    is_bool, is_float, is_integer, is_list_like)
-
 from pandas.core import config
+from pandas.core.dtypes.common import (is_bool, is_float, is_integer,
+                                       is_list_like)
 from pandas.core.frame import DataFrame
-
-from pandas.io.common import _NA_VALUES, _stringify_path, _validate_header_arg
-from pandas.io.excel._util import (
-    _fill_mi_header, _get_default_writer, _maybe_convert_to_string,
-    _maybe_convert_usecols, _pop_header_name, get_writer)
+from pandas.errors import EmptyDataError
+from pandas.io.common import (_NA_VALUES, _is_url, _stringify_path, _urlopen,
+                              _validate_header_arg, get_filepath_or_buffer)
+from pandas.io.excel._util import (_fill_mi_header, _get_default_writer,
+                                   _maybe_convert_to_string,
+                                   _maybe_convert_usecols, _pop_header_name,
+                                   get_writer)
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
+from pandas.util._decorators import Appender, deprecate_kwarg
 
 _read_excel_doc = """
 Read an Excel file into a pandas DataFrame.
@@ -328,6 +328,36 @@ def read_excel(io,
 
 @add_metaclass(abc.ABCMeta)
 class _BaseExcelReader(object):
+
+    def __init__(self, filepath_or_buffer):
+        # If filepath_or_buffer is a url, load the data into a BytesIO
+        if _is_url(filepath_or_buffer):
+            filepath_or_buffer = BytesIO(_urlopen(filepath_or_buffer).read())
+        elif not isinstance(filepath_or_buffer,
+                            (ExcelFile, self._workbook_class)):
+            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+                filepath_or_buffer)
+
+        if isinstance(filepath_or_buffer, self._workbook_class):
+            self.book = filepath_or_buffer
+        elif hasattr(filepath_or_buffer, "read"):
+            # N.B. xlrd.Book has a read attribute too
+            filepath_or_buffer.seek(0)
+            self.book = self.load_workbook(filepath_or_buffer)
+        elif isinstance(filepath_or_buffer, compat.string_types):
+            self.book = self.load_workbook(filepath_or_buffer)
+        else:
+            raise ValueError('Must explicitly set engine if not passing in'
+                             ' buffer or path for io.')
+
+    @property
+    @abc.abstractmethod
+    def _workbook_class(self):
+        pass
+
+    @abc.abstractmethod
+    def load_workbook(self, filepath_or_buffer):
+        pass
 
     @property
     @abc.abstractmethod
