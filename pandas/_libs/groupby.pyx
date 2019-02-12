@@ -2,6 +2,7 @@
 
 import cython
 from cython import Py_ssize_t
+from cython cimport floating
 
 from libc.stdlib cimport malloc, free
 
@@ -381,6 +382,267 @@ def group_any_all(uint8_t[:] out,
             if values[i] == flag_val:
                 out[lab] = flag_val
 
+# ----------------------------------------------------------------------
+# group_add, group_prod, group_var, group_mean, group_ohlc
+# ----------------------------------------------------------------------
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _group_add(floating[:, :] out,
+               int64_t[:] counts,
+               floating[:, :] values,
+               const int64_t[:] labels,
+               Py_ssize_t min_count=0):
+    """
+    Only aggregates on axis=0
+    """
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        floating val, count
+        floating[:, :] sumx, nobs
+
+    if len(values) != len(labels):
+        raise AssertionError("len(index) != len(labels)")
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    N, K = (<object>values).shape
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+
+        for i in range(ncounts):
+            for j in range(K):
+                if nobs[i, j] < min_count:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j]
+
+
+group_add_float32 = _group_add['float']
+group_add_float64 = _group_add['double']
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _group_prod(floating[:, :] out,
+                int64_t[:] counts,
+                floating[:, :] values,
+                const int64_t[:] labels,
+                Py_ssize_t min_count=0):
+    """
+    Only aggregates on axis=0
+    """
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        floating val, count
+        floating[:, :] prodx, nobs
+
+    if not len(values) == len(labels):
+        raise AssertionError("len(index) != len(labels)")
+
+    nobs = np.zeros_like(out)
+    prodx = np.ones_like(out)
+
+    N, K = (<object>values).shape
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    prodx[lab, j] *= val
+
+        for i in range(ncounts):
+            for j in range(K):
+                if nobs[i, j] < min_count:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = prodx[i, j]
+
+
+group_prod_float32 = _group_prod['float']
+group_prod_float64 = _group_prod['double']
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+def _group_var(floating[:, :] out,
+               int64_t[:] counts,
+               floating[:, :] values,
+               const int64_t[:] labels,
+               Py_ssize_t min_count=-1):
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        floating val, ct, oldmean
+        floating[:, :] nobs, mean
+
+    assert min_count == -1, "'min_count' only used in add and prod"
+
+    if not len(values) == len(labels):
+        raise AssertionError("len(index) != len(labels)")
+
+    nobs = np.zeros_like(out)
+    mean = np.zeros_like(out)
+
+    N, K = (<object>values).shape
+
+    out[:, :] = 0.0
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    oldmean = mean[lab, j]
+                    mean[lab, j] += (val - oldmean) / nobs[lab, j]
+                    out[lab, j] += (val - mean[lab, j]) * (val - oldmean)
+
+        for i in range(ncounts):
+            for j in range(K):
+                ct = nobs[i, j]
+                if ct < 2:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] /= (ct - 1)
+
+
+group_var_float32 = _group_var['float']
+group_var_float64 = _group_var['double']
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _group_mean(floating[:, :] out,
+                int64_t[:] counts,
+                floating[:, :] values,
+                const int64_t[:] labels,
+                Py_ssize_t min_count=-1):
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        floating val, count
+        floating[:, :] sumx, nobs
+
+    assert min_count == -1, "'min_count' only used in add and prod"
+
+    if not len(values) == len(labels):
+        raise AssertionError("len(index) != len(labels)")
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    N, K = (<object>values).shape
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+
+        for i in range(ncounts):
+            for j in range(K):
+                count = nobs[i, j]
+                if nobs[i, j] == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j] / count
+
+
+group_mean_float32 = _group_mean['float']
+group_mean_float64 = _group_mean['double']
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _group_ohlc(floating[:, :] out,
+                int64_t[:] counts,
+                floating[:, :] values,
+                const int64_t[:] labels,
+                Py_ssize_t min_count=-1):
+    """
+    Only aggregates on axis=0
+    """
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        floating val, count
+        Py_ssize_t ngroups = len(counts)
+
+    assert min_count == -1, "'min_count' only used in add and prod"
+
+    if len(labels) == 0:
+        return
+
+    N, K = (<object>values).shape
+
+    if out.shape[1] != 4:
+        raise ValueError('Output array must have 4 columns')
+
+    if K > 1:
+        raise NotImplementedError("Argument 'values' must have only "
+                                  "one dimension")
+    out[:] = np.nan
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab == -1:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+            if val != val:
+                continue
+
+            if out[lab, 0] != out[lab, 0]:
+                out[lab, 0] = out[lab, 1] = out[lab, 2] = out[lab, 3] = val
+            else:
+                out[lab, 1] = max(out[lab, 1], val)
+                out[lab, 2] = min(out[lab, 2], val)
+                out[lab, 3] = val
+
+
+group_ohlc_float32 = _group_ohlc['float']
+group_ohlc_float64 = _group_ohlc['double']
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

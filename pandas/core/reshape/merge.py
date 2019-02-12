@@ -159,9 +159,15 @@ def merge_ordered(left, right, on=None,
         left DataFrame
     fill_method : {'ffill', None}, default None
         Interpolation method for data
-    suffixes : 2-length sequence (tuple, list, ...)
-        Suffix to apply to overlapping column names in the left and right
-        side, respectively
+    suffixes : Sequence, default is ("_x", "_y")
+        A length-2 sequence where each element is optionally a string
+        indicating the suffix to add to overlapping column names in
+        `left` and `right` respectively. Pass a value of `None` instead
+        of a string to indicate that the column name from `left` or
+        `right` should be left as-is, with no suffix. At least one of the
+        values must not be None.
+
+        .. versionchanged:: 0.25.0
     how : {'left', 'right', 'outer', 'inner'}, default 'outer'
         * left: use only keys from left frame (SQL: left outer join)
         * right: use only keys from right frame (SQL: right outer join)
@@ -903,7 +909,7 @@ class _MergeOperation(object):
                               in zip(self.right.index.levels,
                                      self.right.index.codes)]
             else:
-                right_keys = [self.right.index.values]
+                right_keys = [self.right.index._values]
         elif _any(self.right_on):
             for k in self.right_on:
                 if is_rkey(k):
