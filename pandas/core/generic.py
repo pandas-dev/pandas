@@ -6657,7 +6657,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         Series or DataFrame
             Returns the same object type as the caller, interpolated at
-            some or all ``NaN`` values
+            some or all ``NaN`` values.
 
         See Also
         --------
