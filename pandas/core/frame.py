@@ -5763,7 +5763,7 @@ class DataFrame(NDFrame):
         The function is named by analogy with a collection of books
         being re-organised from being side by side on a horizontal
         position (the columns of the dataframe) to being stacked
-        vertically on top of of each other (in the index of the
+        vertically on top of each other (in the index of the
         dataframe).
 
         Examples
