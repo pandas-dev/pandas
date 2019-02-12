@@ -218,7 +218,7 @@ class TestSeriesAnalytics(object):
     ])
     def test_pct_change_skipna(self, periods, expected_vals):
         # GH25006
-        vals = [nan,  1.,  2.,  3., nan,  4., nan]
+        vals = [nan, 1., 2., 3., nan, 4., nan]
         s = Series(vals)
         result = s.pct_change(skipna=True, periods=periods)
         expected = Series(expected_vals)
