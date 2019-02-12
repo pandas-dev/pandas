@@ -8386,7 +8386,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         (left, right) : (%(klass)s, type of other)
-            Aligned objects
+            Aligned objects.
         """)
 
     @Appender(_shared_docs['align'] % _shared_doc_kwargs)
