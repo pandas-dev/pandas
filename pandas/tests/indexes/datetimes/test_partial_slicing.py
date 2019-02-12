@@ -398,10 +398,12 @@ class TestSlicing(object):
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('start', [
-        '2018-12-02 21:50:00+00:00', pd.Timestamp('2018-12-02 21:50:00+00:00')
+        '2018-12-02 21:50:00+00:00', pd.Timestamp('2018-12-02 21:50:00+00:00'),
+        pd.Timestamp('2018-12-02 21:50:00+00:00').to_pydatetime()
     ])
     @pytest.mark.parametrize('end', [
-        '2018-12-02 21:52:00+00:00', pd.Timestamp('2018-12-02 21:52:00+00:00')
+        '2018-12-02 21:52:00+00:00', pd.Timestamp('2018-12-02 21:52:00+00:00'),
+        pd.Timestamp('2018-12-02 21:52:00+00:00').to_pydatetime()
     ])
     def test_getitem_with_datestring_with_UTC_offset(self, start, end):
         # GH 24076
