@@ -2,6 +2,7 @@
 
 from collections import OrderedDict
 from datetime import date, datetime
+import itertools
 import random
 import re
 
@@ -427,6 +428,64 @@ class TestMerge(object):
                           dict(left_on='a', right_on='x')]:
                 check1(exp_in, kwarg)
                 check2(exp_out, kwarg)
+
+    @pytest.mark.parametrize(
+        'join_col, val_col', list(itertools.product([
+            pd.Series([1], dtype='int64'),
+            pd.Series([1], dtype='Int64'),
+            pd.Series([1.23]),
+            pd.Series(['foo']),
+            pd.Series([True]),
+            pd.Series([pd.Timestamp('2018-01-01')]),
+            pd.Series([pd.Timestamp('2018-01-01', tz='US/Eastern')]),
+        ], repeat=2)),
+        ids=lambda x: x.dtype.name
+    )
+    def test_merge_empty_frame(self, join_col, val_col):
+        # GH 25183
+        df = pd.DataFrame({'a': join_col, 'b': val_col}, columns=['a', 'b'])
+        df_empty = df[:0]
+        exp = pd.DataFrame({
+            'b_x': pd.Series(dtype=df.dtypes['b']),
+            'a': pd.Series(dtype=df.dtypes['a']),
+            'b_y': pd.Series(dtype=df.dtypes['b']),
+        }, columns=['b_x', 'a', 'b_y'])
+        act = df_empty.merge(df, on='a')
+        assert_frame_equal(act, exp)
+
+    @pytest.mark.parametrize(
+        'join_col, val_col', list(itertools.product(
+            [
+                pd.Series([1], dtype='int64'),
+                pd.Series([1], dtype='Int64'),
+                pd.Series([1.23]),
+                pd.Series(['foo']),
+                pd.Series([True]),
+                pd.Series([pd.Timestamp('2018-01-01')]),
+                pd.Series([pd.Timestamp('2018-01-01', tz='US/Eastern')]),
+            ],
+            [
+                pd.Series([np.nan], dtype='Int64'),
+                pd.Series([np.nan], dtype='float'),
+                pd.Series([np.nan], dtype='object'),
+                pd.Series([pd.NaT]),
+            ]
+        )),
+        ids=lambda x: x.dtype.name
+    )
+    def test_merge_all_na_column(self, join_col, val_col):
+        # GH 25183
+        df_left = pd.DataFrame(
+            {'a': join_col, 'b': val_col}, columns=['a', 'b'])
+        df_right = pd.DataFrame(
+            {'a': join_col, 'b': val_col}, columns=['a', 'b'])
+        exp = pd.DataFrame({
+            'a': join_col,
+            'b_x': val_col,
+            'b_y': val_col,
+        }, columns=['a', 'b_x', 'b_y'])
+        act = df_left.merge(df_right, on='a')
+        assert_frame_equal(act, exp)
 
     def test_merge_nosort(self):
         # #2098, anything to do?
