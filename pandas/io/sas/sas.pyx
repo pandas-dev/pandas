@@ -203,11 +203,12 @@ cdef enum ColumnTypes:
 
 
 # type the page_data types
-cdef int page_meta_type = const.page_meta_type
-cdef int page_mix_types_0 = const.page_mix_types[0]
-cdef int page_mix_types_1 = const.page_mix_types[1]
-cdef int page_data_type = const.page_data_type
-cdef int subheader_pointers_offset = const.subheader_pointers_offset
+cdef:
+    int page_meta_type = const.page_meta_type
+    int page_mix_types_0 = const.page_mix_types[0]
+    int page_mix_types_1 = const.page_mix_types[1]
+    int page_data_type = const.page_data_type
+    int subheader_pointers_offset = const.subheader_pointers_offset
 
 
 cdef class Parser(object):

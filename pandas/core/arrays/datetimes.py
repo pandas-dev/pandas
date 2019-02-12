@@ -128,7 +128,7 @@ def _dt_array_cmp(cls, op):
     Wrap comparison operations to convert datetime-like to datetime64
     """
     opname = '__{name}__'.format(name=op.__name__)
-    nat_result = True if opname == '__ne__' else False
+    nat_result = opname == '__ne__'
 
     def wrapper(self, other):
         if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
@@ -2058,7 +2058,7 @@ def validate_tz_from_dtype(dtype, tz):
             #  tz-naive dtype (i.e. datetime64[ns])
             if tz is not None and not timezones.tz_compare(tz, dtz):
                 raise ValueError("cannot supply both a tz and a "
-                                 "timezone-naive dtype (i.e. datetime64[ns]")
+                                 "timezone-naive dtype (i.e. datetime64[ns])")
 
     return tz
 
