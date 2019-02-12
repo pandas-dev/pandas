@@ -9948,11 +9948,24 @@ class NDFrame(PandasObject, SelectionMixin):
         """
 
     @Appender(_shared_docs['pct_change'] % _shared_doc_kwargs)
-    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
-                   **kwargs):
+    def pct_change(self, periods=1, fill_method=None, limit=None, freq=None,
+                   skipna=False, **kwargs):
+        if skipna and fill_method is not None:
+            raise ValueError("cannot pass both skipna and fill_method")
+        elif skipna and limit is not None:
+            raise ValueError("cannot pass both skipna and limit")
+        if skipna and self._typ == 'dataframe':
+            return self.apply(
+                lambda s: s.pct_change(periods=periods,
+                                       fill_method=fill_method, limit=limit,
+                                       freq=freq, skipna=skipna, **kwargs)
+            )
         # TODO: Not sure if above is correct - need someone to confirm.
         axis = self._get_axis_number(kwargs.pop('axis', self._stat_axis_name))
-        if fill_method is None:
+        if skipna:
+            # mask = self.isna()
+            data = self.dropna()
+        elif fill_method is None:
             data = self
         else:
             data = self.fillna(method=fill_method, limit=limit, axis=axis)
@@ -9963,6 +9976,8 @@ class NDFrame(PandasObject, SelectionMixin):
         if freq is None:
             mask = isna(com.values_from_object(data))
             np.putmask(rs.values, mask, np.nan)
+        if skipna:
+            rs = rs.reindex_like(self)
         return rs
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
