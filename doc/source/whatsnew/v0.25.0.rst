@@ -33,7 +33,7 @@ Backwards incompatible API changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
--
+- :class:`DatetimeTZDtype` will now standardize pytz timezones to a common timezone instance (:issue:`24713`)
 -
 -
 
@@ -68,6 +68,8 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+-
+
 Categorical
 ^^^^^^^^^^^
 
@@ -93,7 +95,7 @@ Timezones
 ^^^^^^^^^
 
 - Bug in :func:`to_datetime` with ``utc=True`` and datetime strings that would apply previously parsed UTC offsets to subsequent arguments (:issue:`24992`)
--
+- Bug in :func:`Timestamp.tz_localize` and :func:`Timestamp.tz_convert` does not propagate ``freq`` (:issue:`25241`)
 -
 
 Numeric
@@ -139,7 +141,7 @@ Indexing
 Missing
 ^^^^^^^
 
--
+- Fixed misleading exception message in :meth:`Series.missing` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
 -
 -
 
@@ -181,7 +183,6 @@ Reshaping
 - Bug in :func:`pandas.merge` adds a string of ``None`` if ``None`` is assigned in suffixes instead of remain the column name as-is (:issue:`24782`).
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
--
 
 
 Sparse
