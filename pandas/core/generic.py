@@ -648,6 +648,8 @@ class NDFrame(PandasObject, SelectionMixin):
         copy : boolean, default False
             Make a copy of the underlying data. Mixed-dtype data will
             always result in a copy
+        **kwargs
+            Additional keyword arguments will be passed to the function.
 
         Returns
         -------
