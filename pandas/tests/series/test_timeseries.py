@@ -399,7 +399,7 @@ class TestTimeSeries(TestData):
     def test_pct_change_shift_over_nas(self):
         s = Series([1., 1.5, np.nan, 2.5, 3.])
 
-        chg = s.pct_change()
+        chg = s.pct_change(fill_method='ffill')
         expected = Series([np.nan, 0.5, 0., 2.5 / 1.5 - 1, .2])
         assert_series_equal(chg, expected)
 
