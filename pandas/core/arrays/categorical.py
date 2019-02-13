@@ -754,8 +754,8 @@ class Categorical(ExtensionArray, PandasObject):
         value : bool
            Set whether this categorical is ordered (True) or not (False).
         inplace : bool, default False
-           Whether or not to set the ordered attribute in-place or return a copy
-           of this categorical with ordered set to the value.
+           Whether or not to set the ordered attribute in-place or return
+           a copy of this categorical with ordered set to the value.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         new_dtype = CategoricalDtype(self.categories, ordered=value)
@@ -771,8 +771,8 @@ class Categorical(ExtensionArray, PandasObject):
         Parameters
         ----------
         inplace : bool, default False
-           Whether or not to set the ordered attribute in-place or return a copy
-           of this categorical with ordered set to True.
+           Whether or not to set the ordered attribute in-place or return
+           a copy of this categorical with ordered set to True.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         return self.set_ordered(True, inplace=inplace)
@@ -784,8 +784,8 @@ class Categorical(ExtensionArray, PandasObject):
         Parameters
         ----------
         inplace : bool, default False
-           Whether or not to set the ordered attribute in-place or return a copy
-           of this categorical with ordered set to False.
+           Whether or not to set the ordered attribute in-place or return
+           a copy of this categorical with ordered set to False.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         return self.set_ordered(False, inplace=inplace)
@@ -822,8 +822,8 @@ class Categorical(ExtensionArray, PandasObject):
            Whether or not the new_categories should be considered as a rename
            of the old categories or as reordered categories.
         inplace : bool, default False
-           Whether or not to reorder the categories in-place or return a copy of
-           this categorical with reordered categories.
+           Whether or not to reorder the categories in-place or return a copy
+           of this categorical with reordered categories.
 
         Returns
         -------
