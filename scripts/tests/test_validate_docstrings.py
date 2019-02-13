@@ -233,7 +233,7 @@ class GoodDocStrings(object):
         """
         Say hello and have no returns.
         """
-        print("Hello World!")
+        pass
 
     def empty_returns(self):
         """
