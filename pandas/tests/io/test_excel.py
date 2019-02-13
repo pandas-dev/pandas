@@ -2380,7 +2380,6 @@ class TestExcelWriterEngineTests(object):
             writer = ExcelWriter('something.xlsx')
             assert isinstance(writer, DummyClass)
             df = tm.makeCustomDataframe(1, 1)
-
             check_called(lambda: df.to_excel('something.xlsx'))
             check_called(
                 lambda: df.to_excel(
