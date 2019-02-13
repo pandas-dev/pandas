@@ -504,7 +504,18 @@ class Docstring(object):
 
     @property
     def method_returns_something(self):
+        '''
+        Check if a method can return something.
 
+        Bare returns, returns valued None and returns from nested functions are
+        disconsidered.
+
+        Returns
+        -------
+        bool
+            Whether the method can return something.
+        '''
+        
         def gather_returns(node):
             gathered = [node] if isinstance(node, ast.Return) else []
             for child in ast.iter_child_nodes(node):
