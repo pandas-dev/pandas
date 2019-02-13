@@ -22,7 +22,7 @@ from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 from pandas.io.common import URLError
 from pandas.io.excel import (
     ExcelFile, ExcelWriter, _OpenpyxlWriter, _XlsxWriter, _XlwtWriter,
-    read_excel)
+    read_excel, register_writer)
 from pandas.io.formats.excel import ExcelFormatter
 from pandas.io.parsers import read_csv
 
@@ -2349,6 +2349,44 @@ class TestExcelWriterEngineTests(object):
     def test_ExcelWriter_dispatch_raises(self):
         with pytest.raises(ValueError, match='No engine'):
             ExcelWriter('nothing')
+
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+    def test_register_writer(self):
+        # some awkward mocking to test out dispatch and such actually works
+        called_save = []
+        called_write_cells = []
+
+        class DummyClass(ExcelWriter):
+            called_save = False
+            called_write_cells = False
+            supported_extensions = ['test', 'xlsx', 'xls']
+            engine = 'dummy'
+
+            def save(self):
+                called_save.append(True)
+
+            def write_cells(self, *args, **kwargs):
+                called_write_cells.append(True)
+
+        def check_called(func):
+            func()
+            assert len(called_save) >= 1
+            assert len(called_write_cells) >= 1
+            del called_save[:]
+            del called_write_cells[:]
+
+        with pd.option_context('io.excel.xlsx.writer', 'dummy'):
+            register_writer(DummyClass)
+            writer = ExcelWriter('something.test')
+            assert isinstance(writer, DummyClass)
+            df = tm.makeCustomDataframe(1, 1)
+
+            func = lambda: df.to_excel('something.test')
+            check_called(func)
+            check_called(lambda: df.to_excel('something.xlsx'))
+            check_called(
+                lambda: df.to_excel(
+                    'something.xls', engine='dummy'))
 
 
 @pytest.mark.parametrize('engine', [
