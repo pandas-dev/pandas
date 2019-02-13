@@ -342,6 +342,7 @@ cdef class SeriesGrouper:
             index = None
         else:
             values = dummy.values
+            # GH 23683: datetimetz types are equivalent to datetime types here
             if (dummy.dtype != self.arr.dtype
                     and values.dtype != self.arr.dtype):
                 raise ValueError('Dummy array must be same dtype')

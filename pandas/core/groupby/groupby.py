@@ -26,7 +26,9 @@ from pandas.util._validators import validate_kwargs
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    ensure_float, is_extension_array_dtype, is_numeric_dtype, is_scalar)
+    ensure_float, is_extension_array_dtype, is_datetime64tz_dtype,
+    is_numeric_dtype, is_scalar)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algorithms
@@ -768,7 +770,17 @@ b  2""")
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
                 try:
+                    tz_dtype = None
+                    if is_datetime64tz_dtype(dtype):
+                        # GH 23683
+                        # Prior results were generated in UTC. Ensure
+                        # We localize to UTC first before converting to
+                        # the target timezone
+                        tz_dtype = dtype
+                        dtype = DatetimeTZDtype(tz='UTC')
                     result = obj._values._from_sequence(result, dtype=dtype)
+                    if tz_dtype is not None:
+                        result = result.astype(tz_dtype)
                 except Exception:
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # pandas has no control over what 3rd-party ExtensionArrays
