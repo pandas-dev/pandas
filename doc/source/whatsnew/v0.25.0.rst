@@ -173,7 +173,7 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying a aggregation function to timezone aware data (:issue:`23683`)
--
+- Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
 -
 
 
