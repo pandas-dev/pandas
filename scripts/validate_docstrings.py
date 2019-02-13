@@ -492,15 +492,15 @@ class Docstring(object):
     def method_source(self):
         try:
             source = inspect.getsource(self.obj)
-            # Remove common indentation.
-            first_spaces = re.match(' +', source)
-            if first_spaces:
-                first_spaces = first_spaces.group(0)
-                source = re.sub('^' + first_spaces, '', source)
-                source = re.sub(r'\n' + first_spaces, r'\n', source)
-            return source
         except TypeError:
             return ''
+        # Remove common indentation.
+        first_spaces = re.match(' +', source)
+        if first_spaces:
+            first_spaces = first_spaces.group(0)
+            source = re.sub('^' + first_spaces, '', source)
+            source = re.sub(r'\n' + first_spaces, r'\n', source)
+        return source
 
     @property
     def method_returns(self):
