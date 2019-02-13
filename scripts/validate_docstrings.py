@@ -505,7 +505,7 @@ class Docstring(object):
     @property
     def method_returns_something(self):
         '''
-        Check if a method can return something.
+        Check if the docstrings method can return something.
 
         Bare returns, returns valued None and returns from nested functions are
         disconsidered.
@@ -513,7 +513,7 @@ class Docstring(object):
         Returns
         -------
         bool
-            Whether the method can return something.
+            Whether the docstrings method can return something.
         '''
 
         def get_returns_not_on_nested_functions(node):
