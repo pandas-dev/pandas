@@ -6,7 +6,6 @@ from string import ascii_lowercase
 import warnings
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas.compat import PY35, lrange
@@ -19,7 +18,6 @@ from pandas import (
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
-from pandas.util.testing import (assert_frame_equal)
 
 
 def assert_stat_op_calc(opname, alternative, frame, has_skipna=True,
@@ -1367,18 +1365,18 @@ class TestDataFrameAnalytics(object):
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("periods, expected_vals", [
-        (1, [[nan, nan], [nan, nan], [1., nan], [0.5, 1.], [nan, 0.5],
-             [0.33333333, nan], [nan, 0.33333333]]),
-        (2, [[nan, nan], [nan, nan], [nan, nan], [2., nan], [nan, 2.],
-             [1., nan], [nan, 1.]])
+        (1, [[np.nan, np.nan], [np.nan, np.nan], [1., np.nan], [0.5, 1.],
+             [np.nan, 0.5], [0.33333333, np.nan], [np.nan, 0.33333333]]),
+        (2, [[np.nan, np.nan], [np.nan, np.nan], [np.nan, np.nan],
+             [2., np.nan], [np.nan, 2.], [1., np.nan], [np.nan, 1.]])
     ])
     def test_pct_change_skipna(self, periods, expected_vals):
         # GH25006
-        df = DataFrame([[nan, nan], [1., nan], [2., 1.], [3., 2.], [nan, 3.],
-                        [4., nan], [nan, 4.]])
+        df = DataFrame([[np.nan, np.nan], [1., np.nan], [2., 1.], [3., 2.],
+                        [np.nan, 3.], [4., np.nan], [np.nan, 4.]])
         result = df.pct_change(skipna=True, periods=periods)
         expected = DataFrame(expected_vals)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
     # ----------------------------------------------------------------------
