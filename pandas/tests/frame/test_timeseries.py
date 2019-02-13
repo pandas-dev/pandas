@@ -142,7 +142,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         df = DataFrame({'a': s, 'b': s})
 
-        chg = df.pct_change()
+        chg = df.pct_change(fill_method='ffill')
         expected = Series([np.nan, 0.5, 0., 2.5 / 1.5 - 1, .2])
         edf = DataFrame({'a': expected, 'b': expected})
         assert_frame_equal(chg, edf)
