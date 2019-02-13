@@ -503,28 +503,28 @@ class Docstring(object):
         return source
 
     @property
-    def method_returns(self):
+    def method_returns_something(self):
+
+        def gather_returns(node):
+            gathered = [node] if isinstance(node, ast.Return) else []
+            for child in ast.iter_child_nodes(node):
+                # Ignore nested functions and its subtrees.
+                if not isinstance(child, ast.FunctionDef):
+                    gathered.extend(gather_returns(child))
+            return gathered
+
         tree = ast.parse(self.method_source).body
         if tree:
             root = tree[0]
-
-            def gather_returns(node):
-                gathered = [node] if isinstance(node, ast.Return) else []
-                for child in ast.iter_child_nodes(node):
-                    # Ignore nested functions and its subtrees.
-                    if not isinstance(child, ast.FunctionDef):
-                        gathered.extend(gather_returns(child))
-                return gathered
             # Walk the tree recursively and gather the return nodes.
             return_values = [r.value for r in gather_returns(root)]
-
             # Replace NameConstant nodes valued None for None.
             for i, v in enumerate(return_values):
                 if isinstance(v, ast.NameConstant) and v.value is None:
                     return_values[i] = None
-            return return_values
+            return any(return_values)
         else:
-            return []
+            return False
 
     @property
     def first_line_ends_in_dot(self):
@@ -723,7 +723,7 @@ def get_validation_data(doc):
 
     if doc.is_function_or_method:
         if not doc.returns:
-            if any(ret is not None for ret in doc.method_returns):
+            if doc.method_returns_something:
                 errs.append(error('RT01'))
         else:
             if len(doc.returns) == 1 and doc.returns[0][1]:
