@@ -415,11 +415,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
                 {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
     """
 
-    if orient == 'table':
-        if dtype is None:
-            dtype = False
-        else:
-            raise ValueError("cannot pass both dtype and orient='table'")
+    if orient == 'table' and dtype is not None:
+        raise ValueError("cannot pass both dtype and orient='table'")
 
     compression = _infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
@@ -623,7 +620,10 @@ class Parser(object):
         self.orient = orient
 
         if dtype is None:
-            dtype = True
+            if orient == 'table':
+                dtype = False
+            else:
+                dtype = True
         self.dtype = dtype
 
         if orient == "split":
