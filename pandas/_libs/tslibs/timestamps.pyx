@@ -680,6 +680,12 @@ class Timestamp(_Timestamp):
     # Issue 25016. As strptime with %z is not supported in Python 2.
     @classmethod
     def strptime(cls, date_string, format):
+        """
+        Timestamp.strptime(string, format)
+
+        Function is not implemented as the behavior of datetime.strptime()
+        differs  in Python 2 and Python 3.
+        """
         raise NotImplementedError("Timestamp.strptime() is not implmented."
                                   "Use to_datetime() to parse date strings.")
 
