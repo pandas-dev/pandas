@@ -1215,7 +1215,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         Series
             If label is contained, will be reference to calling Series,
-            otherwise a new object
+            otherwise a new object.
         """
         warnings.warn("set_value is deprecated and will be removed "
                       "in a future release. Please use "
