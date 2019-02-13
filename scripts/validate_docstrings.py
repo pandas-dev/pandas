@@ -515,20 +515,20 @@ class Docstring(object):
         bool
             Whether the method can return something.
         '''
-        
-        def gather_returns(node):
-            gathered = [node] if isinstance(node, ast.Return) else []
+
+        def get_returns_not_on_nested_functions(node):
+            returns = [node] if isinstance(node, ast.Return) else []
             for child in ast.iter_child_nodes(node):
                 # Ignore nested functions and its subtrees.
                 if not isinstance(child, ast.FunctionDef):
-                    gathered.extend(gather_returns(child))
-            return gathered
+                    child_returns = get_returns_not_on_nested_functions(child)
+                    returns.extend(child_returns)
+            return returns
 
         tree = ast.parse(self.method_source).body
         if tree:
-            root = tree[0]
-            # Walk the tree recursively and gather the return nodes.
-            return_values = [r.value for r in gather_returns(root)]
+            returns = get_returns_not_on_nested_functions(tree[0])
+            return_values = [r.value for r in returns]
             # Replace NameConstant nodes valued None for None.
             for i, v in enumerate(return_values):
                 if isinstance(v, ast.NameConstant) and v.value is None:
