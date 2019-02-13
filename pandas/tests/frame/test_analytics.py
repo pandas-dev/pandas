@@ -1374,7 +1374,7 @@ class TestDataFrameAnalytics(object):
     ])
     def test_pct_change_skipna(self, periods, expected_vals):
         # GH25006
-        df = DataFrame([[nan, nan], [1., nan], [2., 1.], [3., 2.],[nan, 3.],
+        df = DataFrame([[nan, nan], [1., nan], [2., 1.], [3., 2.], [nan, 3.],
                         [4., nan], [nan, 4.]])
         result = df.pct_change(skipna=True, periods=periods)
         expected = DataFrame(expected_vals)
