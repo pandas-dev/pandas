@@ -615,11 +615,8 @@ class BadReturns(object):
         """
         Lacks section for Returns
         """
-        if False:
-            return None
-        else:
-            return True
-
+        return "Hello world!"
+        
     def yield_not_documented(self):
         """
         Lacks section for Yields
