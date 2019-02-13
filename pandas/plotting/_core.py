@@ -2061,7 +2061,7 @@ _shared_docs['boxplot'] = """
         For data grouped with ``by``:
 
         * :class:`~pandas.Series`
-        * :class:`~numpy.array` (for ``return_type = None``)
+        * :class:`~numpy.array` (for ``return_type = None``).
 
     See Also
     --------
@@ -3332,7 +3332,7 @@ class FramePlotMethods(BasePlotMethods):
         Returns
         -------
         matplotlib.axes.Axes or numpy.ndarray
-            Area plot, or array of area plots if subplots is True
+            Area plot, or array of area plots if subplots is True.
 
         See Also
         --------
