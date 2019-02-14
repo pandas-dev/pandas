@@ -1172,9 +1172,18 @@ class GroupBy(_GroupBy):
             degrees of freedom
         """
 
-        # TODO: implement at Cython level?
         nv.validate_groupby_func('std', args, kwargs)
-        return np.sqrt(self.var(ddof=ddof, **kwargs))
+        if ddof == 1:
+            try:
+                return self._cython_agg_general('std', **kwargs)
+            except Exception:
+                f = lambda x: x.std(ddof=ddof, **kwargs)
+                with _group_selection_context(self):
+                    return self._python_agg_general(f)
+        else:
+            f = lambda x: x.std(ddof=ddof, **kwargs)
+            with _group_selection_context(self):
+                return self._python_agg_general(f)
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
