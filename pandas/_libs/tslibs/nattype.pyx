@@ -367,12 +367,11 @@ class NaTType(_NaT):
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
 
-    strptime = _make_error_func('strptime',
+    strptime = _make_error_func('strptime',  # noqa:E128
         """
         Timestamp.strptime(string, format)
 
-        Function is not implemented as the behavior of datetime.strptime()
-        differs  in Python 2 and Python 3.
+        Function is not implemented. Use pd.to_datetime().
         """
     )
 
