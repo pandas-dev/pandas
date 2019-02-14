@@ -1698,3 +1698,35 @@ def test_groupby_agg_ohlc_non_first():
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_std_with_as_index_false():
+    # https://github.com/pandas-dev/pandas/issues/16799
+
+    df = pd.DataFrame({
+        "A": ["a", "b", "a", "b"],
+        "B": ["A", "B", "A", "B"],
+        "X": [1, 2, 3, 4]
+    })
+
+    group_var = df.groupby(
+        ["A", "B"],
+        as_index=False,
+    ).var()
+
+    #    A  B  X
+    # 0  a  A  2
+    # 1  b  B  2
+
+    group_std = df.groupby(
+        ["A", "B"],
+        as_index=False,
+    ).std()
+
+    #    A  B         X
+    # 0  a  A  1.414214
+    # 1  b  B  1.414214
+
+    assert_series_equal(
+        np.sqrt(group_var["X"]),
+        group_std["X"])
