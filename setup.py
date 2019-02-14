@@ -17,16 +17,6 @@ import shutil
 from distutils.version import LooseVersion
 from setuptools import setup, Command, find_packages
 
-# Taken from https://github.com/jupyterhub/traefik-proxy/
-# commit: 0f16dc307b72e613e71067b6498f82728461434a
-#
-# ensure cwd is on sys.path
-# workaround bug in pip 19.0
-# This is needed to load versioneer that lies alongside the setup.py
-here = os.path.dirname(__file__)
-if here not in sys.path:
-    sys.path.insert(0, here)
-
 # versioning
 import versioneer
 cmdclass = versioneer.get_cmdclass()
