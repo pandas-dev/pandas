@@ -1667,7 +1667,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             * Datetime with Timezone
             * Interval
             * Sparse
-            * IntegerNA.
+            * IntegerNA
 
         Examples
         --------
