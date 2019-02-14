@@ -27,6 +27,7 @@ import importlib
 import doctest
 import tempfile
 import ast
+import textwrap
 
 import flake8.main.application
 
@@ -494,13 +495,7 @@ class Docstring(object):
             source = inspect.getsource(self.obj)
         except TypeError:
             return ''
-        # Remove common indentation.
-        first_spaces = re.match(' +', source)
-        if first_spaces:
-            first_spaces = first_spaces.group(0)
-            source = re.sub('^' + first_spaces, '', source)
-            source = re.sub(r'\n' + first_spaces, r'\n', source)
-        return source
+        return textwrap.dedent(source)
 
     @property
     def method_returns_something(self):
