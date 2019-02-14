@@ -688,8 +688,10 @@ class DataFrameFormatter(TableFormatter):
 
         from pandas.io.formats.latex import LatexFormatter
         latex_renderer = LatexFormatter(self, column_format=column_format,
-                                        longtable=longtable, lt_caption=lt_caption,
-                                        lt_label=lt_label, multicolumn=multicolumn,
+                                        longtable=longtable,
+                                        lt_caption=lt_caption,
+                                        lt_label=lt_label,
+                                        multicolumn=multicolumn,
                                         multicolumn_format=multicolumn_format,
                                         multirow=multirow)
 

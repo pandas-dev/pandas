@@ -130,9 +130,11 @@ class LatexFormatter(TableFormatter):
                 if self.lt_label is not None:
                     buf.write('\\label{{{}}}'.format(self.lt_label))
                 else:
-                    warn('no LaTeX label has been provided; referencing with \\ref{} will not work')
+                    warn('no LaTeX label has been provided; '
+                         'referencing with \\ref{} will not work')
 
-                # a double-backslash is required at the end of the line as discussed here:
+                # a double-backslash is required at the end of the line
+                # as discussed here:
                 # https://tex.stackexchange.com/questions/219138
                 buf.write('\\\\\n')
 
