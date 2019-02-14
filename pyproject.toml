@@ -1,3 +1,14 @@
 # When changing the version numbers here, also adjust them in `setup.py`
 [build-system]
-requires = ["setuptools", "wheel", "cython >= 0.28.2", "numpy >= 1.12.0"]
+requires = [
+    "setuptools",
+    "wheel",
+    "Cython >= 0.28.2",  # required for VCS build, optional for released source
+    "numpy==1.9.3; python_version=='2.7'",
+    "numpy==1.9.3; python_version=='3.5'",
+    # We pin to numpy==1.13.1 as numpy==1.12.1 has build issues on distributions
+    # like Alpine Linux (which are the most common place where these source
+    # builds happen).
+    "numpy==1.13.1; python_version=='3.6'",
+    "numpy==1.13.1; python_version>='3.7'",
+]
