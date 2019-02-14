@@ -1378,7 +1378,6 @@ class TestDataFrameAnalytics(object):
         expected = DataFrame(expected_vals)
         tm.assert_frame_equal(result, expected)
 
-
     # ----------------------------------------------------------------------
     # Index of max / min
 

@@ -621,10 +621,12 @@ class Generic(object):
         if self._typ is DataFrame or self._typ is Series:
             vals = [np.nan, np.nan, 1, 2, np.nan, 4, 10, np.nan]
             obj = self._typ(vals)
-            _ = obj.pct_change(skipna=True, fill_method=fill_method, limit=limit)
-            assert False
+            result = obj.pct_change(skipna=True, fill_method=fill_method,
+                               limit=limit)
+            assert result is False
         else:
             raise ValueError()
+
 
 class TestNDFrame(object):
     # tests that don't fit elsewhere
