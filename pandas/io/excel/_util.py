@@ -19,8 +19,20 @@ def register_writer(klass):
 
 
 def _get_default_writer(ext):
-    """Return the default writer per extension. This default engine is used
-    unles another engine is explicitly defined."""
+    """
+    Return the default writer for the given extension.
+
+    Parameters
+    ----------
+    ext : str
+        The excel file extension for which to get the default engine.
+
+    Returns
+    -------
+    engine : str
+        The default engine for the extension.
+
+    """
     _default_writers = {'xlsx': 'openpyxl', 'xlsm': 'openpyxl', 'xls': 'xlwt'}
     try:
         import xlsxwriter  # noqa
