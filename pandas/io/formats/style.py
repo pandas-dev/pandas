@@ -435,7 +435,7 @@ class Styler(object):
         Returns
         -------
         rendered : str
-            The rendered HTML
+            The rendered HTML.
 
         Notes
         -----

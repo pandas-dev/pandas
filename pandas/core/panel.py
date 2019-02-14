@@ -540,7 +540,7 @@ class Panel(NDFrame):
         -------
         panel : Panel
             If label combo is contained, will be reference to calling Panel,
-            otherwise a new object
+            otherwise a new object.
         """
         warnings.warn("set_value is deprecated and will be removed "
                       "in a future release. Please use "
@@ -803,7 +803,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-            Index -> minor axis, columns -> items
+            Index -> minor axis, columns -> items.
 
         Notes
         -----
@@ -827,7 +827,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-            Index -> major axis, columns -> items
+            Index -> major axis, columns -> items.
 
         Notes
         -----
