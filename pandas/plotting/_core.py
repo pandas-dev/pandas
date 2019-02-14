@@ -2050,7 +2050,7 @@ _shared_docs['boxplot'] = """
 
     Returns
     -------
-    result :
+    result
         See Notes.
 
     See Also
@@ -2069,7 +2069,7 @@ _shared_docs['boxplot'] = """
         For data grouped with ``by``:
 
         * :class:`~pandas.Series`
-        * :class:`~numpy.array` (for ``return_type = None``).
+        * :class:`~numpy.array` (for ``return_type = None``)
 
     Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines
