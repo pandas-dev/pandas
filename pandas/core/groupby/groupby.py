@@ -1171,7 +1171,6 @@ class GroupBy(_GroupBy):
         ddof : integer, default 1
             degrees of freedom
         """
-
         nv.validate_groupby_func('std', args, kwargs)
         if ddof == 1:
             try:
