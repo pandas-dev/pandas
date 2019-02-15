@@ -3,6 +3,8 @@
 
 import ast
 from functools import partial
+import itertools as it
+import operator as op
 import tokenize
 
 import numpy as np
@@ -13,6 +15,8 @@ import pandas as pd
 from pandas import compat
 from pandas.core import common as com
 from pandas.core.base import StringMixin
+from pandas.core.computation.common import (
+    _BACKTICK_QUOTED_STRING, clean_column_name_with_spaces)
 from pandas.core.computation.ops import (
     _LOCAL_TAG, BinOp, Constant, Div, FuncNode, Op, Term, UnaryOp,
     UndefinedVariableError, _arith_ops_syms, _bool_ops_syms, _cmp_ops_syms,
@@ -31,7 +35,13 @@ def tokenize_string(source):
         A Python source code string
     """
     line_reader = StringIO(source).readline
-    for toknum, tokval, _, _, _ in tokenize.generate_tokens(line_reader):
+    token_generator = tokenize.generate_tokens(line_reader)
+    for toknum, tokval, _, _, _ in token_generator:
+        if tokval == '`':
+            tokval = " ".join(it.takewhile(
+                lambda tokval: tokval != '`',
+                map(op.itemgetter(1), token_generator)))
+            toknum = _BACKTICK_QUOTED_STRING
         yield toknum, tokval
 
 
@@ -102,6 +112,30 @@ def _replace_locals(tok):
     return toknum, tokval
 
 
+def _clean_spaces_backtick_quoted_names(tok):
+    """Clean up a column name if surrounded by backticks.
+
+    Backtick quoted string are indicated by a certain tokval value. If a string
+    is a backtick quoted token it will processed by
+    :func:`clean_column_name_with_spaces` so that the parser can find this
+    string when the query is executed. See also :meth:`DataFrame.eval`.
+
+    Parameters
+    ----------
+    tok : tuple of int, str
+        ints correspond to the all caps constants in the tokenize module
+
+    Returns
+    -------
+    t : tuple of int, str
+        Either the input or token or the replacement values
+    """
+    toknum, tokval = tok
+    if toknum == _BACKTICK_QUOTED_STRING:
+        return tokenize.NAME, clean_column_name_with_spaces(tokval)
+    return toknum, tokval
+
+
 def _compose2(f, g):
     """Compose 2 callables"""
     return lambda *args, **kwargs: f(g(*args, **kwargs))
@@ -114,7 +148,8 @@ def _compose(*funcs):
 
 
 def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
-                                 _rewrite_assign)):
+                                 _rewrite_assign,
+                                 _clean_spaces_backtick_quoted_names)):
     """Compose a collection of tokenization functions
 
     Parameters
@@ -711,8 +746,9 @@ _numexpr_supported_calls = frozenset(_reductions + _mathops)
 class PandasExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser,
-                 preparser=partial(_preparse, f=_compose(_replace_locals,
-                                                         _replace_booleans))):
+                 preparser=partial(_preparse, f=_compose(
+                     _replace_locals, _replace_booleans,
+                     _clean_spaces_backtick_quoted_names))):
         super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
 
 

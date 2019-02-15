@@ -36,6 +36,7 @@ from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
                            PY36, raise_with_traceback,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
+from pandas.core.computation.common import clean_column_name_with_spaces
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -3160,7 +3161,13 @@ class DataFrame(NDFrame):
         kwargs['level'] = kwargs.pop('level', 0) + 1
         if resolvers is None:
             index_resolvers = self._get_index_resolvers()
-            resolvers = dict(self.iteritems()), index_resolvers
+            # column names with spaces are altered so that they can be referred
+            # to by backtick quoting.
+            # Also see _clean_spaces_backtick_quoted_names from
+            # pandas/core/computation/expr.py
+            column_resolvers = {clean_column_name_with_spaces(k): v
+                                for k, v in self.iteritems()}
+            resolvers = column_resolvers, index_resolvers
         if 'target' not in kwargs:
             kwargs['target'] = self
         kwargs['resolvers'] = kwargs.get('resolvers', ()) + tuple(resolvers)
