@@ -320,7 +320,7 @@ class TestPivotTable(object):
                                columns=exp_columns_1)
 
         exp_columns_2 = MultiIndex(levels=[['values'], [1, 2]],
-                                   labels=[[0, 0], [0, 1]],
+                                   codes=[[0, 0], [0, 1]],
                                    names=[None, 'lev3'])
 
         expected_2 = DataFrame(data=data, index=exp_index,
