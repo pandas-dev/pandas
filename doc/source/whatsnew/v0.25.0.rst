@@ -20,6 +20,7 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
+- :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 -
 -
 
