@@ -960,6 +960,18 @@ class TestCategoricalSeriesReductions(object):
         assert np.isnan(_min)
         assert _max == 1
 
+        cat = Series(Categorical(
+            ["a", "b", np.nan, "a"], categories=['b', 'a'], ordered=True))
+        _min = cat.min(numeric_only=True)
+        _max = cat.max(numeric_only=True)
+        assert _min == "b"
+        assert _max == "a"
+
+        _min = cat.min(numeric_only=False)
+        _max = cat.max(numeric_only=False)
+        assert np.isnan(_min)
+        assert _max == "a"
+
 
 class TestSeriesMode(object):
     # Note: the name TestSeriesMode indicates these tests
