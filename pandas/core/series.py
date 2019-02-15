@@ -1047,7 +1047,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._maybe_update_cacher()
 
     def _set_with_engine(self, key, value):
-        values = self._values
+        if is_extension_array_dtype(self):
+            # GH 20441: set_value expects and ndarray, not ExtensionArray
+            values = self.values
+        else:
+            values = self._values
         try:
             self.index._engine.set_value(values, key, value)
             return

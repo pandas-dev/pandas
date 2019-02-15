@@ -133,7 +133,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Bug when setting a value to a :class:`Series` with timezone aware values and an :class:`Index` of tuples or strings (:issue:`12862`, :issue:`20441`)
 -
 -
 
