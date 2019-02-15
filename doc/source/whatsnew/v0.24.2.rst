@@ -26,6 +26,7 @@ Fixed Regressions
 
 - Fixed regression in :meth:`DataFrame.duplicated()`, where empty dataframe was not returning a boolean dtyped Series. (:issue:`25184`)
 - Fixed regression in subtraction between :class:`Series` objects with ``datetime64[ns]`` dtype incorrectly raising ``OverflowError`` when the `Series` on the right contains null values (:issue:`25317`)
+- Bug in :class:`TimedeltaIndex` where `np.sum(index)` incorrectly returned a zero-dimensional object instead of a scalar (:issue:`25282`)
 
 .. _whatsnew_0242.enhancements:
 
@@ -72,7 +73,7 @@ Bug Fixes
 -
 
 **Timedelta**
-- Bug in :class:`TimedeltaIndex` where `np.sum(index)` incorrectly returned a zero-dimensional object instead of a scalar (:issue:`25282`)
+
 -
 -
 -

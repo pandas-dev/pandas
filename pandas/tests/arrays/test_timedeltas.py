@@ -65,8 +65,7 @@ class TestTimedeltaArrayConstructor(object):
 class TestTimedeltaArray(object):
     def test_np_sum(self):
         # GH#25282
-        # TODO: result should be a Timedelta, not a np.timedelta64 object
-        vals = np.arange(5).view('m8[h]').astype('m8[ns]')
+        vals = np.arange(5, dtype=np.int64).view('m8[h]').astype('m8[ns]')
         arr = TimedeltaArray(vals)
         result = np.sum(arr)
         assert result == vals.sum()
