@@ -895,8 +895,8 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                     subtype = m.group('subtype')
                 else:
                     # if no match found, a bad datatype was passed
-                    msg = ('category, object, and string subtypes are not supported '
-                    'for IntervalDtype')
+                    msg = ('category, object, and string subtypes are not '
+                           'supported for IntervalDtype')
                     raise TypeError(msg)
         try:
             subtype = pandas_dtype(subtype)
