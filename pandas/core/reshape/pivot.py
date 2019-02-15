@@ -372,7 +372,7 @@ def pivot(data, index=None, columns=None, values=None):
             cols = [columns]
         else:
             if is_list_like(index):
-                cols = [ column for column in index]
+                cols = [column for column in index]
             else:
                 cols = [index]
             cols.append(columns)
