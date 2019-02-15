@@ -368,15 +368,29 @@ def _convert_by(by):
 @Appender(_shared_docs['pivot'], indents=1)
 def pivot(data, index=None, columns=None, values=None):
     if values is None:
-        cols = [columns] if index is None else [index, columns]
+        if index is None:
+            cols = [columns]
+        else:
+            if is_list_like(index):
+                cols = [ column for column in index]
+            else:
+                cols = [index]
+            cols.append(columns)
         append = index is None
         indexed = data.set_index(cols, append=append)
+
     else:
         if index is None:
             index = data.index
+            index = MultiIndex.from_arrays([index, data[columns]])
+        elif is_list_like(index):
+            # Iterating through the list of multiple columns of an index
+            indexes = [data[column] for column in index]
+            indexes.append(data[columns])
+            index = MultiIndex.from_arrays(indexes)
         else:
             index = data[index]
-        index = MultiIndex.from_arrays([index, data[columns]])
+            index = MultiIndex.from_arrays([index, data[columns]])
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name

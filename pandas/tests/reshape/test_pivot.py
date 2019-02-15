@@ -301,6 +301,34 @@ class TestPivotTable(object):
         expected = concat([means, stds], keys=['mean', 'std'], axis=1)
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_multiple_columns_as_index(self):
+        # adding the test case for multiple columns as index (#21425)
+        df = DataFrame({'lev1': [1, 1, 1, 1, 2, 2, 2, 2],
+                        'lev2': [1, 1, 2, 2, 1, 1, 2, 2],
+                        'lev3': [1, 2, 1, 2, 1, 2, 1, 2],
+                        'values': [0, 1, 2, 3, 4, 5, 6, 7]})
+        result = df.pivot(index=['lev1', 'lev2'],
+                          columns='lev3',
+                          values='values')
+        result_no_values = df.pivot(index=['lev1', 'lev2'],
+                                    columns='lev3')
+        data = [[0, 1], [2, 3], [4, 5], [6, 7]]
+        exp_index = pd.MultiIndex.from_product([[1, 2], [1, 2]],
+                                               names=['lev1', 'lev2'])
+        exp_columns_1 = Index([1, 2], name='lev3')
+        expected_1 = DataFrame(data=data, index=exp_index,
+                               columns=exp_columns_1)
+
+        exp_columns_2 = MultiIndex(levels=[['values'], [1, 2]],
+                                   labels=[[0, 0], [0, 1]],
+                                   names=[None, 'lev3'])
+
+        expected_2 = DataFrame(data=data, index=exp_index,
+                               columns=exp_columns_2)
+
+        tm.assert_frame_equal(result, expected_1)
+        tm.assert_frame_equal(result_no_values, expected_2)
+
     @pytest.mark.parametrize('method', [True, False])
     def test_pivot_index_with_nan(self, method):
         # GH 3588
