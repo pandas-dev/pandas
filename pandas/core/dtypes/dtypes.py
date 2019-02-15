@@ -893,11 +893,15 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                 m = cls._match.search(subtype)
                 if m is not None:
                     subtype = m.group('subtype')
-
-            try:
-                subtype = pandas_dtype(subtype)
-            except TypeError:
-                raise TypeError("could not construct IntervalDtype")
+                else:
+                    # if no match found, a bad datatype was passed
+                    msg = ('category, object, and string subtypes are not supported '
+                    'for IntervalDtype')
+                    raise TypeError(msg)
+        try:
+            subtype = pandas_dtype(subtype)
+        except TypeError:
+            raise TypeError("could not construct IntervalDtype")
 
         if is_categorical_dtype(subtype) or is_string_dtype(subtype):
             # GH 19016
@@ -978,7 +982,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                         return True
                     else:
                         return False
-                except ValueError:
+                except (ValueError, TypeError):
                     return False
             else:
                 return False
