@@ -3680,7 +3680,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         if isinstance(delegate, Categorical):
             # TODO deprecate numeric_only argument for Categorical and use
-            # skipna as well
+            # skipna as well, see GH25303
             return delegate._reduce(name, numeric_only=numeric_only, **kwds)
         elif isinstance(delegate, ExtensionArray):
             # dispatch to ExtensionArray interface
