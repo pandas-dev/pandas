@@ -7604,16 +7604,16 @@ class NDFrame(PandasObject, SelectionMixin):
         using the `level` parameter:
 
         >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
-        ...           ['Capitve', 'Wild', 'Capitve', 'Wild']]
+        ...           ['Captive', 'Wild', 'Captive', 'Wild']]
         >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
         >>> df = pd.DataFrame({'Max Speed' : [390., 350., 30., 20.]},
         ...                    index=index)
         >>> df
                         Max Speed
         Animal Type
-        Falcon Capitve      390.0
+        Falcon Captive      390.0
                Wild         350.0
-        Parrot Capitve       30.0
+        Parrot Captive       30.0
                Wild          20.0
         >>> df.groupby(level=0).mean()
                 Max Speed
@@ -7623,7 +7623,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df.groupby(level=1).mean()
                  Max Speed
         Type
-        Capitve      210.0
+        Captive      210.0
         Wild         185.0
         """
         from pandas.core.groupby.groupby import groupby
