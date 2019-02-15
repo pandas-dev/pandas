@@ -1317,7 +1317,7 @@ arbitrary function, for example:
    df.groupby(['Store', 'Product']).pipe(mean)
 
 where ``mean`` takes a GroupBy object and finds the mean of the Revenue and Quantity
-columns repectively for each Store-Product combination. The ``mean`` function can
+columns respectively for each Store-Product combination. The ``mean`` function can
 be any function that takes in a GroupBy object; the ``.pipe`` will pass the GroupBy
 object as a parameter into the function you specify.
 
