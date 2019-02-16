@@ -40,6 +40,42 @@ def get_test_data(ngroups=NGROUPS, n=N):
     return arr
 
 
+def get_series():
+    return [
+        pd.Series([1], dtype='int64'),
+        pd.Series([1], dtype='Int64'),
+        pd.Series([1.23]),
+        pd.Series(['foo']),
+        pd.Series([True]),
+        pd.Series([pd.Timestamp('2018-01-01')]),
+        pd.Series([pd.Timestamp('2018-01-01', tz='US/Eastern')]),
+    ]
+
+
+def get_series_nan():
+    return [
+        pd.Series([np.nan], dtype='Int64'),
+        pd.Series([np.nan], dtype='float'),
+        pd.Series([np.nan], dtype='object'),
+        pd.Series([pd.NaT]),
+    ]
+
+
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+def value_col(request):
+    return request.param
+
+
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+def value_col2(request):
+    return request.param
+
+
+@pytest.fixture(params=get_series_nan(), ids=lambda x: x.dtype.name)
+def value_col_nan(request):
+    return request.param
+
+
 class TestMerge(object):
 
     def setup_method(self, method):
@@ -429,21 +465,9 @@ class TestMerge(object):
                 check1(exp_in, kwarg)
                 check2(exp_out, kwarg)
 
-    @pytest.mark.parametrize(
-        'join_col, val_col', list(itertools.product([
-            pd.Series([1], dtype='int64'),
-            pd.Series([1], dtype='Int64'),
-            pd.Series([1.23]),
-            pd.Series(['foo']),
-            pd.Series([True]),
-            pd.Series([pd.Timestamp('2018-01-01')]),
-            pd.Series([pd.Timestamp('2018-01-01', tz='US/Eastern')]),
-        ], repeat=2)),
-        ids=lambda x: x.dtype.name
-    )
-    def test_merge_empty_frame(self, join_col, val_col):
+    def test_merge_empty_frame(self, value_col, value_col2):
         # GH 25183
-        df = pd.DataFrame({'a': join_col, 'b': val_col}, columns=['a', 'b'])
+        df = pd.DataFrame({'a': value_col, 'b': value_col2}, columns=['a', 'b'])
         df_empty = df[:0]
         exp = pd.DataFrame({
             'b_x': pd.Series(dtype=df.dtypes['b']),
@@ -453,36 +477,16 @@ class TestMerge(object):
         act = df_empty.merge(df, on='a')
         assert_frame_equal(act, exp)
 
-    @pytest.mark.parametrize(
-        'join_col, val_col', list(itertools.product(
-            [
-                pd.Series([1], dtype='int64'),
-                pd.Series([1], dtype='Int64'),
-                pd.Series([1.23]),
-                pd.Series(['foo']),
-                pd.Series([True]),
-                pd.Series([pd.Timestamp('2018-01-01')]),
-                pd.Series([pd.Timestamp('2018-01-01', tz='US/Eastern')]),
-            ],
-            [
-                pd.Series([np.nan], dtype='Int64'),
-                pd.Series([np.nan], dtype='float'),
-                pd.Series([np.nan], dtype='object'),
-                pd.Series([pd.NaT]),
-            ]
-        )),
-        ids=lambda x: x.dtype.name
-    )
-    def test_merge_all_na_column(self, join_col, val_col):
+    def test_merge_all_na_column(self, value_col, value_col_nan):
         # GH 25183
         df_left = pd.DataFrame(
-            {'a': join_col, 'b': val_col}, columns=['a', 'b'])
+            {'a': value_col, 'b': value_col_nan}, columns=['a', 'b'])
         df_right = pd.DataFrame(
-            {'a': join_col, 'b': val_col}, columns=['a', 'b'])
+            {'a': value_col, 'b': value_col_nan}, columns=['a', 'b'])
         exp = pd.DataFrame({
-            'a': join_col,
-            'b_x': val_col,
-            'b_y': val_col,
+            'a': value_col,
+            'b_x': value_col_nan,
+            'b_y': value_col_nan,
         }, columns=['a', 'b_x', 'b_y'])
         act = df_left.merge(df_right, on='a')
         assert_frame_equal(act, exp)
