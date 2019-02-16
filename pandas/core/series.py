@@ -1215,7 +1215,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         Series
             If label is contained, will be reference to calling Series,
-            otherwise a new object
+            otherwise a new object.
         """
         warnings.warn("set_value is deprecated and will be removed "
                       "in a future release. Please use "
@@ -1648,10 +1648,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         ndarray or ExtensionArray
-            The unique values returned as a NumPy array. In case of an
-            extension-array backed Series, a new
-            :class:`~api.extensions.ExtensionArray` of that type with just
-            the unique values is returned. This includes
+            The unique values returned as a NumPy array. See Notes.
+
+        See Also
+        --------
+        unique : Top-level unique method for any 1-d array-like object.
+        Index.unique : Return Index with unique values from an Index object.
+
+        Notes
+        -----
+        Returns the unique values as a NumPy array. In case of an
+        extension-array backed Series, a new
+        :class:`~api.extensions.ExtensionArray` of that type with just
+        the unique values is returned. This includes
 
             * Categorical
             * Period
@@ -1659,11 +1668,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             * Interval
             * Sparse
             * IntegerNA
-
-        See Also
-        --------
-        unique : Top-level unique method for any 1-d array-like object.
-        Index.unique : Return Index with unique values from an Index object.
 
         Examples
         --------

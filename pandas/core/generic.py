@@ -774,18 +774,18 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         item : str
-            Column label to be popped
+            Label of column to be popped.
 
         Returns
         -------
-        popped : Series
+        Series
 
         Examples
         --------
-        >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
-        ...                    ('parrot', 'bird',     24.0),
-        ...                    ('lion',   'mammal',   80.5),
-        ...                    ('monkey', 'mammal', np.nan)],
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('lion', 'mammal', 80.5),
+        ...                    ('monkey','mammal', np.nan)],
         ...                   columns=('name', 'class', 'max_speed'))
         >>> df
              name   class  max_speed
@@ -937,7 +937,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        i, j : int, string (can be mixed)
+        i, j : int, str (can be mixed)
             Level of index to be swapped. Can pass level name as string.
 
         Returns
@@ -973,9 +973,9 @@ class NDFrame(PandasObject, SelectionMixin):
             and raise on DataFrame or Panel.
             dict-like or functions are transformations to apply to
             that axis' values
-        copy : boolean, default True
-            Also copy underlying data
-        inplace : boolean, default False
+        copy : bool, default True
+            Also copy underlying data.
+        inplace : bool, default False
             Whether to return a new %(klass)s. If True then value of copy is
             ignored.
         level : int or level name, default None
@@ -2947,7 +2947,7 @@ class NDFrame(PandasObject, SelectionMixin):
             will treat them as non-numeric.
         quotechar : str, default '\"'
             String of length 1. Character used to quote fields.
-        line_terminator : string, optional
+        line_terminator : str, optional
             The newline character or character sequence to use in the output
             file. Defaults to `os.linesep`, which depends on the OS in which
             this method is called ('\n' for linux, '\r\n' for Windows, i.e.).
@@ -4953,7 +4953,7 @@ class NDFrame(PandasObject, SelectionMixin):
         If DataFrame.agg is called with a single function, returns a Series
         If DataFrame.agg is called with several functions, returns a DataFrame
         If Series.agg is called with single function, returns a scalar
-        If Series.agg is called with several functions, returns a Series
+        If Series.agg is called with several functions, returns a Series.
 
     %(see_also)s
 
@@ -5349,7 +5349,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         numpy.ndarray
-            Numpy representation of DataFrame
+            Numpy representation of DataFrame.
 
         See Also
         --------
@@ -5428,7 +5428,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         dtype : Series
             Series with the count of columns with each type and
-            sparsity (dense/sparse)
+            sparsity (dense/sparse).
 
         See Also
         --------
@@ -6880,11 +6880,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         scalar, Series, or DataFrame
 
-           Scalar : when `self` is a Series and `where` is a scalar
+           Scalar : when `self` is a Series and `where` is a scalar.
            Series: when `self` is a Series and `where` is an array-like,
-             or when `self` is a DataFrame and `where` is a scalar
+             or when `self` is a DataFrame and `where` is a scalar.
            DataFrame : when `self` is a DataFrame and `where` is an
-             array-like
+             array-like.
 
         See Also
         --------
@@ -7607,16 +7607,16 @@ class NDFrame(PandasObject, SelectionMixin):
         using the `level` parameter:
 
         >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
-        ...           ['Capitve', 'Wild', 'Capitve', 'Wild']]
+        ...           ['Captive', 'Wild', 'Captive', 'Wild']]
         >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
         >>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
         ...                   index=index)
         >>> df
                         Max Speed
         Animal Type
-        Falcon Capitve      390.0
+        Falcon Captive      390.0
                Wild         350.0
-        Parrot Capitve       30.0
+        Parrot Captive       30.0
                Wild          20.0
         >>> df.groupby(level=0).mean()
                 Max Speed
@@ -7626,7 +7626,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df.groupby(level=1).mean()
                  Max Speed
         Type
-        Capitve      210.0
+        Captive      210.0
         Wild         185.0
         """
         from pandas.core.groupby.groupby import groupby
@@ -8389,7 +8389,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         (left, right) : (%(klass)s, type of other)
-            Aligned objects
+            Aligned objects.
         """)
 
     @Appender(_shared_docs['align'] % _shared_doc_kwargs)
@@ -10285,7 +10285,7 @@ _num_ddof_doc = """
 Parameters
 ----------
 axis : %(axis_descr)s
-skipna : boolean, default True
+skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA
 level : int or level name, default None
@@ -10294,7 +10294,7 @@ level : int or level name, default None
 ddof : int, default 1
     Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
     where N represents the number of elements.
-numeric_only : boolean, default None
+numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
 
