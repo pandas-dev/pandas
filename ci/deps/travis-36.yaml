@@ -36,6 +36,7 @@ dependencies:
   - pytest
   - pytest-xdist
   - pytest-cov
+  - pytest-mock
   - hypothesis>=3.58.0
   - pip:
     - brotlipy

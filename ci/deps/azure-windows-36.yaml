@@ -25,4 +25,5 @@ dependencies:
   - cython>=0.28.2
   - pytest
   - pytest-xdist
+  - pytest-mock
   - hypothesis>=3.58.0

@@ -78,13 +78,12 @@ def test_detect_console_encoding_fallback_to_default(monkeypatch, std, locale):
 
 
 @pytest.mark.parametrize("size", ['', ['']])
-def test_terminal_unknown_dimensions(monkeypatch, size):
-    mock = pytest.importorskip("unittest.mock")
+def test_terminal_unknown_dimensions(monkeypatch, size, mocker):
 
     def communicate(*args, **kwargs):
         return size
 
-    monkeypatch.setattr('subprocess.Popen', mock.Mock())
+    monkeypatch.setattr('subprocess.Popen', mocker.Mock())
     monkeypatch.setattr('subprocess.Popen.return_value.returncode', None)
     monkeypatch.setattr(
         'subprocess.Popen.return_value.communicate', communicate)

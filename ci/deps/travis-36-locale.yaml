@@ -30,6 +30,7 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - pytest-mock
   - moto
   - pip:
     - hypothesis>=3.58.0
