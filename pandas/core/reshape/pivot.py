@@ -375,14 +375,6 @@ def pivot(data, index=None, columns=None, values=None):
         elif index is not None:
             cols.extend([index])
         cols.append(columns)
-        # if index is None:
-        #     cols.append(columns)
-        # elif is_list_like(index):
-        #     cols.extend(index)
-        #     cols.append(columns)
-        # else:
-        #     cols.extend([index])
-        #     cols.append(columns)
 
         append = index is None
         indexed = data.set_index(cols, append=append)
