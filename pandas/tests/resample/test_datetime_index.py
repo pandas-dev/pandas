@@ -1209,9 +1209,13 @@ def test_resample_nunique_with_date_gap():
 @pytest.mark.parametrize('k', [10, 100, 1000])
 def test_resample_group_info(n, k):
     # GH10914
+
+    # use a fixed seed to always have the same uniques
+    prng = np.random.RandomState(1234)
+
     dr = date_range(start='2015-08-27', periods=n // 10, freq='T')
-    ts = Series(np.random.randint(0, n // k, n).astype('int64'),
-                index=np.random.choice(dr, n))
+    ts = Series(prng.randint(0, n // k, n).astype('int64'),
+                index=prng.choice(dr, n))
 
     left = ts.resample('30T').nunique()
     ix = date_range(start=ts.index.min(), end=ts.index.max(),
