@@ -467,7 +467,8 @@ class TestMerge(object):
 
     def test_merge_empty_frame(self, value_col, value_col2):
         # GH 25183
-        df = pd.DataFrame({'a': value_col, 'b': value_col2}, columns=['a', 'b'])
+        df = pd.DataFrame({'a': value_col, 'b': value_col2},
+                          columns=['a', 'b'])
         df_empty = df[:0]
         exp = pd.DataFrame({
             'b_x': pd.Series(dtype=df.dtypes['b']),
