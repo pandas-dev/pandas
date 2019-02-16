@@ -405,36 +405,36 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
              aggfunc=None, margins=False, margins_name='All', dropna=True,
              normalize=False):
     """
-    Compute a simple cross-tabulation of two (or more) factors. By default
+    Compute a simple cross tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an
-    aggregation function are passed
+    aggregation function are passed.
 
     Parameters
     ----------
     index : array-like, Series, or list of arrays/Series
-        Values to group by in the rows
+        Values to group by in the rows.
     columns : array-like, Series, or list of arrays/Series
-        Values to group by in the columns
+        Values to group by in the columns.
     values : array-like, optional
         Array of values to aggregate according to the factors.
         Requires `aggfunc` be specified.
     rownames : sequence, default None
-        If passed, must match number of row arrays passed
+        If passed, must match number of row arrays passed.
     colnames : sequence, default None
-        If passed, must match number of column arrays passed
+        If passed, must match number of column arrays passed.
     aggfunc : function, optional
-        If specified, requires `values` be specified as well
-    margins : boolean, default False
-        Add row/column margins (subtotals)
-    margins_name : string, default 'All'
-        Name of the row / column that will contain the totals
+        If specified, requires `values` be specified as well.
+    margins : bool, default False
+        Add row/column margins (subtotals).
+    margins_name : str, default 'All'
+        Name of the row/column that will contain the totals
         when margins is True.
 
         .. versionadded:: 0.21.0
 
-    dropna : boolean, default True
-        Do not include columns whose entries are all NaN
-    normalize : boolean, {'all', 'index', 'columns'}, or {0,1}, default False
+    dropna : bool, default True
+        Do not include columns whose entries are all NaN.
+    normalize : bool, {'all', 'index', 'columns'}, or {0,1}, default False
         Normalize by dividing all values by the sum of values.
 
         - If passed 'all' or `True`, will normalize over all values.
@@ -446,7 +446,13 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
 
     Returns
     -------
-    crosstab : DataFrame
+    DataFrame
+        Cross tabulation of the data.
+
+    See Also
+    --------
+    DataFrame.pivot : Reshape data based on column values.
+    pivot_table : Create a pivot table as a DataFrame.
 
     Notes
     -----
@@ -468,32 +474,26 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     ...               "one", "two", "two", "two", "one"], dtype=object)
     >>> c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny",
     ...               "shiny", "dull", "shiny", "shiny", "shiny"],
-    ...               dtype=object)
-
+    ...              dtype=object)
     >>> pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
-    ... # doctest: +NORMALIZE_WHITESPACE
     b   one        two
     c   dull shiny dull shiny
     a
     bar    1     2    1     0
     foo    2     2    1     2
 
+    Here 'c' and 'f' are not represented in the data and will not be
+    shown in the output because dropna is True by default. Set
+    dropna=False to preserve categories with no data.
+
     >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
     >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
-    >>> crosstab(foo, bar)  # 'c' and 'f' are not represented in the data,
-                            # and will not be shown in the output because
-                            # dropna is True by default. Set 'dropna=False'
-                            # to preserve categories with no data
-    ... # doctest: +SKIP
+    >>> pd.crosstab(foo, bar)
     col_0  d  e
     row_0
     a      1  0
     b      0  1
-
-    >>> crosstab(foo, bar, dropna=False)  # 'c' and 'f' are not represented
-                            # in the data, but they still will be counted
-                            # and shown in the output
-    ... # doctest: +SKIP
+    >>> pd.crosstab(foo, bar, dropna=False)
     col_0  d  e  f
     row_0
     a      1  0  0
