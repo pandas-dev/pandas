@@ -372,11 +372,10 @@ def pivot(data, index=None, columns=None, values=None):
             # Build cols for indexes.
             cols = [columns]
         else:
+            # Accept multiple column indexes.
             if is_list_like(index):
-                # If a given index is a list, set cols to index.
                 cols = index
             else:
-                # If a given index is not a list, set cols to a list of index.
                 cols = [index]
             cols.append(columns)
         append = index is None
