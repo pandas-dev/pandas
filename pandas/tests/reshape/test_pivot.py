@@ -310,28 +310,28 @@ class TestPivotTable(object):
                         'values': [0, 1, 2, 3, 4, 5, 6, 7]})
         data = [[0, 1], [2, 3], [4, 5], [6, 7]]
         exp_index = pd.MultiIndex.from_product([[1, 2], [1, 2]],
-                                                names=['lev1', 'lev2'])
+                                               names=['lev1', 'lev2'])
         if method:
             result = df.pivot(index=['lev1', 'lev2'],
-                            columns='lev3',
-                            values='values')
+                              columns='lev3',
+                              values='values')
 
             exp_columns_1 = Index([1, 2], name='lev3')
             expected = DataFrame(data=data, index=exp_index,
-                                columns=exp_columns_1)
+                                 columns=exp_columns_1)
 
         else:
             result = df.pivot(index=['lev1', 'lev2'],
-                                        columns='lev3')
+                              columns='lev3')
 
             exp_columns_2 = MultiIndex(levels=[['values'], [1, 2]],
-                                    codes=[[0, 0], [0, 1]],
-                                    names=[None, 'lev3'])
+                                       codes=[[0, 0], [0, 1]],
+                                       names=[None, 'lev3'])
 
             expected = DataFrame(data=data, index=exp_index,
-                                columns=exp_columns_2)
+                                 columns=exp_columns_2)
 
-        tm.assert_frame_equal(result,expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('method', [True, False])
     def test_pivot_index_with_nan(self, method):
