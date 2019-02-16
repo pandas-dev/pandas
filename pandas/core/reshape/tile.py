@@ -163,7 +163,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     Use `drop` optional when bins is not unique
 
     >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
-    ...    right=False, duplicates='drop')
+    ...        right=False, duplicates='drop')
     ... # doctest: +ELLIPSIS
     (a    0.0
      b    1.0
