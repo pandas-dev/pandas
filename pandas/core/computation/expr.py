@@ -9,7 +9,7 @@ import tokenize
 
 import numpy as np
 
-from pandas.compat import StringIO, lmap, reduce, string_types, zip, map
+from pandas.compat import StringIO, lmap, map, reduce, string_types, zip
 
 import pandas as pd
 from pandas import compat
@@ -174,9 +174,7 @@ def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), 'f must be callable'
-    source = tokenize.untokenize(lmap(f, tokenize_string(source)))
-    print(source)
-    return source
+    return tokenize.untokenize(lmap(f, tokenize_string(source)))
 
 
 def _is_type(t):

@@ -4,7 +4,6 @@ from pandas.compat import reduce, string_types
 
 import pandas as pd
 
-
 # A token value Python's tokenizer probably will never use.
 _BACKTICK_QUOTED_STRING = 100
 
