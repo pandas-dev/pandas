@@ -7,6 +7,7 @@ from pandas.core.dtypes.common import is_integer, is_list_like
 
 from pandas.core import config
 
+# Default extentions to use default Excel writers classes.
 _writer_extensions = ["xlsx", "xls", "xlsm"]
 
 
@@ -31,6 +32,8 @@ def register_writer(klass):
 
 
 def _get_default_writer(ext):
+    """Get default an instantiated writer class using extention.
+    """
     _default_writers = {'xlsx': 'openpyxl', 'xlsm': 'openpyxl', 'xls': 'xlwt'}
     try:
         import xlsxwriter  # noqa
@@ -229,8 +232,6 @@ def _fill_mi_header(row, control_row):
             last = row[i]
 
     return _maybe_convert_to_string(row), control_row
-
-# fill blank if index_col not None
 
 
 def _pop_header_name(row, index_col):
