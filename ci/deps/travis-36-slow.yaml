@@ -27,5 +27,6 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - pytest-mock
   - moto
   - hypothesis>=3.58.0
