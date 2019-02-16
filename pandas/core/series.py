@@ -1648,10 +1648,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         ndarray or ExtensionArray
-            The unique values returned as a NumPy array. In case of an
-            extension-array backed Series, a new
-            :class:`~api.extensions.ExtensionArray` of that type with just
-            the unique values is returned. This includes
+            The unique values returned as a NumPy array. See Notes.
+
+        See Also
+        --------
+        unique : Top-level unique method for any 1-d array-like object.
+        Index.unique : Return Index with unique values from an Index object.
+
+        Notes
+        -----
+        Returns the unique values as a NumPy array. In case of an
+        extension-array backed Series, a new
+        :class:`~api.extensions.ExtensionArray` of that type with just
+        the unique values is returned. This includes
 
             * Categorical
             * Period
@@ -1659,11 +1668,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             * Interval
             * Sparse
             * IntegerNA .
-
-        See Also
-        --------
-        unique : Top-level unique method for any 1-d array-like object.
-        Index.unique : Return Index with unique values from an Index object.
 
         Examples
         --------
@@ -3674,8 +3678,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if axis is not None:
             self._get_axis_number(axis)
 
-        # dispatch to ExtensionArray interface
-        if isinstance(delegate, ExtensionArray):
+        if isinstance(delegate, Categorical):
+            # TODO deprecate numeric_only argument for Categorical and use
+            # skipna as well, see GH25303
+            return delegate._reduce(name, numeric_only=numeric_only, **kwds)
+        elif isinstance(delegate, ExtensionArray):
+            # dispatch to ExtensionArray interface
             return delegate._reduce(name, skipna=skipna, **kwds)
         elif is_datetime64_dtype(delegate):
             # use DatetimeIndex implementation to handle skipna correctly

@@ -27,6 +27,7 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - pytest-mock
   - pip:
     - hypothesis>=3.58.0
     - moto  # latest moto in conda-forge fails with 3.7, move to conda dependencies when this is fixed

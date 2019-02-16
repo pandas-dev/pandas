@@ -2051,8 +2051,16 @@ _shared_docs['boxplot'] = """
     Returns
     -------
     result
+        See Notes.
 
-        The return type depends on the `return_type` parameter:
+    See Also
+    --------
+    Series.plot.hist: Make a histogram.
+    matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
+
+    Notes
+    -----
+    The return type depends on the `return_type` parameter:
 
         * 'axes' : object of class matplotlib.axes.Axes
         * 'dict' : dict of matplotlib.lines.Line2D objects
@@ -2064,13 +2072,6 @@ _shared_docs['boxplot'] = """
         * :class:`~numpy.array` (for ``return_type = None``)
         Return Series or numpy.array.
 
-    See Also
-    --------
-    Series.plot.hist: Make a histogram.
-    matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
-
-    Notes
-    -----
     Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines
     making up the boxes, caps, fliers, medians, and whiskers is returned.

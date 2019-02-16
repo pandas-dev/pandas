@@ -1065,7 +1065,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        pandas.DataFrame
+        DataFrame
 
         See Also
         --------
@@ -3542,7 +3542,13 @@ class DataFrame(NDFrame):
 
         Returns
         -------
+<<<<<<< HEAD
         numpy-array
+||||||| merged common ancestors
+        sanitized_column : numpy-array
+=======
+        numpy.ndarray
+>>>>>>> upstream/master
         """
 
         def reindexer(value):
@@ -3811,7 +3817,13 @@ class DataFrame(NDFrame):
 
         Returns
         -------
+<<<<<<< HEAD
         pandas.DataFrame
+||||||| merged common ancestors
+        dropped : pandas.DataFrame
+=======
+        DataFrame
+>>>>>>> upstream/master
 
         Raises
         ------
@@ -4981,7 +4993,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        same type as caller (new object)
+        DataFrame
 
         .. versionchanged:: 0.18.1
 
@@ -5761,9 +5773,9 @@ class DataFrame(NDFrame):
         Notes
         -----
         The function is named by analogy with a collection of books
-        being re-organised from being side by side on a horizontal
+        being reorganized from being side by side on a horizontal
         position (the columns of the dataframe) to being stacked
-        vertically on top of of each other (in the index of the
+        vertically on top of each other (in the index of the
         dataframe).
 
         Examples
@@ -5907,7 +5919,13 @@ class DataFrame(NDFrame):
 
         Returns
         -------
+<<<<<<< HEAD
         DataFrame or Series
+||||||| merged common ancestors
+        unstacked : DataFrame or Series
+=======
+        Series or DataFrame
+>>>>>>> upstream/master
 
         See Also
         --------
@@ -6345,7 +6363,15 @@ class DataFrame(NDFrame):
 
         Returns
         -------
+<<<<<<< HEAD
         Series or DataFrame
+||||||| merged common ancestors
+        applied : Series or DataFrame
+=======
+        Series or DataFrame
+            Result of applying ``func`` along the given axis of the
+            DataFrame.
+>>>>>>> upstream/master
 
         See Also
         --------
@@ -6364,7 +6390,7 @@ class DataFrame(NDFrame):
         Examples
         --------
 
-        >>> df = pd.DataFrame([[4, 9],] * 3, columns=['A', 'B'])
+        >>> df = pd.DataFrame([[4, 9]] * 3, columns=['A', 'B'])
         >>> df
            A  B
         0  4  9
@@ -6956,12 +6982,19 @@ class DataFrame(NDFrame):
 
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result. Currently only available for pearson
-            and spearman correlation
+            to have a valid result. Currently only available for Pearson
+            and Spearman correlation.
 
         Returns
         -------
+<<<<<<< HEAD
         DataFrame
+||||||| merged common ancestors
+        y : DataFrame
+=======
+        DataFrame
+            Correlation matrix.
+>>>>>>> upstream/master
 
         See Also
         --------
@@ -6970,14 +7003,15 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> histogram_intersection = lambda a, b: np.minimum(a, b
-        ... ).sum().round(decimals=1)
+        >>> def histogram_intersection(a, b):
+        ...     v = np.minimum(a, b).sum().round(decimals=1)
+        ...     return v
         >>> df = pd.DataFrame([(.2, .3), (.0, .6), (.6, .0), (.2, .1)],
         ...                   columns=['dogs', 'cats'])
         >>> df.corr(method=histogram_intersection)
-              dogs cats
-        dogs   1.0  0.3
-        cats   0.3  1.0
+              dogs  cats
+        dogs   1.0   0.3
+        cats   0.3   1.0
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
@@ -7140,10 +7174,11 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         other : DataFrame, Series
+            Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
-        drop : boolean, default False
-            Drop missing indices from result
+            0 or 'index' to compute column-wise, 1 or 'columns' for row-wise.
+        drop : bool, default False
+            Drop missing indices from result.
         method : {'pearson', 'kendall', 'spearman'} or callable
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
@@ -7155,7 +7190,14 @@ class DataFrame(NDFrame):
 
         Returns
         -------
+<<<<<<< HEAD
         Series
+||||||| merged common ancestors
+        correls : Series
+=======
+        Series
+            Pairwise correlations.
+>>>>>>> upstream/master
 
         See Also
         -------
@@ -7236,7 +7278,7 @@ class DataFrame(NDFrame):
             If the axis is a `MultiIndex` (hierarchical), count along a
             particular `level`, collapsing into a `DataFrame`.
             A `str` specifies the level name.
-        numeric_only : boolean, default False
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
         Returns
@@ -7523,7 +7565,14 @@ class DataFrame(NDFrame):
 
         Returns
         -------
+<<<<<<< HEAD
         Series
+||||||| merged common ancestors
+        idxmin : Series
+=======
+        Series
+            Indexes of minima along the specified axis.
+>>>>>>> upstream/master
 
         Raises
         ------
@@ -7559,7 +7608,14 @@ class DataFrame(NDFrame):
 
         Returns
         -------
+<<<<<<< HEAD
         Series
+||||||| merged common ancestors
+        idxmax : Series
+=======
+        Series
+            Indexes of maxima along the specified axis.
+>>>>>>> upstream/master
 
         Raises
         ------
@@ -7776,15 +7832,15 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        freq : string, default frequency of PeriodIndex
-            Desired frequency
+        freq : str, default frequency of PeriodIndex
+            Desired frequency.
         how : {'s', 'e', 'start', 'end'}
             Convention for converting period to timestamp; start of period
-            vs. end
+            vs. end.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to convert (the index by default)
-        copy : boolean, default True
-            If false then underlying input data is not copied
+            The axis to convert (the index by default).
+        copy : bool, default True
+            If False then underlying input data is not copied.
 
         Returns
         -------
@@ -7812,11 +7868,12 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        freq : string, default
+        freq : str, default
+            Frequency of the PeriodIndex.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to convert (the index by default)
-        copy : boolean, default True
-            If False then underlying input data is not copied
+            The axis to convert (the index by default).
+        copy : bool, default True
+            If False then underlying input data is not copied.
 
         Returns
         -------
@@ -7893,7 +7950,7 @@ class DataFrame(NDFrame):
         match. Note that 'falcon' does not match based on the number of legs
         in df2.
 
-        >>> other = pd.DataFrame({'num_legs': [8, 2],'num_wings': [0, 2]},
+        >>> other = pd.DataFrame({'num_legs': [8, 2], 'num_wings': [0, 2]},
         ...                      index=['spider', 'falcon'])
         >>> df.isin(other)
                 num_legs  num_wings

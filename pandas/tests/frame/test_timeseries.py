@@ -6,6 +6,7 @@ from datetime import datetime, time
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas.compat import product
 
@@ -646,6 +647,28 @@ class TestDataFrameTimeSeriesMethods(TestData):
         ts = DataFrame(np.random.randn(len(rng), 2), rng)
         rs = ts.at_time('16:00')
         assert len(rs) == 0
+
+    @pytest.mark.parametrize('hour', ['1:00', '1:00AM', time(1),
+                                      time(1, tzinfo=pytz.UTC)])
+    def test_at_time_errors(self, hour):
+        # GH 24043
+        dti = pd.date_range('2018', periods=3, freq='H')
+        df = pd.DataFrame(list(range(len(dti))), index=dti)
+        if getattr(hour, 'tzinfo', None) is None:
+            result = df.at_time(hour)
+            expected = df.iloc[1:2]
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(ValueError, match="Index must be timezone"):
+                df.at_time(hour)
+
+    def test_at_time_tz(self):
+        # GH 24043
+        dti = pd.date_range('2018', periods=3, freq='H', tz='US/Pacific')
+        df = pd.DataFrame(list(range(len(dti))), index=dti)
+        result = df.at_time(time(4, tzinfo=pytz.timezone('US/Eastern')))
+        expected = df.iloc[1:2]
+        tm.assert_frame_equal(result, expected)
 
     def test_at_time_raises(self):
         # GH20725
