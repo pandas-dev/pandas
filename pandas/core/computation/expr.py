@@ -4,12 +4,12 @@
 import ast
 from functools import partial
 import itertools as it
-import operator as op
+import operator
 import tokenize
 
 import numpy as np
 
-from pandas.compat import StringIO, lmap, reduce, string_types, zip
+from pandas.compat import StringIO, lmap, reduce, string_types, zip, map
 
 import pandas as pd
 from pandas import compat
@@ -40,7 +40,7 @@ def tokenize_string(source):
         if tokval == '`':
             tokval = " ".join(it.takewhile(
                 lambda tokval: tokval != '`',
-                map(op.itemgetter(1), token_generator)))
+                map(operator.itemgetter(1), token_generator)))
             toknum = _BACKTICK_QUOTED_STRING
         yield toknum, tokval
 
@@ -174,7 +174,9 @@ def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), 'f must be callable'
-    return tokenize.untokenize(lmap(f, tokenize_string(source)))
+    source = tokenize.untokenize(lmap(f, tokenize_string(source)))
+    print(source)
+    return source
 
 
 def _is_type(t):
