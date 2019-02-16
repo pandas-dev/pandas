@@ -25,6 +25,7 @@ Fixed Regressions
 - Fixed regression in :meth:`DataFrame.apply` causing ``RecursionError`` when ``dict``-like classes were passed as argument. (:issue:`25196`)
 
 - Fixed regression in :meth:`DataFrame.duplicated()`, where empty dataframe was not returning a boolean dtyped Series. (:issue:`25184`)
+- Fixed regression in :meth:`Series.min` and :meth:`Series.max` where ``numeric_only=True`` was ignored when the ``Series`` contained ```Categorical`` data (:issue:`25299`)
 
 .. _whatsnew_0242.enhancements:
 
