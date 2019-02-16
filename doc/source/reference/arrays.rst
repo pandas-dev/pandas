@@ -120,6 +120,7 @@ Methods
    Timestamp.timetuple
    Timestamp.timetz
    Timestamp.to_datetime64
+   Timestamp.to_numpy
    Timestamp.to_julian_date
    Timestamp.to_period
    Timestamp.to_pydatetime
@@ -191,6 +192,7 @@ Methods
    Timedelta.round
    Timedelta.to_pytimedelta
    Timedelta.to_timedelta64
+   Timedelta.to_numpy
    Timedelta.total_seconds
 
 A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
