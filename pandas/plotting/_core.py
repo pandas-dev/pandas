@@ -3240,7 +3240,8 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        matplotlib.AxesSubplot histogram.
+        class:`matplotlib.AxesSubplot`
+            Return a histogram plot.
 
         See Also
         --------
