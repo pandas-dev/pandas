@@ -369,6 +369,7 @@ def _convert_by(by):
 def pivot(data, index=None, columns=None, values=None):
     if values is None:
         if index is None:
+            # Build cols for indexes.
             cols = [columns]
         else:
             if is_list_like(index):
