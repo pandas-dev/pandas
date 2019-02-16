@@ -368,16 +368,13 @@ def _convert_by(by):
 @Appender(_shared_docs['pivot'], indents=1)
 def pivot(data, index=None, columns=None, values=None):
     if values is None:
-        if index is None:
-            # Build cols for indexes.
-            cols = [columns]
+        cols = []
+        # Make acceptable for multiple column indexes.
+        if is_list_like(index):
+            cols.extend(index)
         else:
-            # Accept multiple column indexes.
-            if is_list_like(index):
-                cols = index
-            else:
-                cols = [index]
-            cols.append(columns)
+            cols.append(index)
+        cols.append(columns)
         append = index is None
         indexed = data.set_index(cols, append=append)
 

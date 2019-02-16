@@ -321,11 +321,11 @@ class TestPivotTable(object):
             result = df.pivot(index=['lev1', 'lev2'],
                               columns='lev3')
             exp_columns = MultiIndex(levels=[['values'], [1, 2]],
-                                       codes=[[0, 0], [0, 1]],
-                                       names=[None, 'lev3'])
+                                     codes=[[0, 0], [0, 1]],
+                                     names=[None, 'lev3'])
 
         expected = DataFrame(data=data, index=exp_index,
-                                 columns=exp_columns)
+                             columns=exp_columns)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('method', [True, False])
