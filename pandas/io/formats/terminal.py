@@ -15,6 +15,7 @@ from __future__ import print_function
 
 import os
 import shutil
+import subprocess
 
 from pandas.compat import PY3
 
@@ -94,20 +95,27 @@ def _get_terminal_size_tput():
     # get terminal width
     # src: http://stackoverflow.com/questions/263890/how-do-i-find-the-width
     # -height-of-a-terminal-window
+
     try:
-        import subprocess
         proc = subprocess.Popen(["tput", "cols"],
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
-        output = proc.communicate(input=None)
-        cols = int(output[0])
+        output_cols = proc.communicate(input=None)
         proc = subprocess.Popen(["tput", "lines"],
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
-        output = proc.communicate(input=None)
-        rows = int(output[0])
-        return (cols, rows)
+        output_rows = proc.communicate(input=None)
     except OSError:
+        return None
+
+    try:
+        # Some terminals (e.g. spyder) may report a terminal size of '',
+        # making the `int` fail.
+
+        cols = int(output_cols[0])
+        rows = int(output_rows[0])
+        return cols, rows
+    except (ValueError, IndexError):
         return None
 
 
