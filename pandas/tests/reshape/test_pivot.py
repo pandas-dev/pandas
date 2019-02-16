@@ -315,22 +315,17 @@ class TestPivotTable(object):
             result = df.pivot(index=['lev1', 'lev2'],
                               columns='lev3',
                               values='values')
-
-            exp_columns_1 = Index([1, 2], name='lev3')
-            expected = DataFrame(data=data, index=exp_index,
-                                 columns=exp_columns_1)
+            exp_columns = Index([1, 2], name='lev3')
 
         else:
             result = df.pivot(index=['lev1', 'lev2'],
                               columns='lev3')
-
-            exp_columns_2 = MultiIndex(levels=[['values'], [1, 2]],
+            exp_columns = MultiIndex(levels=[['values'], [1, 2]],
                                        codes=[[0, 0], [0, 1]],
                                        names=[None, 'lev3'])
 
-            expected = DataFrame(data=data, index=exp_index,
-                                 columns=exp_columns_2)
-
+        expected = DataFrame(data=data, index=exp_index,
+                                 columns=exp_columns)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('method', [True, False])
