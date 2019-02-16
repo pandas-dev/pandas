@@ -8,7 +8,8 @@ import pytz
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 
-from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
+from pandas.core.dtypes.generic import (
+    ABCCategoricalIndex, ABCDateOffset, ABCIndexClass)
 
 from pandas import compat
 
@@ -639,6 +640,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
         if tz:
             tz = timezones.maybe_get_tz(tz)
+            tz = timezones.tz_standardize(tz)
         elif tz is not None:
             raise pytz.UnknownTimeZoneError(tz)
         elif tz is None:
@@ -757,8 +759,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
             # empty constructor for pickle compat
             return object.__new__(cls)
 
-        from pandas.tseries.offsets import DateOffset
-        if not isinstance(freq, DateOffset):
+        if not isinstance(freq, ABCDateOffset):
             freq = cls._parse_dtype_strict(freq)
 
         try:
@@ -789,12 +790,10 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
         Strict construction from a string, raise a TypeError if not
         possible
         """
-        from pandas.tseries.offsets import DateOffset
-
         if (isinstance(string, compat.string_types) and
             (string.startswith('period[') or
              string.startswith('Period[')) or
-                isinstance(string, DateOffset)):
+                isinstance(string, ABCDateOffset)):
             # do not parse string like U as period[U]
             # avoid tuple to be regarded as freq
             try:

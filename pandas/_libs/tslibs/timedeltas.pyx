@@ -1127,10 +1127,11 @@ class Timedelta(_Timedelta):
         'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
         'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
         'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
-    days, seconds, microseconds,
-    milliseconds, minutes, hours, weeks : numeric, optional
+    **kwargs
+        Available kwargs: {days, seconds, microseconds,
+        milliseconds, minutes, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
-        np ints and floats will be coerced to python ints and floats.
+        Numpy ints and floats will be coerced to python ints and floats.
 
     Notes
     -----
