@@ -766,21 +766,18 @@ b  2""")
             dtype = obj.dtype
 
         if not is_scalar(result):
-            if is_extension_array_dtype(dtype):
+            if is_datetime64tz_dtype(dtype):
+                # GH 23683
+                # Prior results were generated in UTC. Ensure we localize to
+                # UTC first before converting to the target timezone
+                utc_dtype = DatetimeTZDtype(tz='UTC')
+                result = obj._values._from_sequence(result, dtype=utc_dtype)
+                result = result.astype(dtype)
+            elif is_extension_array_dtype(dtype):
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
                 try:
-                    tz_dtype = None
-                    if is_datetime64tz_dtype(dtype):
-                        # GH 23683
-                        # Prior results were generated in UTC. Ensure
-                        # We localize to UTC first before converting to
-                        # the target timezone
-                        tz_dtype = dtype
-                        dtype = DatetimeTZDtype(tz='UTC')
                     result = obj._values._from_sequence(result, dtype=dtype)
-                    if tz_dtype is not None:
-                        result = result.astype(tz_dtype)
                 except Exception:
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # pandas has no control over what 3rd-party ExtensionArrays
