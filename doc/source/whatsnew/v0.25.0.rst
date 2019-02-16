@@ -34,6 +34,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - :class:`DatetimeTZDtype` will now standardize pytz timezones to a common timezone instance (:issue:`24713`)
+- ``Timestamp`` and ``Timedelta`` scalars now implement the :meth:`to_numpy` method as aliases to :meth:`Timestamp.to_datetime64` and :meth:`Timedelta.to_timedelta64`, respectively. (:issue:`24653`)
 -
 -
 
