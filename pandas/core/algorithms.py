@@ -288,7 +288,7 @@ def unique(values):
 
     Returns
     -------
-    unique values
+    numpy.ndarray or ExtensionArray
 
         The return can be:
 

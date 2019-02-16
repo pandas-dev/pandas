@@ -2696,7 +2696,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        scalar value
+        scalar
         """
 
         warnings.warn("get_value is deprecated and will be removed "
@@ -2736,7 +2736,7 @@ class DataFrame(NDFrame):
         ----------
         index : row label
         col : column label
-        value : scalar value
+        value : scalar
         takeable : interpret the index/col as indexers, default False
 
         Returns
@@ -3542,13 +3542,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-<<<<<<< HEAD
-        numpy-array
-||||||| merged common ancestors
-        sanitized_column : numpy-array
-=======
         numpy.ndarray
->>>>>>> upstream/master
         """
 
         def reindexer(value):
@@ -3817,13 +3811,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-<<<<<<< HEAD
-        pandas.DataFrame
-||||||| merged common ancestors
-        dropped : pandas.DataFrame
-=======
         DataFrame
->>>>>>> upstream/master
 
         Raises
         ------
@@ -5919,13 +5907,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-<<<<<<< HEAD
-        DataFrame or Series
-||||||| merged common ancestors
-        unstacked : DataFrame or Series
-=======
         Series or DataFrame
->>>>>>> upstream/master
 
         See Also
         --------
@@ -6363,15 +6345,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-<<<<<<< HEAD
-        Series or DataFrame
-||||||| merged common ancestors
-        applied : Series or DataFrame
-=======
         Series or DataFrame
             Result of applying ``func`` along the given axis of the
             DataFrame.
->>>>>>> upstream/master
 
         See Also
         --------
@@ -6987,14 +6963,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-<<<<<<< HEAD
-        DataFrame
-||||||| merged common ancestors
-        y : DataFrame
-=======
         DataFrame
             Correlation matrix.
->>>>>>> upstream/master
 
         See Also
         --------
@@ -7190,14 +7160,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-<<<<<<< HEAD
-        Series
-||||||| merged common ancestors
-        correls : Series
-=======
         Series
             Pairwise correlations.
->>>>>>> upstream/master
 
         See Also
         -------
@@ -7565,14 +7529,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-<<<<<<< HEAD
-        Series
-||||||| merged common ancestors
-        idxmin : Series
-=======
         Series
             Indexes of minima along the specified axis.
->>>>>>> upstream/master
 
         Raises
         ------
@@ -7608,14 +7566,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-<<<<<<< HEAD
-        Series
-||||||| merged common ancestors
-        idxmax : Series
-=======
         Series
             Indexes of maxima along the specified axis.
->>>>>>> upstream/master
 
         Raises
         ------

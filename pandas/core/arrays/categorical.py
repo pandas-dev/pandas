@@ -1289,7 +1289,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Returns
         -------
-        values : numpy array
+        numpy.array
             A numpy array of either the specified dtype or,
             if dtype==None (default), the same dtype as
             categorical.categories.dtype.
@@ -1499,7 +1499,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Returns
         -------
-        values : numpy array
+        numpy.array
             A numpy array of the same dtype as categorical.categories.dtype or
             Index if datetime / periods.
         """
@@ -1540,7 +1540,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Returns
         -------
-        argsorted : numpy array
+        numpy.array
 
         See Also
         --------
@@ -1593,7 +1593,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Returns
         -------
-        y : Categorical or None
+        Categorical or None
 
         See Also
         --------
@@ -1667,7 +1667,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Returns
         -------
-        numpy array
+        numpy.array
 
         """
         from pandas import Series
@@ -1695,7 +1695,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Returns
         -------
-        raveled : numpy array
+        numpy.array
         """
         return np.array(self)
 

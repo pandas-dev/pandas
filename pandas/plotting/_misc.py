@@ -302,7 +302,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
 
     Returns
     -------
-    Matplotlib axis object
+    class:`matplotlip.axis.Axes`
 
     """
     from math import sqrt, pi
@@ -490,7 +490,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
     Returns
     -------
-    matplotlib axis object
+    class:`matplotlib.axis.Axes`
 
     Examples
     --------
@@ -579,7 +579,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
     Returns
     -------
-    Matplotlib axis object
+    class:`matplotlib.axis.Axes`
     """
     import matplotlib.pyplot as plt
 
@@ -610,7 +610,7 @@ def autocorrelation_plot(series, ax=None, **kwds):
 
     Returns:
     -----------
-    Matplotlib axis object
+    class:`matplotlib.axis.Axes`
     """
     import matplotlib.pyplot as plt
     n = len(series)
