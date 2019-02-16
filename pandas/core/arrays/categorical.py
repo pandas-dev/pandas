@@ -2173,7 +2173,7 @@ class Categorical(ExtensionArray, PandasObject):
         return result
 
     # reduction ops #
-    def _reduce(self, name, axis=0, skipna=True, **kwargs):
+    def _reduce(self, name, axis=0, **kwargs):
         func = getattr(self, name, None)
         if func is None:
             msg = 'Categorical cannot perform the operation {op}'
