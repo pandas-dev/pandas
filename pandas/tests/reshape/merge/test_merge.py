@@ -2,7 +2,6 @@
 
 from collections import OrderedDict
 from datetime import date, datetime
-import itertools
 import random
 import re
 
