@@ -170,7 +170,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Bug in :method:'agg' when pqssing a list in the method agg on a Groupby with attibute as_index set as False, returned a DataFrame with the Groupby key as an index, now return the Groupby key as a column.
+- Fixed bug in GroupBy when using as_index=False (issue:`25011`)
 -
 -
 
