@@ -836,8 +836,14 @@ class IntervalIndex(IntervalMixin, Index):
                 start_plus_one = start + 1
                 if not ((start_plus_one < stop).any()):
                     return np.where(start_plus_one == stop, start, -1)
-            except TypeError:
-                pass
+            except TypeError as err:
+                # Only raise a type error when the types are not
+                # orderable, such as when the caller is combining
+                # an interval index with an integer index.
+                # (see test_append_different_columns_types_raises
+                # in pandas/tests/reshape/test_concat.py for more examples).
+                if err.args and 'unorderable types:' in err.args[0]:
+                    raise
 
         if not self.is_unique:
             raise ValueError("cannot handle non-unique indices")
