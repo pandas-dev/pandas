@@ -372,8 +372,10 @@ def pivot(data, index=None, columns=None, values=None):
             cols = [columns]
         else:
             if is_list_like(index):
-                cols = [column for column in index]
+                # If a given index is a list, set cols to index.
+                cols = index
             else:
+                # If a given index is not a list, set cols to a list of index.
                 cols = [index]
             cols.append(columns)
         append = index is None
@@ -381,19 +383,19 @@ def pivot(data, index=None, columns=None, values=None):
 
     else:
         if index is None:
-            index = data.index
-            index = MultiIndex.from_arrays([index, data[columns]])
+            index = MultiIndex.from_arrays([data.index, data[columns]])
         elif is_list_like(index):
-            # Iterating through the list of multiple columns of an index
+            # Iterating through the list of multiple columns of an index.
             indexes = [data[column] for column in index]
             indexes.append(data[columns])
             index = MultiIndex.from_arrays(indexes)
         else:
+            # Build multi-indexes if index is not None and not a list.
             index = data[index]
             index = MultiIndex.from_arrays([index, data[columns]])
 
         if is_list_like(values) and not isinstance(values, tuple):
-            # Exclude tuple because it is seen as a single column name
+            # Exclude tuple because it is seen as a single column name.
             indexed = data._constructor(data[values].values, index=index,
                                         columns=values)
         else:

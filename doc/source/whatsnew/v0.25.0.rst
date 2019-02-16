@@ -20,7 +20,7 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
-- :meth:`DataFrame.pivot` now supports multiple indexs.
+- :meth:`DataFrame.pivot` now supports multiple column indexes (:issue:`21425`)
 -
 
 .. _whatsnew_0250.api_breaking:
