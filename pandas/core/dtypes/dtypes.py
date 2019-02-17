@@ -893,28 +893,28 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                 m = cls._match.search(subtype)
                 if m is not None:
                     subtype = m.group('subtype')
-        
+
         # check subtype is numeric, datetime, or timedelta
         valid_subtype = False
-        try: 
+        try:
             np.issubdtype(subtype, np.number)
             valid_subtype = True
-        except:
+        except TypeError:
             pass
-        try: 
+        try:
             np.issubdtype(subdtype, np.datetime64)
             valid_subtype = True
-        except:
+        except TypeError:
             pass
-        try: 
+        try:
             np.issubdtype(subtype, np.timedelta64)
             valid_subtype = True
-        except:
+        except TypeError:
             pass
          
         if not valid_subtype: 
             msg = ('category, object, and string subtypes are not supported '
-               'for IntervalDtype')
+                   'for IntervalDtype')
             raise TypeError(msg)
 
         try:
