@@ -19,15 +19,15 @@ The full license is in the LICENSE file, distributed with this software.
 
 /* in python 3, we cannot intern bytes objects so this is always false */
 #define PyString_CHECK_INTERNED(cs) 0
-#endif  /* !COMPILING_IN_PY2 */
+#endif  // !COMPILING_IN_PY2
 
 #ifndef Py_TPFLAGS_HAVE_GETCHARBUFFER
 #define Py_TPFLAGS_HAVE_GETCHARBUFFER 0
-#endif
+#endif  // Py_TPFLAGS_HAVE_GETCHARBUFFER
 
 #ifndef Py_TPFLAGS_HAVE_NEWBUFFER
 #define Py_TPFLAGS_HAVE_NEWBUFFER 0
-#endif
+#endif  // Py_TPFLAGS_HAVE_NEWBUFFER
 
 static PyObject *badmove;  /* bad move exception class */
 
@@ -85,14 +85,14 @@ static PyBufferProcs stolenbuf_as_buffer = {
     (getbufferproc) stolenbuf_getbuffer,
 };
 
-#else  /* Python 3 */
+#else  // Python 3
 
 static PyBufferProcs stolenbuf_as_buffer = {
     (getbufferproc) stolenbuf_getbuffer,
     NULL,
 };
 
-#endif  /* COMPILING_IN_PY2 */
+#endif  // COMPILING_IN_PY2
 
 PyDoc_STRVAR(stolenbuf_doc,
              "A buffer that is wrapping a stolen bytes object's buffer.");
@@ -208,7 +208,7 @@ static PyModuleDef move_module = {
     -1,
     methods,
 };
-#endif  /* !COMPILING_IN_PY2 */
+#endif  // !COMPILING_IN_PY2
 
 PyDoc_STRVAR(
     badmove_doc,
@@ -231,7 +231,7 @@ PyInit__move(void)
 #else
 #define ERROR_RETURN
 init_move(void)
-#endif  /* !COMPILING_IN_PY2 */
+#endif  // !COMPILING_IN_PY2
 {
     PyObject *m;
 
@@ -250,7 +250,7 @@ init_move(void)
     if (!(m = PyModule_Create(&move_module)))
 #else
     if (!(m = Py_InitModule(MODULE_NAME, methods)))
-#endif  /* !COMPILING_IN_PY2 */
+#endif  // !COMPILING_IN_PY2
     {
         return ERROR_RETURN;
     }
@@ -269,5 +269,5 @@ init_move(void)
 
 #if !COMPILING_IN_PY2
     return m;
-#endif  /* !COMPILING_IN_PY2 */
+#endif  // !COMPILING_IN_PY2
 }
