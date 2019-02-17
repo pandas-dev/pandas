@@ -196,6 +196,7 @@ Sparse
 Other
 ^^^^^
 
+- Raised minimal NumPy dependency to ``1.13.0`` (:issue:`25227`)
 - Specify build-time requirement in ``pyproject.toml`` (:issue:`25193`)
 -
 -
