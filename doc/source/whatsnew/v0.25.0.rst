@@ -28,6 +28,8 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- :meth:`Timestamp.strptime` will now rise a NotImplementedError (:issue:`21257`)
+
 .. _whatsnew_0250.api.other:
 
 Other API Changes
