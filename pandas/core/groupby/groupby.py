@@ -238,7 +238,7 @@ Returns
 See Also
 --------
 aggregate: Aggregate using callable, string, dict, or list of string/callables.
-transform: Call func on self producing a DataFrame with transformed values 
+transform: Call func on self producing a DataFrame with transformed values
     and that has the same axis length as self.
 
 Notes
@@ -1501,10 +1501,11 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        Series.pad: Pad strings in the Series/Index with an 
+        Series.pad: Pad strings in the Series/Index with an
         additional character to specified side.
-        DataFrame.pad: Conform DataFrame to new index with optional filling logic,
-        placing NA/NaN in locations having no value in the previous index.
+        DataFrame.pad: Conform DataFrame to new index with optional filling
+            logic, placing NA/NaN in locations having no value in the previous
+            index.
         Series.fillna: Fill NA/NaN values using the specified method
         DataFrame.fillna: Fill NA/NaN values using the specified method.
 

@@ -1372,7 +1372,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.nbytes: Total bytes consumed by the elements of the 
+        numpy.ndarray.nbytes: Total bytes consumed by the elements of the
             array.
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(
@@ -1476,7 +1476,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        Series.value_counts: Return a Series containing counts of unique 
+        Series.value_counts: Return a Series containing counts of unique
             values.
 
         """

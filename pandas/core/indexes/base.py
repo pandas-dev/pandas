@@ -4038,8 +4038,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.putmask: Changes elements of an array based on conditional
-            and input values.
+        numpy.ndarray.putmask: Changes elements of an array based on
+            conditional and input values.
         """
         values = self.values.copy()
         try:

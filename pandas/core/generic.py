@@ -5992,9 +5992,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        interpolate: Fill NaN values using interpolation.
-        reindex: Conform object to new index.
-        asfreq: Convert TimeSeries to specified frequency.
+        interpolate : Fill NaN values using interpolation.
+        reindex : Conform object to new index.
+        asfreq : Convert TimeSeries to specified frequency.
 
         Examples
         --------
