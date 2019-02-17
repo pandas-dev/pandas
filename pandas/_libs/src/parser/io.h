@@ -25,7 +25,7 @@ typedef struct _file_source {
 
 #if !defined(_WIN32) && !defined(HAVE_MMAP)
 #define HAVE_MMAP
-#endif
+#endif  // HAVE_MMAP
 
 typedef struct _memory_map {
     int fd;
