@@ -15,7 +15,7 @@ The full license is in the LICENSE file, distributed with this software.
 
 #ifndef O_BINARY
 #define O_BINARY 0
-#endif /* O_BINARY */
+#endif  // O_BINARY
 
 /*
   On-disk FILE, uncompressed
@@ -277,4 +277,4 @@ void *buffer_mmap_bytes(void *source, size_t nbytes, size_t *bytes_read,
     return NULL;
 }
 
-#endif
+#endif  // HAVE_MMAP
