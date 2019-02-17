@@ -1696,8 +1696,7 @@ def test_groupby_agg_ohlc_non_first():
             '2018-01-01', periods=2, freq='D'))
 
     if compat.PY36:
-        sorted_keys = sorted(expected, key=lambda x: x[1], reverse=True)
-        expected = expected.reindex(columns=sorted_keys)
+        expected = expected[sorted(expected, key=lambda x: x[1], reverse=True)]
 
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
 
