@@ -893,20 +893,28 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                 m = cls._match.search(subtype)
                 if m is not None:
                     subtype = m.group('subtype')
-                else:
-                    # if no match found, a bad datatype was passed
-                    msg = ('category, object, and string subtypes are not '
-                           'supported for IntervalDtype')
-                    raise TypeError(msg)
-        try:
-            subtype = pandas_dtype(subtype)
-        except TypeError:
-            raise TypeError("could not construct IntervalDtype")
-
-        if is_categorical_dtype(subtype) or is_string_dtype(subtype):
-            # GH 19016
+        
+        # check subtype is numeric, datetime, or timedelta
+        valid_subtype = False
+        try: 
+            np.issubdtype(subtype, np.number)
+            valid_subtype = True
+        except:
+            pass
+        try: 
+            np.issubdtype(subdtype, np.datetime64)
+            valid_subtype = True
+        except:
+            pass
+        try: 
+            np.issubdtype(subtype, np.timedelta64)
+            valid_subtype = True
+        except:
+            pass
+         
+        if not valid_subtype: 
             msg = ('category, object, and string subtypes are not supported '
-                   'for IntervalDtype')
+               'for IntervalDtype')
             raise TypeError(msg)
 
         try:
