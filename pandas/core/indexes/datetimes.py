@@ -22,7 +22,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
-    DatetimeArray, _to_M8, validate_tz_from_dtype)
+    DatetimeArray, _to_M8, tz_to_dtype, validate_tz_from_dtype)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index
@@ -299,7 +299,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         dtarr = DatetimeArray._from_sequence(
             data, dtype=dtype, copy=copy, tz=tz, freq=freq,
-            dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)
+            dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous,
+            int_as_wall_time=True)
 
         subarr = cls._simple_new(dtarr, name=name,
                                  freq=dtarr.freq, tz=dtarr.tz)
@@ -326,7 +327,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
         if isinstance(values, DatetimeIndex):
             values = values._data
-        dtarr = DatetimeArray._simple_new(values, freq=freq, tz=tz)
+
+        dtype = tz_to_dtype(tz)
+        dtarr = DatetimeArray._simple_new(values, freq=freq, dtype=dtype)
         assert isinstance(dtarr, DatetimeArray)
 
         result = object.__new__(cls)
@@ -401,7 +404,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
                 freq = own_state[1]
                 tz = timezones.tz_standardize(own_state[2])
-                dtarr = DatetimeArray._simple_new(data, freq=freq, tz=tz)
+                dtype = tz_to_dtype(tz)
+                dtarr = DatetimeArray._simple_new(data, freq=freq, dtype=dtype)
 
                 self.name = own_state[0]
 
@@ -590,7 +594,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         name = get_op_result_name(self, other)
         return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
 
-    def intersection(self, other):
+    def intersection(self, other, sort=False):
         """
         Specialized intersection for DatetimeIndex objects. May be much faster
         than Index.intersection
@@ -598,11 +602,21 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         Parameters
         ----------
         other : DatetimeIndex or array-like
+        sort : False or None, default False
+            Sort the resulting index if possible.
+
+            .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default to ``False`` to match the behaviour
+               from before 0.24.0.
 
         Returns
         -------
         y : Index or DatetimeIndex
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
 
         if self.equals(other):
@@ -613,7 +627,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 other = DatetimeIndex(other)
             except (TypeError, ValueError):
                 pass
-            result = Index.intersection(self, other)
+            result = Index.intersection(self, other, sort=sort)
             if isinstance(result, DatetimeIndex):
                 if result.freq is None:
                     result.freq = to_offset(result.inferred_freq)
@@ -623,7 +637,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
               other.freq != self.freq or
               not other.freq.isAnchored() or
               (not self.is_monotonic or not other.is_monotonic)):
-            result = Index.intersection(self, other)
+            result = Index.intersection(self, other, sort=sort)
             # Invalidate the freq of `result`, which may not be correct at
             # this point, depending on the values.
             result.freq = None
@@ -996,7 +1010,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         except (KeyError, ValueError, TypeError):
             try:
                 return self._get_string_slice(key)
-            except (TypeError, KeyError, ValueError):
+            except (TypeError, KeyError, ValueError, OverflowError):
                 pass
 
             try:
@@ -1270,7 +1284,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     def indexer_at_time(self, time, asof=False):
         """
-        Returns index locations of index values at particular time of day
+        Return index locations of index values at particular time of day
         (e.g. 9:30AM).
 
         Parameters
@@ -1288,20 +1302,19 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         --------
         indexer_between_time, DataFrame.at_time
         """
-        from dateutil.parser import parse
-
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
 
         if isinstance(time, compat.string_types):
+            from dateutil.parser import parse
             time = parse(time).time()
 
         if time.tzinfo:
-            # TODO
-            raise NotImplementedError("argument 'time' with timezone info is "
-                                      "not supported")
-
-        time_micros = self._get_time_micros()
+            if self.tz is None:
+                raise ValueError("Index must be timezone aware.")
+            time_micros = self.tz_convert(time.tzinfo)._get_time_micros()
+        else:
+            time_micros = self._get_time_micros()
         micros = _time_to_micros(time)
         return (micros == time_micros).nonzero()[0]
 
@@ -1399,10 +1412,10 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
 
     See Also
     --------
-    pandas.DatetimeIndex : An immutable container for datetimes.
-    pandas.timedelta_range : Return a fixed frequency TimedeltaIndex.
-    pandas.period_range : Return a fixed frequency PeriodIndex.
-    pandas.interval_range : Return a fixed frequency IntervalIndex.
+    DatetimeIndex : An immutable container for datetimes.
+    timedelta_range : Return a fixed frequency TimedeltaIndex.
+    period_range : Return a fixed frequency PeriodIndex.
+    interval_range : Return a fixed frequency IntervalIndex.
 
     Notes
     -----

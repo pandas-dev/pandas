@@ -12,6 +12,7 @@ from operator import methodcaller
 import os
 import re
 import sys
+import textwrap
 import warnings
 
 import dateutil
@@ -345,6 +346,15 @@ class TestDataFrameFormatting(object):
                             lambda: terminal_size)
         assert "..." not in str(df)
 
+    def test_repr_truncation_column_size(self):
+        # dataframe with last column very wide -> check it is not used to
+        # determine size of truncation (...) column
+        df = pd.DataFrame({'a': [108480, 30830], 'b': [12345, 12345],
+                           'c': [12345, 12345], 'd': [12345, 12345],
+                           'e': ['a' * 50] * 2})
+        assert "..." in str(df)
+        assert "    ...    " not in str(df)
+
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
         if term_width < 10 or term_height < 10:
@@ -543,7 +553,7 @@ class TestDataFrameFormatting(object):
             formatters={u('c/\u03c3'): lambda x: '{x}'.format(x=x)})
         assert result == u('  c/\u03c3\n') + '0   1\n1   2\n2   3'
 
-    def test_east_asian_unicode_frame(self):
+    def test_east_asian_unicode_false(self):
         if PY3:
             _rep = repr
         else:
@@ -643,16 +653,22 @@ class TestDataFrameFormatting(object):
                                u'ああああ': [u'さ', u'し', u'す', u'せ']},
                               columns=['a', 'b', 'c', u'ああああ'])
 
-            expected = (u"        a ...  ああああ\n0   あああああ ...     さ\n"
-                        u"..    ... ...   ...\n3     えええ ...     せ\n"
+            expected = (u"        a  ... ああああ\n0   あああああ  ...    さ\n"
+                        u"..    ...  ...  ...\n3     えええ  ...    せ\n"
                         u"\n[4 rows x 4 columns]")
             assert _rep(df) == expected
 
             df.index = [u'あああ', u'いいいい', u'う', 'aaa']
-            expected = (u"         a ...  ああああ\nあああ  あああああ ...     さ\n"
-                        u"..     ... ...   ...\naaa    えええ ...     せ\n"
+            expected = (u"         a  ... ああああ\nあああ  あああああ  ...    さ\n"
+                        u"..     ...  ...  ...\naaa    えええ  ...    せ\n"
                         u"\n[4 rows x 4 columns]")
             assert _rep(df) == expected
+
+    def test_east_asian_unicode_true(self):
+        if PY3:
+            _rep = repr
+        else:
+            _rep = unicode  # noqa
 
         # Emable Unicode option -----------------------------------------
         with option_context('display.unicode.east_asian_width', True):
@@ -757,18 +773,18 @@ class TestDataFrameFormatting(object):
                                    u'ああああ': [u'さ', u'し', u'す', u'せ']},
                                   columns=['a', 'b', 'c', u'ああああ'])
 
-                expected = (u"             a   ...    ああああ\n"
-                            u"0   あああああ   ...          さ\n"
-                            u"..         ...   ...         ...\n"
-                            u"3       えええ   ...          せ\n"
+                expected = (u"             a  ... ああああ\n"
+                            u"0   あああああ  ...       さ\n"
+                            u"..         ...  ...      ...\n"
+                            u"3       えええ  ...       せ\n"
                             u"\n[4 rows x 4 columns]")
                 assert _rep(df) == expected
 
                 df.index = [u'あああ', u'いいいい', u'う', 'aaa']
-                expected = (u"                 a   ...    ああああ\n"
-                            u"あああ  あああああ   ...          さ\n"
-                            u"...            ...   ...         ...\n"
-                            u"aaa         えええ   ...          せ\n"
+                expected = (u"                 a  ... ああああ\n"
+                            u"あああ  あああああ  ...       さ\n"
+                            u"...            ...  ...      ...\n"
+                            u"aaa         えええ  ...       せ\n"
                             u"\n[4 rows x 4 columns]")
                 assert _rep(df) == expected
 
@@ -1463,6 +1479,39 @@ c  10  11  12  13  14\
                     '2 -2.0   foooo\n'
                     '3  3.0  fooooo\n'
                     '4  4.0     bar')
+        assert result == expected
+
+    def test_to_string_format_inf(self):
+        # Issue #24861
+        tm.reset_display_options()
+        df = DataFrame({
+            'A': [-np.inf, np.inf, -1, -2.1234, 3, 4],
+            'B': [-np.inf, np.inf, 'foo', 'foooo', 'fooooo', 'bar']
+        })
+        result = df.to_string()
+
+        expected = ('        A       B\n'
+                    '0    -inf    -inf\n'
+                    '1     inf     inf\n'
+                    '2 -1.0000     foo\n'
+                    '3 -2.1234   foooo\n'
+                    '4  3.0000  fooooo\n'
+                    '5  4.0000     bar')
+        assert result == expected
+
+        df = DataFrame({
+            'A': [-np.inf, np.inf, -1., -2., 3., 4.],
+            'B': [-np.inf, np.inf, 'foo', 'foooo', 'fooooo', 'bar']
+        })
+        result = df.to_string()
+
+        expected = ('     A       B\n'
+                    '0 -inf    -inf\n'
+                    '1  inf     inf\n'
+                    '2 -1.0     foo\n'
+                    '3 -2.0   foooo\n'
+                    '4  3.0  fooooo\n'
+                    '5  4.0     bar')
         assert result == expected
 
     def test_to_string_decimal(self):
@@ -2720,7 +2769,26 @@ def test_format_percentiles():
     expected = ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     assert result == expected
 
-    pytest.raises(ValueError, fmt.format_percentiles, [0.1, np.nan, 0.5])
-    pytest.raises(ValueError, fmt.format_percentiles, [-0.001, 0.1, 0.5])
-    pytest.raises(ValueError, fmt.format_percentiles, [2, 0.1, 0.5])
-    pytest.raises(ValueError, fmt.format_percentiles, [0.1, 0.5, 'a'])
+    msg = r"percentiles should all be in the interval \[0,1\]"
+    with pytest.raises(ValueError, match=msg):
+        fmt.format_percentiles([0.1, np.nan, 0.5])
+    with pytest.raises(ValueError, match=msg):
+        fmt.format_percentiles([-0.001, 0.1, 0.5])
+    with pytest.raises(ValueError, match=msg):
+        fmt.format_percentiles([2, 0.1, 0.5])
+    with pytest.raises(ValueError, match=msg):
+        fmt.format_percentiles([0.1, 0.5, 'a'])
+
+
+def test_repr_html_ipython_config(ip):
+    code = textwrap.dedent("""\
+    import pandas as pd
+    df = pd.DataFrame({"A": [1, 2]})
+    df._repr_html_()
+
+    cfg = get_ipython().config
+    cfg['IPKernelApp']['parent_appname']
+    df._repr_html_()
+    """)
+    result = ip.run_cell(code)
+    assert not result.error_in_exec

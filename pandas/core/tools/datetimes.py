@@ -265,7 +265,12 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                 except tslibs.OutOfBoundsDatetime:
                     if errors == 'raise':
                         raise
-                    result = arg
+                    elif errors == 'coerce':
+                        result = np.empty(arg.shape, dtype='M8[ns]')
+                        iresult = result.view('i8')
+                        iresult.fill(tslibs.iNaT)
+                    else:
+                        result = arg
                 except ValueError:
                     # if format was inferred, try falling back
                     # to array_to_datetime - terminate here
@@ -273,7 +278,12 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                     if not infer_datetime_format:
                         if errors == 'raise':
                             raise
-                        result = arg
+                        elif errors == 'coerce':
+                            result = np.empty(arg.shape, dtype='M8[ns]')
+                            iresult = result.view('i8')
+                            iresult.fill(tslibs.iNaT)
+                        else:
+                            result = arg
         except ValueError as e:
             # Fallback to try to convert datetime objects if timezone-aware
             #  datetime objects are found without passing `utc=True`
@@ -487,8 +497,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     See Also
     --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_timedelta : Convert argument to timedelta.
+    DataFrame.astype : Cast argument to a specified dtype.
+    to_timedelta : Convert argument to timedelta.
 
     Examples
     --------
@@ -578,9 +588,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         if not cache_array.empty:
             result = arg.map(cache_array)
         else:
-            from pandas import Series
             values = convert_listlike(arg._values, True, format)
-            result = Series(values, index=arg.index, name=arg.name)
+            result = arg._constructor(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, compat.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, box, tz)
     elif isinstance(arg, ABCIndexClass):
@@ -817,7 +826,6 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
     -------
     datetime.time
     """
-    from pandas.core.series import Series
 
     def _convert_listlike(arg, format):
 
@@ -882,9 +890,9 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
         return arg
     elif isinstance(arg, time):
         return arg
-    elif isinstance(arg, Series):
+    elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, format)
-        return Series(values, index=arg.index, name=arg.name)
+        return arg._constructor(values, index=arg.index, name=arg.name)
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, format)
     elif is_list_like(arg):

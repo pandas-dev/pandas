@@ -154,7 +154,7 @@ class DatelikeOps(object):
         Returns
         -------
         Index
-            Index of formatted strings
+            Index of formatted strings.
 
         See Also
         --------
@@ -296,12 +296,11 @@ class TimelikeOps(object):
         result = round_nsint64(values, mode, freq)
         result = self._maybe_mask_results(result, fill_value=NaT)
 
-        attribs = self._get_attributes_dict()
-        attribs['freq'] = None
-        if 'tz' in attribs:
-            attribs['tz'] = None
+        dtype = self.dtype
+        if is_datetime64tz_dtype(self):
+            dtype = None
         return self._ensure_localized(
-            self._simple_new(result, **attribs), ambiguous, nonexistent
+            self._simple_new(result, dtype=dtype), ambiguous, nonexistent
         )
 
     @Appender((_round_doc + _round_example).format(op="round"))
@@ -434,8 +433,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             else:
                 key = lib.maybe_booleans_to_slice(key.view(np.uint8))
 
-        attribs = self._get_attributes_dict()
-
         is_period = is_period_dtype(self)
         if is_period:
             freq = self.freq
@@ -451,17 +448,15 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
                 #  should preserve `freq` attribute
                 freq = self.freq
 
-        attribs['freq'] = freq
-
         result = getitem(key)
         if result.ndim > 1:
             # To support MPL which performs slicing with 2 dim
             # even though it only has 1 dim by definition
             if is_period:
-                return self._simple_new(result, **attribs)
+                return self._simple_new(result, dtype=self.dtype, freq=freq)
             return result
 
-        return self._simple_new(result, **attribs)
+        return self._simple_new(result, dtype=self.dtype, freq=freq)
 
     def __setitem__(
             self,
@@ -611,7 +606,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     def copy(self, deep=False):
         values = self.asi8.copy()
-        return type(self)(values, dtype=self.dtype, freq=self.freq)
+        return type(self)._simple_new(values, dtype=self.dtype, freq=self.freq)
 
     def _values_for_factorize(self):
         return self.asi8, iNaT

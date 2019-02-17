@@ -354,7 +354,7 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
-        msg = "invalid ndarray passed to _infer_dtype_from_scalar"
+        msg = "invalid ndarray passed to infer_dtype_from_scalar"
         if val.ndim != 0:
             raise ValueError(msg)
 
@@ -569,8 +569,6 @@ def coerce_to_dtypes(result, dtypes):
     if len(result) != len(dtypes):
         raise AssertionError("_coerce_to_dtypes requires equal len arrays")
 
-    from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
-
     def conv(r, dtype):
         try:
             if isna(r):
@@ -578,7 +576,7 @@ def coerce_to_dtypes(result, dtypes):
             elif dtype == _NS_DTYPE:
                 r = tslibs.Timestamp(r)
             elif dtype == _TD_DTYPE:
-                r = _coerce_scalar_to_timedelta_type(r)
+                r = tslibs.Timedelta(r)
             elif dtype == np.bool_:
                 # messy. non 0/1 integers do not get converted.
                 if is_integer(r) and r not in [0, 1]:
@@ -1113,11 +1111,9 @@ def find_common_type(types):
     # this is different from numpy, which casts bool with float/int as int
     has_bools = any(is_bool_dtype(t) for t in types)
     if has_bools:
-        has_ints = any(is_integer_dtype(t) for t in types)
-        has_floats = any(is_float_dtype(t) for t in types)
-        has_complex = any(is_complex_dtype(t) for t in types)
-        if has_ints or has_floats or has_complex:
-            return np.object
+        for t in types:
+            if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
+                return np.object
 
     return np.find_common_type(types, [])
 

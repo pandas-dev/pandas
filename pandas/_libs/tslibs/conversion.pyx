@@ -147,7 +147,7 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def datetime_to_datetime64(values: object[:]):
+def datetime_to_datetime64(object[:] values):
     """
     Convert ndarray of datetime-like objects to int64 array representing
     nanosecond timestamps.
@@ -167,6 +167,7 @@ def datetime_to_datetime64(values: object[:]):
         int64_t[:] iresult
         npy_datetimestruct dts
         _TSObject _ts
+        bint found_naive = False
 
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
@@ -176,6 +177,9 @@ def datetime_to_datetime64(values: object[:]):
             iresult[i] = NPY_NAT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
+                if found_naive:
+                    raise ValueError('Cannot mix tz-aware with '
+                                     'tz-naive values')
                 if inferred_tz is not None:
                     if not tz_compare(val.tzinfo, inferred_tz):
                         raise ValueError('Array must be all same time zone')
@@ -186,6 +190,7 @@ def datetime_to_datetime64(values: object[:]):
                 iresult[i] = _ts.value
                 check_dts_bounds(&_ts.dts)
             else:
+                found_naive = True
                 if inferred_tz is not None:
                     raise ValueError('Cannot mix tz-aware with '
                                      'tz-naive values')

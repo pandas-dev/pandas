@@ -158,7 +158,7 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # error when combining categories/ordered and dtype kwargs
-        msg = 'Cannot specify `categories` or `ordered` together with `dtype`.'
+        msg = "Cannot specify `categories` or `ordered` together with `dtype`."
         with pytest.raises(ValueError, match=msg):
             CategoricalIndex(data, categories=cats, dtype=dtype)
 
@@ -250,17 +250,6 @@ class TestCategoricalIndex(Base):
         ci = CategoricalIndex(
             list('aabbca') + [np.nan], categories=list('cabdef'))
         assert np.nan in ci
-
-    def test_min_max(self):
-
-        ci = self.create_index(ordered=False)
-        pytest.raises(TypeError, lambda: ci.min())
-        pytest.raises(TypeError, lambda: ci.max())
-
-        ci = self.create_index(ordered=True)
-
-        assert ci.min() == 'c'
-        assert ci.max() == 'b'
 
     def test_map(self):
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('CBA'),
@@ -621,15 +610,6 @@ class TestCategoricalIndex(Base):
         c = CategoricalIndex(categories[1:3], categories=categories)
         assert c.is_monotonic_increasing is True
         assert c.is_monotonic_decreasing is False
-
-    @pytest.mark.parametrize('values, expected', [
-        ([1, 2, 3], True),
-        ([1, 3, 1], False),
-        (list('abc'), True),
-        (list('aba'), False)])
-    def test_is_unique(self, values, expected):
-        ci = CategoricalIndex(values)
-        assert ci.is_unique is expected
 
     def test_has_duplicates(self):
 

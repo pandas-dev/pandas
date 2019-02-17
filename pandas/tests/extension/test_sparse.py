@@ -1,11 +1,12 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import SparseArray, SparseDtype
 from pandas.errors import PerformanceWarning
+
+import pandas as pd
+from pandas import SparseArray, SparseDtype
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 
 def make_data(fill_value):
@@ -286,11 +287,10 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
             pytest.skip("TODO(SparseArray.__setitem__ will preserve dtype.")
         super(TestMethods, self).test_combine_first(data)
 
-    @pytest.mark.parametrize("as_series", [True, False])
     def test_searchsorted(self, data_for_sorting, as_series):
         with tm.assert_produces_warning(PerformanceWarning):
             super(TestMethods, self).test_searchsorted(data_for_sorting,
-                                                       as_series=as_series)
+                                                       as_series)
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
