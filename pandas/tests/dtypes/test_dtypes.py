@@ -533,10 +533,11 @@ class TestIntervalDtype(Base):
             IntervalDtype.construct_from_string(string)
 
     @pytest.mark.parametrize('string', [
-        'interval[foo]'])
+        'interval[foo]', 'IntervalA'])
     def test_construction_from_string_error_subtype(self, string):
         # this is an invalid subtype
-        msg = 'could not construct IntervalDtype'
+        msg = ('category, object, and string subtypes are not supported '
+               'for IntervalDtype')
 
         with pytest.raises(TypeError, match=msg):
             IntervalDtype.construct_from_string(string)
