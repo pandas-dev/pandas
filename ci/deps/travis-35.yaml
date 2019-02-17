@@ -44,6 +44,6 @@ dependencies:
   - pip:
     - backports.lzma
     - fastparquet>=0.2.1
-    - moto==1.3.4
+    - moto
     - pandas-gbq
     - pathlib
