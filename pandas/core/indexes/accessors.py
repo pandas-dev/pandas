@@ -212,7 +212,8 @@ class TimedeltaProperties(Properties):
 
         See Also
         --------
-        datetime.timedelta
+        datetime.timedelta: A duration expressing the difference between two date, 
+            time, or datetime instances to microsecond resolution.
 
         Examples
         --------

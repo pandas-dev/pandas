@@ -543,8 +543,8 @@ class MultiIndex(Index):
 
         See Also
         --------
-        Index._is_homogeneous_type
-        DataFrame._is_homogeneous_type
+        Index._is_homogeneous_type: Whether the Index has a single dtype.
+        DataFrame._is_homogeneous_type: Whether the Dataframe has a single dtype.
 
         Examples
         --------
@@ -1449,7 +1449,8 @@ class MultiIndex(Index):
 
         See Also
         --------
-        DataFrame
+        DataFrame: Two-dimensional size-mutable, potentially heterogeneous tabular
+            data structure with labeled axes
         """
 
         from pandas import DataFrame
@@ -2823,7 +2824,8 @@ class MultiIndex(Index):
 
         See Also
         --------
-        equal_levels
+        equal_levels: Return True if the levels of both MultiIndex objects 
+            are the same
         """
         if self.is_(other):
             return True

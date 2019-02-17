@@ -153,8 +153,8 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     See Also
     --------
-    extensions.register_extension_dtype
-    extensions.ExtensionArray
+    extensions.register_extension_dtype: Class decorator to register an ExtensionType with pandas.
+    extensions.ExtensionArray: Abstract base class for custom 1-D array types.
 
     Notes
     -----

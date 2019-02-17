@@ -171,8 +171,10 @@ class ExtensionArray(object):
 
         See Also
         --------
-        pandas.factorize
-        ExtensionArray.factorize
+        pandas.factorize: Encode the object as an enumerated type or 
+            categorical variable.
+        ExtensionArray.factorize: Encode the extension array as
+            an enumerated type.
         """
         raise AbstractMethodError(cls)
 
@@ -377,7 +379,7 @@ class ExtensionArray(object):
 
         See Also
         --------
-        ExtensionArray.argsort
+        ExtensionArray.argsort: Return the indices that would sort this array.
         """
         # Note: this is used in `ExtensionArray.argsort`.
         return np.array(self)
@@ -776,8 +778,8 @@ class ExtensionArray(object):
 
         See Also
         --------
-        numpy.take
-        pandas.api.extensions.take
+        numpy.take: Take elements from an array along an axis.
+        pandas.api.extensions.take: Take elements from an array.
 
         Examples
         --------

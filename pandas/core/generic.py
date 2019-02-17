@@ -988,7 +988,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        NDFrame.rename_axis
+        NDFrame.rename_axis: Set the name of the axis for the 
+            index or columns.
 
         Examples
         --------
@@ -1860,8 +1861,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        Series.dropna
-        DataFrame.dropna
+        Series.dropna: Return a new Series with missing values removed.
+        DataFrame.dropna: Drop rows or columns which contain missing values.
 
         Notes
         -----
@@ -2213,7 +2214,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        read_json
+        read_json: Convert a JSON string to pandas object.
 
         Examples
         --------
@@ -3348,8 +3349,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        numpy.ndarray.take
-        numpy.take
+        numpy.ndarray.take: Return an array formed from the elements of 
+            a at the given indices.
+        numpy.take: Take elements from an array along an axis.
         """
         self._consolidate_inplace()
 
@@ -4524,7 +4526,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        DataFrame.loc
+        DataFrame.loc: Access a group of rows and columns by 
+        label(s) or a boolean array.
 
         Notes
         -----
@@ -4891,9 +4894,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        DataFrame.apply
-        DataFrame.applymap
-        Series.map
+        DataFrame.apply: Apply a function along an axis of the DataFrame.
+        DataFrame.applymap: Apply a function to a Dataframe elementwise.
+        Series.map: Map values of Series according to input correspondence.
 
         Notes
         -----
@@ -5226,7 +5229,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        DataFrame.values
+        DataFrame.values: Return a Numpy representation of the DataFrame.
 
         Notes
         -----
@@ -5353,7 +5356,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        values : Numpy representation of DataFrame.
+        Dataframe.values : Numpy representation of DataFrame.
         SparseArray : Container for sparse data.
 
         Examples
@@ -5990,7 +5993,11 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         interpolate : Fill NaN values using interpolation.
-        reindex, asfreq
+        reindex: Conform DataFrame to new index with optional filling 
+            logic, placing NA/NaN in locations having no value in the 
+            previous index.
+        asfreq: Convert TimeSeries to specified frequency. Uses method arg
+            to fill in missing values
 
         Examples
         --------
@@ -7672,7 +7679,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        reindex
+        Dataframe.reindex:Conform DataFrame to new index with optional filling logic,
+        placing NA/NaN in locations having no value in the previous index.
 
         Notes
         -----

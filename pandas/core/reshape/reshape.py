@@ -740,7 +740,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     See Also
     --------
-    Series.str.get_dummies
+    Series.str.get_dummies: Split each string in the Series by sep and 
+        return a frame of dummy/indicator variables.
 
     Examples
     --------

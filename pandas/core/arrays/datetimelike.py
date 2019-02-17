@@ -670,7 +670,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
         See Also
         --------
-        numpy.ndarray.repeat
+        numpy.ndarray.repeat: Repeat elements of an array.
         """
         nv.validate_repeat(args, kwargs)
         values = self._data.repeat(repeats)
@@ -1390,7 +1390,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
         See Also
         --------
-        numpy.ndarray.min
+        numpy.ndarray.min: Return the minimum of the Array along 
+            a given axis.
         Index.min : Return the minimum value in an Index.
         Series.min : Return the minimum value in a Series.
         """
@@ -1410,7 +1411,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
         See Also
         --------
-        numpy.ndarray.max
+        numpy.ndarray.max: Return the maximum of an Array 
+            along a given axis.
         Index.max : Return the maximum value in an Index.
         Series.max : Return the maximum value in a Series.
         """

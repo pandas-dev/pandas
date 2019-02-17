@@ -795,7 +795,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         See Also
         --------
-        Series.value_counts
+        Series.value_counts: Return a Series containing counts of 
+            unique values.
         """
         # TODO: implement this is a non-naive way!
         from pandas.core.algorithms import value_counts

@@ -1450,7 +1450,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         See Also
         --------
-        numpy.all
+        numpy.all: Test whether all array elements along a given axis 
+            evaluate to True.
         """
         nv.validate_all(args, kwargs)
 

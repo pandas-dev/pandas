@@ -690,8 +690,8 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        DataFrame._is_homogeneous_type
-        MultiIndex._is_homogeneous_type
+        DataFrame._is_homogeneous_type: Whether all the columns of a dataframe have the same dtype.
+        MultiIndex._is_homogeneous_type: Whether the levels of a MultiIndex all have the same dtype.
         """
         return True
 
@@ -1032,7 +1032,7 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        numpy.ndarray.argmax
+        numpy.ndarray.argmax: Returns indices of the maximum value along a given axis.
         """
         nv.validate_minmax_axis(axis)
         return nanops.nanargmax(self._values, skipna=skipna)
@@ -1089,7 +1089,7 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        numpy.ndarray.argmin
+        numpy.ndarray.argmin: Returns indices of the minimum value along a given axis.
         """
         nv.validate_minmax_axis(axis)
         return nanops.nanargmin(self._values, skipna=skipna)
@@ -1104,7 +1104,7 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        numpy.ndarray.tolist
+        numpy.ndarray.tolist: Returns an array as a list
         """
         if is_datetimelike(self._values):
             return [com.maybe_box_datetimelike(x) for x in self._values]
@@ -1415,7 +1415,7 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes: Total bytes consumed by the elements of the array.
 
         Notes
         -----
@@ -1474,7 +1474,7 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        numpy.searchsorted
+        numpy.searchsorted:Find indices where elements should be inserted to maintain order.
 
         Notes
         -----

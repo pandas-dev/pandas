@@ -521,7 +521,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.ravel
+        numpy.ndarray.ravel: Returns a  1-D array containing the elements 
+            of the input.
         """
         return self._values.ravel(order=order)
 
@@ -533,7 +534,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.compress
+        numpy.ndarray.compress: Return selected slices of this array 
+            along given axis.
         """
         msg = ("Series.compress(condition) is deprecated. "
                "Use 'Series[condition]' or "
@@ -557,7 +559,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.nonzero
+        numpy.nonzero: Return the indices of the elements that are non-zero.
 
         Examples
         --------
@@ -590,7 +592,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.put
+        numpy.ndarray.put: Replaces specified elements of an array with 
+            given values.
         """
         self._values.put(*args, **kwargs)
 
@@ -2079,8 +2082,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        core.window.Rolling.quantile
-        numpy.percentile
+        core.window.Rolling.quantile: Calculate the rolling quantile.
+        numpy.percentile: Compute the n-th percentile of the data 
+            along the specified axis.
 
         Examples
         --------
@@ -3071,7 +3075,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.argsort
+        numpy.ndarray.argsort: Returns the indices that would sort an array.
         """
         values = self._values
         mask = isna(values)
@@ -4197,7 +4201,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        read_csv
+        read_csv: Read a comma-separated values (csv) file into DataFrame.
         """
 
         # We're calling `DataFrame.from_csv` in the implementation,

@@ -81,7 +81,8 @@ class Styler(object):
 
     See Also
     --------
-    DataFrame.style
+    DataFrame.style: Property returning a Styler object containing methods
+        for building a styled HTML representation fo the DataFrame
 
     Notes
     -----
@@ -643,7 +644,9 @@ class Styler(object):
 
         See Also
         --------
-        Styler.where
+        Styler.where: Apply a function elementwise, updating the HTML 
+            representation with a style which is selected in accordance with 
+            the return value of a function.
         """
         self._todo.append((lambda instance: getattr(instance, '_applymap'),
                            (func, subset), kwargs))
@@ -677,7 +680,8 @@ class Styler(object):
 
         See Also
         --------
-        Styler.applymap
+        Styler.applymap: Apply a function elementwise, updating the HTML 
+            representation with the result.
         """
 
         if other is None:
@@ -737,7 +741,8 @@ class Styler(object):
 
         See Also
         --------
-        Styler.use
+        Styler.use: Set the styles on the current Styler, possibly 
+            using styles from Styler.export.
         """
         return self._todo
 
@@ -757,7 +762,8 @@ class Styler(object):
 
         See Also
         --------
-        Styler.export
+        Styler.export: Export the styles to applied to the 
+            current Styler.
         """
         self._todo.extend(styles)
         return self

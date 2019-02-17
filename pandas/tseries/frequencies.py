@@ -77,7 +77,7 @@ def to_offset(freq):
 
     See Also
     --------
-    DateOffset
+    DateOffset: Standard kind of date increment used for a date range.
 
     Examples
     --------

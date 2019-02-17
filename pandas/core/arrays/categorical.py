@@ -421,12 +421,12 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories
-        reorder_categories
-        add_categories
-        remove_categories
-        remove_unused_categories
-        set_categories
+        rename_categories: Renames categories .
+        reorder_categories: Reorders categories into specified new categories .
+        add_categories: Adds new categories .
+        remove_categories: Removes specified categories .
+        remove_unused_categories: Removes unused categories .
+        set_categories: Sets new categories inplace .
         """
         return self.dtype.categories
 
@@ -836,11 +836,12 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories
-        reorder_categories
-        add_categories
-        remove_categories
-        remove_unused_categories
+        rename_categories: Renames categories .
+        reorder_categories: Reorders categories into specified new categories .
+        add_categories: Adds new categories .
+        remove_categories: Removes specified categories .
+        remove_unused_categories: Removes unused categories .
+
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if ordered is None:
@@ -908,11 +909,13 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        reorder_categories
-        add_categories
-        remove_categories
-        remove_unused_categories
-        set_categories
+        
+        reorder_categories: Reorders categories into specified new categories .
+        add_categories: Adds new categories .
+        remove_categories: Removes specified categories .
+        remove_unused_categories: Removes unused categories .
+        set_categories: Sets new categories inplace .
+
 
         Examples
         --------
@@ -986,11 +989,12 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories
-        add_categories
-        remove_categories
-        remove_unused_categories
-        set_categories
+        rename_categories: Renames categories .
+        add_categories: Adds new categories .
+        remove_categories: Removes specified categories .
+        remove_unused_categories: Removes unused categories .
+        set_categories: Sets new categories inplace .
+
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if set(self.dtype.categories) != set(new_categories):
@@ -1026,11 +1030,12 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories
-        reorder_categories
-        remove_categories
-        remove_unused_categories
-        set_categories
+        rename_categories: Renames categories .
+        reorder_categories: Reorders categories into specified new categories .
+        remove_categories: Removes specified categories .
+        remove_unused_categories: Removes unused categories .
+        set_categories: Sets new categories inplace .
+
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not is_list_like(new_categories):
@@ -1075,11 +1080,12 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories
-        reorder_categories
-        add_categories
-        remove_unused_categories
-        set_categories
+        rename_categories: Renames categories .
+        reorder_categories: Reorders categories into specified new categories .
+        add_categories: Adds new categories .
+        remove_unused_categories: Removes unused categories .
+        set_categories: Sets new categories inplace .
+
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not is_list_like(removals):
@@ -1118,11 +1124,12 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories
-        reorder_categories
-        add_categories
-        remove_categories
-        set_categories
+        rename_categories: Renames categories .
+        reorder_categories: Reorders categories into specified new categories .
+        add_categories: Adds new categories .
+        remove_categories: Removes specified categories .
+        set_categories: Sets new categories inplace .
+
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
@@ -1366,7 +1373,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes: Total bytes consumed by the elements of the array.
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(
             deep=deep)
@@ -1469,7 +1476,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        Series.value_counts
+        Series.value_counts: Return a Series containing counts of unique values.
 
         """
         from numpy import bincount
@@ -1544,7 +1551,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.argsort
+        numpy.ndarray.argsort: Returns the indices that would sort this array.
 
         Notes
         -----
@@ -1597,8 +1604,9 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        Categorical.sort
-        Series.sort_values
+        Categorical.sort: Sorts the Category inplace by category value.
+        Series.sort_values: Sort a Series in ascending or descending 
+            order by some criterion.
 
         Examples
         --------
@@ -2294,9 +2302,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        unique
+        unique: Hash table-based unique. Uniques are returned in order of 
+            appearance. This does NOT sort.
         CategoricalIndex.unique
-        Series.unique
+        Series.unique: Return Index of unique values in the object.
 
         """
 

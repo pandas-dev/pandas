@@ -77,7 +77,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     See Also
     --------
-    Categorical, Index
+    Categorical:  Represents a categorical variable
+    Index: Immutable ndarray implementing an ordered, sliceable set.
     """
 
     _typ = 'categoricalindex'

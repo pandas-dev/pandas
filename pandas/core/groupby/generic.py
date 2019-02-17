@@ -708,9 +708,12 @@ class SeriesGroupBy(GroupBy):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.Series.groupby.apply
-    pandas.Series.groupby.transform
-    pandas.Series.aggregate
+    pandas.Series.groupby.apply: Apply function func group-wise and combine 
+        the results together.
+    pandas.Series.groupby.transform: Call func on self producing a DataFrame 
+        with transformed values and that has the same axis length as self.
+    pandas.Series.aggregate: Aggregate using one or more operations over 
+        the specified axis.
     """)
 
     _agg_examples_doc = dedent("""
@@ -1251,9 +1254,12 @@ class DataFrameGroupBy(NDFrameGroupBy):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.DataFrame.groupby.apply
-    pandas.DataFrame.groupby.transform
-    pandas.DataFrame.aggregate
+    pandas.Series.groupby.apply: Apply function func group-wise and combine 
+        the results together.
+    pandas.Series.groupby.transform: Call func on self producing a DataFrame 
+        with transformed values and that has the same axis length as self.
+    pandas.Series.aggregate: Aggregate using one or more operations over 
+        the specified axis.
     """)
 
     _agg_examples_doc = dedent("""

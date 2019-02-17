@@ -196,7 +196,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     See Also
     --------
-    Categorical
+    Categorical: Represents a categorical variable .
 
     Notes
     -----

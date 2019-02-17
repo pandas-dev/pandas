@@ -692,7 +692,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.ravel
+        numpy.ndarray.ravel: A 1-D array, containing the elements of the input,
+            is returned. 
         """
         return self._ndarray_values.ravel(order=order)
 
@@ -777,7 +778,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.take
+        numpy.ndarray.take: Take elements from an array along an axis.
         """
 
     @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
@@ -1990,8 +1991,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        unique
-        Series.unique
+        unique: Hash table-based unique. 
+        Uniques are returned in order of appearance. This does NOT sort.
+
+        Series.unique:Return unique values of Series object.
         """)
 
     @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
@@ -3654,8 +3657,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        values
-        _ndarray_values
+        values: Only the values in the DataFrame will be returned, the axes labels will be removed.
+        _ndarray_values: The data as a ndarray
         """
         return self._data
 
@@ -4034,7 +4037,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.putmask
+        numpy.ndarray.putmask: Changes elements of an array based on conditional 
+            and input values.
         """
         values = self.values.copy()
         try:
@@ -5302,7 +5306,7 @@ def ensure_index_from_sequences(sequences, names=None):
 
     See Also
     --------
-    ensure_index
+    ensure_index: Ensures that an index exists
     """
     from .multi import MultiIndex
 
@@ -5342,7 +5346,7 @@ def ensure_index(index_like, copy=False):
 
     See Also
     --------
-    ensure_index_from_sequences
+    ensure_index_from_sequences: Construct an index from sequences of data.
     """
     if isinstance(index_like, Index):
         if copy:

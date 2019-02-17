@@ -223,7 +223,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     See Also
     --------
     read_sql_query : Read SQL query into a DataFrame.
-    read_sql
+    read_sql: Read SQL query or database table into a DataFrame.
 
     Notes
     -----
@@ -301,7 +301,7 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
-    read_sql
+    read_sql: Read SQL query or database table into a DataFrame.
 
     Notes
     -----
@@ -1029,8 +1029,8 @@ class SQLDatabase(PandasSQL):
 
         See Also
         --------
-        pandas.read_sql_table
-        SQLDatabase.read_query
+        pandas.read_sql_table: Read SQL database table into a DataFrame
+        SQLDatabase.read_query : Read SQL query into a DataFrame.
 
         """
         table = SQLTable(table_name, self, index=index_col, schema=schema)
@@ -1091,7 +1091,7 @@ class SQLDatabase(PandasSQL):
         See Also
         --------
         read_sql_table : Read SQL database table into a DataFrame.
-        read_sql
+        read_sql: Read SQL query or database table into a DataFrame.
 
         """
         args = _convert_params(sql, params)

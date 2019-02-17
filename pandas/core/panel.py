@@ -681,7 +681,7 @@ class Panel(NDFrame):
 
         See Also
         --------
-        numpy.around
+        numpy.around: Evenly round to the given number of decimals.
         """
         nv.validate_round(args, kwargs)
 

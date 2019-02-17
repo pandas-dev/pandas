@@ -237,7 +237,9 @@ Returns
 
 See Also
 --------
-aggregate, transform
+aggregate: Aggregate using callable, string, dict, or list of string/callables.
+transform: Call func on self producing a DataFrame with transformed values 
+    and that has the same axis length as self.
 
 Notes
 -----
@@ -1474,8 +1476,8 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        pad
-        backfill
+        pad: Pad strings in the Series/Index up to width.
+        backfill: Fill NA/NaN values using the specified method.
         """
         # Need int value for Cython
         if limit is None:
@@ -1499,10 +1501,14 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        Series.pad
-        DataFrame.pad
-        Series.fillna
-        DataFrame.fillna
+        Series.pad: Pad strings in the Series/Index with an 
+        additional character to specified side.
+        DataFrame.pad: Conform DataFrame to new index with optional filling logic,
+        placing NA/NaN in locations having no value in the previous index.
+        Series.fillna: Fill NA/NaN values using the specified method
+        DataFrame.fillna: Fill NA/NaN values using the specified method.
+
+
         """
         return self._fill('ffill', limit=limit)
     ffill = pad
@@ -1519,10 +1525,10 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        Series.backfill
-        DataFrame.backfill
-        Series.fillna
-        DataFrame.fillna
+        Series.backfill: Backward fill values of Series/Index
+        DataFrame.backfill: Backfill values of Dataframe
+        Series.fillna: Fill NA/NaN values using the specified method.
+        DataFrame.fillna: Fill NA/NaN values using the specified method.
         """
         return self._fill('bfill', limit=limit)
     bfill = backfill

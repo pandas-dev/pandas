@@ -110,7 +110,7 @@ class Resampler(_GroupBy):
 
         See Also
         --------
-        GroupBy.__iter__
+        GroupBy.__iter__: Groupby iterator
         """
         self._set_binner()
         return super(Resampler, self).__iter__()
@@ -213,9 +213,11 @@ class Resampler(_GroupBy):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    DataFrame.groupby.aggregate
-    DataFrame.resample.transform
-    DataFrame.aggregate
+    DataFrame.groupby.aggregate: Aggregate using callable, string, dict, or list of 
+        string/callables
+    DataFrame.resample.transform: Call function producing a like-indexed Series on 
+        each group and return a Series with the transformed values
+    DataFrame.aggregate: Aggregate using one or more operations over the specified axis.
     """)
 
     _agg_examples_doc = dedent("""
@@ -421,8 +423,8 @@ class Resampler(_GroupBy):
 
         See Also
         --------
-        Series.fillna
-        DataFrame.fillna
+        Series.fillna: Fill NA/NaN values using the specified method.
+        DataFrame.fillna: Fill NA/NaN values using the specified method.
         """
         return self._upsample('pad', limit=limit)
     ffill = pad
@@ -783,8 +785,8 @@ class Resampler(_GroupBy):
 
         See Also
         --------
-        Series.asfreq
-        DataFrame.asfreq
+        Series.asfreq: Convert TimeSeries to specified frequency.
+        DataFrame.asfreq: Convert TimeSeries to specified frequency.
         """
         return self._upsample('asfreq', fill_value=fill_value)
 
@@ -833,9 +835,9 @@ class Resampler(_GroupBy):
 
         See Also
         --------
-        Series.quantile
-        DataFrame.quantile
-        DataFrameGroupBy.quantile
+        Series.quantile: Return value at the given quantile.
+        DataFrame.quantile: Return values at the given quantile over requested axis.
+        DataFrameGroupBy.quantile Return values at the given quantile over requested axis.
         """
         return self._downsample('quantile', q=q, **kwargs)
 
@@ -1041,7 +1043,7 @@ class DatetimeIndexResampler(Resampler):
 
         See Also
         --------
-        .fillna
+        .fillna: Fill NA/NaN values using the specified method.
 
         """
         self._set_binner()
@@ -1172,7 +1174,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         See Also
         --------
-        .fillna
+        .fillna: Fill NA/NaN values using the specified method.
 
         """
 

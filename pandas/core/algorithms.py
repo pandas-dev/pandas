@@ -295,8 +295,8 @@ def unique(values):
 
     See Also
     --------
-    Index.unique
-    Series.unique
+    Index.unique: Return unique values in the index.
+    Series.unique: Return unique values of Series object.
 
     Examples
     --------

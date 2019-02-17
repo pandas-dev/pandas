@@ -495,7 +495,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        ndarray.shape
+        ndarray.shape: Returns tuple of array dimensions.
 
         Examples
         --------
@@ -718,7 +718,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        io.formats.style.Styler
+        io.formats.style.Styler: Class to help style a DataFrame or Series according to the data with HTML and CSS.
         """
         from pandas.io.formats.style import Styler
         return Styler(self)
@@ -1870,7 +1870,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        read_csv
+        read_csv: Read a comma-separated values (csv) file into DataFrame.
         """
 
         warnings.warn("from_csv is deprecated. Please use read_csv(...) "
@@ -3940,7 +3940,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.rename_axis
+        DataFrame.rename_axis: Set the name of the axis for the index or columns.
 
         Examples
         --------
@@ -5978,8 +5978,9 @@ class DataFrame(NDFrame):
     See Also
     --------
     %(other)s
-    pivot_table
-    DataFrame.pivot
+    pivot_table: Create a spreadsheet-style pivot table as a DataFrame.
+    DataFrame.pivot: Return reshaped DataFrame organized by given index 
+        / column values.
 
     Examples
     --------
@@ -6966,8 +6967,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.corrwith
-        Series.corr
+        DataFrame.corrwith: Compute pairwise correlation between rows or
+            columns of DataFrame with rows or columns of Series or DataFrame.
+        Series.corr: Compute correlation with other Series, excluding
+            missing values.
 
         Examples
         --------
@@ -7163,7 +7166,8 @@ class DataFrame(NDFrame):
 
         See Also
         -------
-        DataFrame.corr
+        DataFrame.corr: Compute pairwise correlation of columns, 
+            excluding NA/null values.
         """
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
@@ -7537,7 +7541,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.idxmin
+        Series.idxmin Returns the row label of the minimum value.
 
         Notes
         -----
@@ -7574,7 +7578,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.idxmax
+        Series.idxmax: Returns the row label of the maximum value.
 
         Notes
         -----
