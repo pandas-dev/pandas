@@ -171,7 +171,7 @@ class ExtensionArray(object):
 
         See Also
         --------
-        pandas.factorize: Encode the object as an enumerated type or 
+        pandas.factorize: Encode the object as an enumerated type or
             categorical variable.
         ExtensionArray.factorize: Encode the extension array as
             an enumerated type.

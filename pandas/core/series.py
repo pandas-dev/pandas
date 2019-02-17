@@ -521,7 +521,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.ravel: Returns a  1-D array containing the elements 
+        numpy.ndarray.ravel: Returns a  1-D array containing the elements
             of the input.
         """
         return self._values.ravel(order=order)
@@ -534,7 +534,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.compress: Return selected slices of this array 
+        numpy.ndarray.compress: Return selected slices of this array
             along given axis.
         """
         msg = ("Series.compress(condition) is deprecated. "
@@ -592,7 +592,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.put: Replaces specified elements of an array with 
+        numpy.ndarray.put: Replaces specified elements of an array with
             given values.
         """
         self._values.put(*args, **kwargs)
@@ -2083,7 +2083,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         core.window.Rolling.quantile: Calculate the rolling quantile.
-        numpy.percentile: Compute the n-th percentile of the data 
+        numpy.percentile: Compute the n-th percentile of the data
             along the specified axis.
 
         Examples

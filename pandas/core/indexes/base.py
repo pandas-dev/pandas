@@ -693,7 +693,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         numpy.ndarray.ravel: A 1-D array, containing the elements of the input,
-            is returned. 
+            is returned.
         """
         return self._ndarray_values.ravel(order=order)
 
@@ -1991,7 +1991,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        unique: Hash table-based unique. 
+        unique: Hash table-based unique.
         Uniques are returned in order of appearance. This does NOT sort.
 
         Series.unique:Return unique values of Series object.
@@ -3657,7 +3657,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        values: Only the values in the DataFrame will be returned, the axes labels will be removed.
+        values: Only the values in the DataFrame will be returned, the
+        axes labels will be removed.
         _ndarray_values: The data as a ndarray
         """
         return self._data
@@ -4037,7 +4038,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.putmask: Changes elements of an array based on conditional 
+        numpy.ndarray.putmask: Changes elements of an array based on conditional
             and input values.
         """
         values = self.values.copy()

@@ -718,7 +718,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        io.formats.style.Styler: Class to help style a DataFrame or Series according to the data with HTML and CSS.
+        io.formats.style.Styler: Class to help style a DataFrame or Series according to the data
+        with HTML and CSS.
         """
         from pandas.io.formats.style import Styler
         return Styler(self)
@@ -3940,7 +3941,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.rename_axis: Set the name of the axis for the index or columns.
+        DataFrame.rename_axis: Set the name of the axis for the index or
+        columns.
 
         Examples
         --------
@@ -5979,7 +5981,7 @@ class DataFrame(NDFrame):
     --------
     %(other)s
     pivot_table: Create a spreadsheet-style pivot table as a DataFrame.
-    DataFrame.pivot: Return reshaped DataFrame organized by given index 
+    DataFrame.pivot: Return reshaped DataFrame organized by given index
         / column values.
 
     Examples
@@ -7166,7 +7168,7 @@ class DataFrame(NDFrame):
 
         See Also
         -------
-        DataFrame.corr: Compute pairwise correlation of columns, 
+        DataFrame.corr: Compute pairwise correlation of columns,
             excluding NA/null values.
         """
         axis = self._get_axis_number(axis)

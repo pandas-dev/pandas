@@ -185,8 +185,8 @@ def merge_ordered(left, right, on=None,
     See Also
     --------
     merge: Merge DataFrame or named Series objects with a database-style join.
-    merge_asof: Perform an asof merge. This is similar to a left-join except that 
-        we match on nearest key rather than equal keys.
+    merge_asof: Perform an asof merge. This is similar to a left-join except
+    that we match on nearest key rather than equal keys.
 
     Examples
     --------
@@ -326,8 +326,8 @@ def merge_asof(left, right, on=None,
     See Also
     --------
     merge: Merge DataFrame or named Series objects with a database-style join.
-    merge_ordered: Perform merge with optional filling/interpolation designed 
-        for ordered data like time series data. 
+    merge_ordered: Perform merge with optional filling/interpolation designed
+        for ordered data like time series data.
 
     Examples
     --------

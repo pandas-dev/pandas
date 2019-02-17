@@ -909,12 +909,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        
-        reorder_categories: Reorders categories into specified new categories .
-        add_categories: Adds new categories .
-        remove_categories: Removes specified categories .
-        remove_unused_categories: Removes unused categories .
-        set_categories: Sets new categories inplace .
+        reorder_categories: Reorders categories into specified new categories.
+        add_categories: Adds new categories.
+        remove_categories: Removes specified categories.
+        remove_unused_categories: Removes unused categories.
+        set_categories: Sets new categories inplace.
 
 
         Examples
@@ -1373,7 +1372,8 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.nbytes: Total bytes consumed by the elements of the array.
+        numpy.ndarray.nbytes: Total bytes consumed by the elements of the 
+            array.
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(
             deep=deep)
@@ -1476,7 +1476,8 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        Series.value_counts: Return a Series containing counts of unique values.
+        Series.value_counts: Return a Series containing counts of unique 
+            values.
 
         """
         from numpy import bincount
@@ -1605,7 +1606,7 @@ class Categorical(ExtensionArray, PandasObject):
         See Also
         --------
         Categorical.sort: Sorts the Category inplace by category value.
-        Series.sort_values: Sort a Series in ascending or descending 
+        Series.sort_values: Sort a Series in ascending or descending
             order by some criterion.
 
         Examples
@@ -2302,7 +2303,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        unique: Hash table-based unique. Uniques are returned in order of 
+        unique: Hash table-based unique. Uniques are returned in order of
             appearance. This does NOT sort.
         CategoricalIndex.unique
         Series.unique: Return Index of unique values in the object.

@@ -1300,7 +1300,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         See Also
         --------
-        indexer_between_time: Return index locations of values between particular times of day . 
+        indexer_between_time: Return index locations of values between
+        particular times of day.
         DataFrame.at_time: Select values at particular time of day .
         """
         from dateutil.parser import parse
@@ -1341,7 +1342,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         See Also
         --------
-        indexer_between_time: Return index locations of values between particular times of day . 
+        indexer_between_time: Return index locations of values between
+        particular times of day .
         DataFrame.at_time: Select values at particular time of day .
         """
         start_time = tools.to_time(start_time)

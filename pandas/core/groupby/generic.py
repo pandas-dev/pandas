@@ -708,11 +708,11 @@ class SeriesGroupBy(GroupBy):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.Series.groupby.apply: Apply function func group-wise and combine 
+    pandas.Series.groupby.apply: Apply function func group-wise and combine
         the results together.
-    pandas.Series.groupby.transform: Call func on self producing a DataFrame 
+    pandas.Series.groupby.transform: Call func on self producing a DataFrame
         with transformed values and that has the same axis length as self.
-    pandas.Series.aggregate: Aggregate using one or more operations over 
+    pandas.Series.aggregate: Aggregate using one or more operations over
         the specified axis.
     """)
 
@@ -1254,11 +1254,11 @@ class DataFrameGroupBy(NDFrameGroupBy):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.Series.groupby.apply: Apply function func group-wise and combine 
+    pandas.Series.groupby.apply: Apply function func group-wise and combine
         the results together.
-    pandas.Series.groupby.transform: Call func on self producing a DataFrame 
+    pandas.Series.groupby.transform: Call func on self producing a DataFrame
         with transformed values and that has the same axis length as self.
-    pandas.Series.aggregate: Aggregate using one or more operations over 
+    pandas.Series.aggregate: Aggregate using one or more operations over
         the specified axis.
     """)
 

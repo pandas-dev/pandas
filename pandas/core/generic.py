@@ -988,7 +988,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        NDFrame.rename_axis: Set the name of the axis for the 
+        NDFrame.rename_axis: Set the name of the axis for the
             index or columns.
 
         Examples
@@ -3349,7 +3349,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        numpy.ndarray.take: Return an array formed from the elements of 
+        numpy.ndarray.take: Return an array formed from the elements of
             a at the given indices.
         numpy.take: Take elements from an array along an axis.
         """
@@ -4526,7 +4526,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        DataFrame.loc: Access a group of rows and columns by 
+        DataFrame.loc: Access a group of rows and columns by
         label(s) or a boolean array.
 
         Notes
@@ -5992,12 +5992,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        interpolate : Fill NaN values using interpolation.
-        reindex: Conform DataFrame to new index with optional filling 
-            logic, placing NA/NaN in locations having no value in the 
-            previous index.
-        asfreq: Convert TimeSeries to specified frequency. Uses method arg
-            to fill in missing values
+        interpolate: Fill NaN values using interpolation.
+        reindex: Conform object to new index.
+        asfreq: Convert TimeSeries to specified frequency.
 
         Examples
         --------
@@ -7679,8 +7676,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        Dataframe.reindex:Conform DataFrame to new index with optional filling logic,
-        placing NA/NaN in locations having no value in the previous index.
+        Dataframe.reindex:Conform DataFrame to new index with optional
+        filling logic, placing NA/NaN in locations having no value in
+        the previous index.
 
         Notes
         -----

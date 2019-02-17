@@ -213,11 +213,12 @@ class Resampler(_GroupBy):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    DataFrame.groupby.aggregate: Aggregate using callable, string, dict, or list of 
-        string/callables
-    DataFrame.resample.transform: Call function producing a like-indexed Series on 
-        each group and return a Series with the transformed values
-    DataFrame.aggregate: Aggregate using one or more operations over the specified axis.
+    DataFrame.groupby.aggregate: Aggregate using callable, string, dict, or
+        list of string/callables.
+    DataFrame.resample.transform: Call function producing a like-indexed Series on
+        each group and return a Series with the transformed values.
+    DataFrame.aggregate: Aggregate using one or more operations over the
+        specified axis.
     """)
 
     _agg_examples_doc = dedent("""
@@ -836,8 +837,10 @@ class Resampler(_GroupBy):
         See Also
         --------
         Series.quantile: Return value at the given quantile.
-        DataFrame.quantile: Return values at the given quantile over requested axis.
-        DataFrameGroupBy.quantile Return values at the given quantile over requested axis.
+        DataFrame.quantile: Return values at the given quantile over
+            requested axis.
+        DataFrameGroupBy.quantile Return values at the given quantile
+            over requested axis.
         """
         return self._downsample('quantile', q=q, **kwargs)
 

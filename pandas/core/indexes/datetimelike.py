@@ -319,7 +319,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         See Also
         --------
-        numpy.ndarray.min: Return the minimum for the Array along a 
+        numpy.ndarray.min: Return the minimum for the Array along a
             given axis.
         Series.min : Return the minimum value in a Series.
         """
@@ -356,7 +356,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         See Also
         --------
-        numpy.ndarray.argmin: Return indices of the minimum values along 
+        numpy.ndarray.argmin: Return indices of the minimum values along
             the given axis of a.
         """
         nv.validate_argmin(args, kwargs)
@@ -414,7 +414,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         See Also
         --------
-        numpy.ndarray.argmax: Return indices of the maximum values along 
+        numpy.ndarray.argmax: Return indices of the maximum values along
             the given axis.
         """
         nv.validate_argmax(args, kwargs)

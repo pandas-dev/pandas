@@ -480,7 +480,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         See Also
         --------
-        Series.value_counts: Return a Series containing counts of unique values.
+        Series.value_counts: Return a Series containing counts of unique
+            values.
 
         """
 

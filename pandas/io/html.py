@@ -528,9 +528,9 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
     See Also
     --------
-    pandas.io.html._HtmlFrameParser: Base class for parsers that parse 
+    pandas.io.html._HtmlFrameParser: Base class for parsers that parse
         HTML into DataFrames.
-    pandas.io.html._LxmlFrameParser: Base class for parsers that parse 
+    pandas.io.html._LxmlFrameParser: Base class for parsers that parse
         LXML into DataFrames.
 
     Notes
@@ -642,7 +642,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
     See Also
     --------
     _HtmlFrameParser: Base class for parsers that parse HTML into DataFrames.
-    _BeautifulSoupLxmlFrameParser: Base class for parsers that parse LXML 
+    _BeautifulSoupLxmlFrameParser: Base class for parsers that parse LXML
         into DataFrames.
 
     Notes
@@ -710,7 +710,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
         See Also
         --------
-        pandas.io.html._HtmlFrameParser._build_doc: Return a tree-like object 
+        pandas.io.html._HtmlFrameParser._build_doc: Return a tree-like object
             that can be used to iterate over the DOM.
         """
         from lxml.html import parse, fromstring, HTMLParser

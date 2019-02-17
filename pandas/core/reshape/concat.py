@@ -89,12 +89,10 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     See Also
     --------
-    Series.append: Concatenate two or more Series.
-    DataFrame.append: Append rows of other to the end of caller, returning a new 
-        object.
-    DataFrame.join: Join columns of another DataFrame.
-    DataFrame.merge: Merge DataFrame or named Series objects with a database-style 
-        join.
+    Series.append : Concatenate Series.
+    DataFrame.append : Concatenate DataFrames.
+    DataFrame.join : Join DataFrames using indexes.
+    DataFrame.merge : Merge DataFrames by indexes or columns.
 
     Notes
     -----

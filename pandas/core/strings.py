@@ -980,8 +980,8 @@ def str_get_dummies(arr, sep='|'):
 
     See Also
     --------
-    get_dummies: Convert categorical variable into dummy/indicator 
-    variables
+    get_dummies : Convert categorical variable into dummy/indicator
+        variables.
 
     Examples
     --------

@@ -697,9 +697,9 @@ class Window(_Window):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.DataFrame.rolling.aggregate: Aggregate using one or more 
+    pandas.DataFrame.rolling.aggregate: Aggregate using one or more
         operations over the specified axis.
-    pandas.DataFrame.aggregate: Aggregate using one or more operations over 
+    pandas.DataFrame.aggregate: Aggregate using one or more operations over
         the specified axis.
     """)
 
@@ -1918,11 +1918,11 @@ class Expanding(_Rolling_and_Expanding):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    DataFrame.expanding.aggregate: Aggregate using one or more operations 
+    DataFrame.expanding.aggregate: Aggregate using one or more operations
         over the specified axis.
-    DataFrame.rolling.aggregate: Aggregate using one or more operations over 
+    DataFrame.rolling.aggregate: Aggregate using one or more operations over
         the specified axis.
-    DataFrame.aggregate: Aggregate using one or more operations over the 
+    DataFrame.aggregate: Aggregate using one or more operations over the
         specified axis.
     """)
 
@@ -2235,7 +2235,7 @@ class EWM(_Rolling):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.DataFrame.rolling.aggregate: Aggregate using one or more operations 
+    pandas.DataFrame.rolling.aggregate: Aggregate using one or more operations
         over the specified axis.
     """)
 

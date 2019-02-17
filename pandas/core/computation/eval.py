@@ -248,8 +248,10 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
     See Also
     --------
-    DataFrame.query: Queries the columns of a Dataframe with a boolean expression.
-    DataFrame.eval: Evaluate a string describing operations on DataFrame columns.
+    DataFrame.query: Queries the columns of a Dataframe with a boolean
+    expression.
+    DataFrame.eval: Evaluate a string describing operations on DataFrame
+    columns.
 
     Notes
     -----

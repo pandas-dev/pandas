@@ -1390,7 +1390,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
         See Also
         --------
-        numpy.ndarray.min: Return the minimum of the Array along 
+        numpy.ndarray.min: Return the minimum of the Array along
             a given axis.
         Index.min : Return the minimum value in an Index.
         Series.min : Return the minimum value in a Series.
@@ -1411,7 +1411,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
         See Also
         --------
-        numpy.ndarray.max: Return the maximum of an Array 
+        numpy.ndarray.max: Return the maximum of an Array
             along a given axis.
         Index.max : Return the maximum value in an Index.
         Series.max : Return the maximum value in a Series.

@@ -644,8 +644,8 @@ class Styler(object):
 
         See Also
         --------
-        Styler.where: Apply a function elementwise, updating the HTML 
-            representation with a style which is selected in accordance with 
+        Styler.where: Apply a function elementwise, updating the HTML
+            representation with a style which is selected in accordance with
             the return value of a function.
         """
         self._todo.append((lambda instance: getattr(instance, '_applymap'),
@@ -680,7 +680,7 @@ class Styler(object):
 
         See Also
         --------
-        Styler.applymap: Apply a function elementwise, updating the HTML 
+        Styler.applymap: Apply a function elementwise, updating the HTML
             representation with the result.
         """
 
@@ -741,7 +741,7 @@ class Styler(object):
 
         See Also
         --------
-        Styler.use: Set the styles on the current Styler, possibly 
+        Styler.use: Set the styles on the current Styler, possibly
             using styles from Styler.export.
         """
         return self._todo
@@ -762,7 +762,7 @@ class Styler(object):
 
         See Also
         --------
-        Styler.export: Export the styles to applied to the 
+        Styler.export: Export the styles to applied to the
             current Styler.
         """
         self._todo.extend(styles)
