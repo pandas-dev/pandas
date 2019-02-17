@@ -977,3 +977,8 @@ class TestTimestampConversion(object):
         with tm.assert_produces_warning(UserWarning):
             # warning that timezone info will be lost
             ts.to_period('D')
+
+    def test_to_numpy_alias(self):
+        # GH 24653: alias .to_numpy() for scalars
+        ts = Timestamp(datetime.now())
+        assert ts.to_datetime64() == ts.to_numpy()
