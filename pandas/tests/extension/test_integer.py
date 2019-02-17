@@ -24,6 +24,7 @@ from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
     UInt32Dtype, UInt64Dtype)
 from pandas.tests.extension import base
+from pandas.util import testing as tm
 
 
 def make_data():
@@ -181,7 +182,22 @@ class TestSetitem(base.BaseSetitemTests):
 
 
 class TestMissing(base.BaseMissingTests):
-    pass
+
+    def test_isna(self, data_missing):
+        # TODO: should actually compare that this is a ArrowBoolArray
+        expected = np.array([True, False])
+
+        result = np.array(pd.isna(data_missing))
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pd.Series(data_missing).isna()
+        expected = pd.Series(expected)
+        self.assert_series_equal(result, expected, check_dtype=False)
+
+        # TODO: need a pd.bool_ dtype here
+        result = pd.Series(data_missing).drop([0, 1]).isna()
+        expected = pd.Series([], dtype=bool)
+        self.assert_series_equal(result, expected, check_dtype=False)
 
 
 class TestMethods(base.BaseMethodsTests):

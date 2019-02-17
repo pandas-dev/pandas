@@ -18,6 +18,12 @@ class BaseReduceTests(BaseExtensionTests):
         expected = getattr(s.astype('float64'), op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
+    def check_reduce_bool(self, s, op_name, skipna):
+        """check_reduce with casting back to bool"""
+        result = getattr(s, op_name)(skipna=skipna)
+        expected = bool(getattr(s.astype('float64'), op_name)(skipna=skipna))
+        tm.assert_almost_equal(result, expected)
+
 
 class BaseNoReduceTests(BaseReduceTests):
     """ we don't define any reductions """

@@ -14,6 +14,7 @@ import pandas as pd
 from pandas.conftest import (
     ALL_EA_INT_DTYPES, ALL_INT_DTYPES, SIGNED_EA_INT_DTYPES, SIGNED_INT_DTYPES,
     UNSIGNED_EA_INT_DTYPES, UNSIGNED_INT_DTYPES)
+from pandas.core.arrays.mask import get_mask_array_type
 from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
@@ -526,6 +527,8 @@ def test_is_bool_dtype():
     assert com.is_bool_dtype(np.bool)
     assert com.is_bool_dtype(np.array([True, False]))
     assert com.is_bool_dtype(pd.Index([True, False]))
+    assert com.is_bool_dtype(
+        get_mask_array_type()._from_sequence([True, False]))
 
 
 @pytest.mark.parametrize("check_scipy", [

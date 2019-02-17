@@ -73,6 +73,9 @@ ABCExtensionArray = create_pandas_abc_type("ABCExtensionArray", "_typ",
 ABCPandasArray = create_pandas_abc_type("ABCPandasArray",
                                         "_typ",
                                         ("npy_extension",))
+ABCMaskArray = create_pandas_abc_type("ABCMaskArray",
+                                      "_typ",
+                                      ("maskarray"))
 
 
 class _ABCGeneric(type):

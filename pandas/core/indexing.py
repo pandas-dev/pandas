@@ -11,7 +11,8 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.common import (
     ensure_platform_int, is_float, is_integer, is_integer_dtype, is_iterator,
     is_list_like, is_numeric_dtype, is_scalar, is_sequence, is_sparse)
-from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCMaskArray, ABCPanel, ABCSeries)
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
@@ -2494,6 +2495,8 @@ def check_bool_indexer(ax, key):
     elif is_sparse(result):
         result = result.to_dense()
         result = np.asarray(result, dtype=bool)
+    elif isinstance(result, ABCMaskArray):
+        result = np.array(result, copy=False)
     else:
         # is_bool_indexer has already checked for nulls in the case of an
         # object array key, so no check needed here

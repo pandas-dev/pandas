@@ -785,8 +785,12 @@ b  2""")
             elif is_extension_array_dtype(dtype):
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
+
+                # return the same type (Series) as our caller
                 try:
-                    result = obj._values._from_sequence(result, dtype=dtype)
+                    result = result._constructor(
+                        obj._values._from_sequence(result, dtype=dtype),
+                        index=result.index, name=result.name)
                 except Exception:
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # pandas has no control over what 3rd-party ExtensionArrays
@@ -1277,6 +1281,16 @@ class GroupBy(_GroupBy):
                 except Exception:
                     result = self.aggregate(
                         lambda x: npfunc(x, axis=self.axis))
+
+                    # coerce the columns if we can
+                    if isinstance(result, DataFrame):
+                        for col in result.columns:
+                            result[col] = self._try_cast(
+                                result[col], self.obj[col])
+                    else:
+                        result = self._try_cast(
+                            result, self.obj)
+
                     if _convert:
                         result = result._convert(datetime=True)
                     return result

@@ -149,12 +149,33 @@ def all_arithmetic_operators(request):
     return request.param
 
 
-_all_numeric_reductions = ['sum', 'max', 'min',
-                           'mean', 'prod', 'std', 'var', 'median',
-                           'kurt', 'skew']
+# reductions that are generally applicable to all data types
+_non_numeric_reductions = ['min', 'max', 'sum']
+
+# reductions that are generally application to
+# only numeric data dtypes
+_numeric_reductions = ['mean', 'prod',
+                       'std', 'var', 'median',
+                       'kurt', 'skew']
 
 
-@pytest.fixture(params=_all_numeric_reductions)
+@pytest.fixture(params=_non_numeric_reductions)
+def only_non_numeric_reductions(request):
+    """
+    Fixture for only non numeric reduction names
+    """
+    return request.param
+
+
+@pytest.fixture(params=_numeric_reductions)
+def only_numeric_reductions(request):
+    """
+    Fixture for only numeric reduction names
+    """
+    return request.param
+
+
+@pytest.fixture(params=_non_numeric_reductions + _numeric_reductions)
 def all_numeric_reductions(request):
     """
     Fixture for numeric reduction names

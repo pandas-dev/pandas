@@ -19,11 +19,8 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
-<<<<<<< HEAD
+from pandas.core.arrays.mask import get_mask_array_type
 from pandas.core.tools.numeric import to_numeric
-=======
-from pandas.core.arrays._mask import NAMask
->>>>>>> 384287e71... Revert unnecessary changes from master
 
 
 class _IntegerDtype(ExtensionDtype):
@@ -291,8 +288,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 and is_integer_dtype(values.dtype)):
             raise TypeError("values should be integer numpy array. Use "
                             "the 'integer_array' function instead")
-        if not (isinstance(mask, NAMask) or (
-                isinstance(mask, np.ndarray) and is_bool_dtype(mask.dtype))):
+        if not is_bool_dtype(mask):
             raise TypeError("mask should be boolean numpy array. Use "
                             "the 'integer_array' function instead")
 
@@ -301,7 +297,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             mask = mask.copy()
 
         self._data = values
-        self._mask = NAMask(mask)
+        self._mask = get_mask_array_type()._from_sequence(mask, copy=False)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
@@ -328,22 +324,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             if self._mask[item]:
                 return self.dtype.na_value
             return self._data[item]
-<<<<<<< HEAD
         return type(self)(self._data[item], self._mask[item])
-=======
-
-<<<<<<< HEAD
-        return type(self)(self._data[item],
-<<<<<<< HEAD
-                          mask=_bitarray_to_numpy(self._mask)[item],
-                          dtype=self.dtype)
->>>>>>> 2ff4b0907... First pass at implementation (needs refactor)
-=======
-                          mask=_bitarray_to_numpy(self._mask)[item])
->>>>>>> e085674ac... Reverted changes; created new module for mask
-=======
-        return type(self)(self._data[item], self._mask[item])
->>>>>>> 384287e71... Revert unnecessary changes from master
 
     def _coerce_to_ndarray(self):
         """
@@ -352,7 +333,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         # TODO(jreback) make this better
         data = self._data.astype(object)
-        data[self._mask] = self._na_value
+        mask = np.array(self._mask, copy=False)
+        data[mask] = self._na_value
         return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
@@ -426,6 +408,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     def isna(self):
         return self._mask
+
+    @property
+    def flags(self):
+        # compat
+        return self._data.flags
 
     @property
     def _na_value(self):
@@ -579,6 +566,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             else:
                 mask = self._mask | mask
 
+            mask = np.array(mask, copy=False)
             result[mask] = op_name == 'ne'
             return result
 

@@ -1783,6 +1783,19 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         return self.values[slicer]
 
+    def _try_cast_result(self, result, dtype=None):
+        """
+        if we have an operation that operates on for example floats
+        we want to try to cast back to our EA here if possible
+        """
+        try:
+            result = self._holder._from_sequence(
+                result.ravel(), dtype=dtype)
+        except Exception:
+            pass
+
+        return result
+
     def formatting_values(self):
         # Deprecating the ability to override _formatting_values.
         # Do the warning here, it's only user in pandas, since we

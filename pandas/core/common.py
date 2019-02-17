@@ -19,7 +19,8 @@ from pandas.compat import PY36
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_array_like, is_bool_dtype, is_extension_array_dtype, is_integer)
-from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex, ABCIndexClass, ABCMaskArray, ABCSeries)
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
@@ -115,7 +116,7 @@ def is_bool_indexer(key: Any) -> bool:
         and contains missing values.
     """
     na_msg = 'cannot index with vector containing NA / NaN values'
-    if (isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or
+    if (isinstance(key, (ABCSeries, np.ndarray, ABCIndex, ABCMaskArray)) or
             (is_array_like(key) and is_extension_array_dtype(key.dtype))):
         if key.dtype == np.object_:
             key = np.asarray(values_from_object(key))
