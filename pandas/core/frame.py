@@ -4109,24 +4109,19 @@ class DataFrame(NDFrame):
 
         missing = []
         for col in keys:
-            if isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray, list)):
+            if isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray,
+                                list, Iterator)):
                 # arrays are fine as long as they are one-dimensional
-                if getattr(col, 'ndim', 1) > 1:
+                # iterators get converted to list below
+                if getattr(col, 'ndim', 1) != 1:
                     raise ValueError(err_msg)
-            elif isinstance(col, Iterator):
-                # various iterators/generators are hashable, but should not
-                # raise a KeyError; other list-likes get tested as keys below.
-                tipo = type(col)
-                raise TypeError(err_msg + ' Received column of '
-                                'type {}'.format(tipo))
             else:
                 # everything else gets tried as a key; see GH 24969
                 try:
                     found = col in self.columns
                 except TypeError:
-                    tipo = type(col)
                     raise TypeError(err_msg + ' Received column of '
-                                    'type {}'.format(tipo))
+                                    'type {}'.format(type(col)))
                 else:
                     if not found:
                         missing.append(col)
@@ -4161,6 +4156,9 @@ class DataFrame(NDFrame):
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
                 arrays.append(col)
+                names.append(None)
+            elif isinstance(col, Iterator):
+                arrays.append(list(col))
                 names.append(None)
             # from here, col can only be a column label
             else:

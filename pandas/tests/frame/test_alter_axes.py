@@ -178,10 +178,10 @@ class TestDataFrameAlterAxes():
     # MultiIndex constructor does not work directly on Series -> lambda
     # We also emulate a "constructor" for the label -> lambda
     # also test index name if append=True (name is duplicate here for A)
-    @pytest.mark.parametrize('box2', [Series, Index, np.array, list,
+    @pytest.mark.parametrize('box2', [Series, Index, np.array, list, iter,
                                       lambda x: MultiIndex.from_arrays([x]),
                                       lambda x: x.name])
-    @pytest.mark.parametrize('box1', [Series, Index, np.array, list,
+    @pytest.mark.parametrize('box1', [Series, Index, np.array, list, iter,
                                       lambda x: MultiIndex.from_arrays([x]),
                                       lambda x: x.name])
     @pytest.mark.parametrize('append, index_name', [(True, None),
@@ -194,6 +194,9 @@ class TestDataFrameAlterAxes():
 
         keys = [box1(df['A']), box2(df['A'])]
         result = df.set_index(keys, drop=drop, append=append)
+
+        # if either box is iter, it has been consumed; re-read
+        keys = [box1(df['A']), box2(df['A'])]
 
         # need to adapt first drop for case that both keys are 'A' --
         # cannot drop the same column twice;
@@ -255,18 +258,17 @@ class TestDataFrameAlterAxes():
 
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
-    @pytest.mark.parametrize('box', [set, iter, lambda x: (y for y in x)],
-                             ids=['set', 'iter', 'generator'])
+    @pytest.mark.parametrize('box', [set], ids=['set'])
     def test_set_index_raise_on_type(self, frame_of_index_cols, box,
                                      drop, append):
         df = frame_of_index_cols
 
         msg = 'The parameter "keys" may be a column key, .*'
-        # forbidden type, e.g. set/iter/generator
+        # forbidden type, e.g. set
         with pytest.raises(TypeError, match=msg):
             df.set_index(box(df['A']), drop=drop, append=append)
 
-        # forbidden type in list, e.g. set/iter/generator
+        # forbidden type in list, e.g. set
         with pytest.raises(TypeError, match=msg):
             df.set_index(['A', df['A'], box(df['A'])],
                          drop=drop, append=append)
