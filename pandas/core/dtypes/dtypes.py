@@ -916,7 +916,6 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         except ValueError:
             pass
 
-
         if not valid_subtype:
             msg = ('category, object, and string subtypes are not supported '
                    'for IntervalDtype')
