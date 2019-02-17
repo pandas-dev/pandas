@@ -503,7 +503,8 @@ class TestIntervalDtype(Base):
     @pytest.mark.parametrize('subtype', [
         CategoricalDtype(list('abc'), False),
         CategoricalDtype(list('wxyz'), True),
-        object, str, '<U10', 'interval[category]', 'interval[object]'])
+        object, str, '<U10', 'interval[category]', 'interval[object]',
+        'IntervalA'])
     def test_construction_not_supported(self, subtype):
         # GH 19016
         msg = ('category, object, and string subtypes are not supported '
