@@ -902,7 +902,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         except TypeError:
             pass
         try:
-            np.issubdtype(subdtype, np.datetime64)
+            np.issubdtype(subtype, np.datetime64)
             valid_subtype = True
         except TypeError:
             pass
@@ -911,8 +911,8 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
             valid_subtype = True
         except TypeError:
             pass
-         
-        if not valid_subtype: 
+
+        if not valid_subtype:
             msg = ('category, object, and string subtypes are not supported '
                    'for IntervalDtype')
             raise TypeError(msg)
