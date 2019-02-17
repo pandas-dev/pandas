@@ -898,9 +898,9 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         valid_subtype = False
         for nptype in [np.number, np.datetime64, np.timedelta64]:
             try:
-                np.issubdtype(subtype, nptype)
-                valid_subtype = True
-                break
+                if np.issubdtype(subtype, nptype):
+                    valid_subtype = True
+                    break
             except TypeError:
                 pass
 
