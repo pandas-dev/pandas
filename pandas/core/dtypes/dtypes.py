@@ -6,7 +6,7 @@ import numpy as np
 import pytz
 
 from pandas._libs.interval import Interval
-from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
+from pandas._libs.tslibs import NaT, Period, Timestamp, timezones, Timedelta
 
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex, ABCDateOffset, ABCIndexClass)
@@ -896,13 +896,26 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
 
         # check subtype is numeric, datetime, or timedelta
         valid_subtype = False
-        for nptype in [np.number, np.datetime64, np.timedelta64]:
-            try:
-                if np.issubdtype(subtype, nptype):
-                    valid_subtype = True
-                    break
-            except TypeError:
-                pass
+
+        # test for number
+        try:
+            if np.issubdtype(subtype, np.number):
+                valid_subtype = True
+        except TypeError:
+            pass
+        # test for datetime
+        try:
+            DatetimeTZDtype.construct_from_string(subtype)
+            valid_subtype = True
+        except TypeError:
+            pass
+        # test for timedelta
+        try:
+            Timedelta(subtype)
+            valid_subtype = True
+        except ValueError:
+            pass
+
 
         if not valid_subtype:
             msg = ('category, object, and string subtypes are not supported '
