@@ -3,6 +3,7 @@ import re
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_categorical, is_categorical_dtype,
@@ -301,6 +302,15 @@ class TestDatetimeTZDtype(Base):
     def test_empty(self):
         with pytest.raises(TypeError, match="A 'tz' is required."):
             DatetimeTZDtype()
+
+    def test_tz_standardize(self):
+        # GH 24713
+        tz = pytz.timezone('US/Eastern')
+        dr = date_range('2013-01-01', periods=3, tz='US/Eastern')
+        dtype = DatetimeTZDtype('ns', dr.tz)
+        assert dtype.tz == tz
+        dtype = DatetimeTZDtype('ns', dr[0].tz)
+        assert dtype.tz == tz
 
 
 class TestPeriodDtype(Base):

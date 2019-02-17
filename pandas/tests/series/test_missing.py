@@ -854,8 +854,23 @@ class TestSeriesMissingData():
         assert_series_equal(result, expected)
 
 
-class TestSeriesInterpolateData():
+@pytest.fixture(params=['linear', 'index', 'values', 'nearest', 'slinear',
+                        'zero', 'quadratic', 'cubic', 'barycentric', 'krogh',
+                        'polynomial', 'spline', 'piecewise_polynomial',
+                        'from_derivatives', 'pchip', 'akima', ])
+def nontemporal_method(request):
+    """ Fixture that returns an (method name, required kwargs) pair.
 
+    This fixture does not include method 'time' as a parameterization; that
+    method requires a Series with a DatetimeIndex, and is generally tested
+    separately from these non-temporal methods.
+    """
+    method = request.param
+    kwargs = dict(order=1) if method in ('spline', 'polynomial') else dict()
+    return method, kwargs
+
+
+class TestSeriesInterpolateData():
     def test_interpolate(self, datetime_series, string_series):
         ts = Series(np.arange(len(datetime_series), dtype=float),
                     datetime_series.index)
@@ -875,12 +890,12 @@ class TestSeriesInterpolateData():
         time_interp = ord_ts_copy.interpolate(method='time')
         tm.assert_series_equal(time_interp, ord_ts)
 
-        # try time interpolation on a non-TimeSeries
-        # Only raises ValueError if there are NaNs.
-        non_ts = string_series.copy()
-        non_ts[0] = np.NaN
-        msg = ("time-weighted interpolation only works on Series or DataFrames"
-               " with a DatetimeIndex")
+    def test_interpolate_time_raises_for_non_timeseries(self):
+        # When method='time' is used on a non-TimeSeries that contains a null
+        # value, a ValueError should be raised.
+        non_ts = Series([0, 1, 2, np.NaN])
+        msg = ("time-weighted interpolation only works on Series.* "
+               "with a DatetimeIndex")
         with pytest.raises(ValueError, match=msg):
             non_ts.interpolate(method='time')
 
@@ -1061,21 +1076,35 @@ class TestSeriesInterpolateData():
         result = s.interpolate(method='linear', limit=2)
         assert_series_equal(result, expected)
 
-        # GH 9217, make sure limit is an int and greater than 0
-        methods = ['linear', 'time', 'index', 'values', 'nearest', 'zero',
-                   'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
-                   'polynomial', 'spline', 'piecewise_polynomial', None,
-                   'from_derivatives', 'pchip', 'akima']
-        s = pd.Series([1, 2, np.nan, np.nan, 5])
-        msg = (r"Limit must be greater than 0|"
-               "time-weighted interpolation only works on Series or"
-               r" DataFrames with a DatetimeIndex|"
-               r"invalid method '(polynomial|spline|None)' to interpolate|"
-               "Limit must be an integer")
-        for limit in [-1, 0, 1., 2.]:
-            for method in methods:
-                with pytest.raises(ValueError, match=msg):
-                    s.interpolate(limit=limit, method=method)
+    @pytest.mark.parametrize("limit", [-1, 0])
+    def test_interpolate_invalid_nonpositive_limit(self, nontemporal_method,
+                                                   limit):
+        # GH 9217: make sure limit is greater than zero.
+        s = pd.Series([1, 2, np.nan, 4])
+        method, kwargs = nontemporal_method
+        with pytest.raises(ValueError, match="Limit must be greater than 0"):
+            s.interpolate(limit=limit, method=method, **kwargs)
+
+    def test_interpolate_invalid_float_limit(self, nontemporal_method):
+        # GH 9217: make sure limit is an integer.
+        s = pd.Series([1, 2, np.nan, 4])
+        method, kwargs = nontemporal_method
+        limit = 2.0
+        with pytest.raises(ValueError, match="Limit must be an integer"):
+            s.interpolate(limit=limit, method=method, **kwargs)
+
+    @pytest.mark.parametrize("invalid_method", [None, 'nonexistent_method'])
+    def test_interp_invalid_method(self, invalid_method):
+        s = Series([1, 3, np.nan, 12, np.nan, 25])
+
+        msg = "method must be one of.* Got '{}' instead".format(invalid_method)
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method=invalid_method)
+
+        # When an invalid method and invalid limit (such as -1) are
+        # provided, the error message reflects the invalid method.
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method=invalid_method, limit=-1)
 
     def test_interp_limit_forward(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
@@ -1276,10 +1305,19 @@ class TestSeriesInterpolateData():
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("method", ['polynomial', 'spline'])
     def test_no_order(self, method):
+        # see GH-10633, GH-24014
         s = Series([0, 1, np.nan, 3])
-        msg = "invalid method '{}' to interpolate".format(method)
+        msg = "You must specify the order of the spline or polynomial"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=method)
+
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize('order', [-1, -1.0, 0, 0.0, np.nan])
+    def test_interpolate_spline_invalid_order(self, order):
+        s = Series([0, 1, np.nan, 3])
+        msg = "order needs to be specified and greater than 0"
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method='spline', order=order)
 
     @td.skip_if_no_scipy
     def test_spline(self):
@@ -1312,19 +1350,6 @@ class TestSeriesInterpolateData():
         result1 = s.interpolate(method='spline', order=1)
         expected1 = s.interpolate(method='spline', order=1)
         assert_series_equal(result1, expected1)
-
-    @td.skip_if_no_scipy
-    def test_spline_error(self):
-        # see gh-10633
-        s = pd.Series(np.arange(10) ** 2)
-        s[np.random.randint(0, 9, 3)] = np.nan
-        msg = "invalid method 'spline' to interpolate"
-        with pytest.raises(ValueError, match=msg):
-            s.interpolate(method='spline')
-
-        msg = "order needs to be specified and greater than 0"
-        with pytest.raises(ValueError, match=msg):
-            s.interpolate(method='spline', order=0)
 
     def test_interp_timedelta64(self):
         # GH 6424

@@ -497,8 +497,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     See Also
     --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_timedelta : Convert argument to timedelta.
+    DataFrame.astype : Cast argument to a specified dtype.
+    to_timedelta : Convert argument to timedelta.
 
     Examples
     --------
@@ -588,9 +588,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         if not cache_array.empty:
             result = arg.map(cache_array)
         else:
-            from pandas import Series
             values = convert_listlike(arg._values, True, format)
-            result = Series(values, index=arg.index, name=arg.name)
+            result = arg._constructor(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, compat.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, box, tz)
     elif isinstance(arg, ABCIndexClass):
@@ -827,7 +826,6 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
     -------
     datetime.time
     """
-    from pandas.core.series import Series
 
     def _convert_listlike(arg, format):
 
@@ -892,9 +890,9 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
         return arg
     elif isinstance(arg, time):
         return arg
-    elif isinstance(arg, Series):
+    elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, format)
-        return Series(values, index=arg.index, name=arg.name)
+        return arg._constructor(values, index=arg.index, name=arg.name)
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, format)
     elif is_list_like(arg):

@@ -1391,7 +1391,7 @@ class MultiIndex(Index):
         Returns
         -------
         values : Index
-            ``values`` is a level of this MultiIndex converted to
+            Values is a level of this MultiIndex converted to
             a single :class:`Index` (or subclass thereof).
 
         Examples
@@ -1956,7 +1956,7 @@ class MultiIndex(Index):
         Returns
         -------
         MultiIndex
-            A new MultiIndex
+            A new MultiIndex.
 
         .. versionchanged:: 0.18.1
 
@@ -2053,9 +2053,9 @@ class MultiIndex(Index):
         Returns
         -------
         sorted_index : pd.MultiIndex
-            Resulting index
+            Resulting index.
         indexer : np.ndarray
-            Indices of output values in original index
+            Indices of output values in original index.
         """
         from pandas.core.sorting import indexer_from_factorized
 
