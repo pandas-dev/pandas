@@ -11,7 +11,7 @@ _writers = {}
 def register_writer(klass):
     """
     Add engine to the excel writer registry. You must use this method to
-    integrate with ``to_excel``. 
+    integrate with ``to_excel``.
 
     Parameters
     ----------
