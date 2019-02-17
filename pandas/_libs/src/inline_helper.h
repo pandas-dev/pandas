@@ -19,7 +19,7 @@ The full license is in the LICENSE file, distributed with this software.
     #define PANDAS_INLINE static inline
   #else
     #define PANDAS_INLINE
-  #endif
-#endif
+  #endif  // __GNUC__
+#endif  // PANDAS_INLINE
 
 #endif  // PANDAS__LIBS_SRC_INLINE_HELPER_H_
