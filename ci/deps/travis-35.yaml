@@ -39,6 +39,7 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - pytest-mock
   - hypothesis>=3.58.0
   - pip:
     - backports.lzma

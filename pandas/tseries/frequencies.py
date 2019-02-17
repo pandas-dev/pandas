@@ -68,7 +68,7 @@ def to_offset(freq):
     Returns
     -------
     delta : DateOffset
-        None if freq is None
+        None if freq is None.
 
     Raises
     ------
@@ -77,7 +77,7 @@ def to_offset(freq):
 
     See Also
     --------
-    pandas.DateOffset
+    DateOffset
 
     Examples
     --------

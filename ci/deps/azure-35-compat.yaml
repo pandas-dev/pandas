@@ -22,5 +22,6 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - pytest-mock
   - pip:
     - html5lib==1.0b2
