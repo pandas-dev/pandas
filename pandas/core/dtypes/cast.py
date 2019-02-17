@@ -1090,7 +1090,7 @@ def find_common_type(types):
     if len(types) == 0:
         raise ValueError('no types given')
 
-    first = types[:1]
+    first = [t for t in types][0]
 
     # workaround for find_common_type([np.dtype('datetime64[ns]')] * 2)
     # => object
