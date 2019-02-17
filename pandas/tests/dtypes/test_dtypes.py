@@ -559,6 +559,7 @@ class TestIntervalDtype(Base):
         assert not IntervalDtype.is_dtype('U')
         assert not IntervalDtype.is_dtype('S')
         assert not IntervalDtype.is_dtype('foo')
+        assert not IntervalDtype.is_dtype('IntervalA')
         assert not IntervalDtype.is_dtype(np.object_)
         assert not IntervalDtype.is_dtype(np.int64)
         assert not IntervalDtype.is_dtype(np.float64)
