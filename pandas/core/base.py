@@ -796,7 +796,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        array : ExtensionArray
+        ExtensionArray
             An ExtensionArray of the values stored within. For extension
             types, this is the actual array. For NumPy native types, this
             is a thin (no copy) wrapper around :class:`numpy.ndarray`.
@@ -1024,7 +1024,7 @@ class IndexOpsMixin(object):
 
     def argmax(self, axis=None, skipna=True):
         """
-        Return a ndarray of the maximum argument indexer.
+        Return an ndarray of the maximum argument indexer.
 
         Parameters
         ----------
@@ -1090,6 +1090,10 @@ class IndexOpsMixin(object):
             Dummy argument for consistency with Series
         skipna : bool, default True
 
+        Returns
+        -------
+        numpy.ndarray
+
         See Also
         --------
         numpy.ndarray.argmin: Returns indices of the minimum
@@ -1105,6 +1109,10 @@ class IndexOpsMixin(object):
         These are each a scalar type, which is a Python scalar
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
+
+        Returns
+        -------
+        list
 
         See Also
         --------
@@ -1166,7 +1174,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        applied : Union[Index, MultiIndex], inferred
+        Union[Index, MultiIndex], inferred
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
@@ -1250,7 +1258,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        counts : Series
+        Series
 
         See Also
         --------
@@ -1367,7 +1375,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        is_unique : boolean
+        bool
         """
         return self.nunique(dropna=False) == len(self)
 
@@ -1381,7 +1389,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        is_monotonic : boolean
+        bool
         """
         from pandas import Index
         return Index(self).is_monotonic
@@ -1398,7 +1406,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        is_monotonic_decreasing : boolean
+        bool
         """
         from pandas import Index
         return Index(self).is_monotonic_decreasing
