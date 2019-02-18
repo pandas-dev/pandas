@@ -524,7 +524,7 @@ class TestIntervalDtype(Base):
         assert is_dtype_equal(self.dtype, result)
 
     @pytest.mark.parametrize('string', [
-        'foo', 'foo[int64]', 0, 3.14, ('a', 'b'), None])
+        0, 3.14, ('a', 'b'), None])
     def test_construction_from_string_errors(self, string):
         # these are invalid entirely
         msg = 'a string needs to be passed, got type'
@@ -533,11 +533,12 @@ class TestIntervalDtype(Base):
             IntervalDtype.construct_from_string(string)
 
     @pytest.mark.parametrize('string', [
-        'interval[foo]', 'IntervalA'])
+        'interval[foo]', 'IntervalA', 'foo', 'foo[int64]'])
     def test_construction_from_string_error_subtype(self, string):
         # this is an invalid subtype
-        msg = ('category, object, and string subtypes are not supported '
-               'for IntervalDtype')
+        msg = ("Incorrectly formatted string passed to constructor. "
+                "Valid formats include 'Interval' or 'Inverval[dtype]' "
+                "where dtype is numeric, datetime, or timedelta")
 
         with pytest.raises(TypeError, match=msg):
             IntervalDtype.construct_from_string(string)
