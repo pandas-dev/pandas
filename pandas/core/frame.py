@@ -7543,7 +7543,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.idxmin Returns the row label of the minimum value.
+        Series.idxmin: Returns the row label of the minimum value.
 
         Notes
         -----
