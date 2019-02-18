@@ -505,7 +505,7 @@ So, for instance, to reproduce :meth:`~DataFrame.combine_first` as above:
 .. ipython:: python
 
    def combiner(x, y):
-       np.where(pd.isna(x), y, x)
+       return np.where(pd.isna(x), y, x)
    df1.combine(df2, combiner)
 
 .. _basics.stats:
