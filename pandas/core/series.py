@@ -3100,9 +3100,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : return the first `n` occurrences in the 
+            - ``first`` : return the first `n` occurrences in the
                 given index order.
-            - ``last`` : return the last `n` occurrences in the 
+            - ``last`` : return the last `n` occurrences in the
                 reverse of the given index order.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
@@ -3198,9 +3198,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : return the first `n` occurrences in the 
+            - ``first`` : return the first `n` occurrences in the
                 given index order.
-            - ``last`` : return the last `n` occurrences in the 
+            - ``last`` : return the last `n` occurrences in the
                 reverse of the given index order.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
