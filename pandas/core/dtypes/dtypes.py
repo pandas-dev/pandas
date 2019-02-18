@@ -983,7 +983,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                         return True
                     else:
                         return False
-                except ValueError:
+                except (ValueError, TypeError):
                     return False
             else:
                 return False
