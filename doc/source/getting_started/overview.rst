@@ -6,25 +6,80 @@
 Package overview
 ****************
 
-:mod:`pandas` is an open source, BSD-licensed library providing high-performance,
-easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
-programming language.
+**pandas** is a `Python <https://www.python.org>`__ package providing fast,
+flexible, and expressive data structures designed to make working with
+"relational" or "labeled" data both easy and intuitive. It aims to be the
+fundamental high-level building block for doing practical, **real world** data
+analysis in Python. Additionally, it has the broader goal of becoming **the
+most powerful and flexible open source data analysis / manipulation tool
+available in any language**. It is already well on its way toward this goal.
 
-:mod:`pandas` consists of the following elements:
+pandas is well suited for many different kinds of data:
 
-* A set of labeled array data structures, the primary of which are
-  Series and DataFrame.
-* Index objects enabling both simple axis indexing and multi-level /
-  hierarchical axis indexing.
-* An integrated group by engine for aggregating and transforming data sets.
-* Date range generation (date_range) and custom date offsets enabling the
-  implementation of customized frequencies.
-* Input/Output tools: loading tabular data from flat files (CSV, delimited,
-  Excel 2003), and saving and loading pandas objects from the fast and
-  efficient PyTables/HDF5 format.
-* Memory-efficient "sparse" versions of the standard data structures for storing
-  data that is mostly missing or mostly constant (some fixed value).
-* Moving window statistics (rolling mean, rolling standard deviation, etc.).
+  - Tabular data with heterogeneously-typed columns, as in an SQL table or
+    Excel spreadsheet
+  - Ordered and unordered (not necessarily fixed-frequency) time series data.
+  - Arbitrary matrix data (homogeneously typed or heterogeneous) with row and
+    column labels
+  - Any other form of observational / statistical data sets. The data actually
+    need not be labeled at all to be placed into a pandas data structure
+
+The two primary data structures of pandas, :class:`Series` (1-dimensional)
+and :class:`DataFrame` (2-dimensional), handle the vast majority of typical use
+cases in finance, statistics, social science, and many areas of
+engineering. For R users, :class:`DataFrame` provides everything that R's
+``data.frame`` provides and much more. pandas is built on top of `NumPy
+<https://www.numpy.org>`__ and is intended to integrate well within a scientific
+computing environment with many other 3rd party libraries.
+
+Here are just a few of the things that pandas does well:
+
+  - Easy handling of **missing data** (represented as NaN) in floating point as
+    well as non-floating point data
+  - Size mutability: columns can be **inserted and deleted** from DataFrame and
+    higher dimensional objects
+  - Automatic and explicit **data alignment**: objects can be explicitly
+    aligned to a set of labels, or the user can simply ignore the labels and
+    let `Series`, `DataFrame`, etc. automatically align the data for you in
+    computations
+  - Powerful, flexible **group by** functionality to perform
+    split-apply-combine operations on data sets, for both aggregating and
+    transforming data
+  - Make it **easy to convert** ragged, differently-indexed data in other
+    Python and NumPy data structures into DataFrame objects
+  - Intelligent label-based **slicing**, **fancy indexing**, and **subsetting**
+    of large data sets
+  - Intuitive **merging** and **joining** data sets
+  - Flexible **reshaping** and pivoting of data sets
+  - **Hierarchical** labeling of axes (possible to have multiple labels per
+    tick)
+  - Robust IO tools for loading data from **flat files** (CSV and delimited),
+    Excel files, databases, and saving / loading data from the ultrafast **HDF5
+    format**
+  - **Time series**-specific functionality: date range generation and frequency
+    conversion, moving window statistics, moving window linear regressions,
+    date shifting and lagging, etc.
+
+Many of these principles are here to address the shortcomings frequently
+experienced using other languages / scientific research environments. For data
+scientists, working with data is typically divided into multiple stages:
+munging and cleaning data, analyzing / modeling it, then organizing the results
+of the analysis into a form suitable for plotting or tabular display. pandas
+is the ideal tool for all of these tasks.
+
+Some other notes
+
+ - pandas is **fast**. Many of the low-level algorithmic bits have been
+   extensively tweaked in `Cython <https://cython.org>`__ code. However, as with
+   anything else generalization usually sacrifices performance. So if you focus
+   on one feature for your application you may be able to create a faster
+   specialized tool.
+
+ - pandas is a dependency of `statsmodels
+   <https://www.statsmodels.org/stable/index.html>`__, making it an important part of the
+   statistical computing ecosystem in Python.
+
+ - pandas has been used extensively in production in financial applications.
 
 Data Structures
 ---------------
@@ -119,5 +174,5 @@ The information about current institutional partners can be found on `pandas web
 License
 -------
 
-.. literalinclude:: ../../LICENSE
+.. literalinclude:: ../../../LICENSE
 

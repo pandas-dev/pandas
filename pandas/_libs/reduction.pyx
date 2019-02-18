@@ -494,7 +494,7 @@ class InvalidApply(Exception):
 
 
 def apply_frame_axis0(object frame, object f, object names,
-                      ndarray[int64_t] starts, ndarray[int64_t] ends):
+                      const int64_t[:] starts, const int64_t[:] ends):
     cdef:
         BlockSlider slider
         Py_ssize_t i, n = len(starts)

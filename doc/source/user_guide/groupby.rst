@@ -15,7 +15,7 @@ steps:
 
 Out of these, the split step is the most straightforward. In fact, in many
 situations we may wish to split the data set into groups and do something with
-those groups. In the apply step, we might wish to one of the
+those groups. In the apply step, we might wish to do one of the
 following:
 
 * **Aggregation**: compute a summary statistic (or statistics) for each
@@ -1317,7 +1317,7 @@ arbitrary function, for example:
    df.groupby(['Store', 'Product']).pipe(mean)
 
 where ``mean`` takes a GroupBy object and finds the mean of the Revenue and Quantity
-columns repectively for each Store-Product combination. The ``mean`` function can
+columns respectively for each Store-Product combination. The ``mean`` function can
 be any function that takes in a GroupBy object; the ``.pipe`` will pass the GroupBy
 object as a parameter into the function you specify.
 
