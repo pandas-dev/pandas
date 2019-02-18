@@ -10,7 +10,7 @@ General functions
 Data manipulations
 ~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    melt
    pivot
@@ -30,7 +30,7 @@ Data manipulations
 Top-level missing data
 ~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    isna
    isnull
@@ -40,14 +40,14 @@ Top-level missing data
 Top-level conversions
 ~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    to_numeric
 
 Top-level dealing with datetimelike
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    to_datetime
    to_timedelta
@@ -60,21 +60,21 @@ Top-level dealing with datetimelike
 Top-level dealing with intervals
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    interval_range
 
 Top-level evaluation
 ~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    eval
 
 Hashing
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    util.hash_array
    util.hash_pandas_object
@@ -82,6 +82,6 @@ Hashing
 Testing
 ~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    test

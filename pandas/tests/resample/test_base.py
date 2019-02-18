@@ -28,15 +28,10 @@ PERIOD_RANGE = (
     period_range, 'pi', datetime(2005, 1, 1), datetime(2005, 1, 10))
 TIMEDELTA_RANGE = (timedelta_range, 'tdi', '1 day', '10 day')
 
-ALL_TIMESERIES_INDEXES = [DATE_RANGE, PERIOD_RANGE, TIMEDELTA_RANGE]
-
-
-def pytest_generate_tests(metafunc):
-    # called once per each test function
-    if metafunc.function.__name__.endswith('_all_ts'):
-        metafunc.parametrize(
-            '_index_factory,_series_name,_index_start,_index_end',
-            ALL_TIMESERIES_INDEXES)
+all_ts = pytest.mark.parametrize(
+    '_index_factory,_series_name,_index_start,_index_end',
+    [DATE_RANGE, PERIOD_RANGE, TIMEDELTA_RANGE]
+)
 
 
 @pytest.fixture
@@ -84,7 +79,8 @@ def test_asfreq_fill_value(series, create_index):
     assert_frame_equal(result, expected)
 
 
-def test_resample_interpolate_all_ts(frame):
+@all_ts
+def test_resample_interpolate(frame):
     # # 12925
     df = frame
     assert_frame_equal(
@@ -95,11 +91,15 @@ def test_resample_interpolate_all_ts(frame):
 def test_raises_on_non_datetimelike_index():
     # this is a non datetimelike index
     xp = DataFrame()
-    pytest.raises(TypeError, lambda: xp.resample('A').mean())
+    msg = ("Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex,"
+           " but got an instance of 'Index'")
+    with pytest.raises(TypeError, match=msg):
+        xp.resample('A').mean()
 
 
+@all_ts
 @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
-def test_resample_empty_series_all_ts(freq, empty_series, resample_method):
+def test_resample_empty_series(freq, empty_series, resample_method):
     # GH12771 & GH12868
 
     if resample_method == 'ohlc':
@@ -118,8 +118,9 @@ def test_resample_empty_series_all_ts(freq, empty_series, resample_method):
     assert_series_equal(result, expected, check_dtype=False)
 
 
+@all_ts
 @pytest.mark.parametrize('freq', ['M', 'D', 'H'])
-def test_resample_empty_dataframe_all_ts(empty_frame, freq, resample_method):
+def test_resample_empty_dataframe(empty_frame, freq, resample_method):
     # GH13212
     df = empty_frame
     # count retains dimensions too
@@ -159,7 +160,8 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
         pass
 
 
-def test_resample_loffset_arg_type_all_ts(frame, create_index):
+@all_ts
+def test_resample_loffset_arg_type(frame, create_index):
     # GH 13218, 15002
     df = frame
     expected_means = [df.values[i:i + 2].mean()
@@ -189,15 +191,18 @@ def test_resample_loffset_arg_type_all_ts(frame, create_index):
 
         # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
         if isinstance(expected.index, TimedeltaIndex):
-            with pytest.raises(AssertionError):
+            msg = "DataFrame are different"
+            with pytest.raises(AssertionError, match=msg):
                 assert_frame_equal(result_agg, expected)
+            with pytest.raises(AssertionError, match=msg):
                 assert_frame_equal(result_how, expected)
         else:
             assert_frame_equal(result_agg, expected)
             assert_frame_equal(result_how, expected)
 
 
-def test_apply_to_empty_series_all_ts(empty_series):
+@all_ts
+def test_apply_to_empty_series(empty_series):
     # GH 14313
     s = empty_series
     for freq in ['M', 'D', 'H']:
@@ -207,7 +212,8 @@ def test_apply_to_empty_series_all_ts(empty_series):
         assert_series_equal(result, expected, check_dtype=False)
 
 
-def test_resampler_is_iterable_all_ts(series):
+@all_ts
+def test_resampler_is_iterable(series):
     # GH 15314
     freq = 'H'
     tg = TimeGrouper(freq, convention='start')
@@ -218,7 +224,8 @@ def test_resampler_is_iterable_all_ts(series):
         assert_series_equal(rv, gv)
 
 
-def test_resample_quantile_all_ts(series):
+@all_ts
+def test_resample_quantile(series):
     # GH 15023
     s = series
     q = 0.75

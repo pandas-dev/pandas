@@ -10,7 +10,7 @@ General utility functions
 Working with options
 --------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    describe_option
    reset_option
@@ -21,7 +21,7 @@ Working with options
 Testing functions
 -----------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    testing.assert_frame_equal
    testing.assert_series_equal
@@ -30,7 +30,7 @@ Testing functions
 Exceptions and warnings
 -----------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    errors.DtypeWarning
    errors.EmptyDataError
@@ -44,7 +44,7 @@ Exceptions and warnings
 Data types related functionality
 --------------------------------
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
    api.types.union_categoricals
    api.types.infer_dtype
@@ -53,7 +53,7 @@ Data types related functionality
 Dtype introspection
 ~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     api.types.is_bool_dtype
     api.types.is_categorical_dtype
@@ -81,7 +81,7 @@ Dtype introspection
 Iterable introspection
 ~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     api.types.is_dict_like
     api.types.is_file_like
@@ -92,7 +92,7 @@ Iterable introspection
 Scalar introspection
 ~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated/
+   :toctree: api/
 
     api.types.is_bool
     api.types.is_categorical
