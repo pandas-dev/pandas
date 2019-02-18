@@ -1302,20 +1302,19 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         --------
         indexer_between_time, DataFrame.at_time
         """
-        from dateutil.parser import parse
-
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
 
         if isinstance(time, compat.string_types):
+            from dateutil.parser import parse
             time = parse(time).time()
 
         if time.tzinfo:
-            # TODO
-            raise NotImplementedError("argument 'time' with timezone info is "
-                                      "not supported")
-
-        time_micros = self._get_time_micros()
+            if self.tz is None:
+                raise ValueError("Index must be timezone aware.")
+            time_micros = self.tz_convert(time.tzinfo)._get_time_micros()
+        else:
+            time_micros = self._get_time_micros()
         micros = _time_to_micros(time)
         return (micros == time_micros).nonzero()[0]
 
