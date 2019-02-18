@@ -256,6 +256,23 @@ class TestDataFrameAlterAxes():
             df.set_index(['A', df['A'], tuple(df['A'])],
                          drop=drop, append=append)
 
+    @pytest.mark.parametrize('append', [True, False])
+    @pytest.mark.parametrize('drop', [True, False])
+    @pytest.mark.parametrize('box', [set], ids=['set'])
+    def test_set_index_raise_on_type(self, frame_of_index_cols, box,
+                                     drop, append):
+        df = frame_of_index_cols
+
+        msg = 'The parameter "keys" may be a column key, .*'
+        # forbidden type, e.g. set
+        with pytest.raises(TypeError, match=msg):
+            df.set_index(box(df['A']), drop=drop, append=append)
+
+        # forbidden type in list, e.g. set
+        with pytest.raises(TypeError, match=msg):
+            df.set_index(['A', df['A'], box(df['A'])],
+                         drop=drop, append=append)
+
     # MultiIndex constructor does not work directly on Series -> lambda
     @pytest.mark.parametrize('box', [Series, Index, np.array, iter,
                                      lambda x: MultiIndex.from_arrays([x])],
@@ -279,23 +296,6 @@ class TestDataFrameAlterAxes():
         # wrong length in list
         with pytest.raises(ValueError, match=msg):
             df.set_index(['A', df.A, box(values)], drop=drop, append=append)
-
-    @pytest.mark.parametrize('append', [True, False])
-    @pytest.mark.parametrize('drop', [True, False])
-    @pytest.mark.parametrize('box', [set], ids=['set'])
-    def test_set_index_raise_on_type(self, frame_of_index_cols, box,
-                                     drop, append):
-        df = frame_of_index_cols
-
-        msg = 'The parameter "keys" may be a column key, .*'
-        # forbidden type, e.g. set
-        with pytest.raises(TypeError, match=msg):
-            df.set_index(box(df['A']), drop=drop, append=append)
-
-        # forbidden type in list, e.g. set
-        with pytest.raises(TypeError, match=msg):
-            df.set_index(['A', df['A'], box(df['A'])],
-                         drop=drop, append=append)
 
     def test_set_index_custom_label_type(self):
         # GH 24969
