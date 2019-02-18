@@ -98,7 +98,7 @@ _no_input = object()
 @cython.wraparound(False)
 def ints_to_pytimedelta(int64_t[:] arr, box=False):
     """
-    convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
+    Convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
     True)
 
     Parameters
@@ -247,7 +247,7 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
 
 
 cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
-    """ return a casting of the unit represented to nanoseconds
+    """ Return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """
     cdef:
         int64_t m
@@ -792,7 +792,7 @@ cdef class _Timedelta(timedelta):
 
     def _ensure_components(_Timedelta self):
         """
-        compute the components
+        Compute the components
         """
         if self.is_populated:
             return
@@ -815,7 +815,7 @@ cdef class _Timedelta(timedelta):
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
-        return an actual datetime.timedelta object
+        Return an actual datetime.timedelta object
         note: we lose nanosecond resolution if any
         """
         return timedelta(microseconds=int(self.value) / 1000)
@@ -831,7 +831,7 @@ cdef class _Timedelta(timedelta):
         return self.value / 1e9
 
     def view(self, dtype):
-        """ array view compat """
+        """ Array view compat """
         return np.timedelta64(self.value).view(dtype)
 
     @property
@@ -1234,7 +1234,7 @@ class Timedelta(_Timedelta):
 
     def floor(self, freq):
         """
-        return a new Timedelta floored to this resolution
+        Return a new Timedelta floored to this resolution
 
         Parameters
         ----------
@@ -1244,7 +1244,7 @@ class Timedelta(_Timedelta):
 
     def ceil(self, freq):
         """
-        return a new Timedelta ceiled to this resolution
+        Return a new Timedelta ceiled to this resolution
 
         Parameters
         ----------
