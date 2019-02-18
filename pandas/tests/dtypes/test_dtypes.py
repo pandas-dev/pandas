@@ -503,8 +503,7 @@ class TestIntervalDtype(Base):
     @pytest.mark.parametrize('subtype', [
         CategoricalDtype(list('abc'), False),
         CategoricalDtype(list('wxyz'), True),
-        object, str, '<U10', 'interval[category]', 'interval[object]',
-        'IntervalA'])
+        object, str, '<U10', 'interval[category]', 'interval[object]'])
     def test_construction_not_supported(self, subtype):
         # GH 19016
         msg = ('category, object, and string subtypes are not supported '
@@ -512,10 +511,11 @@ class TestIntervalDtype(Base):
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
 
+    @pytest.mark.parametrize('subtype', ['xx', 'IntervalA'])
     def test_construction_errors(self):
         msg = 'could not construct IntervalDtype'
         with pytest.raises(TypeError, match=msg):
-            IntervalDtype('xx')
+            IntervalDtype(subtype)
 
     def test_construction_from_string(self):
         result = IntervalDtype('interval[int64]')
