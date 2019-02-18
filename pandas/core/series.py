@@ -3100,8 +3100,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : return the first n occurrences in the given index order
-            - ``last`` : return the last n occurrences in the reverse of the given index order
+            - ``first`` : return the first `n` occurrences in the 
+                given index order.
+            - ``last`` : return the last `n` occurrences in the 
+                reverse of the given index order.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
@@ -3196,8 +3198,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : take the first occurrences based on the index order
-            - ``last`` : take the last occurrences based on the index order
+            - ``first`` : return the first `n` occurrences in the 
+                given index order.
+            - ``last`` : return the last `n` occurrences in the 
+                reverse of the given index order.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
@@ -3238,7 +3242,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Monserat        5200
         dtype: int64
 
-        The `n` largest elements where ``n=5`` by default.
+        The `n` smallest elements where ``n=5`` by default.
 
         >>> s.nsmallest()
         Monserat      5200
