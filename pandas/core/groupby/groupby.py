@@ -768,11 +768,16 @@ b  2""")
         if not is_scalar(result):
             if is_datetime64tz_dtype(dtype):
                 # GH 23683
-                # Prior results were generated in UTC. Ensure we localize to
-                # UTC first before converting to the target timezone
-                utc_dtype = DatetimeTZDtype(tz='UTC')
-                result = obj._values._from_sequence(result, dtype=utc_dtype)
-                result = result.astype(dtype)
+                # Prior results _may_ have been generated in UTC.
+                # Ensure we localize to UTC first before converting
+                # to the target timezone
+                try:
+                    utc_dtype = DatetimeTZDtype(tz='UTC')
+                    result = obj._values._from_sequence(result,
+                                                        dtype=utc_dtype)
+                    result = result.astype(dtype)
+                except TypeError:
+                    pass
             elif is_extension_array_dtype(dtype):
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
