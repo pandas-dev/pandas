@@ -824,6 +824,26 @@ cdef class _Timedelta(timedelta):
         """ Returns a numpy.timedelta64 object with 'ns' precision """
         return np.timedelta64(self.value, 'ns')
 
+    def to_numpy(self, dtype=None, copy=False):
+        """
+        Convert the Timestamp to a NumPy timedelta64.
+
+        .. versionadded:: 0.25.0
+
+        This is an alias method for `Timedelta.to_timedelta64()`. The dtype and
+        copy parameters are available here only for compatibility. Their values
+        will not affect the return value.
+
+        Returns
+        -------
+        numpy.timedelta64
+
+        See Also
+        --------
+        Series.to_numpy : Similar method for Series.
+        """
+        return self.to_timedelta64()
+
     def total_seconds(self):
         """
         Total duration of timedelta in seconds (to ns precision)
@@ -1127,10 +1147,11 @@ class Timedelta(_Timedelta):
         'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
         'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
         'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
-    days, seconds, microseconds,
-    milliseconds, minutes, hours, weeks : numeric, optional
+    **kwargs
+        Available kwargs: {days, seconds, microseconds,
+        milliseconds, minutes, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
-        np ints and floats will be coerced to python ints and floats.
+        Numpy ints and floats will be coerced to python ints and floats.
 
     Notes
     -----
