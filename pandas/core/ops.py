@@ -81,7 +81,7 @@ def _maybe_match_name(a, b):
 
     See Also
     --------
-    pandas.core.common.consensus_name_attr
+    pandas.core.common.consensus_name_attr: Gets name of attribute.
     """
     a_has = hasattr(a, 'name')
     b_has = hasattr(b, 'name')

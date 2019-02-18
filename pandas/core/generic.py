@@ -4526,8 +4526,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        DataFrame.loc: Access a group of rows and columns by
-        label(s) or a boolean array.
+        DataFrame.loc: Access a group of rows and columns by labels or a
+            boolean array.
 
         Notes
         -----
@@ -7678,9 +7678,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        Dataframe.reindex:Conform DataFrame to new index with optional
-        filling logic, placing NA/NaN in locations having no value in
-        the previous index.
+        Dataframe.reindex: Conform DataFrame to new index with optional
+            filling logic placing NA/NaN in locations having no value in
+            the previous index.
 
         Notes
         -----

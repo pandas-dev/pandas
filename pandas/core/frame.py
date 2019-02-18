@@ -719,7 +719,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         io.formats.style.Styler: Class to help style a DataFrame or Series
-        according to the data with HTML and CSS.
+            according to the data with HTML and CSS.
         """
         from pandas.io.formats.style import Styler
         return Styler(self)
