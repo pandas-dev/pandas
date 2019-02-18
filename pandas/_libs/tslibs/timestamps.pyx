@@ -345,6 +345,26 @@ cdef class _Timestamp(datetime):
         """
         return np.datetime64(self.value, 'ns')
 
+    def to_numpy(self, dtype=None, copy=False):
+        """
+        Convert the Timestamp to a NumPy datetime64.
+
+        .. versionadded:: 0.25.0
+
+        This is an alias method for `Timestamp.to_datetime64()`. The dtype and
+        copy parameters are available here only for compatibility. Their values
+        will not affect the return value.
+
+        Returns
+        -------
+        numpy.datetime64
+
+        See Also
+        --------
+        DatetimeIndex.to_numpy : Similar method for DatetimeIndex.
+        """
+        return self.to_datetime64()
+
     def __add__(self, other):
         cdef:
             int64_t other_int, nanos
@@ -1187,12 +1207,12 @@ class Timestamp(_Timestamp):
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous,
                                        nonexistent=nonexistent)[0]
-            return Timestamp(value, tz=tz)
+            return Timestamp(value, tz=tz, freq=self.freq)
         else:
             if tz is None:
                 # reset tz
                 value = tz_convert_single(self.value, UTC, self.tz)
-                return Timestamp(value, tz=None)
+                return Timestamp(value, tz=tz, freq=self.freq)
             else:
                 raise TypeError('Cannot localize tz-aware Timestamp, use '
                                 'tz_convert for conversions')
@@ -1222,7 +1242,7 @@ class Timestamp(_Timestamp):
                             'tz_localize to localize')
         else:
             # Same UTC timestamp, different time zone
-            return Timestamp(self.value, tz=tz)
+            return Timestamp(self.value, tz=tz, freq=self.freq)
 
     astimezone = tz_convert
 

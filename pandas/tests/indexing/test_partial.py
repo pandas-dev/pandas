@@ -10,13 +10,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Panel, Series, date_range
+from pandas import DataFrame, Index, Series, date_range
 from pandas.util import testing as tm
 
 
 class TestPartialSetting(object):
 
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
     def test_partial_setting(self):
 
@@ -115,35 +114,6 @@ class TestPartialSetting(object):
         with catch_warnings(record=True):
             df.ix[:, 'C'] = df.ix[:, 'A']
         tm.assert_frame_equal(df, expected)
-
-        with catch_warnings(record=True):
-            # ## panel ##
-            p_orig = Panel(np.arange(16).reshape(2, 4, 2),
-                           items=['Item1', 'Item2'],
-                           major_axis=pd.date_range('2001/1/12', periods=4),
-                           minor_axis=['A', 'B'], dtype='float64')
-
-            # panel setting via item
-            p_orig = Panel(np.arange(16).reshape(2, 4, 2),
-                           items=['Item1', 'Item2'],
-                           major_axis=pd.date_range('2001/1/12', periods=4),
-                           minor_axis=['A', 'B'], dtype='float64')
-            expected = p_orig.copy()
-            expected['Item3'] = expected['Item1']
-            p = p_orig.copy()
-            p.loc['Item3'] = p['Item1']
-            tm.assert_panel_equal(p, expected)
-
-            # panel with aligned series
-            expected = p_orig.copy()
-            expected = expected.transpose(2, 1, 0)
-            expected['C'] = DataFrame({'Item1': [30, 30, 30, 30],
-                                       'Item2': [32, 32, 32, 32]},
-                                      index=p_orig.major_axis)
-            expected = expected.transpose(2, 1, 0)
-            p = p_orig.copy()
-            p.loc[:, :, 'C'] = Series([30, 32], index=p_orig.items)
-            tm.assert_panel_equal(p, expected)
 
         # GH 8473
         dates = date_range('1/1/2000', periods=8)
