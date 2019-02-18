@@ -7170,7 +7170,7 @@ class DataFrame(NDFrame):
 
         See Also
         -------
-        DataFrame.corr: Compute pairwise correlation of columns,
+        DataFrame.corr: Compute pairwise correlation of columns
             excluding NA/null values.
         """
         axis = self._get_axis_number(axis)

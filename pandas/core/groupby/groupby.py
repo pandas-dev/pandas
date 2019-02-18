@@ -207,7 +207,7 @@ object : the return type of `func`.
 See Also
 --------
 Series.pipe : Apply a function with arguments to a series.
-DataFrame.pipe: Apply a function with arguments to a dataframe.
+DataFrame.pipe : Apply a function with arguments to a dataframe.
 apply : Apply function to each group instead of to the
     full %(klass)s object.
 
@@ -1502,7 +1502,7 @@ class GroupBy(_GroupBy):
         See Also
         --------
         Series.pad: Pad strings in the Series/Index with an
-        additional character to specified side.
+            additional character to specified side.
         DataFrame.pad: Conform DataFrame to new index with optional filling
             logic, placing NA/NaN in locations having no value in the previous
             index.
@@ -1714,7 +1714,7 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        .cumcount : Number the rows in each group.
+        cumcount : Number the rows in each group.
 
         Examples
         --------
@@ -1777,7 +1777,7 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        .ngroup : Number the groups themselves.
+        ngroup : Number the groups themselves.
 
         Examples
         --------
