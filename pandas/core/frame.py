@@ -7166,12 +7166,12 @@ class DataFrame(NDFrame):
         Returns
         -------
         Series
-            The pairwise correlations.
+            Pairwise correlations.
 
         See Also
         -------
-        DataFrame.corr : Compute pairwise correlation of columns
-            excluding NA/null values.
+        DataFrame.corr: Compute pairwise correlation of columns excluding 
+            NA/null values.
         """
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
