@@ -7143,7 +7143,7 @@ class DataFrame(NDFrame):
     def corrwith(self, other, axis=0, drop=False, method='pearson'):
         """
         Compute pairwise correlation between rows or columns of DataFrame
-        with rows or columns of Series or DataFrame.  DataFrames are first
+        with rows or columns of Series or DataFrame. DataFrames are first
         aligned along both axes before computing the correlations.
 
         Parameters
@@ -7166,11 +7166,11 @@ class DataFrame(NDFrame):
         Returns
         -------
         Series
-            Pairwise correlations.
+            The pairwise correlations.
 
         See Also
         -------
-        DataFrame.corr: Compute pairwise correlation of columns
+        DataFrame.corr : Compute pairwise correlation of columns
             excluding NA/null values.
         """
         axis = self._get_axis_number(axis)
