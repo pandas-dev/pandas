@@ -414,6 +414,11 @@ class TestTimedeltas(object):
         assert (Timedelta(timedelta(days=1)) ==
                 np.timedelta64(1, 'D').astype('m8[ns]'))
 
+    def test_to_numpy_alias(self):
+        # GH 24653: alias .to_numpy() for scalars
+        td = Timedelta('10m7s')
+        assert td.to_timedelta64() == td.to_numpy()
+
     def test_round(self):
 
         t1 = Timedelta('1 days 02:34:56.789123456')
