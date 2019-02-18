@@ -256,6 +256,30 @@ class TestDataFrameAlterAxes():
             df.set_index(['A', df['A'], tuple(df['A'])],
                          drop=drop, append=append)
 
+    # MultiIndex constructor does not work directly on Series -> lambda
+    @pytest.mark.parametrize('box', [Series, Index, np.array, iter,
+                                     lambda x: MultiIndex.from_arrays([x])],
+                             ids=['Series', 'Index', 'np.array',
+                                  'iter', 'MultiIndex'])
+    @pytest.mark.parametrize('length', [4, 6], ids=['too_short', 'too_long'])
+    @pytest.mark.parametrize('append', [True, False])
+    @pytest.mark.parametrize('drop', [True, False])
+    def test_set_index_raise_on_len(self, frame_of_index_cols, box, length,
+                                    drop, append):
+        df = frame_of_index_cols  # has length 5
+
+        values = np.random.randint(0, 10, (length,))
+
+        msg = 'Length mismatch: Expected 5 rows, received array of length.*'
+
+        # wrong length directly
+        with pytest.raises(ValueError, match=msg):
+            df.set_index(box(values), drop=drop, append=append)
+
+        # wrong length in list
+        with pytest.raises(ValueError, match=msg):
+            df.set_index(['A', df.A, box(values)], drop=drop, append=append)
+
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
     @pytest.mark.parametrize('box', [set], ids=['set'])

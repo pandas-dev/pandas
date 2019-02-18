@@ -4167,6 +4167,15 @@ class DataFrame(NDFrame):
                 if drop:
                     to_remove.append(col)
 
+            if len(arrays[-1]) != len(self):
+                # check newest element against length of calling frame;
+                # ensure_index_from_sequences does not raise if append is False
+                raise ValueError('Length mismatch: Expected {len_self} rows, '
+                                 'received array of length {len_col}'.format(
+                                     len_self=len(self),
+                                     len_col=len(arrays[-1])
+                                 ))
+
         index = ensure_index_from_sequences(arrays, names)
 
         if verify_integrity and not index.is_unique:
