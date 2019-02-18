@@ -931,10 +931,15 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         attempt to construct this type from a string, raise a TypeError
         if its not possible
         """
-        if (isinstance(string, compat.string_types) and
-            (string.startswith('interval') or
-             string.startswith('Interval'))):
-            return cls(string)
+        if isinstance(string, compat.string_types):
+            if (string.lower() == 'interval' or 
+                cls._match.search(string) is not None):
+                return cls(string)
+            else:
+                msg = ("Incorrectly formatted string passed to constructor. "
+                       "Valid formats include 'Interval' or 'Inverval[dtype]' "
+                       "where dtype is numeric, datetime, or timedelta")
+                raise TypeError(msg)
 
         msg = "a string needs to be passed, got type {typ}"
         raise TypeError(msg.format(typ=type(string)))
