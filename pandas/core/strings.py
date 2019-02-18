@@ -120,7 +120,7 @@ def str_count(arr, pat, flags=0):
 
     Returns
     -------
-    counts : Series or Index
+    Series or Index
         Same type as the calling object containing the integer counts.
 
     See Also
@@ -283,7 +283,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     return `True`. However, '.0' as a regex matches any character
     followed by a 0.
 
-    >>> s2 = pd.Series(['40','40.0','41','41.0','35'])
+    >>> s2 = pd.Series(['40', '40.0', '41', '41.0', '35'])
     >>> s2.str.contains('.0', regex=True)
     0     True
     1     True
@@ -433,13 +433,13 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
     Parameters
     ----------
-    pat : string or compiled regex
+    pat : str or compiled regex
         String can be a character sequence or regular expression.
 
         .. versionadded:: 0.20.0
             `pat` also accepts a compiled regex.
 
-    repl : string or callable
+    repl : str or callable
         Replacement string or a callable. The callable is passed the regex
         match object and must return a replacement string to be used.
         See :func:`re.sub`.
@@ -448,15 +448,15 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
             `repl` also accepts a callable.
 
     n : int, default -1 (all)
-        Number of replacements to make from start
-    case : boolean, default None
+        Number of replacements to make from start.
+    case : bool, default None
         - If True, case sensitive (the default if `pat` is a string)
         - Set to False for case insensitive
         - Cannot be set if `pat` is a compiled regex
     flags : int, default 0 (no flags)
         - re module flags, e.g. re.IGNORECASE
         - Cannot be set if `pat` is a compiled regex
-    regex : boolean, default True
+    regex : bool, default True
         - If True, assumes the passed-in pattern is a regular expression.
         - If False, treats the pattern as a literal string
         - Cannot be set to False if `pat` is a compiled regex or `repl` is
@@ -537,6 +537,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
     Using a compiled regex with flags
 
+    >>> import re
     >>> regex_pat = re.compile(r'FUZ', flags=re.IGNORECASE)
     >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar')
     0    foo
@@ -604,6 +605,7 @@ def str_repeat(arr, repeats):
     0    a
     1    b
     2    c
+    dtype: object
 
     Single int repeats string in Series
 
@@ -611,6 +613,7 @@ def str_repeat(arr, repeats):
     0    aa
     1    bb
     2    cc
+    dtype: object
 
     Sequence of int repeats corresponding string in Series
 
@@ -618,6 +621,7 @@ def str_repeat(arr, repeats):
     0      a
     1     bb
     2    ccc
+    dtype: object
     """
     if is_scalar(repeats):
         def rep(x):
@@ -646,13 +650,14 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     Parameters
     ----------
-    pat : string
-        Character sequence or regular expression
-    case : boolean, default True
-        If True, case sensitive
+    pat : str
+        Character sequence or regular expression.
+    case : bool, default True
+        If True, case sensitive.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
-    na : default NaN, fill value for missing values
+        re module flags, e.g. re.IGNORECASE.
+    na : default NaN
+        Fill value for missing values.
 
     Returns
     -------
@@ -768,7 +773,7 @@ def str_extract(arr, pat, flags=0, expand=True):
 
     Parameters
     ----------
-    pat : string
+    pat : str
         Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
         Flags from the ``re`` module, e.g. ``re.IGNORECASE``, that
@@ -966,21 +971,23 @@ def str_extractall(arr, pat, flags=0):
 
 def str_get_dummies(arr, sep='|'):
     """
-    Split each string in the Series by sep and return a frame of
-    dummy/indicator variables.
+    Split each string in the Series by sep and return a DataFrame
+    of dummy/indicator variables.
 
     Parameters
     ----------
-    sep : string, default "|"
+    sep : str, default "|"
         String to split on.
 
     Returns
     -------
-    dummies : DataFrame
+    DataFrame
+        Dummy variables corresponding to values of the Series.
 
     See Also
     --------
-    get_dummies
+    get_dummies : Convert categorical variable into dummy/indicator
+        variables.
 
     Examples
     --------
@@ -1089,11 +1096,11 @@ def str_findall(arr, pat, flags=0):
 
     Parameters
     ----------
-    pat : string
+    pat : str
         Pattern or regular expression.
     flags : int, default 0
-        ``re`` module flags, e.g. `re.IGNORECASE` (default is 0, which means
-        no flags).
+        Flags from ``re`` module, e.g. `re.IGNORECASE` (default is 0, which
+        means no flags).
 
     Returns
     -------
@@ -1182,17 +1189,18 @@ def str_find(arr, sub, start=0, end=None, side='left'):
     Parameters
     ----------
     sub : str
-        Substring being searched
+        Substring being searched.
     start : int
-        Left edge index
+        Left edge index.
     end : int
-        Right edge index
+        Right edge index.
     side : {'left', 'right'}, default 'left'
-        Specifies a starting side, equivalent to ``find`` or ``rfind``
+        Specifies a starting side, equivalent to ``find`` or ``rfind``.
 
     Returns
     -------
-    found : Series/Index of integer values
+    Series or Index
+        Indexes where substring is found.
     """
 
     if not isinstance(sub, compat.string_types):
@@ -1430,7 +1438,7 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
 
     Returns
     -------
-    replaced : Series or Index
+    Series or Index
         Same type as the original object.
 
     See Also
@@ -1513,7 +1521,7 @@ def str_strip(arr, to_strip=None, side='both'):
 
     Returns
     -------
-    stripped : Series/Index of objects
+    Series or Index
     """
     if side == 'both':
         f = lambda x: x.strip(to_strip)
@@ -1537,30 +1545,30 @@ def str_wrap(arr, width, **kwargs):
     Parameters
     ----------
     width : int
-        Maximum line-width
+        Maximum line width.
     expand_tabs : bool, optional
-        If true, tab characters will be expanded to spaces (default: True)
+        If True, tab characters will be expanded to spaces (default: True).
     replace_whitespace : bool, optional
-        If true, each whitespace character (as defined by string.whitespace)
+        If True, each whitespace character (as defined by string.whitespace)
         remaining after tab expansion will be replaced by a single space
-        (default: True)
+        (default: True).
     drop_whitespace : bool, optional
-        If true, whitespace that, after wrapping, happens to end up at the
-        beginning or end of a line is dropped (default: True)
+        If True, whitespace that, after wrapping, happens to end up at the
+        beginning or end of a line is dropped (default: True).
     break_long_words : bool, optional
-        If true, then words longer than width will be broken in order to ensure
+        If True, then words longer than width will be broken in order to ensure
         that no lines are longer than width. If it is false, long words will
-        not be broken, and some lines may be longer than width. (default: True)
+        not be broken, and some lines may be longer than width (default: True).
     break_on_hyphens : bool, optional
-        If true, wrapping will occur preferably on whitespace and right after
+        If True, wrapping will occur preferably on whitespace and right after
         hyphens in compound words, as it is customary in English. If false,
         only whitespaces will be considered as potentially good places for line
         breaks, but you need to set break_long_words to false if you want truly
-        insecable words. (default: True)
+        insecable words (default: True).
 
     Returns
     -------
-    wrapped : Series/Index of objects
+    Series or Index
 
     Notes
     -----
@@ -1581,6 +1589,7 @@ def str_wrap(arr, width, **kwargs):
     >>> s.str.wrap(12)
     0             line to be\nwrapped
     1    another line\nto be\nwrapped
+    dtype: object
     """
     kwargs['width'] = width
 
@@ -1613,7 +1622,7 @@ def str_translate(arr, table, deletechars=None):
 
     Returns
     -------
-    translated : Series/Index of objects
+    Series or Index
     """
     if deletechars is None:
         f = lambda x: x.translate(table)
@@ -1641,15 +1650,16 @@ def str_get(arr, i):
 
     Returns
     -------
-    items : Series/Index of objects
+    Series or Index
 
     Examples
     --------
     >>> s = pd.Series(["String",
-               (1, 2, 3),
-               ["a", "b", "c"],
-               123, -456,
-               {1:"Hello", "2":"World"}])
+    ...               (1, 2, 3),
+    ...               ["a", "b", "c"],
+    ...               123,
+    ...               -456,
+    ...               {1: "Hello", "2": "World"}])
     >>> s
     0                        String
     1                     (1, 2, 3)
@@ -1674,7 +1684,7 @@ def str_get(arr, i):
     2      c
     3    NaN
     4    NaN
-    5    NaN
+    5    None
     dtype: object
     """
     def f(x):
@@ -1699,7 +1709,7 @@ def str_decode(arr, encoding, errors="strict"):
 
     Returns
     -------
-    decoded : Series/Index of objects
+    Series or Index
     """
     if encoding in _cpython_optimized_decoders:
         # CPython optimized implementation
@@ -1872,7 +1882,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if expand is None:
             # infer from ndim if expand is not specified
-            expand = False if result.ndim == 1 else True
+            expand = result.ndim != 1
 
         elif expand is True and not isinstance(self._orig, Index):
             # required when expand=True is explicitly specified
@@ -2091,7 +2101,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        concat : str or Series/Index of objects
+        str, Series or Index
             If `others` is None, `str` is returned, otherwise a `Series/Index`
             (same type as caller) of objects is returned.
 
