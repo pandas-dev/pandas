@@ -154,7 +154,7 @@ class DatelikeOps(object):
         Returns
         -------
         Index
-            Index of formatted strings
+            Index of formatted strings.
 
         See Also
         --------
