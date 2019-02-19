@@ -511,7 +511,7 @@ class TestIntervalDtype(Base):
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
 
-    @pytest.mark.parametrize('subtype', ['xx', 'IntervalA'])
+    @pytest.mark.parametrize('subtype', ['xx', 'IntervalA', 'Interval[foo]'])
     def test_construction_errors(self, subtype):
         msg = 'could not construct IntervalDtype'
         with pytest.raises(TypeError, match=msg):
@@ -533,7 +533,7 @@ class TestIntervalDtype(Base):
             IntervalDtype.construct_from_string(string)
 
     @pytest.mark.parametrize('string', [
-        'interval[foo]', 'IntervalA', 'foo', 'foo[int64]'])
+        'IntervalA', 'foo', 'foo[int64]'])
     def test_construction_from_string_error_subtype(self, string):
         # this is an invalid subtype
         msg = ("Incorrectly formatted string passed to constructor. "
