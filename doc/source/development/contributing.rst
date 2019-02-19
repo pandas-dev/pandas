@@ -54,7 +54,7 @@ Bug reports must:
       ...
       ```
 
-#. Include the full version string of *pandas* and its dependencies. You can use the built in function::
+#. Include the full version string of *pandas* and its dependencies. You can use the built-in function::
 
       >>> import pandas as pd
       >>> pd.show_versions()
@@ -211,7 +211,7 @@ See the full conda docs `here <http://conda.pydata.org/docs>`__.
 Creating a Python Environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you aren't using conda for you development environment, follow these instructions.
+If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least python3.5 installed on your system.
 
 .. code-block:: none
@@ -484,7 +484,7 @@ contributing them to the project::
 
    ./ci/code_checks.sh
 
-The script verify the linting of code files, it looks for common mistake patterns
+The script verifies the linting of code files, it looks for common mistake patterns
 (like missing spaces around sphinx directives that make the documentation not
 being rendered properly) and it also validates the doctests. It is possible to
 run the checks independently by using the parameters ``lint``, ``patterns`` and
@@ -675,7 +675,7 @@ Otherwise, you need to do it manually:
 
 You'll also need to
 
-1. write a new test that asserts a warning is issued when calling with the deprecated argument
+1. Write a new test that asserts a warning is issued when calling with the deprecated argument
 2. Update all of pandas existing tests and code to use the new argument
 
 See :ref:`contributing.warnings` for more.
