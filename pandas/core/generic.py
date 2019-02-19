@@ -8299,19 +8299,19 @@ class NDFrame(PandasObject, SelectionMixin):
             How to rank the group of records that have the same value
             (i.e. ties):
 
-            * average: average rank of the group
-            * min: lowest rank in the group
-            * max: highest rank in the group
-            * first: ranks assigned in order they appear in the array
-            * dense: like 'min', but rank always increases by 1 between groups
+            * average: average rank of the group.
+            * min: lowest rank in the group.
+            * max: highest rank in the group.
+            * first: ranks assigned in order they appear in the array.
+            * dense: like 'min', but rank always increases by 1 between groups.
         numeric_only : bool, optional
             For DataFrame objects, rank only numeric columns if set to True.
         na_option : {'keep', 'top', 'bottom'}, default 'keep'
             How to rank NaN values:
 
-            * keep: assign NaN rank to NaN values
-            * top: assign smallest rank to NaN values if ascending
-            * bottom: assign highest rank to NaN values if ascending
+            * keep: assign NaN rank to NaN values.
+            * top: assign smallest rank to NaN values if ascending.
+            * bottom: assign highest rank to NaN values if ascending.
         ascending : bool, default True
             Whether or not the elements should be ranked in ascending order.
         pct : bool, default False
