@@ -41,7 +41,7 @@ def _get_default_writer(ext):
 
     Returns
     -------
-    engine : str
+    str
         The default engine for the extension.
 
     """
