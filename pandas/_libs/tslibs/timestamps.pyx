@@ -697,6 +697,17 @@ class Timestamp(_Timestamp):
         """
         return cls(datetime.fromtimestamp(ts))
 
+    # Issue 25016.
+    @classmethod
+    def strptime(cls, date_string, format):
+        """
+        Timestamp.strptime(string, format)
+
+        Function is not implemented. Use pd.to_datetime().
+        """
+        raise NotImplementedError("Timestamp.strptime() is not implmented."
+                                  "Use to_datetime() to parse date strings.")
+
     @classmethod
     def combine(cls, date, time):
         """
