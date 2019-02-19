@@ -10,20 +10,14 @@ _writers = {}
 
 def register_writer(klass):
     """
-    Add engine to the excel writer registry. You must use this method to
-    integrate with ``to_excel``.
+    Add engine to the excel writer registry.io.excel.
+
+    You must use this method to integrate with ``to_excel``.
 
     Parameters
     ----------
-    klass : class
-        Instance of ExcelWriter
-
-    Returns
-    -------
-    None
-
+    klass : ExcelWriter
     """
-
     if not callable(klass):
         raise ValueError("Can only register callables as engines")
     engine_name = klass.engine
@@ -43,7 +37,6 @@ def _get_default_writer(ext):
     -------
     str
         The default engine for the extension.
-
     """
     _default_writers = {'xlsx': 'openpyxl', 'xlsm': 'openpyxl', 'xls': 'xlwt'}
     try:
