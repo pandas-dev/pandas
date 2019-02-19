@@ -16,6 +16,7 @@ conda remove --all -q -y -n pandas-dev
 conda env create --file=ci\deps\azure-windows-%CONDA_PY%.yaml
 
 call activate pandas-dev
+@rem Display pandas-dev environment (for debugging)
 conda list
 
 if %errorlevel% neq 0 exit /b %errorlevel%
