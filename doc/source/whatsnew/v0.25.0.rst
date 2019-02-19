@@ -28,6 +28,8 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- :meth:`Timestamp.strptime` will now raise a NotImplementedError (:issue:`25016`)
+
 .. _whatsnew_0250.api_breaking.deps:
 
 Dependencies have increased minimum versions
@@ -53,13 +55,6 @@ minimum versions. If installed, we now require:
 +-----------------+-----------------+----------+
 | xlwt            | 1.0.0           |          |
 +-----------------+-----------------+----------+
-
-.. _whatsnew_0250.api.other:
-
-Other API Changes
-^^^^^^^^^^^^^^^^^
-
-- :meth:`Timestamp.strptime` will now raise a NotImplementedError (:issue:`25016`)
 
 .. _whatsnew_0250.api.other:
 
