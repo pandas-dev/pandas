@@ -30,6 +30,8 @@ Fixed Regressions
 - Fixed regression in :class:`TimedeltaIndex` where `np.sum(index)` incorrectly returned a zero-dimensional object instead of a scalar (:issue:`25282`)
 - Fixed regression in ``IntervalDtype`` construction where passing an incorrect string with 'Interval' as a prefix could result in a ``RecursionError``. (:issue:`25338`)
 
+- Fixed regression in :class:`Categorical`, where constructing it from a categorical ``Series`` and an explicit ``categories=`` that differed from that in the ``Series`` created an invalid object which could trigger segfaults. (:issue:`25318`)
+
 .. _whatsnew_0242.enhancements:
 
 Enhancements
