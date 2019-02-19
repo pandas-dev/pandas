@@ -1010,7 +1010,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         except (KeyError, ValueError, TypeError):
             try:
                 return self._get_string_slice(key)
-            except (TypeError, KeyError, ValueError):
+            except (TypeError, KeyError, ValueError, OverflowError):
                 pass
 
             try:
@@ -1284,7 +1284,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     def indexer_at_time(self, time, asof=False):
         """
-        Returns index locations of index values at particular time of day
+        Return index locations of index values at particular time of day
         (e.g. 9:30AM).
 
         Parameters
@@ -1302,20 +1302,19 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         --------
         indexer_between_time, DataFrame.at_time
         """
-        from dateutil.parser import parse
-
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
 
         if isinstance(time, compat.string_types):
+            from dateutil.parser import parse
             time = parse(time).time()
 
         if time.tzinfo:
-            # TODO
-            raise NotImplementedError("argument 'time' with timezone info is "
-                                      "not supported")
-
-        time_micros = self._get_time_micros()
+            if self.tz is None:
+                raise ValueError("Index must be timezone aware.")
+            time_micros = self.tz_convert(time.tzinfo)._get_time_micros()
+        else:
+            time_micros = self._get_time_micros()
         micros = _time_to_micros(time)
         return (micros == time_micros).nonzero()[0]
 
@@ -1413,10 +1412,10 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
 
     See Also
     --------
-    pandas.DatetimeIndex : An immutable container for datetimes.
-    pandas.timedelta_range : Return a fixed frequency TimedeltaIndex.
-    pandas.period_range : Return a fixed frequency PeriodIndex.
-    pandas.interval_range : Return a fixed frequency IntervalIndex.
+    DatetimeIndex : An immutable container for datetimes.
+    timedelta_range : Return a fixed frequency TimedeltaIndex.
+    period_range : Return a fixed frequency PeriodIndex.
+    interval_range : Return a fixed frequency IntervalIndex.
 
     Notes
     -----

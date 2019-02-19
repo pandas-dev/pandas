@@ -648,6 +648,8 @@ class NDFrame(PandasObject, SelectionMixin):
         copy : boolean, default False
             Make a copy of the underlying data. Mixed-dtype data will
             always result in a copy
+        **kwargs
+            Additional keyword arguments will be passed to the function.
 
         Returns
         -------
@@ -772,18 +774,18 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         item : str
-            Column label to be popped
+            Label of column to be popped.
 
         Returns
         -------
-        popped : Series
+        Series
 
         Examples
         --------
-        >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
-        ...                    ('parrot', 'bird',     24.0),
-        ...                    ('lion',   'mammal',   80.5),
-        ...                    ('monkey', 'mammal', np.nan)],
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('lion', 'mammal', 80.5),
+        ...                    ('monkey','mammal', np.nan)],
         ...                   columns=('name', 'class', 'max_speed'))
         >>> df
              name   class  max_speed
@@ -935,7 +937,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        i, j : int, string (can be mixed)
+        i, j : int, str (can be mixed)
             Level of index to be swapped. Can pass level name as string.
 
         Returns
@@ -971,9 +973,9 @@ class NDFrame(PandasObject, SelectionMixin):
             and raise on DataFrame or Panel.
             dict-like or functions are transformations to apply to
             that axis' values
-        copy : boolean, default True
-            Also copy underlying data
-        inplace : boolean, default False
+        copy : bool, default True
+            Also copy underlying data.
+        inplace : bool, default False
             Whether to return a new %(klass)s. If True then value of copy is
             ignored.
         level : int or level name, default None
@@ -986,7 +988,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.NDFrame.rename_axis
+        NDFrame.rename_axis
 
         Examples
         --------
@@ -1564,13 +1566,13 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         is_label: bool
         """
-        axis = self._get_axis_number(axis)
-        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_is_label_reference is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
+        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
         return (key is not None and
                 is_hashable(key) and
@@ -1623,14 +1625,13 @@ class NDFrame(PandasObject, SelectionMixin):
         ------
         ValueError: `key` is ambiguous
         """
-
-        axis = self._get_axis_number(axis)
-        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_check_label_or_level_ambiguity is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
+        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
         if (key is not None and
                 is_hashable(key) and
@@ -1689,14 +1690,13 @@ class NDFrame(PandasObject, SelectionMixin):
             if `key` is ambiguous. This will become an ambiguity error in a
             future version
         """
-
-        axis = self._get_axis_number(axis)
-        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_get_label_or_level_values is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
+        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
 
         if self._is_label_reference(key, axis=axis):
             self._check_label_or_level_ambiguity(key, axis=axis)
@@ -1753,13 +1753,12 @@ class NDFrame(PandasObject, SelectionMixin):
         ValueError
             if any `keys` match neither a label nor a level
         """
-
-        axis = self._get_axis_number(axis)
-
         if self.ndim > 2:
             raise NotImplementedError(
                 "_drop_labels_or_levels is not implemented for {type}"
                 .format(type=type(self)))
+
+        axis = self._get_axis_number(axis)
 
         # Validate keys
         keys = com.maybe_make_list(keys)
@@ -1861,8 +1860,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.Series.dropna
-        pandas.DataFrame.dropna
+        Series.dropna
+        DataFrame.dropna
 
         Notes
         -----
@@ -2948,7 +2947,7 @@ class NDFrame(PandasObject, SelectionMixin):
             will treat them as non-numeric.
         quotechar : str, default '\"'
             String of length 1. Character used to quote fields.
-        line_terminator : string, optional
+        line_terminator : str, optional
             The newline character or character sequence to use in the output
             file. Defaults to `os.linesep`, which depends on the OS in which
             this method is called ('\n' for linux, '\r\n' for Windows, i.e.).
@@ -4954,7 +4953,7 @@ class NDFrame(PandasObject, SelectionMixin):
         If DataFrame.agg is called with a single function, returns a Series
         If DataFrame.agg is called with several functions, returns a DataFrame
         If Series.agg is called with single function, returns a scalar
-        If Series.agg is called with several functions, returns a Series
+        If Series.agg is called with several functions, returns a Series.
 
     %(see_also)s
 
@@ -5272,8 +5271,8 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         DataFrame.to_numpy : Recommended alternative to this method.
-        pandas.DataFrame.index : Retrieve the index labels.
-        pandas.DataFrame.columns : Retrieving the column names.
+        DataFrame.index : Retrieve the index labels.
+        DataFrame.columns : Retrieving the column names.
 
         Notes
         -----
@@ -5344,18 +5343,18 @@ class NDFrame(PandasObject, SelectionMixin):
         Return an ndarray after converting sparse values to dense.
 
         This is the same as ``.values`` for non-sparse data. For sparse
-        data contained in a `pandas.SparseArray`, the data are first
+        data contained in a `SparseArray`, the data are first
         converted to a dense representation.
 
         Returns
         -------
         numpy.ndarray
-            Numpy representation of DataFrame
+            Numpy representation of DataFrame.
 
         See Also
         --------
         values : Numpy representation of DataFrame.
-        pandas.SparseArray : Container for sparse data.
+        SparseArray : Container for sparse data.
 
         Examples
         --------
@@ -5429,7 +5428,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         dtype : Series
             Series with the count of columns with each type and
-            sparsity (dense/sparse)
+            sparsity (dense/sparse).
 
         See Also
         --------
@@ -5476,7 +5475,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.ftypes : Dtype and sparsity information.
+        DataFrame.ftypes : Dtype and sparsity information.
 
         Examples
         --------
@@ -5512,8 +5511,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.dtypes: Series with just dtype information.
-        pandas.SparseDataFrame : Container for sparse tabular data.
+        DataFrame.dtypes: Series with just dtype information.
+        SparseDataFrame : Container for sparse tabular data.
 
         Notes
         -----
@@ -5960,17 +5959,18 @@ class NDFrame(PandasObject, SelectionMixin):
         value : scalar, dict, Series, or DataFrame
             Value to use to fill holes (e.g. 0), alternately a
             dict/Series/DataFrame of values specifying which value to use for
-            each index (for a Series) or column (for a DataFrame). (values not
-            in the dict/Series/DataFrame will not be filled). This value cannot
+            each index (for a Series) or column (for a DataFrame).  Values not
+            in the dict/Series/DataFrame will not be filled. This value cannot
             be a list.
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
+            backfill / bfill: use next valid observation to fill gap.
         axis : %(axes_single_arg)s
-        inplace : boolean, default False
-            If True, fill in place. Note: this will modify any
-            other views on this object, (e.g. a no-copy slice for a column in a
+            Axis along which to fill missing values.
+        inplace : bool, default False
+            If True, fill in-place. Note: this will modify any
+            other views on this object (e.g., a no-copy slice for a column in a
             DataFrame).
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
@@ -5980,18 +5980,20 @@ class NDFrame(PandasObject, SelectionMixin):
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
         downcast : dict, default is None
-            a dict of item->dtype of what to downcast if possible,
+            A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
-            equal type (e.g. float64 to int64 if possible)
+            equal type (e.g. float64 to int64 if possible).
 
         Returns
         -------
-        filled : %(klass)s
+        %(klass)s
+            Object with missing values filled.
 
         See Also
         --------
         interpolate : Fill NaN values using interpolation.
-        reindex, asfreq
+        reindex : Conform object to new index.
+        asfreq : Convert TimeSeries to specified frequency.
 
         Examples
         --------
@@ -5999,7 +6001,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    [3, 4, np.nan, 1],
         ...                    [np.nan, np.nan, np.nan, 5],
         ...                    [np.nan, 3, np.nan, 4]],
-        ...                    columns=list('ABCD'))
+        ...                   columns=list('ABCD'))
         >>> df
              A    B   C  D
         0  NaN  2.0 NaN  0
@@ -6658,7 +6660,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         Series or DataFrame
             Returns the same object type as the caller, interpolated at
-            some or all ``NaN`` values
+            some or all ``NaN`` values.
 
         See Also
         --------
@@ -6753,7 +6755,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Note how the first entry in column 'b' remains ``NaN``, because there
         is no entry befofe it to use for interpolation.
 
-        >>> df = pd.DataFrame([(0.0,  np.nan, -1.0, 1.0),
+        >>> df = pd.DataFrame([(0.0, np.nan, -1.0, 1.0),
         ...                    (np.nan, 2.0, np.nan, np.nan),
         ...                    (2.0, 3.0, np.nan, 9.0),
         ...                    (np.nan, 4.0, -4.0, 16.0)],
@@ -6878,11 +6880,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         scalar, Series, or DataFrame
 
-           Scalar : when `self` is a Series and `where` is a scalar
+           Scalar : when `self` is a Series and `where` is a scalar.
            Series: when `self` is a Series and `where` is an array-like,
-             or when `self` is a DataFrame and `where` is a scalar
+             or when `self` is a DataFrame and `where` is a scalar.
            DataFrame : when `self` is a DataFrame and `where` is an
-             array-like
+             array-like.
 
         See Also
         --------
@@ -7222,9 +7224,9 @@ class NDFrame(PandasObject, SelectionMixin):
         upper : float or array_like, default None
             Maximum threshold value. All values above this
             threshold will be set to it.
-        axis : int or string axis name, optional
+        axis : int or str axis name, optional
             Align object with lower and upper along the given axis.
-        inplace : boolean, default False
+        inplace : bool, default False
             Whether to perform the operation in place on the data.
 
             .. versionadded:: 0.21.0
@@ -7236,7 +7238,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         Series or DataFrame
             Same type as calling object with the values outside the
-            clip boundaries replaced
+            clip boundaries replaced.
 
         Examples
         --------
@@ -7346,7 +7348,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Align object with `threshold` along the given axis.
-        inplace : boolean, default False
+        inplace : bool, default False
             Whether to perform the operation in place on the data.
 
             .. versionadded:: 0.21.0
@@ -7427,7 +7429,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Align `self` with `threshold` along the given axis.
 
-        inplace : boolean, default False
+        inplace : bool, default False
             Whether to perform the operation in place on the data.
 
             .. versionadded:: 0.21.0
@@ -7584,9 +7586,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'Animal' : ['Falcon', 'Falcon',
-        ...                                'Parrot', 'Parrot'],
-        ...                    'Max Speed' : [380., 370., 24., 26.]})
+        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
+        ...                               'Parrot', 'Parrot'],
+        ...                    'Max Speed': [380., 370., 24., 26.]})
         >>> df
            Animal  Max Speed
         0  Falcon      380.0
@@ -7605,16 +7607,16 @@ class NDFrame(PandasObject, SelectionMixin):
         using the `level` parameter:
 
         >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
-        ...           ['Capitve', 'Wild', 'Capitve', 'Wild']]
+        ...           ['Captive', 'Wild', 'Captive', 'Wild']]
         >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
-        >>> df = pd.DataFrame({'Max Speed' : [390., 350., 30., 20.]},
-        ...                    index=index)
+        >>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
+        ...                   index=index)
         >>> df
                         Max Speed
         Animal Type
-        Falcon Capitve      390.0
+        Falcon Captive      390.0
                Wild         350.0
-        Parrot Capitve       30.0
+        Parrot Captive       30.0
                Wild          20.0
         >>> df.groupby(level=0).mean()
                 Max Speed
@@ -7624,7 +7626,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df.groupby(level=1).mean()
                  Max Speed
         Type
-        Capitve      210.0
+        Captive      210.0
         Wild         185.0
         """
         from pandas.core.groupby.groupby import groupby
@@ -7741,14 +7743,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        time : datetime.time or string
+        time : datetime.time or str
         axis : {0 or 'index', 1 or 'columns'}, default 0
 
             .. versionadded:: 0.24.0
 
         Returns
         -------
-        values_at_time : same type as caller
+        Series or DataFrame
 
         Raises
         ------
@@ -7766,7 +7768,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> i = pd.date_range('2018-04-09', periods=4, freq='12H')
-        >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
+        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
         >>> ts
                              A
         2018-04-09 00:00:00  1
@@ -7801,17 +7803,17 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        start_time : datetime.time or string
-        end_time : datetime.time or string
-        include_start : boolean, default True
-        include_end : boolean, default True
+        start_time : datetime.time or str
+        end_time : datetime.time or str
+        include_start : bool, default True
+        include_end : bool, default True
         axis : {0 or 'index', 1 or 'columns'}, default 0
 
             .. versionadded:: 0.24.0
 
         Returns
         -------
-        values_between_time : same type as caller
+        Series or DataFrame
 
         Raises
         ------
@@ -7829,7 +7831,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> i = pd.date_range('2018-04-09', periods=4, freq='1D20min')
-        >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
+        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
         >>> ts
                              A
         2018-04-09 00:00:00  1
@@ -8387,7 +8389,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         (left, right) : (%(klass)s, type of other)
-            Aligned objects
+            Aligned objects.
         """)
 
     @Appender(_shared_docs['align'] % _shared_doc_kwargs)
@@ -8579,7 +8581,7 @@ class NDFrame(PandasObject, SelectionMixin):
             cond = self._constructor(cond, **self._construct_axes_dict())
 
         # make sure we are boolean
-        fill_value = True if inplace else False
+        fill_value = bool(inplace)
         cond = cond.fillna(fill_value)
 
         msg = "Boolean array expected for the condition, not {dtype}"
@@ -10125,7 +10127,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.ptp = _make_stat_function(
             cls, 'ptp', name, name2, axis_descr,
-            """Returns the difference between the maximum value and the
+            """Return the difference between the maximum value and the
             minimum value in the object. This is the equivalent of the
             ``numpy.ndarray`` method ``ptp``.\n\n.. deprecated:: 0.24.0
                 Use numpy.ptp instead""",
@@ -10243,8 +10245,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
 def _doc_parms(cls):
     """Return a tuple of the doc parms."""
-    axis_descr = "{%s}" % ', '.join(["{0} ({1})".format(a, i)
-                                     for i, a in enumerate(cls._AXIS_ORDERS)])
+    axis_descr = "{%s}" % ', '.join("{0} ({1})".format(a, i)
+                                    for i, a in enumerate(cls._AXIS_ORDERS))
     name = (cls._constructor_sliced.__name__
             if cls._AXIS_LEN > 1 else 'scalar')
     name2 = cls.__name__
@@ -10283,7 +10285,7 @@ _num_ddof_doc = """
 Parameters
 ----------
 axis : %(axis_descr)s
-skipna : boolean, default True
+skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA
 level : int or level name, default None
@@ -10292,7 +10294,7 @@ level : int or level name, default None
 ddof : int, default 1
     Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
     where N represents the number of elements.
-numeric_only : boolean, default None
+numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
 
