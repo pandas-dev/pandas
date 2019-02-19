@@ -936,9 +936,9 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                cls._match.search(string) is not None):
                     return cls(string)
             else:
-                msg = ("Incorrectly formatted string passed to constructor. "
-                       "Valid formats include 'Interval' or 'Inverval[dtype]' "
-                       "where dtype is numeric, datetime, or timedelta")
+                msg = ('Incorrectly formatted string passed to constructor. '
+                       'Valid formats include Interval or Inverval[dtype] '
+                       'where dtype is numeric, datetime, or timedelta')
                 raise TypeError(msg)
 
         msg = "a string needs to be passed, got type {typ}"
