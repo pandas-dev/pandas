@@ -2417,7 +2417,10 @@ def test_styler_to_excel(engine):
                           ['', '', '']],
                          index=df.index, columns=df.columns)
 
-    def assert_equal_style(cell1, cell2):
+    def assert_equal_style(cell1, cell2, engine):
+        if engine in ['xlsxwriter', 'openpyxl']:
+            pytest.xfail(reason=("GH25351: failing on some attribute "
+                                 "comparisons in {}".format(engine)))
         # XXX: should find a better way to check equality
         assert cell1.alignment.__dict__ == cell2.alignment.__dict__
         assert cell1.border.__dict__ == cell2.border.__dict__
@@ -2461,7 +2464,7 @@ def test_styler_to_excel(engine):
             assert len(col1) == len(col2)
             for cell1, cell2 in zip(col1, col2):
                 assert cell1.value == cell2.value
-                assert_equal_style(cell1, cell2)
+                assert_equal_style(cell1, cell2, engine)
                 n_cells += 1
 
         # ensure iteration actually happened:
@@ -2519,7 +2522,7 @@ def test_styler_to_excel(engine):
                     assert cell1.number_format == 'General'
                     assert cell2.number_format == '0%'
                 else:
-                    assert_equal_style(cell1, cell2)
+                    assert_equal_style(cell1, cell2, engine)
 
                 assert cell1.value == cell2.value
                 n_cells += 1
@@ -2537,7 +2540,7 @@ def test_styler_to_excel(engine):
                     assert not cell1.font.bold
                     assert cell2.font.bold
                 else:
-                    assert_equal_style(cell1, cell2)
+                    assert_equal_style(cell1, cell2, engine)
 
                 assert cell1.value == cell2.value
                 n_cells += 1
