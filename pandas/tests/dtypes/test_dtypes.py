@@ -533,7 +533,7 @@ class TestIntervalDtype(Base):
             IntervalDtype.construct_from_string(string)
 
     @pytest.mark.parametrize('string', [
-        'IntervalA', 'foo', 'foo[int64]'])
+        'foo', 'foo[int64]'])
     def test_construction_from_string_error_subtype(self, string):
         # this is an invalid subtype
         msg = ("Incorrectly formatted string passed to constructor. "
