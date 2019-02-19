@@ -934,7 +934,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         if isinstance(string, compat.string_types):
             if (string.lower() == 'interval' or
                 cls._match.search(string) is not None):
-                return cls(string)
+                    return cls(string)
             else:
                 msg = ("Incorrectly formatted string passed to constructor. "
                        "Valid formats include 'Interval' or 'Inverval[dtype]' "
