@@ -1,6 +1,7 @@
 """
 Base and utility classes for pandas objects.
 """
+from collections import OrderedDict
 import textwrap
 import warnings
 
@@ -8,7 +9,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, OrderedDict, builtins, map, range
+from pandas.compat import PYPY, builtins, map, range
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -376,7 +377,7 @@ class SelectionMixin(object):
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
             if any(is_aggregator(x) for x in compat.itervalues(arg)):
-                new_arg = compat.OrderedDict()
+                new_arg = OrderedDict()
                 for k, v in compat.iteritems(arg):
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
@@ -444,14 +445,14 @@ class SelectionMixin(object):
                 run the aggregations over the arg with func
                 return an OrderedDict
                 """
-                result = compat.OrderedDict()
+                result = OrderedDict()
                 for fname, agg_how in compat.iteritems(arg):
                     result[fname] = func(fname, agg_how)
                 return result
 
             # set the final keys
             keys = list(compat.iterkeys(arg))
-            result = compat.OrderedDict()
+            result = OrderedDict()
 
             # nested renamer
             if is_nested_renamer:
@@ -459,7 +460,7 @@ class SelectionMixin(object):
 
                 if all(isinstance(r, dict) for r in result):
 
-                    result, results = compat.OrderedDict(), result
+                    result, results = OrderedDict(), result
                     for r in results:
                         result.update(r)
                     keys = list(compat.iterkeys(result))
@@ -793,7 +794,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        array : ExtensionArray
+        ExtensionArray
             An ExtensionArray of the values stored within. For extension
             types, this is the actual array. For NumPy native types, this
             is a thin (no copy) wrapper around :class:`numpy.ndarray`.
@@ -1021,7 +1022,7 @@ class IndexOpsMixin(object):
 
     def argmax(self, axis=None, skipna=True):
         """
-        Return a ndarray of the maximum argument indexer.
+        Return an ndarray of the maximum argument indexer.
 
         Parameters
         ----------
@@ -1086,6 +1087,10 @@ class IndexOpsMixin(object):
             Dummy argument for consistency with Series
         skipna : bool, default True
 
+        Returns
+        -------
+        numpy.ndarray
+
         See Also
         --------
         numpy.ndarray.argmin
@@ -1100,6 +1105,10 @@ class IndexOpsMixin(object):
         These are each a scalar type, which is a Python scalar
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
+
+        Returns
+        -------
+        list
 
         See Also
         --------
@@ -1161,7 +1170,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        applied : Union[Index, MultiIndex], inferred
+        Union[Index, MultiIndex], inferred
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
@@ -1234,7 +1243,7 @@ class IndexOpsMixin(object):
             If True then the object returned will contain the relative
             frequencies of the unique values.
         sort : boolean, default True
-            Sort by values.
+            Sort by frequencies.
         ascending : boolean, default False
             Sort in ascending order.
         bins : integer, optional
@@ -1245,7 +1254,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        counts : Series
+        Series
 
         See Also
         --------
@@ -1323,12 +1332,31 @@ class IndexOpsMixin(object):
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include NaN in the count.
 
         Returns
         -------
-        nunique : int
+        int
+
+        See Also
+        --------
+        DataFrame.nunique: Method nunique for DataFrame.
+        Series.count: Count non-NA/null observations in the Series.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 3, 5, 7, 7])
+        >>> s
+        0    1
+        1    3
+        2    5
+        3    7
+        4    7
+        dtype: int64
+
+        >>> s.nunique()
+        4
         """
         uniqs = self.unique()
         n = len(uniqs)
@@ -1343,9 +1371,9 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        is_unique : boolean
+        bool
         """
-        return self.nunique() == len(self)
+        return self.nunique(dropna=False) == len(self)
 
     @property
     def is_monotonic(self):
@@ -1357,7 +1385,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        is_monotonic : boolean
+        bool
         """
         from pandas import Index
         return Index(self).is_monotonic
@@ -1374,7 +1402,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        is_monotonic_decreasing : boolean
+        bool
         """
         from pandas import Index
         return Index(self).is_monotonic_decreasing

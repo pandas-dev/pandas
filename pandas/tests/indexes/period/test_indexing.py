@@ -84,7 +84,8 @@ class TestGetItem(object):
         rng = period_range('2007-01', periods=50, freq='M')
         ts = Series(np.random.randn(len(rng)), rng)
 
-        pytest.raises(KeyError, ts.__getitem__, '2006')
+        with pytest.raises(KeyError, match=r"^'2006'$"):
+            ts['2006']
 
         result = ts['2008']
         assert (result.index.year == 2008).all()
@@ -326,7 +327,8 @@ class TestTake(object):
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "index -5 is out of bounds for size 3"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
 
@@ -335,7 +337,8 @@ class TestIndexing(object):
     def test_get_loc_msg(self):
         idx = period_range('2000-1-1', freq='A', periods=10)
         bad_period = Period('2012', 'A')
-        pytest.raises(KeyError, idx.get_loc, bad_period)
+        with pytest.raises(KeyError, match=r"^Period\('2012', 'A-DEC'\)$"):
+            idx.get_loc(bad_period)
 
         try:
             idx.get_loc(bad_period)
@@ -373,8 +376,13 @@ class TestIndexing(object):
         msg = "Cannot interpret 'foo' as period"
         with pytest.raises(KeyError, match=msg):
             idx0.get_loc('foo')
-        pytest.raises(KeyError, idx0.get_loc, 1.1)
-        pytest.raises(TypeError, idx0.get_loc, idx0)
+        with pytest.raises(KeyError, match=r"^1\.1$"):
+            idx0.get_loc(1.1)
+
+        msg = (r"'PeriodIndex\(\['2017-09-01', '2017-09-02', '2017-09-03'\],"
+               r" dtype='period\[D\]', freq='D'\)' is an invalid key")
+        with pytest.raises(TypeError, match=msg):
+            idx0.get_loc(idx0)
 
         # get the location of p1/p2 from
         # monotonic increasing PeriodIndex with duplicate
@@ -391,8 +399,13 @@ class TestIndexing(object):
         with pytest.raises(KeyError, match=msg):
             idx1.get_loc('foo')
 
-        pytest.raises(KeyError, idx1.get_loc, 1.1)
-        pytest.raises(TypeError, idx1.get_loc, idx1)
+        with pytest.raises(KeyError, match=r"^1\.1$"):
+            idx1.get_loc(1.1)
+
+        msg = (r"'PeriodIndex\(\['2017-09-02', '2017-09-02', '2017-09-03'\],"
+               r" dtype='period\[D\]', freq='D'\)' is an invalid key")
+        with pytest.raises(TypeError, match=msg):
+            idx1.get_loc(idx1)
 
         # get the location of p1/p2 from
         # non-monotonic increasing/decreasing PeriodIndex with duplicate
@@ -440,18 +453,6 @@ class TestIndexing(object):
         assert idx_dec0.is_monotonic_decreasing is True
         assert idx_dec1.is_monotonic_decreasing is True
         assert idx.is_monotonic_decreasing is False
-
-    def test_is_unique(self):
-        # GH 17717
-        p0 = pd.Period('2017-09-01')
-        p1 = pd.Period('2017-09-02')
-        p2 = pd.Period('2017-09-03')
-
-        idx0 = pd.PeriodIndex([p0, p1, p2])
-        assert idx0.is_unique is True
-
-        idx1 = pd.PeriodIndex([p1, p1, p2])
-        assert idx1.is_unique is False
 
     def test_contains(self):
         # GH 17717
@@ -581,7 +582,7 @@ class TestIndexing(object):
         msg = 'Input has different freq=None from PeriodArray\\(freq=D\\)'
         with pytest.raises(ValueError, match=msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match=r"^Period\('2000-01-10', 'D'\)$"):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 day')
         with pytest.raises(
                 ValueError,
