@@ -51,7 +51,7 @@ def get_series():
     ]
 
 
-def get_series_nan():
+def get_series_na():
     return [
         pd.Series([np.nan], dtype='Int64'),
         pd.Series([np.nan], dtype='float'),
@@ -61,17 +61,21 @@ def get_series_nan():
 
 
 @pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
-def value_col(request):
+def series_of_dtype(request):
+    # A parametrized fixture returning a variety of Series of different dtypes
     return request.param
 
 
 @pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
-def value_col2(request):
+def series_of_dtype2(request):
+    # A duplicate of the series_of_dtype fixture, so that it
+    # can be used twice by a single function
     return request.param
 
 
-@pytest.fixture(params=get_series_nan(), ids=lambda x: x.dtype.name)
-def value_col_nan(request):
+@pytest.fixture(params=get_series_na(), ids=lambda x: x.dtype.name)
+def series_of_dtype_all_na(request):
+    # A parametrized fixture returning a variety of Series with all NA values
     return request.param
 
 
@@ -464,32 +468,35 @@ class TestMerge(object):
                 check1(exp_in, kwarg)
                 check2(exp_out, kwarg)
 
-    def test_merge_empty_frame(self, value_col, value_col2):
+    def test_merge_empty_frame(self, series_of_dtype, series_of_dtype2):
         # GH 25183
-        df = pd.DataFrame({'a': value_col, 'b': value_col2},
-                          columns=['a', 'b'])
+        df = pd.DataFrame({'key': series_of_dtype, 'value': series_of_dtype2},
+                          columns=['key', 'value'])
         df_empty = df[:0]
-        exp = pd.DataFrame({
-            'b_x': pd.Series(dtype=df.dtypes['b']),
-            'a': pd.Series(dtype=df.dtypes['a']),
-            'b_y': pd.Series(dtype=df.dtypes['b']),
-        }, columns=['b_x', 'a', 'b_y'])
-        act = df_empty.merge(df, on='a')
-        assert_frame_equal(act, exp)
+        expected = pd.DataFrame({
+            'value_x': pd.Series(dtype=df.dtypes['value']),
+            'key': pd.Series(dtype=df.dtypes['key']),
+            'value_y': pd.Series(dtype=df.dtypes['value']),
+        }, columns=['value_x', 'key', 'value_y'])
+        actual = df_empty.merge(df, on='key')
+        assert_frame_equal(actual, expected)
 
-    def test_merge_all_na_column(self, value_col, value_col_nan):
+    def test_merge_all_na_column(self, series_of_dtype,
+                                 series_of_dtype_all_na):
         # GH 25183
         df_left = pd.DataFrame(
-            {'a': value_col, 'b': value_col_nan}, columns=['a', 'b'])
+            {'key': series_of_dtype, 'value': series_of_dtype_all_na},
+            columns=['key', 'value'])
         df_right = pd.DataFrame(
-            {'a': value_col, 'b': value_col_nan}, columns=['a', 'b'])
-        exp = pd.DataFrame({
-            'a': value_col,
-            'b_x': value_col_nan,
-            'b_y': value_col_nan,
-        }, columns=['a', 'b_x', 'b_y'])
-        act = df_left.merge(df_right, on='a')
-        assert_frame_equal(act, exp)
+            {'key': series_of_dtype, 'value': series_of_dtype_all_na},
+            columns=['key', 'value'])
+        expected = pd.DataFrame({
+            'key': series_of_dtype,
+            'value_x': series_of_dtype_all_na,
+            'value_y': series_of_dtype_all_na,
+        }, columns=['key', 'value_x', 'value_y'])
+        actual = df_left.merge(df_right, on='key')
+        assert_frame_equal(actual, expected)
 
     def test_merge_nosort(self):
         # #2098, anything to do?
