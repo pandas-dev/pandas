@@ -59,6 +59,13 @@ minimum versions. If installed, we now require:
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
+- :meth:`Timestamp.strptime` will now raise a NotImplementedError (:issue:`21257`)
+
+.. _whatsnew_0250.api.other:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
 - :class:`DatetimeTZDtype` will now standardize pytz timezones to a common timezone instance (:issue:`24713`)
 - ``Timestamp`` and ``Timedelta`` scalars now implement the :meth:`to_numpy` method as aliases to :meth:`Timestamp.to_datetime64` and :meth:`Timedelta.to_timedelta64`, respectively. (:issue:`24653`)
 -
@@ -175,10 +182,9 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
+- Bug in which incorrect exception raised by :meth:`pd.Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
 -
 -
--
-
 
 I/O
 ^^^
