@@ -44,25 +44,25 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     """
     Index based on an underlying :class:`Categorical`.
 
-    `CategoricalIndex`, like `Categorical` can only take on a limited,
+    CategoricalIndex, like Categorical, can only take on a limited,
     and usually fixed, number of possible values (`categories`). Also,
-    like `Categorical`, it might have an order, but numerical operations
+    like Categorical, it might have an order, but numerical operations
     (additions, divisions, ...) are not possible.
 
     Parameters
     ----------
-    data : list-like
-        The values of the categorical. If categories are given, values not in
-        categories will be replaced with NaN.
+    data : array-like (1-dimensional)
+        The values of the categorical. If `categories` are given, values not in
+        `categories` will be replaced with NaN.
     categories : index-like, optional
         The categories for the categorical. Items need to be unique.
-        If the categories are not given here, then they must be provided
-        in `dtype`.
+        If the categories are not given here (and also not in `dtype`), they
+        will be inferred from the `data`.
     ordered : bool, optional
         Whether or not this categorical is treated as an ordered
         categorical. If not given here or in `dtype`, the resulting
         categorical will be unordered.
-    dtype : CategoricalDtype or the str "category", optional
+    dtype : CategoricalDtype or the string "category", optional
         If :class:`CategoricalDtype`, cannot be used together with
         `categories` or `ordered`.
 
@@ -77,7 +77,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     codes
     categories
     ordered
-    dtype
 
     Methods
     -------
@@ -102,13 +101,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     See Also
     --------
     Index : The base pandas Index type.
-    Categorical : A categorical variable in classic R / S-plus fashion.
+    Categorical : A categorical array.
     CategoricalDtype : Type for categorical data.
 
     Notes
     -----
     See the `user guide
-    <https://pandas-docs.github.io/pandas-docs-travis/advanced.html#categoricalindex>`_
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
     for more.
 
     Examples
@@ -122,8 +121,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     >>> pd.CategoricalIndex(c)
     CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
 
-    Ordered `CategoricalIndex` can be sorted according to the custom order
-    of the categories and can have a min and max value.
+    Ordered ``CategoricalIndex`` can have a min and max value.
 
     >>> ci = pd.CategoricalIndex(['a','b','c','a','b','c'], ordered=True,
     ...                          categories=['c', 'b', 'a'])
