@@ -59,7 +59,7 @@ minimum versions. If installed, we now require:
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
-- :meth:`Timestamp.strptime` will now raise a NotImplementedError (:issue:`21257`)
+- :meth:`Timestamp.strptime` will now raise a NotImplementedError (:issue:`25016`)
 
 .. _whatsnew_0250.api.other:
 
