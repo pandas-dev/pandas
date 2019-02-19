@@ -164,9 +164,9 @@ class _Window(PandasObject, SelectionMixin):
         Provide a nice str repr of our rolling object.
         """
 
-        attrs = ["{k}={v}".format(k=k, v=getattr(self, k))
+        attrs = ("{k}={v}".format(k=k, v=getattr(self, k))
                  for k in self._attributes
-                 if getattr(self, k, None) is not None]
+                 if getattr(self, k, None) is not None)
         return "{klass} [{attrs}]".format(klass=self._window_type,
                                           attrs=','.join(attrs))
 
@@ -438,7 +438,7 @@ class _Window(PandasObject, SelectionMixin):
 
 class Window(_Window):
     """
-    Provides rolling window calculations.
+    Provide rolling window calculations.
 
     .. versionadded:: 0.18.0
 
@@ -901,9 +901,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.%(name)s : Calling object with Series data.
-    pandas.DataFrame.%(name)s : Calling object with DataFrames.
-    pandas.DataFrame.count : Count of the full DataFrame.
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    DataFrame.count : Count of the full DataFrame.
 
     Examples
     --------
@@ -1272,7 +1272,7 @@ class _Rolling_and_Expanding(_Rolling):
     -------
     Series or DataFrame
         Returned object type is determined by the caller of the %(name)s
-        calculation
+        calculation.
 
     See Also
     --------
@@ -1323,9 +1323,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.quantile : Computes value at the given quantile over all data
+    Series.quantile : Computes value at the given quantile over all data
         in Series.
-    pandas.DataFrame.quantile : Computes values at the given quantile over
+    DataFrame.quantile : Computes values at the given quantile over
         requested axis in DataFrame.
 
     Examples
@@ -1627,8 +1627,8 @@ class Rolling(_Rolling_and_Expanding):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.Series.rolling
-    pandas.DataFrame.rolling
+    Series.rolling
+    DataFrame.rolling
     """)
 
     _agg_examples_doc = dedent("""
@@ -1805,7 +1805,7 @@ class Rolling(_Rolling_and_Expanding):
 
 class RollingGroupby(_GroupByMixin, Rolling):
     """
-    Provides a rolling groupby implementation.
+    Provide a rolling groupby implementation.
 
     .. versionadded:: 0.18.1
 
@@ -1836,7 +1836,7 @@ class RollingGroupby(_GroupByMixin, Rolling):
 
 class Expanding(_Rolling_and_Expanding):
     """
-    Provides expanding transformations.
+    Provide expanding transformations.
 
     .. versionadded:: 0.18.0
 
@@ -1918,9 +1918,9 @@ class Expanding(_Rolling_and_Expanding):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.DataFrame.expanding.aggregate
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
+    DataFrame.expanding.aggregate
+    DataFrame.rolling.aggregate
+    DataFrame.aggregate
     """)
 
     _agg_examples_doc = dedent("""
@@ -2079,7 +2079,7 @@ class Expanding(_Rolling_and_Expanding):
 
 class ExpandingGroupby(_GroupByMixin, Expanding):
     """
-    Provides a expanding groupby implementation.
+    Provide a expanding groupby implementation.
 
     .. versionadded:: 0.18.1
 
@@ -2120,7 +2120,7 @@ _pairwise_template = """
 
 class EWM(_Rolling):
     r"""
-    Provides exponential weighted functions.
+    Provide exponential weighted functions.
 
     .. versionadded:: 0.18.0
 
@@ -2128,16 +2128,17 @@ class EWM(_Rolling):
     ----------
     com : float, optional
         Specify decay in terms of center of mass,
-        :math:`\alpha = 1 / (1 + com),\text{ for } com \geq 0`
+        :math:`\alpha = 1 / (1 + com),\text{ for } com \geq 0`.
     span : float, optional
         Specify decay in terms of span,
-        :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`
+        :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`.
     halflife : float, optional
         Specify decay in terms of half-life,
-        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for } halflife > 0`
+        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for }
+            halflife > 0`.
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
-        :math:`0 < \alpha \leq 1`
+        :math:`0 < \alpha \leq 1`.
 
         .. versionadded:: 0.18.0
 
@@ -2146,14 +2147,19 @@ class EWM(_Rolling):
         (otherwise result is NA).
     adjust : bool, default True
         Divide by decaying adjustment factor in beginning periods to account
-        for imbalance in relative weightings (viewing EWMA as a moving average)
+        for imbalance in relative weightings
+        (viewing EWMA as a moving average).
     ignore_na : bool, default False
         Ignore missing values when calculating weights;
-        specify True to reproduce pre-0.15.0 behavior
+        specify True to reproduce pre-0.15.0 behavior.
+    axis : {0 or 'index', 1 or 'columns'}, default 0
+        The axis to use. The value 0 identifies the rows, and 1
+        identifies the columns.
 
     Returns
     -------
-    a Window sub-classed for the particular operation
+    DataFrame
+        A Window sub-classed for the particular operation.
 
     See Also
     --------
@@ -2191,6 +2197,7 @@ class EWM(_Rolling):
     --------
 
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df
          B
     0  0.0
     1  1.0

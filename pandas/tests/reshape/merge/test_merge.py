@@ -616,6 +616,24 @@ class TestMerge(object):
         assert result['value_x'].dtype == 'datetime64[ns, US/Eastern]'
         assert result['value_y'].dtype == 'datetime64[ns, US/Eastern]'
 
+    def test_merge_on_datetime64tz_empty(self):
+        # https://github.com/pandas-dev/pandas/issues/25014
+        dtz = pd.DatetimeTZDtype(tz='UTC')
+        right = pd.DataFrame({'date': [pd.Timestamp('2018', tz=dtz.tz)],
+                              'value': [4.0],
+                              'date2': [pd.Timestamp('2019', tz=dtz.tz)]},
+                             columns=['date', 'value', 'date2'])
+        left = right[:0]
+        result = left.merge(right, on='date')
+        expected = pd.DataFrame({
+            'value_x': pd.Series(dtype=float),
+            'date2_x': pd.Series(dtype=dtz),
+            'date': pd.Series(dtype=dtz),
+            'value_y': pd.Series(dtype=float),
+            'date2_y': pd.Series(dtype=dtz),
+        }, columns=['value_x', 'date2_x', 'date', 'value_y', 'date2_y'])
+        tm.assert_frame_equal(result, expected)
+
     def test_merge_datetime64tz_with_dst_transition(self):
         # GH 18885
         df1 = pd.DataFrame(pd.date_range(
@@ -939,25 +957,22 @@ class TestMerge(object):
         with np.errstate(divide='raise'):
             merge(a, a, on=('a', 'b'))
 
-    @pytest.mark.parametrize('how', ['left', 'outer'])
-    @pytest.mark.xfail(reason="GH-24897")
+    @pytest.mark.parametrize('how', ['right', 'outer'])
     def test_merge_on_index_with_more_values(self, how):
         # GH 24212
-        # pd.merge gets [-1, -1, 0, 1] as right_indexer, ensure that -1 is
-        # interpreted as a missing value instead of the last element
-        df1 = pd.DataFrame([[1, 2], [2, 4], [3, 6], [4, 8]],
-                           columns=['a', 'b'])
-        df2 = pd.DataFrame([[3, 30], [4, 40]],
-                           columns=['a', 'c'])
-        df1.set_index('a', drop=False, inplace=True)
-        df2.set_index('a', inplace=True)
-        result = pd.merge(df1, df2, left_index=True, right_on='a', how=how)
-        expected = pd.DataFrame([[1, 2, np.nan],
-                                 [2, 4, np.nan],
-                                 [3, 6, 30.0],
-                                 [4, 8, 40.0]],
-                                columns=['a', 'b', 'c'])
-        expected.set_index('a', drop=False, inplace=True)
+        # pd.merge gets [0, 1, 2, -1, -1, -1] as left_indexer, ensure that
+        # -1 is interpreted as a missing value instead of the last element
+        df1 = pd.DataFrame({'a': [1, 2, 3], 'key': [0, 2, 2]})
+        df2 = pd.DataFrame({'b': [1, 2, 3, 4, 5]})
+        result = df1.merge(df2, left_on='key', right_index=True, how=how)
+        expected = pd.DataFrame([[1.0, 0, 1],
+                                 [2.0, 2, 3],
+                                 [3.0, 2, 3],
+                                 [np.nan, 1, 2],
+                                 [np.nan, 3, 4],
+                                 [np.nan, 4, 5]],
+                                columns=['a', 'key', 'b'])
+        expected.set_index(Int64Index([0, 1, 2, 1, 3, 4]), inplace=True)
         assert_frame_equal(result, expected)
 
     def test_merge_right_index_right(self):
@@ -1511,3 +1526,65 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
         with pytest.raises(ValueError, match=msg):
             result = pd.merge(a, b, on=on, left_on=left_on, right_on=right_on,
                               left_index=left_index, right_index=right_index)
+
+
+@pytest.mark.parametrize("col1, col2, kwargs, expected_cols", [
+    (0, 0, dict(suffixes=("", "_dup")), ["0", "0_dup"]),
+    (0, 0, dict(suffixes=(None, "_dup")), [0, "0_dup"]),
+    (0, 0, dict(suffixes=("_x", "_y")), ["0_x", "0_y"]),
+    ("a", 0, dict(suffixes=(None, "_y")), ["a", 0]),
+    (0.0, 0.0, dict(suffixes=("_x", None)), ["0.0_x", 0.0]),
+    ("b", "b", dict(suffixes=(None, "_y")), ["b", "b_y"]),
+    ("a", "a", dict(suffixes=("_x", None)), ["a_x", "a"]),
+    ("a", "b", dict(suffixes=("_x", None)), ["a", "b"]),
+    ("a", "a", dict(suffixes=[None, "_x"]), ["a", "a_x"]),
+    (0, 0, dict(suffixes=["_a", None]), ["0_a", 0]),
+    ("a", "a", dict(), ["a_x", "a_y"]),
+    (0, 0, dict(), ["0_x", "0_y"])
+])
+def test_merge_suffix(col1, col2, kwargs, expected_cols):
+    # issue: 24782
+    a = pd.DataFrame({col1: [1, 2, 3]})
+    b = pd.DataFrame({col2: [4, 5, 6]})
+
+    expected = pd.DataFrame([[1, 4], [2, 5], [3, 6]],
+                            columns=expected_cols)
+
+    result = a.merge(b, left_index=True, right_index=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+    result = pd.merge(a, b, left_index=True, right_index=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("col1, col2, suffixes", [
+    ("a", "a", [None, None]),
+    ("a", "a", (None, None)),
+    ("a", "a", ("", None)),
+    (0, 0, [None, None]),
+    (0, 0, (None, ""))
+])
+def test_merge_suffix_error(col1, col2, suffixes):
+    # issue: 24782
+    a = pd.DataFrame({col1: [1, 2, 3]})
+    b = pd.DataFrame({col2: [3, 4, 5]})
+
+    # TODO: might reconsider current raise behaviour, see issue 24782
+    msg = "columns overlap but no suffix specified"
+    with pytest.raises(ValueError, match=msg):
+        pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+
+
+@pytest.mark.parametrize("col1, col2, suffixes", [
+    ("a", "a", None),
+    (0, 0, None)
+])
+def test_merge_suffix_none_error(col1, col2, suffixes):
+    # issue: 24782
+    a = pd.DataFrame({col1: [1, 2, 3]})
+    b = pd.DataFrame({col2: [3, 4, 5]})
+
+    # TODO: might reconsider current raise behaviour, see GH24782
+    msg = "iterable"
+    with pytest.raises(TypeError, match=msg):
+        pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)

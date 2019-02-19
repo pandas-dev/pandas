@@ -4,12 +4,13 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 # pylint: disable=E1103,W0231,W0212,W0621
 from __future__ import division
 
+from collections import OrderedDict
 import warnings
 
 import numpy as np
 
 import pandas.compat as compat
-from pandas.compat import OrderedDict, map, range, u, zip
+from pandas.compat import map, range, u, zip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_axis_style_args
@@ -42,7 +43,7 @@ _shared_doc_kwargs = dict(
     axes_single_arg="{0, 1, 2, 'items', 'major_axis', 'minor_axis'}",
     optional_mapper='', optional_axis='', optional_labels='')
 _shared_doc_kwargs['args_transpose'] = (
-    "three positional arguments: each one of\n{ax_single}".format(
+    "{ax_single}\n\tThree positional arguments from given options.".format(
         ax_single=_shared_doc_kwargs['axes_single_arg']))
 
 
@@ -539,7 +540,7 @@ class Panel(NDFrame):
         -------
         panel : Panel
             If label combo is contained, will be reference to calling Panel,
-            otherwise a new object
+            otherwise a new object.
         """
         warnings.warn("set_value is deprecated and will be removed "
                       "in a future release. Please use "
@@ -802,7 +803,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-            index -> minor axis, columns -> items
+            Index -> minor axis, columns -> items.
 
         Notes
         -----
@@ -826,7 +827,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-            index -> major axis, columns -> items
+            Index -> major axis, columns -> items.
 
         Notes
         -----
@@ -917,9 +918,7 @@ class Panel(NDFrame):
         -------
         grouped : PanelGroupBy
         """
-        from pandas.core.groupby import PanelGroupBy
-        axis = self._get_axis_number(axis)
-        return PanelGroupBy(self, function, axis=axis)
+        raise NotImplementedError("Panel is removed in pandas 0.25.0")
 
     def to_frame(self, filter_observations=True):
         """
@@ -999,7 +998,7 @@ class Panel(NDFrame):
 
     def apply(self, func, axis='major', **kwargs):
         """
-        Applies function along axis (or axes) of the Panel.
+        Apply function along axis (or axes) of the Panel.
 
         Parameters
         ----------
@@ -1010,7 +1009,8 @@ class Panel(NDFrame):
             DataFrames of items & major axis will be passed
         axis : {'items', 'minor', 'major'}, or {0, 1, 2}, or a tuple with two
             axes
-        Additional keyword arguments will be passed as keywords to the function
+        **kwargs
+            Additional keyword arguments will be passed to the function.
 
         Returns
         -------
