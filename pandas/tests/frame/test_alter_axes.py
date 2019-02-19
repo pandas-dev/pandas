@@ -283,6 +283,7 @@ class TestDataFrameAlterAxes():
     @pytest.mark.parametrize('drop', [True, False])
     def test_set_index_raise_on_len(self, frame_of_index_cols, box, length,
                                     drop, append):
+        # GH 24984
         df = frame_of_index_cols  # has length 5
 
         values = np.random.randint(0, 10, (length,))
