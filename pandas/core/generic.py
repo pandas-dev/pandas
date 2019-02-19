@@ -8320,7 +8320,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        ranks : same type as caller
+        same type as caller
             Return a Series or DataFrame with data ranks as values.
 
         See Also
