@@ -512,7 +512,7 @@ class TestIntervalDtype(Base):
             IntervalDtype(subtype)
 
     @pytest.mark.parametrize('subtype', ['xx', 'IntervalA'])
-    def test_construction_errors(self):
+    def test_construction_errors(self, subtype):
         msg = 'could not construct IntervalDtype'
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)

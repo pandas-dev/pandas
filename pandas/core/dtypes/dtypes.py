@@ -932,7 +932,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         if its not possible
         """
         if isinstance(string, compat.string_types):
-            if (string.lower() == 'interval' or 
+            if (string.lower() == 'interval' or
                 cls._match.search(string) is not None):
                 return cls(string)
             else:
