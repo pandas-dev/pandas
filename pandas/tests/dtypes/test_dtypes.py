@@ -537,7 +537,7 @@ class TestIntervalDtype(Base):
     def test_construction_from_string_error_subtype(self, string):
         # this is an invalid subtype
         msg = ("Incorrectly formatted string passed to constructor. "
-               r"Valid formats include Interval or Intverval\[dtype\] "
+               r"Valid formats include Interval or Interval\[dtype\] "
                "where dtype is numeric, datetime, or timedelta")
 
         with pytest.raises(TypeError, match=msg):
