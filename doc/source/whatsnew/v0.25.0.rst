@@ -149,10 +149,9 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
+- Bug in which incorrect exception raised by :meth:`pd.Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
 -
 -
--
-
 
 I/O
 ^^^
