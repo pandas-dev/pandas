@@ -777,6 +777,8 @@ b  2""")
                                                         dtype=utc_dtype)
                     result = result.astype(dtype)
                 except TypeError:
+                    # _try_cast was called at a point where the result
+                    # was already tz-aware
                     pass
             elif is_extension_array_dtype(dtype):
                 # The function can return something of any type, so check
