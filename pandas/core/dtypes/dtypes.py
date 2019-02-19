@@ -940,7 +940,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                 return cls(string)
 
         msg = ('Incorrectly formatted string passed to constructor. '
-               'Valid formats include Interval or Inverval[dtype] '
+               'Valid formats include Interval or Intverval[dtype] '
                'where dtype is numeric, datetime, or timedelta')
         raise TypeError(msg)
 
