@@ -100,6 +100,7 @@ pip list --format columns |grep pandas
 echo "[running setup.py develop]"
 python setup.py develop  || exit 1
 
+# Display pandas-dev environment (for debugging)
 echo
 echo "[show environment]"
 conda list
