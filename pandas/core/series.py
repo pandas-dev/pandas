@@ -3107,9 +3107,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
-        The `keep` parameter determines which ones to keep 
+        The `keep` parameter determines which ones to keep
         when there are duplicates.
-        Regardless of `keep`, the result will be sorted 
+        Regardless of `keep`, the result will be sorted
         by the row label.
 
         Returns
@@ -3210,9 +3210,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
-        The `keep` parameter determines which ones to keep 
+        The `keep` parameter determines which ones to keep
         when there are duplicates.
-        Regardless of `keep`, the result will be sorted 
+        Regardless of `keep`, the result will be sorted
         by the row label.
 
         Returns
