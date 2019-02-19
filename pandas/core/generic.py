@@ -1331,7 +1331,6 @@ class NDFrame(PandasObject, SelectionMixin):
                cat        4
                monkey     2
         """
-        pd.MultiIndex.from_product([["mammal"], ['dog', 'cat', 'monkey']])
         axis = self._get_axis_number(axis)
         idx = self._get_axis(axis).set_names(name)
 
