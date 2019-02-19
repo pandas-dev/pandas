@@ -504,6 +504,16 @@ class TestDataFrameConcatCommon(TestData):
                                                                 names=[1, 2]))
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_astype_dup_col(self):
+        # gh 23049
+        df = pd.DataFrame([{'a': 'b'}])
+        df = pd.concat([df, df], axis=1)
+
+        result = df.astype('category')
+        expected = pd.DataFrame(np.array(["b", "b"]).reshape(1, 2),
+                                columns=["a", "a"]).astype("category")
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameCombineFirst(TestData):
 
