@@ -846,7 +846,7 @@ class MultiIndex(Index):
         try:
             self.get_loc(key)
             return True
-        except (LookupError, TypeError):
+        except (LookupError, TypeError, ValueError):
             return False
 
     contains = __contains__
@@ -1962,7 +1962,7 @@ class MultiIndex(Index):
         Returns
         -------
         MultiIndex
-            A new MultiIndex
+            A new MultiIndex.
 
         .. versionchanged:: 0.18.1
 
@@ -2059,9 +2059,9 @@ class MultiIndex(Index):
         Returns
         -------
         sorted_index : pd.MultiIndex
-            Resulting index
+            Resulting index.
         indexer : np.ndarray
-            Indices of output values in original index
+            Indices of output values in original index.
         """
         from pandas.core.sorting import indexer_from_factorized
 

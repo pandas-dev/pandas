@@ -59,7 +59,7 @@ def to_numeric(arg, errors='raise', downcast=None):
     Returns
     -------
     ret : numeric if parsing succeeded.
-        Return type depends on input.  Series if Series, otherwise ndarray
+        Return type depends on input.  Series if Series, otherwise ndarray.
 
     See Also
     --------
@@ -138,7 +138,7 @@ def to_numeric(arg, errors='raise', downcast=None):
             values = values.astype(np.int64)
         else:
             values = ensure_object(values)
-            coerce_numeric = False if errors in ('ignore', 'raise') else True
+            coerce_numeric = errors not in ('ignore', 'raise')
             values = lib.maybe_convert_numeric(values, set(),
                                                coerce_numeric=coerce_numeric)
 

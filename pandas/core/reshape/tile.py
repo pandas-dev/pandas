@@ -163,7 +163,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     Use `drop` optional when bins is not unique
 
     >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
-    ...    right=False, duplicates='drop')
+    ...        right=False, duplicates='drop')
     ... # doctest: +ELLIPSIS
     (a    0.0
      b    1.0
@@ -370,14 +370,6 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
             np.putmask(result, na_mask, np.nan)
 
     return result, bins
-
-
-def _trim_zeros(x):
-    while len(x) > 1 and x[-1] == '0':
-        x = x[:-1]
-    if len(x) > 1 and x[-1] == '.':
-        x = x[:-1]
-    return x
 
 
 def _coerce_to_type(x):

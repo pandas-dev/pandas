@@ -62,7 +62,7 @@ def _td_array_cmp(cls, op):
     Wrap comparison operations to convert timedelta-like to timedelta64
     """
     opname = '__{name}__'.format(name=op.__name__)
-    nat_result = True if opname == '__ne__' else False
+    nat_result = opname == '__ne__'
 
     def wrapper(self, other):
         if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
@@ -190,6 +190,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 "ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg.format(type(values).__name__))
+        if values.ndim != 1:
+            raise ValueError("Only 1-dimensional input arrays are supported.")
 
         if values.dtype == 'i8':
             # for compat with datetime/timedelta/period shared methods,
@@ -945,6 +947,9 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
                         .format(dtype=data.dtype))
 
     data = np.array(data, copy=copy)
+    if data.ndim != 1:
+        raise ValueError("Only 1-dimensional input arrays are supported.")
+
     assert data.dtype == 'm8[ns]', data
     return data, inferred_freq
 

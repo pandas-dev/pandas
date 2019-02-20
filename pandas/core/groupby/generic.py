@@ -964,7 +964,7 @@ class SeriesGroupBy(GroupBy):
 
         ids, _, ngroup = self.grouper.group_info
         cast = self._transform_should_cast(func_nm)
-        out = algorithms.take_1d(func().values, ids)
+        out = algorithms.take_1d(func()._values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
@@ -1462,8 +1462,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
         # reindex `result`, and then reset the in-axis grouper columns.
 
         # Select in-axis groupers
-        in_axis_grps = [(i, ping.name) for (i, ping)
-                        in enumerate(groupings) if ping.in_axis]
+        in_axis_grps = ((i, ping.name) for (i, ping)
+                        in enumerate(groupings) if ping.in_axis)
         g_nums, g_names = zip(*in_axis_grps)
 
         result = result.drop(labels=list(g_names), axis=1)

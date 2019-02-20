@@ -1541,8 +1541,9 @@ class TestIndex(Base):
         assert index2.slice_locs(8, 2) == (2, 6)
         assert index2.slice_locs(7, 3) == (2, 5)
 
-    def test_slice_float_locs(self):
-        index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=float))
+    @pytest.mark.parametrize("dtype", [int, float])
+    def test_slice_float_locs(self, dtype):
+        index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))
         n = len(index)
         assert index.slice_locs(5.0, 10.0) == (3, n)
         assert index.slice_locs(4.5, 10.5) == (3, 8)
@@ -1550,24 +1551,6 @@ class TestIndex(Base):
         index2 = index[::-1]
         assert index2.slice_locs(8.5, 1.5) == (2, 6)
         assert index2.slice_locs(10.5, -1) == (0, n)
-
-    @pytest.mark.xfail(reason="Assertions were not correct - see GH#20915")
-    def test_slice_ints_with_floats_raises(self):
-        # int slicing with floats
-        # GH 4892, these are all TypeErrors
-        index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=int))
-        n = len(index)
-
-        pytest.raises(TypeError,
-                      lambda: index.slice_locs(5.0, 10.0))
-        pytest.raises(TypeError,
-                      lambda: index.slice_locs(4.5, 10.5))
-
-        index2 = index[::-1]
-        pytest.raises(TypeError,
-                      lambda: index2.slice_locs(8.5, 1.5), (2, 6))
-        pytest.raises(TypeError,
-                      lambda: index2.slice_locs(10.5, -1), (0, n))
 
     def test_slice_locs_dup(self):
         index = Index(['a', 'a', 'b', 'c', 'd', 'd'])

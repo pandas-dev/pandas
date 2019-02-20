@@ -443,12 +443,12 @@ class _GroupBy(PandasObject, SelectionMixin):
                     raise ValueError(msg)
 
             converters = [get_converter(s) for s in index_sample]
-            names = [tuple(f(n) for f, n in zip(converters, name))
-                     for name in names]
+            names = (tuple(f(n) for f, n in zip(converters, name))
+                     for name in names)
 
         else:
             converter = get_converter(index_sample)
-            names = [converter(name) for name in names]
+            names = (converter(name) for name in names)
 
         return [self.indices.get(name, []) for name in names]
 
@@ -1835,7 +1835,7 @@ class GroupBy(_GroupBy):
             The axis of the object over which to compute the rank.
 
         Returns
-        -----
+        -------
         DataFrame with ranking of values within each group
         """
         if na_option not in {'keep', 'top', 'bottom'}:
