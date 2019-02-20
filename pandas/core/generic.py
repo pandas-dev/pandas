@@ -10866,7 +10866,7 @@ Series.min : Return the minimum.
 Series.max : Return the maximum.
 Series.idxmin : Return the index of the minimum.
 Series.idxmax : Return the index of the maximum.
-DataFrame.min : Return the sum over the requested axis.
+DataFrame.sum : Return the sum over the requested axis.
 DataFrame.min : Return the minimum over the requested axis.
 DataFrame.max : Return the maximum over the requested axis.
 DataFrame.idxmin : Return the index of the minimum over the requested axis.
