@@ -778,3 +778,16 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         msg = "cannot copy sequence with size 2 to array axis with dimension 0"
         with pytest.raises(ValueError, match=msg):
             df.loc[0:2, 'x'] = data
+
+    def test_indexing_zerodim_np_array(self):
+        # GH24924
+        df = DataFrame([[1, 2], [3, 4]])
+        result = df.loc[np.array(0)]
+        s = pd.Series([1, 2], name=0)
+        tm.assert_series_equal(result, s)
+
+    def test_series_indexing_zerodim_np_array(self):
+        # GH24924
+        s = Series([1, 2])
+        result = s.loc[np.array(0)]
+        assert result == 1
