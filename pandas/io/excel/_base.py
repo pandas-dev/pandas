@@ -590,9 +590,8 @@ class ExcelWriter(object):
                     if engine == 'auto':
                         engine = _get_default_writer(ext)
                 except KeyError:
-                    error = ValueError("No engine for filetype: '{ext}'"
-                                       .format(ext=ext))
-                    raise error
+                    raise ValueError("No engine for filetype: '{ext}'"
+                                     .format(ext=ext))
             cls = get_writer(engine)
 
         return object.__new__(cls)
