@@ -28,6 +28,38 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_0240.api_breaking.utc_offset_indexing:
+
+Indexing with date strings with UTC offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Indexing a :class:`DataFrame` or :class:`Series` with a :class:`DatetimeIndex` with a
+date string with a UTC offset would previously ignore the UTC offset. Now, the UTC offset
+is respected in indexing. (:issue:`24076`, :issue:`16785`)
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
+
+    In [2]: df
+    Out[2]:
+                               0
+    2019-01-01 00:00:00-08:00  0
+
+    In [3]: df['2019-01-01 00:00:00+04:00':'2019-01-01 01:00:00+04:00']
+    Out[3]:
+                               0
+    2019-01-01 00:00:00-08:00  0
+
+*New Behavior*:
+
+.. ipython:: ipython
+
+    df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
+    df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
+
 .. _whatsnew_0250.api.other:
 
 Other API Changes
@@ -134,7 +166,7 @@ Interval
 Indexing
 ^^^^^^^^
 
-- Bug when a date string with a UTC offset would get ignored during indexing. (:issue:`24076`, :issue:`16785`)
+-
 -
 -
 
