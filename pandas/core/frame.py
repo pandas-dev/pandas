@@ -3942,7 +3942,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.rename_axis: Set the name of the axis for the index or
-        columns.
+            columns.
 
         Examples
         --------
@@ -5979,8 +5979,8 @@ class DataFrame(NDFrame):
 
     See Also
     --------
-    %(other)s
-    pivot_table: Create a spreadsheet-style pivot table as a DataFrame.
+
+    Dataframe.pivot_table: Create a spreadsheet-style pivot table as a DataFrame.
     DataFrame.pivot: Return reshaped DataFrame organized by given index
         / column values.
 

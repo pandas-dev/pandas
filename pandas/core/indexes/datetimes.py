@@ -1301,8 +1301,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         See Also
         --------
         indexer_between_time: Return index locations of values between
-        particular times of day.
-        DataFrame.at_time: Select values at particular time of day .
+            particular times of day.
+        DataFrame.at_time: Select values at particular time of day.
         """
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
@@ -1342,8 +1342,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         See Also
         --------
         indexer_between_time: Return index locations of values between
-        particular times of day .
-        DataFrame.at_time: Select values at particular time of day .
+            particular times of day.
+        DataFrame.at_time: Select values at particular time of day.
         """
         start_time = tools.to_time(start_time)
         end_time = tools.to_time(end_time)

@@ -471,7 +471,7 @@ Series
 
 See Also
 --------
-Series.{reverse}
+Series.{reverse}: Equivalent operation but in reverse.
 
 Examples
 --------
@@ -862,7 +862,7 @@ Panel
 
 See Also
 --------
-Panel.{reverse}
+Panel.{reverse}: Equivalent operation but in reverse.
 """
 
 

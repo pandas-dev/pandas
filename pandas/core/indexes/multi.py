@@ -545,7 +545,7 @@ class MultiIndex(Index):
         --------
         Index._is_homogeneous_type: Whether the Index has a single dtype.
         DataFrame._is_homogeneous_type: Whether the Dataframe has a single
-        dtype.
+            dtype.
 
         Examples
         --------
@@ -1451,7 +1451,7 @@ class MultiIndex(Index):
         See Also
         --------
         DataFrame: Two-dimensional size-mutable, potentially heterogeneous
-        tabular data structure with labeled axes
+            tabular data structure with labeled axes.
         """
 
         from pandas import DataFrame

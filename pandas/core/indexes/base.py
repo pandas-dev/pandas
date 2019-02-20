@@ -184,11 +184,16 @@ class Index(IndexOpsMixin, PandasObject):
     See Also
     ---------
     RangeIndex : Index implementing a monotonic integer range.
-    CategoricalIndex : Index of :class:`Categorical` s.
+    CategoricalIndex : Index of class:`Categorical`s.
     MultiIndex : A multi-level, or hierarchical, Index.
-    IntervalIndex : An Index of :class:`Interval` s.
-    DatetimeIndex, TimedeltaIndex, PeriodIndex
-    Int64Index, UInt64Index,  Float64Index
+    IntervalIndex : An Index of class:`Interval` s.
+
+    DatetimeIndex: An Index of class: datetime64
+    TimedeltaIndex: An Index of class: timedelta
+    PeriodIndex: An Index of class: Period
+    Int64Index: An Index of class: Int64
+    UInt64Index: An Index of class: UInt64
+    Float64Index: An Index of class: Float64
 
     Notes
     -----
@@ -1991,10 +1996,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        unique: Hash table-based unique.
-        Uniques are returned in order of appearance. This does NOT sort.
-
-        Series.unique:Return unique values of Series object.
+        unique: Hash table-based unique. Uniques are returned in order of
+            appearance. This does NOT sort.
+        Series.unique: Return unique values of Series object.
         """)
 
     @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
@@ -2021,9 +2025,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.drop_duplicates : Equivalent method on Series.
-        DataFrame.drop_duplicates : Equivalent method on DataFrame.
-        Index.duplicated : Related method on Index, indicating duplicate
+        Series.drop_duplicates: Equivalent method on Series.
+        DataFrame.drop_duplicates: Equivalent method on DataFrame.
+        Index.duplicated: Related method on Index, indicating duplicate
             Index values.
 
         Examples
@@ -3621,13 +3625,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         array: numpy.ndarray or ExtensionArray
+           Returns the underlying data as an ndarray.
 
         See Also
         --------
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
 
-        Return the underlying data as an ndarray.
+        
         """
         return self._data.view(np.ndarray)
 
@@ -3658,8 +3663,8 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         values: Only the values in the DataFrame will be returned, the
-        axes labels will be removed.
-        _ndarray_values: The data as a ndarray
+            axes labels will be removed.
+        _ndarray_values: The data as a ndarray.
         """
         return self._data
 
@@ -5307,7 +5312,7 @@ def ensure_index_from_sequences(sequences, names=None):
 
     See Also
     --------
-    ensure_index: Ensures that an index exists
+    ensure_index: Ensures that an index exists,
     """
     from .multi import MultiIndex
 

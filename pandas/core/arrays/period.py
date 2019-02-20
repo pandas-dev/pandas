@@ -732,7 +732,7 @@ def period_array(data, freq=None, copy=False):
 
     See Also
     --------
-    PeriodArray:Immutable ndarray holding ordinal values indicating regular
+    PeriodArray: Immutable ndarray holding ordinal values indicating regular
         periods in time such as particular years, quarters, months, etc.
     pandas.PeriodIndex: Immutable ndarray holding ordinal values indicating
         regular periods in time such as particular years, quarters, months,

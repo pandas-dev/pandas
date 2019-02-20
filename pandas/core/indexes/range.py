@@ -241,7 +241,7 @@ class RangeIndex(Int64Index):
 
         See Also
         --------
-        numpy.ndarray.nbytes: otal bytes consumed by the elements of the array.
+        numpy.ndarray.nbytes: Total bytes consumed by the elements of the array.
         """
         return self.nbytes
 

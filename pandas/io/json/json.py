@@ -346,7 +346,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     See Also
     --------
-    DataFrame.to_json: Writes a Dataframe Object to JSON
+    DataFrame.to_json: Writes a Dataframe Object to JSON.
 
     Notes
     -----
