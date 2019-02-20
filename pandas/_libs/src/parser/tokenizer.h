@@ -42,7 +42,7 @@ See LICENSE for the license
 
 #if defined(_MSC_VER)
 #define strtoll _strtoi64
-#endif
+#endif  // _MSC_VER
 
 /*
 
@@ -75,7 +75,7 @@ See LICENSE for the license
 #define TRACE(X) printf X;
 #else
 #define TRACE(X)
-#endif
+#endif  // VERBOSE
 
 #define PARSER_OUT_OF_MEMORY -1
 

@@ -345,6 +345,26 @@ cdef class _Timestamp(datetime):
         """
         return np.datetime64(self.value, 'ns')
 
+    def to_numpy(self, dtype=None, copy=False):
+        """
+        Convert the Timestamp to a NumPy datetime64.
+
+        .. versionadded:: 0.25.0
+
+        This is an alias method for `Timestamp.to_datetime64()`. The dtype and
+        copy parameters are available here only for compatibility. Their values
+        will not affect the return value.
+
+        Returns
+        -------
+        numpy.datetime64
+
+        See Also
+        --------
+        DatetimeIndex.to_numpy : Similar method for DatetimeIndex.
+        """
+        return self.to_datetime64()
+
     def __add__(self, other):
         cdef:
             int64_t other_int, nanos
@@ -676,6 +696,17 @@ class Timestamp(_Timestamp):
         timestamp[, tz] -> tz's local time from POSIX timestamp.
         """
         return cls(datetime.fromtimestamp(ts))
+
+    # Issue 25016.
+    @classmethod
+    def strptime(cls, date_string, format):
+        """
+        Timestamp.strptime(string, format)
+
+        Function is not implemented. Use pd.to_datetime().
+        """
+        raise NotImplementedError("Timestamp.strptime() is not implmented."
+                                  "Use to_datetime() to parse date strings.")
 
     @classmethod
     def combine(cls, date, time):

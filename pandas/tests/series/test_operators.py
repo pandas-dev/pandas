@@ -563,6 +563,13 @@ class TestSeriesComparisons(object):
             with pytest.raises(ValueError, match=msg):
                 left.to_frame() < right.to_frame()
 
+    def test_compare_series_interval_keyword(self):
+        # GH 25338
+        s = Series(['IntervalA', 'IntervalB', 'IntervalC'])
+        result = s == 'IntervalA'
+        expected = Series([True, False, False])
+        assert_series_equal(result, expected)
+
 
 class TestSeriesFlexComparisonOps(object):
 
