@@ -62,20 +62,28 @@ def get_series_na():
 
 @pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
 def series_of_dtype(request):
-    # A parametrized fixture returning a variety of Series of different dtypes
+    """
+    A parametrized fixture returning a variety of Series of different
+    dtypes
+    """
     return request.param
 
 
 @pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
 def series_of_dtype2(request):
-    # A duplicate of the series_of_dtype fixture, so that it
-    # can be used twice by a single function
+    """
+    A duplicate of the series_of_dtype fixture, so that it can be used
+    twice by a single function
+    """
     return request.param
 
 
 @pytest.fixture(params=get_series_na(), ids=lambda x: x.dtype.name)
 def series_of_dtype_all_na(request):
-    # A parametrized fixture returning a variety of Series with all NA values
+    """
+    A parametrized fixture returning a variety of Series with all NA
+    values
+    """
     return request.param
 
 
