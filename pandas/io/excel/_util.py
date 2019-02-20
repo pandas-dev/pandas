@@ -5,32 +5,39 @@ from pandas.compat import lrange, range
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 
-from pandas.core import config
-
-_writer_extensions = ["xlsx", "xls", "xlsm"]
-
-
 _writers = {}
 
 
 def register_writer(klass):
-    """Adds engine to the excel writer registry. You must use this method to
-    integrate with ``to_excel``. Also adds config options for any new
-    ``supported_extensions`` defined on the writer."""
+    """
+    Add engine to the excel writer registry.io.excel.
+
+    You must use this method to integrate with ``to_excel``.
+
+    Parameters
+    ----------
+    klass : ExcelWriter
+    """
     if not callable(klass):
         raise ValueError("Can only register callables as engines")
     engine_name = klass.engine
     _writers[engine_name] = klass
-    for ext in klass.supported_extensions:
-        if ext.startswith('.'):
-            ext = ext[1:]
-        if ext not in _writer_extensions:
-            config.register_option("io.excel.{ext}.writer".format(ext=ext),
-                                   engine_name, validator=str)
-            _writer_extensions.append(ext)
 
 
 def _get_default_writer(ext):
+    """
+    Return the default writer for the given extension.
+
+    Parameters
+    ----------
+    ext : str
+        The excel file extension for which to get the default engine.
+
+    Returns
+    -------
+    str
+        The default engine for the extension.
+    """
     _default_writers = {'xlsx': 'openpyxl', 'xlsm': 'openpyxl', 'xls': 'xlwt'}
     try:
         import xlsxwriter  # noqa
@@ -229,8 +236,6 @@ def _fill_mi_header(row, control_row):
             last = row[i]
 
     return _maybe_convert_to_string(row), control_row
-
-# fill blank if index_col not None
 
 
 def _pop_header_name(row, index_col):
