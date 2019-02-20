@@ -23,9 +23,6 @@ set +v
 source activate pandas-dev
 set -v
 
-# Display pandas-dev environment (for debugging)
-conda list
-
 # remove any installed pandas package
 # w/o removing anything else
 echo
