@@ -564,8 +564,11 @@ class TestSeriesComparisons(object):
                 left.to_frame() < right.to_frame()
 
     def test_compare_series_interval_keyword(self):
-        s = Series(['IntervalA', 'IntervalB', 'IntervalC']) == 'IntervalA'
-        assert_series_equal(s, Series([True, False, False]))
+        # GH 25338
+        s = Series(['IntervalA', 'IntervalB', 'IntervalC'])
+        result = s == 'IntervalA'
+        expected = Series([True, False, False])
+        assert_series_equal(result, expected)
 
 
 class TestSeriesFlexComparisonOps(object):
