@@ -618,6 +618,30 @@ class TestTypeInference(object):
         result = lib.infer_dtype(arr, skipna=True)
         assert result == 'decimal'
 
+    def test_complex(self):
+        # gets cast to complex on array construction
+        arr = np.array([1.0, 2.0, 1 + 1j])
+        result = lib.infer_dtype(arr, skipna=True)
+        assert result == 'complex'
+
+        arr = np.array([1.0, 2.0, 1 + 1j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=True)
+        assert result == 'mixed'
+
+        # gets cast to complex on array construction
+        arr = np.array([1, np.nan, 1 + 1j])
+        result = lib.infer_dtype(arr, skipna=True)
+        assert result == 'complex'
+
+        arr = np.array([1.0, np.nan, 1 + 1j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=True)
+        assert result == 'mixed'
+
+        # complex with nans stays complex
+        arr = np.array([1 + 1j, np.nan, 3 + 3j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=True)
+        assert result == 'complex'
+
     def test_string(self):
         pass
 
