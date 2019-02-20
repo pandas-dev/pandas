@@ -2361,7 +2361,7 @@ class TestExcelWriterEngineTests(object):
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
-            supported_extensions = ['test', 'xlsx', 'xls']
+            supported_extensions = ['xlsx', 'xls']
             engine = 'dummy'
 
             def save(self):
@@ -2379,12 +2379,9 @@ class TestExcelWriterEngineTests(object):
 
         with pd.option_context('io.excel.xlsx.writer', 'dummy'):
             register_writer(DummyClass)
-            writer = ExcelWriter('something.test')
+            writer = ExcelWriter('something.xlsx')
             assert isinstance(writer, DummyClass)
             df = tm.makeCustomDataframe(1, 1)
-
-            func = lambda: df.to_excel('something.test')
-            check_called(func)
             check_called(lambda: df.to_excel('something.xlsx'))
             check_called(
                 lambda: df.to_excel(
