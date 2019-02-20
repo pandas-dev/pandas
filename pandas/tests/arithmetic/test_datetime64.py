@@ -1434,6 +1434,20 @@ class TestDatetime64DateOffsetArithmetic(object):
 class TestDatetime64OverflowHandling(object):
     # TODO: box + de-duplicate
 
+    def test_dt64_overflow_masking(self, box_with_array):
+        # GH#25317
+        left = Series([Timestamp('1969-12-31')])
+        right = Series([NaT])
+
+        left = tm.box_expected(left, box_with_array)
+        right = tm.box_expected(right, box_with_array)
+
+        expected = TimedeltaIndex([NaT])
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = left - right
+        tm.assert_equal(result, expected)
+
     def test_dt64_series_arith_overflow(self):
         # GH#12534, fixed by GH#19024
         dt = pd.Timestamp('1700-01-31')
