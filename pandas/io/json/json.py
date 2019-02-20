@@ -619,12 +619,7 @@ class Parser(object):
             orient = self._default_orient
         self.orient = orient
 
-        if dtype is None:
-            if orient == 'table':
-                dtype = False
-            else:
-                dtype = True
-        self.dtype = dtype
+        self.dtype = orient != 'table' if dtype is None else dtype
 
         if orient == "split":
             numpy = False
