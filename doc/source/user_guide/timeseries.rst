@@ -633,6 +633,8 @@ We are stopping on the included end-point as it is part of the index:
    dft2 = dft2.swaplevel(0, 1).sort_index()
    dft2.loc[idx[:, '2013-01-05'], :]
 
+.. versionadded:: 0.25.0
+
 Slicing with string indexing also honors UTC offset.
 
 .. ipython:: python
