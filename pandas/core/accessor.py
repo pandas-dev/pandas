@@ -262,10 +262,10 @@ Back in an interactive IPython session:
 
 
 @Appender(_doc % dict(klass="DataFrame",
-                      others=("register_series_accessor:register_dataframe_accessor: Register a custom\
+                      others=("register_series_accessor: Register a custom\
                                 accessor on DataFrame objects."
                               "register_index_accessor: Register a custom\
-                               accessor on Index objects." )))
+                               accessor on Index objects.")))
 def register_dataframe_accessor(name):
     from pandas import DataFrame
     return _register_accessor(name, DataFrame)

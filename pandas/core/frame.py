@@ -5981,7 +5981,8 @@ class DataFrame(NDFrame):
     See Also
     --------
 
-    Dataframe.pivot_table: Create a spreadsheet-style pivot table as a DataFrame.
+    Dataframe.pivot_table: Create a spreadsheet-style pivot table as a
+        DataFrame.
     DataFrame.pivot: Return reshaped DataFrame organized by given index
         / column values.
 

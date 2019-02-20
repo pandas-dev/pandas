@@ -45,7 +45,7 @@ _common_see_also = """
         See Also
         --------
         Series.%(name)s: Group Series using a mapper or by a Series of columns.
-        DataFrame.%(name)s: Group DataFrame using a mapper or by a Series of 
+        DataFrame.%(name)s: Group DataFrame using a mapper or by a Series of
            columns.
         Panel.%(name)s: Group data on given axis, returning GroupBy object.
 """
@@ -2074,7 +2074,7 @@ class GroupBy(_GroupBy):
         self._reset_group_selection()
         mask = self._cumcount_array() < n
         return self._selected_obj[mask]
-    
+
     @Substitution(name='groupby')
     @Substitution(see_also=_common_see_also)
     def tail(self, n=5):
