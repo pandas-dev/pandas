@@ -1334,7 +1334,6 @@ class NDFrame(PandasObject, SelectionMixin):
                cat        4
                monkey     2
         """
-        pd.MultiIndex.from_product([["mammal"], ['dog', 'cat', 'monkey']])
         axis = self._get_axis_number(axis)
         idx = self._get_axis(axis).set_names(name)
 
@@ -10872,7 +10871,7 @@ Series.min : Return the minimum.
 Series.max : Return the maximum.
 Series.idxmin : Return the index of the minimum.
 Series.idxmax : Return the index of the maximum.
-DataFrame.min : Return the sum over the requested axis.
+DataFrame.sum : Return the sum over the requested axis.
 DataFrame.min : Return the minimum over the requested axis.
 DataFrame.max : Return the maximum over the requested axis.
 DataFrame.idxmin : Return the index of the minimum over the requested axis.

@@ -374,7 +374,6 @@ class NaTType(_NaT):
     utctimetuple = _make_error_func('utctimetuple', datetime)
     timetz = _make_error_func('timetz', datetime)
     timetuple = _make_error_func('timetuple', datetime)
-    strptime = _make_error_func('strptime', datetime)
     strftime = _make_error_func('strftime', datetime)
     isocalendar = _make_error_func('isocalendar', datetime)
     dst = _make_error_func('dst', datetime)
@@ -387,6 +386,14 @@ class NaTType(_NaT):
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+
+    strptime = _make_error_func('strptime',  # noqa:E128
+        """
+        Timestamp.strptime(string, format)
+
+        Function is not implemented. Use pd.to_datetime().
+        """
+    )
 
     utcfromtimestamp = _make_error_func('utcfromtimestamp',  # noqa:E128
         """
