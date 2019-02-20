@@ -9954,21 +9954,21 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['pct_change'] % _shared_doc_kwargs)
     def pct_change(self, periods=1, fill_method=None, limit=None, freq=None,
-                   skipna=False, **kwargs):
+                   skipna=None, **kwargs):
         if skipna and fill_method is not None:
             raise ValueError("cannot pass both skipna and fill_method")
         elif skipna and limit is not None:
             raise ValueError("cannot pass both skipna and limit")
+        if skipna is None and fill_method is None and limit is None:
+            skipna = True
         if skipna and self._typ == 'dataframe':
             return self.apply(
-                lambda s: s.pct_change(periods=periods,
-                                       fill_method=fill_method, limit=limit,
-                                       freq=freq, skipna=skipna, **kwargs)
+                lambda s: s.pct_change(periods=periods, freq=freq,
+                                       skipna=skipna, **kwargs)
             )
         # TODO: Not sure if above is correct - need someone to confirm.
         axis = self._get_axis_number(kwargs.pop('axis', self._stat_axis_name))
         if skipna:
-            # mask = self.isna()
             data = self.dropna()
         elif fill_method is None:
             data = self
