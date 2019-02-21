@@ -1089,7 +1089,7 @@ cdef class _Timedelta(timedelta):
 
         See Also
         --------
-        Timestamp.isoformat
+        Timestamp.isoformat: Format Timestamp as ISO 8601
 
         Notes
         -----
