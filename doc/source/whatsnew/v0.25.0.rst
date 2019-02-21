@@ -31,6 +31,20 @@ Backwards incompatible API changes
 
 - :meth:`Timestamp.strptime` will now raise a NotImplementedError (:issue:`25016`)
 
+.. _whatsnew_0250.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have updated our minimum supported versions of dependencies (:issue:`23519`).
+If installed, we now require:
+
++-----------------+-----------------+----------+
+| Package         | Minimum Version | Required |
++=================+=================+==========+
+| pytest (dev)    | 4.0.2           |          |
++-----------------+-----------------+----------+
+
 .. _whatsnew_0250.api.other:
 
 Other API Changes

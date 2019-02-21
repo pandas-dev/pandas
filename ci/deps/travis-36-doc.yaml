@@ -41,5 +41,5 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest
+  - pytest>=4.0.2
   - pytest-xdist
