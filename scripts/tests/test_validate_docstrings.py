@@ -4,6 +4,8 @@ import string
 import textwrap
 import pytest
 import numpy as np
+import pandas
+
 import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
@@ -1002,6 +1004,30 @@ class TestApiItems(object):
     def test_item_subsection(self, idx, subsection):
         result = list(validate_docstrings.get_api_items(self.api_doc))
         assert result[idx][3] == subsection
+
+
+class TestDocstringClass(object):
+    @pytest.mark.parametrize('name_and_expected_obj',
+                             [('pandas.isnull', pandas.isnull),
+                              ('pandas.DataFrame', pandas.DataFrame),
+                              ('pandas.Series.sum', pandas.Series.sum)])
+    def test_resolves_class_name(self, name_and_expected_obj):
+        name, expected_obj = name_and_expected_obj
+        d = validate_docstrings.Docstring(name)
+        assert d.obj is expected_obj
+
+    @pytest.mark.parametrize('invalid_name', ['panda', 'panda.DataFrame'])
+    def test_raises_for_invalid_module_name(self, invalid_name):
+        # Note that the module names in this test are misspelled.
+        with pytest.raises(ImportError):
+            validate_docstrings.Docstring(invalid_name)
+
+    @pytest.mark.parametrize('invalid_name',
+                             ['pandas.BadClassName',
+                              'pandas.Series.bad_method_name'])
+    def test_raises_for_invalid_attribute_name(self, invalid_name):
+        with pytest.raises(AttributeError):
+            validate_docstrings.Docstring(invalid_name)
 
 
 class TestMainFunction(object):
