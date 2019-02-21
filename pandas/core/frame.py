@@ -4025,7 +4025,8 @@ class DataFrame(NDFrame):
             This parameter can be either a single column key, a single array of
             the same length as the calling DataFrame, or a list containing an
             arbitrary combination of column keys and arrays. Here, "array"
-            encompasses :class:`Series`, :class:`Index` and ``np.ndarray``.
+            encompasses :class:`Series`, :class:`Index`, ``np.ndarray``, and
+            instances of :class:`abc.Iterator`.
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False
@@ -4169,8 +4170,8 @@ class DataFrame(NDFrame):
                     to_remove.append(col)
 
             if len(arrays[-1]) != len(self):
-                # check newest element against length of calling frame;
-                # ensure_index_from_sequences does not raise if append is False
+                # check newest element against length of calling frame, since
+                # ensure_index_from_sequences would not raise for append=False.
                 raise ValueError('Length mismatch: Expected {len_self} rows, '
                                  'received array of length {len_col}'.format(
                                      len_self=len(self),
