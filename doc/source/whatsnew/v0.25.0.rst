@@ -222,7 +222,7 @@ Numeric
 - Bug in :meth:`to_numeric` in which numbers were being coerced to float, even though ``errors`` was not ``coerce`` (:issue:`24910`)
 - Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
 - Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
--
+- Raises a helpful exception when a non-numeric index is sent to :meth:`interpolate` with methods which require numeric index. (:issue:`21662`)
 -
 -
 
