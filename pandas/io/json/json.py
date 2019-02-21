@@ -621,6 +621,8 @@ class Parser(object):
             orient = self._default_orient
         self.orient = orient
 
+        self.dtype = dtype
+
         if orient == "split":
             numpy = False
 
