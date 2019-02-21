@@ -510,7 +510,7 @@ def apply_frame_axis0(object frame, object f, object names,
     slider = BlockSlider(frame)
 
     mutated = False
-    successfull_fast_apply = True
+    require_slow_apply = True
     item_cache = slider.dummy._item_cache
     try:
         for i in range(n):
@@ -524,9 +524,10 @@ def apply_frame_axis0(object frame, object f, object names,
                 piece = f(chunk)
             except:
                 raise InvalidApply('Let this error raise above us')
+
             # Need to infer if low level index slider will cause segfaults
             if i == 0 and piece is chunk:
-                successfull_fast_apply = False
+                require_slow_apply = True
             try:
                 if piece.index is chunk.index:
                     piece = piece.copy(deep='all')
@@ -536,12 +537,15 @@ def apply_frame_axis0(object frame, object f, object names,
                 pass
 
             results.append(piece)
-            if not successfull_fast_apply:
+
+            # If the data was modified inplace we need to
+            # take the slow path to not risk segfaults
+            if require_slow_apply:
                 break
     finally:
         slider.reset()
 
-    return results, mutated, successfull_fast_apply
+    return results, mutated
 
 
 cdef class BlockSlider:

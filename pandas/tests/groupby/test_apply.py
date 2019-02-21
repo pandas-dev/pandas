@@ -101,15 +101,46 @@ def test_fast_apply():
     splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
     group_keys = grouper._get_group_keys()
 
-    values, mutated, succsessful_apply = splitter.fast_apply(f, group_keys)
-    # The bool successful_apply signals whether or not the fast apply was
-    # successful on the entire data set. It is false for cases which need to
-    # fall back to a slow apply code path for safety reasons.
-    assert succsessful_apply
+    values, mutated = splitter.fast_apply(f, group_keys)
+
     assert not mutated
 
 
-def test_group_apply_once_per_group():
+@pytest.mark.parametrize(
+    "df,group_names",
+    [
+        (
+            DataFrame({"a": [1, 1, 1, 2, 3],
+                       "b": ["a", "a", "a", "b", "c"]}),
+            [1, 2, 3],
+        ),  # GH2936
+        (
+            DataFrame({"a": [0, 0, 1, 1],
+                       "b": [0, 1, 0, 1]}),
+            [0, 1]
+        ),  # GH7739, GH10519
+        (DataFrame({"a": [1]}), [1]),  # GH10519
+        (
+            DataFrame({"a": [1, 1, 1, 2, 2, 1, 1, 2],
+                       "b": range(8)}),
+            [1, 2]),  # GH2656
+        (
+            DataFrame({"a": [1, 2, 3, 1, 2, 3], "two": [4, 5, 6, 7, 8, 9]}),
+            [1, 2, 3],
+        ),  # GH12155
+        (
+            DataFrame({"a": list("aaabbbcccc"),
+                       "B": [3, 4, 3, 6, 5, 2, 1, 9, 5, 4],
+                       "C": [4, 0, 2, 2, 2, 7, 8, 6, 2, 8]}),
+            ["a", "b", "c"],
+        ),  # GH20084
+        (
+            DataFrame([[1, 2, 3], [2, 2, 3]], columns=["a", "b", "c"]),
+            [1, 2],
+        ),  # GH21417
+    ],
+)
+def test_group_apply_once_per_group(df, group_names):
     # GH2936, GH7739, GH10519, GH2656, GH12155, GH20084, GH21417
 
     # This test should ensure that a function is only evaluted
@@ -117,25 +148,41 @@ def test_group_apply_once_per_group():
     # on the first group to check if the Cython index slider is safe to use
     # This test ensures that the side effect (append to list) is only triggered
     # once per group
-    df = pd.DataFrame({"a": [0, 0, 1, 1, 2, 2], "b": np.arange(6)})
 
     names = []
+    # cannot parameterize over the functions since they need external
+    # `names` to detect side effects
 
     def f_copy(group):
+        # this takes the fast apply path
         names.append(group.name)
         return group.copy()
 
-    df.groupby("a").apply(f_copy)
-    assert names == [0, 1, 2]
-
     def f_nocopy(group):
+        # this takes the slow apply path
         names.append(group.name)
         return group
 
-    names = []
-    # this takes the slow apply path
-    df.groupby("a").apply(f_nocopy)
-    assert names == [0, 1, 2]
+    def f_scalar(group):
+        # GH7739, GH2656
+        names.append(group.name)
+        return 0
+
+    def f_none(group):
+        # GH10519, GH12155, GH21417
+        names.append(group.name)
+        return None
+
+    def f_constant_df(group):
+        # GH2936, GH20084
+        names.append(group.name)
+        return DataFrame({"a": [1], "b": [1]})
+
+    for func in [f_copy, f_nocopy, f_scalar, f_none, f_constant_df]:
+        del names[:]
+
+        df.groupby("a").apply(func)
+        assert names == group_names
 
 
 def test_apply_with_mixed_dtype():

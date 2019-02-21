@@ -69,15 +69,14 @@ GroupBy.apply on ``DataFrame`` evaluates first group only once
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The implementation of :meth:`DataFrameGroupBy.apply() <pandas.core.groupby.DataFrameGroupBy.apply>`
-previously evaluated func consistently twice on the first group to infer if it
-is safe to use a fast code path. Particularly for functions with side effects,
-this was an undesired behavior and may have led to surprises.
+previously evaluated the supplied function consistently twice on the first group
+to infer if it is safe to use a fast code path. Particularly for functions with
+side effects, this was an undesired behavior and may have led to surprises.
+
+(:issue:`2936`, :issue:`2656`, :issue:`7739`, :issue:`10519`, :issue:`12155`,
+:issue:`20084`, :issue:`21417`)
 
 Now every group is evaluated only a single time.
-
-:issue:`2936`, :issue:`2656`, :issue:`7739`, :issue:`10519`, :issue:`12155`,
-:issue:`20084`, :issue:`21417`
-
 
 .. ipython:: python
 
@@ -90,14 +89,14 @@ Now every group is evaluated only a single time.
         return group
     df.groupby("a").apply(func)
 
-Previous behavior:
+Previous Behaviour:
 
 .. code-block:: python
 
     side_effects
     >>> ["x", "x", "y"]
 
-New behavior:
+New Behaviour:
 
 .. ipython:: python
 
