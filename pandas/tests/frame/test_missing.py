@@ -210,6 +210,7 @@ class TestDataFrameMissingData(TestData):
         ('other', '', ''), ('I', 'a', 'x')
     ])
     def test_dropna_subset(self, input_vals):
+        # GH 17737
         col = pd.MultiIndex.from_product([['I', 'II'],
                                           ['a', 'b'],
                                           ["x", "y"]])

@@ -153,7 +153,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in which incorrect exception raised by :meth:`pd.Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
--
+- Bug in :func:`dropna` does not axcept incomplete ``MultiIndex`` key (:issue:`17737`)
 -
 
 I/O
