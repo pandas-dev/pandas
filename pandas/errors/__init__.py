@@ -33,7 +33,7 @@ class ParserError(ValueError):
     """
     Exception that is raised by an error encountered in `pd.read_csv`.
 
-    e.g. HTML Parsing and  malformed input csv files will raise this error.
+    e.g. HTML Parsing will raise this error.
     """
 
 
