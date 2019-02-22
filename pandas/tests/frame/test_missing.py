@@ -206,6 +206,21 @@ class TestDataFrameMissingData(TestData):
                              index=[0, 3])
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('input_vals', [
+        ('other', '', ''), ('I', 'a', 'x')
+    ])
+    def test_dropna_subset(self, input_vals):
+        col = pd.MultiIndex.from_product([['I', 'II'],
+                                          ['a', 'b'],
+                                          ["x", "y"]])
+        df = pd.DataFrame(index=range(3), columns=col)
+        df['other'] = (1, 3, np.nan)
+
+        result = df.dropna(subset=[input_vals[0]])
+        expected = df.dropna(subset=[input_vals])
+
+        tm.assert_frame_equal(result, expected)
+
     def test_fillna(self):
         tf = self.tsframe
         tf.loc[tf.index[:5], 'A'] = np.nan

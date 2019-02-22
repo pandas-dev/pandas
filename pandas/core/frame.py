@@ -4533,6 +4533,14 @@ class DataFrame(NDFrame):
             agg_obj = self
             if subset is not None:
                 ax = self._get_axis(agg_axis)
+                if isinstance(ax, MultiIndex):
+                    if (len(subset[0]) < ax.nlevels and
+                       isinstance(subset[0], tuple)):
+                        for _ in range(ax.nlevels - len(subset[0])):
+                            ax = ax.droplevel(ax.nlevels - 1)
+                    elif ax.nlevels > 1 and isinstance(subset[0], str):
+                        for _ in range(ax.nlevels - 1):
+                            ax = ax.droplevel(ax.nlevels - 1)
                 indices = ax.get_indexer_for(subset)
                 check = indices == -1
                 if check.any():
