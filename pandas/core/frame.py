@@ -218,9 +218,9 @@ DataFrame
 
 See Also
 --------
-merge_ordered : Merge with optional filling/interpolation.
-merge_asof : Merge on nearest keys.
-DataFrame.join : Similar method using indices.
+merge_ordered: Merge with optional filling/interpolation.
+merge_asof: Merge on nearest keys.
+DataFrame.join: Similar method using indices.
 
 Notes
 -----
@@ -316,9 +316,9 @@ class DataFrame(NDFrame):
 
     See Also
     --------
-    DataFrame.from_records : Constructor from tuples, also record arrays.
-    DataFrame.from_dict : From dicts of Series, arrays, or dicts.
-    DataFrame.from_items : From sequence of (key, value) pairs
+    DataFrame.from_records: Constructor from tuples, also record arrays.
+    DataFrame.from_dict: From dicts of Series, arrays, or dicts.
+    DataFrame.from_items: From sequence of (key, value) pairs
         read_csv, pandas.read_table, pandas.read_clipboard.
 
     Examples
@@ -495,7 +495,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        ndarray.shape: Returns tuple of array dimensions.
+        ndarray.shape: Return tuple of array dimensions.
 
         Examples
         --------
@@ -675,9 +675,10 @@ class DataFrame(NDFrame):
         line_width : int, optional
             Width to wrap a line in characters.
         %(returns)s
+        
         See Also
         --------
-        to_html : Convert DataFrame to HTML.
+        to_html: Convert DataFrame to HTML.
 
         Examples
         --------
@@ -740,9 +741,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.iterrows : Iterate over DataFrame rows as
+        DataFrame.iterrows: Iterate over DataFrame rows as
             (index, Series) pairs.
-        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
+        DataFrame.itertuples: Iterate over DataFrame rows as namedtuples
             of the values.
 
         Examples
@@ -795,8 +796,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        itertuples : Iterate over DataFrame rows as namedtuples of the values.
-        iteritems : Iterate over (column name, Series) pairs.
+        itertuples: Iterate over DataFrame rows as namedtuples of the values.
+        iteritems: Iterate over (column name, Series) pairs.
 
         Notes
         -----
@@ -852,9 +853,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
+        DataFrame.iterrows: Iterate over DataFrame rows as (index, Series)
             pairs.
-        DataFrame.iteritems : Iterate over (column name, Series) pairs.
+        DataFrame.iteritems: Iterate over (column name, Series) pairs.
 
         Notes
         -----
@@ -1070,9 +1071,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.from_records : DataFrame from ndarray (structured
+        DataFrame.from_records: DataFrame from ndarray (structured
             dtype), list of tuples, dict, or DataFrame.
-        DataFrame : DataFrame object creation using constructor.
+        DataFrame: DataFrame object creation using constructor.
 
         Examples
         --------
@@ -1150,7 +1151,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.to_numpy : Similar method for Series.
+        Series.to_numpy: Similar method for Series.
 
         Examples
         --------
@@ -1400,8 +1401,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas_gbq.to_gbq : This function in the pandas-gbq library.
-        read_gbq : Read a DataFrame from Google BigQuery.
+        pandas_gbq.to_gbq: This function in the pandas-gbq library.
+        read_gbq: Read a DataFrame from Google BigQuery.
         """
         from pandas.io import gbq
         return gbq.to_gbq(
@@ -1915,8 +1916,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.to_dense :
-            Converts the DataFrame back to the its dense form.
+        DataFrame.to_dense: Convert the DataFrame back to the its dense form.
 
         Examples
         --------
@@ -2035,9 +2035,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        read_stata : Import Stata data files.
-        io.stata.StataWriter : Low-level writer for Stata data files.
-        io.stata.StataWriter117 : Low-level writer for version 117 files.
+        read_stata: Import Stata data files.
+        io.stata.StataWriter: Low-level writer for Stata data files.
+        io.stata.StataWriter117: Low-level writer for version 117 files.
 
         Examples
         --------
@@ -2124,10 +2124,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        read_parquet : Read a parquet file.
-        DataFrame.to_csv : Write a csv file.
-        DataFrame.to_sql : Write to a sql table.
-        DataFrame.to_hdf : Write to hdf.
+        read_parquet: Read a parquet file.
+        DataFrame.to_csv: Write a csv file.
+        DataFrame.to_sql: Write to a sql table.
+        DataFrame.to_hdf: Write to hdf.
 
         Notes
         -----
@@ -2189,7 +2189,7 @@ class DataFrame(NDFrame):
         %(returns)s
         See Also
         --------
-        to_string : Convert DataFrame to a string.
+        to_string: Convert DataFrame to a string.
         """
 
         if (justify is not None and
@@ -2485,12 +2485,12 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        numpy.ndarray.nbytes : Total bytes consumed by the elements of an
+        numpy.ndarray.nbytes: Total bytes consumed by the elements of an
             ndarray.
-        Series.memory_usage : Bytes consumed by a Series.
-        Categorical : Memory-efficient array for string values with
+        Series.memory_usage: Bytes consumed by a Series.
+        Categorical: Memory-efficient array for string values with
             many repeated values.
-        DataFrame.info : Concise summary of a DataFrame.
+        DataFrame.info: Concise summary of a DataFrame.
 
         Examples
         --------
@@ -2571,7 +2571,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        numpy.transpose : Permute the dimensions of a given array.
+        numpy.transpose: Permute the dimensions of a given array.
 
         Notes
         -----
@@ -2984,9 +2984,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        eval : Evaluate a string describing operations on
+        eval: Evaluate a string describing operations on
             DataFrame columns.
-        DataFrame.eval : Evaluate a string describing operations on
+        DataFrame.eval: Evaluate a string describing operations on
             DataFrame columns.
 
         Notes
@@ -3094,11 +3094,11 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.query : Evaluates a boolean expression to query the columns
+        DataFrame.query: Evaluate a boolean expression to query the columns
             of a frame.
-        DataFrame.assign : Can evaluate an expression or function to create new
+        DataFrame.assign: Can evaluate an expression or function to create new
             values for a column.
-        eval : Evaluate a Python expression as a string using various
+        eval: Evaluate a Python expression as a string using various
             backends.
 
         Notes
@@ -4046,9 +4046,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.reset_index : Opposite of set_index.
-        DataFrame.reindex : Change to new indices or expand indices.
-        DataFrame.reindex_like : Change to same indices as other DataFrame.
+        DataFrame.reset_index: Opposite of set_index.
+        DataFrame.reindex: Change to new indices or expand indices.
+        DataFrame.reindex_like: Change to same indices as other DataFrame.
 
         Examples
         --------
@@ -4194,9 +4194,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.set_index : Opposite of reset_index.
-        DataFrame.reindex : Change to new indices or expand indices.
-        DataFrame.reindex_like : Change to same indices as other DataFrame.
+        DataFrame.set_index: Opposite of reset_index.
+        DataFrame.reindex: Change to new indices or expand indices.
+        DataFrame.reindex_like: Change to same indices as other DataFrame.
 
         Examples
         --------
@@ -4795,10 +4795,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.nsmallest : Return the first `n` rows ordered by `columns` in
+        DataFrame.nsmallest: Return the first `n` rows ordered by `columns` in
             ascending order.
-        DataFrame.sort_values : Sort DataFrame by the values.
-        DataFrame.head : Return the first `n` rows without re-ordering.
+        DataFrame.sort_values: Sort DataFrame by the values.
+        DataFrame.head: Return the first `n` rows without re-ordering.
 
         Notes
         -----
@@ -4905,10 +4905,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.nlargest : Return the first `n` rows ordered by `columns` in
+        DataFrame.nlargest: Return the first `n` rows ordered by `columns` in
             descending order.
-        DataFrame.sort_values : Sort DataFrame by the values.
-        DataFrame.head : Return the first `n` rows without re-ordering.
+        DataFrame.sort_values: Sort DataFrame by the values.
+        DataFrame.head: Return the first `n` rows without re-ordering.
 
         Examples
         --------
@@ -5109,7 +5109,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.combine_first : Combine two DataFrame objects and default to
+        DataFrame.combine_first: Combine two DataFrame objects and default to
             non-null values in frame calling the method.
 
         Examples
@@ -5267,7 +5267,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.combine : Perform series-wise operation on two DataFrames
+        DataFrame.combine: Perform series-wise operation on two DataFrames
             using a given function.
 
         Examples
@@ -5376,8 +5376,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        dict.update : Similar method for dictionaries.
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        dict.update: Similar method for dictionaries.
+        DataFrame.merge: For column(s)-on-columns(s) operations.
 
         Examples
         --------
@@ -5516,9 +5516,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.pivot_table : Generalization of pivot that can handle
+        DataFrame.pivot_table: Generalization of pivot that can handle
             duplicate values for one index/column pair.
-        DataFrame.unstack : Pivot based on the index values instead of a
+        DataFrame.unstack: Pivot based on the index values instead of a
             column.
 
         Notes
@@ -5628,7 +5628,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.pivot : Pivot without aggregation that can handle
+        DataFrame.pivot: Pivot without aggregation that can handle
             non-numeric data.
 
         Examples
@@ -5754,11 +5754,11 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.unstack : Unstack prescribed level(s) from index axis
+        DataFrame.unstack: Unstack prescribed level(s) from index axis
              onto column axis.
-        DataFrame.pivot : Reshape dataframe from long format to wide
+        DataFrame.pivot: Reshape dataframe from long format to wide
              format.
-        DataFrame.pivot_table : Create a spreadsheet-style pivot table
+        DataFrame.pivot_table: Create a spreadsheet-style pivot table
              as a DataFrame.
 
         Notes
@@ -5914,8 +5914,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.pivot : Pivot a table based on column values.
-        DataFrame.stack : Pivot a level of the column labels (inverse operation
+        DataFrame.pivot: Pivot a table based on column values.
+        DataFrame.stack: Pivot a level of the column labels (inverse operation
             from `unstack`).
 
         Examples
@@ -5980,11 +5980,10 @@ class DataFrame(NDFrame):
 
     See Also
     --------
-
     Dataframe.pivot_table: Create a spreadsheet-style pivot table as a
         DataFrame.
     DataFrame.pivot: Return reshaped DataFrame organized by given index
-        / column values.
+        column values.
 
     Examples
     --------
@@ -6189,13 +6188,13 @@ class DataFrame(NDFrame):
 
     See Also
     --------
-    DataFrame.apply : Perform any type of operations.
-    DataFrame.transform : Perform transformation type operations.
-    core.groupby.GroupBy : Perform operations over groups.
-    core.resample.Resampler : Perform operations over resampled bins.
-    core.window.Rolling : Perform operations over rolling window.
-    core.window.Expanding : Perform operations over expanding window.
-    core.window.EWM : Perform operation over exponential weighted
+    DataFrame.apply: Perform any type of operations.
+    DataFrame.transform: Perform transformation type operations.
+    core.groupby.GroupBy: Perform operations over groups.
+    core.resample.Resampler: Perform operations over resampled bins.
+    core.window.Rolling: Perform operations over rolling window.
+    core.window.Expanding: Perform operations over expanding window.
+    core.window.EWM: Perform operation over exponential weighted
         window.
     """)
 
@@ -6469,7 +6468,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.apply : Apply a function along input axis of DataFrame.
+        DataFrame.apply: Apply a function along input axis of DataFrame.
 
         Notes
         -----
@@ -6549,7 +6548,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        concat : General function to concatenate DataFrame, Series
+        concat: General function to concatenate DataFrame, Series
             or Panel objects.
 
         Notes
@@ -6702,7 +6701,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        DataFrame.merge: For column(s)-on-columns(s) operations.
 
         Notes
         -----
@@ -6861,8 +6860,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        numpy.around : Round a numpy array to the given number of decimals.
-        Series.round : Round a Series to the given number of decimals.
+        numpy.around: Round a numpy array to the given number of decimals.
+        Series.round: Round a Series to the given number of decimals.
 
         Examples
         --------
@@ -7063,10 +7062,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.cov : Compute covariance with another Series.
+        Series.cov: Compute covariance with another Series.
         core.window.EWM.cov: Exponential weighted sample covariance.
-        core.window.Expanding.cov : Expanding sample covariance.
-        core.window.Rolling.cov : Rolling sample covariance.
+        core.window.Expanding.cov: Expanding sample covariance.
+        core.window.Rolling.cov: Rolling sample covariance.
 
         Notes
         -----
@@ -7547,7 +7546,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.idxmin: Returns the row label of the minimum value.
+        Series.idxmin: Return the row label of the minimum value.
 
         Notes
         -----
@@ -7584,7 +7583,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.idxmax: Returns the row label of the maximum value.
+        Series.idxmax: Return the row label of the maximum value.
 
         Notes
         -----
@@ -7635,8 +7634,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.mode : Return the highest frequency value in a Series.
-        Series.value_counts : Return the counts of values in a Series.
+        Series.mode: Return the highest frequency value in a Series.
+        Series.value_counts: Return the counts of values in a Series.
 
         Examples
         --------

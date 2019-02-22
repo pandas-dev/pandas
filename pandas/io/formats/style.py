@@ -82,7 +82,7 @@ class Styler(object):
     See Also
     --------
     DataFrame.style: Property returning a Styler object containing methods
-        for building a styled HTML representation fo the DataFrame
+        for building a styled HTML representation fo the DataFrame.
 
     Notes
     -----
@@ -1266,8 +1266,8 @@ class Styler(object):
 
         See Also
         --------
-        DataFrame.pipe : Analogous method for DataFrame.
-        Styler.apply : Apply a function row-wise, column-wise, or table-wise to
+        DataFrame.pipe: Analogous method for DataFrame.
+        Styler.apply: Apply a function row-wise, column-wise, or table-wise to
             modify the dataframe's styling.
 
         Notes

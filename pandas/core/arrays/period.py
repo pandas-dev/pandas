@@ -109,8 +109,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     See Also
     --------
-    period_array : Create a new PeriodArray.
-    pandas.PeriodIndex : Immutable Index for period data.
+    period_array: Create a new PeriodArray.
+    PeriodIndex: Immutable Index for period data.
 
     Notes
     -----
@@ -734,7 +734,7 @@ def period_array(data, freq=None, copy=False):
     --------
     PeriodArray: Immutable ndarray holding ordinal values indicating regular
         periods in time such as particular years, quarters, months, etc.
-    pandas.PeriodIndex: Immutable ndarray holding ordinal values indicating
+    PeriodIndex: Immutable ndarray holding ordinal values indicating
         regular periods in time such as particular years, quarters, months,
         etc.
 

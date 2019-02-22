@@ -87,11 +87,11 @@ to_tuples
 
 See Also
 --------
-Index : The base pandas Index type.
-Interval : A bounded slice-like interval; the elements of an %(klass)s.
-interval_range : Function to create a fixed frequency IntervalIndex.
-cut : Bin values into discrete Intervals.
-qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
+Index: The base pandas Index type.
+Interval: A bounded slice-like interval; the elements of an %(klass)s.
+interval_range: Function to create a fixed frequency IntervalIndex.
+cut: Bin values into discrete Intervals.
+qcut: Bin values into equal-sized Intervals based on rank or sample quantiles.
 
 Notes
 ------
@@ -243,9 +243,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     See Also
     --------
-    interval_range : Function to create a fixed frequency IntervalIndex.
-    %(klass)s.from_arrays : Construct from a left and right array.
-    %(klass)s.from_tuples : Construct from a sequence of tuples.
+    interval_range: Function to create a fixed frequency IntervalIndex.
+    %(klass)s.from_arrays: Construct from a left and right array.
+    %(klass)s.from_tuples: Construct from a sequence of tuples.
 
     Examples
     --------
@@ -295,10 +295,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         See Also
         --------
-        interval_range : Function to create a fixed frequency IntervalIndex.
-        %(klass)s.from_breaks : Construct an %(klass)s from an array of
+        interval_range: Function to create a fixed frequency IntervalIndex.
+        %(klass)s.from_breaks: Construct an %(klass)s from an array of
             splits.
-        %(klass)s.from_tuples : Construct an %(klass)s from an
+        %(klass)s.from_tuples: Construct an %(klass)s from an
             array-like of tuples.
 
         Notes
@@ -345,13 +345,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     See Also
     --------
-    interval_range : Function to create a fixed frequency IntervalIndex.
-    %(klass)s.from_arrays : Construct an %(klass)s from a left and
-                                right array.
-    %(klass)s.from_breaks : Construct an %(klass)s from an array of
-                                splits.
-    %(klass)s.from_tuples : Construct an %(klass)s from an
-                                array-like of tuples.
+    interval_range: Function to create a fixed frequency IntervalIndex.
+    %(klass)s.from_arrays: Construct an %(klass)s from a left and
+                               right array.
+    %(klass)s.from_breaks: Construct an %(klass)s from an array of
+                               splits.
+    %(klass)s.from_tuples: Construct an %(klass)s from an
+                               array-like of tuples.
 
     Examples
     --------
@@ -387,11 +387,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     See Also
     --------
-    interval_range : Function to create a fixed frequency IntervalIndex.
-    %(klass)s.from_arrays : Construct an %(klass)s from a left and
-                                right array.
-    %(klass)s.from_breaks : Construct an %(klass)s from an array of
-                                splits.
+    interval_range: Function to create a fixed frequency IntervalIndex.
+    %(klass)s.from_arrays: Construct an %(klass)s from a left and
+                               right array.
+    %(klass)s.from_breaks: Construct an %(klass)s from an array of
+                               splits.
 
     Examples
     --------
@@ -1037,7 +1037,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         See Also
         --------
-        Interval.overlaps : Check whether two Interval objects overlap.
+        Interval.overlaps: Check whether two Interval objects overlap.
 
         Examples
         --------

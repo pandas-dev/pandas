@@ -3167,7 +3167,7 @@ def _putmask_smart(v, m, n):
 
     See Also
     --------
-    ndarray.putmask: Changes elements of an array based on conditional
+    ndarray.putmask: Change elements of an array based on conditional
         and input values.
     """
 

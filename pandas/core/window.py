@@ -333,8 +333,8 @@ class _Window(PandasObject, SelectionMixin):
 
     See Also
     --------
-    Series.sum : Reducing sum for Series.
-    DataFrame.sum : Reducing sum for DataFrame.
+    Series.sum: Reducing sum for Series.
+    DataFrame.sum: Reducing sum for DataFrame.
 
     Examples
     --------
@@ -481,8 +481,8 @@ class Window(_Window):
 
     See Also
     --------
-    expanding : Provides expanding transformations.
-    ewm : Provides exponential weighted functions.
+    expanding : Provide expanding transformations.
+    ewm : Provide exponential weighted functions.
 
     Notes
     -----
@@ -1324,9 +1324,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.quantile : Computes value at the given quantile over all data
+    Series.quantile : Compute value at the given quantile over all data
         in Series.
-    DataFrame.quantile : Computes values at the given quantile over
+    DataFrame.quantile : Compute values at the given quantile over
         requested axis in DataFrame.
 
     Examples
@@ -1628,8 +1628,8 @@ class Rolling(_Rolling_and_Expanding):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    Series.rolling: Provides rolling window calculations.
-    DataFrame.rolling: Provides rolling window calculations.
+    Series.rolling: Provide rolling window calculations.
+    DataFrame.rolling: Provide rolling window calculations.
     """)
 
     _agg_examples_doc = dedent("""
@@ -1855,8 +1855,8 @@ class Expanding(_Rolling_and_Expanding):
 
     See Also
     --------
-    rolling : Provides rolling window calculations.
-    ewm : Provides exponential weighted functions.
+    rolling : Provide rolling window calculations.
+    ewm : Provide exponential weighted functions.
 
     Notes
     -----
@@ -2165,8 +2165,8 @@ class EWM(_Rolling):
 
     See Also
     --------
-    rolling : Provides rolling window calculations.
-    expanding : Provides expanding transformations.
+    rolling : Provide rolling window calculations.
+    expanding : Provide expanding transformations.
 
     Notes
     -----

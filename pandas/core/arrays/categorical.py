@@ -276,8 +276,8 @@ class Categorical(ExtensionArray, PandasObject):
 
     See Also
     --------
-    api.types.CategoricalDtype : Type for categorical data.
-    CategoricalIndex : An Index with an underlying ``Categorical``.
+    api.types.CategoricalDtype: Type for categorical data.
+    CategoricalIndex: An Index with an underlying ``Categorical``.
 
     Notes
     -----
@@ -421,12 +421,12 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories: Renames categories .
-        reorder_categories: Reorders categories into specified new categories .
-        add_categories: Adds new categories .
-        remove_categories: Removes specified categories .
-        remove_unused_categories: Removes unused categories .
-        set_categories: Sets new categories inplace .
+        rename_categories: Rename categories.
+        reorder_categories: Reorder categories into specified new categories.
+        add_categories: Add new categories.
+        remove_categories: Remove specified categories.
+        remove_unused_categories: Remove unused categories.
+        set_categories: Set new categories inplace.
         """
         return self.dtype.categories
 
@@ -836,12 +836,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories: Renames categories .
-        reorder_categories: Reorders categories into specified new categories .
-        add_categories: Adds new categories .
-        remove_categories: Removes specified categories .
-        remove_unused_categories: Removes unused categories .
-
+        rename_categories: Rename categories.
+        reorder_categories: Reorder categories into specified new categories.
+        add_categories: Add new categories.
+        remove_categories: Remove specified categories.
+        remove_unused_categorie: Remove unused categories.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if ordered is None:
@@ -909,12 +908,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        reorder_categories: Reorders categories into specified new categories.
-        add_categories: Adds new categories.
-        remove_categories: Removes specified categories.
-        remove_unused_categories: Removes unused categories.
-        set_categories: Sets new categories inplace.
-
+        reorder_categories: Reorder categories into specified new categories.
+        add_categories: Add new categories.
+        remove_categories: Remove specified categories.
+        remove_unused_categories: Remove unused categories.
+        set_categories: Set new categories inplace.
 
         Examples
         --------
@@ -988,12 +986,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories: Renames categories .
-        add_categories: Adds new categories .
-        remove_categories: Removes specified categories .
-        remove_unused_categories: Removes unused categories .
-        set_categories: Sets new categories inplace .
-
+        rename_categories: Rename categories.
+        add_categories: Add new categories.
+        remove_categories: Remove specified categories.
+        remove_unused_categories: Remove unused categories.
+        set_categories: Set new categories inplace.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if set(self.dtype.categories) != set(new_categories):
@@ -1029,12 +1026,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories: Renames categories .
-        reorder_categories: Reorders categories into specified new categories .
-        remove_categories: Removes specified categories .
-        remove_unused_categories: Removes unused categories .
-        set_categories: Sets new categories inplace .
-
+        rename_categories: Rename categories.
+        reorder_categories: Reorder categories into specified new categories.
+        remove_categories: Remove specified categories.
+        remove_unused_categories: Remove unused categories.
+        set_categories: Set new categories inplace.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not is_list_like(new_categories):
@@ -1079,12 +1075,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories: Renames categories .
-        reorder_categories: Reorders categories into specified new categories .
-        add_categories: Adds new categories .
-        remove_unused_categories: Removes unused categories .
-        set_categories: Sets new categories inplace .
-
+        rename_categories: Rename categories.
+        reorder_categories: Reorder categories into specified new categories.
+        add_categories: Add new categories.
+        remove_unused_categories: Remove unused categories.
+        set_categories: Set new categories inplace.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not is_list_like(removals):
@@ -1123,12 +1118,11 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        rename_categories: Renames categories .
-        reorder_categories: Reorders categories into specified new categories .
-        add_categories: Adds new categories .
-        remove_categories: Removes specified categories .
-        set_categories: Sets new categories inplace .
-
+        rename_categories: Rename categories.
+        reorder_categories: Reorders categories into specified new categories.
+        add_categories: Add new categories.
+        remove_categories: Remove specified categories.
+        set_categories: Set new categories inplace.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
@@ -1410,7 +1404,6 @@ class Categorical(ExtensionArray, PandasObject):
         isna : Top-level isna.
         isnull : Alias of isna.
         Categorical.notna : Boolean inverse of Categorical.isna.
-
         """
 
         ret = self._codes == -1
@@ -1430,10 +1423,9 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        notna : Top-level notna.
-        notnull : Alias of notna.
-        Categorical.isna : Boolean inverse of Categorical.notna.
-
+        notna: Top-level notna.
+        notnull: Alias of notna.
+        Categorical.isna: Boolean inverse of Categorical.notna.
         """
         return ~self.isna()
     notnull = notna
@@ -1478,7 +1470,6 @@ class Categorical(ExtensionArray, PandasObject):
         --------
         Series.value_counts: Return a Series containing counts of unique
             values.
-
         """
         from numpy import bincount
         from pandas import Series, CategoricalIndex
@@ -1552,7 +1543,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.argsort: Returns the indices that would sort this array.
+        numpy.ndarray.argsort: Return the indices that would sort this array.
 
         Notes
         -----
@@ -1605,7 +1596,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        Categorical.sort: Sorts the Category inplace by category value.
+        Categorical.sort: Sort the Category inplace by category value.
         Series.sort_values: Sort a Series in ascending or descending
             order by some criterion.
 
@@ -1854,8 +1845,8 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        Series.take : Similar method for Series.
-        numpy.ndarray.take : Similar method for NumPy arrays.
+        Series.take: Similar method for Series.
+        numpy.ndarray.take: Similar method for NumPy arrays.
 
         Examples
         --------
@@ -2305,8 +2296,10 @@ class Categorical(ExtensionArray, PandasObject):
         --------
         unique: Hash table-based unique. Uniques are returned in order of
             appearance. This does NOT sort.
-        CategoricalIndex.unique
-        Series.unique: Return Index of unique values in the object.
+        CategoricalIndex.unique: Return Index of unique values in the object.
+            Includes NA values. The order of the original is preserved.
+        Series.unique: Return Index of unique values in the object. Includes
+            NA values. The order of the original is preserved.
 
         """
 
@@ -2437,7 +2430,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        pandas.Series.isin : Equivalent method on Series.
+        pandas.Series.isin: Equivalent method on Series.
 
         Examples
         --------

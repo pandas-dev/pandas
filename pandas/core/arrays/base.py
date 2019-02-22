@@ -405,7 +405,7 @@ class ExtensionArray(object):
 
         See Also
         --------
-        numpy.argsort : Sorting implementation used internally.
+        numpy.argsort : Sort implementation used internally.
         """
         # Implementor note: You have two places to override the behavior of
         # argsort.
@@ -649,7 +649,7 @@ class ExtensionArray(object):
 
         See Also
         --------
-        pandas.factorize : Top-level factorize method that dispatches here.
+        pandas.factorize: Top-level factorize method that dispatches here.
 
         Notes
         -----

@@ -174,12 +174,12 @@ class MultiIndex(Index):
 
     See Also
     --------
-    MultiIndex.from_arrays  : Convert list of arrays to MultiIndex.
-    MultiIndex.from_product : Create a MultiIndex from the cartesian product
+    MultiIndex.from_arrays: Convert list of arrays to MultiIndex.
+    MultiIndex.from_product: Create a MultiIndex from the cartesian product
                               of iterables.
-    MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex.
-    MultiIndex.from_frame   : Make a MultiIndex from a DataFrame.
-    Index : The base pandas Index type.
+    MultiIndex.from_tuples: Convert list of tuples to a MultiIndex.
+    MultiIndex.from_frame: Make a MultiIndex from a DataFrame.
+    Index: The base pandas Index type.
 
     Examples
     ---------
@@ -311,10 +311,10 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
-        MultiIndex.from_product : Make a MultiIndex from cartesian product
+        MultiIndex.from_tuples: Convert list of tuples to MultiIndex.
+        MultiIndex.from_product: Make a MultiIndex from cartesian product
                                   of iterables.
-        MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
+        MultiIndex.from_frame: Make a MultiIndex from a DataFrame.
 
         Examples
         --------
@@ -371,10 +371,10 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
-        MultiIndex.from_product : Make a MultiIndex from cartesian product
+        MultiIndex.from_arrays: Convert list of arrays to MultiIndex.
+        MultiIndex.from_product: Make a MultiIndex from cartesian product
                                   of iterables.
-        MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
+        MultiIndex.from_frame: Make a MultiIndex from a DataFrame.
 
         Examples
         --------
@@ -428,9 +428,9 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
-        MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
+        MultiIndex.from_arrays: Convert list of arrays to MultiIndex.
+        MultiIndex.from_tuples: Convert list of tuples to MultiIndex.
+        MultiIndex.from_frame: Make a MultiIndex from a DataFrame.
 
         Examples
         --------
@@ -480,9 +480,9 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
-        MultiIndex.from_product : Make a MultiIndex from cartesian product
+        MultiIndex.from_arrays: Convert list of arrays to MultiIndex.
+        MultiIndex.from_tuples: Convert list of tuples to MultiIndex.
+        MultiIndex.from_product: Make a MultiIndex from cartesian product
                                   of iterables.
 
         Examples
@@ -1973,8 +1973,8 @@ class MultiIndex(Index):
 
         See Also
         --------
-        Series.swaplevel : Swap levels i and j in a MultiIndex.
-        Dataframe.swaplevel : Swap levels i and j in a MultiIndex on a
+        Series.swaplevel: Swap levels i and j in a MultiIndex.
+        Dataframe.swaplevel: Swap levels i and j in a MultiIndex on a
             particular axis.
 
         Examples
@@ -2304,8 +2304,8 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.get_loc : Get location for a label or a tuple of labels.
-        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+        MultiIndex.get_loc: Get location for a label or a tuple of labels.
+        MultiIndex.get_locs: Get location for a label/slice/list/mask or a
                               sequence of such.
         """
         # This function adds nothing to its parent implementation (the magic
@@ -2377,10 +2377,10 @@ class MultiIndex(Index):
 
         See Also
         --------
-        Index.get_loc : The get_loc method for (single-level) index.
-        MultiIndex.slice_locs : Get slice location given start label(s) and
+        Index.get_loc: The get_loc method for (single-level) index.
+        MultiIndex.slice_locs: Get slice location given start label(s) and
                                 end label(s).
-        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+        MultiIndex.get_locs: Get location for a label/slice/list/mask or a
                               sequence of such.
         """
         if method is not None:
@@ -2479,8 +2479,8 @@ class MultiIndex(Index):
 
         See Also
         ---------
-        MultiIndex.get_loc  : Get location for a label or a tuple of labels.
-        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+        MultiIndex.get_loc: Get location for a label or a tuple of labels.
+        MultiIndex.get_locs: Get location for a label/slice/list/mask or a
                               sequence of such.
         """
 
@@ -2704,8 +2704,8 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.get_loc : Get location for a label or a tuple of labels.
-        MultiIndex.slice_locs : Get slice location given start label(s) and
+        MultiIndex.get_loc: Get location for a label or a tuple of labels.
+        MultiIndex.slice_locs: Get slice location given start label(s) and
                                 end label(s).
         """
         from .numeric import Int64Index

@@ -815,8 +815,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         See Also
         --------
-        DatetimeIndex.tz : A timezone that has a variable offset from UTC.
-        DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
+        DatetimeIndex.tz: A timezone that has a variable offset from UTC.
+        DatetimeIndex.tz_localize: Localize tz-naive DatetimeIndex to a
             given time zone, or remove timezone from a tz-aware DatetimeIndex.
 
         Examples
@@ -940,7 +940,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         See Also
         --------
-        DatetimeIndex.tz_convert : Convert tz-aware DatetimeIndex from
+        DatetimeIndex.tz_convert: Convert tz-aware DatetimeIndex from
             one time zone to another.
 
         Examples
@@ -1087,9 +1087,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         See Also
         --------
-        floor : Floor the datetimes to the specified freq.
-        ceil : Ceil the datetimes to the specified freq.
-        round : Round the datetimes to the specified freq.
+        floor: Floor the datetimes to the specified freq.
+        ceil: Ceil the datetimes to the specified freq.
+        round: Round the datetimes to the specified freq.
 
         Examples
         --------
@@ -1341,9 +1341,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
     See Also
     --------
-    Series.dt.dayofweek : Alias.
-    Series.dt.weekday : Alias.
-    Series.dt.day_name : Returns the name of the day of the week.
+    Series.dt.dayofweek: Alias.
+    Series.dt.weekday: Alias.
+    Series.dt.day_name: Return the name of the day of the week.
 
     Examples
     --------
@@ -1387,9 +1387,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         See Also
         --------
-        is_month_start : Return a boolean indicating whether the date
+        is_month_start: Return a boolean indicating whether the date
             is the first day of the month.
-        is_month_end : Return a boolean indicating whether the date
+        is_month_end: Return a boolean indicating whether the date
             is the last day of the month.
 
         Examples
@@ -1445,8 +1445,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         See Also
         --------
-        quarter : Return the quarter of the date.
-        is_quarter_end : Similar property for indicating the quarter start.
+        quarter: Return the quarter of the date.
+        is_quarter_end: Similar property for indicating the quarter start.
 
         Examples
         --------
@@ -1486,8 +1486,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         See Also
         --------
-        quarter : Return the quarter of the date.
-        is_quarter_start : Similar property indicating the quarter start.
+        quarter: Return the quarter of the date.
+        is_quarter_start: Similar property indicating the quarter start.
 
         Examples
         --------
@@ -1527,7 +1527,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         See Also
         --------
-        is_year_end : Similar property indicating the last day of the year.
+        is_year_end: Similar property indicating the last day of the year.
 
         Examples
         --------
@@ -1570,7 +1570,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         See Also
         --------
-        is_year_start : Similar property indicating the start of the year.
+        is_year_start: Similar property indicating the start of the year.
 
         Examples
         --------

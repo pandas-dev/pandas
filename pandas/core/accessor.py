@@ -262,20 +262,20 @@ Back in an interactive IPython session:
 
 
 @Appender(_doc % dict(klass="DataFrame",
-                      others=("register_series_accessor: Register a custom\
-                                accessor on DataFrame objects."
-                              "register_index_accessor: Register a custom\
-                               accessor on Index objects.")))
+                      others=("register_series_accessor: Register a custom"
+                                "accessor on DataFrame objects."
+                              "register_index_accessor: Register a custom"
+                               "accessor on Index objects.")))
 def register_dataframe_accessor(name):
     from pandas import DataFrame
     return _register_accessor(name, DataFrame)
 
 
 @Appender(_doc % dict(klass="Series",
-                      others=("register_dataframe_accessor: Register a custom\
-                                accessor on DataFrame objects"
-                              "register_index_accessor: Register a custom\
-                               accessor on Index objects.")))
+                      others=("register_dataframe_accessor: Register a custom"
+                                "accessor on DataFrame objects"
+                              "register_index_accessor: Register a custom"
+                               "accessor on Index objects.")))
 def register_series_accessor(name):
     from pandas import Series
     return _register_accessor(name, Series)

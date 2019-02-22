@@ -690,12 +690,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         See Also
         --------
-        Index.map : Apply a mapping correspondence on an
-            :class:`~pandas.Index`.
+        Index.map: Apply a mapping correspondence on an
+            :class:`Index`.
         Series.map : Apply a mapping correspondence on a
-            :class:`~pandas.Series`.
+            :class:`Series`.
         Series.apply : Apply more complex functions on a
-            :class:`~pandas.Series`.
+            :class:`Series`.
 
         Examples
         --------

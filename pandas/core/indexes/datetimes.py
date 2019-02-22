@@ -219,11 +219,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     See Also
     ---------
-    Index : The base pandas Index type.
-    TimedeltaIndex : Index of timedelta64 data.
-    PeriodIndex : Index of Period data.
-    to_datetime : Convert argument to datetime.
-    date_range : Create a fixed-frequency DatetimeIndex.
+    Index: The base pandas Index type.
+    TimedeltaIndex: Index of timedelta64 data.
+    PeriodIndex: Index of Period data.
+    to_datetime: Convert argument to datetime.
+    date_range: Create a fixed-frequency DatetimeIndex.
     """
     _typ = 'datetimeindex'
     _join_precedence = 10

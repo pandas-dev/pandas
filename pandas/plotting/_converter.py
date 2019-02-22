@@ -68,7 +68,7 @@ def register(explicit=True):
 
     See Also
     --------
-    register_matplotlib_converter: Alias of register .
+    register_matplotlib_converter: Alias of register.
     """
     # Renamed in pandas.plotting.__init__
     global _WARN
@@ -98,7 +98,7 @@ def deregister():
 
     See Also
     --------
-    deregister_matplotlib_converters: alias of deregister.
+    deregister_matplotlib_converters: Alias of deregister.
     """
     # Renamed in pandas.plotting.__init__
     for type_, cls in get_pairs():

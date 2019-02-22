@@ -158,10 +158,10 @@ class DatelikeOps(object):
 
         See Also
         --------
-        to_datetime : Convert the given argument to datetime.
-        DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
-        DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
-        DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+        to_datetime: Convert the given argument to datetime.
+        DatetimeIndex.normalize: Return DatetimeIndex with times to midnight.
+        DatetimeIndex.round: Round the DatetimeIndex to the specified freq.
+        DatetimeIndex.floor: Floor the DatetimeIndex to the specified freq.
 
         Examples
         --------
@@ -1392,8 +1392,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         --------
         numpy.ndarray.min: Return the minimum of the Array along
             a given axis.
-        Index.min : Return the minimum value in an Index.
-        Series.min : Return the minimum value in a Series.
+        Index.min: Return the minimum value in an Index.
+        Series.min: Return the minimum value in a Series.
         """
         nv.validate_min(args, kwargs)
         nv.validate_minmax_axis(axis)
@@ -1413,8 +1413,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         --------
         numpy.ndarray.max: Return the maximum of an Array
             along a given axis.
-        Index.max : Return the maximum value in an Index.
-        Series.max : Return the maximum value in a Series.
+        Index.max: Return the maximum value in an Index.
+        Series.max: Return the maximum value in a Series.
         """
         # TODO: skipna is broken with max.
         # See https://github.com/pandas-dev/pandas/issues/24265

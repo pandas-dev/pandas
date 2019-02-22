@@ -56,8 +56,8 @@ class RangeIndex(Int64Index):
 
     See Also
     --------
-    Index : The base pandas Index type.
-    Int64Index : Index of int64 data.
+    Index: The base pandas Index type.
+    Int64Index: Index of int64 data.
     """
 
     _typ = 'rangeindex'
@@ -319,7 +319,7 @@ class RangeIndex(Int64Index):
 
         See Also
         --------
-        numpy.ndarray.argsort: Returns the indices that would sort this array.
+        numpy.ndarray.argsort: Return the indices that would sort this array.
         """
         nv.validate_argsort(args, kwargs)
 

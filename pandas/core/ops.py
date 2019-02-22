@@ -81,7 +81,7 @@ def _maybe_match_name(a, b):
 
     See Also
     --------
-    pandas.core.common.consensus_name_attr: Gets name of attribute.
+    pandas.core.common.consensus_name_attr: Get name of attribute.
     """
     a_has = hasattr(a, 'name')
     b_has = hasattr(b, 'name')
@@ -578,14 +578,14 @@ DataFrame
 
 See Also
 --------
-DataFrame.add : Add DataFrames.
-DataFrame.sub : Subtract DataFrames.
-DataFrame.mul : Multiply DataFrames.
-DataFrame.div : Divide DataFrames (float division).
-DataFrame.truediv : Divide DataFrames (float division).
-DataFrame.floordiv : Divide DataFrames (integer division).
-DataFrame.mod : Calculate modulo (remainder after division).
-DataFrame.pow : Calculate exponential power.
+DataFrame.add: Add DataFrames.
+DataFrame.sub: Subtract DataFrames.
+DataFrame.mul: Multiply DataFrames.
+DataFrame.div: Divide DataFrames (float division).
+DataFrame.truediv: Divide DataFrames (float division).
+DataFrame.floordiv: Divide DataFrames (integer division).
+DataFrame.mod: Calculate modulo (remainder after division).
+DataFrame.pow: Calculate exponential power.
 
 Notes
 -----
@@ -727,15 +727,15 @@ DataFrame of bool
 
 See Also
 --------
-DataFrame.eq : Compare DataFrames for equality elementwise.
-DataFrame.ne : Compare DataFrames for inequality elementwise.
-DataFrame.le : Compare DataFrames for less than inequality
+DataFrame.eq: Compare DataFrames for equality elementwise.
+DataFrame.ne: Compare DataFrames for inequality elementwise.
+DataFrame.le: Compare DataFrames for less than inequality
     or equality elementwise.
-DataFrame.lt : Compare DataFrames for strictly less than
+DataFrame.lt: Compare DataFrames for strictly less than
     inequality elementwise.
-DataFrame.ge : Compare DataFrames for greater than inequality
+DataFrame.ge: Compare DataFrames for greater than inequality
     or equality elementwise.
-DataFrame.gt : Compare DataFrames for strictly greater than
+DataFrame.gt: Compare DataFrames for strictly greater than
     inequality elementwise.
 
 Notes

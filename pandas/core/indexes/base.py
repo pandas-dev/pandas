@@ -183,17 +183,16 @@ class Index(IndexOpsMixin, PandasObject):
 
     See Also
     ---------
-    RangeIndex : Index implementing a monotonic integer range.
-    CategoricalIndex : Index of class:`Categorical`s.
-    MultiIndex : A multi-level, or hierarchical, Index.
-    IntervalIndex : An Index of class:`Interval` s.
-
-    DatetimeIndex: An Index of class: datetime64
-    TimedeltaIndex: An Index of class: timedelta
-    PeriodIndex: An Index of class: Period
-    Int64Index: An Index of class: Int64
-    UInt64Index: An Index of class: UInt64
-    Float64Index: An Index of class: Float64
+    RangeIndex: Index implementing a monotonic integer range.
+    CategoricalIndex: Index of class: `Categorical`.
+    MultiIndex: A multi-level, or hierarchical Index.
+    IntervalIndex: An Index of class: `Interval`.
+    DatetimeIndex: An Index of class: 'datetime64'.
+    TimedeltaIndex: An Index of class: 'Timedelta'.
+    PeriodIndex: An Index of class: 'Period'.
+    Int64Index: An Index of class: 'Int64'.
+    UInt64Index: An Index of class: 'UInt64'.
+    Float64Index: An Index of class: 'Float64'.
 
     Notes
     -----
@@ -849,8 +848,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.repeat : Equivalent function for Series.
-        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+        Series.repeat: Equivalent function for Series.
+        numpy.repeat: Similar method for :class:`numpy.ndarray`.
 
         Examples
         --------
@@ -1126,7 +1125,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        MultiIndex.to_flat_index : Subclass implementation.
+        MultiIndex.to_flat_index: Subclass implementation.
         """
         return self
 
@@ -1179,8 +1178,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.to_series : Convert an Index to a Series.
-        Series.to_frame : Convert Series to DataFrame.
+        Index.to_series: Convert an Index to a Series.
+        Series.to_frame: Convert Series to DataFrame.
 
         Examples
         --------
@@ -1299,7 +1298,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.rename : Able to set new names without level.
+        Index.rename: Able to set new names without level.
 
         Examples
         --------
@@ -1371,7 +1370,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.set_names : Able to set new names partially and by level.
+        Index.set_names: Able to set new names partially and by level.
 
         Examples
         --------
@@ -1471,7 +1470,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        MultiIndex.get_level_values : Get values for a level of a MultiIndex.
+        MultiIndex.get_level_values: Get values for a level of a MultiIndex.
 
         Notes
         -----
@@ -1698,7 +1697,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        CategoricalIndex : Index for categorical data.
+        CategoricalIndex: Index for categorical data.
 
         Examples
         --------
@@ -1839,10 +1838,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.notna : Boolean inverse of isna.
-        Index.dropna : Omit entries with missing values.
-        isna : Top-level isna.
-        Series.isna : Detect missing values in Series object.
+        Index.notna: Boolean inverse of isna.
+        Index.dropna: Omit entries with missing values.
+        isna: Top-level isna.
+        Series.isna: Detect missing values in Series object.
 
         Examples
         --------
@@ -1897,9 +1896,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.notnull : Alias of notna.
+        Index.notnull: Alias of notna.
         Index.isna: Inverse of notna.
-        notna : Top-level notna.
+        notna: Top-level notna.
 
         Examples
         --------
@@ -2082,9 +2081,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.duplicated : Equivalent method on pandas.Series.
-        DataFrame.duplicated : Equivalent method on pandas.DataFrame.
-        Index.drop_duplicates : Remove duplicate values from Index.
+        Series.duplicated: Equivalent method on pandas.Series.
+        DataFrame.duplicated: Equivalent method on pandas.DataFrame.
+        Index.drop_duplicates: Remove duplicate values from Index.
 
         Examples
         --------
@@ -2130,8 +2129,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.duplicated : Return boolean array denoting duplicates.
-        Index.drop_duplicates : Return Index with duplicates removed.
+        Index.duplicated: Return boolean array denoting duplicates.
+        Index.drop_duplicates: Return Index with duplicates removed.
 
         Examples
         --------
@@ -3630,9 +3629,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.array : Reference to the underlying data.
-        Index.to_numpy : A NumPy array representing the underlying data.
-
+        Index.array: Reference to the underlying data.
+        Index.to_numpy: A NumPy array representing the underlying data.
         """
         return self._data.view(np.ndarray)
 
@@ -3679,7 +3677,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.values : The attribute that get_values wraps.
+        Index.values: The attribute that get_values wraps.
 
         Examples
         --------
@@ -3901,7 +3899,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.isin : Returns an ndarray of boolean dtype indicating whether the
+        Index.isin: Return an ndarray of boolean dtype indicating whether the
             list-like key is in the index.
 
         Examples
@@ -4043,7 +4041,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.putmask: Changes elements of an array based on
+        numpy.ndarray.putmask: Change elements of an array based on
             conditional and input values.
         """
         values = self.values.copy()
@@ -4109,11 +4107,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.asof : Return the latest value in a Series up to the
+        Series.asof: Return the latest value in a Series up to the
             passed index.
-        merge_asof : Perform an asof merge (similar to left join but it
+        merge_asof: Perform an asof merge (similar to left join but it
             matches on nearest key rather than equal key).
-        Index.get_loc : An `asof` is a thin wrapper around `get_loc`
+        Index.get_loc: An `asof` is a thin wrapper around `get_loc`
             with method='pad'.
 
         Examples
@@ -4214,8 +4212,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.sort_values : Sort values of a Series.
-        DataFrame.sort_values : Sort values in a DataFrame.
+        Series.sort_values: Sort values of a Series.
+        DataFrame.sort_values: Sort values in a DataFrame.
 
         Examples
         --------
@@ -4273,7 +4271,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.shift : Shift values of Series.
+        Series.shift: Shift values of Series.
 
         Notes
         -----
@@ -4327,8 +4325,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.argsort : Similar method for NumPy arrays.
-        Index.sort_values : Return sorted copy of Index.
+        numpy.argsort: Similar method for NumPy arrays.
+        Index.sort_values: Return sorted copy of Index.
 
         Examples
         --------
@@ -4574,8 +4572,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.isin : Same for Series.
-        DataFrame.isin : Same method for DataFrames.
+        Series.isin: Same method for Series.
+        DataFrame.isin: Same method for DataFrames.
 
         Notes
         -----
@@ -4858,7 +4856,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.get_loc : Get location for a single label.
+        Index.get_loc: Get location for a single label.
 
         Notes
         -----
@@ -5187,9 +5185,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.any : Return whether any element in an Index is True.
-        Series.any : Return whether any element in a Series is True.
-        Series.all : Return whether all elements in a Series are True.
+        Index.any: Return whether any element in an Index is True.
+        Series.any: Return whether any element in a Series is True.
+        Series.all: Return whether all elements in a Series are True.
 
         Notes
         -----
@@ -5227,8 +5225,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.all : Return whether all elements are True.
-        Series.all : Return whether all elements are True.
+        Index.all: Return whether all elements are True.
+        Series.all: Return whether all elements are True.
 
         Notes
         -----
@@ -5312,7 +5310,7 @@ def ensure_index_from_sequences(sequences, names=None):
 
     See Also
     --------
-    ensure_index: Ensures that an index exists,
+    ensure_index: Ensure that an index exists.
     """
     from .multi import MultiIndex
 

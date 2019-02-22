@@ -449,8 +449,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.array : Reference to the underlying data.
-        Series.to_numpy : A NumPy array representing the underlying data.
+        Series.array: Reference to the underlying data.
+        Series.to_numpy: A NumPy array representing the underlying data.
 
         Examples
         --------
@@ -521,7 +521,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.ravel: Returns a  1-D array containing the elements
+        numpy.ndarray.ravel: Return a 1-D array containing the elements
             of the input.
         """
         return self._values.ravel(order=order)
@@ -592,7 +592,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.put: Replaces specified elements of an array with
+        numpy.ndarray.put: Replace specified elements of an array with
             given values.
         """
         self._values.put(*args, **kwargs)
@@ -624,7 +624,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.view : Equivalent numpy function to create a new view of
+        numpy.ndarray.view: Equivalent numpy function to create a new view of
             the same data in memory.
 
         Notes
@@ -696,9 +696,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        array : Create a new array from data.
-        Series.array : Zero-copy view to the array backing the Series.
-        Series.to_numpy : Series method for similar behavior.
+        array: Create a new array from data.
+        Series.array: Zero-copy view to the array backing the Series.
+        Series.to_numpy: Series method for similar behavior.
 
         Examples
         --------
@@ -1134,8 +1134,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Index.repeat : Equivalent function for Index.
-        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+        Index.repeat: Equivalent function for Index.
+        numpy.repeat: Similar method for :class:`numpy.ndarray`.
 
         Examples
         --------
@@ -1655,8 +1655,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        unique : Top-level unique method for any 1-d array-like object.
-        Index.unique : Return Index with unique values from an Index object.
+        unique: Top-level unique method for any 1-d array-like object.
+        Index.unique: Return Index with unique values from an Index object.
 
         Notes
         -----
@@ -1723,9 +1723,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Index.drop_duplicates : Equivalent method on Index.
-        DataFrame.drop_duplicates : Equivalent method on DataFrame.
-        Series.duplicated : Related method on Series, indicating duplicate
+        Index.drop_duplicates: Equivalent method on Index.
+        DataFrame.drop_duplicates: Equivalent method on DataFrame.
+        Series.duplicated: Related method on Series, indicating duplicate
             Series values.
 
         Examples
@@ -1802,9 +1802,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Index.duplicated : Equivalent method on pandas.Index.
-        DataFrame.duplicated : Equivalent method on pandas.DataFrame.
-        Series.drop_duplicates : Remove duplicate values from Series.
+        Index.duplicated: Equivalent method on pandas.Index.
+        DataFrame.duplicated: Equivalent method on pandas.DataFrame.
+        Series.drop_duplicates: Remove duplicate values from Series.
 
         Examples
         --------
@@ -1884,11 +1884,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.argmin : Return indices of the minimum values
+        numpy.argmin: Return indices of the minimum values
             along the given axis.
-        DataFrame.idxmin : Return index of first occurrence of minimum
+        DataFrame.idxmin: Return index of first occurrence of minimum
             over requested axis.
-        Series.idxmax : Return index *label* of the first occurrence
+        Series.idxmax: Return index *label* of the first occurrence
             of maximum of values.
 
         Notes
@@ -1954,11 +1954,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.argmax : Return indices of the maximum values
+        numpy.argmax: Return indices of the maximum values
             along the given axis.
-        DataFrame.idxmax : Return index of first occurrence of maximum
+        DataFrame.idxmax: Return index of first occurrence of maximum
             over requested axis.
-        Series.idxmin : Return index *label* of the first occurrence
+        Series.idxmin: Return index *label* of the first occurrence
             of minimum of values.
 
         Notes
@@ -2034,8 +2034,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.around : Round values of an np.array.
-        DataFrame.round : Round values of a DataFrame.
+        numpy.around: Round values of an np.array.
+        DataFrame.round: Round values of a DataFrame.
 
         Examples
         --------
@@ -2277,10 +2277,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.corr : Compute the correlation between two Series.
-        Series.shift : Shift index by desired number of periods.
-        DataFrame.corr : Compute pairwise correlation of columns.
-        DataFrame.corrwith : Compute pairwise correlation between rows or
+        Series.corr: Compute the correlation between two Series.
+        Series.shift: Shift index by desired number of periods.
+        DataFrame.corr: Compute pairwise correlation of columns.
+        DataFrame.corrwith: Compute pairwise correlation between rows or
             columns of two DataFrame objects.
 
         Notes
@@ -2429,7 +2429,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        concat : General function to concatenate DataFrame, Series
+        concat: General function to concatenate DataFrame, Series
             or Panel objects.
 
         Notes
@@ -2559,7 +2559,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.combine_first : Combine Series values, choosing the calling
+        Series.combine_first: Combine Series values, choosing the calling
             Series' values first.
 
         Examples
@@ -2653,7 +2653,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.combine : Perform elementwise operation on two Series
+        Series.combine: Perform elementwise operation on two Series
             using a given function.
 
         Notes
@@ -2763,9 +2763,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.sort_index : Sort by the Series indices.
-        DataFrame.sort_values : Sort DataFrame by the values along either axis.
-        DataFrame.sort_index : Sort DataFrame by indices.
+        Series.sort_index: Sort by the Series indices.
+        DataFrame.sort_values: Sort DataFrame by the values along either axis.
+        DataFrame.sort_index: Sort DataFrame by indices.
 
         Examples
         --------
@@ -2936,7 +2936,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         DataFrame.sort_index: Sort DataFrame by the index.
         DataFrame.sort_values: Sort DataFrame by the value.
-        Series.sort_values : Sort Series by the value.
+        Series.sort_values: Sort Series by the value.
 
         Examples
         --------
@@ -3075,7 +3075,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.argsort: Returns the indices that would sort an array.
+        numpy.ndarray.argsort: Return the indices that would sort an array.
         """
         values = self._values
         mask = isna(values)
@@ -3398,9 +3398,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.apply : For applying more complex functions on a Series.
-        DataFrame.apply : Apply a function row-/column-wise.
-        DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
+        Series.apply: For applying more complex functions on a Series.
+        DataFrame.apply: Apply a function row-/column-wise.
+        DataFrame.applymap: Apply a function elementwise on a whole DataFrame.
 
         Notes
         -----
@@ -3472,8 +3472,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    Series.apply : Invoke function on a Series.
-    Series.transform : Transform function producing a Series with like indexes.
+    Series.apply: Invoke function on a Series.
+    Series.transform: Transform function producing a Series with like indexes.
     """)
 
     _agg_examples_doc = dedent("""
@@ -3770,7 +3770,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.rename_axis : Set the name of the axis.
+        Series.rename_axis: Set the name of the axis.
 
         Examples
         --------
@@ -3849,10 +3849,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.reindex : Return only specified index labels of Series.
-        Series.dropna : Return series without null values.
-        Series.drop_duplicates : Return Series with duplicate values removed.
-        DataFrame.drop : Drop specified labels from rows or columns.
+        Series.reindex: Return only specified index labels of Series.
+        Series.dropna: Return series without null values.
+        Series.drop_duplicates: Return Series with duplicate values removed.
+        DataFrame.drop: Drop specified labels from rows or columns.
 
         Examples
         --------
@@ -3962,9 +3962,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.nbytes : Total bytes consumed by the elements of the
+        numpy.ndarray.nbytes: Total bytes consumed by the elements of the
             array.
-        DataFrame.memory_usage : Bytes consumed by a DataFrame.
+        DataFrame.memory_usage: Bytes consumed by a DataFrame.
 
         Examples
         --------
@@ -4048,7 +4048,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.isin : Equivalent method on DataFrame.
+        DataFrame.isin: Equivalent method on DataFrame.
 
         Examples
         --------
@@ -4103,8 +4103,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.gt : Greater than of series and other.
-        Series.lt : Less than of series and other.
+        Series.gt: Greater than of series and other.
+        Series.lt: Less than of series and other.
 
         Notes
         -----
@@ -4318,10 +4318,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.isna: Indicate missing values.
-        Series.notna : Indicate existing (non-missing) values.
-        Series.fillna : Replace missing values.
-        DataFrame.dropna : Drop rows or columns which contain NA values.
-        Index.dropna : Drop missing indices.
+        Series.notna: Indicate existing (non-missing) values.
+        Series.fillna: Replace missing values.
+        DataFrame.dropna: Drop rows or columns which contain NA values.
+        Index.dropna: Drop missing indices.
 
         Examples
         --------

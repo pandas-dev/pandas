@@ -691,9 +691,9 @@ class IndexOpsMixin(object):
         See Also
         --------
         DataFrame._is_homogeneous_type: Whether all the columns of a Dataframe
-        have the same dtype.
+            have the same dtype.
         MultiIndex._is_homogeneous_type: Whether the levels of a MultiIndex
-        all have the same dtype.
+            all have the same dtype.
         """
         return True
 
@@ -806,8 +806,8 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        Index.to_numpy : Similar method that always returns a NumPy array.
-        Series.to_numpy : Similar method that always returns a NumPy array.
+        Index.to_numpy: Similar method that always returns a NumPy array.
+        Series.to_numpy: Similar method that always returns a NumPy array.
 
         Notes
         -----
@@ -889,9 +889,9 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        Series.array : Get the actual data stored within.
-        Index.array : Get the actual data stored within.
-        DataFrame.to_numpy : Similar method for DataFrame.
+        Series.array: Get the actual data stored within.
+        Index.array: Get the actual data stored within.
+        DataFrame.to_numpy: Similar method for DataFrame.
 
         Notes
         -----
@@ -999,9 +999,9 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        Index.min : Return the minimum value in an Index.
-        Series.max : Return the maximum value in a Series.
-        DataFrame.max : Return the maximum values in a DataFrame.
+        Index.min: Return the minimum value in an Index.
+        Series.max: Return the maximum value in a Series.
+        DataFrame.max: Return the maximum values in a DataFrame.
 
         Examples
         --------
@@ -1034,7 +1034,7 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        numpy.ndarray.argmax: Returns indices of the maximum value
+        numpy.ndarray.argmax: Return indices of the maximum value
             along a given axis.
         """
         nv.validate_minmax_axis(axis)
@@ -1057,9 +1057,9 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        Index.max : Return the maximum value of the object.
-        Series.min : Return the minimum value in a Series.
-        DataFrame.min : Return the minimum values in a DataFrame.
+        Index.max: Return the maximum value of the object.
+        Series.min: Return the minimum value in a Series.
+        DataFrame.min: Return the minimum values in a DataFrame.
 
         Examples
         --------
@@ -1096,7 +1096,7 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        numpy.ndarray.argmin: Returns indices of the minimum
+        numpy.ndarray.argmin: Return indices of the minimum
             value along a given axis.
         """
         nv.validate_minmax_axis(axis)
@@ -1116,7 +1116,7 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        numpy.ndarray.tolist: Returns an array as a list
+        numpy.ndarray.tolist: Return an array as a list.
         """
         if is_datetimelike(self._values):
             return [com.maybe_box_datetimelike(x) for x in self._values]
@@ -1428,7 +1428,7 @@ class IndexOpsMixin(object):
         See Also
         --------
         numpy.ndarray.nbytes: Total bytes consumed by the elements of
-          the array.
+           the array.
 
         Notes
         -----
