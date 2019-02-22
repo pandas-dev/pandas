@@ -2971,12 +2971,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        indexer, keyarr
-            The return can be:
-            - indexer : an ndarray or None if cannot convert
-            - keyarr : tuple-safe keys
-
-            Return indexer, keyarr.
+        indexer : numpy.ndarray or None
+            Return an ndarray or None if cannot convert.
+        keyarr : numpy.ndarray
+            Return tuple-safe keys.
         """
         if isinstance(keyarr, Index):
             keyarr = self._convert_index_indexer(keyarr)

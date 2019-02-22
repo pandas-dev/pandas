@@ -296,7 +296,7 @@ def unique(values):
         * Categorical : when the input is a Categorical dtype
         * ndarray : when the input is a Series/ndarray
 
-        Return numpy.ndarray or ExtensionArray
+        Return numpy.ndarray or ExtensionArray.
 
     See Also
     --------
