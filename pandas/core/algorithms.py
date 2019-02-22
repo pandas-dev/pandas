@@ -292,9 +292,11 @@ def unique(values):
 
         The return can be:
 
-        - If the input is an Index, the return is an Index.
-        - If the input is a Categorical dtype, the return is a Categorical.
-        - If the input is a Series/ndarray, the return will be an ndarray.
+        * Index : when the input is an Index
+        * Categorical : when the input is a Categorical dtype
+        * ndarray : when the input is a Series/ndarray
+
+        Return numpy.ndarray or ExtensionArray
 
     See Also
     --------

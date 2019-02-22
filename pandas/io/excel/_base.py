@@ -508,7 +508,9 @@ class ExcelWriter(object):
         Format string for datetime objects written into Excel files
         (e.g. 'YYYY-MM-DD HH:MM:SS')
     mode : {'w' or 'a'}, default 'w'
-        File mode to use (write or append). .. versionadded:: 0.24.0
+        File mode to use (write or append).
+
+        .. versionadded:: 0.24.0
 
     Attributes
     ----------

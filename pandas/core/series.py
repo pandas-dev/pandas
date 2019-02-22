@@ -1668,6 +1668,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             * Interval
             * Sparse
             * IntegerNA
+
         See Examples section.
 
         Examples

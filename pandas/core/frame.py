@@ -6955,6 +6955,7 @@ class DataFrame(NDFrame):
             * spearman : Spearman rank correlation
             * callable: callable with input two 1d ndarrays
                 and returning a float
+
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional
