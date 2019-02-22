@@ -675,7 +675,7 @@ class DataFrame(NDFrame):
         line_width : int, optional
             Width to wrap a line in characters.
         %(returns)s
-        
+
         See Also
         --------
         to_html: Convert DataFrame to HTML.
