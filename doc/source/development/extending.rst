@@ -33,8 +33,10 @@ decorate a class, providing the name of attribute to add. The class's
 
        @staticmethod
        def _validate(obj):
-           if 'lat' not in obj.columns or 'lon' not in obj.columns:
-               raise AttributeError("Must have 'lat' and 'lon'.")
+           # verify each column name contains 'lat' or 'lon'
+           for col in obj.columns:
+               if 'lat' not in col and 'lon' not in col:
+                   raise AttributeError("Must have 'lat' and 'lon'.")
 
        @property
        def center(self):
