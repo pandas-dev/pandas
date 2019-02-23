@@ -618,3 +618,4 @@ Method Summary
     :meth:`~Series.str.istitle`;Equivalent to ``str.istitle``
     :meth:`~Series.str.isnumeric`;Equivalent to ``str.isnumeric``
     :meth:`~Series.str.isdecimal`;Equivalent to ``str.isdecimal``
+    :meth:`~Series.str.casefold`;Equivalent to ``str.casefold``
