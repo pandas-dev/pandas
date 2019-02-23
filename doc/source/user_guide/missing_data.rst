@@ -335,7 +335,7 @@ examined :ref:`in the API <api.dataframe.missing>`.
 Interpolation
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.21.0
+.. versionadded:: 0.23.0
 
   The ``limit_area`` keyword argument was added.
 
