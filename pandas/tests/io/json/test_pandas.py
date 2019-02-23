@@ -1209,7 +1209,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = pd.read_json(dfjson, orient='table')
         assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('dtype', [True, False, {'b': int, 'c': int}])
+    @pytest.mark.parametrize('dtype', [True, {'b': int, 'c': int}])
     def test_read_json_table_dtype_raises(self, dtype):
         # GH21345
         df = pd.DataFrame({'a': [1, 2], 'b': [3., 4.], 'c': ['5', '6']})
