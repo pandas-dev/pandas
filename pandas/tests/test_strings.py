@@ -3425,9 +3425,10 @@ class TestStringMethods(object):
                 ['ad', 'be', 'cf'], 'S2').astype(object))
             tm.assert_series_equal(result, expected)
 
+    @pytest.mark.skipif(compat.PY2, reason='not in python2')
     def test_casefold(self):
-        casefolded = Series(['ss', 'case', 'ssd'])
-        s = Series(['ß', 'case', 'ßd'])
+        casefolded = Series(['ss', NA, 'case', 'ssd'])
+        s = Series(['ß', NA, 'case', 'ßd'])
         result = s.str.casefold()
 
         tm.assert_series_equal(result, casefolded)
