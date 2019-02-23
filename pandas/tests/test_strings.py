@@ -3428,6 +3428,6 @@ class TestStringMethods(object):
     def test_casefold(self):
         casefolded = Series(['ss', NA, 'case', 'ssd'])
         s = Series(['ß', NA, 'case', 'ßd'])
-        exp = s.str.casefold()
+        result = s.str.casefold()
 
-        tm.assert_series_equal(exp, casefolded)
+        tm.assert_series_equal(result, casefolded)
