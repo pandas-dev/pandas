@@ -3426,9 +3426,8 @@ class TestStringMethods(object):
             tm.assert_series_equal(result, expected)
 
     def test_casefold(self):
-        values = Series(['ss', NA, 'case', 'ssd'])
+        casefolded = Series(['ss', NA, 'case', 'ssd'])
         s = Series(['ß', NA, 'case', 'ßd'])
         exp = s.str.casefold()
 
-        assert isinstance(exp, Series)
-        tm.assert_series_equal(exp, values)
+        tm.assert_series_equal(exp, casefolded)
