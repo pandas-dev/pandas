@@ -22,6 +22,7 @@ Other Enhancements
 - Indexing of ``DataFrame`` and ``Series`` now accepts zerodim ``np.ndarray`` (:issue:`24919`)
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
 - :meth:`DataFrame.at_time` and :meth:`Series.at_time` now support :meth:`datetime.time` objects with timezones (:issue:`24043`)
+- :meth:`DatetimeIndex.union` now supports the ``sort`` argument. The behaviour of the sort parameter matches that of :meth:`Index.union` (:issue:`24994`)
 -
 
 .. _whatsnew_0250.api_breaking:
@@ -160,6 +161,7 @@ I/O
 ^^^
 
 - Fixed bug in missing text when using :meth:`to_clipboard` if copying utf-16 characters in Python 3 on Windows (:issue:`25040`)
+- Bug in :func:`read_json` for ``orient='table'`` when it tries to infer dtypes by default, which is not applicable as dtypes are already defined in the JSON schema (:issue:`21345`)
 -
 -
 -
