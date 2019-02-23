@@ -3431,4 +3431,4 @@ class TestStringMethods(object):
         exp = s.str.casefold()
 
         assert isinstance(exp, Series)
-        assert_series_equal(exp, values)
+        tm.assert_series_equal(exp, values)
