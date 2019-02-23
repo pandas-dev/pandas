@@ -1734,24 +1734,25 @@ def searchsorted(arr, value, side="left", sorter=None):
 
     .. versionadded:: 0.25.0
 
-    Find the indices into a sorted array `self` (a) such that, if the
+    Find the indices into a sorted array `arr` (a) such that, if the
     corresponding elements in `value` were inserted before the indices,
-    the order of `self` would be preserved.
+    the order of `arr` would be preserved.
 
-    Assuming that `self` is sorted:
+    Assuming that `arr` is sorted:
 
     ======  ================================
     `side`  returned index `i` satisfies
     ======  ================================
-    left    ``self[i-1] < value <= self[i]``
-    right   ``self[i-1] <= value < self[i]``
+    left    ``arr[i-1] < value <= self[i]``
+    right   ``arr[i-1] <= value < self[i]``
     ======  ================================
 
     Parameters
     ----------
-    arr: numpy.array or ExtensionArray
-        array to search in. Cannot be Index, Series or PandasArray, as that
-        would cause a RecursionError.
+    arr: array-like
+        Input array. If `sorter` is None, then it must be sorted in
+        ascending order, otherwise `sorter` must be an array of indices
+        that sort it.
     value : array_like
         Values to insert into `arr`.
     side : {'left', 'right'}, optional
