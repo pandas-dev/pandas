@@ -76,7 +76,7 @@ _any_string_method = [
     'len', 'lower', 'lstrip', 'partition',
     'rpartition', 'rsplit', 'rstrip',
     'slice', 'slice_replace', 'split',
-    'strip', 'swapcase', 'title', 'upper'
+    'strip', 'swapcase', 'title', 'upper', 'casefold'
 ], [()] * 100, [{}] * 100))
 ids, _, _ = zip(*_any_string_method)  # use method name as fixture-id
 
@@ -3424,3 +3424,11 @@ class TestStringMethods(object):
             expected = Series(np.array(
                 ['ad', 'be', 'cf'], 'S2').astype(object))
             tm.assert_series_equal(result, expected)
+
+    def test_casefold(self):
+        values = Series(['ss', NA, 'case', 'ssd'])
+        s = Series(['ß', NA, 'case', 'ßd'])
+        exp = s.str.casefold()
+
+        assert isinstance(exp, Series)
+        assert_series_equal(exp, values)

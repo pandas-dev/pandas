@@ -2943,6 +2943,7 @@ class StringMethods(NoNewAttributesMixin):
         remaining to lowercase.
     Series.str.swapcase : Converts uppercase to lowercase and lowercase to
         uppercase.
+    Series.str.casefold: Removes all case distinctions in the string.
 
     Examples
     --------
@@ -2995,6 +2996,7 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs['capitalize'] = dict(type='be capitalized',
                                       method='capitalize')
     _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase')
+    _shared_docs['casefold'] = dict(type='be casefolded', method='casefold')
     lower = _noarg_wrapper(lambda x: x.lower(),
                            docstring=_shared_docs['casemethods'] %
                            _shared_docs['lower'])
@@ -3010,6 +3012,9 @@ class StringMethods(NoNewAttributesMixin):
     swapcase = _noarg_wrapper(lambda x: x.swapcase(),
                               docstring=_shared_docs['casemethods'] %
                               _shared_docs['swapcase'])
+    casefold = _noarg_wrapper(lambda x: x.casefold(),
+                              docstring=_shared_docs['casemethods'] %
+                              _shared_docs['casefold'])
 
     _shared_docs['ismethods'] = ("""
     Check whether all characters in each string are %(type)s.
