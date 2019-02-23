@@ -3427,7 +3427,7 @@ class TestStringMethods(object):
 
     @pytest.mark.skipif(compat.PY2, reason='not in python2')
     def test_casefold(self):
-        #GH25405
+        # GH25405
         casefolded = Series(['ss', NA, 'case', 'ssd'])
         s = Series(['ß', NA, 'case', 'ßd'])
         result = s.str.casefold()
