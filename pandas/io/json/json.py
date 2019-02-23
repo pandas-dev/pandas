@@ -415,7 +415,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
                 {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
     """
 
-    if orient == 'table' and dtype is not None:
+    if orient == 'table' and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
 
     dtype = orient != 'table' if dtype is None else dtype
