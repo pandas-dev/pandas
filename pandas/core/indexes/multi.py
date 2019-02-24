@@ -324,10 +324,16 @@ class MultiIndex(Index):
                    codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
                    names=['number', 'color'])
         """
+        error_msg = "Input must be a list / sequence of array-likes."
         if not is_list_like(arrays):
-            raise TypeError("Input must be a list / sequence of array-likes.")
+            raise TypeError(error_msg)
         elif is_iterator(arrays):
             arrays = list(arrays)
+
+        # Check if elements of array are list-like
+        for array in arrays:
+            if not is_list_like(array):
+                raise TypeError(error_msg)
 
         # Check if lengths of all arrays are equal or not,
         # raise ValueError, if not
@@ -840,7 +846,7 @@ class MultiIndex(Index):
         try:
             self.get_loc(key)
             return True
-        except (LookupError, TypeError):
+        except (LookupError, TypeError, ValueError):
             return False
 
     contains = __contains__
@@ -1391,7 +1397,7 @@ class MultiIndex(Index):
         Returns
         -------
         values : Index
-            ``values`` is a level of this MultiIndex converted to
+            Values is a level of this MultiIndex converted to
             a single :class:`Index` (or subclass thereof).
 
         Examples
@@ -1956,7 +1962,7 @@ class MultiIndex(Index):
         Returns
         -------
         MultiIndex
-            A new MultiIndex
+            A new MultiIndex.
 
         .. versionchanged:: 0.18.1
 
@@ -2053,9 +2059,9 @@ class MultiIndex(Index):
         Returns
         -------
         sorted_index : pd.MultiIndex
-            Resulting index
+            Resulting index.
         indexer : np.ndarray
-            Indices of output values in original index
+            Indices of output values in original index.
         """
         from pandas.core.sorting import indexer_from_factorized
 
@@ -2879,17 +2885,31 @@ class MultiIndex(Index):
                 return False
         return True
 
-    def union(self, other, sort=True):
+    def union(self, other, sort=None):
         """
         Form the union of two MultiIndex objects
 
         Parameters
         ----------
         other : MultiIndex or array / Index of tuples
-        sort : bool, default True
-            Sort the resulting MultiIndex if possible
+        sort : False or None, default None
+            Whether to sort the resulting Index.
+
+            * None : Sort the result, except when
+
+              1. `self` and `other` are equal.
+              2. `self` has length 0.
+              3. Some values in `self` or `other` cannot be compared.
+                 A RuntimeWarning is issued in this case.
+
+            * False : do not sort the result.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2897,11 +2917,14 @@ class MultiIndex(Index):
 
         >>> index.union(index2)
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other):
             return self
+
+        # TODO: Index.union returns other when `len(self)` is 0.
 
         uniq_tuples = lib.fast_unique_multiple([self._ndarray_values,
                                                 other._ndarray_values],
@@ -2910,22 +2933,28 @@ class MultiIndex(Index):
         return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                       names=result_names)
 
-    def intersection(self, other, sort=True):
+    def intersection(self, other, sort=False):
         """
         Form the intersection of two MultiIndex objects.
 
         Parameters
         ----------
         other : MultiIndex or array / Index of tuples
-        sort : bool, default True
+        sort : False or None, default False
             Sort the resulting MultiIndex if possible
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default from ``True`` to ``False``, to match
+               behaviour from before 0.24.0
 
         Returns
         -------
         Index
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_names = self._convert_can_do_setop(other)
 
@@ -2936,7 +2965,7 @@ class MultiIndex(Index):
         other_tuples = other._ndarray_values
         uniq_tuples = set(self_tuples) & set(other_tuples)
 
-        if sort:
+        if sort is None:
             uniq_tuples = sorted(uniq_tuples)
 
         if len(uniq_tuples) == 0:
@@ -2947,22 +2976,28 @@ class MultiIndex(Index):
             return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                           names=result_names)
 
-    def difference(self, other, sort=True):
+    def difference(self, other, sort=None):
         """
         Compute set difference of two MultiIndex objects
 
         Parameters
         ----------
         other : MultiIndex
-        sort : bool, default True
+        sort : False or None, default None
             Sort the resulting MultiIndex if possible
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
         diff : MultiIndex
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_names = self._convert_can_do_setop(other)
 
@@ -2982,7 +3017,7 @@ class MultiIndex(Index):
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
                                   assume_unique=True)
         difference = this.values.take(label_diff)
-        if sort:
+        if sort is None:
             difference = sorted(difference)
 
         if len(difference) == 0:

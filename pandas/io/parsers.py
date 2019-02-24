@@ -203,9 +203,14 @@ default False
     * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
       result 'foo'
 
-    If a column or index contains an unparseable date, the entire column or
-    index will be returned unaltered as an object data type. For non-standard
-    datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
+    If a column or index cannot be represented as an array of datetimes,
+    say because of an unparseable value or a mixture of timezones, the column
+    or index will be returned unaltered as an object data type. For
+    non-standard datetime parsing, use ``pd.to_datetime`` after
+    ``pd.read_csv``. To parse an index or column with a mixture of timezones,
+    specify ``date_parser`` to be a partially-applied
+    :func:`pandas.to_datetime` with ``utc=True``. See
+    :ref:`io.csv.mixed_timezones` for more.
 
     Note: A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : bool, default False
@@ -1296,15 +1301,28 @@ def _validate_usecols_arg(usecols):
     if usecols is not None:
         if callable(usecols):
             return usecols, None
-        # GH20529, ensure is iterable container but not string.
-        elif not is_list_like(usecols):
+
+        if not is_list_like(usecols):
+            # see gh-20529
+            #
+            # Ensure it is iterable container but not string.
             raise ValueError(msg)
-        else:
-            usecols_dtype = lib.infer_dtype(usecols, skipna=False)
-            if usecols_dtype not in ('empty', 'integer',
-                                     'string', 'unicode'):
-                raise ValueError(msg)
-        return set(usecols), usecols_dtype
+
+        usecols_dtype = lib.infer_dtype(usecols, skipna=False)
+
+        if usecols_dtype not in ("empty", "integer",
+                                 "string", "unicode"):
+            raise ValueError(msg)
+
+        usecols = set(usecols)
+
+        if usecols_dtype == "unicode":
+            # see gh-13253
+            #
+            # Python 2.x compatibility
+            usecols = {col.encode("utf-8") for col in usecols}
+
+        return usecols, usecols_dtype
     return usecols, None
 
 

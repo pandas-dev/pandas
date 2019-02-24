@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import Appender
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -12,6 +13,7 @@ from pandas.core.dtypes.inference import is_array_like, is_list_like
 
 from pandas import compat
 from pandas.core import nanops
+from pandas.core.algorithms import searchsorted
 from pandas.core.missing import backfill_1d, pad_1d
 
 from .base import ExtensionArray, ExtensionOpsMixin
@@ -222,7 +224,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             item = item._ndarray
 
         result = self._ndarray[item]
-        if not lib.is_scalar(result):
+        if not lib.is_scalar(item):
             result = type(self)(result)
         return result
 
@@ -422,6 +424,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             result = result.copy()
 
         return result
+
+    @Appender(ExtensionArray.searchsorted.__doc__)
+    def searchsorted(self, value, side='left', sorter=None):
+        return searchsorted(self.to_numpy(), value,
+                            side=side, sorter=sorter)
 
     # ------------------------------------------------------------------------
     # Ops

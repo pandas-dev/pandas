@@ -170,7 +170,8 @@ class TestSlicing(object):
         result = s['2005-1-1']
         assert result == s.iloc[0]
 
-        pytest.raises(Exception, s.__getitem__, '2004-12-31')
+        with pytest.raises(KeyError, match=r"^'2004-12-31'$"):
+            s['2004-12-31']
 
     def test_partial_slice_daily(self):
         rng = date_range(freq='H', start=datetime(2005, 1, 31), periods=500)
@@ -179,7 +180,8 @@ class TestSlicing(object):
         result = s['2005-1-31']
         tm.assert_series_equal(result, s.iloc[:24])
 
-        pytest.raises(Exception, s.__getitem__, '2004-12-31 00')
+        with pytest.raises(KeyError, match=r"^'2004-12-31 00'$"):
+            s['2004-12-31 00']
 
     def test_partial_slice_hourly(self):
         rng = date_range(freq='T', start=datetime(2005, 1, 1, 20, 0, 0),
@@ -193,7 +195,8 @@ class TestSlicing(object):
         tm.assert_series_equal(result, s.iloc[:60])
 
         assert s['2005-1-1 20:00'] == s.iloc[0]
-        pytest.raises(Exception, s.__getitem__, '2004-12-31 00:15')
+        with pytest.raises(KeyError, match=r"^'2004-12-31 00:15'$"):
+            s['2004-12-31 00:15']
 
     def test_partial_slice_minutely(self):
         rng = date_range(freq='S', start=datetime(2005, 1, 1, 23, 59, 0),
@@ -207,7 +210,8 @@ class TestSlicing(object):
         tm.assert_series_equal(result, s.iloc[:60])
 
         assert s[Timestamp('2005-1-1 23:59:00')] == s.iloc[0]
-        pytest.raises(Exception, s.__getitem__, '2004-12-31 00:00:00')
+        with pytest.raises(KeyError, match=r"^'2004-12-31 00:00:00'$"):
+            s['2004-12-31 00:00:00']
 
     def test_partial_slice_second_precision(self):
         rng = date_range(start=datetime(2005, 1, 1, 0, 0, 59,
@@ -255,7 +259,9 @@ class TestSlicing(object):
                 result = df['a'][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == expected
-                pytest.raises(KeyError, df.__getitem__, ts_string)
+                msg = r"^'{}'$".format(ts_string)
+                with pytest.raises(KeyError, match=msg):
+                    df[ts_string]
 
             # Timestamp with resolution less precise than index
             for fmt in formats[:rnum]:
@@ -282,15 +288,20 @@ class TestSlicing(object):
                 result = df['a'][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == 2
-                pytest.raises(KeyError, df.__getitem__, ts_string)
+                msg = r"^'{}'$".format(ts_string)
+                with pytest.raises(KeyError, match=msg):
+                    df[ts_string]
 
             # Not compatible with existing key
             # Should raise KeyError
             for fmt, res in list(zip(formats, resolutions))[rnum + 1:]:
                 ts = index[1] + Timedelta("1 " + res)
                 ts_string = ts.strftime(fmt)
-                pytest.raises(KeyError, df['a'].__getitem__, ts_string)
-                pytest.raises(KeyError, df.__getitem__, ts_string)
+                msg = r"^'{}'$".format(ts_string)
+                with pytest.raises(KeyError, match=msg):
+                    df['a'][ts_string]
+                with pytest.raises(KeyError, match=msg):
+                    df[ts_string]
 
     def test_partial_slicing_with_multiindex(self):
 
@@ -316,10 +327,9 @@ class TestSlicing(object):
 
         # this is an IndexingError as we don't do partial string selection on
         # multi-levels.
-        def f():
+        msg = "Too many indexers"
+        with pytest.raises(IndexingError, match=msg):
             df_multi.loc[('2013-06-19', 'ACCT1', 'ABC')]
-
-        pytest.raises(IndexingError, f)
 
         # GH 4294
         # partial slice on a series mi
@@ -386,3 +396,30 @@ class TestSlicing(object):
         result = op(df.A, datetimelike)
         expected = Series(expected, name='A')
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('start', [
+        '2018-12-02 21:50:00+00:00', pd.Timestamp('2018-12-02 21:50:00+00:00'),
+        pd.Timestamp('2018-12-02 21:50:00+00:00').to_pydatetime()
+    ])
+    @pytest.mark.parametrize('end', [
+        '2018-12-02 21:52:00+00:00', pd.Timestamp('2018-12-02 21:52:00+00:00'),
+        pd.Timestamp('2018-12-02 21:52:00+00:00').to_pydatetime()
+    ])
+    def test_getitem_with_datestring_with_UTC_offset(self, start, end):
+        # GH 24076
+        idx = pd.date_range(start='2018-12-02 14:50:00-07:00',
+                            end='2018-12-02 14:50:00-07:00', freq='1min')
+        df = pd.DataFrame(1, index=idx, columns=['A'])
+        result = df[start:end]
+        expected = df.iloc[0:3, :]
+        tm.assert_frame_equal(result, expected)
+
+        # GH 16785
+        start = str(start)
+        end = str(end)
+        with pytest.raises(ValueError, match="Both dates must"):
+            df[start:end[:-4] + '1:00']
+
+        with pytest.raises(ValueError, match="The index must be timezone"):
+            df = df.tz_localize(None)
+            df[start:end]
