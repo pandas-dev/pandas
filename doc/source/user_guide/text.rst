@@ -600,13 +600,13 @@ Method Summary
     :meth:`~Series.str.partition`;Equivalent to ``str.partition``
     :meth:`~Series.str.rpartition`;Equivalent to ``str.rpartition``
     :meth:`~Series.str.lower`;Equivalent to ``str.lower``
+    :meth:`~Series.str.casefold`;Equivalent to ``str.casefold``
     :meth:`~Series.str.upper`;Equivalent to ``str.upper``
     :meth:`~Series.str.find`;Equivalent to ``str.find``
     :meth:`~Series.str.rfind`;Equivalent to ``str.rfind``
     :meth:`~Series.str.index`;Equivalent to ``str.index``
     :meth:`~Series.str.rindex`;Equivalent to ``str.rindex``
     :meth:`~Series.str.capitalize`;Equivalent to ``str.capitalize``
-    :meth:`~Series.str.casefold`;Equivalent to ``str.casefold``
     :meth:`~Series.str.swapcase`;Equivalent to ``str.swapcase``
     :meth:`~Series.str.normalize`;Return Unicode normal form. Equivalent to ``unicodedata.normalize``
     :meth:`~Series.str.translate`;Equivalent to ``str.translate``
