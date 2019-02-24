@@ -20,6 +20,7 @@ dependencies:
   - isort
   - moto
   - pytest>=4.0.2
+  - pytest-mock
   - sphinx
   - numpydoc
 

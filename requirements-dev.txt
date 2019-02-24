@@ -11,6 +11,7 @@ hypothesis>=3.82
 isort
 moto
 pytest>=4.0.2
+pytest-mock
 sphinx
 numpydoc
 beautifulsoup4>=4.2.1
