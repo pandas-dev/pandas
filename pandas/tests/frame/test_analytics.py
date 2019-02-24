@@ -1842,8 +1842,9 @@ class TestDataFrameAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.round(df, decimals=0, out=df)
 
-    @pytest.mark.skipif(
-        PY2 and is_platform_windows(), reason="numpy/numpy#7882")
+    @pytest.mark.xfail(
+        PY2 and is_platform_windows(), reason="numpy/numpy#7882",
+        raises=FloatingPointError, strict=True)
     def test_numpy_round_nan(self):
         # See gh-14197
         df = Series([1.53, np.nan, 0.06]).to_frame()
