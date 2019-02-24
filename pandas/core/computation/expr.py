@@ -16,7 +16,7 @@ from pandas import compat
 from pandas.core import common as com
 from pandas.core.base import StringMixin
 from pandas.core.computation.common import (
-    _BACKTICK_QUOTED_STRING, clean_column_name_with_spaces)
+    _BACKTICK_QUOTED_STRING, _clean_column_name_with_spaces)
 from pandas.core.computation.ops import (
     _LOCAL_TAG, BinOp, Constant, Div, FuncNode, Op, Term, UnaryOp,
     UndefinedVariableError, _arith_ops_syms, _bool_ops_syms, _cmp_ops_syms,
@@ -117,8 +117,9 @@ def _clean_spaces_backtick_quoted_names(tok):
 
     Backtick quoted string are indicated by a certain tokval value. If a string
     is a backtick quoted token it will processed by
-    :func:`clean_column_name_with_spaces` so that the parser can find this
-    string when the query is executed. See also :meth:`DataFrame.eval`.
+    :func:`_clean_column_name_with_spaces` so that the parser can find this
+    string when the query is executed. See also :func:`_get_column_resolvers`
+    used in :meth:`DataFrame.eval`.
 
     Parameters
     ----------
@@ -132,7 +133,7 @@ def _clean_spaces_backtick_quoted_names(tok):
     """
     toknum, tokval = tok
     if toknum == _BACKTICK_QUOTED_STRING:
-        return tokenize.NAME, clean_column_name_with_spaces(tokval)
+        return tokenize.NAME, _clean_column_name_with_spaces(tokval)
     return toknum, tokval
 
 

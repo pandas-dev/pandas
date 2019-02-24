@@ -36,7 +36,6 @@ from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
                            PY36, raise_with_traceback,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
-from pandas.core.computation.common import clean_column_name_with_spaces
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -2966,8 +2965,13 @@ class DataFrame(NDFrame):
         expr : str
             The query string to evaluate.  You can refer to variables
             in the environment by prefixing them with an '@' character like
-            ``@a + b``. You can refer to column names with spaces by quoting
+            ``@a + b``.
+
+            .. versionadded:: 0.25.0
+
+            You can refer to column names that contain spaces by surrounding
             them in backticks like ```a a` + b``.
+
         inplace : bool
             Whether the query should modify the data in place or return
             a modified copy.
@@ -3160,13 +3164,10 @@ class DataFrame(NDFrame):
         resolvers = kwargs.pop('resolvers', None)
         kwargs['level'] = kwargs.pop('level', 0) + 1
         if resolvers is None:
+            from pandas.core.computation.common import _get_column_resolvers
+
             index_resolvers = self._get_index_resolvers()
-            # column names with spaces are altered so that they can be referred
-            # to by backtick quoting.
-            # Also see _clean_spaces_backtick_quoted_names from
-            # pandas/core/computation/expr.py
-            column_resolvers = {clean_column_name_with_spaces(k): v
-                                for k, v in self.iteritems()}
+            column_resolvers = _get_column_resolvers(self)
             resolvers = column_resolvers, index_resolvers
         if 'target' not in kwargs:
             kwargs['target'] = self
