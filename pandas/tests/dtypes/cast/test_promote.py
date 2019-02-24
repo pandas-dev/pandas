@@ -17,7 +17,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_complex_dtype, is_datetime64_dtype, is_datetime_or_timedelta_dtype,
     is_float_dtype, is_integer_dtype, is_object_dtype, is_scalar,
-    is_timedelta64_dtype)
+    is_string_dtype, is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
