@@ -299,7 +299,7 @@ def maybe_promote(dtype, fill_value=np.nan):
     maybe_promote_with_scalar : underlying method for scalar case
     maybe_promote_with_array : underlying method for array case
     """
-    if is_scalar(fill_value):
+    if is_scalar(fill_value) or isinstance(fill_value, tuple):
         return maybe_promote_with_scalar(dtype, fill_value)
     elif isinstance(fill_value, (np.ndarray, ABCSeries, ABCIndexClass)):
         return maybe_promote_with_array(dtype, fill_value)
@@ -367,7 +367,8 @@ def maybe_promote_with_scalar(dtype, fill_value=np.nan):
             return np.dtype(object), fill_value
 
         # use Series to construct, since np.array cannot deal with
-        # pandas-internal dtypes (e.g. DatetimeTZDtype)
+        # pandas-internal dtypes (e.g. DatetimeTZDtype); furthermore, we want
+        # to treat tuples as scalar, but numpy casts those to a new dimension
         fill_array = Series([fill_value], dtype=object)
         dtype, na_value = maybe_promote_with_array(dtype, fill_array)
 
@@ -570,7 +571,7 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
 
             fill_max = fill_value.max()
             fill_min = fill_value.min()
-            if isinstance(fill_max, np.uint64):
+            if isinstance(fill_max, (np.int64, np.uint64)):
                 # numpy comparator is broken for uint64;
                 # see https://github.com/numpy/numpy/issues/12525
                 # use .item to get int object

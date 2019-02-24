@@ -597,6 +597,9 @@ def test_maybe_promote_string_with_any(string_dtype, any_numpy_dtype,
     dtype = np.dtype(string_dtype)
     fill_dtype = np.dtype(any_numpy_dtype)
 
+    if PY2 and is_string_dtype(fill_dtype):
+        pytest.xfail('does not upcast to object on PY2')
+
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
 
@@ -619,6 +622,9 @@ def test_maybe_promote_any_with_string(any_numpy_dtype, string_dtype,
                                        boxed, box_dtype):
     dtype = np.dtype(any_numpy_dtype)
     fill_dtype = np.dtype(string_dtype)
+
+    if PY2 and is_string_dtype(dtype):
+        pytest.xfail('does not upcast to object on PY2')
 
     # create array of given dtype
     fill_value = 'abc'
