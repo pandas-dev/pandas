@@ -571,13 +571,13 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
 
             fill_max = fill_value.max()
             fill_min = fill_value.min()
-            if isinstance(fill_max, (np.int64, np.uint64)):
+            if isinstance(fill_max, np.uint64):
                 # numpy comparator is broken for uint64;
                 # see https://github.com/numpy/numpy/issues/12525
                 # use .item to get int object
                 fill_max = fill_max.item()
 
-            if fill_max > _int64_max or fill_min < _int64_min:
+            if fill_max >= _int64_max + 1 or fill_min < _int64_min:
                 return np.dtype(object), np.nan
 
             while (fill_max > np.iinfo(dtype).max
