@@ -2944,6 +2944,7 @@ class StringMethods(NoNewAttributesMixin):
     Series.str.swapcase : Converts uppercase to lowercase and lowercase to
         uppercase.
     Series.str.casefold: Removes all case distinctions in the string.
+        .. versionadded:: 0.25.0
 
     Examples
     --------
