@@ -79,6 +79,7 @@ Deprecations
 ~~~~~~~~~~~~
 
 - Deprecated the `M (months)` and `Y (year)` `units` parameter of :func: `pandas.to_timedelta`, :func: `pandas.Timedelta` and :func: `pandas.TimedeltaIndex` (:issue:`16344`)
+- :meth:`DataFrame.set_index` has deprecated using lists of values *within* lists. It remains possible to pass array-likes, both directly and within a list.
 
 .. _whatsnew_0250.prior_deprecations:
 
