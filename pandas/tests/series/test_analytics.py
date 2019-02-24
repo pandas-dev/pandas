@@ -9,7 +9,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY35, lrange, range
+from pandas.compat import PY2, PY35, is_platform_windows, lrange, range
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -285,6 +285,8 @@ class TestSeriesAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.round(s, decimals=0, out=s)
 
+    @pytest.mark.skipif(
+        PY2 and is_platform_windows(), reason="numpy/numpy#7882")
     def test_numpy_round_nan(self):
         # See gh-14197
         s = Series([1.53, np.nan, 0.06])

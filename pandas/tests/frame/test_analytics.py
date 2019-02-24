@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY35, lrange
+from pandas.compat import PY2, PY35, lrange, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1842,6 +1842,8 @@ class TestDataFrameAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.round(df, decimals=0, out=df)
 
+    @pytest.mark.skipif(
+        PY2 and is_platform_windows(), reason="numpy/numpy#7882")
     def test_numpy_round_nan(self):
         # See gh-14197
         df = Series([1.53, np.nan, 0.06]).to_frame()
