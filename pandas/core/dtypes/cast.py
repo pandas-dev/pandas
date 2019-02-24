@@ -359,7 +359,7 @@ def maybe_promote_with_scalar(dtype, fill_value=np.nan):
     """
     from pandas import Series
 
-    if is_scalar(fill_value):
+    if is_scalar(fill_value) or isinstance(fill_value, tuple):
         # unify handling of scalar and array values to simplify actual
         # promotion logic in maybe_promote_with_array;
         if is_object_dtype(dtype) and fill_value is not None:
@@ -577,7 +577,9 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
                 # use .item to get int object
                 fill_max = fill_max.item()
 
-            if fill_max >= _int64_max + 1 or fill_min < _int64_min:
+            # comparison mechanics are broken above _int64_max;
+            # use greater equal instead of equal
+            if fill_max >= _int64_max + 1 or fill_min <= _int64_min - 1:
                 return np.dtype(object), np.nan
 
             while (fill_max > np.iinfo(dtype).max
