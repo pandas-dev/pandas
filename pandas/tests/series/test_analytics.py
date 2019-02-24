@@ -292,7 +292,8 @@ class TestSeriesAnalytics(object):
         # See gh-14197
         s = Series([1.53, np.nan, 0.06])
         with np.errstate(invalid='raise'):
-            result = s.round()
+            with tm.assert_produces_warning(None):
+                result = s.round()
         expected = Series([2., np.nan, 0.])
         assert_series_equal(result, expected)
 
