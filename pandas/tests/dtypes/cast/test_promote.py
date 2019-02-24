@@ -373,7 +373,7 @@ def test_maybe_promote_any_with_bool(any_numpy_dtype, boxed, box_dtype):
                    exp_val_for_scalar, exp_val_for_array)
 
 
-@pytest.mark.skip(PY2, 'no bytes in PY2')
+@pytest.mark.skipif(PY2, reason='no bytes in PY2')
 @pytest.mark.parametrize('boxed, box_dtype', [
     (True, None),    # fill_value wrapped in array with auto-dtype
     (True, object),  # fill_value wrapped in array with object dtype
@@ -412,7 +412,7 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype,
                    exp_val_for_scalar, exp_val_for_array)
 
 
-@pytest.mark.skip(PY2, 'no bytes in PY2')
+@pytest.mark.skipif(PY2, reason='no bytes in PY2')
 @pytest.mark.parametrize('boxed, box_dtype', [
     (True, None),     # fill_value wrapped in array with auto-dtype (fixed len)
     (True, 'bytes'),  # fill_value wrapped in array with generic bytes-dtype
