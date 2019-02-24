@@ -287,13 +287,12 @@ class TestSeriesAnalytics(object):
 
     @pytest.mark.xfail(
         PY2 and is_platform_windows(), reason="numpy/numpy#7882",
-        raises=FloatingPointError, strict=True)
+        raises=AssertionError, strict=True)
     def test_numpy_round_nan(self):
         # See gh-14197
         s = Series([1.53, np.nan, 0.06])
-        with np.errstate(invalid='raise'):
-            with tm.assert_produces_warning(None):
-                result = s.round()
+        with tm.assert_produces_warning(None):
+            result = s.round()
         expected = Series([2., np.nan, 0.])
         assert_series_equal(result, expected)
 
