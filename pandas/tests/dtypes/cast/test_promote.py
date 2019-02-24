@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import NaT, iNaT
-from pandas.compat import is_platform_windows
+from pandas.compat import PY2, is_platform_windows
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -373,6 +373,7 @@ def test_maybe_promote_any_with_bool(any_numpy_dtype, boxed, box_dtype):
                    exp_val_for_scalar, exp_val_for_array)
 
 
+@pytest.mark.skip(PY2, 'no bytes in PY2')
 @pytest.mark.parametrize('boxed, box_dtype', [
     (True, None),    # fill_value wrapped in array with auto-dtype
     (True, object),  # fill_value wrapped in array with object dtype
@@ -411,6 +412,7 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype,
                    exp_val_for_scalar, exp_val_for_array)
 
 
+@pytest.mark.skip(PY2, 'no bytes in PY2')
 @pytest.mark.parametrize('boxed, box_dtype', [
     (True, None),     # fill_value wrapped in array with auto-dtype (fixed len)
     (True, 'bytes'),  # fill_value wrapped in array with generic bytes-dtype
@@ -881,7 +883,8 @@ def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype, fill_value,
     elif (not boxed and (is_float_dtype(dtype) or is_complex_dtype(dtype))
           and fill_value == iNaT):
         pytest.xfail('does not cast to missing value marker correctly')
-    elif dtype in (bool, str) and not boxed and fill_value == iNaT:
+    elif ((is_string_dtype(dtype) or dtype == bool)
+          and not boxed and fill_value == iNaT):
         pytest.xfail('does not cast to missing value marker correctly')
 
     if is_integer_dtype(dtype) and dtype == 'uint64' and fill_value == iNaT:
