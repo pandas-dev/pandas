@@ -279,21 +279,12 @@ class TestDataFrameAlterAxes():
         df = frame_of_index_cols
 
         msg = 'The parameter "keys" may be a column key, .*'
-<<<<<<< HEAD
-        # forbidden type, e.g. set/iter
-        with pytest.raises(ValueError, match=msg):
-            df.set_index(box(df['A']), drop=drop, append=append)
-
-        # forbidden type in list, e.g. set/iter
-        with pytest.raises(ValueError, match=msg):
-=======
         # forbidden type, e.g. set
         with pytest.raises(TypeError, match=msg):
             df.set_index(box(df['A']), drop=drop, append=append)
 
         # forbidden type in list, e.g. set
         with pytest.raises(TypeError, match=msg):
->>>>>>> upstream/master
             df.set_index(['A', df['A'], box(df['A'])],
                          drop=drop, append=append)
 

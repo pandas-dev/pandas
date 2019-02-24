@@ -4025,14 +4025,10 @@ class DataFrame(NDFrame):
             This parameter can be either a single column key, a single array of
             the same length as the calling DataFrame, or a list containing an
             arbitrary combination of column keys and arrays. Here, "array"
-<<<<<<< HEAD
-            encompasses :class:`Series`, :class:`Index` and ``np.ndarray``.
-            Lists (in the sense of a sequence of values, not column labels)
-            have been deprecated, and will be removed in a future version.
-=======
             encompasses :class:`Series`, :class:`Index`, ``np.ndarray``, and
             instances of :class:`abc.Iterator`.
->>>>>>> upstream/master
+            Lists (in the sense of a sequence of values, not column labels)
+            have been deprecated, and will be removed in a future version.
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False
@@ -4118,34 +4114,14 @@ class DataFrame(NDFrame):
         missing = []
         depr_warn = False
         for col in keys:
-<<<<<<< HEAD
-            if (is_scalar(col) or isinstance(col, tuple)):
-                # if col is a valid column key, everything is fine
-                # tuples are always considered keys, never as list-likes
-                if col not in self:
-                    missing.append(col)
-            elif isinstance(col, list):
-                depr_warn = True
-            elif (not isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray))
-                  or getattr(col, 'ndim', 1) > 1):
-                raise ValueError(err_msg)
-
-        if missing:
-            raise KeyError('{}'.format(missing))
-        if depr_warn:
-            msg = ('Passing lists within a list to the parameter "keys" is '
-                   'deprecated and will be removed in a future version. To '
-                   'silence this warning, wrap the lists in a Series / Index '
-                   'or np.ndarray. E.g. df.set_index(["A", [1, 2, 3]]) should '
-                   'be passed as df.set_index(["A", pd.Series([1, 2, 3])]).')
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-=======
             if isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray,
-                                list, Iterator)):
+                                Iterator)):
                 # arrays are fine as long as they are one-dimensional
                 # iterators get converted to list below
                 if getattr(col, 'ndim', 1) != 1:
                     raise ValueError(err_msg)
+            elif isinstance(col, list):
+                depr_warn = True
             else:
                 # everything else gets tried as a key; see GH 24969
                 try:
@@ -4159,7 +4135,13 @@ class DataFrame(NDFrame):
 
         if missing:
             raise KeyError('None of {} are in the columns'.format(missing))
->>>>>>> upstream/master
+        if depr_warn:
+            msg = ('Passing lists within a list to the parameter "keys" is '
+                   'deprecated and will be removed in a future version. To '
+                   'silence this warning, wrap the lists in a Series / Index '
+                   'or np.ndarray. E.g. df.set_index(["A", [1, 2, 3]]) should '
+                   'be passed as df.set_index(["A", pd.Series([1, 2, 3])]).')
+            warnings.warn(msg, FutureWarning, stacklevel=2)
 
         if inplace:
             frame = self
