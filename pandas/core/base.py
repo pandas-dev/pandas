@@ -1522,11 +1522,11 @@ class IndexOpsMixin(object):
         array([3])
         """)
 
-    @Substitution(klass='IndexOpsMixin')
+    @Substitution(klass='Index')
     @Appender(_shared_docs['searchsorted'])
     def searchsorted(self, value, side='left', sorter=None):
-        # needs coercion on the key (DatetimeIndex does already)
-        return self._values.searchsorted(value, side=side, sorter=sorter)
+        return algorithms.searchsorted(self._values, value,
+                                       side=side, sorter=sorter)
 
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')
