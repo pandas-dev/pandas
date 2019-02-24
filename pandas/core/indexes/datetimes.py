@@ -460,7 +460,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def union(self, other):
+    def union(self, other, sort=None):
         """
         Specialized union for DatetimeIndex objects. If combine
         overlapping ranges with the same DateOffset, will be much
@@ -469,15 +469,29 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         Parameters
         ----------
         other : DatetimeIndex or array-like
+        sort : bool or None, default None
+            Whether to sort the resulting Index.
+
+            * None : Sort the result, except when
+
+              1. `self` and `other` are equal.
+              2. `self` or `other` has length 0.
+              3. Some values in `self` or `other` cannot be compared.
+                 A RuntimeWarning is issued in this case.
+
+            * False : do not sort the result
+
+            .. versionadded:: 0.25.0
 
         Returns
         -------
         y : Index or DatetimeIndex
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(DatetimeIndex, self).union(other)
+            return super(DatetimeIndex, self).union(other, sort=sort)
 
         if not isinstance(other, DatetimeIndex):
             try:
@@ -488,9 +502,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         this, other = self._maybe_utc_convert(other)
 
         if this._can_fast_union(other):
-            return this._fast_union(other)
+            return this._fast_union(other, sort=sort)
         else:
-            result = Index.union(this, other)
+            result = Index.union(this, other, sort=sort)
             if isinstance(result, DatetimeIndex):
                 # TODO: we shouldn't be setting attributes like this;
                 #  in all the tests this equality already holds
@@ -563,16 +577,28 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             # this will raise
             return False
 
-    def _fast_union(self, other):
+    def _fast_union(self, other, sort=None):
         if len(other) == 0:
             return self.view(type(self))
 
         if len(self) == 0:
             return other.view(type(self))
 
-        # to make our life easier, "sort" the two ranges
+        # Both DTIs are monotonic. Check if they are already
+        # in the "correct" order
         if self[0] <= other[0]:
             left, right = self, other
+        # DTIs are not in the "correct" order and we don't want
+        # to sort but want to remove overlaps
+        elif sort is False:
+            left, right = self, other
+            left_start = left[0]
+            loc = right.searchsorted(left_start, side='left')
+            right_chunk = right.values[:loc]
+            dates = _concat._concat_compat((left.values, right_chunk))
+            return self._shallow_copy(dates)
+        # DTIs are not in the "correct" order and we want
+        # to sort
         else:
             left, right = other, self
 
