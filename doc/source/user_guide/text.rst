@@ -606,6 +606,7 @@ Method Summary
     :meth:`~Series.str.index`;Equivalent to ``str.index``
     :meth:`~Series.str.rindex`;Equivalent to ``str.rindex``
     :meth:`~Series.str.capitalize`;Equivalent to ``str.capitalize``
+    :meth:`~Series.str.casefold`;Equivalent to ``str.casefold``
     :meth:`~Series.str.swapcase`;Equivalent to ``str.swapcase``
     :meth:`~Series.str.normalize`;Return Unicode normal form. Equivalent to ``unicodedata.normalize``
     :meth:`~Series.str.translate`;Equivalent to ``str.translate``
@@ -618,4 +619,3 @@ Method Summary
     :meth:`~Series.str.istitle`;Equivalent to ``str.istitle``
     :meth:`~Series.str.isnumeric`;Equivalent to ``str.isnumeric``
     :meth:`~Series.str.isdecimal`;Equivalent to ``str.isdecimal``
-    :meth:`~Series.str.casefold`;Equivalent to ``str.casefold``
