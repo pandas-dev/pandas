@@ -33,7 +33,7 @@ from pandas.util._validators import (validate_bool_kwarg,
 
 from pandas import compat
 from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
-                           PY36, raise_with_traceback,
+                           PY36, raise_with_traceback, Iterator,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
@@ -4025,7 +4025,8 @@ class DataFrame(NDFrame):
             This parameter can be either a single column key, a single array of
             the same length as the calling DataFrame, or a list containing an
             arbitrary combination of column keys and arrays. Here, "array"
-            encompasses :class:`Series`, :class:`Index` and ``np.ndarray``.
+            encompasses :class:`Series`, :class:`Index`, ``np.ndarray``, and
+            instances of :class:`abc.Iterator`.
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False
@@ -4104,6 +4105,32 @@ class DataFrame(NDFrame):
         if not isinstance(keys, list):
             keys = [keys]
 
+        err_msg = ('The parameter "keys" may be a column key, one-dimensional '
+                   'array, or a list containing only valid column keys and '
+                   'one-dimensional arrays.')
+
+        missing = []
+        for col in keys:
+            if isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray,
+                                list, Iterator)):
+                # arrays are fine as long as they are one-dimensional
+                # iterators get converted to list below
+                if getattr(col, 'ndim', 1) != 1:
+                    raise ValueError(err_msg)
+            else:
+                # everything else gets tried as a key; see GH 24969
+                try:
+                    found = col in self.columns
+                except TypeError:
+                    raise TypeError(err_msg + ' Received column of '
+                                    'type {}'.format(type(col)))
+                else:
+                    if not found:
+                        missing.append(col)
+
+        if missing:
+            raise KeyError('None of {} are in the columns'.format(missing))
+
         if inplace:
             frame = self
         else:
@@ -4132,12 +4159,24 @@ class DataFrame(NDFrame):
             elif isinstance(col, (list, np.ndarray)):
                 arrays.append(col)
                 names.append(None)
+            elif isinstance(col, Iterator):
+                arrays.append(list(col))
+                names.append(None)
             # from here, col can only be a column label
             else:
                 arrays.append(frame[col]._values)
                 names.append(col)
                 if drop:
                     to_remove.append(col)
+
+            if len(arrays[-1]) != len(self):
+                # check newest element against length of calling frame, since
+                # ensure_index_from_sequences would not raise for append=False.
+                raise ValueError('Length mismatch: Expected {len_self} rows, '
+                                 'received array of length {len_col}'.format(
+                                     len_self=len(self),
+                                     len_col=len(arrays[-1])
+                                 ))
 
         index = ensure_index_from_sequences(arrays, names)
 
