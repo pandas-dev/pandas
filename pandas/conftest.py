@@ -367,10 +367,15 @@ unique_nulls_fixture2 = unique_nulls_fixture
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
              'dateutil/Asia/Singapore', tzutc(), tzlocal(), FixedOffset(300),
              FixedOffset(0), FixedOffset(-300)]
+TIMEZONE_IDS = ['None', 'UTC', 'US/Eastern', 'Asia/Tokyp',
+                'dateutil/US/Pacific', 'dateutil/Asia/Singapore',
+                'dateutil.tz.tzutz()', 'dateutil.tz.tzlocal()',
+                'pytz.FixedOffset(300)', 'pytz.FixedOffset(0)',
+                'pytz.FixedOffset(-300)']
 
 
-@td.parametrize_fixture_doc(str(TIMEZONES))
-@pytest.fixture(params=TIMEZONES)
+@td.parametrize_fixture_doc(str(TIMEZONE_IDS))
+@pytest.fixture(params=TIMEZONES, ids=TIMEZONE_IDS)
 def tz_naive_fixture(request):
     """
     Fixture for trying timezones including default (None): {0}
@@ -378,8 +383,8 @@ def tz_naive_fixture(request):
     return request.param
 
 
-@td.parametrize_fixture_doc(str(TIMEZONES[1:]))
-@pytest.fixture(params=TIMEZONES[1:])
+@td.parametrize_fixture_doc(str(TIMEZONE_IDS[1:]))
+@pytest.fixture(params=TIMEZONES[1:], ids=TIMEZONE_IDS[1:])
 def tz_aware_fixture(request):
     """
     Fixture for trying explicit timezones: {0}
@@ -387,8 +392,14 @@ def tz_aware_fixture(request):
     return request.param
 
 
+# Generate cartesian product of tz_aware_fixture:
+tz_aware_fixture2 = tz_aware_fixture
+
+
 # ----------------------------------------------------------------
 # Dtypes
+
+
 UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
 SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
@@ -400,8 +411,8 @@ FLOAT_DTYPES = [float, "float32", "float64"]
 COMPLEX_DTYPES = [complex, "complex64", "complex128"]
 STRING_DTYPES = [str, 'str', 'U']
 
-DATETIME_DTYPES = ['datetime64[ns]', 'M8[ns]']
-TIMEDELTA_DTYPES = ['timedelta64[ns]', 'm8[ns]']
+DATETIME64_DTYPES = ['datetime64[ns]', 'M8[ns]']
+TIMEDELTA64_DTYPES = ['timedelta64[ns]', 'm8[ns]']
 
 BOOL_DTYPES = [bool, 'bool']
 BYTES_DTYPES = [bytes, 'bytes']
@@ -409,7 +420,7 @@ OBJECT_DTYPES = [object, 'object']
 
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
 ALL_NUMPY_DTYPES = (ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES
-                    + DATETIME_DTYPES + TIMEDELTA_DTYPES + BOOL_DTYPES
+                    + DATETIME64_DTYPES + TIMEDELTA64_DTYPES + BOOL_DTYPES
                     + OBJECT_DTYPES + BYTES_DTYPES * PY3)  # bytes only for PY3
 
 
@@ -420,6 +431,46 @@ def string_dtype(request):
     * str
     * 'str'
     * 'U'
+    """
+    return request.param
+
+
+@pytest.fixture(params=BYTES_DTYPES)
+def bytes_dtype(request):
+    """Parametrized fixture for bytes dtypes.
+
+    * bytes
+    * 'bytes'
+    """
+    return request.param
+
+
+@pytest.fixture(params=OBJECT_DTYPES)
+def object_dtype(request):
+    """Parametrized fixture for object dtypes.
+
+    * object
+    * 'object'
+    """
+    return request.param
+
+
+@pytest.fixture(params=DATETIME64_DTYPES)
+def datetime64_dtype(request):
+    """Parametrized fixture for datetime/timedelta dtypes.
+
+    * 'datetime64[ns]'
+    * 'M8[ns]'
+    """
+    return request.param
+
+
+@pytest.fixture(params=TIMEDELTA64_DTYPES)
+def timedelta64_dtype(request):
+    """Parametrized fixture for datetime/timedelta dtypes.
+
+    * 'timedelta64[ns]'
+    * 'm8[ns]'
     """
     return request.param
 
