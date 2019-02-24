@@ -227,7 +227,7 @@ class JSONTableWriter(FrameWriter):
 
 
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
-              convert_axes=True, convert_dates=True, keep_default_dates=True,
+              convert_axes=None, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
               lines=False, chunksize=None, compression='infer'):
     """
@@ -289,6 +289,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
 
     convert_axes : boolean, default True
         Try to convert the axes to the proper dtypes.
+
+        Not applicable with ``orient='table'``.
+
+        .. versionchanged:: 0.25
+
+           Not applicable with ``orient='table'``.
+
     convert_dates : boolean, default True
         List of columns to parse for dates; If True, then try to parse
         datelike columns default is True; a column label is datelike if
@@ -417,8 +424,12 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
 
     if orient == 'table' and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
+    if orient == 'table' and convert_axes:
+        raise ValueError("cannot pass both convert_axes and orient='table'")
 
     dtype = orient != 'table' if dtype is None else dtype
+    if convert_axes is None:
+        convert_axes = orient != 'table'
 
     compression = _infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(

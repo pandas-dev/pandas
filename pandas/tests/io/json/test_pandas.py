@@ -1202,6 +1202,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert size_before == size_after
 
+    @pytest.mark.parametrize('index', [None, [1., 2.], ['1', '2'],
+                                       ['1.', '2.']])
+    def test_from_json_to_json_table_index(self, index):
+        expected = DataFrame({'a': [1, 2]}, index=index)
+        dfjson = expected.to_json(orient='table')
+        result = pd.read_json(dfjson, orient='table')
+        assert_frame_equal(result, expected)
+
     def test_from_json_to_json_table_dtypes(self):
         # GH21345
         expected = pd.DataFrame({'a': [1, 2], 'b': [3., 4.], 'c': ['5', '6']})
