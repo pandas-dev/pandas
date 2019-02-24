@@ -285,6 +285,14 @@ class TestSeriesAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.round(s, decimals=0, out=s)
 
+    def test_numpy_round_nan(self):
+        # See gh-14197
+        s = Series([1.53, np.nan, 0.06])
+        with np.errstate(invalid='raise'):
+            result = s.round()
+        expected = Series([2., np.nan, 0.])
+        assert_series_equal(result, expected)
+
     def test_built_in_round(self):
         if not compat.PY3:
             pytest.skip(

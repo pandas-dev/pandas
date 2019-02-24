@@ -1842,6 +1842,14 @@ class TestDataFrameAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.round(df, decimals=0, out=df)
 
+    def test_numpy_round_nan(self):
+        # See gh-14197
+        df = Series([1.53, np.nan, 0.06]).to_frame()
+        with np.errstate(invalid='raise'):
+            result = df.round()
+        expected = Series([2., np.nan, 0.]).to_frame()
+        tm.assert_frame_equal(result, expected)
+
     def test_round_mixed_type(self):
         # GH 11885
         df = DataFrame({'col1': [1.1, 2.2, 3.3, 4.4],
