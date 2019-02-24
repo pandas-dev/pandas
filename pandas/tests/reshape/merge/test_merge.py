@@ -39,6 +39,54 @@ def get_test_data(ngroups=NGROUPS, n=N):
     return arr
 
 
+def get_series():
+    return [
+        pd.Series([1], dtype='int64'),
+        pd.Series([1], dtype='Int64'),
+        pd.Series([1.23]),
+        pd.Series(['foo']),
+        pd.Series([True]),
+        pd.Series([pd.Timestamp('2018-01-01')]),
+        pd.Series([pd.Timestamp('2018-01-01', tz='US/Eastern')]),
+    ]
+
+
+def get_series_na():
+    return [
+        pd.Series([np.nan], dtype='Int64'),
+        pd.Series([np.nan], dtype='float'),
+        pd.Series([np.nan], dtype='object'),
+        pd.Series([pd.NaT]),
+    ]
+
+
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+def series_of_dtype(request):
+    """
+    A parametrized fixture returning a variety of Series of different
+    dtypes
+    """
+    return request.param
+
+
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+def series_of_dtype2(request):
+    """
+    A duplicate of the series_of_dtype fixture, so that it can be used
+    twice by a single function
+    """
+    return request.param
+
+
+@pytest.fixture(params=get_series_na(), ids=lambda x: x.dtype.name)
+def series_of_dtype_all_na(request):
+    """
+    A parametrized fixture returning a variety of Series with all NA
+    values
+    """
+    return request.param
+
+
 class TestMerge(object):
 
     def setup_method(self, method):
@@ -427,6 +475,36 @@ class TestMerge(object):
                           dict(left_on='a', right_on='x')]:
                 check1(exp_in, kwarg)
                 check2(exp_out, kwarg)
+
+    def test_merge_empty_frame(self, series_of_dtype, series_of_dtype2):
+        # GH 25183
+        df = pd.DataFrame({'key': series_of_dtype, 'value': series_of_dtype2},
+                          columns=['key', 'value'])
+        df_empty = df[:0]
+        expected = pd.DataFrame({
+            'value_x': pd.Series(dtype=df.dtypes['value']),
+            'key': pd.Series(dtype=df.dtypes['key']),
+            'value_y': pd.Series(dtype=df.dtypes['value']),
+        }, columns=['value_x', 'key', 'value_y'])
+        actual = df_empty.merge(df, on='key')
+        assert_frame_equal(actual, expected)
+
+    def test_merge_all_na_column(self, series_of_dtype,
+                                 series_of_dtype_all_na):
+        # GH 25183
+        df_left = pd.DataFrame(
+            {'key': series_of_dtype, 'value': series_of_dtype_all_na},
+            columns=['key', 'value'])
+        df_right = pd.DataFrame(
+            {'key': series_of_dtype, 'value': series_of_dtype_all_na},
+            columns=['key', 'value'])
+        expected = pd.DataFrame({
+            'key': series_of_dtype,
+            'value_x': series_of_dtype_all_na,
+            'value_y': series_of_dtype_all_na,
+        }, columns=['key', 'value_x', 'value_y'])
+        actual = df_left.merge(df_right, on='key')
+        assert_frame_equal(actual, expected)
 
     def test_merge_nosort(self):
         # #2098, anything to do?
