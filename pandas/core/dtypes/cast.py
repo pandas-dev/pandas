@@ -1,6 +1,7 @@
 """ routings for casting """
 
 from datetime import datetime, timedelta
+import warnings
 
 import numpy as np
 
@@ -21,8 +22,8 @@ from .common import (
 from .dtypes import (
     DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype, PeriodDtype)
 from .generic import (
-    ABCDatetimeArray, ABCDatetimeIndex, ABCPeriodArray, ABCPeriodIndex,
-    ABCSeries)
+    ABCDatetimeArray, ABCDatetimeIndex, ABCIndexClass, ABCPeriodArray,
+    ABCPeriodIndex, ABCSeries)
 from .inference import is_list_like
 from .missing import isna, notna
 
@@ -30,6 +31,19 @@ _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
 _int32_max = np.iinfo(np.int32).max
 _int64_max = np.iinfo(np.int64).max
+_int64_min = np.iinfo(np.int64).min
+_uint64_max = np.iinfo(np.uint64).max
+_float32_max = np.finfo(np.float32).max
+
+
+def _is_iNaT(x):
+    if not is_scalar(x):
+        return False
+    with warnings.catch_warnings():
+        # bug in numpy warnings for timedelta, see numpy/numpy#10095
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
+        result = x == iNaT
+    return result
 
 
 def maybe_convert_platform(values):
@@ -253,72 +267,385 @@ def maybe_upcast_putmask(result, mask, other):
 
 
 def maybe_promote(dtype, fill_value=np.nan):
-    # if we passed an array here, determine the fill value by dtype
-    if isinstance(fill_value, np.ndarray):
-        if issubclass(fill_value.dtype.type, (np.datetime64, np.timedelta64)):
-            fill_value = iNaT
-        else:
+    """
+    Determine minimal dtype to hold fill_value, when starting from dtype
 
-            # we need to change to object type as our
-            # fill_value is of object type
-            if fill_value.dtype == np.object_:
-                dtype = np.dtype(np.object_)
-            fill_value = np.nan
+    Parameters
+    ----------
+    dtype : DType
+        The dtype to start from.
+    fill_value : scalar or np.ndarray / Series / Index
+        The value that the output dtype needs to be able to hold.
 
-    # returns tuple of (dtype, fill_value)
-    if issubclass(dtype.type, np.datetime64):
-        fill_value = tslibs.Timestamp(fill_value).value
-    elif issubclass(dtype.type, np.timedelta64):
-        fill_value = tslibs.Timedelta(fill_value).value
-    elif is_datetime64tz_dtype(dtype):
-        if isna(fill_value):
-            fill_value = NaT
-    elif is_extension_array_dtype(dtype) and isna(fill_value):
-        fill_value = dtype.na_value
-    elif is_float(fill_value):
-        if issubclass(dtype.type, np.bool_):
-            dtype = np.object_
-        elif issubclass(dtype.type, np.integer):
-            dtype = np.float64
-    elif is_bool(fill_value):
-        if not issubclass(dtype.type, np.bool_):
-            dtype = np.object_
-    elif is_integer(fill_value):
-        if issubclass(dtype.type, np.bool_):
-            dtype = np.object_
-        elif issubclass(dtype.type, np.integer):
-            # upcast to prevent overflow
-            arr = np.asarray(fill_value)
-            if arr != arr.astype(dtype):
-                dtype = arr.dtype
-    elif is_complex(fill_value):
-        if issubclass(dtype.type, np.bool_):
-            dtype = np.object_
-        elif issubclass(dtype.type, (np.integer, np.floating)):
-            dtype = np.complex128
-    elif fill_value is None:
-        if is_float_dtype(dtype) or is_complex_dtype(dtype):
-            fill_value = np.nan
-        elif is_integer_dtype(dtype):
-            dtype = np.float64
-            fill_value = np.nan
-        elif is_datetime_or_timedelta_dtype(dtype):
-            fill_value = iNaT
-        else:
-            dtype = np.object_
-            fill_value = np.nan
+    Returns
+    -------
+    dtype : DType
+        The updated dtype.
+    fill_value : scalar
+        The type of this value depends on the type of the passed fill_value
+
+        * If fill_value is a scalar, the method returns that scalar, but
+          modified to fit the updated dtype. For example, a datetime fill_value
+          will be returned as an integer (representing ns) for M8[ns], and
+          values considered missing (see pd.isna) will be returned as the
+          corresponding missing value marker for the updated dtype.
+        * If fill_value is an ndarray/Series/Index, this method will always
+          return the missing value marker for the updated dtype. This value
+          will be None for dtypes that cannot hold missing values (integers,
+          booleans, bytes).
+
+    See Also
+    --------
+    maybe_promote_with_scalar : underlying method for scalar case
+    maybe_promote_with_array : underlying method for array case
+    """
+    if is_scalar(fill_value):
+        return maybe_promote_with_scalar(dtype, fill_value)
+    elif isinstance(fill_value, (np.ndarray, ABCSeries, ABCIndexClass)):
+        return maybe_promote_with_array(dtype, fill_value)
     else:
-        dtype = np.object_
+        fill_type = type(fill_value)
+        raise ValueError('fill_value must either be scalar, or a Series / '
+                         'Index / np.ndarray; received {}'.format(fill_type))
 
-    # in case we have a string that looked like a number
-    if is_extension_array_dtype(dtype):
-        pass
-    elif is_datetime64tz_dtype(dtype):
-        pass
-    elif issubclass(np.dtype(dtype).type, string_types):
-        dtype = np.object_
 
-    return dtype, fill_value
+def maybe_promote_with_scalar(dtype, fill_value=np.nan):
+    """
+    Determine minimal dtype to hold fill_value, when starting from dtype
+
+    Parameters
+    ----------
+    dtype : DType
+        The dtype to start from.
+    fill_value : scalar or np.ndarray / Series / Index
+        The value that the output dtype needs to be able to hold.
+
+    Returns
+    -------
+    dtype : DType
+        The updated dtype.
+    fill_value : scalar
+        The passed fill_value, potentially modified to fit the updated dtype.
+        For example, assuming a datetime dtype, a datetime.datetime fill_value
+        will be returned as an integer (representing ns) for M8[ns]. Similarly,
+        values considered missing (see pd.isna) will be returned as the
+        corresponding missing value marker for the updated dtype.
+
+    See Also
+    --------
+    maybe_promote_with_array : similar method for array case
+        This method contains the actual promotion logic for both cases.
+
+    Examples
+    --------
+    >>> maybe_promote(np.dtype('int'), fill_value=np.nan)
+    (dtype('float64'), nan)
+    >>> maybe_promote(np.dtype('float'), fill_value='abcd')
+    (dtype('O'), 'abcd')
+
+    For datetimes, timedeltas and datetimes with a timezone, the missing value
+    marker is pandas._libs.tslibs.iNaT (== np.iinfo('int64').min):
+
+    >>> maybe_promote(np.dtype('datetime64[ns]'), fill_value=np.nan)
+    (dtype('<M8[ns]'), -9223372036854775808)
+
+    The method will generally infer as conservatively as possible, also for
+    subtypes of integers / floats / complex:
+
+    >>> maybe_promote(np.dtype('uint8'), fill_value=np.iinfo('uint8').max + 1)
+    (dtype('uint16'), 256)
+    >>> maybe_promote(np.dtype('uint8'), fill_value=-1)
+    (dtype('int16'), -1)
+    """
+    from pandas import Series
+
+    if is_scalar(fill_value):
+        # unify handling of scalar and array values to simplify actual
+        # promotion logic in maybe_promote_with_array;
+        if is_object_dtype(dtype) and fill_value is not None:
+            # inserting into object does not cast (except for None -> np.nan)
+            return np.dtype(object), fill_value
+
+        # use Series to construct, since np.array cannot deal with
+        # pandas-internal dtypes (e.g. DatetimeTZDtype)
+        fill_array = Series([fill_value], dtype=object)
+        dtype, na_value = maybe_promote_with_array(dtype, fill_array)
+
+        # maybe_promote_with_array returns the na-marker for the new dtype;
+        # maybe_promote_with_scalar always casts fill_value to the new dtype
+        if is_integer_dtype(dtype) and _is_iNaT(fill_value):
+            # maybe_promote_with_array considers iNaT a missing value, and
+            # since int dtypes cannot hold missing values, that method returns
+            # None as the na_value. For scalars, we need to keep it however,
+            # to ensure correct operations for datetime/timedelta code.
+            fill_value = iNaT
+        elif fill_value is NaT and is_object_dtype(dtype):
+            # the presence of pd.NaT forced upcasting to object, and therefore
+            # fill_value does not get cast to na-marker of object (cf. below)
+            pass
+        elif isna(fill_value) or _is_iNaT(fill_value):
+            # cast missing values (incl. iNaT) to correct missing value marker
+            # for the updated dtype
+            fill_value = na_value
+        # otherwise casts fill_value (= only entry of fill_array) to new dtype
+        elif is_datetime_or_timedelta_dtype(dtype):
+            # for datetime/timedelta, we need to return the underlying ints
+            fill_value = fill_array.astype(dtype)[0].value
+        else:
+            fill_value = fill_array.astype(dtype)[0]
+
+        return dtype, fill_value
+    else:
+        raise ValueError('fill_value must be a scalar, received '
+                         '{}'.format(type(fill_value)))
+
+
+def maybe_promote_with_array(dtype, fill_value=np.nan):
+    """
+    Determine minimal dtype to hold fill_value, when starting from dtype
+
+    This will also return the default missing value for the resulting dtype, if
+    necessary (e.g. for datetime / timedelta, the missing value will be `iNaT`)
+
+    Parameters
+    ----------
+    dtype : DType
+        The dtype to start from.
+    fill_value : np.ndarray / Series / Index
+        Array-like of values that the output dtype needs to be able to hold.
+
+    Returns
+    -------
+    dtype : DType
+        The updated dtype.
+    na_value : scalar
+        The missing value for the new dtype. Returns None or dtypes that
+        cannot hold missing values (integers, booleans, bytes).
+
+    See Also
+    --------
+    maybe_promote_with_scalar : similar method for scalar case
+
+    Examples
+    --------
+    >>> maybe_promote(np.dtype('int'), fill_value=np.array([None]))
+    (dtype('float64'), nan)
+    >>> maybe_promote(np.dtype('float'), fill_value=np.array(['abcd']))
+    (dtype('O'), nan)
+
+    For datetimes, timedeltas and datetimes with a timezone, the missing value
+    marker is pandas._libs.tslibs.iNaT (== np.iinfo('int64').min):
+
+    >>> maybe_promote(np.dtype('datetime64[ns]'),
+    ...               fill_value=np.array(['2018-01-01']))
+    (dtype('<M8[ns]'), -9223372036854775808)
+
+    The method will infer as conservatively as possible for integer types:
+
+    >>> maybe_promote(np.dtype('uint8'),
+    ...               fill_value=np.array([np.iinfo('uint8').max + 1]))
+    (dtype('uint16'), None)
+    >>> maybe_promote(np.dtype('uint8'), fill_value=np.array([-1]))
+    (dtype('int16'), None)
+    """
+
+    if isinstance(fill_value, np.ndarray):
+        if fill_value.ndim == 0:
+            # zero-dimensional arrays cannot be iterated over
+            fill_value = np.expand_dims(fill_value, 0)
+        elif fill_value.ndim > 1:
+            # ndarray, but too high-dimensional
+            fill_value = fill_value.ravel()
+    elif not isinstance(fill_value, (ABCSeries, ABCIndexClass)):
+        fill_type = type(fill_value)
+        raise ValueError('fill_value must either be a Series / Index / '
+                         'np.ndarray, received {}'.format(fill_type))
+
+    if all(isna(x) or _is_iNaT(x) for x in fill_value):
+        # only missing values (or no values at all)
+
+        if is_datetime_or_timedelta_dtype(dtype):
+            return dtype, iNaT
+        elif is_datetime64tz_dtype(dtype):
+            # DatetimeTZDtype does not use iNaT as missing value marker
+            return dtype, NaT
+
+        na_value = np.nan
+        if len(fill_value) == 0:
+            # empty array; no values to force change
+            if is_integer_dtype(dtype) or dtype in (bool, bytes):
+                # these types do not have a missing value marker
+                na_value = None
+            # otherwise nothing changes
+        elif any(x is NaT for x in fill_value):
+            # presence of pd.NaT upcasts everything that's not
+            # datetime/timedelta (see above) to object
+            dtype = np.dtype(object)
+        elif (is_integer_dtype(dtype) and dtype == 'uint64'
+              and all(x == iNaT for x in fill_value)):
+            # uint64 + negative int casts to object
+            dtype = np.dtype(object)
+        elif is_integer_dtype(dtype) and all(x == iNaT for x in fill_value):
+            # integer + iNaT casts to int64
+            dtype = np.dtype('int64')
+            na_value = None
+        elif is_integer_dtype(dtype):
+            # integer + other missing value (np.nan / None) casts to float
+            dtype = np.dtype('float64')
+        elif is_extension_array_dtype(dtype):
+            na_value = dtype.na_value
+        elif is_string_dtype(dtype) or dtype in (bool, bytes):
+            # original dtype cannot hold nans
+            dtype = np.dtype(object)
+
+        return dtype, na_value
+
+    fill_dtype = fill_value.dtype
+    if fill_dtype == object:
+        # for object dtype, we determine if we actually need to upcast
+        # by inferring the dtype of fill_value
+        inferred_dtype = lib.infer_dtype(fill_value, skipna=True)
+
+        # cases that would yield 'empty' have been treated in branch above
+        if inferred_dtype in ['period', 'interval', 'datetime64tz']:
+            # TODO: handle & test pandas-dtypes
+            # TODO: lib.infer_dtype does not support datetime64tz yet
+            pass
+        else:
+            # rest can be mapped to numpy dtypes
+            map_inferred_to_numpy = {
+                'floating': float, 'mixed-integer-float': float,
+                'decimal': float, 'integer': int, 'boolean': bool,
+                'complex': complex, 'bytes': bytes,
+                'datetime64': 'datetime64[ns]', 'datetime': 'datetime64[ns]',
+                'date': 'datetime64[ns]', 'timedelta64': 'timedelta64[ns]',
+                'timedelta': 'timedelta64[ns]',
+                'time': object,  # time cannot be cast to datetime/timedelta
+                'string': object, 'unicode': object,
+                'mixed-integer': object, 'mixed': object,
+            }
+            fill_dtype = np.dtype(map_inferred_to_numpy[inferred_dtype])
+
+    # now that we have the correct dtype; check how we must upcast
+    # * extension arrays
+    # * int vs int
+    # * int vs float / complex
+    # * float vs float
+    # * float vs complex (and vice versa)
+    # * bool
+    # * bytes
+    # * datetimetz
+    # * datetime
+    # * timedelta
+    # * string/object
+
+    # if (is_extension_array_dtype(dtype)
+    #         or is_extension_array_dtype(fill_dtype)):
+    #     # TODO: dispatch to ExtensionDType.maybe_promote? GH 24246
+    if is_integer_dtype(dtype) and is_integer_dtype(fill_dtype):
+        if is_unsigned_integer_dtype(dtype) and all(fill_value >= 0):
+            # can stay unsigned
+            fill_max = fill_value.max()
+            if fill_max > _uint64_max:
+                return np.dtype(object), np.nan
+
+            while fill_max > np.iinfo(dtype).max:
+                # itemsize is the number of bytes; times eight is number of
+                # bits, which is used in the string identifier of the dtype;
+                # if fill_max is above the max for that dtype,
+                # we double the number of bytes/bits.
+                dtype = np.dtype('uint{}'.format(dtype.itemsize * 8 * 2))
+            return dtype, None
+        else:
+            # cannot stay unsigned
+            if dtype == 'uint64':
+                # need to hold negative values, but int64 cannot hold
+                # maximum of uint64 -> needs object
+                return np.dtype(object), np.nan
+            elif is_unsigned_integer_dtype(dtype):
+                # need to turn into signed integers to hold negative values
+                # int8 cannot hold maximum of uint8; similar for 16/32
+                # therefore, upcast at least to next higher int-type
+                dtype = np.dtype('int{}'.format(dtype.itemsize * 8 * 2))
+
+            fill_max = fill_value.max()
+            fill_min = fill_value.min()
+            if isinstance(fill_max, np.uint64):
+                # numpy comparator is broken for uint64;
+                # see https://github.com/numpy/numpy/issues/12525
+                # use .item to get int object
+                fill_max = fill_max.item()
+
+            if fill_max > _int64_max or fill_min < _int64_min:
+                return np.dtype(object), np.nan
+
+            while (fill_max > np.iinfo(dtype).max
+                    or fill_min < np.iinfo(dtype).min):
+                # same mechanism as above, but for int instead of uint
+                dtype = np.dtype('int{}'.format(dtype.itemsize * 8 * 2))
+            return dtype, None
+    elif is_integer_dtype(dtype) and is_float_dtype(fill_dtype):
+        # int with float: always upcasts to float64
+        return np.dtype('float64'), np.nan
+    elif is_integer_dtype(dtype) and is_complex_dtype(fill_dtype):
+        # int with complex: always upcasts to complex128
+        return np.dtype('complex128'), np.nan
+    elif ((is_float_dtype(dtype) or is_complex_dtype(dtype))
+          and is_integer_dtype(fill_dtype)):
+        # float/complex with int: always stays original float/complex dtype
+        return dtype, np.nan
+    elif is_float_dtype(dtype) and is_float_dtype(fill_dtype):
+        # float with float; upcasts depending on absolute max of fill_value
+        fill_max = np.abs(fill_value).max()
+        if dtype == 'float32' and fill_max <= _float32_max:
+            return dtype, np.nan
+        # all other cases return float64
+        return np.dtype('float64'), np.nan
+    elif ((is_float_dtype(dtype) or is_complex_dtype(dtype))
+          and (is_float_dtype(fill_dtype) or is_complex_dtype(fill_dtype))):
+        # at least one is complex; otherwise we'd have hit float/float above
+        fill_max = max(np.abs(fill_value.real).max(),  # also works for float
+                       np.abs(fill_value.imag).max())
+        if dtype in ['float32', 'complex64'] and fill_max <= _float32_max:
+            return np.complex64, np.nan
+        # all other cases return complex128
+        return np.dtype('complex128'), np.nan
+    elif is_bool_dtype(dtype) and is_bool_dtype(fill_dtype):
+        # bool with bool is the only combination that stays bool; any other
+        # combination involving bool upcasts to object, see else-clause below
+        return dtype, None
+    elif (issubclass(dtype.type, np.bytes_)
+          and issubclass(fill_dtype.type, np.bytes_)):
+        # bytes with bytes is the only combination that stays bytes; any other
+        # combination involving bytes upcasts to object, see else-clause below
+        return dtype, None
+    elif (is_datetime64tz_dtype(dtype) and is_datetime64tz_dtype(fill_dtype)
+          and (dtype.tz == fill_dtype.tz)):
+        # datetimetz with datetimetz with the same timezone is the only
+        # combination that stays datetimetz (in particular, mixing timezones or
+        # tz-aware and tz-naive datetimes will cast to object);  any other
+        # combination involving datetimetz upcasts to object, see below
+        return dtype, iNaT
+    elif ((is_timedelta64_dtype(dtype) and is_timedelta64_dtype(fill_dtype))
+          or (is_datetime64_dtype(dtype) and is_datetime64_dtype(fill_dtype))):
+        # datetime and timedelta try to cast; if successful, keep dtype,
+        # otherwise upcast to object
+        try:
+            with warnings.catch_warnings():
+                msg = ('parsing timezone aware datetimes is deprecated; '
+                       'this will raise an error in the future')
+                warnings.filterwarnings('ignore', message=msg,
+                                        category=DeprecationWarning)
+                fill_value.astype(dtype)
+            na_value = iNaT
+        except (ValueError, TypeError):
+            dtype = np.dtype(object)
+            na_value = np.nan
+        return dtype, na_value
+    else:
+        # anything else (e.g. strings, objects, or unmatched
+        # bool / bytes / datetime / datetimetz / timedelta)
+        return np.dtype(object), np.nan
 
 
 def infer_dtype_from(val, pandas_dtype=False):
