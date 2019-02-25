@@ -1224,14 +1224,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH21345
         df = pd.DataFrame({'a': [1, 2], 'b': [3., 4.], 'c': ['5', '6']})
         dfjson = df.to_json(orient='table')
-        with pytest.raises(ValueError):
+        msg = "cannot pass both dtype and orient='table'"
+        with pytest.raises(ValueError, match=msg):
             pd.read_json(dfjson, orient='table', dtype=dtype)
 
     def test_read_json_table_convert_axes_raises(self):
         # GH25433 GH25435
         df = DataFrame([[1, 2], [3, 4]], index=[1., 2.], columns=['1.', '2.'])
         dfjson = df.to_json(orient='table')
-        with pytest.raises(ValueError):
+        msg = "cannot pass both convert_axes and orient='table'"
+        with pytest.raises(ValueError, match=msg):
             pd.read_json(dfjson, orient='table', convert_axes=True)
 
     @pytest.mark.parametrize('data, expected', [
