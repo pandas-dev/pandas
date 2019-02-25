@@ -165,7 +165,7 @@ class BaseGrouper(object):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
-        result_values = []
+        result_values = None
 
         # oh boy
         f_name = com.get_callable_name(f)
@@ -190,9 +190,16 @@ class BaseGrouper(object):
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, 'name', key)
 
-            # If the fast apply failed we may still use the result
-            # for the first group
-            if len(result_values) == 1 and i == 0:
+            # result_values is None if fast apply path wasn't taken
+            # or fast apply aborted with an unexpected exception.
+            # In either case, initialize the result list and perform
+            # the slow iteration.
+            if result_values is None:
+                result_values = []
+            # If result_values is not None we're in the case that the
+            # fast apply loop was broken prematurely but we have
+            # already the result for the first group which we can reuse.
+            elif i == 0:
                 continue
             # group might be modified
             group_axes = _get_axes(group)
