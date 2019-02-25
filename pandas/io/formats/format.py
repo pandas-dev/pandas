@@ -679,15 +679,17 @@ class DataFrameFormatter(TableFormatter):
             st = ed
         return '\n\n'.join(str_lst)
 
-    def to_latex(self, column_format=None, longtable=False, encoding=None,
-                 multicolumn=False, multicolumn_format=None, multirow=False):
+    def to_latex(self, column_format=None, longtable=False, caption=None,
+                 label=None, encoding=None, multicolumn=False,
+                 multicolumn_format=None, multirow=False):
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
 
         from pandas.io.formats.latex import LatexFormatter
         latex_renderer = LatexFormatter(self, column_format=column_format,
-                                        longtable=longtable,
+                                        longtable=longtable, caption=caption,
+                                        label=label,
                                         multicolumn=multicolumn,
                                         multicolumn_format=multicolumn_format,
                                         multirow=multirow)

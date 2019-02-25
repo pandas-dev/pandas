@@ -2740,17 +2740,18 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
                  sparsify=None, index_names=True, bold_rows=False,
-                 column_format=None, longtable=None, escape=None,
-                 encoding=None, decimal='.', multicolumn=None,
-                 multicolumn_format=None, multirow=None):
+                 column_format=None, longtable=None, caption=None,
+                 label=None, escape=None, encoding=None, decimal='.',
+                 multicolumn=None, multicolumn_format=None, multirow=None):
         r"""
-        Render an object to a LaTeX tabular environment table.
+        Render an object to a LaTeX tabular, longtable, or nested
+        table/tabular environment.
 
         Render an object to a tabular environment table. You can splice
         this into a LaTeX document. Requires \usepackage{booktabs}.
 
-        .. versionchanged:: 0.20.2
-           Added to Series
+        .. versionchanged:: 0.25
+           Added caption and label arguments.
 
         Parameters
         ----------
@@ -2790,6 +2791,11 @@ class NDFrame(PandasObject, SelectionMixin):
             By default, the value will be read from the pandas config
             module. Use a longtable environment instead of tabular. Requires
             adding a \usepackage{longtable} to your LaTeX preamble.
+        caption : str, optional
+            The LaTeX caption to be placed inside \caption{} in the output.
+        label : str, optional
+            The LaTeX label to be placed inside \label{} in the output.
+            This is used with \ref{} in the main .tex file.
         escape : bool, optional
             By default, the value will be read from the pandas config
             module. When set to False prevents from escaping latex special
@@ -2863,7 +2869,8 @@ class NDFrame(PandasObject, SelectionMixin):
                                        index_names=index_names,
                                        escape=escape, decimal=decimal)
         formatter.to_latex(column_format=column_format, longtable=longtable,
-                           encoding=encoding, multicolumn=multicolumn,
+                           caption=caption, label=label, encoding=encoding,
+                           multicolumn=multicolumn,
                            multicolumn_format=multicolumn_format,
                            multirow=multirow)
 

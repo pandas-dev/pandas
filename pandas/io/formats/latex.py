@@ -4,6 +4,8 @@ Module for formatting output data in Latex.
 """
 from __future__ import print_function
 
+import warnings
+
 import numpy as np
 
 from pandas.compat import map, range, u, zip
@@ -34,19 +36,23 @@ class LatexFormatter(TableFormatter):
     """
 
     def __init__(self, formatter, column_format=None, longtable=False,
-                 multicolumn=False, multicolumn_format=None, multirow=False):
+                 caption=None, label=None, multicolumn=False,
+                 multicolumn_format=None, multirow=False):
         self.fmt = formatter
         self.frame = self.fmt.frame
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.column_format = column_format
         self.longtable = longtable
+        self.caption = caption
+        self.label = label
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
 
     def write_result(self, buf):
         """
-        Render a DataFrame to a LaTeX tabular/longtable environment output.
+        Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
+        environment output.
         """
 
         # string representation of the columns
@@ -106,13 +112,58 @@ class LatexFormatter(TableFormatter):
             raise AssertionError('column_format must be str or unicode, '
                                  'not {typ}'.format(typ=type(column_format)))
 
+        use_table_env = False
         if not self.longtable:
+            if self.caption is None and self.label is None:
+                # then write output only in a tabular environment
+                pass
+            else:
+                # then write output in a nested table/tabular environment
+                use_table_env = True
+
+                if self.caption is None:
+                    caption_ = ''
+                else:
+                    caption_ = '\n\\caption{{{}}}'.format(self.caption)
+
+                if self.label is None:
+                    label_ = ''
+                    warnings.warn('no LaTeX label has been provided; '
+                                  'referencing with \\ref{} will not be available')
+                else:
+                    label_ = '\n\\label{{{}}}'.format(self.label)
+
+                buf.write('\\begin{{table}}\n\\centering{}{}\n'.format(
+                    caption_,
+                    label_
+                ))
+
             buf.write('\\begin{{tabular}}{{{fmt}}}\n'
                       .format(fmt=column_format))
             buf.write('\\toprule\n')
         else:
             buf.write('\\begin{{longtable}}{{{fmt}}}\n'
                       .format(fmt=column_format))
+
+            if self.caption is None and self.label is None:
+                pass
+            else:
+                if self.caption is None:
+                    pass
+                else:
+                    buf.write('\\caption{{{}}}'.format(self.caption))
+
+                if self.label is None:
+                    warnings.warn('no LaTeX label has been provided; '
+                                  'referencing with \\ref{} will not be available')
+                else:
+                    buf.write('\\label{{{}}}'.format(self.label))
+
+                # a double-backslash is required at the end of the line
+                # as discussed here:
+                # https://tex.stackexchange.com/questions/219138
+                buf.write('\\\\\n')
+
             buf.write('\\toprule\n')
 
         ilevels = self.frame.index.nlevels
@@ -167,6 +218,10 @@ class LatexFormatter(TableFormatter):
         if not self.longtable:
             buf.write('\\bottomrule\n')
             buf.write('\\end{tabular}\n')
+            if use_table_env:
+                buf.write('\\end{table}\n')
+            else:
+                pass
         else:
             buf.write('\\end{longtable}\n')
 
