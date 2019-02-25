@@ -87,6 +87,7 @@ Now every group is evaluated only a single time.
     def func(group):
         side_effects.append(group.name)
         return group
+
     df.groupby("a").apply(func)
 
 Previous Behaviour:

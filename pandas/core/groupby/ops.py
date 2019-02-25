@@ -180,8 +180,8 @@ class BaseGrouper(object):
 
             except reduction.InvalidApply:
                 # Cannot fast apply on MultiIndex (_has_complex_internals).
-                # This Exception is also raised if `f` triggers an exception but
-                # it is preferable to raise the exception in Python.
+                # This Exception is also raised if `f` triggers an exception
+                # but it is preferable to raise the exception in Python.
                 pass
             except Exception:
                 # raise this error to the caller
