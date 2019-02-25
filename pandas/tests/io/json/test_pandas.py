@@ -1227,6 +1227,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         with pytest.raises(ValueError):
             pd.read_json(dfjson, orient='table', dtype=dtype)
 
+    def test_read_json_table_convert_axes_raises(self):
+        # GH25433 GH25435
+        df = DataFrame([[1, 2], [3, 4]], index=[1., 2.], columns=['1.', '2.'])
+        dfjson = df.to_json(orient='table')
+        with pytest.raises(ValueError):
+            pd.read_json(dfjson, orient='table', convert_axes=True)
+
     @pytest.mark.parametrize('data, expected', [
         (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']),
             {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
