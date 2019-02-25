@@ -71,9 +71,6 @@ cdef:
     float64_t NEGINF = -INF
 
 
-cdef extern from "errno.h":
-    int errno
-
 cdef extern from "headers/portable.h":
     # I *think* this is here so that strcasecmp is defined on Windows
     # so we don't get
@@ -186,7 +183,7 @@ cdef extern from "parser/tokenizer.h":
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
         float64_t (*double_converter_nogil)(const char *, char **,
-                                            char, char, char, int) nogil
+                                            char, char, char, int, int *) nogil
         float64_t (*double_converter_withgil)(const char *, char **,
                                               char, char, char, int)
 
@@ -237,9 +234,9 @@ cdef extern from "parser/tokenizer.h":
                            uint64_t uint_max, int *error, char tsep) nogil
 
     float64_t xstrtod(const char *p, char **q, char decimal, char sci,
-                      char tsep, int skip_trailing) nogil
+                      char tsep, int skip_trailing, int *_error) nogil
     float64_t precise_xstrtod(const char *p, char **q, char decimal, char sci,
-                              char tsep, int skip_trailing) nogil
+                              char tsep, int skip_trailing, int *_error) nogil
     float64_t round_trip(const char *p, char **q, char decimal, char sci,
                          char tsep, int skip_trailing) nogil
 
@@ -1761,7 +1758,7 @@ cdef _try_double(parser_t *parser, int64_t col,
         assert parser.double_converter_withgil != NULL
         error = _try_double_nogil(parser,
                                   <float64_t (*)(const char *, char **,
-                                                 char, char, char, int)
+                                                 char, char, char, int, int *)
                                   nogil>parser.double_converter_withgil,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
@@ -1775,7 +1772,7 @@ cdef _try_double(parser_t *parser, int64_t col,
 cdef inline int _try_double_nogil(parser_t *parser,
                                   float64_t (*double_converter)(
                                       const char *, char **, char,
-                                      char, char, int) nogil,
+                                      char, char, int, int *) nogil,
                                   int col, int line_start, int line_end,
                                   bint na_filter, kh_str_t *na_hashset,
                                   bint use_na_flist,
@@ -1783,14 +1780,12 @@ cdef inline int _try_double_nogil(parser_t *parser,
                                   float64_t NA, float64_t *data,
                                   int *na_count) nogil:
     cdef:
-        int error,
+        int _error,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
         char *p_end
         khiter_t k, k64
-
-    global errno
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
@@ -1806,16 +1801,14 @@ cdef inline int _try_double_nogil(parser_t *parser,
                 data[0] = NA
             else:
                 data[0] = double_converter(word, &p_end, parser.decimal,
-                                           parser.sci, parser.thousands, 1)
-                if errno != 0 or p_end[0] or p_end == word:
+                                           parser.sci, parser.thousands, 1, &_error)
+                if _error != 0 or p_end == word or p_end[0]:
                     if (strcasecmp(word, cinf) == 0 or
                             strcasecmp(word, cposinf) == 0):
                         data[0] = INF
                     elif strcasecmp(word, cneginf) == 0:
                         data[0] = NEGINF
                     else:
-                        # Just return a non-zero value since
-                        # the errno is never consumed.
                         return 1
                 if use_na_flist:
                     k64 = kh_get_float64(na_flist, data[0])
@@ -1827,16 +1820,14 @@ cdef inline int _try_double_nogil(parser_t *parser,
         for i in range(lines):
             COLITER_NEXT(it, word)
             data[0] = double_converter(word, &p_end, parser.decimal,
-                                       parser.sci, parser.thousands, 1)
-            if errno != 0 or p_end[0] or p_end == word:
+                                       parser.sci, parser.thousands, 1, &_error)
+            if _error != 0 or p_end == word or p_end[0]:
                 if (strcasecmp(word, cinf) == 0 or
                         strcasecmp(word, cposinf) == 0):
                     data[0] = INF
                 elif strcasecmp(word, cneginf) == 0:
                     data[0] = NEGINF
                 else:
-                    # Just return a non-zero value since
-                    # the errno is never consumed.
                     return 1
             data += 1
 
