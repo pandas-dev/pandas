@@ -6,7 +6,7 @@ from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.frame import DataFrame
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
                               get_filepath_or_buffer)
-from pandas.io.excel._base import (ExcelFile, ExcelWriter, _BaseExcelReader,
+from pandas.io.excel._base import (ExcelWriter, _BaseExcelReader,
                                    _fill_mi_header, _maybe_convert_to_string,
                                    _maybe_convert_usecols, _pop_header_name)
 from pandas.io.excel._util import _validate_freeze_panes
@@ -481,6 +481,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         except ImportError:
             raise ImportError(err_msg)
 
+        from pandas.io.excel._base import ExcelFile
         # If filepath_or_buffer is a url, want to keep the data as bytes so
         # can't pass to get_filepath_or_buffer()
         if _is_url(filepath_or_buffer):

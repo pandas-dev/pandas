@@ -749,9 +749,11 @@ class ExcelFile(object):
     """
 
     from pandas.io.excel._xlrd import _XlrdReader
+    from pandas.io.excel._openpyxl import _OpenpyxlReader
 
     _engines = {
         'xlrd': _XlrdReader,
+        'openpyxl': _OpenpyxlReader,
     }
 
     def __init__(self, io, engine=None):
