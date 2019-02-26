@@ -570,5 +570,4 @@ class TestTableOrientReader(object):
         expected = df.copy()
         out = df.to_json(orient='table')
         result = pd.read_json(out, orient='table')
-        # TODO: When DF coercion issue (#21345) is resolved tighten type checks
         tm.assert_frame_equal(expected, result)

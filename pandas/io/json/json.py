@@ -277,20 +277,24 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
            'table' as an allowed value for the ``orient`` argument
 
     typ : type of object to recover (series or frame), default 'frame'
-    dtype : boolean or dict, default True
+    dtype : boolean or dict, default None
         If True, infer dtypes; if a dict of column to dtype, then use those;
         if False, then don't infer dtypes at all, applies only to the data.
 
+        For all ``orient`` values except ``'table'``, default is True.
+
         .. versionchanged:: 0.25.0
 
-           Not applicable with ``orient='table'``.
+           Not applicable for ``orient='table'``.
 
-    convert_axes : boolean, default True
+    convert_axes : boolean, default None
         Try to convert the axes to the proper dtypes.
 
+        For all ``orient`` values except ``'table'``, default is True.
+
         .. versionchanged:: 0.25.0
 
-           Not applicable with ``orient='table'``.
+           Not applicable for ``orient='table'``.
 
     convert_dates : boolean, default True
         List of columns to parse for dates; If True, then try to parse
@@ -423,9 +427,10 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
     if orient == 'table' and convert_axes:
         raise ValueError("cannot pass both convert_axes and orient='table'")
 
-    dtype = orient != 'table' if dtype is None else dtype
-    if convert_axes is None:
-        convert_axes = orient != 'table'
+    if dtype is None and orient != 'table':
+        dtype = True
+    if convert_axes is None and orient != 'table':
+        convert_axes = True
 
     compression = _infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
@@ -699,7 +704,7 @@ class Parser(object):
 
         # don't try to coerce, unless a force conversion
         if use_dtypes:
-            if self.dtype is False:
+            if not self.dtype:
                 return data, False
             elif self.dtype is True:
                 pass
