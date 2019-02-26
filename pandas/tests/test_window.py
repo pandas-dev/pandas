@@ -218,7 +218,7 @@ class TestApi(Base):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
         r = df.rolling(window=3)
 
-        msg = "cannot perform renaming for r1 with a nested dictionary"
+        msg = r"cannot perform renaming for (r1|r2) with a nested dictionary"
         with pytest.raises(SpecificationError, match=msg):
             r.aggregate({'r1': {'A': ['mean', 'sum']},
                          'r2': {'B': ['mean', 'sum']}})

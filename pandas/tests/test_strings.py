@@ -10,7 +10,7 @@ from numpy.random import randint
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import PY3, range, u
+from pandas.compat import PY2, PY3, range, u
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
@@ -3323,6 +3323,7 @@ class TestStringMethods(object):
 
         tm.assert_series_equal(result, exp)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_encode_decode_errors(self):
         encodeBase = Series([u('a'), u('b'), u('a\x9d')])
 
