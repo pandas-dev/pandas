@@ -46,7 +46,7 @@ cpdef bint is_np_nat(x):
     except AttributeError:
         # numpy 1.12 compat
         return str(x) == 'NaT'
-    except TypeError:
+    except (TypeError, ValueError):
         # np.isnat only defined for datetime, timedelta
         return False
 
