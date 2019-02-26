@@ -771,8 +771,10 @@ b  2""")
                 # Ensure we localize to UTC first before converting
                 # to the target timezone
                 try:
-                    result = obj._values._from_sequence(result)
-                    result = result.tz_localize('UTC').tz_convert(dtype.tz)
+                    result = obj._values._from_sequence(
+                        result, dtype='datetime64[ns, UTC]'
+                    )
+                    result = result.astype(dtype)
                 except TypeError:
                     # _try_cast was called at a point where the result
                     # was already tz-aware
