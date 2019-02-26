@@ -481,6 +481,9 @@ class _OpenpyxlReader(_BaseExcelReader):
         except ImportError:
             raise ImportError(err_msg)
 
+        from openpyxl.cell.cell import TYPE_ERROR as CELL_TYPE_ERROR
+        self.CELL_TYPE_ERROR = CELL_TYPE_ERROR
+
         from pandas.io.excel._base import ExcelFile
         # If filepath_or_buffer is a url, want to keep the data as bytes so
         # can't pass to get_filepath_or_buffer()
@@ -504,6 +507,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         else:
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
+        
 
     @property
     def sheet_names(self):
@@ -515,12 +519,11 @@ class _OpenpyxlReader(_BaseExcelReader):
     def get_sheet_by_index(self, index):
         return self.book.worksheets[index]
 
-    @staticmethod
-    def _replace_type_error_with_nan(rows):
+    def _replace_type_error_with_nan(self, rows):
         nan = float('nan')
         for row in rows:
             yield [nan
-                   if cell.data_type == cell.TYPE_ERROR
+                   if cell.data_type == self.CELL_TYPE_ERROR
                    else cell.value
                    for cell in row]
 
