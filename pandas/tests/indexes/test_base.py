@@ -12,7 +12,7 @@ import pytest
 
 from pandas._libs.tslib import Timestamp
 from pandas.compat import (
-    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip)
+    PY2, PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip)
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
@@ -491,6 +491,7 @@ class TestIndex(Base):
         with pytest.raises(ValueError, match=msg):
             Index(["a", "b", "c"], dtype=float)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_view_with_args(self):
 
         restricted = ['unicodeIndex', 'strIndex', 'catIndex', 'boolIndex',
