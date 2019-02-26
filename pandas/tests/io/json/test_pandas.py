@@ -194,7 +194,7 @@ class TestPandasContainer(object):
             else:
                 unser = unser.sort_index()
 
-            if dtype is False:
+            if not dtype:
                 check_dtype = False
 
             if not convert_axes and df.index.dtype.type == np.datetime64:
