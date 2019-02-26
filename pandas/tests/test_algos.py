@@ -228,7 +228,9 @@ class TestFactorize(object):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        pytest.raises(TypeError, algos.factorize, x17[::-1], sort=True)
+        msg = "'<' not supported between instances of 'complex' and 'complex'"
+        with pytest.raises(TypeError, match=msg):
+            algos.factorize(x17[::-1], sort=True)
 
     def test_float64_factorize(self, writable):
         data = np.array([1.0, 1e8, 1.0, 1e-8, 1e8, 1.0], dtype=np.float64)
@@ -589,9 +591,14 @@ class TestIsin(object):
 
     def test_invalid(self):
 
-        pytest.raises(TypeError, lambda: algos.isin(1, 1))
-        pytest.raises(TypeError, lambda: algos.isin(1, [1]))
-        pytest.raises(TypeError, lambda: algos.isin([1], 1))
+        msg = (r"only list-like objects are allowed to be passed to isin\(\),"
+               r" you passed a \[int\]")
+        with pytest.raises(TypeError, match=msg):
+            algos.isin(1, 1)
+        with pytest.raises(TypeError, match=msg):
+            algos.isin(1, [1])
+        with pytest.raises(TypeError, match=msg):
+            algos.isin([1], 1)
 
     def test_basic(self):
 
@@ -819,8 +826,9 @@ class TestValueCounts(object):
         result = algos.value_counts(Series([1, 1., '1']))  # object
         assert len(result) == 2
 
-        pytest.raises(TypeError, lambda s: algos.value_counts(s, bins=1),
-                      ['1', 1])
+        msg = "bins argument only works with numeric data"
+        with pytest.raises(TypeError, match=msg):
+            algos.value_counts(['1', 1], bins=1)
 
     def test_value_counts_nat(self):
         td = Series([np.timedelta64(10000), pd.NaT], dtype='timedelta64[ns]')

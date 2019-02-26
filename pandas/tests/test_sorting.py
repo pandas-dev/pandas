@@ -406,12 +406,16 @@ class TestSafeSort(object):
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
+        msg = ("'<' not supported between instances of 'datetime.datetime'"
+               " and 'int'")
         if compat.PY2:
             # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
             with warnings.catch_warnings():
-                pytest.raises(TypeError, safe_sort, arr)
+                with pytest.raises(TypeError, match=msg):
+                    safe_sort(arr)
         else:
-            pytest.raises(TypeError, safe_sort, arr)
+            with pytest.raises(TypeError, match=msg):
+                safe_sort(arr)
 
     def test_exceptions(self):
         with pytest.raises(TypeError,

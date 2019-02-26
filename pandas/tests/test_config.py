@@ -4,6 +4,7 @@ import warnings
 import pytest
 
 import pandas as pd
+from pandas.core.config import OptionError
 
 
 class TestConfig(object):
@@ -48,26 +49,35 @@ class TestConfig(object):
 
         v(12)
         v(None)
-        pytest.raises(ValueError, v, 1.1)
+        msg = r"Value must be one of None\|12"
+        with pytest.raises(ValueError, match=msg):
+            v(1.1)
 
     def test_register_option(self):
         self.cf.register_option('a', 1, 'doc')
 
         # can't register an already registered option
-        pytest.raises(KeyError, self.cf.register_option, 'a', 1, 'doc')
+        msg = "Option 'a' has already been registered"
+        with pytest.raises(OptionError, match=msg):
+            self.cf.register_option('a', 1, 'doc')
 
         # can't register an already registered option
-        pytest.raises(KeyError, self.cf.register_option, 'a.b.c.d1', 1,
-                      'doc')
-        pytest.raises(KeyError, self.cf.register_option, 'a.b.c.d2', 1,
-                      'doc')
+        msg = "Path prefix to option 'a' is already an option"
+        with pytest.raises(OptionError, match=msg):
+            self.cf.register_option('a.b.c.d1', 1, 'doc')
+        with pytest.raises(OptionError, match=msg):
+            self.cf.register_option('a.b.c.d2', 1, 'doc')
 
         # no python keywords
-        pytest.raises(ValueError, self.cf.register_option, 'for', 0)
-        pytest.raises(ValueError, self.cf.register_option, 'a.for.b', 0)
+        msg = "for is a python keyword"
+        with pytest.raises(ValueError, match=msg):
+            self.cf.register_option('for', 0)
+        with pytest.raises(ValueError, match=msg):
+            self.cf.register_option('a.for.b', 0)
         # must be valid identifier (ensure attribute access works)
-        pytest.raises(ValueError, self.cf.register_option,
-                      'Oh my Goddess!', 0)
+        msg = "oh my goddess! is not a valid identifier"
+        with pytest.raises(ValueError, match=msg):
+            self.cf.register_option('Oh my Goddess!', 0)
 
         # we can register options several levels deep
         # without predefining the intermediate steps
@@ -90,7 +100,9 @@ class TestConfig(object):
         self.cf.register_option('l', "foo")
 
         # non-existent keys raise KeyError
-        pytest.raises(KeyError, self.cf.describe_option, 'no.such.key')
+        msg = r"No such keys\(s\)"
+        with pytest.raises(OptionError, match=msg):
+            self.cf.describe_option('no.such.key')
 
         # we can get the description for any key we registered
         assert 'doc' in self.cf.describe_option('a', _print_desc=False)
@@ -122,7 +134,9 @@ class TestConfig(object):
         assert self.cf.get_option('kAnBaN') == 2
 
         # gets of non-existent keys fail
-        pytest.raises(KeyError, self.cf.get_option, 'no_such_option')
+        msg = r"No such keys\(s\): 'no_such_option'"
+        with pytest.raises(OptionError, match=msg):
+            self.cf.get_option('no_such_option')
         self.cf.deprecate_option('KanBan')
 
         assert self.cf._is_deprecated('kAnBaN')
@@ -138,7 +152,9 @@ class TestConfig(object):
         assert self.cf.get_option('b.b') is None
 
         # gets of non-existent keys fail
-        pytest.raises(KeyError, self.cf.get_option, 'no_such_option')
+        msg = r"No such keys\(s\): 'no_such_option'"
+        with pytest.raises(OptionError, match=msg):
+            self.cf.get_option('no_such_option')
 
     def test_set_option(self):
         self.cf.register_option('a', 1, 'doc')
@@ -157,16 +173,24 @@ class TestConfig(object):
         assert self.cf.get_option('b.c') == 'wurld'
         assert self.cf.get_option('b.b') == 1.1
 
-        pytest.raises(KeyError, self.cf.set_option, 'no.such.key', None)
+        msg = r"No such keys\(s\): 'no.such.key'"
+        with pytest.raises(OptionError, match=msg):
+            self.cf.set_option('no.such.key', None)
 
     def test_set_option_empty_args(self):
-        pytest.raises(ValueError, self.cf.set_option)
+        msg = "Must provide an even number of non-keyword arguments"
+        with pytest.raises(ValueError, match=msg):
+            self.cf.set_option()
 
     def test_set_option_uneven_args(self):
-        pytest.raises(ValueError, self.cf.set_option, 'a.b', 2, 'b.c')
+        msg = "Must provide an even number of non-keyword arguments"
+        with pytest.raises(ValueError, match=msg):
+            self.cf.set_option('a.b', 2, 'b.c')
 
     def test_set_option_invalid_single_argument_type(self):
-        pytest.raises(ValueError, self.cf.set_option, 2)
+        msg = "Must provide an even number of non-keyword arguments"
+        with pytest.raises(ValueError, match=msg):
+            self.cf.set_option(2)
 
     def test_set_option_multiple(self):
         self.cf.register_option('a', 1, 'doc')
@@ -187,23 +211,31 @@ class TestConfig(object):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
         self.cf.register_option('b.c', 'hullo', 'doc2',
                                 validator=self.cf.is_text)
-        pytest.raises(ValueError, self.cf.register_option, 'a.b.c.d2',
-                      'NO', 'doc', validator=self.cf.is_int)
+        msg = "Value must have type '<class 'int'>'"
+        with pytest.raises(ValueError, match=msg):
+            self.cf.register_option(
+                'a.b.c.d2', 'NO', 'doc', validator=self.cf.is_int)
 
         self.cf.set_option('a', 2)  # int is_int
         self.cf.set_option('b.c', 'wurld')  # str is_str
 
-        pytest.raises(
-            ValueError, self.cf.set_option, 'a', None)  # None not is_int
-        pytest.raises(ValueError, self.cf.set_option, 'a', 'ab')
-        pytest.raises(ValueError, self.cf.set_option, 'b.c', 1)
+        # None not is_int
+        with pytest.raises(ValueError, match=msg):
+            self.cf.set_option('a', None)
+        with pytest.raises(ValueError, match=msg):
+            self.cf.set_option('a', 'ab')
+
+        msg = r"Value must be an instance of <class 'str'>\|<class 'bytes'>"
+        with pytest.raises(ValueError, match=msg):
+            self.cf.set_option('b.c', 1)
 
         validator = self.cf.is_one_of_factory([None, self.cf.is_callable])
         self.cf.register_option('b', lambda: None, 'doc',
                                 validator=validator)
         self.cf.set_option('b', '%.1f'.format)  # Formatter is callable
         self.cf.set_option('b', None)  # Formatter is none (default)
-        pytest.raises(ValueError, self.cf.set_option, 'b', '%.1f')
+        with pytest.raises(ValueError, match="Value must be a callable"):
+            self.cf.set_option('b', '%.1f')
 
     def test_reset_option(self):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
@@ -267,8 +299,9 @@ class TestConfig(object):
             assert 'eprecated' in str(w[-1])  # we get the default message
             assert 'nifty_ver' in str(w[-1])  # with the removal_ver quoted
 
-            pytest.raises(
-                KeyError, self.cf.deprecate_option, 'a')  # can't depr. twice
+            msg = "Option 'a' has already been defined as deprecated"
+            with pytest.raises(OptionError, match=msg):
+                self.cf.deprecate_option('a')
 
         self.cf.deprecate_option('b.c', 'zounds!')
         with warnings.catch_warnings(record=True) as w:
@@ -374,12 +407,6 @@ class TestConfig(object):
     def test_attribute_access(self):
         holder = []
 
-        def f():
-            options.b = 1
-
-        def f2():
-            options.display = 1
-
         def f3(key):
             holder.append(True)
 
@@ -397,8 +424,11 @@ class TestConfig(object):
         self.cf.reset_option("a")
         assert options.a == self.cf.get_option("a", 0)
 
-        pytest.raises(KeyError, f)
-        pytest.raises(KeyError, f2)
+        msg = "You can only set the value of existing options"
+        with pytest.raises(OptionError, match=msg):
+            options.b = 1
+        with pytest.raises(OptionError, match=msg):
+            options.display = 1
 
         # make sure callback kicks when using this form of setting
         options.c = 1
@@ -429,5 +459,6 @@ class TestConfig(object):
     def test_dictwrapper_getattr(self):
         options = self.cf.options
         # GH 19789
-        pytest.raises(self.cf.OptionError, getattr, options, 'bananas')
+        with pytest.raises(OptionError, match="No such option"):
+            options.bananas
         assert not hasattr(options, 'bananas')
