@@ -233,7 +233,7 @@ Sparse
 Other
 ^^^^^
 
-- Bug in :class:`Series` and :class:`DataFrame` repr where ``np.datetime64('NaT')`` and ``np.timedelta64('NaT')`` with ``dtype=object`` would be represented as ``NaN`` (:issue:``)
+- Bug in :class:`Series` and :class:`DataFrame` repr where ``np.datetime64('NaT')`` and ``np.timedelta64('NaT')`` with ``dtype=object`` would be represented as ``NaN`` (:issue:`25445`)
 -
 -
 
