@@ -214,10 +214,10 @@ typedef struct coliter_t {
 void coliter_setup(coliter_t *self, parser_t *parser, int i, int start);
 coliter_t *coliter_new(parser_t *self, int i);
 
-#define COLITER_NEXT(iter, word)                          \
-    do {                                                  \
-        const int64_t i = *iter.line_start++ + iter.col;      \
-        word = i < *iter.line_start ? iter.words[i] : ""; \
+#define COLITER_NEXT(iter, word)                           \
+    do {                                                   \
+        const int64_t i = *iter.line_start++ + iter.col;   \
+        word = i >= *iter.line_start ? "" : iter.words[i]; \
     } while (0)
 
 parser_t *parser_new(void);
