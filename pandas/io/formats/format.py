@@ -13,6 +13,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
+from pandas._libs.tslibs.nattype import is_np_nat
 from pandas.compat import StringIO, lzip, map, u, zip
 
 from pandas.core.dtypes.common import (
@@ -942,20 +943,11 @@ class GenericArrayFormatter(object):
             self.formatter if self.formatter is not None else
             (lambda x: pprint_thing(x, escape_chars=('\t', '\r', '\n'))))
 
-        def is_nat(x):
-            # Compat for numpy 1.12. Replace with np.isnat once min dep is 1.13
-            try:
-                return np.isnat(x)
-            except AttributeError:
-                return str(x) == 'NaT'
-            except TypeError:
-                return False
-
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
                 if x is None:
                     return 'None'
-                elif x is NaT or is_nat(x):
+                elif x is NaT or is_np_nat(x):
                     return 'NaT'
                 return self.na_rep
             elif isinstance(x, PandasObject):

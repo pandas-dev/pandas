@@ -39,6 +39,18 @@ _nat_scalar_rules[Py_GE] = False
 # ----------------------------------------------------------------------
 
 
+cpdef bint is_np_nat(x):
+    """Compat check for np.datetime('NaT')"""
+    try:
+        return np.isnat(x)
+    except AttributeError:
+        # numpy 1.12 compat
+        return str(x) == 'NaT'
+    except TypeError:
+        # np.isnat only defined for datetime, timedelta
+        return False
+
+
 def _make_nan_func(func_name, doc):
     def f(*args, **kwargs):
         return np.nan
