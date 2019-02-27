@@ -30,3 +30,4 @@ dependencies:
   - pytest-mock
   - moto
   - hypothesis>=3.58.0
+  - isort

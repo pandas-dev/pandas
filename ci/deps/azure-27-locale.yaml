@@ -24,6 +24,7 @@ dependencies:
   - pytest-xdist
   - pytest-mock
   - hypothesis>=3.58.0
+  - isort
   - pip:
     - html5lib==1.0b2
     - beautifulsoup4==4.2.1
