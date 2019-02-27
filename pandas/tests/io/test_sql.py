@@ -704,27 +704,27 @@ class _TestSQLApi(PandasSQLTest):
         # Complex data type should raise error
         pytest.raises(ValueError, df.to_sql, 'test_complex', self.conn)
 
-    @pytest.mark.parametrize("index_name,if_exists,index_label,expected", [
+    @pytest.mark.parametrize("index_name,index_label,expected", [
         # no index name, defaults to 'index'
-        (None, "fail", None, "index"),
+        (None, None, "index"),
         # specifying index_label
-        (None, "replace", "other_label", "other_label"),
+        (None, "other_label", "other_label"),
         # using the index name
-        ("index_name", "replace", None, "index_name"),
+        ("index_name", None, "index_name"),
         # has index name, but specifying index_label
-        ("index_name", "replace", "other_label", "other_label"),
+        ("index_name", "other_label", "other_label"),
         # index name is integer
-        (0, "replace", None, "0"),
+        (0, None, "0"),
         # index name is None but index label is integer
-        (None, "replace", 0, "0"),
+        (None, 0, "0"),
     ])
-    def test_to_sql_index_label(self, index_name, if_exists,
+    def test_to_sql_index_label(self, index_name,
                                 index_label, expected):
         temp_frame = DataFrame({'col1': range(4)})
         temp_frame.index.name = index_name
         query = 'SELECT * FROM test_index_label'
         sql.to_sql(temp_frame, 'test_index_label', self.conn,
-                   if_exists=if_exists, index_label=index_label)
+                   index_label=index_label)
         frame = sql.read_sql_query(query, self.conn)
         assert frame.columns[0] == expected
 
