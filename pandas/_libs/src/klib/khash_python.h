@@ -84,3 +84,38 @@ KHASH_SET_INIT_PYOBJECT(pyset)
 #define kh_exist_pyset(h, k) (kh_exist(h, k))
 
 KHASH_MAP_INIT_STR(strbox, kh_pyobject_t)
+
+typedef struct {
+	kh_str_t *table;
+	char starts[256];
+} kh_str_starts_t;
+
+inline static kh_str_starts_t* kh_init_str_starts(void) {
+	kh_str_starts_t *result = (kh_str_starts_t*)calloc(1, sizeof(kh_str_starts_t));
+	result->table = kh_init_str();
+	return result;
+}
+
+inline static khint_t kh_put_str_starts_item(kh_str_starts_t* table, char* key, int* ret) {
+    khint_t result = kh_put_str(table->table, key, ret);
+	if (*ret != 0) {
+		table->starts[key[0]] = 1;
+	}
+    return result;
+}
+
+inline static khint_t kh_get_str_starts_item(kh_str_starts_t* table, char* key) {
+    char ch = *key;
+	if (table->starts[ch]) {
+		if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets) return 1;
+	}
+    return 0;
+}
+
+inline static void kh_destroy_str_starts(kh_str_starts_t* table) {//FIXME
+	kh_destroy_str(table->table);
+}
+
+inline static void kh_resize_str_starts(kh_str_starts_t* table, khint_t val) {
+	kh_resize_str(table->table, val);
+}
