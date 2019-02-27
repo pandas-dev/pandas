@@ -3,6 +3,7 @@ import re
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas.core.dtypes.common import (
     is_bool_dtype, is_categorical, is_categorical_dtype,
@@ -302,6 +303,15 @@ class TestDatetimeTZDtype(Base):
         with pytest.raises(TypeError, match="A 'tz' is required."):
             DatetimeTZDtype()
 
+    def test_tz_standardize(self):
+        # GH 24713
+        tz = pytz.timezone('US/Eastern')
+        dr = date_range('2013-01-01', periods=3, tz='US/Eastern')
+        dtype = DatetimeTZDtype('ns', dr.tz)
+        assert dtype.tz == tz
+        dtype = DatetimeTZDtype('ns', dr[0].tz)
+        assert dtype.tz == tz
+
 
 class TestPeriodDtype(Base):
 
@@ -501,10 +511,11 @@ class TestIntervalDtype(Base):
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
 
-    def test_construction_errors(self):
+    @pytest.mark.parametrize('subtype', ['xx', 'IntervalA', 'Interval[foo]'])
+    def test_construction_errors(self, subtype):
         msg = 'could not construct IntervalDtype'
         with pytest.raises(TypeError, match=msg):
-            IntervalDtype('xx')
+            IntervalDtype(subtype)
 
     def test_construction_from_string(self):
         result = IntervalDtype('interval[int64]')
@@ -513,7 +524,7 @@ class TestIntervalDtype(Base):
         assert is_dtype_equal(self.dtype, result)
 
     @pytest.mark.parametrize('string', [
-        'foo', 'foo[int64]', 0, 3.14, ('a', 'b'), None])
+        0, 3.14, ('a', 'b'), None])
     def test_construction_from_string_errors(self, string):
         # these are invalid entirely
         msg = 'a string needs to be passed, got type'
@@ -522,10 +533,12 @@ class TestIntervalDtype(Base):
             IntervalDtype.construct_from_string(string)
 
     @pytest.mark.parametrize('string', [
-        'interval[foo]'])
+        'foo', 'foo[int64]', 'IntervalA'])
     def test_construction_from_string_error_subtype(self, string):
         # this is an invalid subtype
-        msg = 'could not construct IntervalDtype'
+        msg = ("Incorrectly formatted string passed to constructor. "
+               r"Valid formats include Interval or Interval\[dtype\] "
+               "where dtype is numeric, datetime, or timedelta")
 
         with pytest.raises(TypeError, match=msg):
             IntervalDtype.construct_from_string(string)
@@ -549,6 +562,7 @@ class TestIntervalDtype(Base):
         assert not IntervalDtype.is_dtype('U')
         assert not IntervalDtype.is_dtype('S')
         assert not IntervalDtype.is_dtype('foo')
+        assert not IntervalDtype.is_dtype('IntervalA')
         assert not IntervalDtype.is_dtype(np.object_)
         assert not IntervalDtype.is_dtype(np.int64)
         assert not IntervalDtype.is_dtype(np.float64)
