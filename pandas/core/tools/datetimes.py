@@ -400,12 +400,14 @@ def _adjust_to_origin(arg, origin, unit):
 
 
 def _contains_numbers(arg):
-    """Returns True if argument is a number or is an iterable containing some numbers"""
+    """Returns True if argument is a number or an iterable containing
+    some numbers.
+    """
     # deal with case where input is a number or a list of numbers
     arr = np.asarray(arg)
     if np.issubdtype(arr.dtype, np.number):
         return True
-    elif np.isscalar(arr) and np.issubdtype(x, np.number):
+    elif np.isscalar(arr) and np.issubdtype(arr, np.number):
         return True
     else:
         # inefficient
@@ -584,7 +586,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     if origin != 'unix':
         arg = _adjust_to_origin(arg, origin, unit)
 
-    if _contains_numbers(arg) and units is None:
+    if _contains_numbers(arg) and unit is None:
         raise ValueError('When supplying numbers the unit must be specified.')
 
     tz = 'utc' if utc else None
