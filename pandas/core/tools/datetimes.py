@@ -1,5 +1,6 @@
 from datetime import datetime, time
 from functools import partial
+import numbers
 
 import numpy as np
 
@@ -398,6 +399,19 @@ def _adjust_to_origin(arg, origin, unit):
     return arg
 
 
+def _contains_numbers(arg):
+    """Returns True if argument is a number or is an iterable containing some numbers"""
+    # deal with case where input is a number or a list of numbers
+    arr = np.asarray(arg)
+    if np.issubdtype(arr.dtype, np.number):
+        return True
+    elif np.isscalar(arr) and np.issubdtype(x, np.number):
+        return True
+    else:
+        # inefficient
+        return any(isinstance(x, numbers.Number) for x in arg)
+
+
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='unix',
@@ -569,6 +583,9 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     if origin != 'unix':
         arg = _adjust_to_origin(arg, origin, unit)
+
+    if _contains_numbers(arg) and units is None:
+        raise ValueError('When supplying numbers the unit must be specified.')
 
     tz = 'utc' if utc else None
     convert_listlike = partial(_convert_listlike_datetimes, tz=tz, unit=unit,
