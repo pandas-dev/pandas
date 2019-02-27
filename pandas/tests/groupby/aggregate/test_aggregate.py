@@ -287,7 +287,7 @@ def test_multi_function_flexible_mix(df):
         result = grouped.aggregate(d)
     tm.assert_frame_equal(result, expected)
 
-<<<<<<< HEAD
+
 @pytest.mark.parametrize('as_index', [True, False])
 def test_not_as_index_agg_list():
 
@@ -320,7 +320,7 @@ def test_not_as_index_agg_list():
         expected = pd.DataFrame(array2, columns=columns)
 
     tm.assert_frame_equal(result, expected)
-=======
+
 
 def test_groupby_agg_coercing_bools():
     # issue 14873
@@ -337,4 +337,3 @@ def test_groupby_agg_coercing_bools():
     result = gp['c'].aggregate(lambda x: x.isnull().all())
     expected = Series([True, False], index=index, name='c')
     tm.assert_series_equal(result, expected)
->>>>>>> upstream/master
