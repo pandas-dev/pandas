@@ -90,7 +90,7 @@ class TestTimedeltas(object):
         expected = TimedeltaIndex([np.timedelta64(1, 'D')] * 5)
         tm.assert_index_equal(result, expected)
 
-        # Test with lists as input when box=fwithalse
+        # Test with lists as input when box=false
         expected = np.array(np.arange(3) * 1000000000, dtype='timedelta64[ns]')
         result = to_timedelta(range(3), unit='s', box=False)
         tm.assert_numpy_array_equal(expected, result)
