@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    OrderedDict, StringIO, lmap, lrange, lzip, map, range, zip)
+from pandas.compat import StringIO, lmap, lrange, lzip, map, range, zip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -1219,26 +1218,6 @@ def test_groupby_nat_exclude():
             grouped.get_group(pd.NaT)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-def test_sparse_friendly(df):
-    sdf = df[['C', 'D']].to_sparse()
-    panel = tm.makePanel()
-    tm.add_nans(panel)
-
-    def _check_work(gp):
-        gp.mean()
-        gp.agg(np.mean)
-        dict(iter(gp))
-
-    # it works!
-    _check_work(sdf.groupby(lambda x: x // 2))
-    _check_work(sdf['C'].groupby(lambda x: x // 2))
-    _check_work(sdf.groupby(df['A']))
-
-    # do this someday
-    # _check_work(panel.groupby(lambda x: x.month, axis=1))
-
-
 def test_groupby_2d_malformed():
     d = DataFrame(index=lrange(2))
     d['group'] = ['g1', 'g2']
@@ -1719,3 +1698,19 @@ def test_groupby_agg_ohlc_non_first():
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_multiindex_nat():
+    # GH 9236
+    values = [
+        (pd.NaT, 'a'),
+        (datetime(2012, 1, 2), 'a'),
+        (datetime(2012, 1, 2), 'b'),
+        (datetime(2012, 1, 3), 'a')
+    ]
+    mi = pd.MultiIndex.from_tuples(values, names=['date', None])
+    ser = pd.Series([3, 2, 2.5, 4], index=mi)
+
+    result = ser.groupby(level=1).mean()
+    expected = pd.Series([3., 2.5], index=["a", "b"])
+    assert_series_equal(result, expected)
