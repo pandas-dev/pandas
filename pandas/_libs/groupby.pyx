@@ -644,6 +644,7 @@ def _group_ohlc(floating[:, :] out,
 group_ohlc_float32 = _group_ohlc['float']
 group_ohlc_float64 = _group_ohlc['double']
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_quantile(ndarray[float64_t] out,
