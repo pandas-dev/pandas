@@ -321,7 +321,7 @@ def assert_almost_equal(left, right, check_dtype="equiv",
                 else:
                     obj = "Input"
                 assert_class_equal(left, right, obj=obj)
-        return _testing.assert_almost_equal(
+        _testing.assert_almost_equal(
             left, right,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
@@ -359,7 +359,7 @@ def _check_isinstance(left, right, cls):
 def assert_dict_equal(left, right, compare_keys=True):
 
     _check_isinstance(left, right, dict)
-    return _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
+    _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
 def randbool(size=(), p=0.5):
@@ -1166,8 +1166,6 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
     if check_dtype:
         if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
             assert_attr_equal('dtype', left, right, obj=obj)
-
-    return True
 
 
 def assert_extension_array_equal(left, right, check_dtype=True,
