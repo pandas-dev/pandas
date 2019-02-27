@@ -289,15 +289,15 @@ def test_multi_function_flexible_mix(df):
 
 
 @pytest.mark.parametrize('as_index', [True, False])
-def test_not_as_index_agg_list():
+def test_not_as_index_agg_list(as_index):
 
     # GH 25011
     array = [[3, 1, 2],
              [3, 3, 4],
              [4, 5, 6],
              [4, 7, 8]]
-    df = pd.DataFrame(array, columns=['shouldnt_be_index', 'A', 'B'])
-    groupby = df.groupby('shouldnt_be_index', as_index=as_index)
+    df = pd.DataFrame(array, columns=['index_iff_as_index', 'A', 'B'])
+    groupby = df.groupby('index_iff_as_index', as_index=as_index)
     result = groupby.agg(['min', 'max'])
 
     if as_index:
@@ -305,16 +305,16 @@ def test_not_as_index_agg_list():
         array2 = [[1, 3, 2, 4],
                   [5, 7, 6, 8]]
         columns = pd.MultiIndex(levels=[['A', 'B'],
-                                            ['min', 'max']],
-                                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
-        index = pd.Series([3, 4], name='should_be_index')
+                                        ['min', 'max']],
+                                codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        index = pd.Series([3, 4], name='index_iff_as_index')
         expected = pd.DataFrame(array2, columns=columns, index=index)
 
     else:
 
         array2 = [[3, 1, 3, 2, 4],
                   [4, 5, 7, 6, 8]]
-        columns = pd.MultiIndex(levels=[['A', 'B', 'shouldnt_be_index'],
+        columns = pd.MultiIndex(levels=[['A', 'B', 'index_iff_as_index'],
                                         ['min', 'max', '']],
                                 codes=[[2, 0, 0, 1, 1], [2, 0, 1, 0, 1]])
         expected = pd.DataFrame(array2, columns=columns)
