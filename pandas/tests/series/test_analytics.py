@@ -9,7 +9,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY35, lrange, range
+from pandas.compat import PY2, PY35, is_platform_windows, lrange, range
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -284,6 +284,17 @@ class TestSeriesAnalytics(object):
         msg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
             np.round(s, decimals=0, out=s)
+
+    @pytest.mark.xfail(
+        PY2 and is_platform_windows(), reason="numpy/numpy#7882",
+        raises=AssertionError, strict=True)
+    def test_numpy_round_nan(self):
+        # See gh-14197
+        s = Series([1.53, np.nan, 0.06])
+        with tm.assert_produces_warning(None):
+            result = s.round()
+        expected = Series([2., np.nan, 0.])
+        assert_series_equal(result, expected)
 
     def test_built_in_round(self):
         if not compat.PY3:
