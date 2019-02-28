@@ -25,6 +25,7 @@ dependencies:
   - pytest
   - pytest-xdist
   - pytest-mock
+  - isort
   - pip:
     - python-dateutil==2.5.3
     - hypothesis>=3.58.0
