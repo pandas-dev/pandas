@@ -502,12 +502,12 @@ class TestTableOrientReader(object):
     @pytest.mark.parametrize("vals", [
         {'ints': [1, 2, 3, 4]},
         {'objects': ['a', 'b', 'c', 'd']},
+        {'objects': ['1', '2', '3', '4']},
         {'date_ranges': pd.date_range('2016-01-01', freq='d', periods=4)},
         {'categoricals': pd.Series(pd.Categorical(['a', 'b', 'c', 'c']))},
         {'ordered_cats': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'],
                                                   ordered=True))},
-        pytest.param({'floats': [1., 2., 3., 4.]},
-                     marks=pytest.mark.xfail),
+        {'floats': [1., 2., 3., 4.]},
         {'floats': [1.1, 2.2, 3.3, 4.4]},
         {'bools': [True, False, False, True]}])
     def test_read_json_table_orient(self, index_nm, vals, recwarn):

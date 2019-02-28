@@ -27,5 +27,7 @@ dependencies:
   - cython>=0.28.2
   - pytest
   - pytest-xdist
+  - pytest-mock
   - moto
   - hypothesis>=3.58.0
+  - isort

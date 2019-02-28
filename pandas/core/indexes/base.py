@@ -6,9 +6,10 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
-    Timedelta, algos as libalgos, index as libindex, join as libjoin, lib,
-    tslibs)
+    algos as libalgos, index as libindex, join as libjoin, lib)
 from pandas._libs.lib import is_datetime_array
+from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
+from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
 from pandas.compat import range, set_function_name, u
 from pandas.compat.numpy import function as nv
@@ -446,7 +447,7 @@ class Index(IndexOpsMixin, PandasObject):
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
                                                      name=name, **kwargs)
-                            except tslibs.OutOfBoundsDatetime:
+                            except OutOfBoundsDatetime:
                                 pass
 
                     elif inferred.startswith('timedelta'):
@@ -664,7 +665,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Gets called after a ufunc.
         """
-        if is_bool_dtype(result):
+        result = lib.item_from_zerodim(result)
+        if is_bool_dtype(result) or lib.is_scalar(result):
             return result
 
         attrs = self._get_attributes_dict()
@@ -1827,7 +1829,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         numpy.ndarray
-            A boolean array of whether my values are NA
+            A boolean array of whether my values are NA.
 
         See Also
         --------
@@ -3164,9 +3166,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         new_index : pd.Index
-            Resulting index
+            Resulting index.
         indexer : np.ndarray or None
-            Indices of output values in original index
+            Indices of output values in original index.
 
         """
         # GH6552: preserve names when reindexing to non-named target
@@ -4325,7 +4327,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         pandas.Index
-            Shifted index
+            Shifted index.
 
         See Also
         --------
@@ -4488,7 +4490,7 @@ class Index(IndexOpsMixin, PandasObject):
             in the target are marked by -1.
         missing : ndarray of int
             An indexer into the target of the values not found.
-            These correspond to the -1 in the indexer array
+            These correspond to the -1 in the indexer array.
         """
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
@@ -4931,6 +4933,20 @@ class Index(IndexOpsMixin, PandasObject):
         if not inc:
             # If it's a reverse slice, temporarily swap bounds.
             start, end = end, start
+
+        # GH 16785: If start and end happen to be date strings with UTC offsets
+        # attempt to parse and check that the offsets are the same
+        if (isinstance(start, (compat.string_types, datetime))
+                and isinstance(end, (compat.string_types, datetime))):
+            try:
+                ts_start = Timestamp(start)
+                ts_end = Timestamp(end)
+            except (ValueError, TypeError):
+                pass
+            else:
+                if not tz_compare(ts_start.tzinfo, ts_end.tzinfo):
+                    raise ValueError("Both dates must have the "
+                                     "same UTC offset")
 
         start_slice = None
         if start is not None:

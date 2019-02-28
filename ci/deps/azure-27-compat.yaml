@@ -20,6 +20,8 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - pytest-mock
+  - isort
   - pip:
     - html5lib==1.0b2
     - beautifulsoup4==4.2.1
