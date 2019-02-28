@@ -211,7 +211,7 @@ class JSONTableWriter(FrameWriter):
         else:
             self.obj = obj.reset_index(drop=False)
         self.date_format = 'iso'
-        self.orient = 'records'
+        self.orient = 'values'
         self.index = index
 
     def _write(self, obj, orient, double_precision, ensure_ascii,
@@ -221,6 +221,11 @@ class JSONTableWriter(FrameWriter):
                                                    ensure_ascii, date_unit,
                                                    iso_dates,
                                                    default_handler)
+        # add column names
+        column_names = dumps(obj.columns)
+        if len(data) > 2:
+            column_names = column_names + ','
+        data = data[0] + column_names + data[1:]
         serialized = '{{"schema": {schema}, "data": {data}}}'.format(
                      schema=dumps(self.schema), data=data)
         return serialized
