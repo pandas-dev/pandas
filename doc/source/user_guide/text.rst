@@ -600,6 +600,7 @@ Method Summary
     :meth:`~Series.str.partition`;Equivalent to ``str.partition``
     :meth:`~Series.str.rpartition`;Equivalent to ``str.rpartition``
     :meth:`~Series.str.lower`;Equivalent to ``str.lower``
+    :meth:`~Series.str.casefold`;Equivalent to ``str.casefold``
     :meth:`~Series.str.upper`;Equivalent to ``str.upper``
     :meth:`~Series.str.find`;Equivalent to ``str.find``
     :meth:`~Series.str.rfind`;Equivalent to ``str.rfind``
