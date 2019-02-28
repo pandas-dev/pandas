@@ -3823,7 +3823,7 @@ class DataFrame(NDFrame):
         Raises
         ------
         KeyError
-            If one of the labels is not found in the selected axis.
+            If any of the labels is not found in the selected axis.
 
         See Also
         --------
