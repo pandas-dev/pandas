@@ -1017,9 +1017,7 @@ class TestDocstringClass(object):
 
     @pytest.mark.parametrize('invalid_name', ['panda', 'panda.DataFrame'])
     def test_raises_for_invalid_module_name(self, invalid_name):
-        # When an invalid module name is supplied, an ImportError should be
-        # raised, and the message should contain the user-supplied name.
-        msg = 'No module can be imported.*{}'.format(invalid_name)
+        msg = 'No module can be imported from "{}"'.format(invalid_name)
         with pytest.raises(ImportError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 
