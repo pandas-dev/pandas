@@ -435,7 +435,7 @@ reducing the turn-around time for checking your changes.
 
     # compile the reference docs for a single function
     python make.py clean
-    python make.py --single DataFrame.join
+    python make.py --single pandas.DataFrame.join
 
 For comparison, a full documentation build may take 15 minutes, but a single
 section may take 15 seconds. Subsequent builds, which only process portions
