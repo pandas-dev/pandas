@@ -104,7 +104,8 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-
+- Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
+-
 -
 
 Categorical
