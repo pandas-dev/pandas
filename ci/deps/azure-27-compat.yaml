@@ -18,7 +18,7 @@ dependencies:
   - xlsxwriter=0.5.2
   - xlwt=0.7.5
   # universal
-  - pytest
+  - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
   - isort
