@@ -208,8 +208,8 @@ class TestTableOrient(object):
 
         expected = OrderedDict([
             ('schema', schema),
-            ('data', [OrderedDict([('id', 0), ('a', 1)]),
-                      OrderedDict([('id', 1), ('a', 2)])])])
+            ('data', [['id', 'a'], [0, 1], [1, 2]])
+        ])
         assert result == expected
 
     def test_to_json(self):
@@ -243,32 +243,15 @@ class TestTableOrient(object):
             'fields': fields,
             'primaryKey': ['idx'],
         }
-        data = [
-            OrderedDict([('idx', 0), ('A', 1), ('B', 'a'),
-                         ('C', '2016-01-01T00:00:00.000Z'),
-                         ('D', 'P0DT1H0M0S'),
-                         ('E', 'a'), ('F', 'a'), ('G', 1.),
-                         ('H', '2016-01-01T06:00:00.000Z')
-                         ]),
-            OrderedDict([('idx', 1), ('A', 2), ('B', 'b'),
-                         ('C', '2016-01-02T00:00:00.000Z'),
-                         ('D', 'P0DT1H1M0S'),
-                         ('E', 'b'), ('F', 'b'), ('G', 2.),
-                         ('H', '2016-01-02T06:00:00.000Z')
-                         ]),
-            OrderedDict([('idx', 2), ('A', 3), ('B', 'c'),
-                         ('C', '2016-01-03T00:00:00.000Z'),
-                         ('D', 'P0DT1H2M0S'),
-                         ('E', 'c'), ('F', 'c'), ('G', 3.),
-                         ('H', '2016-01-03T06:00:00.000Z')
-                         ]),
-            OrderedDict([('idx', 3), ('A', 4), ('B', 'c'),
-                         ('C', '2016-01-04T00:00:00.000Z'),
-                         ('D', 'P0DT1H3M0S'),
-                         ('E', 'c'), ('F', 'c'), ('G', 4.),
-                         ('H', '2016-01-04T06:00:00.000Z')
-                         ]),
-        ]
+        data = [['idx', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+                [0, 1, 'a', '2016-01-01T00:00:00.000Z', 'P0DT1H0M0S', 'a', 'a',
+                 1., '2016-01-01T06:00:00.000Z'],
+                [1, 2, 'b', '2016-01-02T00:00:00.000Z', 'P0DT1H1M0S', 'b', 'b',
+                 2., '2016-01-02T06:00:00.000Z'],
+                [2, 3, 'c', '2016-01-03T00:00:00.000Z', 'P0DT1H2M0S', 'c', 'c',
+                 3., '2016-01-03T06:00:00.000Z'],
+                [3, 4, 'c', '2016-01-04T00:00:00.000Z', 'P0DT1H3M0S', 'c', 'c',
+                 4., '2016-01-04T06:00:00.000Z']]
         expected = OrderedDict([('schema', schema), ('data', data)])
         assert result == expected
 
@@ -277,16 +260,14 @@ class TestTableOrient(object):
         result = data.to_json(orient='table', date_format='iso')
         result = json.loads(result, object_pairs_hook=OrderedDict)
         result['schema'].pop('pandas_version')
-
-        expected = (
-            OrderedDict([('schema', {
+        expected = (OrderedDict([
+            ('schema', {
                 'fields': [{'name': 'index', 'type': 'number'},
                            {'name': 'values', 'type': 'integer'}],
                 'primaryKey': ['index']
             }),
-                ('data', [OrderedDict([('index', 1.0), ('values', 1)]),
-                          OrderedDict([('index', 2.0), ('values', 1)])])])
-        )
+            ('data', [['index', 'values'], [1.0, 1], [2.0, 1]])
+        ]))
         assert result == expected
 
     def test_to_json_period_index(self):
@@ -300,10 +281,9 @@ class TestTableOrient(object):
                   {'name': 'values', 'type': 'integer'}]
 
         schema = {'fields': fields, 'primaryKey': ['index']}
-        data = [OrderedDict([('index', '2015-11-01T00:00:00.000Z'),
-                             ('values', 1)]),
-                OrderedDict([('index', '2016-02-01T00:00:00.000Z'),
-                             ('values', 1)])]
+        data = [['index', 'values'],
+                ['2015-11-01T00:00:00.000Z', 1],
+                ['2016-02-01T00:00:00.000Z', 1]]
         expected = OrderedDict([('schema', schema), ('data', data)])
         assert result == expected
 
@@ -320,10 +300,7 @@ class TestTableOrient(object):
                                        'ordered': False},
                                       {'name': 'values', 'type': 'integer'}],
                            'primaryKey': ['index']}),
-                         ('data', [
-                             OrderedDict([('index', 'a'),
-                                          ('values', 1)]),
-                             OrderedDict([('index', 'b'), ('values', 1)])])])
+                         ('data', [['index', 'values'], ['a', 1], ['b', 1]])])
         )
         assert result == expected
 
@@ -428,9 +405,7 @@ class TestTableOrient(object):
         expected = OrderedDict([
             ('schema', {'fields': fields,
                         'primaryKey': ['idx']}),
-            ('data', [OrderedDict([('idx', 0), ('values', 'a')]),
-                      OrderedDict([('idx', 1), ('values', 'b')]),
-                      OrderedDict([('idx', 2), ('values', 'a')])])])
+            ('data', [['idx', 'values'], [0, 'a'], [1, 'b'], [2, 'a']])])
         assert result == expected
 
     @pytest.mark.parametrize('idx,nm,prop', [
