@@ -12,7 +12,7 @@ import pytest
 
 from pandas._libs.tslib import Timestamp
 from pandas.compat import (
-    PY2, PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip)
+    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip)
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
@@ -491,28 +491,23 @@ class TestIndex(Base):
         with pytest.raises(ValueError, match=msg):
             Index(["a", "b", "c"], dtype=float)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_view_with_args(self):
-
         restricted = ['unicodeIndex', 'strIndex', 'catIndex', 'boolIndex',
                       'empty']
-
-        for i in restricted:
-            ind = self.indices[i]
-
-            # with arguments
-            if i == 'catIndex':
-                msg = r"view\(\) takes 1 positional argument but 2 were given"
-            else:
-                msg = "Cannot change data-type for object array"
-            with pytest.raises(TypeError, match=msg):
-                ind.view('i8')
-
-        # these are ok
         for i in list(set(self.indices.keys()) - set(restricted)):
             ind = self.indices[i]
+            ind.view('i8')
 
-            # with arguments
+    @pytest.mark.parametrize('index_type', [
+        'unicodeIndex',
+        'strIndex',
+        pytest.param('catIndex', marks=pytest.mark.xfail(reason="gh-25464")),
+        'boolIndex',
+        'empty'])
+    def test_view_with_args_object_array_raises(self, index_type):
+        ind = self.indices[index_type]
+        msg = "Cannot change data-type for object array"
+        with pytest.raises(TypeError, match=msg):
             ind.view('i8')
 
     def test_astype(self):
