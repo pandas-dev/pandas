@@ -66,8 +66,8 @@ class _ODFReader(object):
             empty_cells = 0
             table_row = []
             for j, sheet_cell in enumerate(sheet_cells):
-                value = self.__get_cell_value(sheet_cell)
-                column_repeat = self.__get_cell_repeat(sheet_cell)
+                value = self._get_cell_value(sheet_cell)
+                column_repeat = self._get_cell_repeat(sheet_cell)
 
                 if len(sheet_cell.childNodes) == 0:
                     empty_cells += column_repeat
@@ -80,8 +80,8 @@ class _ODFReader(object):
             if max_row_len < len(table_row):
                 max_row_len = len(table_row)
 
-            row_repeat = self.__get_row_repeat(sheet_row)
-            if self.__is_empty_row(sheet_row):
+            row_repeat = self._get_row_repeat(sheet_row)
+            if self._is_empty_row(sheet_row):
                 empty_rows += row_repeat
             else:
                 if empty_rows > 0:
@@ -97,7 +97,7 @@ class _ODFReader(object):
 
         return table
 
-    def __get_row_repeat(self, row):
+    def _get_row_repeat(self, row):
         """Return number of times this row was repeated
 
         Repeating an empty row appeared to be a common way
@@ -109,14 +109,14 @@ class _ODFReader(object):
             return 1
         return int(repeat)
 
-    def __get_cell_repeat(self, cell):
+    def _get_cell_repeat(self, cell):
         from odf.namespaces import TABLENS
         repeat = cell.attributes.get((TABLENS, 'number-columns-repeated'))
         if repeat is None:
             return 1
         return int(repeat)
 
-    def __is_empty_row(self, row):
+    def _is_empty_row(self, row):
         """Helper function to find empty rows
         """
         for column in row.childNodes:
@@ -125,7 +125,7 @@ class _ODFReader(object):
 
         return True
 
-    def __get_cell_value(self, cell):
+    def _get_cell_value(self, cell):
         from odf.namespaces import OFFICENS
         cell_type = cell.attributes.get((OFFICENS, 'value-type'))
         if cell_type == 'boolean':
