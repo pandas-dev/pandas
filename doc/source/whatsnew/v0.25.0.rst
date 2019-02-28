@@ -63,6 +63,20 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
     df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
     df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
+.. _whatsnew_0250.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have updated our minimum supported versions of dependencies (:issue:`23519`).
+If installed, we now require:
+
++-----------------+-----------------+----------+
+| Package         | Minimum Version | Required |
++=================+=================+==========+
+| pytest (dev)    | 4.0.2           |          |
++-----------------+-----------------+----------+
+
 .. _whatsnew_0250.api.other:
 
 Other API Changes

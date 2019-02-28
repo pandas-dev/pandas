@@ -731,7 +731,7 @@ extensions in `numpy.testing
 
 .. note::
 
-   The earliest supported pytest version is 3.6.0.
+   The earliest supported pytest version is 4.0.2.
 
 Writing tests
 ~~~~~~~~~~~~~
