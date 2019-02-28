@@ -192,7 +192,8 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     ----------
     table_name : str
         Name of SQL table in database.
-    con : SQLAlchemy connectable or database URI str
+    con : SQLAlchemy connectable or str
+        A database URI could be provided as as str.
         SQLite DBAPI connection mode not supported.
     schema : str, default None
         Name of SQL schema in database to query (if database flavor
