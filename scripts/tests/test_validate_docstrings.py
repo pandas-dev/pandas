@@ -4,7 +4,7 @@ import string
 import textwrap
 import pytest
 import numpy as np
-import pandas
+import pandas as pd
 
 import validate_docstrings
 validate_one = validate_docstrings.validate_one
@@ -1008,9 +1008,9 @@ class TestApiItems(object):
 
 class TestDocstringClass(object):
     @pytest.mark.parametrize('name, expected_obj',
-                             [('pandas.isnull', pandas.isnull),
-                              ('pandas.DataFrame', pandas.DataFrame),
-                              ('pandas.Series.sum', pandas.Series.sum)])
+                             [('pandas.isnull', pd.isnull),
+                              ('pandas.DataFrame', pd.DataFrame),
+                              ('pandas.Series.sum', pd.Series.sum)])
     def test_resolves_class_name(self, name, expected_obj):
         d = validate_docstrings.Docstring(name)
         assert d.obj is expected_obj
