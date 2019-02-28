@@ -229,8 +229,8 @@ Groupby/Resample/Rolling
 
 - Bug in :meth:`pandas.core.resample.Resampler.agg` with a timezone aware index where ``OverflowError`` would raise when passing a list of functions (:issue:`22660`)
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.nunique` in which the names of column levels were lost (:issue:`23222`)
--
--
+- Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying a aggregation function to timezone aware data (:issue:`23683`)
+- Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
 
 
 Reshaping
