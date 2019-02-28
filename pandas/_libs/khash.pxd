@@ -58,7 +58,7 @@ cdef extern from "khash_python.h":
 
     ctypedef struct kh_str_starts_t:
         kh_str_t *table
-        char starts[256]
+        int starts[256]
 
     kh_str_starts_t* kh_init_str_starts() nogil
     khint_t kh_put_str_starts_item(kh_str_starts_t* table, char* key, int* ret) nogil

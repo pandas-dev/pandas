@@ -87,7 +87,7 @@ KHASH_MAP_INIT_STR(strbox, kh_pyobject_t)
 
 typedef struct {
 	kh_str_t *table;
-	char starts[256];
+	int starts[256];
 } kh_str_starts_t;
 
 inline static kh_str_starts_t* kh_init_str_starts(void) {
@@ -105,15 +105,16 @@ inline static khint_t kh_put_str_starts_item(kh_str_starts_t* table, char* key, 
 }
 
 inline static khint_t kh_get_str_starts_item(kh_str_starts_t* table, char* key) {
-    char ch = *key;
+    int ch = *key;
 	if (table->starts[ch]) {
 		if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets) return 1;
 	}
     return 0;
 }
 
-inline static void kh_destroy_str_starts(kh_str_starts_t* table) {//FIXME
+inline static void kh_destroy_str_starts(kh_str_starts_t* table) {
 	kh_destroy_str(table->table);
+	free(table);
 }
 
 inline static void kh_resize_str_starts(kh_str_starts_t* table, khint_t val) {

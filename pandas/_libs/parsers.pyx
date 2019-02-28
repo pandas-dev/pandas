@@ -235,9 +235,9 @@ cdef extern from "parser/tokenizer.h":
                            uint64_t uint_max, int *error, char tsep) nogil
 
     float64_t xstrtod(const char *p, char **q, char decimal, char sci,
-                      char tsep, int skip_trailing, int *_error) nogil
+                      char tsep, int skip_trailing, int *error) nogil
     float64_t precise_xstrtod(const char *p, char **q, char decimal, char sci,
-                              char tsep, int skip_trailing, int *_error) nogil
+                              char tsep, int skip_trailing, int *error) nogil
     float64_t round_trip(const char *p, char **q, char decimal, char sci,
                          char tsep, int skip_trailing) nogil
 
@@ -1777,7 +1777,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
                                   float64_t NA, float64_t *data,
                                   int *na_count) nogil:
     cdef:
-        int _error,
+        int error = 0,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
@@ -1797,8 +1797,9 @@ cdef inline int _try_double_nogil(parser_t *parser,
                 data[0] = NA
             else:
                 data[0] = double_converter(word, &p_end, parser.decimal,
-                                           parser.sci, parser.thousands, 1, &_error)
-                if _error != 0 or p_end == word or p_end[0]:
+                                           parser.sci, parser.thousands, 1, &error)
+                if error != 0 or p_end == word or p_end[0]:
+                    error = 0
                     if (strcasecmp(word, cinf) == 0 or
                             strcasecmp(word, cposinf) == 0):
                         data[0] = INF
@@ -1816,8 +1817,9 @@ cdef inline int _try_double_nogil(parser_t *parser,
         for i in range(lines):
             COLITER_NEXT(it, word)
             data[0] = double_converter(word, &p_end, parser.decimal,
-                                       parser.sci, parser.thousands, 1, &_error)
-            if _error != 0 or p_end == word or p_end[0]:
+                                       parser.sci, parser.thousands, 1, &error)
+            if error != 0 or p_end == word or p_end[0]:
+                error = 0
                 if (strcasecmp(word, cinf) == 0 or
                         strcasecmp(word, cposinf) == 0):
                     data[0] = INF
