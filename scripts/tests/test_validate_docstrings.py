@@ -1027,7 +1027,10 @@ class TestDocstringClass(object):
                              ['pandas.BadClassName',
                               'pandas.Series.bad_method_name'])
     def test_raises_for_invalid_attribute_name(self, invalid_name):
-        with pytest.raises(AttributeError):
+        name_components = invalid_name.split('.')
+        obj_name, invalid_attr_name = name_components[-2], name_components[-1]
+        msg = "'{}' has no attribute '{}'".format(obj_name, invalid_attr_name)
+        with pytest.raises(AttributeError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 
 
