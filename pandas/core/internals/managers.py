@@ -553,7 +553,7 @@ class BlockManager(PandasObject):
                 return isna(values)
             if hasattr(s, 'asm8'):
                 return _compare_or_regex_search(maybe_convert_objects(values),
-                                               getattr(s, 'asm8'), regex)
+                                                getattr(s, 'asm8'), regex)
             return _compare_or_regex_search(values, s, regex)
 
         masks = [comp(s, regex) for i, s in enumerate(src_list)]
