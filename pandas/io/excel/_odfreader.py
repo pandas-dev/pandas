@@ -7,18 +7,18 @@ class _ODFReader(object):
 
     Parameters
     ----------
-    filepath_or_stream: string, path to be parsed or
+    filepath_or_buffer: string, path to be parsed or
         an open readable stream.
     """
-    def __init__(self, filepath_or_stream):
+    def __init__(self, filepath_or_buffer):
         try:
             from odf.opendocument import load as document_load
             from odf.table import Table
         except ImportError:
             raise ImportError("Install odfpy for OpenDocument support")
 
-        self.filepath_or_stream = filepath_or_stream
-        self.document = document_load(filepath_or_stream)
+        self.filepath_or_buffer = filepath_or_buffer
+        self.document = document_load(filepath_or_buffer)
         self.tables = self.document.getElementsByType(Table)
 
     @property
