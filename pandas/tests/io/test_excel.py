@@ -2585,8 +2585,6 @@ class TestODFReader(SharedItems):
             book.get_sheet_by_index(-33)
 
     def test_read_types(self):
-        """Make sure we read ODF data types correctly
-        """
         sheet = self.get_exceldf(
             'datatypes', '.ods', header=None, engine='odf')
 
@@ -2632,8 +2630,6 @@ class TestODFReader(SharedItems):
         assert sheet.shape == (4, 4)
 
     def test_read_headers(self):
-        """Do we read headers correctly?
-        """
         sheet = self.get_exceldf(
             'headers', '.ods', 'Sheet1', index_col=0, engine='odf')
 
