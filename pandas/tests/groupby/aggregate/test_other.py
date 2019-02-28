@@ -512,3 +512,18 @@ def test_agg_list_like_func():
     expected = pd.DataFrame({'A': [str(x) for x in range(3)],
                              'B': [[str(x)] for x in range(3)]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_agg_lambda_with_timezone():
+    # GH 23683
+    df = pd.DataFrame({
+        'tag': [1, 1],
+        'date': [
+            pd.Timestamp('2018-01-01', tz='UTC'),
+            pd.Timestamp('2018-01-02', tz='UTC')]
+    })
+    result = df.groupby('tag').agg({'date': lambda e: e.head(1)})
+    expected = pd.DataFrame([pd.Timestamp('2018-01-01', tz='UTC')],
+                            index=pd.Index([1], name='tag'),
+                            columns=['date'])
+    tm.assert_frame_equal(result, expected)

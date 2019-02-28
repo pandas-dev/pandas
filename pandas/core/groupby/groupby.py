@@ -26,7 +26,8 @@ from pandas.util._validators import validate_kwargs
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    ensure_float, is_extension_array_dtype, is_numeric_dtype, is_scalar)
+    ensure_float, is_datetime64tz_dtype, is_extension_array_dtype,
+    is_numeric_dtype, is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.api.types import (
@@ -766,7 +767,21 @@ b  2""")
             dtype = obj.dtype
 
         if not is_scalar(result):
-            if is_extension_array_dtype(dtype):
+            if is_datetime64tz_dtype(dtype):
+                # GH 23683
+                # Prior results _may_ have been generated in UTC.
+                # Ensure we localize to UTC first before converting
+                # to the target timezone
+                try:
+                    result = obj._values._from_sequence(
+                        result, dtype='datetime64[ns, UTC]'
+                    )
+                    result = result.astype(dtype)
+                except TypeError:
+                    # _try_cast was called at a point where the result
+                    # was already tz-aware
+                    pass
+            elif is_extension_array_dtype(dtype):
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
                 try:
