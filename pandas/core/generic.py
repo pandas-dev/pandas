@@ -1815,7 +1815,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         ' hashed'.format(self.__class__.__name__))
 
     def __iter__(self):
-        """Iterate over infor axis"""
+        """Iterate over info axis"""
         return iter(self._info_axis)
 
     # can we get a better explanation of this?
