@@ -99,6 +99,7 @@ application to columns of a specific data type.
    DataFrameGroupBy.idxmax
    DataFrameGroupBy.idxmin
    DataFrameGroupBy.mad
+   DataFrameGroupBy.nunique
    DataFrameGroupBy.pct_change
    DataFrameGroupBy.plot
    DataFrameGroupBy.quantile
