@@ -466,6 +466,13 @@ class TestDataFrameReplace(TestData):
         assert_frame_equal(res3, expec)
         assert_frame_equal(res4, expec)
 
+    def test_regex_replace_dict_nested_non_first_character(self):
+        # GH 25259
+        df = pd.DataFrame({'first': ['abc', 'bca', 'cab']})
+        expected = pd.DataFrame({'first': ['.bc', 'bc.', 'c.b']})
+        result = df.replace({'a': '.'}, regex=True)
+        assert_frame_equal(result, expected)
+
     def test_regex_replace_dict_nested_gh4115(self):
         df = pd.DataFrame({'Type': ['Q', 'T', 'Q', 'Q', 'T'], 'tmp': 2})
         expected = DataFrame({'Type': [0, 1, 0, 0, 1], 'tmp': 2})
