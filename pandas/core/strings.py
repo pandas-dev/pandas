@@ -2998,7 +2998,7 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase',
                                     version='')
     _shared_docs['casefold'] = dict(type='be casefolded', method='casefold',
-                                    version='.. versionadded:: 0.25.0')
+                                    version='\n    .. versionadded:: 0.25.0\n')
     lower = _noarg_wrapper(lambda x: x.lower(),
                            docstring=_shared_docs['casemethods'] %
                            _shared_docs['lower'])
