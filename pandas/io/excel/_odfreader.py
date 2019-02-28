@@ -17,9 +17,6 @@ class _ODFReader(object):
         except ImportError:
             raise ImportError("Install odfpy for OpenDocument support")
 
-        self.filepath_or_stream = None
-        self.document = None
-        self.tables = None
         self.filepath_or_stream = filepath_or_stream
         self.document = document_load(filepath_or_stream)
         self.tables = self.document.getElementsByType(Table)
