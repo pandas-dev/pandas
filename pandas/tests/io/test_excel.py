@@ -2566,17 +2566,23 @@ class TestODFReader(SharedItems):
         pth = os.path.join(self.dirpath, 'datatypes.ods')
         book = _ODFReader(pth)
 
+        assert len(book.sheet_names) == 1
+        assert book.sheet_names == ['Sheet1']
+
+    def test_get_sheet_raises(self):
+        from pandas.io.excel._odfreader import _ODFReader
+
+        pth = os.path.join(self.dirpath, 'datatypes.ods')
+        book = _ODFReader(pth)
+
         with pytest.raises(ValueError):
-            book.get_sheet(3.14)
+            book._get_sheet(3.14)
 
         with pytest.raises(ValueError):
             book.get_sheet_by_name("Invalid Sheet 77")
 
         with pytest.raises(IndexError):
             book.get_sheet_by_index(-33)
-
-        assert len(book.sheet_names) == 1
-        assert book.sheet_names == ['Sheet1']
 
     def test_read_types(self):
         """Make sure we read ODF data types correctly
