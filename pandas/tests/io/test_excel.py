@@ -2604,7 +2604,7 @@ class TestODFReader(SharedItems):
              ['UBERON:0002101']])
         tm.assert_equal(sheet, expected)
 
-    def test_read_invalid_types(self):
+    def test_read_invalid_types_raises(self):
         """Make sure we throw an exception when encountering a new value-type
 
         I had to manually create an invalid ods file by directly
