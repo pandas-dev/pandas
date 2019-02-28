@@ -29,13 +29,13 @@ class _ODFReader(object):
         return [t.attributes[(TABLENS, 'name')] for t in self.tables]
 
     def get_sheet_by_index(self, index):
-        return self.__get_table(self.tables[index])
+        return self.tables[index]
 
     def get_sheet_by_name(self, name):
         i = self.sheet_names.index(name)
-        return self.__get_table(self.tables[i])
+        return self.tables[i]
 
-    def get_sheet(self, name):
+    def _get_sheet(self, name):
         """Given a sheet name or index, return the root ODF Table node
         """
         if isinstance(name, compat.string_types):
@@ -48,11 +48,12 @@ class _ODFReader(object):
                 'a string or integer'.format(type(name)))
 
     def parse(self, sheet_name=0, **kwds):
-        data = self.get_sheet(sheet_name)
+        tree = self._get_sheet(sheet_name)
+        data = self.get_sheet_data(tree, convert_float=False)
         parser = TextParser(data, **kwds)
         return parser.read()
 
-    def __get_table(self, sheet):
+    def get_sheet_data(self, sheet, convert_float):
         """Parse an ODF Table into a list of lists
         """
         from odf.table import TableCell, TableRow
