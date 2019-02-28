@@ -571,8 +571,7 @@ class TestIndex(Base):
     def test_delete_raises(self):
         index = Index(['a', 'b', 'c', 'd'], name='index')
         msg = "index 5 is out of bounds for axis 0 with size 4"
-        with pytest.raises((IndexError, ValueError), match=msg):
-            # either depending on numpy version
+        with pytest.raises(IndexError, match=msg):
             index.delete(5)
 
     def test_identical(self):
