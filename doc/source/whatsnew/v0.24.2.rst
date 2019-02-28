@@ -23,6 +23,7 @@ Fixed Regressions
 - Fixed regression in :meth:`DataFrame.all` and :meth:`DataFrame.any` where ``bool_only=True`` was ignored (:issue:`25101`)
 - Fixed issue in ``DataFrame`` construction with passing a mixed list of mixed types could segfault. (:issue:`25075`)
 - Fixed regression in :meth:`DataFrame.apply` causing ``RecursionError`` when ``dict``-like classes were passed as argument. (:issue:`25196`)
+- Fixed regression in :meth:`DataFrame.replace` where ``regex=True`` was only replacing patterns matching the start of the string (:issue:`25259`)
 
 - Fixed regression in :meth:`DataFrame.duplicated()`, where empty dataframe was not returning a boolean dtyped Series. (:issue:`25184`)
 - Fixed regression in :meth:`Series.min` and :meth:`Series.max` where ``numeric_only=True`` was ignored when the ``Series`` contained ```Categorical`` data (:issue:`25299`)
@@ -96,7 +97,7 @@ Bug Fixes
 **Other**
 
 - Bug in :meth:`Series.is_unique` where single occurrences of ``NaN`` were not considered unique (:issue:`25180`)
--
+- Bug in :func:`merge` when merging an empty ``DataFrame`` with an ``Int64`` column or a non-empty ``DataFrame`` with an ``Int64`` column that is all ``NaN`` (:issue:`25183`)
 -
 
 .. _whatsnew_0.242.contributors:
