@@ -1,4 +1,4 @@
-import pandas
+import pandas as pd
 from pandas import compat
 from pandas.io.parsers import TextParser
 
@@ -141,7 +141,7 @@ class _ODFReader(object):
             return float(cell_value)
         elif cell_type == 'date':
             cell_value = cell.attributes.get((OFFICENS, 'date-value'))
-            return pandas.Timestamp(cell_value)
+            return pd.Timestamp(cell_value)
         elif cell_type == 'time':
             cell_value = cell.attributes.get((OFFICENS, 'time-value'))
             return(pandas_isoduration_compatibility(cell_value))
@@ -160,4 +160,4 @@ def pandas_isoduration_compatibility(duration):
     """
     if duration.startswith('PT'):
         duration = 'P0DT' + duration[2:]
-    return pandas.Timedelta(duration)
+    return pd.Timedelta(duration)
