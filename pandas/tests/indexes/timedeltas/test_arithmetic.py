@@ -198,20 +198,34 @@ class TestTimedeltaIndexArithmetic(object):
         expected = pd.to_timedelta(['2 days']).values
         tm.assert_numpy_array_equal(td + other, expected)
         tm.assert_numpy_array_equal(other + td, expected)
-        pytest.raises(TypeError, lambda: td + np.array([1]))
-        pytest.raises(TypeError, lambda: np.array([1]) + td)
+        msg = r"unsupported operand type\(s\) for \+: 'Timedelta' and 'int'"
+        with pytest.raises(TypeError, match=msg):
+            td + np.array([1])
+        msg = (r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and"
+               " 'Timedelta'")
+        with pytest.raises(TypeError, match=msg):
+            np.array([1]) + td
 
         expected = pd.to_timedelta(['0 days']).values
         tm.assert_numpy_array_equal(td - other, expected)
         tm.assert_numpy_array_equal(-other + td, expected)
-        pytest.raises(TypeError, lambda: td - np.array([1]))
-        pytest.raises(TypeError, lambda: np.array([1]) - td)
+        msg = r"unsupported operand type\(s\) for -: 'Timedelta' and 'int'"
+        with pytest.raises(TypeError, match=msg):
+            td - np.array([1])
+        msg = (r"unsupported operand type\(s\) for -: 'numpy.ndarray' and"
+               " 'Timedelta'")
+        with pytest.raises(TypeError, match=msg):
+            np.array([1]) - td
 
         expected = pd.to_timedelta(['2 days']).values
         tm.assert_numpy_array_equal(td * np.array([2]), expected)
         tm.assert_numpy_array_equal(np.array([2]) * td, expected)
-        pytest.raises(TypeError, lambda: td * other)
-        pytest.raises(TypeError, lambda: other * td)
+        msg = ("ufunc multiply cannot use operands with types"
+               r" dtype\('<m8\[ns\]'\) and dtype\('<m8\[ns\]'\)")
+        with pytest.raises(TypeError, match=msg):
+            td * other
+        with pytest.raises(TypeError, match=msg):
+            other * td
 
         tm.assert_numpy_array_equal(td / other,
                                     np.array([1], dtype=np.float64))
