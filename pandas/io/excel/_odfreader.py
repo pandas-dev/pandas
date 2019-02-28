@@ -16,7 +16,7 @@ class _ODFReader(object):
             from odf.opendocument import load as document_load
             from odf.table import Table
         except ImportError:
-            raise ImportError("Install odfpy for OpenDocument support")
+            raise ImportError("Install odfpy >= 1.3 for OpenDocument support")
 
         self.filepath_or_buffer = filepath_or_buffer
         self.document = document_load(filepath_or_buffer)
