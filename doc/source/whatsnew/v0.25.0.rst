@@ -24,6 +24,7 @@ Other Enhancements
 - :meth:`DataFrame.at_time` and :meth:`Series.at_time` now support :meth:`datetime.time` objects with timezones (:issue:`24043`)
 - :meth:`DataFrame.set_index` now works for instances of ``abc.Iterator``, provided their output is of the same length as the calling frame (:issue:`22484`, :issue:`24984`)
 - :meth:`DatetimeIndex.union` now supports the ``sort`` argument. The behaviour of the sort parameter matches that of :meth:`Index.union` (:issue:`24994`)
+- :class:`DatetimeIndex` and :class:`TimedeltaIndex` now have a `mean` method (:issue:`24757`)
 -
 
 .. _whatsnew_0250.api_breaking:
