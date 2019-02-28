@@ -509,6 +509,14 @@ class TestTimedeltas(object):
             r2 = t2.round(freq)
             tm.assert_index_equal(r2, s2)
 
+        # invalid
+        for freq, msg in [
+            ('Y', '<YearEnd: month=12> is a non-fixed frequency'),
+            ('M', '<MonthEnd> is a non-fixed frequency'),
+                ('foobar', 'Invalid frequency: foobar')]:
+            with pytest.raises(ValueError, match=msg):
+                t1.round(freq)
+
     def test_contains(self):
         # Checking for any NaT-like objects
         # GH 13603
