@@ -300,8 +300,9 @@ def main():
                            metavar='FILENAME',
                            type=str,
                            default=None,
-                           help=('filename (relative to the "source" folder) of section or method name to '
-                                 'compile, e.g. "development/contributing.rst",'
+                           help=('filename (relative to the "source" folder)'
+                                 ' of section or method name to compile, e.g. '
+                                 '"development/contributing.rst",'
                                  ' "ecosystem.rst", "pandas.DataFrame.join"'))
     argparser.add_argument('--python-path',
                            type=str,
