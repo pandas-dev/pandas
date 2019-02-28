@@ -1868,6 +1868,16 @@ class TestOrigin(object):
             pd.to_datetime(1, unit='D',
                            origin=datetime(2000, 1, 1, tzinfo=pytz.utc))
 
+    @pytest.mark.parametrize("kwargs", [
+        dict(),
+        dict(format="%Y-%m-%d %H:%M:%S")
+    ])
+    def test_to_datetime_out_of_bounds_with_format_arg(self, kwargs):
+        # see gh-23830
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime("2417-10-27 00:00:00", **kwargs)
+
     def test_processing_order(self):
         # make sure we handle out-of-bounds *before*
         # constructing the dates
