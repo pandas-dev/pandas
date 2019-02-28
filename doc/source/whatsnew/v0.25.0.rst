@@ -33,6 +33,9 @@ Backwards incompatible API changes
 
 .. _whatsnew_0250.api_breaking.utc_offset_indexing:
 
+- Rich comparisons involving :class:`~Timestamp.Timestamp` return ``NotImplemented`` instead of raising ``TypeError`` with unsupported objects (:issue:`24011`)
+
+
 Indexing with date strings with UTC offsets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
