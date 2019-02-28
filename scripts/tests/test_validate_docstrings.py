@@ -1007,12 +1007,11 @@ class TestApiItems(object):
 
 
 class TestDocstringClass(object):
-    @pytest.mark.parametrize('name_and_expected_obj',
+    @pytest.mark.parametrize('name, expected_obj',
                              [('pandas.isnull', pandas.isnull),
                               ('pandas.DataFrame', pandas.DataFrame),
                               ('pandas.Series.sum', pandas.Series.sum)])
-    def test_resolves_class_name(self, name_and_expected_obj):
-        name, expected_obj = name_and_expected_obj
+    def test_resolves_class_name(self, name, expected_obj):
         d = validate_docstrings.Docstring(name)
         assert d.obj is expected_obj
 
