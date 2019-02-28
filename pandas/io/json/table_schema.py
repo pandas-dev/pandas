@@ -201,6 +201,16 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     -------
     schema : dict
 
+    Notes
+    -----
+    See `_as_json_table_type` for conversion types.
+    Timedeltas as converted to ISO8601 duration format with
+    9 decimal places after the seconds field for nanosecond precision.
+
+    Categoricals are converted to the `any` dtype, and use the `enum` field
+    constraint to list the allowed values. The `ordered` attribute is included
+    in an `ordered` field.
+
     Examples
     --------
     >>> df = pd.DataFrame(
@@ -215,16 +225,6 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     {'name': 'C', 'type': 'datetime'}],
     'pandas_version': '0.20.0',
     'primaryKey': ['idx']}
-
-    Notes
-    -----
-    See `_as_json_table_type` for conversion types.
-    Timedeltas as converted to ISO8601 duration format with
-    9 decimal places after the seconds field for nanosecond precision.
-
-    Categoricals are converted to the `any` dtype, and use the `enum` field
-    constraint to list the allowed values. The `ordered` attribute is included
-    in an `ordered` field.
     """
     if index is True:
         data = set_default_names(data)
@@ -314,12 +314,13 @@ def parse_table_schema(json, precise_float):
 
     df = df.astype(dtypes)
 
-    df = df.set_index(table['schema']['primaryKey'])
-    if len(df.index.names) == 1:
-        if df.index.name == 'index':
-            df.index.name = None
-    else:
-        df.index.names = [None if x.startswith('level_') else x for x in
-                          df.index.names]
+    if 'primaryKey' in table['schema']:
+        df = df.set_index(table['schema']['primaryKey'])
+        if len(df.index.names) == 1:
+            if df.index.name == 'index':
+                df.index.name = None
+        else:
+            df.index.names = [None if x.startswith('level_') else x for x in
+                              df.index.names]
 
     return df

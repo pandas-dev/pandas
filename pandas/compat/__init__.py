@@ -9,7 +9,6 @@ Key items to import for 2/3 compatible code:
 * lists: lrange(), lmap(), lzip(), lfilter()
 * unicode: u() [no unicode builtin in Python 3]
 * longs: long (int in Python 3)
-* callable
 * iterable method compatibility: iteritems, iterkeys, itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
 * types:
@@ -138,7 +137,9 @@ if PY3:
     reload = reload
     Hashable = collections.abc.Hashable
     Iterable = collections.abc.Iterable
+    Iterator = collections.abc.Iterator
     Mapping = collections.abc.Mapping
+    MutableMapping = collections.abc.MutableMapping
     Sequence = collections.abc.Sequence
     Sized = collections.abc.Sized
     Set = collections.abc.Set
@@ -199,7 +200,9 @@ else:
 
     Hashable = collections.Hashable
     Iterable = collections.Iterable
+    Iterator = collections.Iterator
     Mapping = collections.Mapping
+    MutableMapping = collections.MutableMapping
     Sequence = collections.Sequence
     Sized = collections.Sized
     Set = collections.Set
@@ -376,14 +379,6 @@ else:
 string_and_binary_types = string_types + (binary_type,)
 
 
-try:
-    # callable reintroduced in later versions of Python
-    callable = callable
-except NameError:
-    def callable(obj):
-        return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
-
-
 if PY2:
     # In PY2 functools.wraps doesn't provide metadata pytest needs to generate
     # decorated tests using parametrization. See pytest GH issue #2782
@@ -408,8 +403,6 @@ def add_metaclass(metaclass):
             orig_vars.pop(slots_var)
         return metaclass(cls.__name__, cls.__bases__, orig_vars)
     return wrapper
-
-from collections import OrderedDict, Counter
 
 if PY3:
     def raise_with_traceback(exc, traceback=Ellipsis):

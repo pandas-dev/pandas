@@ -3,7 +3,8 @@
 v.0.7.3 (April 12, 2012)
 ------------------------
 
-{{ common_imports }}
+{{ header }}
+
 
 This is a minor release from 0.7.2 and fixes many minor bugs and adds a number
 of nice new features. There are also a couple of API changes to note; these
@@ -22,7 +23,7 @@ New features
 .. code-block:: python
 
    from pandas.tools.plotting import scatter_matrix
-   scatter_matrix(df, alpha=0.2)
+   scatter_matrix(df, alpha=0.2)        # noqa F821
 
 .. image:: ../savefig/scatter_matrix_kde.png
    :width: 5in
@@ -32,14 +33,14 @@ New features
 
 .. code-block:: python
 
-   df.plot(kind='bar', stacked=True)
+   df.plot(kind='bar', stacked=True)    # noqa F821
 
 .. image:: ../savefig/bar_plot_stacked_ex.png
    :width: 4in
 
 .. code-block:: python
 
-   df.plot(kind='barh', stacked=True)
+   df.plot(kind='barh', stacked=True)   # noqa F821
 
 .. image:: ../savefig/barh_plot_stacked_ex.png
    :width: 4in
@@ -57,7 +58,7 @@ Reverted some changes to how NA values (represented typically as ``NaN`` or
 
 .. ipython:: python
 
-   series = Series(['Steve', np.nan, 'Joe'])
+   series = pd.Series(['Steve', np.nan, 'Joe'])
    series == 'Steve'
    series != 'Steve'
 
@@ -87,15 +88,15 @@ Series, to be more consistent with the ``groupby`` behavior with DataFrame:
 .. ipython:: python
     :okwarning:
 
-    df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-                        'foo', 'bar', 'foo', 'foo'],
-                    'B' : ['one', 'one', 'two', 'three',
-                           'two', 'two', 'one', 'three'],
-                    'C' : np.random.randn(8), 'D' : np.random.randn(8)})
+    df = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                             'foo', 'bar', 'foo', 'foo'],
+                       'B': ['one', 'one', 'two', 'three',
+                             'two', 'two', 'one', 'three'],
+                       'C': np.random.randn(8), 'D': np.random.randn(8)})
     df
     grouped = df.groupby('A')['C']
     grouped.describe()
-    grouped.apply(lambda x: x.sort_values()[-2:]) # top 2 values
+    grouped.apply(lambda x: x.sort_values()[-2:])    # top 2 values
 
 
 .. _whatsnew_0.7.3.contributors:

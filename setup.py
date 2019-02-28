@@ -10,6 +10,8 @@ import os
 from os.path import join as pjoin
 
 import pkg_resources
+import platform
+from distutils.sysconfig import get_config_var
 import sys
 import shutil
 from distutils.version import LooseVersion
@@ -22,6 +24,10 @@ cmdclass = versioneer.get_cmdclass()
 
 def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
+
+
+def is_platform_mac():
+    return sys.platform == 'darwin'
 
 
 min_numpy_ver = '1.12.0'
@@ -395,20 +401,6 @@ class DummyBuildSrc(Command):
 cmdclass.update({'clean': CleanCommand,
                  'build': build})
 
-try:
-    from wheel.bdist_wheel import bdist_wheel
-
-    class BdistWheel(bdist_wheel):
-        def get_tag(self):
-            tag = bdist_wheel.get_tag(self)
-            repl = 'macosx_10_6_intel.macosx_10_9_intel.macosx_10_9_x86_64'
-            if tag[2] == 'macosx_10_6_intel':
-                tag = (tag[0], tag[1], repl)
-            return tag
-    cmdclass['bdist_wheel'] = BdistWheel
-except ImportError:
-    pass
-
 if cython:
     suffix = '.pyx'
     cmdclass['build_ext'] = CheckingBuildExt
@@ -434,6 +426,19 @@ else:
     extra_compile_args = ['-Wno-unused-function']
 
 
+# For mac, ensure extensions are built for macos 10.9 when compiling on a
+# 10.9 system or above, overriding distuitls behaviour which is to target
+# the version that python was built for. This may be overridden by setting
+# MACOSX_DEPLOYMENT_TARGET before calling setup.py
+if is_platform_mac():
+    if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
+        current_system = LooseVersion(platform.mac_ver()[0])
+        python_target = LooseVersion(
+            get_config_var('MACOSX_DEPLOYMENT_TARGET'))
+        if python_target < '10.9' and current_system >= '10.9':
+            os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
+
+
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
 # with `--with-cython-coverage`enabled
@@ -445,12 +450,18 @@ if '--with-cython-coverage' in sys.argv:
 # Note: if not using `cythonize`, coverage can be enabled by
 # pinning `ext.cython_directives = directives` to each ext in extensions.
 # github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
-directives = {'linetrace': False}
+directives = {'linetrace': False,
+              'language_level': 2}
 macros = []
 if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py
     directives['linetrace'] = True
     macros = [('CYTHON_TRACE', '1'), ('CYTHON_TRACE_NOGIL', '1')]
+
+# in numpy>=1.16.0, silence build warnings about deprecated API usage
+#  we can't do anything about these warnings because they stem from
+#  cython+numpy version mismatches.
+macros.append(('NPY_NO_DEPRECATED_API', '0'))
 
 
 # ----------------------------------------------------------------------
@@ -486,7 +497,7 @@ def srcpath(name=None, suffix='.pyx', subdir='src'):
 
 
 common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
-ts_include = ['pandas/_libs/tslibs/src']
+ts_include = ['pandas/_libs/tslibs/src', 'pandas/_libs/tslibs']
 
 
 lib_depends = ['pandas/_libs/src/parse_helper.h',

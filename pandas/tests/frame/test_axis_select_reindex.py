@@ -2,24 +2,21 @@
 
 from __future__ import print_function
 
-import pytest
-
 from datetime import datetime
 
-from numpy import random
 import numpy as np
+import pytest
 
 from pandas.compat import lrange, lzip, u
-from pandas import (compat, DataFrame, Series, Index, MultiIndex, Categorical,
-                    date_range, isna)
-import pandas as pd
-
-from pandas.util.testing import assert_frame_equal
-
 from pandas.errors import PerformanceWarning
-import pandas.util.testing as tm
 
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, MultiIndex, Series, compat, date_range,
+    isna)
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal
 
 
 class TestDataFrameSelectReindex(TestData):
@@ -291,7 +288,7 @@ class TestDataFrameSelectReindex(TestData):
         assert_frame_equal(left, right)
 
     def test_reindex_name_remains(self):
-        s = Series(random.rand(10))
+        s = Series(np.random.rand(10))
         df = DataFrame(s, index=np.arange(len(s)))
         i = Series(np.arange(10), name='iname')
 
@@ -301,7 +298,7 @@ class TestDataFrameSelectReindex(TestData):
         df = df.reindex(Index(np.arange(10), name='tmpname'))
         assert df.index.name == 'tmpname'
 
-        s = Series(random.rand(10))
+        s = Series(np.random.rand(10))
         df = DataFrame(s.T, index=np.arange(len(s)))
         i = Series(np.arange(10), name='iname')
         df = df.reindex(columns=i)
@@ -719,7 +716,7 @@ class TestDataFrameSelectReindex(TestData):
 
         result = df1 - df1.mean()
         expected = df2 - df2.mean()
-        assert_frame_equal(result.astype('f8'), expected)
+        assert_frame_equal(result, expected)
 
     def test_align_multiindex(self):
         # GH 10665

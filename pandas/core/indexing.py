@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.indexing import _NDFrameIndexerBase
+from pandas._libs.lib import item_from_zerodim
 import pandas.compat as compat
 from pandas.compat import range, zip
 from pandas.errors import AbstractMethodError
@@ -347,10 +348,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         # must have all defined axes if we have a scalar
                         # or a list-like on the non-info axes if we have a
                         # list-like
-                        len_non_info_axes = [
+                        len_non_info_axes = (
                             len(_ax) for _i, _ax in enumerate(self.obj.axes)
                             if _i != i
-                        ]
+                        )
                         if any(not l for l in len_non_info_axes):
                             if not is_list_like_indexer(value):
                                 raise ValueError("cannot set a frame with no "
@@ -581,7 +582,12 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         setter(item, v)
 
                 # we have an equal len ndarray/convertible to our labels
-                elif np.array(value).ndim == 2:
+                # hasattr first, to avoid coercing to ndarray without reason.
+                # But we may be relying on the ndarray coercion to check ndim.
+                # Why not just convert to an ndarray earlier on if needed?
+                elif ((hasattr(value, 'ndim') and value.ndim == 2)
+                      or (not hasattr(value, 'ndim') and
+                          np.array(value).ndim) == 2):
 
                     # note that this coerces the dtype if we are mixed
                     # GH 7551
@@ -1400,17 +1406,16 @@ class _IXIndexer(_NDFrameIndexer):
     See more at :ref:`Advanced Indexing <advanced>`.
     """
 
+    _ix_deprecation_warning = textwrap.dedent("""
+        .ix is deprecated. Please use
+        .loc for label based indexing or
+        .iloc for positional indexing
+
+        See the documentation here:
+        http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated""")  # noqa
+
     def __init__(self, name, obj):
-
-        _ix_deprecation_warning = textwrap.dedent("""
-            .ix is deprecated. Please use
-            .loc for label based indexing or
-            .iloc for positional indexing
-
-            See the documentation here:
-            http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated""")  # noqa
-
-        warnings.warn(_ix_deprecation_warning,
+        warnings.warn(self._ix_deprecation_warning,
                       DeprecationWarning, stacklevel=2)
         super(_IXIndexer, self).__init__(name, obj)
 
@@ -1558,6 +1563,11 @@ class _LocIndexer(_LocationIndexer):
       or Panel) and that returns valid output for indexing (one of the above)
 
     See more at :ref:`Selection by Label <indexing.label>`
+
+    Raises
+    ------
+    KeyError:
+        when any items are not found
 
     See Also
     --------
@@ -1765,11 +1775,6 @@ class _LocIndexer(_LocationIndexer):
     sidewinder mark i          10      20
                mark ii          1       4
     viper      mark ii          7       1
-
-    Raises
-    ------
-    KeyError:
-        when any items are not found
     """
 
     _valid_types = ("labels (MUST BE IN THE INDEX), slices of labels (BOTH "
@@ -1852,6 +1857,7 @@ class _LocIndexer(_LocationIndexer):
         if axis is None:
             axis = self.axis or 0
 
+        key = item_from_zerodim(key)
         if is_iterator(key):
             key = list(key)
 
@@ -2218,6 +2224,7 @@ class _iLocIndexer(_LocationIndexer):
 
         # a single integer
         else:
+            key = item_from_zerodim(key)
             if not is_integer(key):
                 raise TypeError("Cannot index by location index with a "
                                 "non-integer key")
@@ -2291,6 +2298,11 @@ class _AtIndexer(_ScalarAccessIndexer):
     ``at`` if you only need to get or set a single value in a DataFrame
     or Series.
 
+    Raises
+    ------
+    KeyError
+        When label does not exist in DataFrame
+
     See Also
     --------
     DataFrame.iat : Access a single value for a row/column pair by integer
@@ -2323,11 +2335,6 @@ class _AtIndexer(_ScalarAccessIndexer):
 
     >>> df.loc[5].at['B']
     4
-
-    Raises
-    ------
-    KeyError
-        When label does not exist in DataFrame
     """
 
     _takeable = False
@@ -2362,6 +2369,11 @@ class _iAtIndexer(_ScalarAccessIndexer):
     ``iat`` if you only need to get or set a single value in a DataFrame
     or Series.
 
+    Raises
+    ------
+    IndexError
+        When integer position is out of bounds
+
     See Also
     --------
     DataFrame.at : Access a single value for a row/column label pair.
@@ -2393,11 +2405,6 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
     >>> df.loc[0].iat[1]
     2
-
-    Raises
-    ------
-    IndexError
-        When integer position is out of bounds
     """
 
     _takeable = True
@@ -2415,7 +2422,8 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
 
 def length_of_indexer(indexer, target=None):
-    """return the length of a single non-tuple indexer which could be a slice
+    """
+    return the length of a single non-tuple indexer which could be a slice
     """
     if target is not None and isinstance(indexer, slice):
         target_len = len(target)
@@ -2443,7 +2451,8 @@ def length_of_indexer(indexer, target=None):
 
 
 def convert_to_index_sliceable(obj, key):
-    """if we are index sliceable, then return my slicer, otherwise return None
+    """
+    if we are index sliceable, then return my slicer, otherwise return None
     """
     idx = obj.index
     if isinstance(key, slice):
@@ -2493,7 +2502,8 @@ def check_bool_indexer(ax, key):
 
 
 def check_setitem_lengths(indexer, value, values):
-    """Validate that value and indexer are the same length.
+    """
+    Validate that value and indexer are the same length.
 
     An special-case is allowed for when the indexer is a boolean array
     and the number of true values equals the length of ``value``. In
@@ -2536,7 +2546,8 @@ def check_setitem_lengths(indexer, value, values):
 
 
 def convert_missing_indexer(indexer):
-    """ reverse convert a missing indexer, which is a dict
+    """
+    reverse convert a missing indexer, which is a dict
     return the scalar indexer and a boolean indicating if we converted
     """
 
@@ -2553,7 +2564,9 @@ def convert_missing_indexer(indexer):
 
 
 def convert_from_missing_indexer_tuple(indexer, axes):
-    """ create a filtered indexer that doesn't have any missing indexers """
+    """
+    create a filtered indexer that doesn't have any missing indexers
+    """
 
     def get_indexer(_i, _idx):
         return (axes[_i].get_loc(_idx['key']) if isinstance(_idx, dict) else
@@ -2607,7 +2620,8 @@ def maybe_convert_indices(indices, n):
 
 
 def validate_indices(indices, n):
-    """Perform bounds-checking for an indexer.
+    """
+    Perform bounds-checking for an indexer.
 
     -1 is allowed for indicating missing values.
 
@@ -2725,8 +2739,10 @@ def _non_reducing_slice(slice_):
         slice_ = IndexSlice[:, slice_]
 
     def pred(part):
-        # true when slice does *not* reduce
-        return isinstance(part, slice) or is_list_like(part)
+        # true when slice does *not* reduce, False when part is a tuple,
+        # i.e. MultiIndex slice
+        return ((isinstance(part, slice) or is_list_like(part))
+                and not isinstance(part, tuple))
 
     if not is_list_like(slice_):
         if not isinstance(slice_, slice):

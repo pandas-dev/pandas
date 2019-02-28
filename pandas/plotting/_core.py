@@ -39,7 +39,7 @@ except ImportError:
 else:
     _HAS_MPL = True
     if get_option('plotting.matplotlib.register_converters'):
-        _converter.register(explicit=True)
+        _converter.register(explicit=False)
 
 
 def _raise_if_no_mpl():
@@ -1945,7 +1945,6 @@ _shared_docs['plot'] = """
       for bar plot layout by `position` keyword.
       From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
     %(klass_note)s
-
     """
 
 
@@ -2051,9 +2050,17 @@ _shared_docs['boxplot'] = """
 
     Returns
     -------
-    result :
+    result
+        See Notes.
 
-        The return type depends on the `return_type` parameter:
+    See Also
+    --------
+    Series.plot.hist: Make a histogram.
+    matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
+
+    Notes
+    -----
+    The return type depends on the `return_type` parameter:
 
         * 'axes' : object of class matplotlib.axes.Axes
         * 'dict' : dict of matplotlib.lines.Line2D objects
@@ -2064,13 +2071,6 @@ _shared_docs['boxplot'] = """
         * :class:`~pandas.Series`
         * :class:`~numpy.array` (for ``return_type = None``)
 
-    See Also
-    --------
-    Series.plot.hist: Make a histogram.
-    matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
-
-    Notes
-    -----
     Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines
     making up the boxes, caps, fliers, medians, and whiskers is returned.
@@ -2172,7 +2172,9 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         column = 'x'
 
     def _get_colors():
-        return _get_standard_colors(color=kwds.get('color'), num_colors=1)
+        #  num_colors=3 is required as method maybe_color_bp takes the colors
+        #  in positions 0 and 2.
+        return _get_standard_colors(color=kwds.get('color'), num_colors=3)
 
     def maybe_color_bp(bp):
         if 'color' not in kwds:
@@ -2418,7 +2420,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                 xrot=None, ylabelsize=None, yrot=None, figsize=None,
                 bins=10, **kwds):
     """
-    Draw histogram of the input series using matplotlib
+    Draw histogram of the input series using matplotlib.
 
     Parameters
     ----------
@@ -2547,7 +2549,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     Parameters
     ----------
     grouped : Grouped DataFrame
-    subplots :
+    subplots : bool
         * ``False`` - no subplots will be used
         * ``True`` - create a subplot for each group
     column : column name or list of names, or vector
@@ -2706,7 +2708,8 @@ class BasePlotMethods(PandasObject):
 
 
 class SeriesPlotMethods(BasePlotMethods):
-    """Series plotting accessor and method
+    """
+    Series plotting accessor and method.
 
     Examples
     --------
@@ -2739,7 +2742,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def line(self, **kwds):
         """
-        Line plot
+        Line plot.
 
         Parameters
         ----------
@@ -2764,7 +2767,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def bar(self, **kwds):
         """
-        Vertical bar plot
+        Vertical bar plot.
 
         Parameters
         ----------
@@ -2780,7 +2783,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def barh(self, **kwds):
         """
-        Horizontal bar plot
+        Horizontal bar plot.
 
         Parameters
         ----------
@@ -2796,7 +2799,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def box(self, **kwds):
         """
-        Boxplot
+        Boxplot.
 
         Parameters
         ----------
@@ -2812,7 +2815,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def hist(self, bins=10, **kwds):
         """
-        Histogram
+        Histogram.
 
         Parameters
         ----------
@@ -2873,7 +2876,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def area(self, **kwds):
         """
-        Area plot
+        Area plot.
 
         Parameters
         ----------
@@ -2889,7 +2892,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def pie(self, **kwds):
         """
-        Pie chart
+        Pie chart.
 
         Parameters
         ----------
@@ -2955,7 +2958,7 @@ class FramePlotMethods(BasePlotMethods):
             Either the location or the label of the columns to be used.
             By default, it will use the remaining DataFrame numeric columns.
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3020,7 +3023,7 @@ class FramePlotMethods(BasePlotMethods):
             all numerical columns are used.
         **kwds
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3030,8 +3033,8 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        pandas.DataFrame.plot.barh : Horizontal bar plot.
-        pandas.DataFrame.plot : Make plots of a DataFrame.
+        DataFrame.plot.barh : Horizontal bar plot.
+        DataFrame.plot : Make plots of a DataFrame.
         matplotlib.pyplot.bar : Make a bar plot with matplotlib.
 
         Examples
@@ -3102,7 +3105,7 @@ class FramePlotMethods(BasePlotMethods):
         y : label or position, default All numeric columns in dataframe
             Columns to be plotted from the DataFrame.
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3110,8 +3113,8 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        pandas.DataFrame.plot.bar: Vertical bar plot.
-        pandas.DataFrame.plot : Make plots of DataFrame using matplotlib.
+        DataFrame.plot.bar: Vertical bar plot.
+        DataFrame.plot : Make plots of DataFrame using matplotlib.
         matplotlib.axes.Axes.bar : Plot a vertical bar plot using matplotlib.
 
         Examples
@@ -3189,7 +3192,7 @@ class FramePlotMethods(BasePlotMethods):
             Column in the DataFrame to group by.
         **kwds : optional
             Additional keywords are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3197,8 +3200,8 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        pandas.DataFrame.boxplot: Another method to draw a box plot.
-        pandas.Series.plot.box: Draw a box plot from a Series object.
+        DataFrame.boxplot: Another method to draw a box plot.
+        Series.plot.box: Draw a box plot from a Series object.
         matplotlib.pyplot.boxplot: Draw a box plot in matplotlib.
 
         Examples
@@ -3232,7 +3235,7 @@ class FramePlotMethods(BasePlotMethods):
             Number of histogram bins to be used.
         **kwds
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3325,12 +3328,12 @@ class FramePlotMethods(BasePlotMethods):
             unstacked plot.
         **kwds : optional
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
         matplotlib.axes.Axes or numpy.ndarray
-            Area plot, or array of area plots if subplots is True
+            Area plot, or array of area plots if subplots is True.
 
         See Also
         --------
@@ -3396,7 +3399,7 @@ class FramePlotMethods(BasePlotMethods):
             Label or position of the column to plot.
             If not provided, ``subplots=True`` argument must be passed.
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3472,7 +3475,7 @@ class FramePlotMethods(BasePlotMethods):
               marker points according to a colormap.
 
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3546,7 +3549,7 @@ class FramePlotMethods(BasePlotMethods):
             y-direction.
         **kwds
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------

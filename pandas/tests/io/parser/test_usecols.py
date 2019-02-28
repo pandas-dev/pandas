@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import PY2, StringIO
+from pandas.compat import StringIO
 
 from pandas import DataFrame, Index
 import pandas.util.testing as tm
@@ -387,8 +387,7 @@ def test_usecols_with_mixed_encoding_strings(all_parsers, usecols):
 
 @pytest.mark.parametrize("usecols", [
     ["あああ", "いい"],
-    pytest.param([u"あああ", u"いい"], marks=pytest.mark.skipif(
-        PY2, reason="Buggy behavior: see gh-13253"))
+    [u"あああ", u"いい"]
 ])
 def test_usecols_with_multi_byte_characters(all_parsers, usecols):
     data = """あああ,いい,ううう,ええええ
@@ -520,7 +519,9 @@ def test_raises_on_usecols_names_mismatch(all_parsers, usecols,
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="see gh-16469: buggy behavior")
+@pytest.mark.xfail(
+    reason="see gh-16469: works on the C engine but not the Python engine",
+    strict=False)
 @pytest.mark.parametrize("usecols", [["A", "C"], [0, 2]])
 def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
     data = "a,b,c,d\n1,2,3,4\n5,6,7,8"

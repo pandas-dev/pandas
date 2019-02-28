@@ -46,6 +46,8 @@ class Constructor(object):
         self.values_some_nan = list(np.tile(self.categories + [np.nan], N))
         self.values_all_nan = [np.nan] * len(self.values)
         self.values_all_int8 = np.ones(N, 'int8')
+        self.categorical = pd.Categorical(self.values, self.categories)
+        self.series = pd.Series(self.categorical)
 
     def time_regular(self):
         pd.Categorical(self.values, self.categories)
@@ -68,6 +70,12 @@ class Constructor(object):
     def time_from_codes_all_int8(self):
         pd.Categorical.from_codes(self.values_all_int8, self.categories)
 
+    def time_existing_categorical(self):
+        pd.Categorical(self.categorical)
+
+    def time_existing_series(self):
+        pd.Categorical(self.series)
+
 
 class ValueCounts(object):
 
@@ -76,7 +84,8 @@ class ValueCounts(object):
 
     def setup(self, dropna):
         n = 5 * 10**5
-        arr = ['s%04d' % i for i in np.random.randint(0, n // 10, size=n)]
+        arr = ['s{:04d}'.format(i) for i in np.random.randint(0, n // 10,
+                                                              size=n)]
         self.ts = pd.Series(arr).astype('category')
 
     def time_value_counts(self, dropna):
@@ -96,11 +105,24 @@ class SetCategories(object):
 
     def setup(self):
         n = 5 * 10**5
-        arr = ['s%04d' % i for i in np.random.randint(0, n // 10, size=n)]
+        arr = ['s{:04d}'.format(i) for i in np.random.randint(0, n // 10,
+                                                              size=n)]
         self.ts = pd.Series(arr).astype('category')
 
     def time_set_categories(self):
         self.ts.cat.set_categories(self.ts.cat.categories[::2])
+
+
+class RemoveCategories(object):
+
+    def setup(self):
+        n = 5 * 10**5
+        arr = ['s{:04d}'.format(i) for i in np.random.randint(0, n // 10,
+                                                              size=n)]
+        self.ts = pd.Series(arr).astype('category')
+
+    def time_remove_categories(self):
+        self.ts.cat.remove_categories(self.ts.cat.categories[::2])
 
 
 class Rank(object):
@@ -151,7 +173,7 @@ class Isin(object):
         sample_size = 100
         arr = [i for i in np.random.randint(0, n // 10, size=n)]
         if dtype == 'object':
-            arr = ['s%04d' % i for i in arr]
+            arr = ['s{:04d}'.format(i) for i in arr]
         self.sample = np.random.choice(arr, sample_size)
         self.series = pd.Series(arr).astype('category')
 
@@ -201,12 +223,19 @@ class CategoricalSlicing(object):
 
     def setup(self, index):
         N = 10**6
-        values = list('a' * N + 'b' * N + 'c' * N)
-        indices = {
-            'monotonic_incr': pd.Categorical(values),
-            'monotonic_decr': pd.Categorical(reversed(values)),
-            'non_monotonic': pd.Categorical(list('abc' * N))}
-        self.data = indices[index]
+        categories = ['a', 'b', 'c']
+        values = [0] * N + [1] * N + [2] * N
+        if index == 'monotonic_incr':
+            self.data = pd.Categorical.from_codes(values,
+                                                  categories=categories)
+        elif index == 'monotonic_decr':
+            self.data = pd.Categorical.from_codes(list(reversed(values)),
+                                                  categories=categories)
+        elif index == 'non_monotonic':
+            self.data = pd.Categorical.from_codes([0, 1, 2] * N,
+                                                  categories=categories)
+        else:
+            raise ValueError('Invalid index param: {}'.format(index))
 
         self.scalar = 10000
         self.list = list(range(10000))
@@ -226,6 +255,42 @@ class CategoricalSlicing(object):
 
     def time_getitem_bool_array(self, index):
         self.data[self.data == self.cat_scalar]
+
+
+class Indexing(object):
+
+    def setup(self):
+        N = 10**5
+        self.index = pd.CategoricalIndex(range(N), range(N))
+        self.series = pd.Series(range(N), index=self.index).sort_index()
+        self.category = self.index[500]
+
+    def time_get_loc(self):
+        self.index.get_loc(self.category)
+
+    def time_shape(self):
+        self.index.shape
+
+    def time_shallow_copy(self):
+        self.index._shallow_copy()
+
+    def time_align(self):
+        pd.DataFrame({'a': self.series, 'b': self.series[:500]})
+
+    def time_intersection(self):
+        self.index[:750].intersection(self.index[250:])
+
+    def time_unique(self):
+        self.index.unique()
+
+    def time_reindex(self):
+        self.index.reindex(self.index[:500])
+
+    def time_reindex_missing(self):
+        self.index.reindex(['a', 'b', 'c', 'd'])
+
+    def time_sort_values(self):
+        self.index.sort_values(ascending=False)
 
 
 from .pandas_vb_common import setup  # noqa: F401

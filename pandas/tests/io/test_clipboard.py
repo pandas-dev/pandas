@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-from numpy.random import randint
 from textwrap import dedent
 
+import numpy as np
+from numpy.random import randint
 import pytest
-import pandas as pd
 
-from pandas import DataFrame
-from pandas import read_clipboard
-from pandas import get_option
 from pandas.compat import PY2
+
+import pandas as pd
+from pandas import DataFrame, get_option, read_clipboard
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
-from pandas.io.clipboard.exceptions import PyperclipException
 
+from pandas.io.clipboard import clipboard_get, clipboard_set
+from pandas.io.clipboard.exceptions import PyperclipException
 
 try:
     DataFrame({'A': [1, 2]}).to_clipboard()
@@ -31,8 +31,8 @@ def build_kwargs(sep, excel):
     return kwargs
 
 
-@pytest.fixture(params=['delims', 'utf8', 'string', 'long', 'nonascii',
-                        'colwidth', 'mixed', 'float', 'int'])
+@pytest.fixture(params=['delims', 'utf8', 'utf16', 'string', 'long',
+                        'nonascii', 'colwidth', 'mixed', 'float', 'int'])
 def df(request):
     data_type = request.param
 
@@ -42,6 +42,10 @@ def df(request):
     elif data_type == 'utf8':
         return pd.DataFrame({'a': ['µasd', 'Ωœ∑´'],
                              'b': ['øπ∆˚¬', 'œ∑´®']})
+    elif data_type == 'utf16':
+        return pd.DataFrame({'a': ['\U0001f44d\U0001f44d',
+                                   '\U0001f44d\U0001f44d'],
+                             'b': ['abc', 'def']})
     elif data_type == 'string':
         return mkdf(5, 3, c_idx_type='s', r_idx_type='i',
                     c_idx_names=[None], r_idx_names=[None])
@@ -76,7 +80,7 @@ def df(request):
 
 
 @pytest.fixture
-def mock_clipboard(mock, request):
+def mock_clipboard(monkeypatch, request):
     """Fixture mocking clipboard IO.
 
     This mocks pandas.io.clipboard.clipboard_get and
@@ -98,12 +102,10 @@ def mock_clipboard(mock, request):
     def _mock_get():
         return _mock_data[request.node.name]
 
-    mock_set = mock.patch("pandas.io.clipboard.clipboard_set",
-                          side_effect=_mock_set)
-    mock_get = mock.patch("pandas.io.clipboard.clipboard_get",
-                          side_effect=_mock_get)
-    with mock_get, mock_set:
-        yield _mock_data
+    monkeypatch.setattr("pandas.io.clipboard.clipboard_set", _mock_set)
+    monkeypatch.setattr("pandas.io.clipboard.clipboard_get", _mock_get)
+
+    yield _mock_data
 
 
 @pytest.mark.clipboard
@@ -228,3 +230,14 @@ class TestClipboard(object):
     @pytest.mark.parametrize('enc', ['UTF-8', 'utf-8', 'utf8'])
     def test_round_trip_valid_encodings(self, enc, df):
         self.check_round_trip_frame(df, encoding=enc)
+
+
+@pytest.mark.single
+@pytest.mark.clipboard
+@pytest.mark.skipif(not _DEPS_INSTALLED,
+                    reason="clipboard primitives not installed")
+@pytest.mark.parametrize('data', [u'\U0001f44d...', u'Ωœ∑´...', 'abcd...'])
+def test_raw_roundtrip(data):
+    # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
+    clipboard_set(data)
+    assert data == clipboard_get()

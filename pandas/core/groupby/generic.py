@@ -1,5 +1,5 @@
 """
-Define the SeriesGroupBy, DataFrameGroupBy, and PanelGroupBy
+Define the SeriesGroupBy and DataFrameGroupBy
 classes that hold the groupby interfaces (and some implementations).
 
 These are user facing as the result of the ``df.groupby(...)`` operations,
@@ -39,7 +39,6 @@ from pandas.core.groupby.groupby import (
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
-from pandas.core.panel import Panel
 from pandas.core.series import Series
 
 from pandas.plotting._core import boxplot_frame_groupby
@@ -634,6 +633,10 @@ class NDFrameGroupBy(GroupBy):
         dropna : Drop groups that do not pass the filter. True by default;
             if False, groups that evaluate False are filled with NaNs.
 
+        Returns
+        -------
+        filtered : DataFrame
+
         Notes
         -----
         Each subframe is endowed the attribute 'name' in case you need to know
@@ -651,10 +654,6 @@ class NDFrameGroupBy(GroupBy):
         1  bar  2  5.0
         3  bar  4  1.0
         5  bar  6  9.0
-
-        Returns
-        -------
-        filtered : DataFrame
         """
 
         indices = []
@@ -706,10 +705,17 @@ class SeriesGroupBy(GroupBy):
         else:
             return self._selection
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.Series.groupby.apply
+    pandas.Series.groupby.transform
+    pandas.Series.aggregate
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
-
     >>> s = pd.Series([1, 2, 3, 4])
 
     >>> s
@@ -733,13 +739,6 @@ class SeriesGroupBy(GroupBy):
        min  max
     1    1    2
     2    3    4
-
-    See Also
-    --------
-    pandas.Series.groupby.apply
-    pandas.Series.groupby.transform
-    pandas.Series.aggregate
-
     """)
 
     @Appender(_apply_docs['template']
@@ -748,11 +747,12 @@ class SeriesGroupBy(GroupBy):
     def apply(self, func, *args, **kwargs):
         return super(SeriesGroupBy, self).apply(func, *args, **kwargs)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        klass='Series',
-        versionadded='',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='Series',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, func_or_funcs, *args, **kwargs):
         _level = kwargs.pop('_level', None)
         if isinstance(func_or_funcs, compat.string_types):
@@ -964,7 +964,7 @@ class SeriesGroupBy(GroupBy):
 
         ids, _, ngroup = self.grouper.group_info
         cast = self._transform_should_cast(func_nm)
-        out = algorithms.take_1d(func().values, ids)
+        out = algorithms.take_1d(func()._values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
@@ -1020,7 +1020,9 @@ class SeriesGroupBy(GroupBy):
         return filtered
 
     def nunique(self, dropna=True):
-        """ Returns number of unique elements in the group """
+        """
+        Return number of unique elements in the group.
+        """
         ids, _, _ = self.grouper.group_info
 
         val = self.obj.get_values()
@@ -1112,7 +1114,7 @@ class SeriesGroupBy(GroupBy):
             lab = cut(Series(val), bins, include_lowest=True)
             lev = lab.cat.categories
             lab = lev.take(lab.cat.codes)
-            llab = lambda lab, inc: lab[inc]._multiindex.labels[-1]
+            llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab):
             # TODO: should we do this inside II?
@@ -1163,7 +1165,7 @@ class SeriesGroupBy(GroupBy):
             out, labels[-1] = out[sorter], labels[-1][sorter]
 
         if bins is None:
-            mi = MultiIndex(levels=levels, labels=labels, names=names,
+            mi = MultiIndex(levels=levels, codes=labels, names=names,
                             verify_integrity=False)
 
             if is_integer_dtype(out):
@@ -1191,10 +1193,10 @@ class SeriesGroupBy(GroupBy):
             out, left[-1] = out[sorter], left[-1][sorter]
 
         # build the multi-index w/ full levels
-        labels = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
-        labels.append(left[-1])
+        codes = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
+        codes.append(left[-1])
 
-        mi = MultiIndex(levels=levels, labels=labels, names=names,
+        mi = MultiIndex(levels=levels, codes=codes, names=names,
                         verify_integrity=False)
 
         if is_integer_dtype(out):
@@ -1221,9 +1223,15 @@ class SeriesGroupBy(GroupBy):
         return func(self)
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
-        """Calculate percent change of each value to previous entry in group"""
+        """Calcuate pct_change of each value to previous entry in group"""
+        # TODO: Remove this conditional when #23918 is fixed
+        if freq:
+            return self.apply(lambda x: x.pct_change(periods=periods,
+                                                     fill_method=fill_method,
+                                                     limit=limit, freq=freq))
         filled = getattr(self, fill_method)(limit=limit)
-        shifted = filled.shift(periods=periods, freq=freq)
+        fill_grp = filled.groupby(self.grouper.labels)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
 
         return (filled / shifted) - 1
 
@@ -1240,7 +1248,15 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     _block_agg_axis = 1
 
-    _agg_doc = dedent("""
+    _agg_see_also_doc = dedent("""
+    See Also
+    --------
+    pandas.DataFrame.groupby.apply
+    pandas.DataFrame.groupby.transform
+    pandas.DataFrame.aggregate
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
 
@@ -1288,19 +1304,14 @@ class DataFrameGroupBy(NDFrameGroupBy):
     A
     1   1   2  0.590716
     2   3   4  0.704907
-
-    See Also
-    --------
-    pandas.DataFrame.groupby.apply
-    pandas.DataFrame.groupby.transform
-    pandas.DataFrame.aggregate
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        klass='DataFrame',
-        versionadded='',
-        axis=''))
+    @Substitution(see_also=_agg_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='',
+                  klass='DataFrame',
+                  axis='')
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
         return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
 
@@ -1326,7 +1337,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
             return DataFrameGroupBy(subset, self.grouper, selection=key,
                                     grouper=self.grouper,
                                     exclusions=self.exclusions,
-                                    as_index=self.as_index)
+                                    as_index=self.as_index,
+                                    observed=self.observed)
         elif ndim == 1:
             if subset is None:
                 subset = self.obj[key]
@@ -1450,8 +1462,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
         # reindex `result`, and then reset the in-axis grouper columns.
 
         # Select in-axis groupers
-        in_axis_grps = [(i, ping.name) for (i, ping)
-                        in enumerate(groupings) if ping.in_axis]
+        in_axis_grps = ((i, ping.name) for (i, ping)
+                        in enumerate(groupings) if ping.in_axis)
         g_nums, g_names = zip(*in_axis_grps)
 
         result = result.drop(labels=list(g_names), axis=1)
@@ -1573,90 +1585,3 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return results
 
     boxplot = boxplot_frame_groupby
-
-
-class PanelGroupBy(NDFrameGroupBy):
-
-    def aggregate(self, arg, *args, **kwargs):
-        return super(PanelGroupBy, self).aggregate(arg, *args, **kwargs)
-
-    agg = aggregate
-
-    def _iterate_slices(self):
-        if self.axis == 0:
-            # kludge
-            if self._selection is None:
-                slice_axis = self._selected_obj.items
-            else:
-                slice_axis = self._selection_list
-            slicer = lambda x: self._selected_obj[x]
-        else:
-            raise NotImplementedError("axis other than 0 is not supported")
-
-        for val in slice_axis:
-            if val in self.exclusions:
-                continue
-
-            yield val, slicer(val)
-
-    def aggregate(self, arg, *args, **kwargs):
-        """
-        Aggregate using input function or dict of {column -> function}
-
-        Parameters
-        ----------
-        arg : function or dict
-            Function to use for aggregating groups. If a function, must either
-            work when passed a Panel or when passed to Panel.apply. If
-            pass a dict, the keys must be DataFrame column names
-
-        Returns
-        -------
-        aggregated : Panel
-        """
-        if isinstance(arg, compat.string_types):
-            return getattr(self, arg)(*args, **kwargs)
-
-        return self._aggregate_generic(arg, *args, **kwargs)
-
-    def _wrap_generic_output(self, result, obj):
-        if self.axis == 0:
-            new_axes = list(obj.axes)
-            new_axes[0] = self.grouper.result_index
-        elif self.axis == 1:
-            x, y, z = obj.axes
-            new_axes = [self.grouper.result_index, z, x]
-        else:
-            x, y, z = obj.axes
-            new_axes = [self.grouper.result_index, y, x]
-
-        result = Panel._from_axes(result, new_axes)
-
-        if self.axis == 1:
-            result = result.swapaxes(0, 1).swapaxes(0, 2)
-        elif self.axis == 2:
-            result = result.swapaxes(0, 2)
-
-        return result
-
-    def _aggregate_item_by_item(self, func, *args, **kwargs):
-        obj = self._obj_with_exclusions
-        result = {}
-
-        if self.axis > 0:
-            for item in obj:
-                try:
-                    itemg = DataFrameGroupBy(obj[item],
-                                             axis=self.axis - 1,
-                                             grouper=self.grouper)
-                    result[item] = itemg.aggregate(func, *args, **kwargs)
-                except (ValueError, TypeError):
-                    raise
-            new_axes = list(obj.axes)
-            new_axes[self.axis] = self.grouper.result_index
-            return Panel._from_axes(result, new_axes)
-        else:
-            raise ValueError("axis value must be greater than 0")
-
-    def _wrap_aggregated_output(self, output, names=None):
-        raise AbstractMethodError(self)

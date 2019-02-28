@@ -24,7 +24,6 @@ class BaseSetitemTests(BaseExtensionTests):
         assert data[0] == original[1]
         assert data[1] == original[0]
 
-    @pytest.mark.parametrize('as_array', [True, False])
     def test_setitem_sequence_mismatched_length_raises(self, data, as_array):
         ser = pd.Series(data)
         original = ser.copy()
@@ -166,10 +165,24 @@ class BaseSetitemTests(BaseExtensionTests):
         with pytest.raises(ValueError, match=xpr):
             df['B'] = data[:5]
 
-    @pytest.mark.xfail(reason="GH#20441: setitem on extension types.",
-                       strict=True)
+    @pytest.mark.xfail(reason="GH#20441: setitem on extension types.")
     def test_setitem_tuple_index(self, data):
         s = pd.Series(data[:2], index=[(0, 0), (0, 1)])
         expected = pd.Series(data.take([1, 1]), index=s.index)
         s[(0, 1)] = data[1]
         self.assert_series_equal(s, expected)
+
+    def test_setitem_slice_mismatch_length_raises(self, data):
+        arr = data[:5]
+        with pytest.raises(ValueError):
+            arr[:1] = arr[:2]
+
+    def test_setitem_slice_array(self, data):
+        arr = data[:5].copy()
+        arr[:5] = data[-5:]
+        self.assert_extension_array_equal(arr, data[-5:])
+
+    def test_setitem_scalar_key_sequence_raise(self, data):
+        arr = data[:5].copy()
+        with pytest.raises(ValueError):
+            arr[0] = arr[[0, 1]]

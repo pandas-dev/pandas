@@ -1,22 +1,23 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101,W0141
-from warnings import catch_warnings, simplefilter
 import datetime
 import itertools
+from warnings import catch_warnings, simplefilter
+
+import numpy as np
+from numpy.random import randn
 import pytest
 import pytz
 
-from numpy.random import randn
-import numpy as np
-
-from pandas.core.index import Index, MultiIndex
-from pandas import (Panel, DataFrame, Series, isna, Timestamp)
+from pandas.compat import (
+    StringIO, lrange, lzip, product as cart_product, range, u, zip)
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
-import pandas.util.testing as tm
-from pandas.compat import (range, lrange, StringIO, lzip, u, product as
-                           cart_product, zip)
+
 import pandas as pd
+from pandas import DataFrame, Series, Timestamp, isna
+from pandas.core.index import Index, MultiIndex
+import pandas.util.testing as tm
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
                  'std', 'var', 'sem']
@@ -28,14 +29,14 @@ class Base(object):
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                                   'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                  [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
         self.frame = DataFrame(np.random.randn(10, 3), index=index,
                                columns=Index(['A', 'B', 'C'], name='exp'))
 
         self.single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                                       labels=[[0, 1, 2, 3]], names=['first'])
+                                       codes=[[0, 1, 2, 3]], names=['first'])
 
         # create test series object
         arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
@@ -46,8 +47,7 @@ class Base(object):
         s[3] = np.NaN
         self.series = s
 
-        tm.N = 100
-        self.tdf = tm.makeTimeDataFrame()
+        self.tdf = tm.makeTimeDataFrame(100)
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
                                      lambda x: x.day]).sum()
 
@@ -292,7 +292,7 @@ class TestMultiLevel(Base):
     def test_count_level_series(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz'], ['one', 'two',
                                                            'three', 'four']],
-                           labels=[[0, 0, 0, 2, 2], [2, 0, 1, 1, 2]])
+                           codes=[[0, 0, 0, 2, 2], [2, 0, 1, 1, 2]])
 
         s = Series(np.random.randn(len(index)), index=index)
 
@@ -410,7 +410,7 @@ class TestMultiLevel(Base):
                        columns=['1st', '2nd', '3rd'])
 
         mi = MultiIndex(levels=[['a', 'b'], ['1st', '2nd', '3rd']],
-                        labels=[np.tile(
+                        codes=[np.tile(
                             np.arange(2).repeat(3), 2), np.tile(
                                 np.arange(3), 4)])
 
@@ -418,7 +418,7 @@ class TestMultiLevel(Base):
         check(left, right)
 
         df.columns = ['1st', '2nd', '1st']
-        mi = MultiIndex(levels=[['a', 'b'], ['1st', '2nd']], labels=[np.tile(
+        mi = MultiIndex(levels=[['a', 'b'], ['1st', '2nd']], codes=[np.tile(
             np.arange(2).repeat(3), 2), np.tile(
                 [0, 1, 0], 4)])
 
@@ -428,7 +428,7 @@ class TestMultiLevel(Base):
         tpls = ('a', 2), ('b', 1), ('a', 1), ('b', 2)
         df.index = MultiIndex.from_tuples(tpls)
         mi = MultiIndex(levels=[['a', 'b'], [1, 2], ['1st', '2nd']],
-                        labels=[np.tile(
+                        codes=[np.tile(
                             np.arange(2).repeat(3), 2), np.repeat(
                                 [1, 0, 1], [3, 6, 3]), np.tile(
                                     [0, 1, 0], 4)])
@@ -708,9 +708,9 @@ Thur,Lunch,Yes,51.51,17"""
     def test_unstack_unobserved_keys(self):
         # related to #2278 refactoring
         levels = [[0, 1], [0, 1, 2, 3]]
-        labels = [[0, 0, 1, 1], [0, 2, 0, 2]]
+        codes = [[0, 0, 1, 1], [0, 2, 0, 2]]
 
-        index = MultiIndex(levels, labels)
+        index = MultiIndex(levels, codes)
 
         df = DataFrame(np.random.randn(4, 2), index=index)
 
@@ -719,6 +719,14 @@ Thur,Lunch,Yes,51.51,17"""
 
         recons = result.stack()
         tm.assert_frame_equal(recons, df)
+
+    @pytest.mark.slow
+    def test_unstack_number_of_levels_larger_than_int32(self):
+        # GH 20601
+        df = DataFrame(np.random.randn(2 ** 16, 2),
+                       index=[np.arange(2 ** 16), np.arange(2 ** 16)])
+        with pytest.raises(ValueError, match='int32 overflow'):
+            df.unstack()
 
     def test_stack_order_with_unsorted_levels(self):
         # GH 16323
@@ -736,8 +744,8 @@ Thur,Lunch,Yes,51.51,17"""
 
             for levels in levels_poss:
                 columns = MultiIndex(levels=levels,
-                                     labels=[[0, 0, 1, 1],
-                                             [0, 1, 0, 1]])
+                                     codes=[[0, 0, 1, 1],
+                                            [0, 1, 0, 1]])
                 df = DataFrame(columns=columns, data=[range(4)])
                 for stack_lev in range(2):
                     df_stacked = df.stack(stack_lev)
@@ -746,14 +754,14 @@ Thur,Lunch,Yes,51.51,17"""
 
         # check multi-row case
         mi = MultiIndex(levels=[["A", "C", "B"], ["B", "A", "C"]],
-                        labels=[np.repeat(range(3), 3), np.tile(range(3), 3)])
+                        codes=[np.repeat(range(3), 3), np.tile(range(3), 3)])
         df = DataFrame(columns=mi, index=range(5),
                        data=np.arange(5 * len(mi)).reshape(5, -1))
         manual_compare_stacked(df, df.stack(0), 0, 1)
 
     def test_groupby_corner(self):
         midx = MultiIndex(levels=[['foo'], ['bar'], ['baz']],
-                          labels=[[0], [0], [0]],
+                          codes=[[0], [0], [0]],
                           names=['one', 'two', 'three'])
         df = DataFrame([np.random.rand(4)], columns=['a', 'b', 'c', 'd'],
                        index=midx)
@@ -809,18 +817,6 @@ Thur,Lunch,Yes,51.51,17"""
         swapped = ft.swaplevel('first', 'second', axis=1)
         exp = self.frame.swaplevel('first', 'second').T
         tm.assert_frame_equal(swapped, exp)
-
-    def test_swaplevel_panel(self):
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
-            expected = panel.copy()
-            expected.major_axis = expected.major_axis.swaplevel(0, 1)
-
-            for result in (panel.swaplevel(axis='major'),
-                           panel.swaplevel(0, axis='major'),
-                           panel.swaplevel(0, 1, axis='major')):
-                tm.assert_panel_equal(result, expected)
 
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(['month', 'day', 'year'])
@@ -1040,11 +1036,11 @@ Thur,Lunch,Yes,51.51,17"""
         assert unstacked['F', 1].dtype == np.float64
 
     def test_unstack_group_index_overflow(self):
-        labels = np.tile(np.arange(500), 2)
+        codes = np.tile(np.arange(500), 2)
         level = np.arange(500)
 
         index = MultiIndex(levels=[level] * 8 + [[0, 1]],
-                           labels=[labels] * 8 + [np.arange(2).repeat(500)])
+                           codes=[codes] * 8 + [np.arange(2).repeat(500)])
 
         s = Series(np.arange(1000), index=index)
         result = s.unstack()
@@ -1056,7 +1052,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # put it at beginning
         index = MultiIndex(levels=[[0, 1]] + [level] * 8,
-                           labels=[np.arange(2).repeat(500)] + [labels] * 8)
+                           codes=[np.arange(2).repeat(500)] + [codes] * 8)
 
         s = Series(np.arange(1000), index=index)
         result = s.unstack(0)
@@ -1064,8 +1060,8 @@ Thur,Lunch,Yes,51.51,17"""
 
         # put it in middle
         index = MultiIndex(levels=[level] * 4 + [[0, 1]] + [level] * 4,
-                           labels=([labels] * 4 + [np.arange(2).repeat(500)] +
-                                   [labels] * 4))
+                           codes=([codes] * 4 + [np.arange(2).repeat(500)] +
+                                  [codes] * 4))
 
         s = Series(np.arange(1000), index=index)
         result = s.unstack(4)
@@ -1111,7 +1107,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_level_with_tuples(self):
         index = MultiIndex(levels=[[('foo', 'bar', 0), ('foo', 'baz', 0), (
             'foo', 'qux', 0)], [0, 1]],
-            labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
+            codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
 
         series = Series(np.random.randn(6), index=index)
         frame = DataFrame(np.random.randn(6, 4), index=index)
@@ -1134,7 +1130,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         index = MultiIndex(levels=[[('foo', 'bar'), ('foo', 'baz'), (
             'foo', 'qux')], [0, 1]],
-            labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
+            codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
 
         series = Series(np.random.randn(6), index=index)
         frame = DataFrame(np.random.randn(6, 4), index=index)
@@ -1306,8 +1302,8 @@ Thur,Lunch,Yes,51.51,17"""
     def test_unicode_repr_issues(self):
         levels = [Index([u('a/\u03c3'), u('b/\u03c3'), u('c/\u03c3')]),
                   Index([0, 1])]
-        labels = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
-        index = MultiIndex(levels=levels, labels=labels)
+        codes = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
+        index = MultiIndex(levels=levels, codes=codes)
 
         repr(index.levels)
 
@@ -1379,8 +1375,8 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_tuples_have_na(self):
         index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
-                           labels=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0,
-                                                               1, 2, 3]])
+                           codes=[[1, 1, 1, 1, -1, 0, 0, 0],
+                                  [0, 1, 2, 3, 0, 1, 2, 3]])
 
         assert isna(index[4][0])
         assert isna(index.values[4][0])
@@ -1827,15 +1823,15 @@ class TestSorted(Base):
         levels = [[0, 1], [0, 1, 2]]
 
         index = MultiIndex(levels=levels,
-                           labels=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]])
+                           codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]])
         assert index.is_lexsorted()
 
         index = MultiIndex(levels=levels,
-                           labels=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]])
+                           codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]])
         assert not index.is_lexsorted()
 
         index = MultiIndex(levels=levels,
-                           labels=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]])
+                           codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]])
         assert not index.is_lexsorted()
         assert index.lexsort_depth == 0
 
@@ -1865,7 +1861,7 @@ class TestSorted(Base):
         result = DataFrame(
             [[1, 1], [2, 2], [1, 1], [2, 2]],
             index=MultiIndex(levels=[[0.5, 0.8], ['a', 'b']],
-                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+                             codes=[[0, 0, 1, 1], [0, 1, 0, 1]]))
         result = result.sort_index()
         assert result.index.is_lexsorted()
 
@@ -1903,7 +1899,7 @@ class TestSorted(Base):
         df = DataFrame({'value': [1, 2, 3, 4]},
                        index=MultiIndex(
                            levels=[['a', 'b'], ['bb', 'aa']],
-                           labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+                           codes=[[0, 0, 1, 1], [0, 1, 0, 1]]))
         assert df.index.is_lexsorted()
         assert not df.index.is_monotonic
 
@@ -1911,7 +1907,7 @@ class TestSorted(Base):
         expected = DataFrame({'value': [2, 1, 4, 3]},
                              index=MultiIndex(
                                  levels=[['a', 'b'], ['aa', 'bb']],
-                                 labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+                                 codes=[[0, 0, 1, 1], [0, 1, 0, 1]]))
         result = df.sort_index()
         assert result.index.is_lexsorted()
         assert result.index.is_monotonic

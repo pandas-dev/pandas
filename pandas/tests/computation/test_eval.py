@@ -1,36 +1,34 @@
-import warnings
-import operator
+from distutils.version import LooseVersion
 from itertools import product
+import operator
+import warnings
 
+import numpy as np
+from numpy.random import rand, randint, randn
 import pytest
 
-from numpy.random import randn, rand, randint
-import numpy as np
+from pandas.compat import PY3, reduce
+from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
+
 import pandas as pd
-from pandas.errors import PerformanceWarning
-from pandas import DataFrame, Series, Panel, date_range
-from pandas.util.testing import makeCustomDataframe as mkdf
-
+from pandas import DataFrame, Panel, Series, date_range
 from pandas.core.computation import pytables
-from pandas.core.computation.engines import _engines, NumExprClobberingError
-from pandas.core.computation.expr import PythonExprVisitor, PandasExprVisitor
-from pandas.core.computation.expressions import (
-    _USE_NUMEXPR, _NUMEXPR_INSTALLED)
-from pandas.core.computation.ops import (
-    _binary_ops_dict,
-    _special_case_arith_ops_syms,
-    _arith_ops_syms, _bool_ops_syms,
-    _unary_math_ops, _binary_math_ops)
-
+from pandas.core.computation.check import _NUMEXPR_VERSION
+from pandas.core.computation.engines import NumExprClobberingError, _engines
 import pandas.core.computation.expr as expr
+from pandas.core.computation.expr import PandasExprVisitor, PythonExprVisitor
+from pandas.core.computation.expressions import (
+    _NUMEXPR_INSTALLED, _USE_NUMEXPR)
+from pandas.core.computation.ops import (
+    _arith_ops_syms, _binary_math_ops, _binary_ops_dict, _bool_ops_syms,
+    _special_case_arith_ops_syms, _unary_math_ops)
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.util.testing import (assert_frame_equal, randbool,
-                                 assert_numpy_array_equal, assert_series_equal,
-                                 assert_produces_warning)
-from pandas.compat import PY3, reduce
+from pandas.util.testing import (
+    assert_frame_equal, assert_numpy_array_equal, assert_produces_warning,
+    assert_series_equal, makeCustomDataframe as mkdf, randbool)
 
 _series_frame_incompatible = _bool_ops_syms
 _scalar_skip = 'in', 'not in'
@@ -52,6 +50,25 @@ def engine(request):
 @pytest.fixture(params=expr._parsers)
 def parser(request):
     return request.param
+
+
+@pytest.fixture
+def ne_lt_2_6_9():
+    if _NUMEXPR_INSTALLED and _NUMEXPR_VERSION >= LooseVersion('2.6.9'):
+        pytest.skip("numexpr is >= 2.6.9")
+    return 'numexpr'
+
+
+@pytest.fixture
+def unary_fns_for_ne():
+    if _NUMEXPR_INSTALLED:
+        if _NUMEXPR_VERSION >= LooseVersion('2.6.9'):
+            return _unary_math_ops
+        else:
+            return tuple(x for x in _unary_math_ops
+                         if x not in ("floor", "ceil"))
+    else:
+        pytest.skip("numexpr is not present")
 
 
 def engine_has_neg_frac(engine):
@@ -1622,15 +1639,25 @@ class TestMathPythonPython(object):
         kwargs['level'] = kwargs.pop('level', 0) + 1
         return pd.eval(*args, **kwargs)
 
-    def test_unary_functions(self):
+    def test_unary_functions(self, unary_fns_for_ne):
         df = DataFrame({'a': np.random.randn(10)})
         a = df.a
-        for fn in self.unary_fns:
+
+        for fn in unary_fns_for_ne:
             expr = "{0}(a)".format(fn)
             got = self.eval(expr)
             with np.errstate(all='ignore'):
                 expect = getattr(np, fn)(a)
             tm.assert_series_equal(got, expect, check_names=False)
+
+    def test_floor_and_ceil_functions_raise_error(self,
+                                                  ne_lt_2_6_9,
+                                                  unary_fns_for_ne):
+        for fn in ('floor', 'ceil'):
+            msg = "\"{0}\" is not a supported function".format(fn)
+            with pytest.raises(ValueError, match=msg):
+                expr = "{0}(100)".format(fn)
+                self.eval(expr)
 
     def test_binary_functions(self):
         df = DataFrame({'a': np.random.randn(10),

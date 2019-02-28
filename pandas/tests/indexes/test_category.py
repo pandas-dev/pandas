@@ -3,14 +3,16 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.core.config as cf
-import pandas.util.testing as tm
-from pandas import Categorical, IntervalIndex, compat
 from pandas._libs import index as libindex
 from pandas.compat import PY3, range
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import Categorical, IntervalIndex, compat
+import pandas.core.config as cf
 from pandas.core.indexes.api import CategoricalIndex, Index
+import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 from .common import Base
@@ -156,7 +158,7 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # error when combining categories/ordered and dtype kwargs
-        msg = 'Cannot specify both `dtype` and `categories` or `ordered`.'
+        msg = "Cannot specify `categories` or `ordered` together with `dtype`."
         with pytest.raises(ValueError, match=msg):
             CategoricalIndex(data, categories=cats, dtype=dtype)
 
@@ -249,17 +251,6 @@ class TestCategoricalIndex(Base):
             list('aabbca') + [np.nan], categories=list('cabdef'))
         assert np.nan in ci
 
-    def test_min_max(self):
-
-        ci = self.create_index(ordered=False)
-        pytest.raises(TypeError, lambda: ci.min())
-        pytest.raises(TypeError, lambda: ci.max())
-
-        ci = self.create_index(ordered=True)
-
-        assert ci.min() == 'c'
-        assert ci.max() == 'b'
-
     def test_map(self):
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('CBA'),
                                  ordered=True)
@@ -310,6 +301,29 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(a.map(b), exp)
         exp = pd.Index(["odd", "even", "odd", np.nan])
         tm.assert_index_equal(a.map(c), exp)
+
+    @pytest.mark.parametrize(
+        (
+            'data',
+            'f'
+        ),
+        (
+            ([1, 1, np.nan], pd.isna),
+            ([1, 2, np.nan], pd.isna),
+            ([1, 1, np.nan], {1: False}),
+            ([1, 2, np.nan], {1: False, 2: False}),
+            ([1, 1, np.nan], pd.Series([False, False])),
+            ([1, 2, np.nan], pd.Series([False, False, False]))
+        ))
+    def test_map_with_nan(self, data, f):  # GH 24241
+        values = pd.Categorical(data)
+        result = values.map(f)
+        if data[1] == 1:
+            expected = pd.Categorical([False, False, np.nan])
+            tm.assert_categorical_equal(result, expected)
+        else:
+            expected = pd.Index([False, False, np.nan])
+            tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
     def test_where(self, klass):
@@ -540,6 +554,17 @@ class TestCategoricalIndex(Base):
         tm.assert_numpy_array_equal(indexer,
                                     np.array([0, 3, 2], dtype=np.intp))
 
+    def test_reindex_duplicate_target(self):
+        # See GH23963
+        c = CategoricalIndex(['a', 'b', 'c', 'a'],
+                             categories=['a', 'b', 'c', 'd'])
+        with pytest.raises(ValueError, match='non-unique indexer'):
+            c.reindex(['a', 'a', 'c'])
+
+        with pytest.raises(ValueError, match='non-unique indexer'):
+            c.reindex(CategoricalIndex(['a', 'a', 'c'],
+                                       categories=['a', 'b', 'c', 'd']))
+
     def test_reindex_empty_index(self):
         # See GH16770
         c = CategoricalIndex([])
@@ -585,15 +610,6 @@ class TestCategoricalIndex(Base):
         c = CategoricalIndex(categories[1:3], categories=categories)
         assert c.is_monotonic_increasing is True
         assert c.is_monotonic_decreasing is False
-
-    @pytest.mark.parametrize('values, expected', [
-        ([1, 2, 3], True),
-        ([1, 3, 1], False),
-        (list('abc'), True),
-        (list('aba'), False)])
-    def test_is_unique(self, values, expected):
-        ci = CategoricalIndex(values)
-        assert ci.is_unique is expected
 
     def test_has_duplicates(self):
 
@@ -800,6 +816,13 @@ class TestCategoricalIndex(Base):
         assert a.equals(b)
         assert not a.equals(c)
         assert not b.equals(c)
+
+    def test_frame_repr(self):
+        df = pd.DataFrame({"A": [1, 2, 3]},
+                          index=pd.CategoricalIndex(['a', 'b', 'c']))
+        result = repr(df)
+        expected = '   A\na  1\nb  2\nc  3'
+        assert result == expected
 
     def test_string_categorical_index_repr(self):
         # short

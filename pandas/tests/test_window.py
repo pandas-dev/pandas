@@ -1,24 +1,26 @@
 from collections import OrderedDict
+from datetime import datetime, timedelta
 from itertools import product
-import pytest
 import warnings
 from warnings import catch_warnings
 
-from datetime import datetime, timedelta
-from numpy.random import randn
 import numpy as np
+from numpy.random import randn
+import pytest
+
+from pandas.compat import range, zip
+from pandas.errors import UnsupportedFunctionCall
+import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (Series, DataFrame, bdate_range,
-                    isna, notna, concat, Timestamp, Index)
-import pandas.core.window as rwindow
-import pandas.tseries.offsets as offsets
+from pandas import (
+    DataFrame, Index, Series, Timestamp, bdate_range, concat, isna, notna)
 from pandas.core.base import SpecificationError
-from pandas.errors import UnsupportedFunctionCall
 from pandas.core.sorting import safe_sort
+import pandas.core.window as rwindow
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.compat import range, zip
+
+import pandas.tseries.offsets as offsets
 
 N, K = 100, 10
 
@@ -518,6 +520,26 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
+    @pytest.mark.parametrize("func", ['min', 'max'])
+    def test_closed_one_entry(self, func):
+        # GH24718
+        ser = pd.Series(data=[2], index=pd.date_range('2000', periods=1))
+        result = getattr(ser.rolling('10D', closed='left'), func)()
+        tm.assert_series_equal(result, pd.Series([np.nan], index=ser.index))
+
+    @pytest.mark.parametrize("func", ['min', 'max'])
+    def test_closed_one_entry_groupby(self, func):
+        # GH24718
+        ser = pd.DataFrame(data={'A': [1, 1, 2], 'B': [3, 2, 1]},
+                           index=pd.date_range('2000', periods=3))
+        result = getattr(
+            ser.groupby('A', sort=False)['B'].rolling('10D', closed='left'),
+            func)()
+        exp_idx = pd.MultiIndex.from_arrays(arrays=[[1, 1, 2], ser.index],
+                                            names=('A', None))
+        expected = pd.Series(data=[np.nan, 3, np.nan], index=exp_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("input_dtype", ['int', 'float'])
     @pytest.mark.parametrize("func,closed,expected", [
         ('min', 'right', [0.0, 0, 0, 1, 2, 3, 4, 5, 6, 7]),
@@ -695,8 +717,7 @@ class TestExpanding(Base):
         'expander',
         [1, pytest.param('ls', marks=pytest.mark.xfail(
                          reason='GH#16425 expanding with '
-                                'offset not supported',
-                         strict=True))])
+                                'offset not supported'))])
     def test_empty_df_expanding(self, expander):
         # GH 15819 Verifies that datetime and integer expanding windows can be
         # applied to empty DataFrames

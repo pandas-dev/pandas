@@ -7,7 +7,6 @@ import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
 import cython
-from cython import Py_ssize_t
 
 from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
 
@@ -23,19 +22,21 @@ from cpython.datetime cimport (datetime, timedelta,
 PyDateTime_IMPORT
 
 
-cimport util
-from util cimport (is_timedelta64_object, is_datetime64_object,
-                   is_integer_object, is_float_object,
-                   is_string_object)
+cimport pandas._libs.tslibs.util as util
+from pandas._libs.tslibs.util cimport (
+    is_timedelta64_object, is_datetime64_object, is_integer_object,
+    is_float_object, is_string_object)
 
-from ccalendar import DAY_SECONDS
+from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 
-from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
-                          pandas_timedeltastruct)
+from pandas._libs.tslibs.np_datetime cimport (
+    cmp_scalar, reverse_ops, td64_to_tdstruct, pandas_timedeltastruct)
 
-from nattype import nat_strings, NaT
-from nattype cimport checknull_with_nat, NPY_NAT
-from offsets cimport to_offset
+from pandas._libs.tslibs.nattype import nat_strings
+from pandas._libs.tslibs.nattype cimport (
+    checknull_with_nat, NPY_NAT, c_NaT as NaT)
+from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets import _Tick as Tick
 
 # ----------------------------------------------------------------------
 # Constants
@@ -148,7 +149,7 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     raise TypeError(type(delta))
 
 
-cpdef convert_to_timedelta64(object ts, object unit):
+cdef convert_to_timedelta64(object ts, object unit):
     """
     Convert an incoming object to a timedelta64 if possible.
     Before calling, unit must be standardized to avoid repeated unit conversion
@@ -161,9 +162,6 @@ cpdef convert_to_timedelta64(object ts, object unit):
         - None/NaT
 
     Return an ns based int64
-
-    # kludgy here until we have a timedelta scalar
-    # handle the numpy < 1.7 case
     """
     if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT)
@@ -180,16 +178,12 @@ cpdef convert_to_timedelta64(object ts, object unit):
         if ts == NPY_NAT:
             return np.timedelta64(NPY_NAT)
         else:
-            if util.is_array(ts):
-                ts = ts.astype('int64').item()
             if unit in ['Y', 'M', 'W']:
                 ts = np.timedelta64(ts, unit)
             else:
                 ts = cast_from_unit(ts, unit)
                 ts = np.timedelta64(ts)
     elif is_float_object(ts):
-        if util.is_array(ts):
-            ts = ts.astype('int64').item()
         if unit in ['Y', 'M', 'W']:
             ts = np.timedelta64(int(ts), unit)
         else:
@@ -760,7 +754,7 @@ cdef class _Timedelta(timedelta):
 
         if isinstance(other, _Timedelta):
             ots = other
-        elif PyDelta_Check(other):
+        elif PyDelta_Check(other) or isinstance(other, Tick):
             ots = Timedelta(other)
         else:
             ndim = getattr(other, "ndim", -1)
@@ -770,12 +764,26 @@ cdef class _Timedelta(timedelta):
                     if is_timedelta64_object(other):
                         other = Timedelta(other)
                     else:
-                        return NotImplemented
+                        if op == Py_EQ:
+                            return False
+                        elif op == Py_NE:
+                            return True
+                        # only allow ==, != ops
+                        raise TypeError('Cannot compare type {cls} with '
+                                        'type {other}'
+                                        .format(cls=type(self).__name__,
+                                                other=type(other).__name__))
                 if util.is_array(other):
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
-                return NotImplemented
+                if op == Py_EQ:
+                    return False
+                elif op == Py_NE:
+                    return True
+                raise TypeError('Cannot compare type {cls} with type {other}'
+                                .format(cls=type(self).__name__,
+                                        other=type(other).__name__))
 
         return cmp_scalar(self.value, ots.value, op)
 
@@ -815,6 +823,26 @@ cdef class _Timedelta(timedelta):
     def to_timedelta64(self):
         """ Returns a numpy.timedelta64 object with 'ns' precision """
         return np.timedelta64(self.value, 'ns')
+
+    def to_numpy(self, dtype=None, copy=False):
+        """
+        Convert the Timestamp to a NumPy timedelta64.
+
+        .. versionadded:: 0.25.0
+
+        This is an alias method for `Timedelta.to_timedelta64()`. The dtype and
+        copy parameters are available here only for compatibility. Their values
+        will not affect the return value.
+
+        Returns
+        -------
+        numpy.timedelta64
+
+        See Also
+        --------
+        Series.to_numpy : Similar method for Series.
+        """
+        return self.to_timedelta64()
 
     def total_seconds(self):
         """
@@ -1059,6 +1087,10 @@ cdef class _Timedelta(timedelta):
         -------
         formatted : str
 
+        See Also
+        --------
+        Timestamp.isoformat
+
         Notes
         -----
         The longest component is days, whose value may be larger than
@@ -1081,10 +1113,6 @@ cdef class _Timedelta(timedelta):
         'P0DT0H0M10S'
         >>> pd.Timedelta(days=500.5).isoformat()
         'P500DT12H0MS'
-
-        See Also
-        --------
-        Timestamp.isoformat
         """
         components = self.components
         seconds = '{}.{:0>3}{:0>3}{:0>3}'.format(components.seconds,
@@ -1119,10 +1147,11 @@ class Timedelta(_Timedelta):
         'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
         'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
         'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
-    days, seconds, microseconds,
-    milliseconds, minutes, hours, weeks : numeric, optional
+    **kwargs
+        Available kwargs: {days, seconds, microseconds,
+        milliseconds, minutes, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
-        np ints and floats will be coerced to python ints and floats.
+        Numpy ints and floats will be coerced to python ints and floats.
 
     Notes
     -----
@@ -1149,6 +1178,11 @@ class Timedelta(_Timedelta):
                                  "passed arguments, allowed keywords are "
                                  "[weeks, days, hours, minutes, seconds, "
                                  "milliseconds, microseconds, nanoseconds]")
+
+        if unit in {'Y', 'y', 'M'}:
+            warnings.warn("M and Y units are deprecated and "
+                          "will be removed in a future version.",
+                          FutureWarning, stacklevel=1)
 
         if isinstance(value, Timedelta):
             value = value.value
@@ -1210,13 +1244,13 @@ class Timedelta(_Timedelta):
         """
         Round the Timedelta to the specified resolution
 
-        Returns
-        -------
-        a new Timedelta rounded to the given resolution of `freq`
-
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
+
+        Returns
+        -------
+        a new Timedelta rounded to the given resolution of `freq`
 
         Raises
         ------

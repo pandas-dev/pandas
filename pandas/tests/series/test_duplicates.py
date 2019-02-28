@@ -59,12 +59,18 @@ def test_unique_data_ownership():
     Series(Series(["a", "c", "b"]).unique()).sort_values()
 
 
-def test_is_unique():
-    # GH11946
-    s = Series(np.random.randint(0, 10, size=1000))
-    assert s.is_unique is False
-    s = Series(np.arange(1000))
-    assert s.is_unique is True
+@pytest.mark.parametrize('data, expected', [
+    (np.random.randint(0, 10, size=1000), False),
+    (np.arange(1000), True),
+    ([], True),
+    ([np.nan], True),
+    (['foo', 'bar', np.nan], True),
+    (['foo', 'foo', np.nan], False),
+    (['foo', 'bar', np.nan, np.nan], False)])
+def test_is_unique(data, expected):
+    # GH11946 / GH25180
+    s = Series(data)
+    assert s.is_unique is expected
 
 
 def test_is_unique_class_ne(capsys):
@@ -76,12 +82,12 @@ def test_is_unique_class_ne(capsys):
         def __ne__(self, other):
             raise Exception("NEQ not supported")
 
-    li = [Foo(i) for i in range(5)]
-    s = Series(li, index=[i for i in range(5)])
-    _, err = capsys.readouterr()
+    with capsys.disabled():
+        li = [Foo(i) for i in range(5)]
+        s = Series(li, index=[i for i in range(5)])
     s.is_unique
-    _, err = capsys.readouterr()
-    assert len(err) == 0
+    captured = capsys.readouterr()
+    assert len(captured.err) == 0
 
 
 @pytest.mark.parametrize(

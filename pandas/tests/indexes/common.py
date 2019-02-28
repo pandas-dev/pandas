@@ -30,7 +30,12 @@ class Base(object):
 
     def test_pickle_compat_construction(self):
         # need an object to create with
-        pytest.raises(TypeError, self._holder)
+        msg = (r"Index\(\.\.\.\) must be called with a collection of some"
+               r" kind, None was passed|"
+               r"__new__\(\) missing 1 required positional argument: 'data'|"
+               r"__new__\(\) takes at least 2 arguments \(1 given\)")
+        with pytest.raises(TypeError, match=msg):
+            self._holder()
 
     def test_to_series(self):
         # assert that we are creating a copy of the index
@@ -84,8 +89,11 @@ class Base(object):
 
         # GH8083 test the base class for shift
         idx = self.create_index()
-        pytest.raises(NotImplementedError, idx.shift, 1)
-        pytest.raises(NotImplementedError, idx.shift, 1, 2)
+        msg = "Not supported for type {}".format(type(idx).__name__)
+        with pytest.raises(NotImplementedError, match=msg):
+            idx.shift(1)
+        with pytest.raises(NotImplementedError, match=msg):
+            idx.shift(1, 2)
 
     def test_create_index_existing_name(self):
 
@@ -478,7 +486,7 @@ class Base(object):
                 with pytest.raises(TypeError, match=msg):
                     first.union([1, 2, 3])
 
-    @pytest.mark.parametrize("sort", [True, False])
+    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_base(self, sort):
         for name, idx in compat.iteritems(self.indices):
             first = idx[2:]
@@ -610,7 +618,9 @@ class Base(object):
         index_b = index_a[0:-1]
         index_c = index_a[0:-1].append(index_a[-2:-1])
         index_d = index_a[0:1]
-        with pytest.raises(ValueError, match="Lengths must match"):
+
+        msg = "Lengths must match|could not be broadcast"
+        with pytest.raises(ValueError, match=msg):
             index_a == index_b
         expected1 = np.array([True] * n)
         expected2 = np.array([True] * (n - 1) + [False])
@@ -622,7 +632,7 @@ class Base(object):
         array_b = np.array(index_a[0:-1])
         array_c = np.array(index_a[0:-1].append(index_a[-2:-1]))
         array_d = np.array(index_a[0:1])
-        with pytest.raises(ValueError, match="Lengths must match"):
+        with pytest.raises(ValueError, match=msg):
             index_a == array_b
         tm.assert_numpy_array_equal(index_a == array_a, expected1)
         tm.assert_numpy_array_equal(index_a == array_c, expected2)
@@ -632,7 +642,7 @@ class Base(object):
         series_b = Series(array_b)
         series_c = Series(array_c)
         series_d = Series(array_d)
-        with pytest.raises(ValueError, match="Lengths must match"):
+        with pytest.raises(ValueError, match=msg):
             index_a == series_b
 
         tm.assert_numpy_array_equal(index_a == series_a, expected1)
@@ -903,3 +913,24 @@ class Base(object):
             result = index.astype('category', copy=copy)
             expected = CategoricalIndex(index.values, name=name)
             tm.assert_index_equal(result, expected)
+
+    def test_is_unique(self):
+        # initialize a unique index
+        index = self.create_index().drop_duplicates()
+        assert index.is_unique is True
+
+        # empty index should be unique
+        index_empty = index[:0]
+        assert index_empty.is_unique is True
+
+        # test basic dupes
+        index_dup = index.insert(0, index[0])
+        assert index_dup.is_unique is False
+
+        # single NA should be unique
+        index_na = index.insert(0, np.nan)
+        assert index_na.is_unique is True
+
+        # multiple NA should not be unique
+        index_na_dup = index_na.insert(0, np.nan)
+        assert index_na_dup.is_unique is False

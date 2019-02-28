@@ -99,10 +99,10 @@ def test_equals_multi(idx):
 
     # different number of levels
     index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-        lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
+        lrange(4))], codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
             [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
 
-    index2 = MultiIndex(levels=index.levels[:-1], labels=index.labels[:-1])
+    index2 = MultiIndex(levels=index.levels[:-1], codes=index.codes[:-1])
     assert not index.equals(index2)
     assert not index.equal_levels(index2)
 
@@ -110,11 +110,11 @@ def test_equals_multi(idx):
     major_axis = Index(lrange(4))
     minor_axis = Index(lrange(2))
 
-    major_labels = np.array([0, 0, 1, 2, 2, 3])
-    minor_labels = np.array([0, 1, 0, 0, 1, 0])
+    major_codes = np.array([0, 0, 1, 2, 2, 3])
+    minor_codes = np.array([0, 1, 0, 0, 1, 0])
 
     index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
+                       codes=[major_codes, minor_codes])
     assert not idx.equals(index)
     assert not idx.equal_levels(index)
 
@@ -122,11 +122,11 @@ def test_equals_multi(idx):
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
 
-    major_labels = np.array([0, 0, 2, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+    major_codes = np.array([0, 0, 2, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
     index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
+                       codes=[major_codes, minor_codes])
     assert not idx.equals(index)
 
 

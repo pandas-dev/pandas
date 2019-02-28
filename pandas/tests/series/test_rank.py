@@ -206,7 +206,9 @@ class TestSeriesRank(TestData):
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method='average')
-        pytest.raises(ValueError, s.rank, 'average')
+        msg = r"No axis named average for object type <(class|type) 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            s.rank('average')
 
     @pytest.mark.parametrize('contents,dtype', [
         ([-np.inf, -50, -1, -1e-20, -1e-25, -1e-50, 0, 1e-40, 1e-20, 1e-10,
@@ -222,8 +224,7 @@ class TestSeriesRank(TestData):
                      'int64',
                      marks=pytest.mark.xfail(
                          reason="iNaT is equivalent to minimum value of dtype"
-                                "int64 pending issue GH#16674",
-                         strict=True)),
+                                "int64 pending issue GH#16674")),
         ([NegInfinity(), '1', 'A', 'BA', 'Ba', 'C', Infinity()],
          'object')
     ])
@@ -498,6 +499,7 @@ def test_rank_first_pct(dtype, ser, exp):
 
 
 @pytest.mark.single
+@pytest.mark.high_memory
 def test_pct_max_many_rows():
         # GH 18271
         s = Series(np.arange(2**24 + 1))

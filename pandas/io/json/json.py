@@ -226,7 +226,7 @@ class JSONTableWriter(FrameWriter):
         return serialized
 
 
-def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
+def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
               lines=False, chunksize=None, compression='infer'):
@@ -278,8 +278,15 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     typ : type of object to recover (series or frame), default 'frame'
     dtype : boolean or dict, default True
-        If True, infer dtypes, if a dict of column to dtype, then use those,
+        If True, infer dtypes; if a dict of column to dtype, then use those;
         if False, then don't infer dtypes at all, applies only to the data.
+
+        Not applicable with ``orient='table'``.
+
+        .. versionchanged:: 0.25
+
+           Not applicable with ``orient='table'``.
+
     convert_axes : boolean, default True
         Try to convert the axes to the proper dtypes.
     convert_dates : boolean, default True
@@ -311,13 +318,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         is to try and detect the correct precision, but if this is not desired
         then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,
         milliseconds, microseconds or nanoseconds respectively.
-    lines : boolean, default False
-        Read the file as a json object per line.
+    encoding : str, default is 'utf-8'
+        The encoding to use to decode py3 bytes.
 
         .. versionadded:: 0.19.0
 
-    encoding : str, default is 'utf-8'
-        The encoding to use to decode py3 bytes.
+    lines : boolean, default False
+        Read the file as a json object per line.
 
         .. versionadded:: 0.19.0
 
@@ -344,6 +351,10 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     -------
     result : Series or DataFrame, depending on the value of `typ`.
 
+    See Also
+    --------
+    DataFrame.to_json
+
     Notes
     -----
     Specific to ``orient='table'``, if a :class:`DataFrame` with a literal
@@ -354,10 +365,6 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     :func:`read_json` operation cannot distinguish between the two. The same
     limitation is encountered with a :class:`MultiIndex` and any names
     beginning with ``'level_'``.
-
-    See Also
-    --------
-    DataFrame.to_json
 
     Examples
     --------
@@ -407,6 +414,11 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         "data": [{"index": "row 1", "col 1": "a", "col 2": "b"},
                 {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
     """
+
+    if orient == 'table' and dtype:
+        raise ValueError("cannot pass both dtype and orient='table'")
+
+    dtype = orient != 'table' if dtype is None else dtype
 
     compression = _infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
@@ -600,15 +612,15 @@ class Parser(object):
         'us': long(31536000000000),
         'ns': long(31536000000000000)}
 
-    def __init__(self, json, orient, dtype=True, convert_axes=True,
+    def __init__(self, json, orient, dtype=None, convert_axes=True,
                  convert_dates=True, keep_default_dates=False, numpy=False,
                  precise_float=False, date_unit=None):
         self.json = json
 
         if orient is None:
             orient = self._default_orient
-
         self.orient = orient
+
         self.dtype = dtype
 
         if orient == "split":

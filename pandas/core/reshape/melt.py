@@ -230,7 +230,13 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     -------
     DataFrame
         A DataFrame that contains each stub name as a variable, with new index
-        (i, j)
+        (i, j).
+
+    Notes
+    -----
+    All extra variables are left untouched. This simply uses
+    `pandas.melt` under the hood, but is hard-coded to "do the right thing"
+    in a typical case.
 
     Examples
     --------
@@ -403,12 +409,6 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
                 two  3.4
           3     one  2.1
                 two  2.9
-
-    Notes
-    -----
-    All extra variables are left untouched. This simply uses
-    `pandas.melt` under the hood, but is hard-coded to "do the right thing"
-    in a typical case.
     """
     def get_var_names(df, stub, sep, suffix):
         regex = r'^{stub}{sep}{suffix}$'.format(

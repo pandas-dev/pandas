@@ -57,24 +57,41 @@ def test_dtypes(dtype):
     assert dtype.name is not None
 
 
-class TestInterface(object):
+@pytest.mark.parametrize('dtype, expected', [
+    (Int8Dtype(), 'Int8Dtype()'),
+    (Int16Dtype(), 'Int16Dtype()'),
+    (Int32Dtype(), 'Int32Dtype()'),
+    (Int64Dtype(), 'Int64Dtype()'),
+    (UInt8Dtype(), 'UInt8Dtype()'),
+    (UInt16Dtype(), 'UInt16Dtype()'),
+    (UInt32Dtype(), 'UInt32Dtype()'),
+    (UInt64Dtype(), 'UInt64Dtype()'),
+])
+def test_repr_dtype(dtype, expected):
+    assert repr(dtype) == expected
 
-    def test_repr_array(self, data):
-        result = repr(data)
 
-        # not long
-        assert '...' not in result
+def test_repr_array():
+    result = repr(integer_array([1, None, 3]))
+    expected = (
+        '<IntegerArray>\n'
+        '[1, NaN, 3]\n'
+        'Length: 3, dtype: Int64'
+    )
+    assert result == expected
 
-        assert 'dtype=' in result
-        assert 'IntegerArray' in result
 
-    def test_repr_array_long(self, data):
-        # some arrays may be able to assert a ... in the repr
-        with pd.option_context('display.max_seq_items', 1):
-            result = repr(data)
-
-            assert '...' in result
-            assert 'length' in result
+def test_repr_array_long():
+    data = integer_array([1, 2, None] * 1000)
+    expected = (
+        "<IntegerArray>\n"
+        "[  1,   2, NaN,   1,   2, NaN,   1,   2, NaN,   1,\n"
+        " ...\n"
+        " NaN,   1,   2, NaN,   1,   2, NaN,   1,   2, NaN]\n"
+        "Length: 3000, dtype: Int64"
+    )
+    result = repr(data)
+    assert result == expected
 
 
 class TestConstructors(object):
@@ -322,7 +339,7 @@ class TestComparisonOps(BaseOpsUtil):
         expected = pd.Series(op(data._data, other))
 
         # fill the nan locations
-        expected[data._mask] = True if op_name == '__ne__' else False
+        expected[data._mask] = op_name == '__ne__'
 
         tm.assert_series_equal(result, expected)
 
@@ -334,7 +351,7 @@ class TestComparisonOps(BaseOpsUtil):
         expected = op(expected, other)
 
         # fill the nan locations
-        expected[data._mask] = True if op_name == '__ne__' else False
+        expected[data._mask] = op_name == '__ne__'
 
         tm.assert_series_equal(result, expected)
 

@@ -1,31 +1,26 @@
+import datetime
+from distutils.version import LooseVersion
+import glob
+import os
+from warnings import catch_warnings
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings
-import os
-import datetime
-import glob
-import numpy as np
-from distutils.version import LooseVersion
-
-from pandas import compat
-from pandas.compat import u, PY3
-from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
-                    date_range, period_range, Index, Categorical,
-                    Period, Interval)
+from pandas._libs.tslib import iNaT
+from pandas.compat import PY3, u
 from pandas.errors import PerformanceWarning
-from pandas.io.packers import to_msgpack, read_msgpack
-import pandas.util.testing as tm
-from pandas.util.testing import (ensure_clean,
-                                 assert_categorical_equal,
-                                 assert_frame_equal,
-                                 assert_index_equal,
-                                 assert_series_equal,
-                                 patch)
-from pandas.tests.test_panel import assert_panel_equal
 
 import pandas
-from pandas import Timestamp, NaT
-from pandas._libs.tslib import iNaT
+from pandas import (
+    Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Period, Series,
+    Timestamp, bdate_range, compat, date_range, period_range)
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_categorical_equal, assert_frame_equal, assert_index_equal,
+    assert_series_equal, ensure_clean)
+
+from pandas.io.packers import read_msgpack, to_msgpack
 
 nan = np.nan
 
@@ -66,8 +61,6 @@ def check_arbitrary(a, b):
         assert(len(a) == len(b))
         for a_, b_ in zip(a, b):
             check_arbitrary(a_, b_)
-    elif isinstance(a, Panel):
-        assert_panel_equal(a, b)
     elif isinstance(a, DataFrame):
         assert_frame_equal(a, b)
     elif isinstance(a, Series):
@@ -160,9 +153,14 @@ class TestAPI(TestPackers):
             def __init__(self):
                 self.read = 0
 
-        pytest.raises(ValueError, read_msgpack, path_or_buf=None)
-        pytest.raises(ValueError, read_msgpack, path_or_buf={})
-        pytest.raises(ValueError, read_msgpack, path_or_buf=A())
+        msg = (r"Invalid file path or buffer object type: <(class|type)"
+               r" '{}'>")
+        with pytest.raises(ValueError, match=msg.format('NoneType')):
+            read_msgpack(path_or_buf=None)
+        with pytest.raises(ValueError, match=msg.format('dict')):
+            read_msgpack(path_or_buf={})
+        with pytest.raises(ValueError, match=msg.format(r'.*\.A')):
+            read_msgpack(path_or_buf=A())
 
 
 class TestNumpy(TestPackers):
@@ -489,22 +487,11 @@ class TestNDFrame(TestPackers):
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
             'mixed': DataFrame(data)}
 
-        self.panel = {
-            'float': Panel(dict(ItemA=self.frame['float'],
-                                ItemB=self.frame['float'] + 1))}
-
     def test_basic_frame(self):
 
         for s, i in self.frame.items():
             i_rec = self.encode_decode(i)
             assert_frame_equal(i, i_rec)
-
-    def test_basic_panel(self):
-
-        with catch_warnings(record=True):
-            for s, i in self.panel.items():
-                i_rec = self.encode_decode(i)
-                assert_panel_equal(i, i_rec)
 
     def test_multi(self):
 
@@ -571,7 +558,9 @@ class TestSparse(TestPackers):
         # currently these are not implemetned
         # i_rec = self.encode_decode(obj)
         # comparator(obj, i_rec, **kwargs)
-        pytest.raises(NotImplementedError, self.encode_decode, obj)
+        msg = r"msgpack sparse (series|frame) is not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            self.encode_decode(obj)
 
     def test_sparse_series(self):
 
@@ -660,7 +649,8 @@ class TestCompression(TestPackers):
             pytest.skip('no blosc')
         self._test_compression('blosc')
 
-    def _test_compression_warns_when_decompress_caches(self, compress):
+    def _test_compression_warns_when_decompress_caches(
+            self, monkeypatch, compress):
         not_garbage = []
         control = []  # copied data
 
@@ -685,9 +675,9 @@ class TestCompression(TestPackers):
             np.dtype('timedelta64[ns]'): np.timedelta64(1, 'ns'),
         }
 
-        with patch(compress_module, 'decompress', decompress), \
+        with monkeypatch.context() as m, \
                 tm.assert_produces_warning(PerformanceWarning) as ws:
-
+            m.setattr(compress_module, 'decompress', decompress)
             i_rec = self.encode_decode(self.frame, compress=compress)
             for k in self.frame.keys():
 
@@ -712,15 +702,17 @@ class TestCompression(TestPackers):
             # original buffers
             assert buf == control_buf
 
-    def test_compression_warns_when_decompress_caches_zlib(self):
+    def test_compression_warns_when_decompress_caches_zlib(self, monkeypatch):
         if not _ZLIB_INSTALLED:
             pytest.skip('no zlib')
-        self._test_compression_warns_when_decompress_caches('zlib')
+        self._test_compression_warns_when_decompress_caches(
+            monkeypatch, 'zlib')
 
-    def test_compression_warns_when_decompress_caches_blosc(self):
+    def test_compression_warns_when_decompress_caches_blosc(self, monkeypatch):
         if not _BLOSC_INSTALLED:
             pytest.skip('no blosc')
-        self._test_compression_warns_when_decompress_caches('blosc')
+        self._test_compression_warns_when_decompress_caches(
+            monkeypatch, 'blosc')
 
     def _test_small_strings_no_warn(self, compress):
         empty = np.array([], dtype='uint8')
@@ -870,6 +862,10 @@ TestPackers
 
     def check_min_structure(self, data, version):
         for typ, v in self.minimum_structure.items():
+            if typ == "panel":
+                # FIXME: kludge; get this key out of the legacy file
+                continue
+
             assert typ in data, '"{0}" not found in unpacked data'.format(typ)
             for kind in v:
                 msg = '"{0}" not found in data["{1}"]'.format(kind, typ)
@@ -881,6 +877,11 @@ TestPackers
             data = read_msgpack(vf, encoding='latin-1')
         else:
             data = read_msgpack(vf)
+
+        if "panel" in data:
+            # FIXME: kludge; get the key out of the stored file
+            del data["panel"]
+
         self.check_min_structure(data, version)
         for typ, dv in data.items():
             assert typ in all_data, ('unpacked data contains '
@@ -940,3 +941,9 @@ TestPackers
         except ImportError:
             # blosc not installed
             pass
+
+    def test_msgpack_period_freq(self):
+        # https://github.com/pandas-dev/pandas/issues/24135
+        s = Series(np.random.rand(5), index=date_range('20130101', periods=5))
+        r = read_msgpack(s.to_msgpack())
+        repr(r)

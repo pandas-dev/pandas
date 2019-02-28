@@ -233,8 +233,6 @@ class Base(object):
                         tm.assert_series_equal(rs, xp)
                     elif xp.ndim == 2:
                         tm.assert_frame_equal(rs, xp)
-                    elif xp.ndim == 3:
-                        tm.assert_panel_equal(rs, xp)
                     result = 'ok'
                 except AssertionError as e:
                     detail = str(e)

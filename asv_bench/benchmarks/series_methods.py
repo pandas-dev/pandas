@@ -23,7 +23,7 @@ class SeriesConstructor(object):
 
 class IsIn(object):
 
-    params = ['int64', 'object']
+    params = ['int64', 'uint64', 'object']
     param_names = ['dtype']
 
     def setup(self, dtype):
@@ -124,6 +124,25 @@ class Dropna(object):
         self.s.dropna()
 
 
+class SearchSorted(object):
+
+    goal_time = 0.2
+    params = ['int8', 'int16', 'int32', 'int64',
+              'uint8', 'uint16', 'uint32', 'uint64',
+              'float16', 'float32', 'float64',
+              'str']
+    param_names = ['dtype']
+
+    def setup(self, dtype):
+        N = 10**5
+        data = np.array([1] * N + [2] * N + [3] * N).astype(dtype)
+        self.s = Series(data)
+
+    def time_searchsorted(self, dtype):
+        key = '2' if dtype == 'str' else 2
+        self.s.searchsorted(key)
+
+
 class Map(object):
 
     params = ['dict', 'Series']
@@ -140,17 +159,19 @@ class Map(object):
 
 
 class Clip(object):
+    params = [50, 1000, 10**5]
+    param_names = ['n']
 
-    def setup(self):
-        self.s = Series(np.random.randn(50))
+    def setup(self, n):
+        self.s = Series(np.random.randn(n))
 
-    def time_clip(self):
+    def time_clip(self, n):
         self.s.clip(0, 1)
 
 
 class ValueCounts(object):
 
-    params = ['int', 'float', 'object']
+    params = ['int', 'uint', 'float', 'object']
     param_names = ['dtype']
 
     def setup(self, dtype):

@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
 from datetime import datetime
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
 from pandas.compat import PY37
-from pandas import (Index, MultiIndex, CategoricalIndex,
-                    DataFrame, Categorical, Series, qcut)
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, Index, MultiIndex, Series, qcut)
 import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_equal, assert_frame_equal, assert_series_equal)
 
 
 def cartesian_product_for_groupers(result, args, names):
@@ -190,7 +193,7 @@ def test_level_get_group(observed):
     df = DataFrame(data=np.arange(2, 22, 2),
                    index=MultiIndex(
                        levels=[pd.CategoricalIndex(["a", "b"]), range(10)],
-                       labels=[[0] * 5 + [1] * 5, range(10)],
+                       codes=[[0] * 5 + [1] * 5, range(10)],
                        names=["Index1", "Index2"]))
     g = df.groupby(level=["Index1"], observed=observed)
 
@@ -199,14 +202,14 @@ def test_level_get_group(observed):
     expected = DataFrame(data=np.arange(2, 12, 2),
                          index=pd.MultiIndex(levels=[pd.CategoricalIndex(
                              ["a", "b"]), range(5)],
-        labels=[[0] * 5, range(5)],
+        codes=[[0] * 5, range(5)],
         names=["Index1", "Index2"]))
     result = g.get_group('a')
 
     assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(PY37, reason="flaky on 3.7, xref gh-21636")
+@pytest.mark.xfail(PY37, reason="flaky on 3.7, xref gh-21636", strict=False)
 @pytest.mark.parametrize('ordered', [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -417,6 +420,39 @@ def test_observed_groups(observed):
     tm.assert_dict_equal(result, expected)
 
 
+def test_observed_groups_with_nan(observed):
+    # GH 24740
+    df = pd.DataFrame({'cat': pd.Categorical(['a', np.nan, 'a'],
+                       categories=['a', 'b', 'd']),
+                       'vals': [1, 2, 3]})
+    g = df.groupby('cat', observed=observed)
+    result = g.groups
+    if observed:
+        expected = {'a': Index([0, 2], dtype='int64')}
+    else:
+        expected = {'a': Index([0, 2], dtype='int64'),
+                    'b': Index([], dtype='int64'),
+                    'd': Index([], dtype='int64')}
+    tm.assert_dict_equal(result, expected)
+
+
+def test_dataframe_categorical_with_nan(observed):
+    # GH 21151
+    s1 = pd.Categorical([np.nan, 'a', np.nan, 'a'],
+                        categories=['a', 'b', 'c'])
+    s2 = pd.Series([1, 2, 3, 4])
+    df = pd.DataFrame({'s1': s1, 's2': s2})
+    result = df.groupby('s1', observed=observed).first().reset_index()
+    if observed:
+        expected = DataFrame({'s1': pd.Categorical(['a'],
+                              categories=['a', 'b', 'c']), 's2': [2]})
+    else:
+        expected = DataFrame({'s1': pd.Categorical(['a', 'b', 'c'],
+                              categories=['a', 'b', 'c']),
+                              's2': [2, np.nan, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_datetime():
     # GH9049: ensure backward compatibility
     levels = pd.date_range('2014-01-01', periods=4)
@@ -527,9 +563,8 @@ def test_bins_unequal_len():
     bins = pd.cut(series.dropna().values, 4)
 
     # len(bins) != len(series) here
-    def f():
+    with pytest.raises(ValueError):
         series.groupby(bins).mean()
-    pytest.raises(ValueError, f)
 
 
 def test_as_index():
@@ -861,3 +896,41 @@ def test_groupby_multiindex_categorical_datetime():
     expected = pd.DataFrame(
         {'values': [0, 4, 8, 3, 4, 5, 6, np.nan, 2]}, index=idx)
     assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_index, expected", [
+    (True, pd.Series(
+        index=pd.MultiIndex.from_arrays(
+            [pd.Series([1, 1, 2], dtype='category'),
+                [1, 2, 2]], names=['a', 'b']
+        ),
+        data=[1, 2, 3], name='x'
+    )),
+    (False, pd.DataFrame({
+        'a': pd.Series([1, 1, 2], dtype='category'),
+        'b': [1, 2, 2],
+        'x': [1, 2, 3]
+    }))
+])
+def test_groupby_agg_observed_true_single_column(as_index, expected):
+    # GH-23970
+    df = pd.DataFrame({
+        'a': pd.Series([1, 1, 2], dtype='category'),
+        'b': [1, 2, 2],
+        'x': [1, 2, 3]
+    })
+
+    result = df.groupby(
+        ['a', 'b'], as_index=as_index, observed=True)['x'].sum()
+
+    assert_equal(result, expected)
+
+
+@pytest.mark.parametrize('fill_value', [None, np.nan, pd.NaT])
+def test_shift(fill_value):
+    ct = pd.Categorical(['a', 'b', 'c', 'd'],
+                        categories=['a', 'b', 'c', 'd'], ordered=False)
+    expected = pd.Categorical([None, 'a', 'b', 'c'],
+                              categories=['a', 'b', 'c', 'd'], ordered=False)
+    res = ct.shift(1, fill_value=fill_value)
+    assert_equal(res, expected)

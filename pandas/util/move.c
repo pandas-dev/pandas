@@ -1,3 +1,12 @@
+/*
+Copyright (c) 2019, PyData Development Team
+All rights reserved.
+
+Distributed under the terms of the BSD Simplified License.
+
+The full license is in the LICENSE file, distributed with this software.
+*/
+
 #include <Python.h>
 
 #define COMPILING_IN_PY2 (PY_VERSION_HEX <= 0x03000000)
@@ -10,17 +19,17 @@
 
 /* in python 3, we cannot intern bytes objects so this is always false */
 #define PyString_CHECK_INTERNED(cs) 0
-#endif  /* !COMPILING_IN_PY2 */
+#endif  // !COMPILING_IN_PY2
 
 #ifndef Py_TPFLAGS_HAVE_GETCHARBUFFER
 #define Py_TPFLAGS_HAVE_GETCHARBUFFER 0
-#endif
+#endif  // Py_TPFLAGS_HAVE_GETCHARBUFFER
 
 #ifndef Py_TPFLAGS_HAVE_NEWBUFFER
 #define Py_TPFLAGS_HAVE_NEWBUFFER 0
-#endif
+#endif  // Py_TPFLAGS_HAVE_NEWBUFFER
 
-PyObject *badmove;  /* bad move exception class */
+static PyObject *badmove;  /* bad move exception class */
 
 typedef struct {
     PyObject_HEAD
@@ -28,18 +37,16 @@ typedef struct {
     PyObject *invalid_bytes;
 } stolenbufobject;
 
-PyTypeObject stolenbuf_type;  /* forward declare type */
+static PyTypeObject stolenbuf_type;  /* forward declare type */
 
 static void
-stolenbuf_dealloc(stolenbufobject *self)
-{
+stolenbuf_dealloc(stolenbufobject *self) {
     Py_DECREF(self->invalid_bytes);
     PyObject_Del(self);
 }
 
 static int
-stolenbuf_getbuffer(stolenbufobject *self, Py_buffer *view, int flags)
-{
+stolenbuf_getbuffer(stolenbufobject *self, Py_buffer *view, int flags) {
     return PyBuffer_FillInfo(view,
                              (PyObject*) self,
                              (void*) PyString_AS_STRING(self->invalid_bytes),
@@ -51,8 +58,8 @@ stolenbuf_getbuffer(stolenbufobject *self, Py_buffer *view, int flags)
 #if COMPILING_IN_PY2
 
 static Py_ssize_t
-stolenbuf_getreadwritebuf(stolenbufobject *self, Py_ssize_t segment, void **out)
-{
+stolenbuf_getreadwritebuf(stolenbufobject *self,
+                          Py_ssize_t segment, void **out) {
     if (segment != 0) {
         PyErr_SetString(PyExc_SystemError,
                         "accessing non-existent string segment");
@@ -63,15 +70,14 @@ stolenbuf_getreadwritebuf(stolenbufobject *self, Py_ssize_t segment, void **out)
 }
 
 static Py_ssize_t
-stolenbuf_getsegcount(stolenbufobject *self, Py_ssize_t *len)
-{
+stolenbuf_getsegcount(stolenbufobject *self, Py_ssize_t *len) {
     if (len) {
         *len = PyString_GET_SIZE(self->invalid_bytes);
     }
     return 1;
 }
 
-PyBufferProcs stolenbuf_as_buffer = {
+static PyBufferProcs stolenbuf_as_buffer = {
     (readbufferproc) stolenbuf_getreadwritebuf,
     (writebufferproc) stolenbuf_getreadwritebuf,
     (segcountproc) stolenbuf_getsegcount,
@@ -79,19 +85,19 @@ PyBufferProcs stolenbuf_as_buffer = {
     (getbufferproc) stolenbuf_getbuffer,
 };
 
-#else  /* Python 3 */
+#else  // Python 3
 
-PyBufferProcs stolenbuf_as_buffer = {
+static PyBufferProcs stolenbuf_as_buffer = {
     (getbufferproc) stolenbuf_getbuffer,
     NULL,
 };
 
-#endif  /* COMPILING_IN_PY2 */
+#endif  // COMPILING_IN_PY2
 
 PyDoc_STRVAR(stolenbuf_doc,
              "A buffer that is wrapping a stolen bytes object's buffer.");
 
-PyTypeObject stolenbuf_type = {
+static PyTypeObject stolenbuf_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "pandas.util._move.stolenbuf",              /* tp_name */
     sizeof(stolenbufobject),                    /* tp_basicsize */
@@ -157,8 +163,7 @@ PyDoc_STRVAR(
    however, if called through *unpacking like ``stolenbuf(*(a,))`` it would
    only have the one reference (the tuple). */
 static PyObject*
-move_into_mutable_buffer(PyObject *self, PyObject *bytes_rvalue)
-{
+move_into_mutable_buffer(PyObject *self, PyObject *bytes_rvalue) {
     stolenbufobject *ret;
 
     if (!PyString_CheckExact(bytes_rvalue)) {
@@ -185,7 +190,7 @@ move_into_mutable_buffer(PyObject *self, PyObject *bytes_rvalue)
     return (PyObject*) ret;
 }
 
-PyMethodDef methods[] = {
+static PyMethodDef methods[] = {
     {"move_into_mutable_buffer",
      (PyCFunction) move_into_mutable_buffer,
      METH_O,
@@ -196,14 +201,14 @@ PyMethodDef methods[] = {
 #define MODULE_NAME "pandas.util._move"
 
 #if !COMPILING_IN_PY2
-PyModuleDef _move_module = {
+static PyModuleDef move_module = {
     PyModuleDef_HEAD_INIT,
     MODULE_NAME,
     NULL,
     -1,
     methods,
 };
-#endif  /* !COMPILING_IN_PY2 */
+#endif  // !COMPILING_IN_PY2
 
 PyDoc_STRVAR(
     badmove_doc,
@@ -226,7 +231,7 @@ PyInit__move(void)
 #else
 #define ERROR_RETURN
 init_move(void)
-#endif  /* !COMPILING_IN_PY2 */
+#endif  // !COMPILING_IN_PY2
 {
     PyObject *m;
 
@@ -242,10 +247,10 @@ init_move(void)
     }
 
 #if !COMPILING_IN_PY2
-    if (!(m = PyModule_Create(&_move_module)))
+    if (!(m = PyModule_Create(&move_module)))
 #else
     if (!(m = Py_InitModule(MODULE_NAME, methods)))
-#endif  /* !COMPILING_IN_PY2 */
+#endif  // !COMPILING_IN_PY2
     {
         return ERROR_RETURN;
     }
@@ -264,5 +269,5 @@ init_move(void)
 
 #if !COMPILING_IN_PY2
     return m;
-#endif  /* !COMPILING_IN_PY2 */
+#endif  // !COMPILING_IN_PY2
 }

@@ -4,12 +4,13 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 # pylint: disable=E1103,W0231,W0212,W0621
 from __future__ import division
 
+from collections import OrderedDict
 import warnings
 
 import numpy as np
 
 import pandas.compat as compat
-from pandas.compat import OrderedDict, map, range, u, zip
+from pandas.compat import map, range, u, zip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_axis_style_args
@@ -42,7 +43,7 @@ _shared_doc_kwargs = dict(
     axes_single_arg="{0, 1, 2, 'items', 'major_axis', 'minor_axis'}",
     optional_mapper='', optional_axis='', optional_labels='')
 _shared_doc_kwargs['args_transpose'] = (
-    "three positional arguments: each one of\n{ax_single}".format(
+    "{ax_single}\n\tThree positional arguments from given options.".format(
         ax_single=_shared_doc_kwargs['axes_single_arg']))
 
 
@@ -125,10 +126,10 @@ class Panel(NDFrame):
         axis=1
     minor_axis : Index or array-like
         axis=2
-    dtype : dtype, default None
-        Data type to force, otherwise infer
     copy : boolean, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
+    dtype : dtype, default None
+        Data type to force, otherwise infer
     """
 
     @property
@@ -539,7 +540,7 @@ class Panel(NDFrame):
         -------
         panel : Panel
             If label combo is contained, will be reference to calling Panel,
-            otherwise a new object
+            otherwise a new object.
         """
         warnings.warn("set_value is deprecated and will be removed "
                       "in a future release. Please use "
@@ -802,7 +803,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-            index -> minor axis, columns -> items
+            Index -> minor axis, columns -> items.
 
         Notes
         -----
@@ -826,7 +827,7 @@ class Panel(NDFrame):
         Returns
         -------
         y : DataFrame
-            index -> major axis, columns -> items
+            Index -> major axis, columns -> items.
 
         Notes
         -----
@@ -917,9 +918,7 @@ class Panel(NDFrame):
         -------
         grouped : PanelGroupBy
         """
-        from pandas.core.groupby import PanelGroupBy
-        axis = self._get_axis_number(axis)
-        return PanelGroupBy(self, function, axis=axis)
+        raise NotImplementedError("Panel is removed in pandas 0.25.0")
 
     def to_frame(self, filter_observations=True):
         """
@@ -953,53 +952,53 @@ class Panel(NDFrame):
 
         def construct_multi_parts(idx, n_repeat, n_shuffle=1):
             # Replicates and shuffles MultiIndex, returns individual attributes
-            labels = [np.repeat(x, n_repeat) for x in idx.labels]
+            codes = [np.repeat(x, n_repeat) for x in idx.codes]
             # Assumes that each label is divisible by n_shuffle
-            labels = [x.reshape(n_shuffle, -1).ravel(order='F')
-                      for x in labels]
-            labels = [x[selector] for x in labels]
+            codes = [x.reshape(n_shuffle, -1).ravel(order='F')
+                     for x in codes]
+            codes = [x[selector] for x in codes]
             levels = idx.levels
             names = idx.names
-            return labels, levels, names
+            return codes, levels, names
 
         def construct_index_parts(idx, major=True):
             levels = [idx]
             if major:
-                labels = [np.arange(N).repeat(K)[selector]]
+                codes = [np.arange(N).repeat(K)[selector]]
                 names = idx.name or 'major'
             else:
-                labels = np.arange(K).reshape(1, K)[np.zeros(N, dtype=int)]
-                labels = [labels.ravel()[selector]]
+                codes = np.arange(K).reshape(1, K)[np.zeros(N, dtype=int)]
+                codes = [codes.ravel()[selector]]
                 names = idx.name or 'minor'
             names = [names]
-            return labels, levels, names
+            return codes, levels, names
 
         if isinstance(self.major_axis, MultiIndex):
-            major_labels, major_levels, major_names = construct_multi_parts(
+            major_codes, major_levels, major_names = construct_multi_parts(
                 self.major_axis, n_repeat=K)
         else:
-            major_labels, major_levels, major_names = construct_index_parts(
+            major_codes, major_levels, major_names = construct_index_parts(
                 self.major_axis)
 
         if isinstance(self.minor_axis, MultiIndex):
-            minor_labels, minor_levels, minor_names = construct_multi_parts(
+            minor_codes, minor_levels, minor_names = construct_multi_parts(
                 self.minor_axis, n_repeat=N, n_shuffle=K)
         else:
-            minor_labels, minor_levels, minor_names = construct_index_parts(
+            minor_codes, minor_levels, minor_names = construct_index_parts(
                 self.minor_axis, major=False)
 
         levels = major_levels + minor_levels
-        labels = major_labels + minor_labels
+        codes = major_codes + minor_codes
         names = major_names + minor_names
 
-        index = MultiIndex(levels=levels, labels=labels, names=names,
+        index = MultiIndex(levels=levels, codes=codes, names=names,
                            verify_integrity=False)
 
         return DataFrame(data, index=index, columns=self.items)
 
     def apply(self, func, axis='major', **kwargs):
         """
-        Applies function along axis (or axes) of the Panel.
+        Apply function along axis (or axes) of the Panel.
 
         Parameters
         ----------
@@ -1010,7 +1009,12 @@ class Panel(NDFrame):
             DataFrames of items & major axis will be passed
         axis : {'items', 'minor', 'major'}, or {0, 1, 2}, or a tuple with two
             axes
-        Additional keyword arguments will be passed as keywords to the function
+        **kwargs
+            Additional keyword arguments will be passed to the function.
+
+        Returns
+        -------
+        result : Panel, DataFrame, or Series
 
         Examples
         --------
@@ -1032,10 +1036,6 @@ class Panel(NDFrame):
         items x major), as a Series
 
         >>> p.apply(lambda x: x.shape, axis=(0,1))  # doctest: +SKIP
-
-        Returns
-        -------
-        result : Panel, DataFrame, or Series
         """
 
         if kwargs and not isinstance(func, np.ufunc):

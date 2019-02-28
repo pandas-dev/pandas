@@ -1,6 +1,5 @@
 """ test label based indexing with loc """
 
-import itertools
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
@@ -9,7 +8,7 @@ import pytest
 from pandas.compat import PY2, StringIO, lrange
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
+from pandas import DataFrame, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
 from pandas.util import testing as tm
@@ -226,35 +225,6 @@ class TestLoc(Base):
         self.check_result('int slice2', 'loc', slice(4, 8), 'ix', [4, 8],
                           typs=['ints', 'uints'], axes=2)
 
-        # GH 3053
-        # loc should treat integer slices like label slices
-
-        index = MultiIndex.from_tuples([t for t in itertools.product(
-            [6, 7, 8], ['a', 'b'])])
-        df = DataFrame(np.random.randn(6, 6), index, index)
-        result = df.loc[6:8, :]
-        expected = df
-        tm.assert_frame_equal(result, expected)
-
-        index = MultiIndex.from_tuples([t
-                                        for t in itertools.product(
-                                            [10, 20, 30], ['a', 'b'])])
-        df = DataFrame(np.random.randn(6, 6), index, index)
-        result = df.loc[20:30, :]
-        expected = df.iloc[2:]
-        tm.assert_frame_equal(result, expected)
-
-        # doc examples
-        result = df.loc[10, :]
-        expected = df.iloc[0:2]
-        expected.index = ['a', 'b']
-        tm.assert_frame_equal(result, expected)
-
-        result = df.loc[:, 10]
-        # expected = df.ix[:,10] (this fails)
-        expected = df[10]
-        tm.assert_frame_equal(result, expected)
-
     def test_loc_to_fail(self):
 
         # GH3449
@@ -263,8 +233,10 @@ class TestLoc(Base):
                        columns=['e', 'f', 'g'])
 
         # raise a KeyError?
-        pytest.raises(KeyError, df.loc.__getitem__,
-                      tuple([[1, 2], [1, 2]]))
+        msg = (r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            df.loc[[1, 2], [1, 2]]
 
         # GH  7496
         # loc should not fallback
@@ -273,10 +245,18 @@ class TestLoc(Base):
         s.loc[1] = 1
         s.loc['a'] = 2
 
-        pytest.raises(KeyError, lambda: s.loc[-1])
-        pytest.raises(KeyError, lambda: s.loc[[-1, -2]])
+        with pytest.raises(KeyError, match=r"^-1$"):
+            s.loc[-1]
 
-        pytest.raises(KeyError, lambda: s.loc[['4']])
+        msg = (r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            s.loc[[-1, -2]]
+
+        msg = (r"\"None of \[Index\(\[u?'4'\], dtype='object'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            s.loc[['4']]
 
         s.loc[-1] = 3
         with tm.assert_produces_warning(FutureWarning,
@@ -286,28 +266,27 @@ class TestLoc(Base):
         tm.assert_series_equal(result, expected)
 
         s['a'] = 2
-        pytest.raises(KeyError, lambda: s.loc[[-2]])
+        msg = (r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
+            s.loc[[-2]]
 
         del s['a']
 
-        def f():
+        with pytest.raises(KeyError, match=msg):
             s.loc[[-2]] = 0
-
-        pytest.raises(KeyError, f)
 
         # inconsistency between .loc[values] and .loc[values,:]
         # GH 7999
         df = DataFrame([['a'], ['b']], index=[1, 2], columns=['value'])
 
-        def f():
+        msg = (r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are"
+               r" in the \[index\]\"")
+        with pytest.raises(KeyError, match=msg):
             df.loc[[3], :]
 
-        pytest.raises(KeyError, f)
-
-        def f():
+        with pytest.raises(KeyError, match=msg):
             df.loc[[3]]
-
-        pytest.raises(KeyError, f)
 
     def test_loc_getitem_list_with_fail(self):
         # 15747
@@ -630,11 +609,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # these are going to raise because the we are non monotonic
         df = DataFrame({'A': [1, 2, 3, 4, 5, 6],
                         'B': [3, 4, 5, 6, 7, 8]}, index=[0, 1, 0, 1, 2, 3])
-        pytest.raises(KeyError, df.loc.__getitem__,
-                      tuple([slice(1, None)]))
-        pytest.raises(KeyError, df.loc.__getitem__,
-                      tuple([slice(0, None)]))
-        pytest.raises(KeyError, df.loc.__getitem__, tuple([slice(1, 2)]))
+        msg = "'Cannot get left slice bound for non-unique label: 1'"
+        with pytest.raises(KeyError, match=msg):
+            df.loc[1:]
+        msg = "'Cannot get left slice bound for non-unique label: 0'"
+        with pytest.raises(KeyError, match=msg):
+            df.loc[0:]
+        msg = "'Cannot get left slice bound for non-unique label: 1'"
+        with pytest.raises(KeyError, match=msg):
+            df.loc[1:2]
 
         # monotonic are ok
         df = DataFrame({'A': [1, 2, 3, 4, 5, 6],
@@ -745,47 +728,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         original_series[:3] = [7, 8, 9]
         assert all(sliced_series[:3] == [7, 8, 9])
 
-    @pytest.mark.parametrize(
-        'indexer_type_1',
-        (list, tuple, set, slice, np.ndarray, Series, Index))
-    @pytest.mark.parametrize(
-        'indexer_type_2',
-        (list, tuple, set, slice, np.ndarray, Series, Index))
-    def test_loc_getitem_nested_indexer(self, indexer_type_1, indexer_type_2):
-        # GH #19686
-        # .loc should work with nested indexers which can be
-        # any list-like objects (see `pandas.api.types.is_list_like`) or slices
-
-        def convert_nested_indexer(indexer_type, keys):
-            if indexer_type == np.ndarray:
-                return np.array(keys)
-            if indexer_type == slice:
-                return slice(*keys)
-            return indexer_type(keys)
-
-        a = [10, 20, 30]
-        b = [1, 2, 3]
-        index = pd.MultiIndex.from_product([a, b])
-        df = pd.DataFrame(
-            np.arange(len(index), dtype='int64'),
-            index=index, columns=['Data'])
-
-        keys = ([10, 20], [2, 3])
-        types = (indexer_type_1, indexer_type_2)
-
-        # check indexers with all the combinations of nested objects
-        # of all the valid types
-        indexer = tuple(
-            convert_nested_indexer(indexer_type, k)
-            for indexer_type, k in zip(types, keys))
-
-        result = df.loc[indexer, 'Data']
-        expected = pd.Series(
-            [1, 2, 4, 5], name='Data',
-            index=pd.MultiIndex.from_product(keys))
-
-        tm.assert_series_equal(result, expected)
-
     def test_loc_uint64(self):
         # GH20722
         # Test whether loc accept uint64 max value as index.
@@ -836,3 +778,16 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         msg = "cannot copy sequence with size 2 to array axis with dimension 0"
         with pytest.raises(ValueError, match=msg):
             df.loc[0:2, 'x'] = data
+
+    def test_indexing_zerodim_np_array(self):
+        # GH24924
+        df = DataFrame([[1, 2], [3, 4]])
+        result = df.loc[np.array(0)]
+        s = pd.Series([1, 2], name=0)
+        tm.assert_series_equal(result, s)
+
+    def test_series_indexing_zerodim_np_array(self):
+        # GH24924
+        s = Series([1, 2])
+        result = s.loc[np.array(0)]
+        assert result == 1

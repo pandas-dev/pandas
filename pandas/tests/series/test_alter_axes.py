@@ -16,11 +16,16 @@ class TestSeriesAlterAxes(object):
 
     def test_setindex(self, string_series):
         # wrong type
-        pytest.raises(TypeError, setattr, string_series, 'index', None)
+        msg = (r"Index\(\.\.\.\) must be called with a collection of some"
+               r" kind, None was passed")
+        with pytest.raises(TypeError, match=msg):
+            string_series.index = None
 
         # wrong length
-        pytest.raises(Exception, setattr, string_series, 'index',
-                      np.arange(len(string_series) - 1))
+        msg = ("Length mismatch: Expected axis has 30 elements, new"
+               " values have 29 elements")
+        with pytest.raises(ValueError, match=msg):
+            string_series.index = np.arange(len(string_series) - 1)
 
         # works
         string_series.index = np.arange(len(string_series))
@@ -133,8 +138,8 @@ class TestSeriesAlterAxes(object):
 
         # level
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]])
         s = Series(np.random.randn(6), index=index)
         rs = s.reset_index(level=1)
         assert len(rs.columns) == 2
@@ -204,8 +209,8 @@ class TestSeriesAlterAxes(object):
 
     def test_reorder_levels(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
-                           labels=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
-                                   [0, 1, 0, 1, 0, 1]],
+                           codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
+                                  [0, 1, 0, 1, 0, 1]],
                            names=['L0', 'L1', 'L2'])
         s = Series(np.arange(6), index=index)
 
@@ -220,8 +225,8 @@ class TestSeriesAlterAxes(object):
         # rotate, position
         result = s.reorder_levels([1, 2, 0])
         e_idx = MultiIndex(levels=[['one', 'two', 'three'], [0, 1], ['bar']],
-                           labels=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1],
-                                   [0, 0, 0, 0, 0, 0]],
+                           codes=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1],
+                                  [0, 0, 0, 0, 0, 0]],
                            names=['L1', 'L2', 'L0'])
         expected = Series(np.arange(6), index=e_idx)
         tm.assert_series_equal(result, expected)
@@ -251,6 +256,17 @@ class TestSeriesAlterAxes(object):
         no_return = result.rename_axis('foo', inplace=True)
 
         assert no_return is None
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('kwargs', [{'mapper': None}, {'index': None}, {}])
+    def test_rename_axis_none(self, kwargs):
+        # GH 25034
+        index = Index(list('abc'), name='foo')
+        df = Series([1, 2, 3], index=index)
+
+        result = df.rename_axis(**kwargs)
+        expected_index = index.rename(None) if kwargs else index
+        expected = Series([1, 2, 3], index=expected_index)
         tm.assert_series_equal(result, expected)
 
     def test_set_axis_inplace_axes(self, axis_series):

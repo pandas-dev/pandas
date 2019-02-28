@@ -2,27 +2,24 @@
 
 from __future__ import print_function
 
-import pytest
-
-import operator
 from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
-
+import operator
 import warnings
-import numpy as np
-from hypothesis import given, settings
-from hypothesis.strategies import composite, dates, integers, sampled_from
 
-from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
-                    Timestamp, compat)
-import pandas as pd
+import numpy as np
+import pytest
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.apply import frame_apply
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal)
-import pandas.util.testing as tm
+
+import pandas as pd
+from pandas import (
+    DataFrame, MultiIndex, Series, Timestamp, compat, date_range, notna)
 from pandas.conftest import _get_cython_table_params
+from pandas.core.apply import frame_apply
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 @pytest.fixture
@@ -57,7 +54,8 @@ class TestDataFrameApply():
         # invalid axis
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
-        pytest.raises(ValueError, df.apply, lambda x: x, 2)
+        with pytest.raises(ValueError):
+            df.apply(lambda x: x, 2)
 
         # GH 9573
         df = DataFrame({'c0': ['A', 'A', 'B', 'B'],
@@ -318,6 +316,13 @@ class TestDataFrameApply():
         float_frame.loc[::2, 'A'] = np.nan
         expected = float_frame.mean(1)
         result = float_frame.apply(np.mean, axis=1)
+        assert_series_equal(result, expected)
+
+    def test_apply_reduce_rows_to_dict(self):
+        # GH 25196
+        data = pd.DataFrame([[1, 2], [3, 4]])
+        expected = pd.Series([{0: 1, 1: 3}, {0: 2, 1: 4}])
+        result = data.apply(dict)
         assert_series_equal(result, expected)
 
     def test_apply_differently_indexed(self):
@@ -823,20 +828,6 @@ def zip_frames(frames, axis=1):
         return pd.DataFrame(zipped)
 
 
-@composite
-def indices(draw, max_length=5):
-    date = draw(
-        dates(
-            min_value=Timestamp.min.ceil("D").to_pydatetime().date(),
-            max_value=Timestamp.max.floor("D").to_pydatetime().date(),
-        ).map(Timestamp)
-    )
-    periods = draw(integers(0, max_length))
-    freq = draw(sampled_from(list("BDHTS")))
-    dr = date_range(date, periods=periods, freq=freq)
-    return pd.DatetimeIndex(list(dr))
-
-
 class TestDataFrameAggregate():
 
     def test_agg_transform(self, axis, float_frame):
@@ -890,19 +881,16 @@ class TestDataFrameAggregate():
 
     def test_transform_and_agg_err(self, axis, float_frame):
         # cannot both transform and agg
-        def f():
+        with pytest.raises(ValueError):
             float_frame.transform(['max', 'min'], axis=axis)
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 float_frame.agg(['max', 'sqrt'], axis=axis)
-        pytest.raises(ValueError, f)
 
-        def f():
+        with pytest.raises(ValueError):
             with np.errstate(all='ignore'):
                 float_frame.transform(['max', 'sqrt'], axis=axis)
-        pytest.raises(ValueError, f)
 
         df = pd.DataFrame({'A': range(5), 'B': 5})
 
@@ -1156,11 +1144,11 @@ class TestDataFrameAggregate():
         with pytest.raises(expected):
             df.agg(func, axis=axis)
 
-    @given(index=indices(max_length=5), num_columns=integers(0, 5))
-    @settings(deadline=1000)
-    def test_frequency_is_original(self, index, num_columns):
+    @pytest.mark.parametrize("num_cols", [2, 3, 5])
+    def test_frequency_is_original(self, num_cols):
         # GH 22150
+        index = pd.DatetimeIndex(["1950-06-30", "1952-10-24", "1953-05-29"])
         original = index.copy()
-        df = DataFrame(True, index=index, columns=range(num_columns))
+        df = DataFrame(1, index=index, columns=range(num_cols))
         df.apply(lambda x: x)
         assert index.freq == original.freq

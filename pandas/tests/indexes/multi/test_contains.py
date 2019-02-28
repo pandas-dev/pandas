@@ -20,7 +20,7 @@ def test_contains_with_nat():
     # MI with a NaT
     mi = MultiIndex(levels=[['C'],
                             pd.date_range('2012-01-01', periods=5)],
-                    labels=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
+                    codes=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
                     names=[None, 'B'])
     assert ('C', pd.Timestamp('2012-01-01')) in mi
     for val in mi.values:
@@ -83,15 +83,24 @@ def test_isin_level_kwarg():
     tm.assert_numpy_array_equal(expected, idx.isin(vals_1, level=1))
     tm.assert_numpy_array_equal(expected, idx.isin(vals_1, level=-1))
 
-    pytest.raises(IndexError, idx.isin, vals_0, level=5)
-    pytest.raises(IndexError, idx.isin, vals_0, level=-5)
+    msg = "Too many levels: Index has only 2 levels, not 6"
+    with pytest.raises(IndexError, match=msg):
+        idx.isin(vals_0, level=5)
+    msg = ("Too many levels: Index has only 2 levels, -5 is not a valid level"
+           " number")
+    with pytest.raises(IndexError, match=msg):
+        idx.isin(vals_0, level=-5)
 
-    pytest.raises(KeyError, idx.isin, vals_0, level=1.0)
-    pytest.raises(KeyError, idx.isin, vals_1, level=-1.0)
-    pytest.raises(KeyError, idx.isin, vals_1, level='A')
+    with pytest.raises(KeyError, match=r"'Level 1\.0 not found'"):
+        idx.isin(vals_0, level=1.0)
+    with pytest.raises(KeyError, match=r"'Level -1\.0 not found'"):
+        idx.isin(vals_1, level=-1.0)
+    with pytest.raises(KeyError, match="'Level A not found'"):
+        idx.isin(vals_1, level='A')
 
     idx.names = ['A', 'B']
     tm.assert_numpy_array_equal(expected, idx.isin(vals_0, level='A'))
     tm.assert_numpy_array_equal(expected, idx.isin(vals_1, level='B'))
 
-    pytest.raises(KeyError, idx.isin, vals_1, level='C')
+    with pytest.raises(KeyError, match="'Level C not found'"):
+        idx.isin(vals_1, level='C')

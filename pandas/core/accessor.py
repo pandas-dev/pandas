@@ -16,11 +16,15 @@ class DirNamesMixin(object):
         ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
 
     def _dir_deletions(self):
-        """ delete unwanted __dir__ for this object """
+        """
+        Delete unwanted __dir__ for this object.
+        """
         return self._accessors | self._deprecations
 
     def _dir_additions(self):
-        """ add additional __dir__ for this object """
+        """
+        Add additional __dir__ for this object.
+        """
         rv = set()
         for accessor in self._accessors:
             try:
@@ -33,7 +37,7 @@ class DirNamesMixin(object):
     def __dir__(self):
         """
         Provide method name lookup and completion
-        Only provide 'public' methods
+        Only provide 'public' methods.
         """
         rv = set(dir(type(self)))
         rv = (rv - self._dir_deletions()) | self._dir_additions()
@@ -41,7 +45,9 @@ class DirNamesMixin(object):
 
 
 class PandasDelegate(object):
-    """ an abstract base class for delegating methods/properties """
+    """
+    An abstract base class for delegating methods/properties.
+    """
 
     def _delegate_property_get(self, name, *args, **kwargs):
         raise TypeError("You cannot access the "
@@ -57,16 +63,16 @@ class PandasDelegate(object):
     def _add_delegate_accessors(cls, delegate, accessors, typ,
                                 overwrite=False):
         """
-        add accessors to cls from the delegate class
+        Add accessors to cls from the delegate class.
 
         Parameters
         ----------
         cls : the class to add the methods/properties to
         delegate : the class to get methods/properties & doc-strings
-        acccessors : string list of accessors to add
+        accessors : string list of accessors to add
         typ : 'property' or 'method'
         overwrite : boolean, default False
-           overwrite the method/property in the target class if it exists
+           overwrite the method/property in the target class if it exists.
         """
 
         def _create_delegator_property(name):
@@ -115,7 +121,7 @@ def delegate_names(delegate, accessors, typ, overwrite=False):
     ----------
     delegate : object
         the class to get methods/properties & doc-strings
-    acccessors : Sequence[str]
+    accessors : Sequence[str]
         List of accessor to add
     typ : {'property', 'method'}
     overwrite : boolean, default False
@@ -146,7 +152,8 @@ def delegate_names(delegate, accessors, typ, overwrite=False):
 # 2. We use a UserWarning instead of a custom Warning
 
 class CachedAccessor(object):
-    """Custom property-like object (descriptor) for caching accessors.
+    """
+    Custom property-like object (descriptor) for caching accessors.
 
     Parameters
     ----------
@@ -189,13 +196,18 @@ def _register_accessor(name, cls):
     return decorator
 
 
-_doc = """Register a custom accessor on %(klass)s objects.
+_doc = """\
+Register a custom accessor on %(klass)s objects.
 
 Parameters
 ----------
 name : str
     Name under which the accessor should be registered. A warning is issued
     if this name conflicts with a preexisting attribute.
+
+See Also
+--------
+%(others)s
 
 Notes
 -----
@@ -246,10 +258,6 @@ Back in an interactive IPython session:
     (5.0, 10.0)
     >>> ds.geo.plot()
     # plots data on a map
-
-See Also
---------
-%(others)s
 """
 
 

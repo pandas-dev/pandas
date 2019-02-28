@@ -3,24 +3,24 @@
 """ Test cases for Series.plot """
 
 
-from itertools import chain
-import pytest
-
 from datetime import datetime
-
-import pandas as pd
-from pandas import Series, DataFrame, date_range
-from pandas.compat import range, lrange
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
+from itertools import chain
 
 import numpy as np
 from numpy.random import randn
+import pytest
+
+from pandas.compat import lrange, range
+import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import DataFrame, Series, date_range
+from pandas.tests.plotting.common import (
+    TestPlotBase, _check_plot_works, _ok_for_gaussian_kde,
+    _skip_if_no_scipy_gaussian_kde)
+import pandas.util.testing as tm
 
 import pandas.plotting as plotting
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
-                                          _skip_if_no_scipy_gaussian_kde,
-                                          _ok_for_gaussian_kde)
 
 
 @td.skip_if_no_mpl
@@ -771,6 +771,7 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises((TypeError, ValueError)):
             s.plot(yerr=s_err)
 
+    # This XPASSES when tested with mpl == 3.0.1
     @td.xfail_if_mpl_2_2
     def test_table(self):
         _check_plot_works(self.series.plot, table=True)
@@ -876,3 +877,15 @@ class TestSeriesPlots(TestPlotBase):
             freq=CustomBusinessDay(holidays=['2014-05-26'])))
 
         _check_plot_works(s.plot)
+
+    @pytest.mark.xfail
+    def test_plot_accessor_updates_on_inplace(self):
+        s = Series([1, 2, 3, 4])
+        _, ax = self.plt.subplots()
+        ax = s.plot(ax=ax)
+        before = ax.xaxis.get_ticklocs()
+
+        s.drop([0, 1], inplace=True)
+        _, ax = self.plt.subplots()
+        after = ax.xaxis.get_ticklocs()
+        tm.assert_numpy_array_equal(before, after)

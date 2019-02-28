@@ -290,10 +290,10 @@ class BaseGrouper(object):
         if not self.compressed and len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
 
-        labels = self.recons_labels
+        codes = self.recons_labels
         levels = [ping.result_index for ping in self.groupings]
         result = MultiIndex(levels=levels,
-                            labels=labels,
+                            codes=codes,
                             verify_integrity=False,
                             names=self.names)
         return result
@@ -380,7 +380,7 @@ class BaseGrouper(object):
             # otherwise find dtype-specific version, falling back to object
             for dt in [dtype_str, 'object']:
                 f = getattr(libgroupby, "{fname}_{dtype_str}".format(
-                    fname=fname, dtype_str=dtype_str), None)
+                    fname=fname, dtype_str=dt), None)
                 if f is not None:
                     return f
 

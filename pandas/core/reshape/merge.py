@@ -17,9 +17,10 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.common import (
     ensure_float64, ensure_int64, ensure_object, is_array_like, is_bool,
     is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_datetimelike, is_dtype_equal, is_float_dtype,
-    is_int64_dtype, is_integer, is_integer_dtype, is_list_like, is_number,
-    is_numeric_dtype, needs_i8_conversion)
+    is_datetime64tz_dtype, is_datetimelike, is_dtype_equal,
+    is_extension_array_dtype, is_float_dtype, is_int64_dtype, is_integer,
+    is_integer_dtype, is_list_like, is_number, is_numeric_dtype,
+    is_object_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import isnull, na_value_for_dtype
 
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
@@ -158,9 +159,15 @@ def merge_ordered(left, right, on=None,
         left DataFrame
     fill_method : {'ffill', None}, default None
         Interpolation method for data
-    suffixes : 2-length sequence (tuple, list, ...)
-        Suffix to apply to overlapping column names in the left and right
-        side, respectively
+    suffixes : Sequence, default is ("_x", "_y")
+        A length-2 sequence where each element is optionally a string
+        indicating the suffix to add to overlapping column names in
+        `left` and `right` respectively. Pass a value of `None` instead
+        of a string to indicate that the column name from `left` or
+        `right` should be left as-is, with no suffix. At least one of the
+        values must not be None.
+
+        .. versionchanged:: 0.25.0
     how : {'left', 'right', 'outer', 'inner'}, default 'outer'
         * left: use only keys from left frame (SQL: left outer join)
         * right: use only keys from right frame (SQL: right outer join)
@@ -168,6 +175,17 @@ def merge_ordered(left, right, on=None,
         * inner: use intersection of keys from both frames (SQL: inner join)
 
         .. versionadded:: 0.19.0
+
+    Returns
+    -------
+    merged : DataFrame
+        The output type will the be same as 'left', if it is a subclass
+        of DataFrame.
+
+    See Also
+    --------
+    merge
+    merge_asof
 
     Examples
     --------
@@ -192,17 +210,6 @@ def merge_ordered(left, right, on=None,
     7     b   c       2     2.0
     8     b   d       2     3.0
     9     b   e       3     3.0
-
-    Returns
-    -------
-    merged : DataFrame
-        The output type will the be same as 'left', if it is a subclass
-        of DataFrame.
-
-    See Also
-    --------
-    merge
-    merge_asof
     """
     def _merger(x, y):
         # perform the ordered merge operation
@@ -314,6 +321,11 @@ def merge_asof(left, right, on=None,
     Returns
     -------
     merged : DataFrame
+
+    See Also
+    --------
+    merge
+    merge_ordered
 
     Examples
     --------
@@ -444,11 +456,6 @@ def merge_asof(left, right, on=None,
     2 2016-05-25 13:30:00.048   GOOG  720.77       100     NaN     NaN
     3 2016-05-25 13:30:00.048   GOOG  720.92       100     NaN     NaN
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
-
-    See Also
-    --------
-    merge
-    merge_ordered
     """
     op = _AsOfMerge(left, right,
                     on=on, left_on=left_on, right_on=right_on,
@@ -715,6 +722,7 @@ class _MergeOperation(object):
                     result[name] = key_col
                 elif result._is_level_reference(name):
                     if isinstance(result.index, MultiIndex):
+                        key_col.name = name
                         idx_list = [result.index.get_level_values(level_name)
                                     if level_name != name else key_col
                                     for level_name in result.index.names]
@@ -755,13 +763,21 @@ class _MergeOperation(object):
 
             if self.right_index:
                 if len(self.left) > 0:
-                    join_index = self.left.index.take(left_indexer)
+                    join_index = self._create_join_index(self.left.index,
+                                                         self.right.index,
+                                                         left_indexer,
+                                                         right_indexer,
+                                                         how='right')
                 else:
                     join_index = self.right.index.take(right_indexer)
                     left_indexer = np.array([-1] * len(join_index))
             elif self.left_index:
                 if len(self.right) > 0:
-                    join_index = self.right.index.take(right_indexer)
+                    join_index = self._create_join_index(self.right.index,
+                                                         self.left.index,
+                                                         right_indexer,
+                                                         left_indexer,
+                                                         how='left')
                 else:
                     join_index = self.left.index.take(left_indexer)
                     right_indexer = np.array([-1] * len(join_index))
@@ -771,6 +787,39 @@ class _MergeOperation(object):
         if len(join_index) == 0:
             join_index = join_index.astype(object)
         return join_index, left_indexer, right_indexer
+
+    def _create_join_index(self, index, other_index, indexer,
+                           other_indexer, how='left'):
+        """
+        Create a join index by rearranging one index to match another
+
+        Parameters
+        ----------
+        index: Index being rearranged
+        other_index: Index used to supply values not found in index
+        indexer: how to rearrange index
+        how: replacement is only necessary if indexer based on other_index
+
+        Returns
+        -------
+        join_index
+        """
+        join_index = index.take(indexer)
+        if (self.how in (how, 'outer') and
+                not isinstance(other_index, MultiIndex)):
+            # if final index requires values in other_index but not target
+            # index, indexer may hold missing (-1) values, causing Index.take
+            # to take the final value in target index
+            mask = indexer == -1
+            if np.any(mask):
+                # if values missing (-1) from target index,
+                # take from other_index instead
+                join_list = join_index.to_numpy()
+                other_list = other_index.take(other_indexer).to_numpy()
+                join_list[mask] = other_list[mask]
+                join_index = Index(join_list, dtype=join_index.dtype,
+                                   name=join_index.name)
+        return join_index
 
     def _get_merge_keys(self):
         """
@@ -856,11 +905,11 @@ class _MergeOperation(object):
                     left_keys.append(left._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
-                right_keys = [lev._values.take(lab)
-                              for lev, lab in zip(self.right.index.levels,
-                                                  self.right.index.labels)]
+                right_keys = [lev._values.take(lev_codes) for lev, lev_codes
+                              in zip(self.right.index.levels,
+                                     self.right.index.codes)]
             else:
-                right_keys = [self.right.index.values]
+                right_keys = [self.right.index._values]
         elif _any(self.right_on):
             for k in self.right_on:
                 if is_rkey(k):
@@ -870,9 +919,9 @@ class _MergeOperation(object):
                     right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
-                left_keys = [lev._values.take(lab)
-                             for lev, lab in zip(self.left.index.levels,
-                                                 self.left.index.labels)]
+                left_keys = [lev._values.take(lev_codes) for lev, lev_codes
+                             in zip(self.left.index.levels,
+                                    self.left.index.codes)]
             else:
                 left_keys = [self.left.index.values]
 
@@ -899,6 +948,8 @@ class _MergeOperation(object):
 
             lk_is_cat = is_categorical_dtype(lk)
             rk_is_cat = is_categorical_dtype(rk)
+            lk_is_object = is_object_dtype(lk)
+            rk_is_object = is_object_dtype(rk)
 
             # if either left or right is a categorical
             # then the must match exactly in categories & ordered
@@ -923,7 +974,7 @@ class _MergeOperation(object):
             # the same, then proceed
             if is_numeric_dtype(lk) and is_numeric_dtype(rk):
                 if lk.dtype.kind == rk.dtype.kind:
-                    pass
+                    continue
 
                 # check whether ints and floats
                 elif is_integer_dtype(rk) and is_float_dtype(lk):
@@ -932,6 +983,7 @@ class _MergeOperation(object):
                                       'columns where the float values '
                                       'are not equal to their int '
                                       'representation', UserWarning)
+                    continue
 
                 elif is_float_dtype(rk) and is_integer_dtype(lk):
                     if not (rk == rk.astype(lk.dtype))[~np.isnan(rk)].all():
@@ -939,22 +991,42 @@ class _MergeOperation(object):
                                       'columns where the float values '
                                       'are not equal to their int '
                                       'representation', UserWarning)
+                    continue
 
                 # let's infer and see if we are ok
-                elif lib.infer_dtype(lk) == lib.infer_dtype(rk):
-                    pass
+                elif (lib.infer_dtype(lk, skipna=False)
+                      == lib.infer_dtype(rk, skipna=False)):
+                    continue
 
             # Check if we are trying to merge on obviously
             # incompatible dtypes GH 9780, GH 15800
 
-            # boolean values are considered as numeric, but are still allowed
-            # to be merged on object boolean values
-            elif ((is_numeric_dtype(lk) and not is_bool_dtype(lk))
-                    and not is_numeric_dtype(rk)):
-                raise ValueError(msg)
-            elif (not is_numeric_dtype(lk)
-                    and (is_numeric_dtype(rk) and not is_bool_dtype(rk))):
-                raise ValueError(msg)
+            # bool values are coerced to object
+            elif ((lk_is_object and is_bool_dtype(rk)) or
+                  (is_bool_dtype(lk) and rk_is_object)):
+                pass
+
+            # object values are allowed to be merged
+            elif ((lk_is_object and is_numeric_dtype(rk)) or
+                  (is_numeric_dtype(lk) and rk_is_object)):
+                inferred_left = lib.infer_dtype(lk, skipna=False)
+                inferred_right = lib.infer_dtype(rk, skipna=False)
+                bool_types = ['integer', 'mixed-integer', 'boolean', 'empty']
+                string_types = ['string', 'unicode', 'mixed', 'bytes', 'empty']
+
+                # inferred bool
+                if (inferred_left in bool_types and
+                        inferred_right in bool_types):
+                    pass
+
+                # unless we are merging non-string-like with string-like
+                elif ((inferred_left in string_types and
+                       inferred_right not in string_types) or
+                      (inferred_right in string_types and
+                       inferred_left not in string_types)):
+                    raise ValueError(msg)
+
+            # datetimelikes must match exactly
             elif is_datetimelike(lk) and not is_datetimelike(rk):
                 raise ValueError(msg)
             elif not is_datetimelike(lk) and is_datetimelike(rk):
@@ -964,6 +1036,9 @@ class _MergeOperation(object):
             elif not is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
                 raise ValueError(msg)
 
+            elif lk_is_object and rk_is_object:
+                continue
+
             # Houston, we have a problem!
             # let's coerce to object if the dtypes aren't
             # categorical, otherwise coerce to the category
@@ -971,15 +1046,14 @@ class _MergeOperation(object):
             # then we would lose type information on some
             # columns, and end up trying to merge
             # incompatible dtypes. See GH 16900.
-            else:
-                if name in self.left.columns:
-                    typ = lk.categories.dtype if lk_is_cat else object
-                    self.left = self.left.assign(
-                        **{name: self.left[name].astype(typ)})
-                if name in self.right.columns:
-                    typ = rk.categories.dtype if rk_is_cat else object
-                    self.right = self.right.assign(
-                        **{name: self.right[name].astype(typ)})
+            if name in self.left.columns:
+                typ = lk.categories.dtype if lk_is_cat else object
+                self.left = self.left.assign(
+                    **{name: self.left[name].astype(typ)})
+            if name in self.right.columns:
+                typ = rk.categories.dtype if rk_is_cat else object
+                self.right = self.right.assign(
+                    **{name: self.right[name].astype(typ)})
 
     def _validate_specification(self):
         # Hm, any way to make this logic less complicated??
@@ -1060,7 +1134,7 @@ class _MergeOperation(object):
         elif validate in ["one_to_many", "1:m"]:
             if not left_unique:
                 raise MergeError("Merge keys are not unique in left dataset;"
-                                 "not a one-to-many merge")
+                                 " not a one-to-many merge")
 
         elif validate in ["many_to_one", "m:1"]:
             if not right_unique:
@@ -1171,7 +1245,7 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
     join_index = _convert_to_mulitindex(join_index)
 
     join_levels = join_index.levels
-    join_labels = join_index.labels
+    join_codes = join_index.codes
     join_names = join_index.names
 
     # lindexer and rindexer hold the indexes where the join occurred
@@ -1196,16 +1270,16 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
         name_idx = idx.names.index(dropped_level_name)
 
         restore_levels = idx.levels[name_idx]
-        # Inject -1 in the labels list where a join was not possible
+        # Inject -1 in the codes list where a join was not possible
         # IOW indexer[i]=-1
-        labels = idx.labels[name_idx]
-        restore_labels = algos.take_nd(labels, indexer, fill_value=-1)
+        codes = idx.codes[name_idx]
+        restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
         join_levels = join_levels + [restore_levels]
-        join_labels = join_labels + [restore_labels]
+        join_codes = join_codes + [restore_codes]
         join_names = join_names + [dropped_level_name]
 
-    return join_levels, join_labels, join_names
+    return join_levels, join_codes, join_names
 
 
 class _OrderedMerge(_MergeOperation):
@@ -1507,27 +1581,29 @@ def _get_multiindex_indexer(join_keys, index, sort):
     fkeys = partial(_factorize_keys, sort=sort)
 
     # left & right join labels and num. of levels at each location
-    rlab, llab, shape = map(list, zip(* map(fkeys, index.levels, join_keys)))
+    rcodes, lcodes, shape = map(list, zip(* map(fkeys,
+                                                index.levels,
+                                                join_keys)))
     if sort:
-        rlab = list(map(np.take, rlab, index.labels))
+        rcodes = list(map(np.take, rcodes, index.codes))
     else:
         i8copy = lambda a: a.astype('i8', subok=False, copy=True)
-        rlab = list(map(i8copy, index.labels))
+        rcodes = list(map(i8copy, index.codes))
 
     # fix right labels if there were any nulls
     for i in range(len(join_keys)):
-        mask = index.labels[i] == -1
+        mask = index.codes[i] == -1
         if mask.any():
             # check if there already was any nulls at this location
             # if there was, it is factorized to `shape[i] - 1`
-            a = join_keys[i][llab[i] == shape[i] - 1]
+            a = join_keys[i][lcodes[i] == shape[i] - 1]
             if a.size == 0 or not a[0] != a[0]:
                 shape[i] += 1
 
-            rlab[i][mask] = shape[i] - 1
+            rcodes[i][mask] = shape[i] - 1
 
     # get flat i8 join keys
-    lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
+    lkey, rkey = _get_join_keys(lcodes, rcodes, shape, sort)
 
     # factorize keys to a dense i8 space
     lkey, rkey, count = fkeys(lkey, rkey)
@@ -1586,17 +1662,16 @@ _join_functions = {
 
 
 def _factorize_keys(lk, rk, sort=True):
+    # Some pre-processing for non-ndarray lk / rk
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
-        lk = lk.values
-        rk = rk.values
+        lk = lk._data
+        rk = rk._data
 
-    # if we exactly match in categories, allow us to factorize on codes
-    if (is_categorical_dtype(lk) and
+    elif (is_categorical_dtype(lk) and
             is_categorical_dtype(rk) and
             lk.is_dtype_equal(rk)):
-        klass = libhashtable.Int64Factorizer
-
         if lk.categories.equals(rk.categories):
+            # if we exactly match in categories, allow us to factorize on codes
             rk = rk.codes
         else:
             # Same categories in different orders -> recode
@@ -1604,7 +1679,14 @@ def _factorize_keys(lk, rk, sort=True):
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
-    elif is_integer_dtype(lk) and is_integer_dtype(rk):
+
+    elif (is_extension_array_dtype(lk.dtype) and
+          is_extension_array_dtype(rk.dtype) and
+          lk.dtype == rk.dtype):
+        lk, _ = lk._values_for_factorize()
+        rk, _ = rk._values_for_factorize()
+
+    if is_integer_dtype(lk) and is_integer_dtype(rk):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
         #  and rk is datetime-dtype
         klass = libhashtable.Int64Factorizer
