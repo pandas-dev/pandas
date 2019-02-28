@@ -556,7 +556,6 @@ class TestSparseDataFrame(SharedWithSparse):
 
             # insert ndarray wrong size
             msg = "Length of values does not match length of index"
-            # TODO: change user facing exception type to ValueError
             with pytest.raises(AssertionError, match=msg):
                 frame['foo'] = np.random.randn(N - 1)
 
