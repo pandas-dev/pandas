@@ -2926,7 +2926,7 @@ class StringMethods(NoNewAttributesMixin):
 
     _shared_docs['casemethods'] = ("""
     Convert strings in the Series/Index to %(type)s.
-
+    %(version)s
     Equivalent to :meth:`str.%(method)s`.
 
     Returns
@@ -2944,7 +2944,6 @@ class StringMethods(NoNewAttributesMixin):
     Series.str.swapcase : Converts uppercase to lowercase and lowercase to
         uppercase.
     Series.str.casefold: Removes all case distinctions in the string.
-        .. versionadded:: 0.25.0
 
     Examples
     --------
@@ -2991,13 +2990,15 @@ class StringMethods(NoNewAttributesMixin):
     3              sWaPcAsE
     dtype: object
     """)
-    _shared_docs['lower'] = dict(type='lowercase', method='lower')
-    _shared_docs['upper'] = dict(type='uppercase', method='upper')
-    _shared_docs['title'] = dict(type='titlecase', method='title')
+    _shared_docs['lower'] = dict(type='lowercase', method='lower', version='')
+    _shared_docs['upper'] = dict(type='uppercase', method='upper', version='')
+    _shared_docs['title'] = dict(type='titlecase', method='title', version='')
     _shared_docs['capitalize'] = dict(type='be capitalized',
-                                      method='capitalize')
-    _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase')
-    _shared_docs['casefold'] = dict(type='be casefolded', method='casefold')
+                                      method='capitalize', version='')
+    _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase',
+                                    version='')
+    _shared_docs['casefold'] = dict(type='be casefolded', method='casefold',
+                                    version='.. versionadded:: 0.25.0')
     lower = _noarg_wrapper(lambda x: x.lower(),
                            docstring=_shared_docs['casemethods'] %
                            _shared_docs['lower'])
