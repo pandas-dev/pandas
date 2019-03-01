@@ -409,9 +409,9 @@ class TestSafeSort(object):
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        msg = ("'<' not supported between instances of 'datetime.datetime'"
-               r" and 'int'|"
-               r"unorderable types: int\(\) > datetime.datetime\(\)")
+        msg = (r"'(<|>)' not supported between instances of"
+               r" 'datetime\.datetime' and 'int'|"
+               r"unorderable types: int\(\) > datetime\.datetime\(\)")
         if compat.PY2:
             # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
             with warnings.catch_warnings():
