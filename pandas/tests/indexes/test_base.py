@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import math
 import operator
+import re
 import sys
 
 import numpy as np
@@ -107,7 +108,10 @@ class TestIndex(Base):
 
     def test_constructor_corner(self):
         # corner case
-        pytest.raises(TypeError, Index, 0)
+        msg = (r"Index\(\.\.\.\) must be called with a collection of some"
+               " kind, 0 was passed")
+        with pytest.raises(TypeError, match=msg):
+            Index(0)
 
     @pytest.mark.parametrize("index_vals", [
         [('A', 1), 'B'], ['B', ('A', 1)]])
@@ -488,21 +492,22 @@ class TestIndex(Base):
             Index(["a", "b", "c"], dtype=float)
 
     def test_view_with_args(self):
-
         restricted = ['unicodeIndex', 'strIndex', 'catIndex', 'boolIndex',
                       'empty']
-
-        for i in restricted:
-            ind = self.indices[i]
-
-            # with arguments
-            pytest.raises(TypeError, lambda: ind.view('i8'))
-
-        # these are ok
         for i in list(set(self.indices.keys()) - set(restricted)):
             ind = self.indices[i]
+            ind.view('i8')
 
-            # with arguments
+    @pytest.mark.parametrize('index_type', [
+        'unicodeIndex',
+        'strIndex',
+        pytest.param('catIndex', marks=pytest.mark.xfail(reason="gh-25464")),
+        'boolIndex',
+        'empty'])
+    def test_view_with_args_object_array_raises(self, index_type):
+        ind = self.indices[index_type]
+        msg = "Cannot change data-type for object array"
+        with pytest.raises(TypeError, match=msg):
             ind.view('i8')
 
     def test_astype(self):
@@ -565,8 +570,8 @@ class TestIndex(Base):
 
     def test_delete_raises(self):
         index = Index(['a', 'b', 'c', 'd'], name='index')
-        with pytest.raises((IndexError, ValueError)):
-            # either depending on numpy version
+        msg = "index 5 is out of bounds for axis 0 with size 4"
+        with pytest.raises(IndexError, match=msg):
             index.delete(5)
 
     def test_identical(self):
@@ -683,7 +688,9 @@ class TestIndex(Base):
 
         assert index[[]].identical(empty_index)
         # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
-        pytest.raises(IndexError, index.__getitem__, empty_farr)
+        msg = r"arrays used as indices must be of integer \(or boolean\) type"
+        with pytest.raises(IndexError, match=msg):
+            index[empty_farr]
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, sort):
@@ -1428,13 +1435,14 @@ class TestIndex(Base):
     def test_get_indexer_strings_raises(self):
         index = pd.Index(['b', 'c'])
 
-        with pytest.raises(TypeError):
+        msg = r"unsupported operand type\(s\) for -: 'str' and 'str'"
+        with pytest.raises(TypeError, match=msg):
             index.get_indexer(['a', 'b', 'c', 'd'], method='nearest')
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             index.get_indexer(['a', 'b', 'c', 'd'], method='pad', tolerance=2)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             index.get_indexer(['a', 'b', 'c', 'd'], method='pad',
                               tolerance=[2, 2, 2, 2])
 
@@ -1687,8 +1695,11 @@ class TestIndex(Base):
             tm.assert_index_equal(result, expected)
 
         removed = index.drop(to_drop[1])
+        msg = r"\"\[{}\] not found in axis\"".format(
+            re.escape(to_drop[1].__repr__()))
         for drop_me in to_drop[1], [to_drop[1]]:
-            pytest.raises(KeyError, removed.drop, drop_me)
+            with pytest.raises(KeyError, match=msg):
+                removed.drop(drop_me)
 
     @pytest.mark.parametrize("method,expected,sort", [
         ('intersection', np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B')],
