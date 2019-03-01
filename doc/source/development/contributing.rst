@@ -54,7 +54,7 @@ Bug reports must:
       ...
       ```
 
-#. Include the full version string of *pandas* and its dependencies. You can use the built in function::
+#. Include the full version string of *pandas* and its dependencies. You can use the built-in function::
 
       >>> import pandas as pd
       >>> pd.show_versions()
@@ -211,7 +211,7 @@ See the full conda docs `here <http://conda.pydata.org/docs>`__.
 Creating a Python Environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you aren't using conda for you development environment, follow these instructions.
+If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least python3.5 installed on your system.
 
 .. code-block:: none
@@ -428,14 +428,14 @@ reducing the turn-around time for checking your changes.
     python make.py clean
     python make.py --no-api
 
-    # compile the docs with only a single
-    # section, that which is in indexing.rst
+    # compile the docs with only a single section, relative to the "source" folder.
+    # For example, compiling only this guide (docs/source/development/contributing.rst)
     python make.py clean
-    python make.py --single indexing
+    python make.py --single development/contributing.rst
 
     # compile the reference docs for a single function
     python make.py clean
-    python make.py --single DataFrame.join
+    python make.py --single pandas.DataFrame.join
 
 For comparison, a full documentation build may take 15 minutes, but a single
 section may take 15 seconds. Subsequent builds, which only process portions
@@ -484,7 +484,7 @@ contributing them to the project::
 
    ./ci/code_checks.sh
 
-The script verify the linting of code files, it looks for common mistake patterns
+The script verifies the linting of code files, it looks for common mistake patterns
 (like missing spaces around sphinx directives that make the documentation not
 being rendered properly) and it also validates the doctests. It is possible to
 run the checks independently by using the parameters ``lint``, ``patterns`` and
@@ -675,7 +675,7 @@ Otherwise, you need to do it manually:
 
 You'll also need to
 
-1. write a new test that asserts a warning is issued when calling with the deprecated argument
+1. Write a new test that asserts a warning is issued when calling with the deprecated argument
 2. Update all of pandas existing tests and code to use the new argument
 
 See :ref:`contributing.warnings` for more.
@@ -731,7 +731,7 @@ extensions in `numpy.testing
 
 .. note::
 
-   The earliest supported pytest version is 3.6.0.
+   The earliest supported pytest version is 4.0.2.
 
 Writing tests
 ~~~~~~~~~~~~~
