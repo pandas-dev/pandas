@@ -93,8 +93,34 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
+**Lists as arrays in :meth:`DataFrame.set_index`**
+
+Currently, :meth:`DataFrame.set_index` accepts lists as meaning two different things - as a list of labels, and as an array-like collection of values.
+This ambiguity decides in favor of the list of labels, but nested lists are interpreted as arrays:
+
+.. ipython:: ipython
+    :okwarning:
+
+    df = pd.DataFrame(np.reshape(np.arange(12), (3, 4)), columns=['a', 'b', 'c', 'd'])
+    df.set_index(['a', 'b', 'c'])
+    df.set_index([['a', 'b', 'c']])
+
+The latter case has now been deprecated and will be removed in a future version. As a replacement,
+it is suggested to wrap the list in a :class:`Series`, :class:`Index`, ``np.array`` or an iterator.
+
+.. ipython:: ipython
+
+    df.set_index(pd.Series(['a', 'b', 'c']))
+
+It remains possible to use lists as collecting several column keys or arrays to create multiple levels of a :class:`MultiIndex`.
+
+.. ipython:: ipython
+
+    df.set_index(['a', pd.Series(['a', 'b', 'c'])])
+
+**Other deprecations**
+
 - Deprecated the `M (months)` and `Y (year)` `units` parameter of :func: `pandas.to_timedelta`, :func: `pandas.Timedelta` and :func: `pandas.TimedeltaIndex` (:issue:`16344`)
-- :meth:`DataFrame.set_index` has deprecated using lists of values *within* lists. It remains possible to pass array-likes, both directly and within a list.
 
 .. _whatsnew_0250.prior_deprecations:
 
