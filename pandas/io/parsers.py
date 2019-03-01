@@ -102,11 +102,14 @@ names : array-like, optional
     List of column names to use. If file contains no header row, then you
     should explicitly pass ``header=None``. Duplicates in this list will cause
     a ``UserWarning`` to be issued.
-index_col : int, sequence or bool, optional
-    Column to use as the row labels of the DataFrame. If a sequence is given, a
-    MultiIndex is used. If you have a malformed file with delimiters at the end
-    of each line, you might consider ``index_col=False`` to force pandas to
-    not use the first column as the index (row names).
+index_col : int/string or sequence of int/string or ``False``, default ``None``
+  Column(s) to use as the row labels of the ``DataFrame``, either given as
+  string name or column index. If a sequence of int/string is given, a
+  MultiIndex is used. Columns used for the index (row names) are dropped from
+  the actual columns of the input dataframe. They are accessible via
+  ``.index``. (Note: ``index_col=False`` can be used to force pandas to *not*
+  use the first column as the index, e.g. when you have a malformed file with
+  delimiters at the end of each line.)
 usecols : list-like or callable, optional
     Return a subset of the columns. If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
