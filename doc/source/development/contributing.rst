@@ -176,7 +176,6 @@ We'll now kick off a three-step process:
 .. code-block:: none
 
    # Create and activate the build environment
-   
    conda env create -f environment.yml
    conda uninstall --force pandas
    conda activate pandas-dev
