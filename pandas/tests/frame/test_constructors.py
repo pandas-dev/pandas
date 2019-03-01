@@ -2,19 +2,17 @@
 
 from __future__ import print_function
 
+from collections import OrderedDict
 from datetime import datetime, timedelta
 import functools
 import itertools
 
 import numpy as np
 import numpy.ma as ma
-import numpy.ma.mrecords as mrecords
-from numpy.random import randn
 import pytest
 
 from pandas.compat import (
-    PY3, PY36, OrderedDict, is_platform_little_endian, lmap, long, lrange,
-    lzip, range, zip)
+    PY3, PY36, is_platform_little_endian, lmap, long, lrange, lzip, range, zip)
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
@@ -489,7 +487,7 @@ class TestDataFrameConstructors(TestData):
         # can't cast to float
         test_data = {
             'A': dict(zip(range(20), tm.makeStringIndex(20))),
-            'B': dict(zip(range(15), randn(15)))
+            'B': dict(zip(range(15), np.random.randn(15)))
         }
         frame = DataFrame(test_data, dtype=float)
         assert len(frame) == 20
@@ -605,7 +603,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range('1/1/2000', periods=5)
-        df = DataFrame(randn(10, 5), columns=rng)
+        df = DataFrame(np.random.randn(10, 5), columns=rng)
 
         data = {}
         for col in df.columns:
@@ -789,6 +787,17 @@ class TestDataFrameConstructors(TestData):
             dtype=float)
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_maskedrecarray_dtype(self):
+        # Ensure constructor honors dtype
+        data = np.ma.array(
+            np.ma.zeros(5, dtype=[('date', '<f8'), ('price', '<f8')]),
+            mask=[False] * 5)
+        data = data.view(ma.mrecords.mrecarray)
+        result = pd.DataFrame(data, dtype=int)
+        expected = pd.DataFrame(np.zeros((5, 2), dtype=int),
+                                columns=['date', 'price'])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479
@@ -812,7 +821,7 @@ class TestDataFrameConstructors(TestData):
         # call assert_frame_equal for all selections of 3 arrays
         for comb in itertools.combinations(arrays, 3):
             names, data = zip(*comb)
-            mrecs = mrecords.fromarrays(data, names=names)
+            mrecs = ma.mrecords.fromarrays(data, names=names)
 
             # fill the comb
             comb = {k: (v.filled() if hasattr(v, 'filled') else v)
@@ -859,7 +868,7 @@ class TestDataFrameConstructors(TestData):
         assert df['object'].dtype == np.object_
 
     def test_constructor_arrays_and_scalars(self):
-        df = DataFrame({'a': randn(10), 'b': True})
+        df = DataFrame({'a': np.random.randn(10), 'b': True})
         exp = DataFrame({'a': df['a'].values, 'b': [True] * 10})
 
         tm.assert_frame_equal(df, exp)
@@ -875,11 +884,11 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_more(self):
         # used to be in test_matrix.py
-        arr = randn(10)
+        arr = np.random.randn(10)
         dm = DataFrame(arr, columns=['A'], index=np.arange(10))
         assert dm.values.ndim == 2
 
-        arr = randn(0)
+        arr = np.random.randn(0)
         dm = DataFrame(arr)
         assert dm.values.ndim == 2
         assert dm.values.ndim == 2
@@ -1140,8 +1149,8 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, result_custom)
 
     def test_constructor_ragged(self):
-        data = {'A': randn(10),
-                'B': randn(8)}
+        data = {'A': np.random.randn(10),
+                'B': np.random.randn(8)}
         with pytest.raises(ValueError, match='arrays must all be same length'):
             DataFrame(data)
 
@@ -1172,6 +1181,13 @@ class TestDataFrameConstructors(TestData):
                             'B': Series(['a', 'b'], index=['a', 'b'])})
         expected = DataFrame({'A': ['a', 'b'], 'B': ['a', 'b']},
                              index=['a', 'b'])
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_mixed_type_rows(self):
+        # Issue 25075
+        data = [[1, 2], (3, 4)]
+        result = DataFrame(data)
+        expected = DataFrame([[1, 2], [3, 4]])
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_tuples(self):

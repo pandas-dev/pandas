@@ -47,8 +47,6 @@ def engine(request):
 def pa():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
-    if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
-        pytest.skip("pyarrow is < 0.7.0")
     return 'pyarrow'
 
 
@@ -289,11 +287,6 @@ class TestBasic(Base):
     def test_write_index(self, engine):
         check_names = engine != 'fastparquet'
 
-        if engine == 'pyarrow':
-            import pyarrow
-            if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
-                pytest.skip("pyarrow is < 0.7.0")
-
         df = pd.DataFrame({'A': [1, 2, 3]})
         check_round_trip(df, engine)
 
@@ -386,10 +379,8 @@ class TestParquetPyArrow(Base):
         df = df_full
 
         # additional supported types for pyarrow
-        import pyarrow
-        if LooseVersion(pyarrow.__version__) >= LooseVersion('0.7.0'):
-            df['datetime_tz'] = pd.date_range('20130101', periods=3,
-                                              tz='Europe/Brussels')
+        df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                          tz='Europe/Brussels')
         df['bool_with_none'] = [True, None, True]
 
         check_round_trip(df, pa)

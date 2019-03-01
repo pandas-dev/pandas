@@ -5,7 +5,6 @@ from distutils.version import LooseVersion
 from functools import partial
 import os
 import warnings
-from warnings import catch_warnings
 
 import numpy as np
 from numpy import nan
@@ -2360,7 +2359,7 @@ class TestExcelWriterEngineTests(object):
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
-            supported_extensions = ['test', 'xlsx', 'xls']
+            supported_extensions = ['xlsx', 'xls']
             engine = 'dummy'
 
             def save(self):
@@ -2378,19 +2377,13 @@ class TestExcelWriterEngineTests(object):
 
         with pd.option_context('io.excel.xlsx.writer', 'dummy'):
             register_writer(DummyClass)
-            writer = ExcelWriter('something.test')
+            writer = ExcelWriter('something.xlsx')
             assert isinstance(writer, DummyClass)
             df = tm.makeCustomDataframe(1, 1)
-
-            with catch_warnings(record=True):
-                panel = tm.makePanel()
-                func = lambda: df.to_excel('something.test')
-                check_called(func)
-                check_called(lambda: panel.to_excel('something.test'))
-                check_called(lambda: df.to_excel('something.xlsx'))
-                check_called(
-                    lambda: df.to_excel(
-                        'something.xls', engine='dummy'))
+            check_called(lambda: df.to_excel('something.xlsx'))
+            check_called(
+                lambda: df.to_excel(
+                    'something.xls', engine='dummy'))
 
 
 @pytest.mark.parametrize('engine', [
@@ -2417,7 +2410,10 @@ def test_styler_to_excel(engine):
                           ['', '', '']],
                          index=df.index, columns=df.columns)
 
-    def assert_equal_style(cell1, cell2):
+    def assert_equal_style(cell1, cell2, engine):
+        if engine in ['xlsxwriter', 'openpyxl']:
+            pytest.xfail(reason=("GH25351: failing on some attribute "
+                                 "comparisons in {}".format(engine)))
         # XXX: should find a better way to check equality
         assert cell1.alignment.__dict__ == cell2.alignment.__dict__
         assert cell1.border.__dict__ == cell2.border.__dict__
@@ -2461,7 +2457,7 @@ def test_styler_to_excel(engine):
             assert len(col1) == len(col2)
             for cell1, cell2 in zip(col1, col2):
                 assert cell1.value == cell2.value
-                assert_equal_style(cell1, cell2)
+                assert_equal_style(cell1, cell2, engine)
                 n_cells += 1
 
         # ensure iteration actually happened:
@@ -2519,7 +2515,7 @@ def test_styler_to_excel(engine):
                     assert cell1.number_format == 'General'
                     assert cell2.number_format == '0%'
                 else:
-                    assert_equal_style(cell1, cell2)
+                    assert_equal_style(cell1, cell2, engine)
 
                 assert cell1.value == cell2.value
                 n_cells += 1
@@ -2537,7 +2533,7 @@ def test_styler_to_excel(engine):
                     assert not cell1.font.bold
                     assert cell2.font.bold
                 else:
-                    assert_equal_style(cell1, cell2)
+                    assert_equal_style(cell1, cell2, engine)
 
                 assert cell1.value == cell2.value
                 n_cells += 1
