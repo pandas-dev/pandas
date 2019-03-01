@@ -1669,6 +1669,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             * Sparse
             * IntegerNA
 
+        See Examples section.
+
         Examples
         --------
         >>> pd.Series([2, 1, 3, 3], name='A').unique()

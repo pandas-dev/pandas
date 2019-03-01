@@ -2696,7 +2696,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        scalar value
+        scalar
         """
 
         warnings.warn("get_value is deprecated and will be removed "
@@ -2736,7 +2736,7 @@ class DataFrame(NDFrame):
         ----------
         index : row label
         col : column label
-        value : scalar value
+        value : scalar
         takeable : interpret the index/col as indexers, default False
 
         Returns
@@ -6896,7 +6896,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame :
+        DataFrame
             A DataFrame with the affected columns rounded to the specified
             number of decimal places.
 
@@ -7000,6 +7000,7 @@ class DataFrame(NDFrame):
             * spearman : Spearman rank correlation
             * callable: callable with input two 1d ndarrays
                 and returning a float
+
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional

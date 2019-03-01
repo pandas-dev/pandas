@@ -67,7 +67,7 @@ def to_offset(freq):
 
     Returns
     -------
-    delta : DateOffset
+    DateOffset
         None if freq is None.
 
     Raises
@@ -214,7 +214,7 @@ def infer_freq(index, warn=True):
 
     Returns
     -------
-    freq : string or None
+    str or None
         None if no discernible frequency
         TypeError if the index is not datetime-like
         ValueError if there are less than three values.
@@ -300,7 +300,7 @@ class _FrequencyInferer(object):
 
         Returns
         -------
-        freqstr : str or None
+        str or None
         """
         if not self.is_monotonic or not self.index._is_unique:
             return None
