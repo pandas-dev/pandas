@@ -2696,7 +2696,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        scalar value
+        scalar
         """
 
         warnings.warn("get_value is deprecated and will be removed "
@@ -2736,7 +2736,7 @@ class DataFrame(NDFrame):
         ----------
         index : row label
         col : column label
-        value : scalar value
+        value : scalar
         takeable : interpret the index/col as indexers, default False
 
         Returns
@@ -3797,7 +3797,12 @@ class DataFrame(NDFrame):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to drop labels from the index (0 or 'index') or
             columns (1 or 'columns').
-        index, columns : single label or list-like
+        index : single label or list-like
+            Alternative to specifying axis (``labels, axis=0``
+            is equivalent to ``index=labels``).
+
+            .. versionadded:: 0.21.0
+        columns : single label or list-like
             Alternative to specifying axis (``labels, axis=1``
             is equivalent to ``columns=labels``).
 
@@ -3813,11 +3818,12 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
+            DataFrame without the removed index or column labels.
 
         Raises
         ------
         KeyError
-            If none of the labels are found in the selected axis
+            If any of the labels is not found in the selected axis.
 
         See Also
         --------
@@ -3830,7 +3836,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.arange(12).reshape(3,4),
+        >>> df = pd.DataFrame(np.arange(12).reshape(3, 4),
         ...                   columns=['A', 'B', 'C', 'D'])
         >>> df
            A  B   C   D
@@ -3867,7 +3873,7 @@ class DataFrame(NDFrame):
         >>> df = pd.DataFrame(index=midx, columns=['big', 'small'],
         ...                   data=[[45, 30], [200, 100], [1.5, 1], [30, 20],
         ...                         [250, 150], [1.5, 0.8], [320, 250],
-        ...                         [1, 0.8], [0.3,0.2]])
+        ...                         [1, 0.8], [0.3, 0.2]])
         >>> df
                         big     small
         lama    speed   45.0    30.0
@@ -6902,7 +6908,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame :
+        DataFrame
             A DataFrame with the affected columns rounded to the specified
             number of decimal places.
 
@@ -7006,6 +7012,7 @@ class DataFrame(NDFrame):
             * spearman : Spearman rank correlation
             * callable: callable with input two 1d ndarrays
                 and returning a float
+
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional
