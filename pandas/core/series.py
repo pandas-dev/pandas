@@ -3100,16 +3100,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : return the first `n` occurrences in the
-                index order.
-            - ``last`` : return the last `n` occurrences in the reverse
-                index order.
+            - ``first`` : return the first `n` occurrences in order
+                of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+                order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
-            The `keep` parameter determines which ones to keep
-            when there are duplicates and returns them in the
-            order of appearance.
             Regardless of `keep`, the result will be sorted
             by the row label.
 
@@ -3204,16 +3201,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : return the first `n` occurrences in the
-                index order.
-            - ``last`` : return the last `n` occurrences in the reverse
-                index order.
+            - ``first`` : return the first `n` occurrences in order
+                of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+                order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
-            The `keep` parameter determines which ones to keep
-            when there are duplicates and returns them in the
-            order of appearance.
             Regardless of `keep`, the result will be sorted
             by the row label.
 
