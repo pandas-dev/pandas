@@ -382,7 +382,7 @@ class TestTimeSeries(TestData):
         rs = self.ts.pct_change(fill_method=None)
         assert_series_equal(rs, self.ts / self.ts.shift(1) - 1)
 
-        rs = self.ts.pct_change(2)
+        rs = self.ts.pct_change(periods=2)
         filled = self.ts.fillna(method='pad')
         assert_series_equal(rs, filled / filled.shift(2) - 1)
 
@@ -415,7 +415,7 @@ class TestTimeSeries(TestData):
         rs_freq = self.ts.pct_change(freq=freq,
                                      fill_method=fill_method,
                                      limit=limit)
-        rs_periods = self.ts.pct_change(periods,
+        rs_periods = self.ts.pct_change(periods=periods,
                                         fill_method=fill_method,
                                         limit=limit)
         assert_series_equal(rs_freq, rs_periods)
@@ -424,7 +424,7 @@ class TestTimeSeries(TestData):
         rs_freq = empty_ts.pct_change(freq=freq,
                                       fill_method=fill_method,
                                       limit=limit)
-        rs_periods = empty_ts.pct_change(periods,
+        rs_periods = empty_ts.pct_change(periods=periods,
                                          fill_method=fill_method,
                                          limit=limit)
         assert_series_equal(rs_freq, rs_periods)

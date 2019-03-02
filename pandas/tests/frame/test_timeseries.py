@@ -121,10 +121,10 @@ class TestDataFrameTimeSeriesMethods(TestData):
             [[np.nan, np.nan], [2., 2.]]))
 
     def test_pct_change(self):
-        rs = self.tsframe.pct_change(fill_method=None)
+        rs = self.tsframe.pct_change(skipna=False, fill_method=None)
         assert_frame_equal(rs, self.tsframe / self.tsframe.shift(1) - 1)
 
-        rs = self.tsframe.pct_change(2)
+        rs = self.tsframe.pct_change(periods=2)
         filled = self.tsframe.fillna(method='pad')
         assert_frame_equal(rs, filled / filled.shift(2) - 1)
 
@@ -160,7 +160,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         rs_freq = self.tsframe.pct_change(freq=freq,
                                           fill_method=fill_method,
                                           limit=limit)
-        rs_periods = self.tsframe.pct_change(periods,
+        rs_periods = self.tsframe.pct_change(periods=periods,
                                              fill_method=fill_method,
                                              limit=limit)
         assert_frame_equal(rs_freq, rs_periods)
@@ -170,7 +170,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         rs_freq = empty_ts.pct_change(freq=freq,
                                       fill_method=fill_method,
                                       limit=limit)
-        rs_periods = empty_ts.pct_change(periods,
+        rs_periods = empty_ts.pct_change(periods=periods,
                                          fill_method=fill_method,
                                          limit=limit)
         assert_frame_equal(rs_freq, rs_periods)
