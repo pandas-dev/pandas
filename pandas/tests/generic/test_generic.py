@@ -616,12 +616,15 @@ class Generic(object):
     ])
     def test_pct_change_skipna_raises(self, fill_method, limit):
         # GH25006
-        if self._typ is DataFrame or self._typ is Series:
-            vals = [np.nan, np.nan, 1, 2, np.nan, 4, 10, np.nan]
-            obj = self._typ(vals)
-            with pytest.raises(ValueError):
-                obj.pct_change(skipna=True, fill_method=fill_method,
-                               limit=limit)
+        vals = [np.nan, np.nan, 1, 2, np.nan, 4, 10, np.nan]
+        obj = self._typ(vals)
+        if fill_method:
+            msg = "cannot pass both skipna and fill_method"
+        else:
+            msg = "cannot pass both skipna and limit"
+        with pytest.raises(ValueError, match=msg):
+            obj.pct_change(skipna=True, fill_method=fill_method,
+                           limit=limit)
 
 
 class TestNDFrame(object):

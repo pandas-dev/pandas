@@ -9845,6 +9845,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
+        skipna : bool, default True
+            Exclude NA/null values before computing percent change.
         periods : int, default 1
             Periods to shift for forming percent change.
         fill_method : str, default 'pad'
@@ -9892,8 +9894,9 @@ class NDFrame(PandasObject, SelectionMixin):
         2   -0.055556
         dtype: float64
 
-        See the percentage change in a Series where filling NAs with last
-        valid observation forward to next valid.
+        See the computing of percentage change in a Series with NAs. With
+        default skipped NAs, NAs are ignored before the computation and kept
+        afterwards.
 
         >>> s = pd.Series([90, 91, None, 85])
         >>> s
@@ -9902,6 +9905,17 @@ class NDFrame(PandasObject, SelectionMixin):
         2     NaN
         3    85.0
         dtype: float64
+
+        >>> s.pct_change()
+        0         NaN
+        1    0.011111
+        2         NaN
+        3   -0.065934
+        dtype: float64
+
+        On the other hand, if a fill method is set, NAs are filled before the
+        computation. See forward fill method fills NAs with last valid
+        observation forward to next valid.
 
         >>> s.pct_change(fill_method='ffill')
         0         NaN
@@ -9952,15 +9966,15 @@ class NDFrame(PandasObject, SelectionMixin):
         """
 
     @Appender(_shared_docs['pct_change'] % _shared_doc_kwargs)
-    def pct_change(self, periods=1, fill_method=None, limit=None, freq=None,
-                   skipna=None, **kwargs):
+    def pct_change(self, skipna=None, periods=1, fill_method=None, limit=None,
+                   freq=None, **kwargs):
         if skipna and fill_method is not None:
             raise ValueError("cannot pass both skipna and fill_method")
         elif skipna and limit is not None:
             raise ValueError("cannot pass both skipna and limit")
         if skipna is None and fill_method is None and limit is None:
             skipna = True
-        if skipna and self._typ == 'dataframe':
+        if skipna and isinstance(self, pd.DataFrame):
             return self.apply(
                 lambda s: s.pct_change(periods=periods, freq=freq,
                                        skipna=skipna, **kwargs)
