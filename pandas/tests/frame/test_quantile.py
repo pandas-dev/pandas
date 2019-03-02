@@ -92,8 +92,12 @@ class TestDataFrameQuantile(TestData):
         result = df.quantile(.5, axis="columns")
         assert_series_equal(result, expected)
 
-        pytest.raises(ValueError, df.quantile, 0.1, axis=-1)
-        pytest.raises(ValueError, df.quantile, 0.1, axis="column")
+        msg = "No axis named -1 for object type <class 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            df.quantile(0.1, axis=-1)
+        msg = "No axis named column for object type <class 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            df.quantile(0.1, axis="column")
 
     def test_quantile_interpolation(self):
         # see gh-10174

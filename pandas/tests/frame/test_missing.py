@@ -139,7 +139,9 @@ class TestDataFrameMissingData(TestData):
         assert_frame_equal(dropped, expected)
 
         # bad input
-        pytest.raises(ValueError, df.dropna, axis=3)
+        msg = "No axis named 3 for object type <class 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            df.dropna(axis=3)
 
     def test_drop_and_dropna_caching(self):
         # tst that cacher updates
@@ -158,10 +160,15 @@ class TestDataFrameMissingData(TestData):
 
     def test_dropna_corner(self):
         # bad input
-        pytest.raises(ValueError, self.frame.dropna, how='foo')
-        pytest.raises(TypeError, self.frame.dropna, how=None)
+        msg = "invalid how option: foo"
+        with pytest.raises(ValueError, match=msg):
+            self.frame.dropna(how='foo')
+        msg = "must specify how or thresh"
+        with pytest.raises(TypeError, match=msg):
+            self.frame.dropna(how=None)
         # non-existent column - 8303
-        pytest.raises(KeyError, self.frame.dropna, subset=['A', 'X'])
+        with pytest.raises(KeyError, match=r"^\['X'\]$"):
+            self.frame.dropna(subset=['A', 'X'])
 
     def test_dropna_multiple_axes(self):
         df = DataFrame([[1, np.nan, 2, 3],
@@ -226,8 +233,12 @@ class TestDataFrameMissingData(TestData):
         result = self.mixed_frame.fillna(value=0)
         result = self.mixed_frame.fillna(method='pad')
 
-        pytest.raises(ValueError, self.tsframe.fillna)
-        pytest.raises(ValueError, self.tsframe.fillna, 5, method='ffill')
+        msg = "Must specify a fill 'value' or 'method'"
+        with pytest.raises(ValueError, match=msg):
+            self.tsframe.fillna()
+        msg = "Cannot specify both 'value' and 'method'"
+        with pytest.raises(ValueError, match=msg):
+            self.tsframe.fillna(5, method='ffill')
 
         # mixed numeric (but no float16)
         mf = self.mixed_float.reindex(columns=['A', 'B', 'D'])
@@ -595,11 +606,18 @@ class TestDataFrameMissingData(TestData):
 
     def test_fillna_invalid_value(self):
         # list
-        pytest.raises(TypeError, self.frame.fillna, [1, 2])
+        msg = ("\"value\" parameter must be a scalar or dict, but you passed"
+               " a \"{}\"")
+        with pytest.raises(TypeError, match=msg.format('list')):
+            self.frame.fillna([1, 2])
         # tuple
-        pytest.raises(TypeError, self.frame.fillna, (1, 2))
+        with pytest.raises(TypeError, match=msg.format('tuple')):
+            self.frame.fillna((1, 2))
         # frame with series
-        pytest.raises(TypeError, self.frame.iloc[:, 0].fillna, self.frame)
+        msg = ("\"value\" parameter must be a scalar, dict or Series, but you"
+               " passed a \"DataFrame\"")
+        with pytest.raises(TypeError, match=msg):
+            self.frame.iloc[:, 0].fillna(self.frame)
 
     def test_fillna_col_reordering(self):
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
