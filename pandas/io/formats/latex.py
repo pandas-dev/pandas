@@ -4,8 +4,6 @@ Module for formatting output data in Latex.
 """
 from __future__ import print_function
 
-import warnings
-
 import numpy as np
 
 from pandas.compat import map, range, u, zip
@@ -128,9 +126,6 @@ class LatexFormatter(TableFormatter):
 
                 if self.label is None:
                     label_ = ''
-                    warnings.warn('no LaTeX label has been provided; '
-                                  'referencing with \\ref{} will not'
-                                  'be available')
                 else:
                     label_ = '\n\\label{{{}}}'.format(self.label)
 
@@ -155,9 +150,7 @@ class LatexFormatter(TableFormatter):
                     buf.write('\\caption{{{}}}'.format(self.caption))
 
                 if self.label is None:
-                    warnings.warn('no LaTeX label has been provided; '
-                                  'referencing with \\ref{} will not'
-                                  'be available')
+                    pass
                 else:
                     buf.write('\\label{{{}}}'.format(self.label))
 

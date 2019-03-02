@@ -449,6 +449,7 @@ b &       b &     b \\
         assert r"\multicolumn{3}" in with3columns_result
 
     def test_to_latex_caption_label(self, frame):
+        # GH 25436
         the_caption = 'a table in a \\texttt{table/tabular} environment'
         the_label = 'tab:table_tabular'
 
@@ -460,10 +461,9 @@ b &       b &     b \\
         df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
 
         # test when only the caption is provided
-        with tm.assert_produces_warning(UserWarning):
-            result_c = df.to_latex(
-                caption=the_caption
-            )
+        result_c = df.to_latex(
+            caption=the_caption
+        )
 
         expected_c = r"""\begin{table}
 \centering
@@ -523,6 +523,7 @@ b &       b &     b \\
         assert result_cl == expected_cl
 
     def test_to_latex_longtable_caption_label(self, frame):
+        # GH 25436
         the_caption = 'a table in a \\texttt{longtable} environment'
         the_label = 'tab:longtable'
 
@@ -535,11 +536,10 @@ b &       b &     b \\
         df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
 
         # test when only the caption is provided
-        with tm.assert_produces_warning():
-            result_c = df.to_latex(
-                longtable=True,
-                caption=the_caption
-            )
+        result_c = df.to_latex(
+            longtable=True,
+            caption=the_caption
+        )
 
         expected_c = r"""\begin{longtable}{lrl}
 \caption{a table in a \texttt{longtable} environment}\\
