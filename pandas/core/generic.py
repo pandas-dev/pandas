@@ -2750,7 +2750,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Render an object to a tabular environment table. You can splice
         this into a LaTeX document. Requires \usepackage{booktabs}.
 
-        .. versionchanged:: 0.25
+        .. versionchanged:: 0.25.0
            Added caption and label arguments.
 
         Parameters
@@ -2793,9 +2793,11 @@ class NDFrame(PandasObject, SelectionMixin):
             adding a \usepackage{longtable} to your LaTeX preamble.
         caption : str, optional
             The LaTeX caption to be placed inside \caption{} in the output.
+            .. versionadded:: 0.25.0
         label : str, optional
             The LaTeX label to be placed inside \label{} in the output.
             This is used with \ref{} in the main .tex file.
+            .. versionadded:: 0.25.0
         escape : bool, optional
             By default, the value will be read from the pandas config
             module. When set to False prevents from escaping latex special
