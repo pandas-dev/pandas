@@ -1065,7 +1065,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        pandas.DataFrame
+        DataFrame
 
         See Also
         --------
@@ -1145,7 +1145,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        array : numpy.ndarray
+        numpy.ndarray
 
         See Also
         --------
@@ -1439,7 +1439,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        df : DataFrame
+        DataFrame
         """
 
         # Make a copy of the input columns so we can modify it
@@ -1755,7 +1755,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        frame : DataFrame
+        DataFrame
         """
 
         warnings.warn("from_items is deprecated. Please use "
@@ -1866,7 +1866,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -1956,7 +1956,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        panel : Panel
+        Panel
         """
         raise NotImplementedError("Panel is being removed in pandas 0.25.0.")
 
@@ -2478,7 +2478,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        sizes : Series
+        Series
             A Series whose index is the original column names and whose values
             is the memory usage of each column in bytes.
 
@@ -2696,7 +2696,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        value : scalar value
+        scalar value
         """
 
         warnings.warn("get_value is deprecated and will be removed "
@@ -2741,9 +2741,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        frame : DataFrame
+        DataFrame
             If label pair is contained, will be reference to calling DataFrame,
-            otherwise a new object
+            otherwise a new object.
         """
         warnings.warn("set_value is deprecated and will be removed "
                       "in a future release. Please use "
@@ -2838,6 +2838,7 @@ class DataFrame(NDFrame):
                 return result
 
     def __getitem__(self, key):
+        key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
         # shortcut if the key is in columns
@@ -3177,7 +3178,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        subset : DataFrame
+        DataFrame
             The subset of the frame including the dtypes in ``include`` and
             excluding the dtypes in ``exclude``.
 
@@ -3542,7 +3543,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        sanitized_column : numpy-array
+        numpy.ndarray
         """
 
         def reindexer(value):
@@ -3811,7 +3812,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        dropped : pandas.DataFrame
+        DataFrame
 
         Raises
         ------
@@ -3936,7 +3937,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        renamed : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -4579,7 +4580,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        deduplicated : DataFrame
+        DataFrame
         """
         if self.empty:
             return self.copy()
@@ -4613,7 +4614,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        duplicated : Series
+        Series
         """
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
@@ -4981,7 +4982,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        swapped : same type as caller (new object)
+        DataFrame
 
         .. versionchanged:: 0.18.1
 
@@ -5260,7 +5261,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        combined : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -5627,7 +5628,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        table : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -5767,9 +5768,9 @@ class DataFrame(NDFrame):
         Notes
         -----
         The function is named by analogy with a collection of books
-        being re-organised from being side by side on a horizontal
+        being reorganized from being side by side on a horizontal
         position (the columns of the dataframe) to being stacked
-        vertically on top of of each other (in the index of the
+        vertically on top of each other (in the index of the
         dataframe).
 
         Examples
@@ -5913,7 +5914,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        unstacked : DataFrame or Series
+        Series or DataFrame
 
         See Also
         --------
@@ -6079,7 +6080,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        diffed : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -6351,7 +6352,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        applied : Series or DataFrame
+        Series or DataFrame
+            Result of applying ``func`` along the given axis of the
+            DataFrame.
 
         See Also
         --------
@@ -6370,7 +6373,7 @@ class DataFrame(NDFrame):
         Examples
         --------
 
-        >>> df = pd.DataFrame([[4, 9],] * 3, columns=['A', 'B'])
+        >>> df = pd.DataFrame([[4, 9]] * 3, columns=['A', 'B'])
         >>> df
            A  B
         0  4  9
@@ -6544,7 +6547,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        appended : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -6962,12 +6965,13 @@ class DataFrame(NDFrame):
 
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result. Currently only available for pearson
-            and spearman correlation
+            to have a valid result. Currently only available for Pearson
+            and Spearman correlation.
 
         Returns
         -------
-        y : DataFrame
+        DataFrame
+            Correlation matrix.
 
         See Also
         --------
@@ -6976,14 +6980,15 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> histogram_intersection = lambda a, b: np.minimum(a, b
-        ... ).sum().round(decimals=1)
+        >>> def histogram_intersection(a, b):
+        ...     v = np.minimum(a, b).sum().round(decimals=1)
+        ...     return v
         >>> df = pd.DataFrame([(.2, .3), (.0, .6), (.6, .0), (.2, .1)],
         ...                   columns=['dogs', 'cats'])
         >>> df.corr(method=histogram_intersection)
-              dogs cats
-        dogs   1.0  0.3
-        cats   0.3  1.0
+              dogs  cats
+        dogs   1.0   0.3
+        cats   0.3   1.0
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
@@ -7146,10 +7151,11 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         other : DataFrame, Series
+            Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
-        drop : boolean, default False
-            Drop missing indices from result
+            0 or 'index' to compute column-wise, 1 or 'columns' for row-wise.
+        drop : bool, default False
+            Drop missing indices from result.
         method : {'pearson', 'kendall', 'spearman'} or callable
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
@@ -7161,7 +7167,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        correls : Series
+        Series
+            Pairwise correlations.
 
         See Also
         -------
@@ -7491,7 +7498,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        nunique : Series
+        Series
 
         See Also
         --------
@@ -7529,7 +7536,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        idxmin : Series
+        Series
+            Indexes of minima along the specified axis.
 
         Raises
         ------
@@ -7565,7 +7573,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        idxmax : Series
+        Series
+            Indexes of maxima along the specified axis.
 
         Raises
         ------
@@ -7712,7 +7721,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        quantiles : Series or DataFrame
+        Series or DataFrame
 
             If ``q`` is an array, a DataFrame will be returned where the
               index is ``q``, the columns are the columns of self, and the
@@ -7782,19 +7791,19 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        freq : string, default frequency of PeriodIndex
-            Desired frequency
+        freq : str, default frequency of PeriodIndex
+            Desired frequency.
         how : {'s', 'e', 'start', 'end'}
             Convention for converting period to timestamp; start of period
-            vs. end
+            vs. end.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to convert (the index by default)
-        copy : boolean, default True
-            If false then underlying input data is not copied
+            The axis to convert (the index by default).
+        copy : bool, default True
+            If False then underlying input data is not copied.
 
         Returns
         -------
-        df : DataFrame with DatetimeIndex
+        DataFrame with DatetimeIndex
         """
         new_data = self._data
         if copy:
@@ -7818,15 +7827,16 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        freq : string, default
+        freq : str, default
+            Frequency of the PeriodIndex.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to convert (the index by default)
-        copy : boolean, default True
-            If False then underlying input data is not copied
+            The axis to convert (the index by default).
+        copy : bool, default True
+            If False then underlying input data is not copied.
 
         Returns
         -------
-        ts : TimeSeries with PeriodIndex
+        TimeSeries with PeriodIndex
         """
         new_data = self._data
         if copy:
@@ -7899,7 +7909,7 @@ class DataFrame(NDFrame):
         match. Note that 'falcon' does not match based on the number of legs
         in df2.
 
-        >>> other = pd.DataFrame({'num_legs': [8, 2],'num_wings': [0, 2]},
+        >>> other = pd.DataFrame({'num_legs': [8, 2], 'num_wings': [0, 2]},
         ...                      index=['spider', 'falcon'])
         >>> df.isin(other)
                 num_legs  num_wings
