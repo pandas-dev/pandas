@@ -886,8 +886,11 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expect, check_names=False)
         assert result.index.name == 'a'
 
-        pytest.raises(KeyError, series.count, 'x')
-        pytest.raises(KeyError, frame.count, level='x')
+        msg = "Level x not found"
+        with pytest.raises(KeyError, match=msg):
+            series.count('x')
+        with pytest.raises(KeyError, match=msg):
+            frame.count(level='x')
 
     @pytest.mark.parametrize('op', AGG_FUNCTIONS)
     @pytest.mark.parametrize('level', [0, 1])
@@ -1119,7 +1122,8 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
 
-        pytest.raises(KeyError, series.__getitem__, (('foo', 'bar', 0), 2))
+        with pytest.raises(KeyError, match=r"^\(\('foo', 'bar', 0\), 2\)$"):
+            series[('foo', 'bar', 0), 2]
 
         result = frame.loc[('foo', 'bar', 0)]
         result2 = frame.xs(('foo', 'bar', 0))

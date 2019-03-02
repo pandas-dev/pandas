@@ -71,7 +71,9 @@ class TestTimedeltaIndexOps(Ops):
         tdi = pd.timedelta_range(start=0, periods=10, freq='1s')
         ts = pd.Series(np.random.normal(size=10), index=tdi)
         assert 'foo' not in ts.__dict__.keys()
-        pytest.raises(AttributeError, lambda: ts.foo)
+        msg = "'Series' object has no attribute 'foo'"
+        with pytest.raises(AttributeError, match=msg):
+            ts.foo
 
     def test_order(self):
         # GH 10295
