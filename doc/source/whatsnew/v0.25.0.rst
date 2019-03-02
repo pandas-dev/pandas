@@ -64,13 +64,13 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
     df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
     df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
-.. _whatsnew_0240.api_breaking.incompatible_index_unions
+.. _whatsnew_0250.api_breaking.incompatible_index_unions
 
 Incompatible Index Type Unions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When performing :func:`Index.union` operations between objects of incompatible dtypes,
-the result will be a base :class:`Index` of dtype `object`. This behavior holds true for
+the result will be a base :class:`Index` of dtype ``object``. This behavior holds true for
 unions between :class:`Index` objects that previously would have been prohibited. The dtype
 of empty :class:`Index` objects will now be evaluated before performing union operations
 rather than simply returning the other :class:`Index` object. :func:`Index.union` can now be
@@ -82,7 +82,7 @@ considered commutative, such that ``A.union(B) == B.union(A)`` (:issue:`23525`).
     ...
     ValueError: can only call with other PeriodIndex-ed objects
 
-    In [2]: pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
+    In [2]: pd.Index([], dtype=object).union(pd.Index([1, 2, 3]))
     Out[2]: Int64Index([1, 2, 3], dtype='int64')
 
 *New Behavior*:
@@ -90,7 +90,7 @@ considered commutative, such that ``A.union(B) == B.union(A)`` (:issue:`23525`).
 .. ipython:: python
 
     pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
-    pd.Index([]).astype(str).union(pd.Index([1, 2, 3]))
+    pd.Index([], dtype=object).union(pd.Index([1, 2, 3]))
 
 .. _whatsnew_0250.api_breaking.deps:
 
