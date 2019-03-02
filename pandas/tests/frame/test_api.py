@@ -9,7 +9,7 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas.compat import long, lrange, range
+from pandas.compat import PY2, long, lrange, range
 
 import pandas as pd
 from pandas import (
@@ -144,7 +144,8 @@ class SharedWithSparse(object):
 
     def test_not_hashable(self, empty_frame):
         df = self.klass([1])
-        msg = "'DataFrame' objects are mutable, thus they cannot be hashed"
+        msg = ("'(Sparse)?DataFrame' objects are mutable, thus they cannot be"
+               " hashed")
         with pytest.raises(TypeError, match=msg):
             hash(df)
         with pytest.raises(TypeError, match=msg):
@@ -356,6 +357,7 @@ class SharedWithSparse(object):
         for col, s in compat.iteritems(mixed_T):
             assert s.dtype == np.object_
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_swapaxes(self):
         df = self.klass(np.random.randn(10, 5))
         self._assert_frame_equal(df.T, df.swapaxes(0, 1))

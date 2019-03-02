@@ -7,7 +7,7 @@ import random
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
+from pandas.compat import PY2, lrange
 
 import pandas as pd
 from pandas import (
@@ -21,6 +21,7 @@ from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 class TestDataFrameSorting(TestData):
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_sort_values(self):
         frame = DataFrame([[1, 1, 2], [3, 1, 0], [4, 5, 6]],
                           index=[1, 2, 3], columns=list('ABC'))

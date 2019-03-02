@@ -898,6 +898,7 @@ class TestDataFrameAnalytics(object):
             result = nanops.nanvar(arr, axis=0)
             assert not (result < 0).any()
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     @pytest.mark.parametrize(
         "meth", ['sem', 'var', 'std'])
     def test_numeric_only_flag(self, meth):
@@ -1369,6 +1370,7 @@ class TestDataFrameAnalytics(object):
     # ----------------------------------------------------------------------
     # Index of max / min
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_idxmin(self, float_frame, int_frame):
         frame = float_frame
         frame.loc[5:10] = np.nan
@@ -1385,6 +1387,7 @@ class TestDataFrameAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_idxmax(self, float_frame, int_frame):
         frame = float_frame
         frame.loc[5:10] = np.nan
