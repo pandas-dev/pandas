@@ -194,7 +194,7 @@ class TestPandasContainer(object):
             else:
                 unser = unser.sort_index()
 
-            if dtype is False:
+            if not dtype:
                 check_dtype = False
 
             if not convert_axes and df.index.dtype.type == np.datetime64:
@@ -1201,6 +1201,40 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         size_after = df.memory_usage(index=True, deep=True).sum()
 
         assert size_before == size_after
+
+    @pytest.mark.parametrize('index', [None, [1, 2], [1., 2.], ['a', 'b'],
+                                       ['1', '2'], ['1.', '2.']])
+    @pytest.mark.parametrize('columns', [['a', 'b'], ['1', '2'], ['1.', '2.']])
+    def test_from_json_to_json_table_index_and_columns(self, index, columns):
+        # GH25433 GH25435
+        expected = DataFrame([[1, 2], [3, 4]], index=index, columns=columns)
+        dfjson = expected.to_json(orient='table')
+        result = pd.read_json(dfjson, orient='table')
+        assert_frame_equal(result, expected)
+
+    def test_from_json_to_json_table_dtypes(self):
+        # GH21345
+        expected = pd.DataFrame({'a': [1, 2], 'b': [3., 4.], 'c': ['5', '6']})
+        dfjson = expected.to_json(orient='table')
+        result = pd.read_json(dfjson, orient='table')
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [True, {'b': int, 'c': int}])
+    def test_read_json_table_dtype_raises(self, dtype):
+        # GH21345
+        df = pd.DataFrame({'a': [1, 2], 'b': [3., 4.], 'c': ['5', '6']})
+        dfjson = df.to_json(orient='table')
+        msg = "cannot pass both dtype and orient='table'"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(dfjson, orient='table', dtype=dtype)
+
+    def test_read_json_table_convert_axes_raises(self):
+        # GH25433 GH25435
+        df = DataFrame([[1, 2], [3, 4]], index=[1., 2.], columns=['1.', '2.'])
+        dfjson = df.to_json(orient='table')
+        msg = "cannot pass both convert_axes and orient='table'"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(dfjson, orient='table', convert_axes=True)
 
     @pytest.mark.parametrize('data, expected', [
         (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']),

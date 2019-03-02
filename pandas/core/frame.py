@@ -33,7 +33,7 @@ from pandas.util._validators import (validate_bool_kwarg,
 
 from pandas import compat
 from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
-                           PY36, raise_with_traceback,
+                           PY36, raise_with_traceback, Iterator,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
@@ -2697,7 +2697,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        scalar value
+        scalar
         """
 
         warnings.warn("get_value is deprecated and will be removed "
@@ -2737,7 +2737,7 @@ class DataFrame(NDFrame):
         ----------
         index : row label
         col : column label
-        value : scalar value
+        value : scalar
         takeable : interpret the index/col as indexers, default False
 
         Returns
@@ -3798,7 +3798,12 @@ class DataFrame(NDFrame):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to drop labels from the index (0 or 'index') or
             columns (1 or 'columns').
-        index, columns : single label or list-like
+        index : single label or list-like
+            Alternative to specifying axis (``labels, axis=0``
+            is equivalent to ``index=labels``).
+
+            .. versionadded:: 0.21.0
+        columns : single label or list-like
             Alternative to specifying axis (``labels, axis=1``
             is equivalent to ``columns=labels``).
 
@@ -3814,11 +3819,12 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
+            DataFrame without the removed index or column labels.
 
         Raises
         ------
         KeyError
-            If none of the labels are found in the selected axis
+            If any of the labels is not found in the selected axis.
 
         See Also
         --------
@@ -3831,7 +3837,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.arange(12).reshape(3,4),
+        >>> df = pd.DataFrame(np.arange(12).reshape(3, 4),
         ...                   columns=['A', 'B', 'C', 'D'])
         >>> df
            A  B   C   D
@@ -3868,7 +3874,7 @@ class DataFrame(NDFrame):
         >>> df = pd.DataFrame(index=midx, columns=['big', 'small'],
         ...                   data=[[45, 30], [200, 100], [1.5, 1], [30, 20],
         ...                         [250, 150], [1.5, 0.8], [320, 250],
-        ...                         [1, 0.8], [0.3,0.2]])
+        ...                         [1, 0.8], [0.3, 0.2]])
         >>> df
                         big     small
         lama    speed   45.0    30.0
@@ -4027,7 +4033,8 @@ class DataFrame(NDFrame):
             This parameter can be either a single column key, a single array of
             the same length as the calling DataFrame, or a list containing an
             arbitrary combination of column keys and arrays. Here, "array"
-            encompasses :class:`Series`, :class:`Index` and ``np.ndarray``.
+            encompasses :class:`Series`, :class:`Index`, ``np.ndarray``, and
+            instances of :class:`abc.Iterator`.
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False
@@ -4106,6 +4113,32 @@ class DataFrame(NDFrame):
         if not isinstance(keys, list):
             keys = [keys]
 
+        err_msg = ('The parameter "keys" may be a column key, one-dimensional '
+                   'array, or a list containing only valid column keys and '
+                   'one-dimensional arrays.')
+
+        missing = []
+        for col in keys:
+            if isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray,
+                                list, Iterator)):
+                # arrays are fine as long as they are one-dimensional
+                # iterators get converted to list below
+                if getattr(col, 'ndim', 1) != 1:
+                    raise ValueError(err_msg)
+            else:
+                # everything else gets tried as a key; see GH 24969
+                try:
+                    found = col in self.columns
+                except TypeError:
+                    raise TypeError(err_msg + ' Received column of '
+                                    'type {}'.format(type(col)))
+                else:
+                    if not found:
+                        missing.append(col)
+
+        if missing:
+            raise KeyError('None of {} are in the columns'.format(missing))
+
         if inplace:
             frame = self
         else:
@@ -4134,12 +4167,24 @@ class DataFrame(NDFrame):
             elif isinstance(col, (list, np.ndarray)):
                 arrays.append(col)
                 names.append(None)
+            elif isinstance(col, Iterator):
+                arrays.append(list(col))
+                names.append(None)
             # from here, col can only be a column label
             else:
                 arrays.append(frame[col]._values)
                 names.append(col)
                 if drop:
                     to_remove.append(col)
+
+            if len(arrays[-1]) != len(self):
+                # check newest element against length of calling frame, since
+                # ensure_index_from_sequences would not raise for append=False.
+                raise ValueError('Length mismatch: Expected {len_self} rows, '
+                                 'received array of length {len_col}'.format(
+                                     len_self=len(self),
+                                     len_col=len(arrays[-1])
+                                 ))
 
         index = ensure_index_from_sequences(arrays, names)
 
@@ -6854,7 +6899,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame :
+        DataFrame
             A DataFrame with the affected columns rounded to the specified
             number of decimal places.
 
@@ -6958,6 +7003,7 @@ class DataFrame(NDFrame):
             * spearman : Spearman rank correlation
             * callable: callable with input two 1d ndarrays
                 and returning a float
+
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional

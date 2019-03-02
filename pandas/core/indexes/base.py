@@ -6,9 +6,10 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
-    Timedelta, algos as libalgos, index as libindex, join as libjoin, lib,
-    tslibs)
+    algos as libalgos, index as libindex, join as libjoin, lib)
 from pandas._libs.lib import is_datetime_array
+from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
+from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
 from pandas.compat import range, set_function_name, u
 from pandas.compat.numpy import function as nv
@@ -451,7 +452,7 @@ class Index(IndexOpsMixin, PandasObject):
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
                                                      name=name, **kwargs)
-                            except tslibs.OutOfBoundsDatetime:
+                            except OutOfBoundsDatetime:
                                 pass
 
                     elif inferred.startswith('timedelta'):
@@ -1447,7 +1448,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        sorted_index : Index
+        Index
         """
         return self.sort_values(return_indexer=True, ascending=ascending)
 
@@ -1465,7 +1466,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        values : Index
+        Index
             Calling object, as there is only one level in the Index.
 
         See Also
@@ -1510,7 +1511,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        index : Index or MultiIndex
+        Index or MultiIndex
         """
         if not isinstance(level, (tuple, list)):
             level = [level]
@@ -1562,11 +1563,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         grouper : Index
-            Index of values to group on
+            Index of values to group on.
         labels : ndarray of int or None
-            Array of locations in level_index
+            Array of locations in level_index.
         uniques : Index or None
-            Index of unique values for level
+            Index of unique values for level.
         """
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
@@ -2977,9 +2978,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        tuple (indexer, keyarr)
-            indexer is an ndarray or None if cannot convert
-            keyarr are tuple-safe keys
+        indexer : numpy.ndarray or None
+            Return an ndarray or None if cannot convert.
+        keyarr : numpy.ndarray
+            Return tuple-safe keys.
         """
         if isinstance(keyarr, Index):
             keyarr = self._convert_index_indexer(keyarr)
@@ -3163,9 +3165,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         new_index : pd.Index
-            Resulting index
+            Resulting index.
         indexer : np.ndarray or None
-            Indices of output values in original index
+            Indices of output values in original index.
 
         """
 
@@ -4873,6 +4875,20 @@ class Index(IndexOpsMixin, PandasObject):
         if not inc:
             # If it's a reverse slice, temporarily swap bounds.
             start, end = end, start
+
+        # GH 16785: If start and end happen to be date strings with UTC offsets
+        # attempt to parse and check that the offsets are the same
+        if (isinstance(start, (compat.string_types, datetime))
+                and isinstance(end, (compat.string_types, datetime))):
+            try:
+                ts_start = Timestamp(start)
+                ts_end = Timestamp(end)
+            except (ValueError, TypeError):
+                pass
+            else:
+                if not tz_compare(ts_start.tzinfo, ts_end.tzinfo):
+                    raise ValueError("Both dates must have the "
+                                     "same UTC offset")
 
         start_slice = None
         if start is not None:

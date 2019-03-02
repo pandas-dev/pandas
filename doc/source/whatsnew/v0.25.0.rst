@@ -22,6 +22,9 @@ Other Enhancements
 - Indexing of ``DataFrame`` and ``Series`` now accepts zerodim ``np.ndarray`` (:issue:`24919`)
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
 - :meth:`DataFrame.at_time` and :meth:`Series.at_time` now support :meth:`datetime.time` objects with timezones (:issue:`24043`)
+- ``Series.str`` has gained :meth:`Series.str.casefold` method to removes all case distinctions present in a string (:issue:`25405`)
+- :meth:`DataFrame.set_index` now works for instances of ``abc.Iterator``, provided their output is of the same length as the calling frame (:issue:`22484`, :issue:`24984`)
+- :meth:`DatetimeIndex.union` now supports the ``sort`` argument. The behaviour of the sort parameter matches that of :meth:`Index.union` (:issue:`24994`)
 -
 
 .. _whatsnew_0250.api_breaking:
@@ -29,7 +32,51 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- :meth:`Timestamp.strptime` will now raise a NotImplementedError (:issue:`25016`)
+.. _whatsnew_0250.api_breaking.utc_offset_indexing:
+
+Indexing with date strings with UTC offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Indexing a :class:`DataFrame` or :class:`Series` with a :class:`DatetimeIndex` with a
+date string with a UTC offset would previously ignore the UTC offset. Now, the UTC offset
+is respected in indexing. (:issue:`24076`, :issue:`16785`)
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
+
+    In [2]: df
+    Out[2]:
+                               0
+    2019-01-01 00:00:00-08:00  0
+
+    In [3]: df['2019-01-01 00:00:00+04:00':'2019-01-01 01:00:00+04:00']
+    Out[3]:
+                               0
+    2019-01-01 00:00:00-08:00  0
+
+*New Behavior*:
+
+.. ipython:: ipython
+
+    df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
+    df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
+
+.. _whatsnew_0250.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have updated our minimum supported versions of dependencies (:issue:`23519`).
+If installed, we now require:
+
++-----------------+-----------------+----------+
+| Package         | Minimum Version | Required |
++=================+=================+==========+
+| pytest (dev)    | 4.0.2           |          |
++-----------------+-----------------+----------+
 
 .. _whatsnew_0250.api.other:
 
@@ -38,7 +85,7 @@ Other API Changes
 
 - :class:`DatetimeTZDtype` will now standardize pytz timezones to a common timezone instance (:issue:`24713`)
 - ``Timestamp`` and ``Timedelta`` scalars now implement the :meth:`to_numpy` method as aliases to :meth:`Timestamp.to_datetime64` and :meth:`Timedelta.to_timedelta64`, respectively. (:issue:`24653`)
--
+- :meth:`Timestamp.strptime` will now rise a ``NotImplementedError`` (:issue:`25016`)
 -
 
 .. _whatsnew_0250.deprecations:
@@ -64,14 +111,17 @@ Performance Improvements
 
 - Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
 - `DataFrame.to_stata()` is now faster when outputting data with any string or non-native endian columns (:issue:`25045`)
--
+- Improved performance of :meth:`Series.searchsorted`. The speedup is especially large when the dtype is
+  int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
+- Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
 
 
 .. _whatsnew_0250.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
-
+- Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
+-
 -
 
 Categorical
@@ -160,6 +210,9 @@ I/O
 ^^^
 
 - Fixed bug in missing text when using :meth:`to_clipboard` if copying utf-16 characters in Python 3 on Windows (:issue:`25040`)
+- Bug in :func:`read_json` for ``orient='table'`` when it tries to infer dtypes by default, which is not applicable as dtypes are already defined in the JSON schema (:issue:`21345`)
+- Bug in :func:`read_json` for ``orient='table'`` and float index, as it infers index dtype by default, which is not applicable because index dtype is already defined in the JSON schema (:issue:`25433`)
+- Bug in :func:`read_json` for ``orient='table'`` and string of float column names, as it makes a column name type conversion to Timestamp, which is not applicable because column names are already defined in the JSON schema (:issue:`25435`)
 -
 -
 -
@@ -176,8 +229,9 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`pandas.core.resample.Resampler.agg` with a timezone aware index where ``OverflowError`` would raise when passing a list of functions (:issue:`22660`)
--
--
+- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.nunique` in which the names of column levels were lost (:issue:`23222`)
+- Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying a aggregation function to timezone aware data (:issue:`23683`)
+- Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
 
 
 Reshaping

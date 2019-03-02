@@ -557,17 +557,17 @@ class ExtensionArray(object):
         .. versionadded:: 0.24.0
 
         Find the indices into a sorted array `self` (a) such that, if the
-        corresponding elements in `v` were inserted before the indices, the
-        order of `self` would be preserved.
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
 
-        Assuming that `a` is sorted:
+        Assuming that `self` is sorted:
 
-        ======  ============================
+        ======  ================================
         `side`  returned index `i` satisfies
-        ======  ============================
-        left    ``self[i-1] < v <= self[i]``
-        right   ``self[i-1] <= v < self[i]``
-        ======  ============================
+        ======  ================================
+        left    ``self[i-1] < value <= self[i]``
+        right   ``self[i-1] <= value < self[i]``
+        ======  ================================
 
         Parameters
         ----------
@@ -583,7 +583,7 @@ class ExtensionArray(object):
 
         Returns
         -------
-        indices : array of ints
+        array of ints
             Array of insertion points with the same shape as `value`.
 
         See Also
