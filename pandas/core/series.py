@@ -3105,9 +3105,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
-            Regardless of `keep`, the result will be sorted
-            by the row label.
-
         Returns
         -------
         Series
@@ -3205,9 +3202,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
-
-            Regardless of `keep`, the result will be sorted
-            by the row label.
 
         Returns
         -------
