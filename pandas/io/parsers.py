@@ -102,9 +102,9 @@ names : array-like, optional
     List of column names to use. If file contains no header row, then you
     should explicitly pass ``header=None``. Duplicates in this list will cause
     a ``UserWarning`` to be issued.
-index_col : int/string or sequence of int/string or ``False``, default ``None``
+index_col : int, str, sequence of int / str, or False, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
-  string name or column index. If a sequence of int/string is given, a
+  string name or column index. If a sequence of int / str is given, a
   MultiIndex is used. Columns used for the index (row names) are dropped from
   the actual columns of the input dataframe. They are accessible via
   ``.index``. (Note: ``index_col=False`` can be used to force pandas to *not*
