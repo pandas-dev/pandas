@@ -907,7 +907,7 @@ of the DataFrame):
 
    df[df['A'] > 0]
 
-List comprehensions and ``map`` method of Series can also be used to produce
+List comprehensions and the ``map`` method of Series can also be used to produce
 more complex criteria:
 
 .. ipython:: python
