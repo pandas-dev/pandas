@@ -255,7 +255,7 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
         schema['primaryKey'] = primary_key
 
     if version:
-        schema['pandas_version'] = '0.20.0'
+        schema['pandas_version'] = '0.25.0'
     return schema
 
 
