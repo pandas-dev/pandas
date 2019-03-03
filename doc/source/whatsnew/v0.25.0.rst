@@ -134,7 +134,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 
--
+- Added support for ISO week year format ('%G-%V-%u') when parsing datetimes using :meth: `to_datetime` (:issue:`16607`)
 -
 -
 
