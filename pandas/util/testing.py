@@ -967,7 +967,7 @@ def isiterable(obj):
 
 
 def is_sorted(seq):
-    """raises assertion error if the input sequence isn't sorted."""
+    """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
