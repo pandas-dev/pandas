@@ -869,6 +869,7 @@ class TestDataFrameIndexing(TestData):
         df.iloc[:8:2] = np.nan
         assert isna(df.iloc[:8:2]).values.all()
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_getitem_setitem_integer_slice_keyerrors(self):
         df = DataFrame(np.random.randn(10, 5), index=lrange(0, 20, 2))
 
@@ -1083,6 +1084,7 @@ class TestDataFrameIndexing(TestData):
             expected = df[3]
         assert_series_equal(result, expected)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_fancy_index_int_labels_exceptions(self):
         df = DataFrame(np.random.randn(10, 5), index=np.arange(0, 20, 2))
 
