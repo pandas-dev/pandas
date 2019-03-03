@@ -607,13 +607,16 @@ def test__get_dtype(input_param, result):
     assert com._get_dtype(input_param) == result
 
 
-@pytest.mark.parametrize('input_param', [None,
-                                         1, 1.2,
-                                         'random string',
-                                         pd.DataFrame([1, 2])])
-def test__get_dtype_fails(input_param):
+@pytest.mark.parametrize('input_param,expected_error_message', [
+    (None, "Cannot deduce dtype from null object"),
+    (1, "data type not understood"),
+    (1.2, "data type not understood"),
+    ('random string', "data type 'random string' not understood"),
+    (pd.DataFrame([1, 2]), "data type not understood")])
+def test__get_dtype_fails(input_param, expected_error_message):
     # python objects
-    pytest.raises(TypeError, com._get_dtype, input_param)
+    with pytest.raises(TypeError, match=expected_error_message):
+        com._get_dtype(input_param)
 
 
 @pytest.mark.parametrize('input_param,result', [

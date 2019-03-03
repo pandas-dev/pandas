@@ -18,8 +18,11 @@ class TestCategoricalAnalytics(object):
 
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
-        pytest.raises(TypeError, lambda: cat.min())
-        pytest.raises(TypeError, lambda: cat.max())
+        msg = "Categorical is not ordered for operation {}"
+        with pytest.raises(TypeError, match=msg.format('min')):
+            cat.min()
+        with pytest.raises(TypeError, match=msg.format('max')):
+            cat.max()
 
         cat = Categorical(["a", "b", "c", "d"], ordered=True)
         _min = cat.min()
@@ -108,18 +111,24 @@ class TestCategoricalAnalytics(object):
         tm.assert_numpy_array_equal(res_ser, exp)
 
         # Searching for a single value that is not from the Categorical
-        pytest.raises(KeyError, lambda: c1.searchsorted('cucumber'))
-        pytest.raises(KeyError, lambda: s1.searchsorted('cucumber'))
+        msg = r"Value\(s\) to be inserted must be in categories"
+        with pytest.raises(KeyError, match=msg):
+            c1.searchsorted('cucumber')
+        with pytest.raises(KeyError, match=msg):
+            s1.searchsorted('cucumber')
 
         # Searching for multiple values one of each is not from the Categorical
-        pytest.raises(KeyError,
-                      lambda: c1.searchsorted(['bread', 'cucumber']))
-        pytest.raises(KeyError,
-                      lambda: s1.searchsorted(['bread', 'cucumber']))
+        with pytest.raises(KeyError, match=msg):
+            c1.searchsorted(['bread', 'cucumber'])
+        with pytest.raises(KeyError, match=msg):
+            s1.searchsorted(['bread', 'cucumber'])
 
         # searchsorted call for unordered Categorical
-        pytest.raises(ValueError, lambda: c2.searchsorted('apple'))
-        pytest.raises(ValueError, lambda: s2.searchsorted('apple'))
+        msg = "Categorical not ordered"
+        with pytest.raises(ValueError, match=msg):
+            c2.searchsorted('apple')
+        with pytest.raises(ValueError, match=msg):
+            s2.searchsorted('apple')
 
     def test_unique(self):
         # categories are reordered based on value when ordered=False
