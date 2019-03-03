@@ -967,10 +967,11 @@ def isiterable(obj):
 
 
 def is_sorted(seq):
+    """raises assertion error if the input sequence isn't sorted."""
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
-    return assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    assert_numpy_array_equal(seq, np.sort(np.array(seq)))
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
