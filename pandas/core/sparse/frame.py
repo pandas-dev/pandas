@@ -124,8 +124,8 @@ class SparseDataFrame(DataFrame):
                 columns = Index([])
             else:
                 for c in columns:
-                    data[c] = SparseArray(np.nan, index=index,
-                                          kind=self._default_kind,
+                    data[c] = SparseArray(self._default_fill_value,
+                                          index=index, kind=self._default_kind,
                                           fill_value=self._default_fill_value)
             mgr = to_manager(data, columns, index)
             if dtype is not None:
