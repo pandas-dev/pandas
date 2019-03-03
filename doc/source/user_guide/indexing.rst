@@ -569,7 +569,7 @@ You can use callable indexing in ``Series``.
    df1.A.loc[lambda s: s > 0]
 
 Using these methods / indexers, you can chain data selection operations
-without using temporary variable.
+without using a temporary variable.
 
 .. ipython:: python
 
