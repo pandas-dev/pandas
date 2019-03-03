@@ -280,3 +280,17 @@ class TestSeriesReplace(TestData):
         result = s.replace([2, '4'], np.nan)
         expected = pd.Series([1, np.nan, 3, np.nan, 4, 5])
         tm.assert_series_equal(expected, result)
+
+    @pytest.mark.parametrize("categorical, numeric", [
+        (pd.Categorical('A', categories=['A', 'B']), [1]),
+        (pd.Categorical(('A', ), categories=['A', 'B']), [1]),
+        (pd.Categorical(('A', 'B'), categories=['A', 'B']), [1, 2]),
+    ])
+    def test_copy_categorical_ndim(self, categorical, numeric):
+        # GH 24971
+        s = pd.Series(categorical)
+        result = s.replace({'A': 1, 'B': 2})
+        expected = pd.Series(numeric)
+        print(result.dtype)
+        print(expected.dtype)
+        tm.assert_series_equal(expected, result, check_dtype=False)
