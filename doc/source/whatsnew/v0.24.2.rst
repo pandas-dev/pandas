@@ -97,7 +97,6 @@ Bug Fixes
 
 - Bug in :meth:`Series.is_unique` where single occurrences of ``NaN`` were not considered unique (:issue:`25180`)
 - Bug in :func:`merge` when merging an empty ``DataFrame`` with an ``Int64`` column or a non-empty ``DataFrame`` with an ``Int64`` column that is all ``NaN`` (:issue:`25183`)
-- Bug in :class:`SparseFrame` constructor where passing ``None`` as the data would cause ``default_fill_value`` to be ignored (:issue:`16807`)
 -
 
 .. _whatsnew_0.242.contributors:
