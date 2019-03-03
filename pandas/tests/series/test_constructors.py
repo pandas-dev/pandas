@@ -48,7 +48,7 @@ class TestSeriesConstructors():
         assert long(Series([1.])) == 1
 
     def test_constructor(self, datetime_series):
-        empty_series = Series([], index=[])
+        empty_series = Series()
 
         assert datetime_series.index.is_all_dates
 

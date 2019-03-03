@@ -76,7 +76,7 @@ class TestDataFrameApply():
 
     def test_apply_empty(self, float_frame):
         # empty
-        empty_frame = DataFrame({})
+        empty_frame = DataFrame()
 
         applied = empty_frame.apply(np.sqrt)
         assert applied.empty
@@ -101,7 +101,7 @@ class TestDataFrameApply():
 
     def test_apply_with_reduce_empty(self):
         # reduce with an empty DataFrame
-        empty_frame = DataFrame({})
+        empty_frame = DataFrame()
 
         x = []
         result = empty_frame.apply(x.append, axis=1, result_type='expand')
@@ -121,7 +121,7 @@ class TestDataFrameApply():
         assert x == []
 
     def test_apply_deprecate_reduce(self):
-        empty_frame = DataFrame({})
+        empty_frame = DataFrame()
 
         x = []
         with tm.assert_produces_warning(FutureWarning):
