@@ -2807,14 +2807,17 @@ class NDFrame(PandasObject, SelectionMixin):
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
+
             .. versionadded:: 0.18.0
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
             The default will be read from the config module.
+
             .. versionadded:: 0.20.0
         multicolumn_format : str, default 'l'
             The alignment for multicolumns, similar to `column_format`
             The default will be read from the config module.
+
             .. versionadded:: 0.20.0
         multirow : bool, default False
             Use \multirow to enhance MultiIndex rows. Requires adding a
@@ -2822,6 +2825,7 @@ class NDFrame(PandasObject, SelectionMixin):
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
             from the pandas config module.
+
             .. versionadded:: 0.20.0
 
         Returns
@@ -4948,11 +4952,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Returns
     -------
-    DataFrame, Series or scalar
-        If DataFrame.agg is called with a single function, returns a Series
-        If DataFrame.agg is called with several functions, returns a DataFrame
-        If Series.agg is called with single function, returns a scalar
-        If Series.agg is called with several functions, returns a Series.
+    scalar, Series or DataFrame
+
+        The return can be:
+
+        * scalar : when Series.agg is called with single function
+        * Series : when DataFrame.agg is called with a single function
+        * DataFrame : when DataFrame.agg is called with several functions
+
+        Return scalar, Series or DataFrame.
 
     %(see_also)s
 
@@ -6610,10 +6618,10 @@ class NDFrame(PandasObject, SelectionMixin):
             * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'spline',
               'barycentric', 'polynomial': Passed to
-              `scipy.interpolate.interp1d`. Both 'polynomial' and 'spline'
-              require that you also specify an `order` (int),
-              e.g. ``df.interpolate(method='polynomial', order=5)``.
-              These use the numerical values of the index.
+              `scipy.interpolate.interp1d`. These methods use the numerical
+              values of the index.  Both 'polynomial' and 'spline' require that
+              you also specify an `order` (int), e.g.
+              ``df.interpolate(method='polynomial', order=5)``.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
               Wrappers around the SciPy interpolation methods of similar
               names. See `Notes`.
@@ -6879,11 +6887,15 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         scalar, Series, or DataFrame
 
-           Scalar : when `self` is a Series and `where` is a scalar.
-           Series: when `self` is a Series and `where` is an array-like,
-             or when `self` is a DataFrame and `where` is a scalar.
-           DataFrame : when `self` is a DataFrame and `where` is an
-             array-like.
+            The return can be:
+
+            * scalar : when `self` is a Series and `where` is a scalar
+            * Series: when `self` is a Series and `where` is an array-like,
+              or when `self` is a DataFrame and `where` is a scalar
+            * DataFrame : when `self` is a DataFrame and `where` is an
+              array-like
+
+            Return scalar, Series, or DataFrame.
 
         See Also
         --------

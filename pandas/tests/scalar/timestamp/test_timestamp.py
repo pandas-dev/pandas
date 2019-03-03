@@ -60,7 +60,9 @@ class TestTimestampProperties(object):
         check(ts.hour, 9)
         check(ts.minute, 6)
         check(ts.second, 3)
-        pytest.raises(AttributeError, lambda: ts.millisecond)
+        msg = "'Timestamp' object has no attribute 'millisecond'"
+        with pytest.raises(AttributeError, match=msg):
+            ts.millisecond
         check(ts.microsecond, 100)
         check(ts.nanosecond, 1)
         check(ts.dayofweek, 6)
@@ -78,7 +80,9 @@ class TestTimestampProperties(object):
         check(ts.hour, 23)
         check(ts.minute, 59)
         check(ts.second, 0)
-        pytest.raises(AttributeError, lambda: ts.millisecond)
+        msg = "'Timestamp' object has no attribute 'millisecond'"
+        with pytest.raises(AttributeError, match=msg):
+            ts.millisecond
         check(ts.microsecond, 0)
         check(ts.nanosecond, 0)
         check(ts.dayofweek, 2)
