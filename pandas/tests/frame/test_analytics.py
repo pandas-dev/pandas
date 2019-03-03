@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY35, lrange
+from pandas.compat import PY2, PY35, is_platform_windows, lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1843,6 +1843,17 @@ class TestDataFrameAnalytics(object):
         msg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
             np.round(df, decimals=0, out=df)
+
+    @pytest.mark.xfail(
+        PY2 and is_platform_windows(), reason="numpy/numpy#7882",
+        raises=AssertionError, strict=True)
+    def test_numpy_round_nan(self):
+        # See gh-14197
+        df = Series([1.53, np.nan, 0.06]).to_frame()
+        with tm.assert_produces_warning(None):
+            result = df.round()
+        expected = Series([2., np.nan, 0.]).to_frame()
+        tm.assert_frame_equal(result, expected)
 
     def test_round_mixed_type(self):
         # GH 11885
