@@ -98,17 +98,18 @@ Deprecations
 Currently, :meth:`DataFrame.set_index` accepts lists as meaning two different things - as a list of labels, and as an array-like collection of values.
 This ambiguity decides in favor of the list of labels, but nested lists are interpreted as arrays:
 
-.. ipython:: ipython
+.. ipython:: python
     :okwarning:
 
-    df = pd.DataFrame(np.reshape(np.arange(12), (3, 4)), columns=['a', 'b', 'c', 'd'])
+    df = pd.DataFrame(np.reshape(np.arange(12), (3, 4)),
+                      columns=['a', 'b', 'c', 'd'])
     df.set_index(['a', 'b', 'c'])
     df.set_index([['a', 'b', 'c']])
 
 The latter case has now been deprecated and will be removed in a future version. As a replacement,
 it is suggested to wrap the list in a :class:`Series`, :class:`Index`, ``np.array`` or an iterator.
 
-.. ipython:: ipython
+.. ipython:: python
 
     df.set_index(pd.Series(['a', 'b', 'c']))
 
