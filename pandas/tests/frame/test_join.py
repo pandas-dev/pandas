@@ -97,12 +97,6 @@ def test_join_index(frame):
     with pytest.raises(ValueError, match='join method'):
         f.join(f2, how='foo')
 
-    # corner case - overlapping columns
-    msg = 'columns overlap but no suffix'
-    for how in ('outer', 'left', 'inner'):
-        with pytest.raises(ValueError, match=msg):
-            frame.join(frame, how=how)
-
 
 def test_join_index_more(frame):
     af = frame.loc[:, ['A', 'B']]

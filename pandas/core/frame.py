@@ -273,14 +273,6 @@ appended to any overlapping columns.
 4  bar           2  bar            6
 5  baz           3  baz            7
 
-Merge DataFrames df1 and df2, but raise an exception if the DataFrames have
-any overlapping columns.
-
->>> df1.merge(df2, left_on='lkey', right_on='rkey', suffixes=(False, False))
-Traceback (most recent call last):
-...
-ValueError: columns overlap but no suffix specified:
-    Index(['value'], dtype='object')
 """
 
 # -----------------------------------------------------------------------

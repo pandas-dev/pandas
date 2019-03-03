@@ -159,13 +159,13 @@ def merge_ordered(left, right, on=None,
         left DataFrame
     fill_method : {'ffill', None}, default None
         Interpolation method for data
-    suffixes : Sequence, default is ("_x", "_y")
+    suffixes : Sequence or None, default is ("_x", "_y")
         A length-2 sequence where each element is optionally a string
         indicating the suffix to add to overlapping column names in
         `left` and `right` respectively. Pass a value of `None` instead
         of a string to indicate that the column name from `left` or
-        `right` should be left as-is, with no suffix. At least one of the
-        values must not be None.
+        `right` should be left as-is, with no suffix. `None` means
+        keep both name of overlapping columns as-is.
 
         .. versionchanged:: 0.25.0
     how : {'left', 'right', 'outer', 'inner'}, default 'outer'
@@ -495,6 +495,8 @@ class _MergeOperation(object):
 
         self.copy = copy
         self.suffixes = suffixes
+        if self.suffixes is None:
+            self.suffixes = (None, None)
         self.sort = sort
 
         self.left_index = left_index

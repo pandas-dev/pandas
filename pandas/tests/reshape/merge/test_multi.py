@@ -508,12 +508,6 @@ class TestMergeMulti(object):
         with pytest.raises(ValueError):
             household.join(portfolio, how='inner')
 
-        portfolio2 = portfolio.copy()
-        portfolio2.index.set_names(['household_id', 'foo'])
-
-        with pytest.raises(ValueError):
-            portfolio2.join(portfolio, how='inner')
-
     def test_join_multi_levels2(self):
 
         # some more advanced merges
