@@ -1237,6 +1237,50 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         with pytest.raises(ValueError, match=msg):
             pd.read_json(dfjson, orient='table', convert_axes=True)
 
+    @pytest.mark.parametrize('index, dfjson', [
+        (None,
+         '{"schema":{"fields":[{"name":"index","type":"integer"},{"name":"a",'
+         '"type":"integer"},{"name":"b","type":"number"},{"name":"c",'
+         '"type":"string"}],"primaryKey":["index"],"pandas_version":"0.20.0"},'
+         '"data":[{"index":0,"a":1,"b":3.0,"c":"5"},{"index":1,"a":2,"b":4.0,'
+         '"c":"6"}]}'),
+        ([1, 2],
+         '{"schema":{"fields":[{"name":"index","type":"integer"},{"name":"a",'
+         '"type":"integer"},{"name":"b","type":"number"},{"name":"c",'
+         '"type":"string"}],"primaryKey":["index"],"pandas_version":"0.20.0"},'
+         '"data":[{"index":1,"a":1,"b":3.0,"c":"5"},{"index":2,"a":2,"b":4.0,'
+         '"c":"6"}]}'),
+        ([1., 2.],
+         '{"schema":{"fields":[{"name":"index","type":"number"},{"name":"a",'
+         '"type":"integer"},{"name":"b","type":"number"},{"name":"c",'
+         '"type":"string"}],"primaryKey":["index"],"pandas_version":"0.20.0"},'
+         '"data":[{"index":1.0,"a":1,"b":3.0,"c":"5"},{"index":2.0,"a":2,'
+         '"b":4.0,"c":"6"}]}'),
+        (['a', 'b'],
+         '{"schema":{"fields":[{"name":"index","type":"string"},{"name":"a",'
+         '"type":"integer"},{"name":"b","type":"number"},{"name":"c",'
+         '"type":"string"}],"primaryKey":["index"],"pandas_version":"0.20.0"},'
+         '"data":[{"index":"a","a":1,"b":3.0,"c":"5"},{"index":"b","a":2,'
+         '"b":4.0,"c":"6"}]}'),
+        (['1', '2'],
+         '{"schema":{"fields":[{"name":"index","type":"string"},{"name":"a",'
+         '"type":"integer"},{"name":"b","type":"number"},{"name":"c",'
+         '"type":"string"}],"primaryKey":["index"],"pandas_version":"0.20.0"},'
+         '"data":[{"index":"1","a":1,"b":3.0,"c":"5"},{"index":"2","a":2,'
+         '"b":4.0,"c":"6"}]}'),
+        (['1.', '2.'],
+         '{"schema":{"fields":[{"name":"index","type":"string"},{"name":"a",'
+         '"type":"integer"},{"name":"b","type":"number"},{"name":"c",'
+         '"type":"string"}],"primaryKey":["index"],"pandas_version":"0.20.0"},'
+         '"data":[{"index":"1.","a":1,"b":3.0,"c":"5"},{"index":"2.","a":2,'
+         '"b":4.0,"c":"6"}]}')
+    ])
+    def test_read_json_table_version_0_20_0(self, index, dfjson):
+        expected = pd.DataFrame([[1, 3., '5'], [2, 4., '6']],
+                                index=index, columns=['a', 'b', 'c'])
+        result = pd.read_json(dfjson, orient='table')
+        assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize('data, expected', [
         (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']),
             {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
