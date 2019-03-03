@@ -1439,6 +1439,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         """
         Return the mean value of the Array or mean along an axis.
 
+        .. versionadded:: 0.25.0
+
         Parameters
         ----------
         axis : None
