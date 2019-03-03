@@ -1556,7 +1556,7 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
   ind
 
 ``set_names``, ``set_levels``, and ``set_codes`` also take an optional
-`level`` argument
+``level`` argument
 
 .. ipython:: python
 
