@@ -304,13 +304,13 @@ def parse_table_schema(json, precise_float):
 
     # Cannot directly use as_type with timezone data on object; raise for now
     if any(str(x).startswith('datetime64[ns, ') for x in dtypes.values()):
-        raise NotImplementedError('table="orient" can not yet read timezone '
-                                  'data')
+        raise NotImplementedError("orient='table' can not yet read timezone "
+                                  "data")
 
     # No ISO constructor for Timedelta as of yet, so need to raise
     if 'timedelta64' in dtypes.values():
-        raise NotImplementedError('table="orient" can not yet read '
-                                  'ISO-formatted Timedelta data')
+        raise NotImplementedError("orient='table' can not yet read "
+                                  "ISO-formatted Timedelta data")
 
     df = df.astype(dtypes)
 
