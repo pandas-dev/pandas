@@ -44,12 +44,12 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
-_common_see_also = """\
+_common_see_also = """
         See Also
         --------
         Series.%(name)s
         DataFrame.%(name)s
-        Panel.%(name)s\
+        Panel.%(name)s
 """
 
 _apply_docs = dict(
@@ -1106,9 +1106,7 @@ class GroupBy(_GroupBy):
         Returns
         -------
         pandas.Series or pandas.DataFrame
-
         %(see_also)s
-
         Examples
         --------
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
@@ -1564,9 +1562,7 @@ class GroupBy(_GroupBy):
         dropna : None or str, optional
             apply the specified dropna operation before counting which row is
             the nth row. Needs to be None, 'any' or 'all'
-
         %(see_also)s
-
         Examples
         --------
 
@@ -2139,9 +2135,7 @@ class GroupBy(_GroupBy):
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
-
         %(see_also)s
-
         Examples
         --------
 
@@ -2167,9 +2161,7 @@ class GroupBy(_GroupBy):
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
-
         %(see_also)s
-
         Examples
         --------
 
