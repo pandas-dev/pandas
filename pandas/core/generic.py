@@ -9857,8 +9857,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        skipna : bool, default True
-            Exclude NA/null values before computing percent change.
         periods : int, default 1
             Periods to shift for forming percent change.
         fill_method : str, default 'pad'
@@ -9867,6 +9865,10 @@ class NDFrame(PandasObject, SelectionMixin):
             The number of consecutive NAs to fill before stopping.
         freq : DateOffset, timedelta, or offset alias string, optional
             Increment to use from time series API (e.g. 'M' or BDay()).
+        skipna : bool, default True
+            Exclude NA/null values before computing percent change.
+
+            .. versionadded:: 0.25.0
         **kwargs
             Additional keyword arguments are passed into
             `DataFrame.shift` or `Series.shift`.
@@ -9882,6 +9884,11 @@ class NDFrame(PandasObject, SelectionMixin):
         DataFrame.diff : Compute the difference of two elements in a DataFrame.
         Series.shift : Shift the index by some number of periods.
         DataFrame.shift : Shift the index by some number of periods.
+
+        Notes
+        -----
+        The default `skipna=True` drops NAs before computing the percentage
+        change, and the results are reindexed like the original calling object.
 
         Examples
         --------
@@ -9906,16 +9913,19 @@ class NDFrame(PandasObject, SelectionMixin):
         2   -0.055556
         dtype: float64
 
-        See the computing of percentage change in a Series with NAs. With
-        default skipped NAs, NAs are ignored before the computation and kept
-        afterwards.
+        See how the computing of percentage change is performed in a Series
+        with NAs. With default `skipna=True`, NAs are dropped before the
+        computation and eventually the results are reindexed like the original
+        object, thus keeping the original NAs.
 
-        >>> s = pd.Series([90, 91, None, 85])
+        >>> s = pd.Series([90, 91, None, 85, None, 95])
         >>> s
         0    90.0
         1    91.0
         2     NaN
         3    85.0
+        4     NaN
+        5    95.0
         dtype: float64
 
         >>> s.pct_change()
@@ -9923,10 +9933,13 @@ class NDFrame(PandasObject, SelectionMixin):
         1    0.011111
         2         NaN
         3   -0.065934
+        4         NaN
+        5    0.117647
         dtype: float64
 
-        On the other hand, if a fill method is set, NAs are filled before the
-        computation. See forward fill method fills NAs with last valid
+        On the other hand, if a fill method is passed, NAs are filled before
+        the computation. For example, before the computation of percentage
+        change, forward fill method `ffill` first fills NAs with last valid
         observation forward to next valid.
 
         >>> s.pct_change(fill_method='ffill')
@@ -9934,6 +9947,8 @@ class NDFrame(PandasObject, SelectionMixin):
         1    0.011111
         2    0.000000
         3   -0.065934
+        4    0.000000
+        5    0.117647
         dtype: float64
 
         **DataFrame**
@@ -9975,16 +9990,63 @@ class NDFrame(PandasObject, SelectionMixin):
               2016      2015      2014
         GOOG   NaN -0.151997 -0.086016
         APPL   NaN  0.337604  0.012002
+
+        In a DataFrame with NAs, when computing the percentage change with
+        default `skipna=True`, NAs are first droppped on each column/row, and
+        the results are eventually reindexed as originally.
+
+        >>> df = pd.DataFrame({
+        ...     'a': [90, 91, None, 85, None, 95],
+        ...     'b': [91, None, 85, None, 95, None],
+        ...     'c': [None, 85, None, 95, None, None]})
+        >>> df
+              a     b     c
+        0  90.0  91.0   NaN
+        1  91.0   NaN  85.0
+        2   NaN  85.0   NaN
+        3  85.0   NaN  95.0
+        4   NaN  95.0   NaN
+        5  95.0   NaN   NaN
+
+        >>> df.pct_change()
+                  a         b         c
+        0       NaN       NaN       NaN
+        1  0.011111       NaN       NaN
+        2       NaN -0.065934       NaN
+        3 -0.065934       NaN  0.117647
+        4       NaN  0.117647       NaN
+        5  0.117647       NaN       NaN
+
+        >>> df.pct_change(axis=1)
+            a         b         c
+        0 NaN  0.011111       NaN
+        1 NaN       NaN -0.065934
+        2 NaN       NaN       NaN
+        3 NaN       NaN  0.117647
+        4 NaN       NaN       NaN
+        5 NaN       NaN       NaN
+
+        Otherwise, if a fill method is passed, NAs are filled before the
+        computation.
+
+        >>> df.pct_change(fill_method='ffill')
+                  a         b         c
+        0       NaN       NaN       NaN
+        1  0.011111  0.000000       NaN
+        2  0.000000 -0.065934  0.000000
+        3 -0.065934  0.000000  0.117647
+        4  0.000000  0.117647  0.000000
+        5  0.117647  0.000000  0.000000
         """
 
     @Appender(_shared_docs['pct_change'] % _shared_doc_kwargs)
-    def pct_change(self, skipna=None, periods=1, fill_method=None, limit=None,
-                   freq=None, **kwargs):
-        if skipna and fill_method is not None:
-            raise ValueError("cannot pass both skipna and fill_method")
-        elif skipna and limit is not None:
-            raise ValueError("cannot pass both skipna and limit")
-        if skipna is None and fill_method is None and limit is None:
+    def pct_change(self, periods=1, fill_method=None, limit=None, freq=None,
+                   skipna=None, **kwargs):
+        if fill_method is not None and skipna:
+            raise ValueError("cannot pass both fill_method and skipna")
+        elif limit is not None and skipna:
+            raise ValueError("cannot pass both limit and skipna")
+        if fill_method is None and limit is None and skipna is None:
             skipna = True
         axis = self._get_axis_number(kwargs.pop('axis', self._stat_axis_name))
         if skipna and isinstance(self, pd.DataFrame):

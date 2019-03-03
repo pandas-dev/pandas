@@ -619,9 +619,9 @@ class Generic(object):
         vals = [np.nan, np.nan, 1, 2, np.nan, 4, 10, np.nan]
         obj = self._typ(vals)
         if fill_method:
-            msg = "cannot pass both skipna and fill_method"
+            msg = "cannot pass both fill_method and skipna"
         else:
-            msg = "cannot pass both skipna and limit"
+            msg = "cannot pass both limit and skipna"
         with pytest.raises(ValueError, match=msg):
             obj.pct_change(skipna=True, fill_method=fill_method,
                            limit=limit)
