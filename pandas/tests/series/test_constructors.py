@@ -14,7 +14,7 @@ from pandas._libs.tslib import iNaT
 from pandas.compat import PY36, long, lrange, range, zip
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_datetime64tz_dtype)
+    is_categorical_dtype, is_datetime64tz_dtype, is_list_like)
 
 import pandas as pd
 from pandas import (
@@ -531,6 +531,11 @@ class TestSeriesConstructors():
             assert not x.equals(y)
             assert x[0] == 2.
             assert y[0] == 1.
+
+    def test_copy_categorical_ndim(self):
+        # GH 24971
+        s = Series(Categorical(['A'], categories=['A']))
+        assert not is_list_like(s.replace({'A': 1})[0])
 
     @pytest.mark.parametrize(
         "index",
