@@ -242,7 +242,7 @@ def test_really_large_scalar(large_val, signed, transform, errors):
     else:
         expected = float(val) if (errors == "coerce" and
                                   val_is_string) else val
-        assert tm.assert_almost_equal(to_numeric(val, **kwargs), expected)
+        tm.assert_almost_equal(to_numeric(val, **kwargs), expected)
 
 
 def test_really_large_in_arr(large_val, signed, transform,

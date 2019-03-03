@@ -541,12 +541,12 @@ class TestIntervalIndex(Base):
         value = index[0].mid + Timedelta('12 hours')
         result = np.sort(index.get_loc(value))
         expected = np.array([0, 1], dtype='intp')
-        assert tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         interval = Interval(index[0].left, index[1].right)
         result = np.sort(index.get_loc(interval))
         expected = np.array([0, 1, 2], dtype='intp')
-        assert tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer(self):
