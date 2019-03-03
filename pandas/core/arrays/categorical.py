@@ -323,14 +323,6 @@ class Categorical(ExtensionArray, PandasObject):
         # we may have dtype.categories be None, and we need to
         # infer categories in a factorization step futher below
 
-        if is_categorical(values):
-            # GH23814, for perf, if values._values already an instance of
-            # Categorical, set values to codes, and run fastpath
-            if (isinstance(values, (ABCSeries, ABCIndexClass)) and
-               isinstance(values._values, type(self))):
-                values = values._values.codes.copy()
-                fastpath = True
-
         if fastpath:
             self._codes = coerce_indexer_dtype(values, dtype.categories)
             self._dtype = self._dtype.update_dtype(dtype)
@@ -382,7 +374,7 @@ class Categorical(ExtensionArray, PandasObject):
             dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values):
-            old_codes = (values.cat.codes if isinstance(values, ABCSeries)
+            old_codes = (values._values.codes if isinstance(values, ABCSeries)
                          else values.codes)
             codes = _recode_for_categories(old_codes, values.dtype.categories,
                                            dtype.categories)
@@ -2624,6 +2616,9 @@ def _recode_for_categories(codes, old_categories, new_categories):
 
     if len(old_categories) == 0:
         # All null anyway, so just retain the nulls
+        return codes.copy()
+    elif new_categories.equals(old_categories):
+        # Same categories, so no need to actually recode
         return codes.copy()
     indexer = coerce_indexer_dtype(new_categories.get_indexer(old_categories),
                                    new_categories)
