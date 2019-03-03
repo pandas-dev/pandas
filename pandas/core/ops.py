@@ -384,57 +384,175 @@ def _get_op_name(op, special):
 # -----------------------------------------------------------------------------
 # Docstring Generation and Templates
 
+_add_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.add(b, fill_value=0)
+a    2.0
+b    1.0
+c    1.0
+d    1.0
+e    NaN
+dtype: float64
+"""
+
+_sub_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.subtract(b, fill_value=0)
+a    0.0
+b    1.0
+c    1.0
+d   -1.0
+e    NaN
+dtype: float64
+"""
+
+_mul_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.multiply(b)
+a    1.0
+b    NaN
+c    NaN
+d    NaN
+e    NaN
+dtype: float64
+"""
+
+_div_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.divide(b, fill_value=0)
+a    1.0
+b    inf
+c    inf
+d    0.0
+e    NaN
+dtype: float64
+"""
+
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
             'desc': 'Addition',
-            'reverse': 'radd'},
+            'reverse': 'radd',
+            'series_examples': _add_example_SERIES},
     'sub': {'op': '-',
             'desc': 'Subtraction',
-            'reverse': 'rsub'},
+            'reverse': 'rsub',
+            'series_examples': _sub_example_SERIES},
     'mul': {'op': '*',
             'desc': 'Multiplication',
             'reverse': 'rmul',
+            'series_examples': _mul_example_SERIES,
             'df_examples': None},
     'mod': {'op': '%',
             'desc': 'Modulo',
-            'reverse': 'rmod'},
+            'reverse': 'rmod',
+            'series_examples': None},
     'pow': {'op': '**',
             'desc': 'Exponential power',
             'reverse': 'rpow',
+            'series_examples': None,
             'df_examples': None},
     'truediv': {'op': '/',
                 'desc': 'Floating division',
                 'reverse': 'rtruediv',
+                'series_examples': _div_example_SERIES,
                 'df_examples': None},
     'floordiv': {'op': '//',
                  'desc': 'Integer division',
                  'reverse': 'rfloordiv',
+                 'series_examples': None,
                  'df_examples': None},
     'divmod': {'op': 'divmod',
                'desc': 'Integer division and modulo',
                'reverse': 'rdivmod',
+               'series_examples': None,
                'df_examples': None},
 
     # Comparison Operators
     'eq': {'op': '==',
            'desc': 'Equal to',
-           'reverse': None},
+           'reverse': None,
+           'series_examples': None},
     'ne': {'op': '!=',
            'desc': 'Not equal to',
-           'reverse': None},
+           'reverse': None,
+           'series_examples': None},
     'lt': {'op': '<',
            'desc': 'Less than',
-           'reverse': None},
+           'reverse': None,
+           'series_examples': None},
     'le': {'op': '<=',
            'desc': 'Less than or equal to',
-           'reverse': None},
+           'reverse': None,
+           'series_examples': None},
     'gt': {'op': '>',
            'desc': 'Greater than',
-           'reverse': None},
+           'reverse': None,
+           'series_examples': None},
     'ge': {'op': '>=',
            'desc': 'Greater than or equal to',
-           'reverse': None}
+           'reverse': None,
+           'series_examples': None}
 }
 
 _op_names = list(_op_descriptions.keys())
@@ -473,50 +591,7 @@ See Also
 --------
 Series.{reverse}
 
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
->>> a.add(b, fill_value=0)
-a    2.0
-b    1.0
-c    1.0
-d    1.0
-e    NaN
-dtype: float64
->>> a.subtract(b, fill_value=0)
-a    0.0
-b    1.0
-c    1.0
-d   -1.0
-e    NaN
-dtype: float64
->>> a.multiply(b)
-a    1.0
-b    NaN
-c    NaN
-d    NaN
-e    NaN
-dtype: float64
->>> a.divide(b, fill_value=0)
-a    1.0
-b    inf
-c    inf
-d    0.0
-e    NaN
-dtype: float64
+{examples}
 """
 
 _arith_doc_FRAME = """
@@ -907,7 +982,8 @@ def _make_flex_doc(op_name, typ):
     if typ == 'series':
         base_doc = _flex_doc_SERIES
         doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'])
+                              equiv=equiv, reverse=op_desc['reverse'],
+                              examples=op_desc['series_examples'])
     elif typ == 'dataframe':
         base_doc = _flex_doc_FRAME
         doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
