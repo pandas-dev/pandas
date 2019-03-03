@@ -50,7 +50,17 @@ class CSVFormatter(object):
 
         self.header = header
         self.index = index
-        self.index_label = index_label
+        # if index label is not explicitly called, index label is True if
+        # header or index is not False; otherwise, index label is set to False
+        if index_label is None:
+            if self.header is False or self.header is None or not self.index:
+                self.index_label = False
+            else:
+                self.index_label = True
+        else:
+            # if index label is explicitly called, then use the caller.
+            self.index_label = index_label
+
         self.mode = mode
         if encoding is None:
             encoding = 'ascii' if compat.PY2 else 'utf-8'
@@ -188,6 +198,42 @@ class CSVFormatter(object):
                 for _fh in handles:
                     _fh.close()
 
+    def _index_label_encoder(self):
+        """
+        Encode index label if it is not False.
+
+        Returns
+        -------
+        index_label: list
+            New index_label given index types
+        encode_labels: list
+            List of index labels
+        """
+        index_label = self.index_label
+        obj = self.obj
+
+        if index_label is True:
+            index_label = []
+            # append index label based on index type
+            if isinstance(obj.index, ABCMultiIndex):
+                for name in obj.index.names:
+                    # add empty string is name is None
+                    if name is None:
+                        name = ''
+                    index_label.append(name)
+            else:
+                # if no name, use empty string
+                if obj.index.name is None:
+                    index_label.append('')
+                else:
+                    index_label.append(obj.index.name)
+        elif not isinstance(index_label,
+                            (list, tuple, np.ndarray, ABCIndexClass)):
+            index_label = [index_label]
+
+        encoded_labels = list(index_label)
+        return index_label, encoded_labels
+
     def _save_header(self):
 
         writer = self.writer
@@ -200,8 +246,16 @@ class CSVFormatter(object):
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray,
                                           ABCIndexClass))
-        if not (has_aliases or self.header):
-            return
+        if not (has_aliases or header):
+            # if index_label is False, nothing will display.
+            if index_label is False:
+                return
+            else:
+                # based on index_label value, encoded labels are given
+                index_label, encoded_labels = self._index_label_encoder()
+                encoded_labels.extend([''] * len(obj.columns))
+                writer.writerow(encoded_labels)
+                return
         if has_aliases:
             if len(header) != len(cols):
                 raise ValueError(('Writing {ncols} cols but got {nalias} '
@@ -215,27 +269,16 @@ class CSVFormatter(object):
         if self.index:
             # should write something for index label
             if index_label is not False:
-                if index_label is None:
-                    if isinstance(obj.index, ABCMultiIndex):
-                        index_label = []
-                        for i, name in enumerate(obj.index.names):
-                            if name is None:
-                                name = ''
-                            index_label.append(name)
-                    else:
-                        index_label = obj.index.name
-                        if index_label is None:
-                            index_label = ['']
-                        else:
-                            index_label = [index_label]
-                elif not isinstance(index_label,
-                                    (list, tuple, np.ndarray, ABCIndexClass)):
-                    # given a string for a DF with Index
-                    index_label = [index_label]
-
-                encoded_labels = list(index_label)
+                index_label, encoded_labels = self._index_label_encoder()
             else:
-                encoded_labels = []
+                # if index is multiindex, multiple empty labels are provided
+                if isinstance(obj.index, ABCMultiIndex):
+                    index_label = []
+                    index_label.extend([''] * len(obj.index.names))
+                # if index is single index, list of empty string is provided
+                else:
+                    index_label = ['']
+                encoded_labels = list(index_label)
 
         if not has_mi_columns or has_aliases:
             encoded_labels += list(write_cols)

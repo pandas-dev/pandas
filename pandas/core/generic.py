@@ -2922,12 +2922,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         index : bool, default True
             Write row names (index).
-        index_label : str or sequence, or False, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the object uses MultiIndex. If
-            False do not print fields for index names. Use index_label=False
-            for easier importing in R.
+        index_label : bool or str or sequence, default None
+            If index_label is not explicitly called, False if either header
+            or index is set to False; otherwise, True. If index_label is
+            explicitly called by allowed types of input, then input will be
+            given to index_label. If False, do not print fields
+            for index names. Use index_label=False for easier importing in R.
         mode : str
             Python write mode, default 'w'.
         encoding : str, optional

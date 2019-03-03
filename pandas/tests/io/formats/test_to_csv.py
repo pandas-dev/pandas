@@ -561,3 +561,47 @@ z
             result = pd.read_csv(path, index_col=0,
                                  compression=read_compression)
             tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("header, index_label, expected_rows", [
+        (False, True, ['index.name,,', '0,0,0', '1,0,0']),
+        (True, True, ['index.name,0,1', '0,0,0', '1,0,0']),
+        (False, False, ['0,0,0', '1,0,0']),
+        (True, False, [',0,1', '0,0,0', '1,0,0']),
+        (False, None, ['0,0,0', '1,0,0']),
+        (True, None, ['index.name,0,1', '0,0,0', '1,0,0']),
+        (True, "new_index", ['new_index,0,1', '0,0,0', '1,0,0']),
+        (True, ["new_index"], ['new_index,0,1', '0,0,0', '1,0,0'])
+    ])
+    def test_to_csv_header_single_index(self, header, index_label,
+                                        expected_rows):
+        # issue 24546
+        df = pd.DataFrame(np.zeros((2, 2), dtype=int))
+        df.index.name = 'index.name'
+        df.columns.name = 'columns.name'
+
+        result = df.to_csv(header=header, index_label=index_label)
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected
+
+    @pytest.mark.parametrize("header, index_label, expected_rows", [
+        (False, True, ['index.name.0,index.name.1,,', 'a,b,0,0', 'a,c,0,0']),
+        (True, True, ['index.name.0,index.name.1,0,1', 'a,b,0,0', 'a,c,0,0']),
+        (False, False, ['a,b,0,0', 'a,c,0,0']),
+        (True, False, [',,0,1', 'a,b,0,0', 'a,c,0,0']),
+        (False, None, ['a,b,0,0', 'a,c,0,0']),
+        (True, None, ['index.name.0,index.name.1,0,1', 'a,b,0,0', 'a,c,0,0']),
+        (True, ("index1", "index2"),
+         ['index1,index2,0,1', 'a,b,0,0', 'a,c,0,0']),
+        (True, ["index1", "index2"],
+         ['index1,index2,0,1', 'a,b,0,0', 'a,c,0,0'])
+    ])
+    def test_to_csv_header_multi_index(self, header, index_label,
+                                       expected_rows):
+        # issue 24546
+        df = pd.DataFrame(np.zeros((2, 2), dtype=int))
+        df.index = pd.MultiIndex.from_product([['a'], ['b', 'c']], names=[
+            'index.name.0', 'index.name.1'])
+
+        result = df.to_csv(header=header, index_label=index_label)
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected
