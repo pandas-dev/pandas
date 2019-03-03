@@ -545,7 +545,7 @@ Selection By Callable
 .. versionadded:: 0.18.1
 
 ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer.
-The ``callable`` must be a function with one argument (the calling Series, DataFrame or Panel) and that returns valid output for indexing.
+The ``callable`` must be a function with one argument (the calling Series, DataFrame or Panel) that returns valid output for indexing.
 
 .. ipython:: python
 
