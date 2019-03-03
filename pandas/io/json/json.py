@@ -177,9 +177,9 @@ class JSONTableWriter(FrameWriter):
             date_unit, index, default_handler=default_handler)
 
         if date_format != 'iso':
-            msg = ("Trying to write with `orient='table'` and "
-                   "`date_format='{fmt}'`. Table Schema requires dates "
-                   "to be formatted with `date_format='iso'`"
+            msg = ("Trying to write with orient='table' and "
+                   "date_format='{fmt}'. Table Schema requires dates "
+                   "to be formatted with date_format='iso'"
                    .format(fmt=date_format))
             raise ValueError(msg)
 
@@ -226,7 +226,7 @@ class JSONTableWriter(FrameWriter):
         if len(data) > 2:
             column_names = column_names + ','
         data = data[0] + column_names + data[1:]
-        serialized = '{{"schema": {schema}, "data": {data}}}'.format(
+        serialized = '{{"schema":{schema},"data":{data}}}'.format(
                      schema=dumps(self.schema), data=data)
         return serialized
 
