@@ -236,6 +236,7 @@ MultiIndex
 I/O
 ^^^
 
+- Bug in :func:`DataFrame.to_html()` where values were truncated using display options instead of outputting the full content (:issue:`17004`)
 - Fixed bug in missing text when using :meth:`to_clipboard` if copying utf-16 characters in Python 3 on Windows (:issue:`25040`)
 - Bug in :func:`read_json` for ``orient='table'`` when it tries to infer dtypes by default, which is not applicable as dtypes are already defined in the JSON schema (:issue:`21345`)
 - Bug in :func:`read_json` for ``orient='table'`` and float index, as it infers index dtype by default, which is not applicable because index dtype is already defined in the JSON schema (:issue:`25433`)
@@ -273,7 +274,7 @@ Sparse
 ^^^^^^
 
 - Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
--
+- Bug in :class:`SparseFrame` constructor where passing ``None`` as the data would cause ``default_fill_value`` to be ignored (:issue:`16807`)
 -
 
 

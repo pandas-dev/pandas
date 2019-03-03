@@ -229,7 +229,7 @@ class TestFactorize(object):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        msg = ("'<' not supported between instances of 'complex' and"
+        msg = (r"'(<|>)' not supported between instances of 'complex' and"
                r" 'complex'|"
                r"unorderable types: complex\(\) > complex\(\)")
         with pytest.raises(TypeError, match=msg):
