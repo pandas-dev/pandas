@@ -44,12 +44,12 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
-_common_see_also = """
+_common_see_also = """\
         See Also
         --------
         Series.%(name)s
         DataFrame.%(name)s
-        Panel.%(name)s
+        Panel.%(name)s\
 """
 
 _apply_docs = dict(
@@ -221,7 +221,7 @@ See more `here
 
 Examples
 --------
-%(examples)s
+%(examples)s\
 """
 
 _transform_template = """

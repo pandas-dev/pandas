@@ -650,8 +650,8 @@ def _build_option_description(k):
         s += (u(', use `{rkey}` instead.')
               .format(rkey=d.rkey if d.rkey else ''))
         s += u(')')
+        s += '\n'
 
-    s += '\n\n'
     return s
 
 

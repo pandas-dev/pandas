@@ -139,7 +139,7 @@ def %(name)s(self) :
         # ugly, but we need the name string itself in the method.
         f = getattr(klass, name)
         doc = f.__doc__
-        doc = doc if type(doc) == str else ''
+        doc = doc.strip() if type(doc) == str else ''
         if isinstance(f, types.MethodType):
             wrapper_template = method_wrapper_template
             decl, args = make_signature(f)
