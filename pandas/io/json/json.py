@@ -162,14 +162,14 @@ class FrameWriter(Writer):
 
 
 class JSONTableWriter(FrameWriter):
-    _default_orient = 'records'
+    _default_orient = 'values'
 
     def __init__(self, obj, orient, date_format, double_precision,
                  ensure_ascii, date_unit, index, default_handler=None):
         """
         Adds a `schema` attribute with the Table Schema, resets
         the index (can't do in caller, because the schema inference needs
-        to know what the index is, forces orient to records, and forces
+        to know what the index is, forces orient to values, and forces
         date_format to 'iso'.
         """
         super(JSONTableWriter, self).__init__(
