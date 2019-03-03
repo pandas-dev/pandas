@@ -296,8 +296,15 @@ def parse_table_schema(json, precise_float):
     pandas.read_json
     """
     table = loads(json, precise_float=precise_float)
-    col_order = table['data'][0]
-    df = DataFrame(table['data'][1:], columns=col_order)[col_order]
+    version = table['schema']['pandas_version']
+    if version == '0.20.0':
+        # Each table row is represented by a dict
+        col_order = [field['name'] for field in table['schema']['fields']]
+        df = DataFrame(table['data'], columns=col_order)[col_order]
+    elif version == '0.25.0':
+        # Each table row is represented by a list
+        col_order = table['data'][0]
+        df = DataFrame(table['data'][1:], columns=col_order)[col_order]
 
     dtypes = {field['name']: convert_json_field_to_pandas_type(field)
               for field in table['schema']['fields']}
@@ -322,6 +329,7 @@ def parse_table_schema(json, precise_float):
         else:
             df.index.names = [None if x.startswith('level_') else x for x in
                               df.index.names]
+        # Reset columns dtype
         df.columns = df.columns.values.tolist()
 
     return df
