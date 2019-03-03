@@ -9986,13 +9986,14 @@ class NDFrame(PandasObject, SelectionMixin):
             raise ValueError("cannot pass both skipna and limit")
         if skipna is None and fill_method is None and limit is None:
             skipna = True
+        axis = self._get_axis_number(kwargs.pop('axis', self._stat_axis_name))
         if skipna and isinstance(self, pd.DataFrame):
+            # If DataFrame, apply to each column/row
             return self.apply(
                 lambda s: s.pct_change(periods=periods, freq=freq,
-                                       skipna=skipna, **kwargs)
+                                       skipna=skipna, **kwargs),
+                axis=axis
             )
-        # TODO: Not sure if above is correct - need someone to confirm.
-        axis = self._get_axis_number(kwargs.pop('axis', self._stat_axis_name))
         if skipna:
             data = self.dropna()
         elif fill_method is None:
