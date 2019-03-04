@@ -104,13 +104,15 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         is an ndarray of integers, when `freq` is required. When `values`
         is a PeriodArray (or box around), it's checked that ``values.freq``
         matches `freq`.
+    dtype : PeriodDtype, optional
+        A PeriodDtype instance from which to extract a `freq`.
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
     See Also
     --------
     period_array : Create a new PeriodArray.
-    pandas.PeriodIndex : Immutable Index for period data.
+    PeriodIndex : Immutable Index for period data.
 
     Notes
     -----
