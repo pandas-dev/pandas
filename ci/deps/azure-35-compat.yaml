@@ -24,5 +24,6 @@ dependencies:
   - pytest-mock
   - isort
   - pip:
+    # for python 3.5, pytest>=4.0.2 is not available in conda
     - pytest>=4.0.2
     - html5lib==1.0b2
