@@ -372,5 +372,3 @@ class TestSeriesTimezones(object):
         result.at[1] = ts
         expected = Series([ts, ts])
         tm.assert_series_equal(result, expected)
-
-
