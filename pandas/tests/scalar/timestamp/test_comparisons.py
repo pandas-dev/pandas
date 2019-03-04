@@ -169,7 +169,8 @@ class TestTimestampComparison(object):
 
 
 def test_rich_comparison_with_unsupported_type():
-    # See https://github.com/pandas-dev/pandas/issues/24011
+    # Comparisons with unsupported objects should return NotImplemented 
+    # (it previously raised TypeError)
 
     class Inf(object):
         def __lt__(self, o):
@@ -187,21 +188,13 @@ def test_rich_comparison_with_unsupported_type():
         def __eq__(self, o):
             return isinstance(o, Inf)
 
+    inf = Inf()
     timestamp = Timestamp('2018-11-30')
 
-    # Comparison works if compared in *that* order, because
-    # magic method is called on Inf
-    assert Inf() > timestamp
-    assert not (Inf() < timestamp)
-    assert Inf() != timestamp
-    assert not (Inf() == timestamp)
-    assert Inf() >= timestamp
-    assert not (Inf() <= timestamp)
-
-    # ... but used to not work when magic method is called on Timestamp
-    assert not (timestamp > Inf())
-    assert timestamp < Inf()
-    assert timestamp != Inf()
-    assert not (timestamp == Inf())
-    assert timestamp <= Inf()
-    assert not (timestamp >= Inf())
+    for left, right in [(inf, timestamp), (timestamp, inf)]:
+        assert left > right or right < left
+        assert left >= right or right <= left
+        assert not (left == right)
+        assert left != right
+        
+    
