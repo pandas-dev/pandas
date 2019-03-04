@@ -150,7 +150,7 @@ Timezones
 
 - Bug in :func:`to_datetime` with ``utc=True`` and datetime strings that would apply previously parsed UTC offsets to subsequent arguments (:issue:`24992`)
 - Bug in :func:`Timestamp.tz_localize` and :func:`Timestamp.tz_convert` does not propagate ``freq`` (:issue:`25241`)
-- Bug in :func:`series.at` where Setting Timestamp with timezone raises TypeError (:issue:`25506`)
+- Bug in :func:`Series.at` where Setting :class:`Timestamp` with timezone raises ``TypeError`` (:issue:`25506`)
 
 Numeric
 ^^^^^^^
