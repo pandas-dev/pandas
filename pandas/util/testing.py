@@ -286,25 +286,25 @@ def assert_almost_equal(left, right, check_dtype="equiv",
     """
 
     if isinstance(left, pd.Index):
-        return assert_index_equal(left, right,
-                                  check_exact=False,
-                                  exact=check_dtype,
-                                  check_less_precise=check_less_precise,
-                                  **kwargs)
+        assert_index_equal(left, right,
+                           check_exact=False,
+                           exact=check_dtype,
+                           check_less_precise=check_less_precise,
+                           **kwargs)
 
     elif isinstance(left, pd.Series):
-        return assert_series_equal(left, right,
-                                   check_exact=False,
-                                   check_dtype=check_dtype,
-                                   check_less_precise=check_less_precise,
-                                   **kwargs)
+        assert_series_equal(left, right,
+                            check_exact=False,
+                            check_dtype=check_dtype,
+                            check_less_precise=check_less_precise,
+                            **kwargs)
 
     elif isinstance(left, pd.DataFrame):
-        return assert_frame_equal(left, right,
-                                  check_exact=False,
-                                  check_dtype=check_dtype,
-                                  check_less_precise=check_less_precise,
-                                  **kwargs)
+        assert_frame_equal(left, right,
+                           check_exact=False,
+                           check_dtype=check_dtype,
+                           check_less_precise=check_less_precise,
+                           **kwargs)
 
     else:
         # Other sequences.
