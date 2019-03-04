@@ -871,6 +871,25 @@ class TestDataFrameAlterAxes():
                              columns=["a"])
         tm.assert_frame_equal(df, expected)
 
+    def test_rename_errors(self):
+        # GH 13473
+        # rename now works with errors parameter
+
+        # Error has to be thrown and is thrown
+        df = DataFrame(columns=['A', 'B', 'C', 'D'])
+        with pytest.raises(KeyError):
+            df.rename(columns={'A': 'a', 'E': 'e'}, errors='raise')
+
+        # Error should be ignored
+        renamed = df.rename(columns={'A': 'a', 'E': 'e'})
+        expected = DataFrame(columns=['a', 'B', 'C', 'D'])
+        tm.assert_frame_equal(renamed, expected)
+
+        # Correct behaviour with raising errors.
+        renamed = df.rename(columns={'A': 'a'}, errors='raise')
+        expected = DataFrame(columns=['a', 'B', 'C', 'D'])
+        tm.assert_frame_equal(renamed, expected)
+
     def test_reorder_levels(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
                            codes=[[0, 0, 0, 0, 0, 0],

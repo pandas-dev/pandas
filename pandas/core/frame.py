@@ -3940,7 +3940,8 @@ class DataFrame(NDFrame):
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
             level.
-
+        errors : {'ignore', 'raise'}, default 'ignore'
+            If 'ignore', suppress error and existing labels are renamed.
         Returns
         -------
         DataFrame
@@ -3948,6 +3949,11 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.rename_axis
+
+        Raises
+        ------
+        KeyError
+            If any of the labels is not found in the selected axis.
 
         Examples
         --------

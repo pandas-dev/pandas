@@ -981,10 +981,17 @@ class NDFrame(PandasObject, SelectionMixin):
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
             level.
+        errors : {'ignore', 'raise'}, default 'ignore'
+            If 'ignore', suppress error and existing labels are renamed.
 
         Returns
         -------
         renamed : %(klass)s (new object)
+
+        Raises
+        ------
+        KeyError
+            If any of the labels is not found in the selected axis.
 
         See Also
         --------
@@ -1065,6 +1072,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace = kwargs.pop('inplace', False)
         level = kwargs.pop('level', None)
         axis = kwargs.pop('axis', None)
+        errors = kwargs.pop('errors', 'ignore')
         if axis is not None:
             # Validate the axis
             self._get_axis_number(axis)
@@ -1085,10 +1093,15 @@ class NDFrame(PandasObject, SelectionMixin):
             if v is None:
                 continue
             f = com._get_rename_function(v)
-
             baxis = self._get_block_manager_axis(axis)
             if level is not None:
                 level = self.axes[axis]._get_level_number(level)
+
+            # GH 13473
+            labels_missing = (self.axes[axis].get_indexer_for(v) == -1).any()
+            if errors == 'raise' and labels_missing:
+                raise KeyError('{} not found in axis'.format(v))
+
             result._data = result._data.rename_axis(f, axis=baxis, copy=copy,
                                                     level=level)
             result._clear_item_cache()
