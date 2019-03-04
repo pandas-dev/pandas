@@ -7,7 +7,7 @@ import random
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
+from pandas.compat import PY2, lrange
 
 import pandas as pd
 from pandas import (
@@ -21,6 +21,7 @@ from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 class TestDataFrameSorting(TestData):
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_sort_values(self):
         frame = DataFrame([[1, 1, 2], [3, 1, 0], [4, 5, 6]],
                           index=[1, 2, 3], columns=list('ABC'))
@@ -54,8 +55,9 @@ class TestDataFrameSorting(TestData):
         sorted_df = frame.sort_values(by=['B', 'A'], ascending=[True, False])
         assert_frame_equal(sorted_df, expected)
 
-        pytest.raises(ValueError, lambda: frame.sort_values(
-            by=['A', 'B'], axis=2, inplace=True))
+        msg = "No axis named 2 for object type <class 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            frame.sort_values(by=['A', 'B'], axis=2, inplace=True)
 
         # by row (axis=1): GH 10806
         sorted_df = frame.sort_values(by=3, axis=1)

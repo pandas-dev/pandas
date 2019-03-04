@@ -274,10 +274,12 @@ class TestDataFrameBlockInternals():
                              columns=["A", "B", "C"],
                              dtype=dtype)
 
-        pytest.raises(NotImplementedError, f,
-                      [("A", "datetime64[h]"),
-                       ("B", "str"),
-                       ("C", "int32")])
+        msg = ("compound dtypes are not implemented in the DataFrame"
+               " constructor")
+        with pytest.raises(NotImplementedError, match=msg):
+            f([("A", "datetime64[h]"),
+               ("B", "str"),
+               ("C", "int32")])
 
         # these work (though results may be unexpected)
         f('int64')
