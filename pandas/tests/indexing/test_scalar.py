@@ -186,12 +186,9 @@ class TestScalar(Base):
         result = df.at[0, 'date']
         assert result == expected
 
-    @pytest.mark.parametrize('tz', [
-        None, 'UTC', 'US/Eastern', 'Asia/Tokyo',
-        'dateutil/US/Pacific', 'CET', FixedOffset(60)])
-    def test_series_set_tz_timestamp(self, tz):
+    def test_series_set_tz_timestamp(self, tz_naive_fixture):
         # GH 25506
-        ts = Timestamp('2017-08-05 00:00:00+0100', tz=tz)
+        ts = Timestamp('2017-08-05 00:00:00+0100', tz=tz_naive_fixture)
         result = Series(ts)
         result.at[1] = ts
         expected = Series([ts, ts])
