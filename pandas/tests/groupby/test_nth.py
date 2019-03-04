@@ -1,12 +1,12 @@
 import numpy as np
-import pandas as pd
-from pandas import DataFrame, MultiIndex, Index, Series, isna, Timestamp
-from pandas.compat import lrange
-from pandas.util.testing import (
-    assert_frame_equal,
-    assert_produces_warning,
-    assert_series_equal)
 import pytest
+
+from pandas.compat import lrange
+
+import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
+from pandas.util.testing import (
+    assert_frame_equal, assert_produces_warning, assert_series_equal)
 
 
 def test_first_last_nth(df):
@@ -276,6 +276,26 @@ def test_first_last_tz(data, expected_first, expected_last):
 
     result = df.groupby('id', as_index=False)['time'].last()
     assert_frame_equal(result, expected[['id', 'time']])
+
+
+@pytest.mark.parametrize('method, ts, alpha', [
+    ['first', Timestamp('2013-01-01', tz='US/Eastern'), 'a'],
+    ['last', Timestamp('2013-01-02', tz='US/Eastern'), 'b']
+])
+def test_first_last_tz_multi_column(method, ts, alpha):
+    # GH 21603
+    df = pd.DataFrame({'group': [1, 1, 2],
+                       'category_string': pd.Series(list('abc')).astype(
+                           'category'),
+                       'datetimetz': pd.date_range('20130101', periods=3,
+                                                   tz='US/Eastern')})
+    result = getattr(df.groupby('group'), method)()
+    expepcted = pd.DataFrame({'category_string': [alpha, 'c'],
+                              'datetimetz': [ts,
+                                             Timestamp('2013-01-03',
+                                                       tz='US/Eastern')]},
+                             index=pd.Index([1, 2], name='group'))
+    assert_frame_equal(result, expepcted)
 
 
 def test_nth_multi_index_as_expected():

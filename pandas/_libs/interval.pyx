@@ -17,13 +17,12 @@ from numpy cimport (
 cnp.import_array()
 
 
-cimport util
-util.import_array()
+cimport pandas._libs.util as util
 
-from hashtable cimport Int64Vector, Int64VectorData
+from pandas._libs.hashtable cimport Int64Vector, Int64VectorData
 
-from tslibs import Timestamp
-from tslibs.timezones cimport tz_compare
+from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 
 
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
@@ -151,9 +150,6 @@ cdef class Interval(IntervalMixin):
         Left bound for the interval.
     right : orderable scalar
         Right bound for the interval.
-    closed : {'left', 'right', 'both', 'neither'}, default 'right'
-        Whether the interval is closed on the left-side, right-side, both or
-        neither.
     closed : {'right', 'left', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
         neither. See the Notes for more detailed explanation.
@@ -389,8 +385,8 @@ cdef class Interval(IntervalMixin):
 
         See Also
         --------
-        IntervalArray.overlaps : The corresponding method for IntervalArray
-        IntervalIndex.overlaps : The corresponding method for IntervalIndex
+        IntervalArray.overlaps : The corresponding method for IntervalArray.
+        IntervalIndex.overlaps : The corresponding method for IntervalIndex.
 
         Examples
         --------

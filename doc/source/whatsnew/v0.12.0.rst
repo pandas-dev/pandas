@@ -191,7 +191,7 @@ I/O Enhancements
 
     You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
 
-    .. ipython :: python
+    .. ipython:: python
        :okwarning:
 
         df = pd.DataFrame({'a': range(3), 'b': list('abc')})
@@ -296,7 +296,7 @@ Other Enhancements
 
     For example you can do
 
-    .. ipython :: python
+    .. ipython:: python
 
         df = pd.DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
         df.replace(regex=r'\s*\.\s*', value=np.nan)
@@ -306,7 +306,7 @@ Other Enhancements
 
     Regular string replacement still works as expected. For example, you can do
 
-    .. ipython :: python
+    .. ipython:: python
 
         df.replace('.', np.nan)
 

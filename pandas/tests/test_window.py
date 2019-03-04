@@ -1,24 +1,26 @@
 from collections import OrderedDict
+from datetime import datetime, timedelta
 from itertools import product
-import pytest
 import warnings
 from warnings import catch_warnings
 
-from datetime import datetime, timedelta
-from numpy.random import randn
 import numpy as np
+from numpy.random import randn
+import pytest
+
+from pandas.compat import range, zip
+from pandas.errors import UnsupportedFunctionCall
+import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (Series, DataFrame, bdate_range,
-                    isna, notna, concat, Timestamp, Index)
-import pandas.core.window as rwindow
-import pandas.tseries.offsets as offsets
+from pandas import (
+    DataFrame, Index, Series, Timestamp, bdate_range, concat, isna, notna)
 from pandas.core.base import SpecificationError
-from pandas.errors import UnsupportedFunctionCall
 from pandas.core.sorting import safe_sort
+import pandas.core.window as rwindow
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.compat import range, zip
+
+import pandas.tseries.offsets as offsets
 
 N, K = 100, 10
 
@@ -87,9 +89,8 @@ class TestApi(Base):
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
         g = df.rolling(window=5)
-        pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
-
-        pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
+        with pytest.raises(KeyError, match="Columns not found: 'C'"):
+            g[['C']]
         with pytest.raises(KeyError, match='^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
@@ -100,7 +101,9 @@ class TestApi(Base):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
         r = df.rolling(window=5)
         tm.assert_series_equal(r.A.sum(), r['A'].sum())
-        pytest.raises(AttributeError, lambda: r.F)
+        msg = "'Rolling' object has no attribute 'F'"
+        with pytest.raises(AttributeError, match=msg):
+            r.F
 
     def tests_skip_nuisance(self):
 
@@ -215,11 +218,10 @@ class TestApi(Base):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
         r = df.rolling(window=3)
 
-        def f():
+        msg = r"cannot perform renaming for (r1|r2) with a nested dictionary"
+        with pytest.raises(SpecificationError, match=msg):
             r.aggregate({'r1': {'A': ['mean', 'sum']},
                          'r2': {'B': ['mean', 'sum']}})
-
-        pytest.raises(SpecificationError, f)
 
         expected = concat([r['A'].mean(), r['A'].std(),
                            r['B'].mean(), r['B'].std()], axis=1)
@@ -517,6 +519,26 @@ class TestRolling(Base):
         # closed only allowed for datetimelike
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
+
+    @pytest.mark.parametrize("func", ['min', 'max'])
+    def test_closed_one_entry(self, func):
+        # GH24718
+        ser = pd.Series(data=[2], index=pd.date_range('2000', periods=1))
+        result = getattr(ser.rolling('10D', closed='left'), func)()
+        tm.assert_series_equal(result, pd.Series([np.nan], index=ser.index))
+
+    @pytest.mark.parametrize("func", ['min', 'max'])
+    def test_closed_one_entry_groupby(self, func):
+        # GH24718
+        ser = pd.DataFrame(data={'A': [1, 1, 2], 'B': [3, 2, 1]},
+                           index=pd.date_range('2000', periods=3))
+        result = getattr(
+            ser.groupby('A', sort=False)['B'].rolling('10D', closed='left'),
+            func)()
+        exp_idx = pd.MultiIndex.from_arrays(arrays=[[1, 1, 2], ser.index],
+                                            names=('A', None))
+        expected = pd.Series(data=[np.nan, 3, np.nan], index=exp_idx, name='B')
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("input_dtype", ['int', 'float'])
     @pytest.mark.parametrize("func,closed,expected", [
@@ -1784,26 +1806,38 @@ class TestMoments(Base):
     def test_ewm_domain_checks(self):
         # GH 12492
         s = Series(self.arr)
-        # com must satisfy: com >= 0
-        pytest.raises(ValueError, s.ewm, com=-0.1)
+        msg = "comass must satisfy: comass >= 0"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(com=-0.1)
         s.ewm(com=0.0)
         s.ewm(com=0.1)
-        # span must satisfy: span >= 1
-        pytest.raises(ValueError, s.ewm, span=-0.1)
-        pytest.raises(ValueError, s.ewm, span=0.0)
-        pytest.raises(ValueError, s.ewm, span=0.9)
+
+        msg = "span must satisfy: span >= 1"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(span=-0.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(span=0.0)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(span=0.9)
         s.ewm(span=1.0)
         s.ewm(span=1.1)
-        # halflife must satisfy: halflife > 0
-        pytest.raises(ValueError, s.ewm, halflife=-0.1)
-        pytest.raises(ValueError, s.ewm, halflife=0.0)
+
+        msg = "halflife must satisfy: halflife > 0"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(halflife=-0.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(halflife=0.0)
         s.ewm(halflife=0.1)
-        # alpha must satisfy: 0 < alpha <= 1
-        pytest.raises(ValueError, s.ewm, alpha=-0.1)
-        pytest.raises(ValueError, s.ewm, alpha=0.0)
+
+        msg = "alpha must satisfy: 0 < alpha <= 1"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(alpha=-0.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(alpha=0.0)
         s.ewm(alpha=0.1)
         s.ewm(alpha=1.0)
-        pytest.raises(ValueError, s.ewm, alpha=1.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(alpha=1.1)
 
     @pytest.mark.parametrize('method', ['mean', 'vol', 'var'])
     def test_ew_empty_series(self, method):
@@ -2576,7 +2610,10 @@ class TestMomentsConsistency(Base):
     def test_flex_binary_moment(self):
         # GH3155
         # don't blow the stack
-        pytest.raises(TypeError, rwindow._flex_binary_moment, 5, 6, None)
+        msg = ("arguments to moment function must be of type"
+               " np.ndarray/Series/DataFrame")
+        with pytest.raises(TypeError, match=msg):
+            rwindow._flex_binary_moment(5, 6, None)
 
     def test_corr_sanity(self):
         # GH 3155
@@ -2660,7 +2697,10 @@ class TestMomentsConsistency(Base):
                 Series([1.]), Series([1.]), 50, min_periods=min_periods)
             tm.assert_series_equal(result, Series([np.NaN]))
 
-        pytest.raises(Exception, func, A, randn(50), 20, min_periods=5)
+        msg = "Input arrays must be of the same type!"
+        # exception raised is Exception
+        with pytest.raises(Exception, match=msg):
+            func(A, randn(50), 20, min_periods=5)
 
     def test_expanding_apply_args_kwargs(self, raw):
 
@@ -3244,9 +3284,9 @@ class TestGrouperGrouping(object):
 
     def test_mutated(self):
 
-        def f():
+        msg = r"group\(\) got an unexpected keyword argument 'foo'"
+        with pytest.raises(TypeError, match=msg):
             self.frame.groupby('A', foo=1)
-        pytest.raises(TypeError, f)
 
         g = self.frame.groupby('A')
         assert not g.mutated

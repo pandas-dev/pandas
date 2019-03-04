@@ -42,20 +42,35 @@ _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
     typ='method', overwrite=True)
 class CategoricalIndex(Index, accessor.PandasDelegate):
     """
-    Immutable Index implementing an ordered, sliceable set. CategoricalIndex
-    represents a sparsely populated Index with an underlying Categorical.
+    Index based on an underlying :class:`Categorical`.
+
+    CategoricalIndex, like Categorical, can only take on a limited,
+    and usually fixed, number of possible values (`categories`). Also,
+    like Categorical, it might have an order, but numerical operations
+    (additions, divisions, ...) are not possible.
 
     Parameters
     ----------
-    data : array-like or Categorical, (1-dimensional)
-    categories : optional, array-like
-        categories for the CategoricalIndex
-    ordered : boolean,
-        designating if the categories are ordered
-    copy : bool
-        Make a copy of input ndarray
-    name : object
-        Name to be stored in the index
+    data : array-like (1-dimensional)
+        The values of the categorical. If `categories` are given, values not in
+        `categories` will be replaced with NaN.
+    categories : index-like, optional
+        The categories for the categorical. Items need to be unique.
+        If the categories are not given here (and also not in `dtype`), they
+        will be inferred from the `data`.
+    ordered : bool, optional
+        Whether or not this categorical is treated as an ordered
+        categorical. If not given here or in `dtype`, the resulting
+        categorical will be unordered.
+    dtype : CategoricalDtype or the string "category", optional
+        If :class:`CategoricalDtype`, cannot be used together with
+        `categories` or `ordered`.
+
+        .. versionadded:: 0.21.0
+    copy : bool, default False
+        Make a copy of input ndarray.
+    name : object, optional
+        Name to be stored in the index.
 
     Attributes
     ----------
@@ -75,9 +90,45 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     as_unordered
     map
 
+    Raises
+    ------
+    ValueError
+        If the categories do not validate.
+    TypeError
+        If an explicit ``ordered=True`` is given but no `categories` and the
+        `values` are not sortable.
+
     See Also
     --------
-    Categorical, Index
+    Index : The base pandas Index type.
+    Categorical : A categorical array.
+    CategoricalDtype : Type for categorical data.
+
+    Notes
+    -----
+    See the `user guide
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
+    for more.
+
+    Examples
+    --------
+    >>> pd.CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'])
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+
+    ``CategoricalIndex`` can also be instantiated from a ``Categorical``:
+
+    >>> c = pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
+    >>> pd.CategoricalIndex(c)
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+
+    Ordered ``CategoricalIndex`` can have a min and max value.
+
+    >>> ci = pd.CategoricalIndex(['a','b','c','a','b','c'], ordered=True,
+    ...                          categories=['c', 'b', 'a'])
+    >>> ci
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['c', 'b', 'a'], ordered=True, dtype='category')  # noqa
+    >>> ci.min()
+    'c'
     """
 
     _typ = 'categoricalindex'
@@ -107,29 +158,23 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if fastpath:
                 return cls._simple_new(data, name=name, dtype=dtype)
 
+        dtype = CategoricalDtype._from_values_or_dtype(data, categories,
+                                                       ordered, dtype)
+
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        if isinstance(data, ABCCategorical):
-            data = cls._create_categorical(data, categories, ordered,
-                                           dtype)
-        elif isinstance(data, CategoricalIndex):
-            data = data._data
-            data = cls._create_categorical(data, categories, ordered,
-                                           dtype)
-        else:
-
+        if not is_categorical_dtype(data):
             # don't allow scalars
             # if data is None, then categories must be provided
             if is_scalar(data):
                 if data is not None or categories is None:
                     cls._scalar_data_error(data)
                 data = []
-            data = cls._create_categorical(data, categories, ordered,
-                                           dtype)
 
-        if copy:
-            data = data.copy()
+        data = cls._create_categorical(data, dtype=dtype)
+
+        data = data.copy() if copy else data
 
         return cls._simple_new(data, name=name)
 
@@ -154,13 +199,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             dtype = self.dtype
         if name is None:
             name = self.name
-        cat = Categorical.from_codes(codes, categories=dtype.categories,
-                                     ordered=dtype.ordered)
+        cat = Categorical.from_codes(codes, dtype=dtype)
         return CategoricalIndex(cat, name=name)
 
     @classmethod
-    def _create_categorical(cls, data, categories=None, ordered=None,
-                            dtype=None):
+    def _create_categorical(cls, data, dtype=None):
         """
         *this is an internal non-public method*
 
@@ -169,8 +212,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Parameters
         ----------
         data : data for new Categorical
-        categories : optional categories, defaults to existing
-        ordered : optional ordered attribute, defaults to existing
         dtype : CategoricalDtype, defaults to existing
 
         Returns
@@ -182,18 +223,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             data = data.values
 
         if not isinstance(data, ABCCategorical):
-            if ordered is None and dtype is None:
-                ordered = False
-            data = Categorical(data, categories=categories, ordered=ordered,
-                               dtype=dtype)
-        else:
-            if categories is not None:
-                data = data.set_categories(categories, ordered=ordered)
-            elif ordered is not None and ordered != data.ordered:
-                data = data.set_ordered(ordered)
-            if isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
-                # we want to silently ignore dtype='category'
-                data = data._set_dtype(dtype)
+            return Categorical(data, dtype=dtype)
+
+        if isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
+            # we want to silently ignore dtype='category'
+            data = data._set_dtype(dtype)
         return data
 
     @classmethod
@@ -249,7 +283,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     def equals(self, other):
         """
-        Determines if two CategorialIndex objects contain the same elements.
+        Determine if two CategorialIndex objects contain the same elements.
         """
         if self.is_(other):
             return True
@@ -797,8 +831,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Concatenate to_concat which has the same class
         ValueError if other is not in the categories
         """
-        to_concat = [self._is_dtype_compat(c) for c in to_concat]
-        codes = np.concatenate([c.codes for c in to_concat])
+        codes = np.concatenate([self._is_dtype_compat(c).codes
+                                for c in to_concat])
         result = self._create_from_codes(codes, name=name)
         # if name is None, _create_from_codes sets self.name
         result.name = name

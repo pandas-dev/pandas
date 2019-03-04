@@ -2,21 +2,20 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta
-import pytest
 import re
 
-from numpy import nan as NA
 import numpy as np
+from numpy import nan as NA
 from numpy.random import randint
+import pytest
 
-from pandas.compat import range, u, PY3
 import pandas.compat as compat
-from pandas import Index, Series, DataFrame, isna, MultiIndex, notna, concat
+from pandas.compat import PY2, PY3, range, u
 
-from pandas.util.testing import assert_series_equal, assert_index_equal
-import pandas.util.testing as tm
-
+from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
+import pandas.util.testing as tm
+from pandas.util.testing import assert_index_equal, assert_series_equal
 
 
 def assert_series_or_index_equal(left, right):
@@ -77,7 +76,7 @@ _any_string_method = [
     'len', 'lower', 'lstrip', 'partition',
     'rpartition', 'rsplit', 'rstrip',
     'slice', 'slice_replace', 'split',
-    'strip', 'swapcase', 'title', 'upper'
+    'strip', 'swapcase', 'title', 'upper', 'casefold'
 ], [()] * 100, [{}] * 100))
 ids, _, _ = zip(*_any_string_method)  # use method name as fixture-id
 
@@ -986,11 +985,13 @@ class TestStringMethods(object):
         tm.assert_series_equal(result, exp)
 
         # GH 13438
+        msg = "repl must be a string or callable"
         for klass in (Series, Index):
             for repl in (None, 3, {'a': 'b'}):
                 for data in (['a', 'b', None], ['a', 'b', 'c', 'ad']):
                     values = klass(data)
-                    pytest.raises(TypeError, values.str.replace, 'a', repl)
+                    with pytest.raises(TypeError, match=msg):
+                        values.str.replace('a', repl)
 
     def test_replace_callable(self):
         # GH 15055
@@ -1107,10 +1108,14 @@ class TestStringMethods(object):
         callable_repl = lambda m: m.group(0).swapcase()
         compiled_pat = re.compile('[a-z][A-Z]{2}')
 
-        pytest.raises(ValueError, values.str.replace, 'abc', callable_repl,
-                      regex=False)
-        pytest.raises(ValueError, values.str.replace, compiled_pat, '',
-                      regex=False)
+        msg = "Cannot use a callable replacement when regex=False"
+        with pytest.raises(ValueError, match=msg):
+            values.str.replace('abc', callable_repl, regex=False)
+
+        msg = ("Cannot use a compiled regex as replacement pattern with"
+               " regex=False")
+        with pytest.raises(ValueError, match=msg):
+            values.str.replace(compiled_pat, '', regex=False)
 
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
@@ -1226,12 +1231,13 @@ class TestStringMethods(object):
         for klass in [Series, Index]:
             # no groups
             s_or_idx = klass(['A1', 'B2', 'C3'])
-            f = lambda: s_or_idx.str.extract('[ABC][123]', expand=False)
-            pytest.raises(ValueError, f)
+            msg = "pattern contains no capture groups"
+            with pytest.raises(ValueError, match=msg):
+                s_or_idx.str.extract('[ABC][123]', expand=False)
 
             # only non-capturing groups
-            f = lambda: s_or_idx.str.extract('(?:[AB]).*', expand=False)
-            pytest.raises(ValueError, f)
+            with pytest.raises(ValueError, match=msg):
+                s_or_idx.str.extract('(?:[AB]).*', expand=False)
 
             # single group renames series/index properly
             s_or_idx = klass(['A1', 'A2'])
@@ -1371,12 +1377,13 @@ class TestStringMethods(object):
         for klass in [Series, Index]:
             # no groups
             s_or_idx = klass(['A1', 'B2', 'C3'])
-            f = lambda: s_or_idx.str.extract('[ABC][123]', expand=True)
-            pytest.raises(ValueError, f)
+            msg = "pattern contains no capture groups"
+            with pytest.raises(ValueError, match=msg):
+                s_or_idx.str.extract('[ABC][123]', expand=True)
 
             # only non-capturing groups
-            f = lambda: s_or_idx.str.extract('(?:[AB]).*', expand=True)
-            pytest.raises(ValueError, f)
+            with pytest.raises(ValueError, match=msg):
+                s_or_idx.str.extract('(?:[AB]).*', expand=True)
 
             # single group renames series/index properly
             s_or_idx = klass(['A1', 'A2'])
@@ -3299,10 +3306,14 @@ class TestStringMethods(object):
 
         tm.assert_series_equal(result, exp)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_encode_decode_errors(self):
         encodeBase = Series([u('a'), u('b'), u('a\x9d')])
 
-        pytest.raises(UnicodeEncodeError, encodeBase.str.encode, 'cp1252')
+        msg = (r"'charmap' codec can't encode character '\\x9d' in position 1:"
+               " character maps to <undefined>")
+        with pytest.raises(UnicodeEncodeError, match=msg):
+            encodeBase.str.encode('cp1252')
 
         f = lambda x: x.encode('cp1252', 'ignore')
         result = encodeBase.str.encode('cp1252', 'ignore')
@@ -3311,7 +3322,10 @@ class TestStringMethods(object):
 
         decodeBase = Series([b'a', b'b', b'a\x9d'])
 
-        pytest.raises(UnicodeDecodeError, decodeBase.str.decode, 'cp1252')
+        msg = ("'charmap' codec can't decode byte 0x9d in position 1:"
+               " character maps to <undefined>")
+        with pytest.raises(UnicodeDecodeError, match=msg):
+            decodeBase.str.decode('cp1252')
 
         f = lambda x: x.decode('cp1252', 'ignore')
         result = decodeBase.str.decode('cp1252', 'ignore')
@@ -3402,9 +3416,19 @@ class TestStringMethods(object):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))
         rhs = Series(np.array(list('def'), 'S1').astype(object))
         if compat.PY3:
-            pytest.raises(TypeError, lhs.str.cat, rhs)
+            with pytest.raises(TypeError, match="can't concat str to bytes"):
+                lhs.str.cat(rhs)
         else:
             result = lhs.str.cat(rhs)
             expected = Series(np.array(
                 ['ad', 'be', 'cf'], 'S2').astype(object))
             tm.assert_series_equal(result, expected)
+
+    @pytest.mark.skipif(compat.PY2, reason='not in python2')
+    def test_casefold(self):
+        # GH25405
+        expected = Series(['ss', NA, 'case', 'ssd'])
+        s = Series(['ß', NA, 'case', 'ßd'])
+        result = s.str.casefold()
+
+        tm.assert_series_equal(result, expected)

@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import pytest
-
 from pandas.api import types
 from pandas.util import testing as tm
 
@@ -26,7 +24,8 @@ class TestTypes(Base):
                'is_dict_like', 'is_iterator', 'is_file_like',
                'is_list_like', 'is_hashable', 'is_array_like',
                'is_named_tuple',
-               'pandas_dtype', 'union_categoricals', 'infer_dtype']
+               'pandas_dtype', 'union_categoricals', 'infer_dtype',
+               'is_extension_array_dtype']
     deprecated = ['is_period', 'is_datetimetz']
     dtypes = ['CategoricalDtype', 'DatetimeTZDtype',
               'PeriodDtype', 'IntervalDtype']
@@ -34,19 +33,6 @@ class TestTypes(Base):
     def test_types(self):
 
         self.check(types, self.allowed + self.dtypes + self.deprecated)
-
-    def check_deprecation(self, fold, fnew):
-        with tm.assert_produces_warning(DeprecationWarning):
-            try:
-                result = fold('foo')
-                expected = fnew('foo')
-                assert result == expected
-            except TypeError:
-                with pytest.raises(TypeError):
-                    fnew('foo')
-            except AttributeError:
-                with pytest.raises(AttributeError):
-                    fnew('foo')
 
     def test_deprecated_from_api_types(self):
 

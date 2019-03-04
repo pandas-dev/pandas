@@ -1,27 +1,30 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-import pytest
-
-from numpy.random import RandomState
-from numpy import nan
 from datetime import datetime
 from itertools import permutations
 import struct
-from pandas import (Series, Categorical, CategoricalIndex,
-                    Timestamp, DatetimeIndex, Index, IntervalIndex)
-import pandas as pd
 
-from pandas import compat
-from pandas._libs import (groupby as libgroupby, algos as libalgos,
-                          hashtable as ht)
-from pandas.compat import lrange, range
+import numpy as np
+from numpy import nan
+from numpy.random import RandomState
+import pytest
+
+from pandas._libs import (
+    algos as libalgos, groupby as libgroupby, hashtable as ht)
+from pandas.compat import PY2, lrange, range
+from pandas.compat.numpy import np_array_datetime64_compat
+import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DatetimeIndex, Index, IntervalIndex, Series,
+    Timestamp, compat)
 import pandas.core.algorithms as algos
+from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
-from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.util.testing import assert_almost_equal
 
 
@@ -221,11 +224,16 @@ class TestFactorize(object):
                                                      dtype=object)
         tm.assert_numpy_array_equal(result[1], expected_level_array)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        pytest.raises(TypeError, algos.factorize, x17[::-1], sort=True)
+        msg = (r"'(<|>)' not supported between instances of 'complex' and"
+               r" 'complex'|"
+               r"unorderable types: complex\(\) > complex\(\)")
+        with pytest.raises(TypeError, match=msg):
+            algos.factorize(x17[::-1], sort=True)
 
     def test_float64_factorize(self, writable):
         data = np.array([1.0, 1e8, 1.0, 1e-8, 1e8, 1.0], dtype=np.float64)
@@ -456,9 +464,10 @@ class TestUnique(object):
         result = Series(
             Index([Timestamp('20160101', tz='US/Eastern'),
                    Timestamp('20160101', tz='US/Eastern')])).unique()
-        expected = np.array([Timestamp('2016-01-01 00:00:00-0500',
-                                       tz='US/Eastern')], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = DatetimeArray._from_sequence(np.array([
+            Timestamp('2016-01-01 00:00:00-0500', tz="US/Eastern")
+        ]))
+        tm.assert_extension_array_equal(result, expected)
 
         result = Index([Timestamp('20160101', tz='US/Eastern'),
                         Timestamp('20160101', tz='US/Eastern')]).unique()
@@ -469,9 +478,10 @@ class TestUnique(object):
         result = pd.unique(
             Series(Index([Timestamp('20160101', tz='US/Eastern'),
                           Timestamp('20160101', tz='US/Eastern')])))
-        expected = np.array([Timestamp('2016-01-01 00:00:00-0500',
-                                       tz='US/Eastern')], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = DatetimeArray._from_sequence(np.array([
+            Timestamp('2016-01-01', tz="US/Eastern"),
+        ]))
+        tm.assert_extension_array_equal(result, expected)
 
         result = pd.unique(Index([Timestamp('20160101', tz='US/Eastern'),
                                   Timestamp('20160101', tz='US/Eastern')]))
@@ -584,9 +594,14 @@ class TestIsin(object):
 
     def test_invalid(self):
 
-        pytest.raises(TypeError, lambda: algos.isin(1, 1))
-        pytest.raises(TypeError, lambda: algos.isin(1, [1]))
-        pytest.raises(TypeError, lambda: algos.isin([1], 1))
+        msg = (r"only list-like objects are allowed to be passed to isin\(\),"
+               r" you passed a \[int\]")
+        with pytest.raises(TypeError, match=msg):
+            algos.isin(1, 1)
+        with pytest.raises(TypeError, match=msg):
+            algos.isin(1, [1])
+        with pytest.raises(TypeError, match=msg):
+            algos.isin([1], 1)
 
     def test_basic(self):
 
@@ -814,8 +829,9 @@ class TestValueCounts(object):
         result = algos.value_counts(Series([1, 1., '1']))  # object
         assert len(result) == 2
 
-        pytest.raises(TypeError, lambda s: algos.value_counts(s, bins=1),
-                      ['1', 1])
+        msg = "bins argument only works with numeric data"
+        with pytest.raises(TypeError, match=msg):
+            algos.value_counts(['1', 1], bins=1)
 
     def test_value_counts_nat(self):
         td = Series([np.timedelta64(10000), pd.NaT], dtype='timedelta64[ns]')
@@ -1217,7 +1233,7 @@ class GroupVarTestMixin(object):
 class TestGroupVarFloat64(GroupVarTestMixin):
     __test__ = True
 
-    algo = libgroupby.group_var_float64
+    algo = staticmethod(libgroupby.group_var_float64)
     dtype = np.float64
     rtol = 1e-5
 
@@ -1240,7 +1256,7 @@ class TestGroupVarFloat64(GroupVarTestMixin):
 class TestGroupVarFloat32(GroupVarTestMixin):
     __test__ = True
 
-    algo = libgroupby.group_var_float32
+    algo = staticmethod(libgroupby.group_var_float32)
     dtype = np.float32
     rtol = 1e-2
 
@@ -1405,6 +1421,14 @@ class TestHashTable(object):
         expected_reconstruct = s_duplicated.dropna().values
         tm.assert_numpy_array_equal(result_reconstruct, expected_reconstruct)
 
+    @pytest.mark.parametrize('hashtable', [
+        ht.PyObjectHashTable, ht.StringHashTable,
+        ht.Float64HashTable, ht.Int64HashTable, ht.UInt64HashTable])
+    def test_hashtable_large_sizehint(self, hashtable):
+        # GH 22729
+        size_hint = np.iinfo(np.uint32).max + 1
+        tbl = hashtable(size_hint=size_hint) # noqa
+
 
 def test_quantile():
     s = Series(np.random.randn(100))
@@ -1471,6 +1495,7 @@ class TestRank(object):
             algos.rank(arr)
 
     @pytest.mark.single
+    @pytest.mark.high_memory
     @pytest.mark.parametrize('values', [
         np.arange(2**24 + 1),
         np.arange(2**25 + 2).reshape(2**24 + 1, 2)],
@@ -1486,19 +1511,19 @@ def test_pad_backfill_object_segfault():
     old = np.array([], dtype='O')
     new = np.array([datetime(2010, 12, 31)], dtype='O')
 
-    result = libalgos.pad_object(old, new)
+    result = libalgos.pad["object"](old, new)
     expected = np.array([-1], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = libalgos.pad_object(new, old)
+    result = libalgos.pad["object"](new, old)
     expected = np.array([], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = libalgos.backfill_object(old, new)
+    result = libalgos.backfill["object"](old, new)
     expected = np.array([-1], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = libalgos.backfill_object(new, old)
+    result = libalgos.backfill["object"](new, old)
     expected = np.array([], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -1530,7 +1555,7 @@ class TestTseriesUtil(object):
         old = Index([1, 5, 10])
         new = Index(lrange(12))
 
-        filler = libalgos.backfill_int64(old.values, new.values)
+        filler = libalgos.backfill["int64_t"](old.values, new.values)
 
         expect_filler = np.array([0, 0, 1, 1, 1, 1,
                                   2, 2, 2, 2, 2, -1], dtype=np.int64)
@@ -1539,7 +1564,7 @@ class TestTseriesUtil(object):
         # corner case
         old = Index([1, 4])
         new = Index(lrange(5, 10))
-        filler = libalgos.backfill_int64(old.values, new.values)
+        filler = libalgos.backfill["int64_t"](old.values, new.values)
 
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(filler, expect_filler)
@@ -1548,7 +1573,7 @@ class TestTseriesUtil(object):
         old = Index([1, 5, 10])
         new = Index(lrange(12))
 
-        filler = libalgos.pad_int64(old.values, new.values)
+        filler = libalgos.pad["int64_t"](old.values, new.values)
 
         expect_filler = np.array([-1, 0, 0, 0, 0, 1,
                                   1, 1, 1, 1, 2, 2], dtype=np.int64)
@@ -1557,7 +1582,7 @@ class TestTseriesUtil(object):
         # corner case
         old = Index([5, 10])
         new = Index(lrange(5))
-        filler = libalgos.pad_int64(old.values, new.values)
+        filler = libalgos.pad["int64_t"](old.values, new.values)
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(filler, expect_filler)
 

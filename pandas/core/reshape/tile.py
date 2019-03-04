@@ -8,7 +8,7 @@ import numpy as np
 from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
-    ensure_int64, is_categorical_dtype, is_datetime64_dtype,
+    _NS_DTYPE, ensure_int64, is_categorical_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_integer,
     is_scalar, is_timedelta64_dtype)
 from pandas.core.dtypes.missing import isna
@@ -35,7 +35,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     ----------
     x : array-like
         The input array to be binned. Must be 1-dimensional.
-    bins : int, sequence of scalars, or pandas.IntervalIndex
+    bins : int, sequence of scalars, or IntervalIndex
         The criteria to bin by.
 
         * int : Defines the number of equal-width bins in the range of `x`. The
@@ -70,16 +70,16 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     Returns
     -------
-    out : pandas.Categorical, Series, or ndarray
+    out : Categorical, Series, or ndarray
         An array-like object representing the respective bin for each value
         of `x`. The type depends on the value of `labels`.
 
         * True (default) : returns a Series for Series `x` or a
-          pandas.Categorical for all other inputs. The values stored within
+          Categorical for all other inputs. The values stored within
           are Interval dtype.
 
         * sequence of scalars : returns a Series for Series `x` or a
-          pandas.Categorical for all other inputs. The values stored within
+          Categorical for all other inputs. The values stored within
           are whatever the type in the sequence is.
 
         * False : returns an ndarray of integers.
@@ -94,16 +94,15 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     --------
     qcut : Discretize variable into equal-sized buckets based on rank
         or based on sample quantiles.
-    pandas.Categorical : Array type for storing data that come from a
+    Categorical : Array type for storing data that come from a
         fixed set of values.
     Series : One-dimensional array with axis labels (including time series).
-    pandas.IntervalIndex : Immutable Index implementing an ordered,
-        sliceable set.
+    IntervalIndex : Immutable Index implementing an ordered, sliceable set.
 
     Notes
     -----
     Any NA values will be NA in the result. Out of bounds values will be NA in
-    the resulting Series or pandas.Categorical object.
+    the resulting Series or Categorical object.
 
     Examples
     --------
@@ -164,7 +163,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     Use `drop` optional when bins is not unique
 
     >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
-    ...    right=False, duplicates='drop')
+    ...        right=False, duplicates='drop')
     ... # doctest: +ELLIPSIS
     (a    0.0
      b    1.0
@@ -226,7 +225,10 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
             raise ValueError('Overlapping IntervalIndex is not accepted.')
 
     else:
-        bins = np.asarray(bins)
+        if is_datetime64tz_dtype(bins):
+            bins = np.asarray(bins, dtype=_NS_DTYPE)
+        else:
+            bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
@@ -370,14 +372,6 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     return result, bins
 
 
-def _trim_zeros(x):
-    while len(x) > 1 and x[-1] == '0':
-        x = x[:-1]
-    if len(x) > 1 and x[-1] == '.':
-        x = x[:-1]
-    return x
-
-
 def _coerce_to_type(x):
     """
     if the passed data is of datetime/timedelta type,
@@ -390,10 +384,10 @@ def _coerce_to_type(x):
         dtype = x.dtype
     elif is_datetime64_dtype(x):
         x = to_datetime(x)
-        dtype = np.datetime64
+        dtype = np.dtype('datetime64[ns]')
     elif is_timedelta64_dtype(x):
         x = to_timedelta(x)
-        dtype = np.timedelta64
+        dtype = np.dtype('timedelta64[ns]')
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
@@ -416,7 +410,7 @@ def _convert_bin_to_numeric_type(bins, dtype):
     ------
     ValueError if bins are not of a compat dtype to dtype
     """
-    bins_dtype = infer_dtype(bins)
+    bins_dtype = infer_dtype(bins, skipna=False)
     if is_timedelta64_dtype(dtype):
         if bins_dtype in ['timedelta', 'timedelta64']:
             bins = to_timedelta(bins).view(np.int64)
@@ -446,7 +440,10 @@ def _convert_bin_to_datelike_type(bins, dtype):
     bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
            datelike
     """
-    if is_datetime64tz_dtype(dtype) or is_datetime_or_timedelta_dtype(dtype):
+    if is_datetime64tz_dtype(dtype):
+        bins = to_datetime(bins.astype(np.int64),
+                           utc=True).tz_convert(dtype.tz)
+    elif is_datetime_or_timedelta_dtype(dtype):
         bins = Index(bins.astype(np.int64), dtype=dtype)
     return bins
 

@@ -4,17 +4,14 @@ from __future__ import print_function
 
 from datetime import datetime
 
-import pytest
 import numpy as np
-from numpy import nan
+import pytest
 
-import pandas as pd
-
-from pandas import DataFrame, Index, Series, Timestamp, date_range
 from pandas.compat import lrange
 
+import pandas as pd
+from pandas import DataFrame, Index, Series, Timestamp, date_range
 from pandas.tests.frame.common import TestData
-
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -249,20 +246,20 @@ class TestDataFrameConcatCommon(TestData):
         assert_frame_equal(result, expected)
 
     def test_update(self):
-        df = DataFrame([[1.5, nan, 3.],
-                        [1.5, nan, 3.],
-                        [1.5, nan, 3],
-                        [1.5, nan, 3]])
+        df = DataFrame([[1.5, np.nan, 3.],
+                        [1.5, np.nan, 3.],
+                        [1.5, np.nan, 3],
+                        [1.5, np.nan, 3]])
 
         other = DataFrame([[3.6, 2., np.nan],
                            [np.nan, np.nan, 7]], index=[1, 3])
 
         df.update(other)
 
-        expected = DataFrame([[1.5, nan, 3],
+        expected = DataFrame([[1.5, np.nan, 3],
                               [3.6, 2, 3],
-                              [1.5, nan, 3],
-                              [1.5, nan, 7.]])
+                              [1.5, np.nan, 3],
+                              [1.5, np.nan, 7.]])
         assert_frame_equal(df, expected)
 
     def test_update_dtypes(self):
@@ -279,37 +276,37 @@ class TestDataFrameConcatCommon(TestData):
         assert_frame_equal(df, expected)
 
     def test_update_nooverwrite(self):
-        df = DataFrame([[1.5, nan, 3.],
-                        [1.5, nan, 3.],
-                        [1.5, nan, 3],
-                        [1.5, nan, 3]])
+        df = DataFrame([[1.5, np.nan, 3.],
+                        [1.5, np.nan, 3.],
+                        [1.5, np.nan, 3],
+                        [1.5, np.nan, 3]])
 
         other = DataFrame([[3.6, 2., np.nan],
                            [np.nan, np.nan, 7]], index=[1, 3])
 
         df.update(other, overwrite=False)
 
-        expected = DataFrame([[1.5, nan, 3],
+        expected = DataFrame([[1.5, np.nan, 3],
                               [1.5, 2, 3],
-                              [1.5, nan, 3],
-                              [1.5, nan, 3.]])
+                              [1.5, np.nan, 3],
+                              [1.5, np.nan, 3.]])
         assert_frame_equal(df, expected)
 
     def test_update_filtered(self):
-        df = DataFrame([[1.5, nan, 3.],
-                        [1.5, nan, 3.],
-                        [1.5, nan, 3],
-                        [1.5, nan, 3]])
+        df = DataFrame([[1.5, np.nan, 3.],
+                        [1.5, np.nan, 3.],
+                        [1.5, np.nan, 3],
+                        [1.5, np.nan, 3]])
 
         other = DataFrame([[3.6, 2., np.nan],
                            [np.nan, np.nan, 7]], index=[1, 3])
 
         df.update(other, filter_func=lambda x: x > 2)
 
-        expected = DataFrame([[1.5, nan, 3],
-                              [1.5, nan, 3],
-                              [1.5, nan, 3],
-                              [1.5, nan, 7.]])
+        expected = DataFrame([[1.5, np.nan, 3],
+                              [1.5, np.nan, 3],
+                              [1.5, np.nan, 3],
+                              [1.5, np.nan, 7.]])
         assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize('bad_kwarg, exception, msg', [
@@ -324,12 +321,12 @@ class TestDataFrameConcatCommon(TestData):
 
     def test_update_raise_on_overlap(self):
         df = DataFrame([[1.5, 1, 3.],
-                        [1.5, nan, 3.],
-                        [1.5, nan, 3],
-                        [1.5, nan, 3]])
+                        [1.5, np.nan, 3.],
+                        [1.5, np.nan, 3],
+                        [1.5, np.nan, 3]])
 
-        other = DataFrame([[2., nan],
-                           [nan, 7]], index=[1, 3], columns=[1, 2])
+        other = DataFrame([[2., np.nan],
+                           [np.nan, 7]], index=[1, 3], columns=[1, 2])
         with pytest.raises(ValueError, match="Data overlaps"):
             df.update(other, errors='raise')
 
@@ -505,6 +502,16 @@ class TestDataFrameConcatCommon(TestData):
                                                                  ('A2', 'B1'),
                                                                  ('A2', 'B2')],
                                                                 names=[1, 2]))
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_astype_dup_col(self):
+        # gh 23049
+        df = pd.DataFrame([{'a': 'b'}])
+        df = pd.concat([df, df], axis=1)
+
+        result = df.astype('category')
+        expected = pd.DataFrame(np.array(["b", "b"]).reshape(1, 2),
+                                columns=["a", "a"]).astype("category")
         tm.assert_frame_equal(result, expected)
 
 

@@ -5,11 +5,6 @@ v0.15.1 (November 9, 2014)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import * # noqa F401, F403
-
 
 This is a minor bug-fix release from 0.15.0 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -28,7 +23,7 @@ API changes
 
   .. ipython:: python
 
-     s = Series(date_range('20130101',periods=5,freq='D'))
+     s = pd.Series(pd.date_range('20130101', periods=5, freq='D'))
      s.iloc[2] = np.nan
      s
 
@@ -56,12 +51,12 @@ API changes
 
   .. ipython:: python
 
-    np.random.seed(2718281)
-    df = pd.DataFrame(np.random.randint(0, 100, (10, 2)),
-                      columns=['jim', 'joe'])
-    df.head()
+     np.random.seed(2718281)
+     df = pd.DataFrame(np.random.randint(0, 100, (10, 2)),
+                       columns=['jim', 'joe'])
+     df.head()
 
-    ts = pd.Series(5 * np.random.randint(0, 3, 10))
+     ts = pd.Series(5 * np.random.randint(0, 3, 10))
 
   previous behavior:
 
@@ -156,9 +151,9 @@ API changes
 
       In [17]: from pandas.io.data import Options
 
-      In [18]: aapl = Options('aapl','yahoo')
+      In [18]: aapl = Options('aapl', 'yahoo')
 
-      In [19]: aapl.get_call_data().iloc[0:5,0:1]
+      In [19]: aapl.get_call_data().iloc[0:5, 0:1]
       Out[19]:
                                                    Last
       Strike Expiry     Type Symbol
@@ -183,7 +178,7 @@ API changes
        datetime.date(2016, 1, 15),
        datetime.date(2017, 1, 20)]
 
-      In [21]: aapl.get_near_stock_price(expiry=aapl.expiry_dates[0:3]).iloc[0:5,0:1]
+      In [21]: aapl.get_near_stock_price(expiry=aapl.expiry_dates[0:3]).iloc[0:5, 0:1]
       Out[21]:
                                                   Last
       Strike Expiry     Type Symbol
@@ -233,7 +228,8 @@ Enhancements
 
   .. ipython:: python
 
-     dfi = DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A'])
+     dfi = pd.DataFrame(1, index=pd.MultiIndex.from_product([['a'],
+                        range(1000)]), columns=['A'])
 
   previous behavior:
 

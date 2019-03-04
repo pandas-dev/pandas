@@ -3,8 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    DataFrame, MultiIndex, Series, Timestamp, compat, date_range,
-    option_context)
+    DataFrame, Series, Timestamp, compat, date_range, option_context)
 from pandas.core import common as com
 from pandas.util import testing as tm
 
@@ -253,24 +252,6 @@ class TestChaining(object):
         assert df._is_copy is None
         df['a'] += 1
 
-        # Inplace ops, originally from:
-        # http://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
-        a = [12, 23]
-        b = [123, None]
-        c = [1234, 2345]
-        d = [12345, 23456]
-        tuples = [('eyes', 'left'), ('eyes', 'right'), ('ears', 'left'),
-                  ('ears', 'right')]
-        events = {('eyes', 'left'): a,
-                  ('eyes', 'right'): b,
-                  ('ears', 'left'): c,
-                  ('ears', 'right'): d}
-        multiind = MultiIndex.from_tuples(tuples, names=['part', 'side'])
-        zed = DataFrame(events, index=['a', 'b'], columns=multiind)
-
-        with pytest.raises(com.SettingWithCopyError):
-            zed['eyes']['right'].fillna(value=555, inplace=True)
-
         df = DataFrame(np.random.randn(10, 4))
         s = df.iloc[:, 0].sort_values()
 
@@ -321,10 +302,10 @@ class TestChaining(object):
                         'c': ['a', 'b', np.nan, 'd']})
         mask = pd.isna(df.c)
 
-        def f():
+        msg = ("A value is trying to be set on a copy of a slice from a"
+               " DataFrame")
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df[['c']][mask] = df[['b']][mask]
-
-        pytest.raises(com.SettingWithCopyError, f)
 
         # invalid warning as we are returning a new object
         # GH 8730
@@ -376,7 +357,6 @@ class TestChaining(object):
         check(result4, expected)
 
     @pytest.mark.filterwarnings("ignore::DeprecationWarning")
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
@@ -385,31 +365,6 @@ class TestChaining(object):
         df.ix["Hello Friend"] = df.ix[0]
         assert "Hello Friend" in df['A'].index
         assert "Hello Friend" in df['B'].index
-
-        panel = tm.makePanel()
-        panel.ix[0]  # get first item into cache
-        panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
-        assert "A+1" in panel.ix[0].columns
-        assert "A+1" in panel.ix[1].columns
-
-        # 5216
-        # make sure that we don't try to set a dead cache
-        a = np.random.rand(10, 3)
-        df = DataFrame(a, columns=['x', 'y', 'z'])
-        tuples = [(i, j) for i in range(5) for j in range(2)]
-        index = MultiIndex.from_tuples(tuples)
-        df.index = index
-
-        # setting via chained assignment
-        # but actually works, since everything is a view
-        df.loc[0]['z'].iloc[0] = 1.
-        result = df.loc[(0, 0), 'z']
-        assert result == 1
-
-        # correct setting
-        df.loc[(0, 0), 'z'] = 2
-        result = df.loc[(0, 0), 'z']
-        assert result == 2
 
         # 10264
         df = DataFrame(np.zeros((5, 5), dtype='int64'), columns=[

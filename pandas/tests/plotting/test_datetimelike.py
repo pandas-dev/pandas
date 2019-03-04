@@ -1,26 +1,25 @@
 """ Test cases for time series specific (freq conversion, etc) """
-import sys
-from datetime import datetime, timedelta, date, time
+from datetime import date, datetime, time, timedelta
 import pickle
-
-import pytest
-from pandas.compat import lrange, zip
+import sys
 
 import numpy as np
-from pandas import Index, Series, DataFrame, NaT, isna
-from pandas.compat import PY3
-from pandas.core.indexes.datetimes import date_range, bdate_range
-from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.tseries.offsets import DateOffset
-from pandas.core.indexes.period import period_range, Period, PeriodIndex
-from pandas.core.resample import DatetimeIndex
+import pytest
 
-from pandas.util.testing import assert_series_equal, ensure_clean
-import pandas.util.testing as tm
+from pandas.compat import PY3, lrange, zip
 import pandas.util._test_decorators as td
 
-from pandas.tests.plotting.common import (TestPlotBase,
-                                          _skip_if_no_scipy_gaussian_kde)
+from pandas import DataFrame, Index, NaT, Series, isna
+from pandas.core.indexes.datetimes import bdate_range, date_range
+from pandas.core.indexes.period import Period, PeriodIndex, period_range
+from pandas.core.indexes.timedeltas import timedelta_range
+from pandas.core.resample import DatetimeIndex
+from pandas.tests.plotting.common import (
+    TestPlotBase, _skip_if_no_scipy_gaussian_kde)
+import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal, ensure_clean
+
+from pandas.tseries.offsets import DateOffset
 
 
 @td.skip_if_no_mpl
@@ -98,7 +97,9 @@ class TestTSPlot(TestPlotBase):
         assert len(ax.get_lines()) == 1  # B was plotted
         self.plt.close(fig)
 
-        pytest.raises(TypeError, df['A'].plot)
+        msg = "Empty 'DataFrame': no numeric data to plot"
+        with pytest.raises(TypeError, match=msg):
+            df['A'].plot()
 
     def test_tsplot_deprecated(self):
         from pandas.tseries.plotting import tsplot
@@ -141,10 +142,15 @@ class TestTSPlot(TestPlotBase):
     def test_both_style_and_color(self):
 
         ts = tm.makeTimeSeries()
-        pytest.raises(ValueError, ts.plot, style='b-', color='#000099')
+        msg = ("Cannot pass 'style' string with a color symbol and 'color' "
+               "keyword argument. Please use one or the other or pass 'style'"
+               " without a color symbol")
+        with pytest.raises(ValueError, match=msg):
+            ts.plot(style='b-', color='#000099')
 
         s = ts.reset_index(drop=True)
-        pytest.raises(ValueError, s.plot, style='b-', color='#000099')
+        with pytest.raises(ValueError, match=msg):
+            s.plot(style='b-', color='#000099')
 
     @pytest.mark.slow
     def test_high_freq(self):
@@ -314,10 +320,7 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_business_freq_convert(self):
-        n = tm.N
-        tm.N = 300
-        bts = tm.makeTimeSeries().asfreq('BM')
-        tm.N = n
+        bts = tm.makeTimeSeries(300).asfreq('BM')
         ts = bts.to_period('M')
         _, ax = self.plt.subplots()
         bts.plot(ax=ax)

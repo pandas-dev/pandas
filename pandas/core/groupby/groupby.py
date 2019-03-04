@@ -18,7 +18,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, groupby as libgroupby
 import pandas.compat as compat
-from pandas.compat import callable, range, set_function_name, zip
+from pandas.compat import range, set_function_name, zip
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -26,9 +26,12 @@ from pandas.util._validators import validate_kwargs
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    ensure_float, is_extension_array_dtype, is_numeric_dtype, is_scalar)
+    ensure_float, is_datetime64tz_dtype, is_extension_array_dtype,
+    is_numeric_dtype, is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.api.types import (
+    is_datetime64_dtype, is_integer_dtype, is_object_dtype)
 import pandas.core.algorithms as algorithms
 from pandas.core.base import (
     DataError, GroupByError, PandasObject, SelectionMixin, SpecificationError)
@@ -41,12 +44,12 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
-_doc_template = """
+_common_see_also = """
         See Also
         --------
-        pandas.Series.%(name)s
-        pandas.DataFrame.%(name)s
-        pandas.Panel.%(name)s
+        Series.%(name)s
+        DataFrame.%(name)s
+        Panel.%(name)s
 """
 
 _apply_docs = dict(
@@ -206,8 +209,8 @@ object : the return type of `func`.
 
 See Also
 --------
-pandas.Series.pipe : Apply a function with arguments to a series.
-pandas.DataFrame.pipe: Apply a function with arguments to a dataframe.
+Series.pipe : Apply a function with arguments to a series.
+DataFrame.pipe: Apply a function with arguments to a dataframe.
 apply : Apply function to each group instead of to the
     full %(klass)s object.
 
@@ -438,17 +441,17 @@ class _GroupBy(PandasObject, SelectionMixin):
                     return [self.indices[name] for name in names]
                 except KeyError:
                     # turns out it wasn't a tuple
-                    msg = ("must supply a a same-length tuple to get_group"
+                    msg = ("must supply a same-length tuple to get_group"
                            " with multiple grouping keys")
                     raise ValueError(msg)
 
             converters = [get_converter(s) for s in index_sample]
-            names = [tuple(f(n) for f, n in zip(converters, name))
-                     for name in names]
+            names = (tuple(f(n) for f, n in zip(converters, name))
+                     for name in names)
 
         else:
             converter = get_converter(index_sample)
-            names = [converter(name) for name in names]
+            names = (converter(name) for name in names)
 
         return [self.indices.get(name, []) for name in names]
 
@@ -625,7 +628,7 @@ b  2""")
 
     def get_group(self, name, obj=None):
         """
-        Constructs NDFrame from group with provided name.
+        Construct NDFrame from group with provided name.
 
         Parameters
         ----------
@@ -759,16 +762,30 @@ b  2""")
 
         """
         if obj.ndim > 1:
-            dtype = obj.values.dtype
+            dtype = obj._values.dtype
         else:
             dtype = obj.dtype
 
         if not is_scalar(result):
-            if is_extension_array_dtype(dtype):
+            if is_datetime64tz_dtype(dtype):
+                # GH 23683
+                # Prior results _may_ have been generated in UTC.
+                # Ensure we localize to UTC first before converting
+                # to the target timezone
+                try:
+                    result = obj._values._from_sequence(
+                        result, dtype='datetime64[ns, UTC]'
+                    )
+                    result = result.astype(dtype)
+                except TypeError:
+                    # _try_cast was called at a point where the result
+                    # was already tz-aware
+                    pass
+            elif is_extension_array_dtype(dtype):
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
                 try:
-                    result = obj.values._from_sequence(result)
+                    result = obj._values._from_sequence(result, dtype=dtype)
                 except Exception:
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # pandas has no control over what 3rd-party ExtensionArrays
@@ -1024,15 +1041,17 @@ class GroupBy(_GroupBy):
         """
 
         def objs_to_bool(vals):
-            try:
-                vals = vals.astype(np.bool)
-            except ValueError:  # for objects
+            # type: np.ndarray -> (np.ndarray, typing.Type)
+            if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
+            else:
+                vals = vals.astype(np.bool)
 
-            return vals.view(np.uint8)
+            return vals.view(np.uint8), np.bool
 
-        def result_to_bool(result):
-            return result.astype(np.bool, copy=False)
+        def result_to_bool(result, inference):
+            # type: (np.ndarray, typing.Type) -> np.ndarray
+            return result.astype(inference, copy=False)
 
         return self._get_cythonized_result('group_any_all', self.grouper,
                                            aggregate=True,
@@ -1044,10 +1063,10 @@ class GroupBy(_GroupBy):
                                            val_test=val_test, skipna=skipna)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def any(self, skipna=True):
         """
-        Returns True if any value in the group is truthful, else False.
+        Return True if any value in the group is truthful, else False.
 
         Parameters
         ----------
@@ -1057,10 +1076,10 @@ class GroupBy(_GroupBy):
         return self._bool_agg('any', skipna)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def all(self, skipna=True):
         """
-        Returns True if all values in the group are truthful, else False.
+        Return True if all values in the group are truthful, else False.
 
         Parameters
         ----------
@@ -1070,7 +1089,7 @@ class GroupBy(_GroupBy):
         return self._bool_agg('all', skipna)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def count(self):
         """
         Compute count of group, excluding missing values.
@@ -1079,8 +1098,7 @@ class GroupBy(_GroupBy):
         # defined here for API doc
         raise NotImplementedError
 
-    @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Substitution(name='groupby', see_also=_common_see_also)
     def mean(self, *args, **kwargs):
         """
         Compute mean of groups, excluding missing values.
@@ -1088,6 +1106,8 @@ class GroupBy(_GroupBy):
         Returns
         -------
         pandas.Series or pandas.DataFrame
+
+        %(see_also)s
 
         Examples
         --------
@@ -1137,7 +1157,7 @@ class GroupBy(_GroupBy):
                 return self._python_agg_general(f)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def median(self, **kwargs):
         """
         Compute median of groups, excluding missing values.
@@ -1158,7 +1178,7 @@ class GroupBy(_GroupBy):
                 return self._python_agg_general(f)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def std(self, ddof=1, *args, **kwargs):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -1176,7 +1196,7 @@ class GroupBy(_GroupBy):
         return np.sqrt(self.var(ddof=ddof, **kwargs))
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def var(self, ddof=1, *args, **kwargs):
         """
         Compute variance of groups, excluding missing values.
@@ -1202,7 +1222,7 @@ class GroupBy(_GroupBy):
                 return self._python_agg_general(f)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def sem(self, ddof=1):
         """
         Compute standard error of the mean of groups, excluding missing values.
@@ -1218,7 +1238,7 @@ class GroupBy(_GroupBy):
         return self.std(ddof=ddof) / np.sqrt(self.count())
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def size(self):
         """
         Compute group sizes.
@@ -1242,7 +1262,7 @@ class GroupBy(_GroupBy):
             _local_template = "Compute %(f)s of group values"
 
             @Substitution(name='groupby', f=name)
-            @Appender(_doc_template)
+            @Appender(_common_see_also)
             @Appender(_local_template)
             def f(self, **kwargs):
                 if 'numeric_only' not in kwargs:
@@ -1270,8 +1290,8 @@ class GroupBy(_GroupBy):
         def first_compat(x, axis=0):
 
             def first(x):
+                x = x.to_numpy()
 
-                x = np.asarray(x)
                 x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
@@ -1285,8 +1305,7 @@ class GroupBy(_GroupBy):
         def last_compat(x, axis=0):
 
             def last(x):
-
-                x = np.asarray(x)
+                x = x.to_numpy()
                 x = x[notna(x)]
                 if len(x) == 0:
                     return np.nan
@@ -1307,7 +1326,7 @@ class GroupBy(_GroupBy):
                                     numeric_only=False)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def ohlc(self):
         """
         Compute sum of values, excluding missing values.
@@ -1333,7 +1352,7 @@ class GroupBy(_GroupBy):
         Given a grouper, the function resamples it according to a string
         "string" -> "frequency".
 
-        See the :ref:`frequency aliases <timeseries.offset-aliases>`
+        See the :ref:`frequency aliases <timeseries.offset_aliases>`
         documentation for more details.
 
         Parameters
@@ -1351,7 +1370,7 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        pandas.Grouper : Specify a frequency to resample with when
+        Grouper : Specify a frequency to resample with when
             grouping by a key.
         DatetimeIndex.resample : Frequency conversion and resampling of
             time series.
@@ -1436,7 +1455,7 @@ class GroupBy(_GroupBy):
         return get_resampler_for_grouping(self, rule, *args, **kwargs)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def rolling(self, *args, **kwargs):
         """
         Return a rolling grouper, providing rolling functionality per group.
@@ -1445,7 +1464,7 @@ class GroupBy(_GroupBy):
         return RollingGroupby(self, *args, **kwargs)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def expanding(self, *args, **kwargs):
         """
         Return an expanding grouper, providing expanding
@@ -1527,8 +1546,7 @@ class GroupBy(_GroupBy):
         return self._fill('bfill', limit=limit)
     bfill = backfill
 
-    @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Substitution(name='groupby', see_also=_common_see_also)
     def nth(self, n, dropna=None):
         """
         Take the nth row from each group if n is an int, or a subset of rows
@@ -1546,6 +1564,8 @@ class GroupBy(_GroupBy):
         dropna : None or str, optional
             apply the specified dropna operation before counting which row is
             the nth row. Needs to be None, 'any' or 'all'
+
+        %(see_also)s
 
         Examples
         --------
@@ -1687,6 +1707,75 @@ class GroupBy(_GroupBy):
 
         return result
 
+    def quantile(self, q=0.5, interpolation='linear'):
+        """
+        Return group values at the given quantile, a la numpy.percentile.
+
+        Parameters
+        ----------
+        q : float or array-like, default 0.5 (50% quantile)
+            Value(s) between 0 and 1 providing the quantile(s) to compute.
+        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+            Method to use when the desired quantile falls between two points.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type determined by caller of GroupBy object.
+
+        See Also
+        --------
+        Series.quantile : Similar method for Series.
+        DataFrame.quantile : Similar method for DataFrame.
+        numpy.percentile : NumPy method to compute qth percentile.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([
+        ...     ['a', 1], ['a', 2], ['a', 3],
+        ...     ['b', 1], ['b', 3], ['b', 5]
+        ... ], columns=['key', 'val'])
+        >>> df.groupby('key').quantile()
+            val
+        key
+        a    2.0
+        b    3.0
+        """
+
+        def pre_processor(vals):
+            # type: np.ndarray -> (np.ndarray, Optional[typing.Type])
+            if is_object_dtype(vals):
+                raise TypeError("'quantile' cannot be performed against "
+                                "'object' dtypes!")
+
+            inference = None
+            if is_integer_dtype(vals):
+                inference = np.int64
+            elif is_datetime64_dtype(vals):
+                inference = 'datetime64[ns]'
+                vals = vals.astype(np.float)
+
+            return vals, inference
+
+        def post_processor(vals, inference):
+            # type: (np.ndarray, Optional[typing.Type]) -> np.ndarray
+            if inference:
+                # Check for edge case
+                if not (is_integer_dtype(inference) and
+                        interpolation in {'linear', 'midpoint'}):
+                    vals = vals.astype(inference)
+
+            return vals
+
+        return self._get_cythonized_result('group_quantile', self.grouper,
+                                           aggregate=True,
+                                           needs_values=True,
+                                           needs_mask=True,
+                                           cython_dtype=np.float64,
+                                           pre_processing=pre_processor,
+                                           post_processing=post_processor,
+                                           q=q, interpolation=interpolation)
+
     @Substitution(name='groupby')
     def ngroup(self, ascending=True):
         """
@@ -1808,11 +1897,11 @@ class GroupBy(_GroupBy):
             return Series(cumcounts, index)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def rank(self, method='average', ascending=True, na_option='keep',
              pct=False, axis=0):
         """
-        Provides the rank of values within each group.
+        Provide the rank of values within each group.
 
         Parameters
         ----------
@@ -1834,7 +1923,7 @@ class GroupBy(_GroupBy):
             The axis of the object over which to compute the rank.
 
         Returns
-        -----
+        -------
         DataFrame with ranking of values within each group
         """
         if na_option not in {'keep', 'top', 'bottom'}:
@@ -1845,7 +1934,7 @@ class GroupBy(_GroupBy):
                                       na_option=na_option, pct=pct, axis=axis)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def cumprod(self, axis=0, *args, **kwargs):
         """
         Cumulative product for each group.
@@ -1858,7 +1947,7 @@ class GroupBy(_GroupBy):
         return self._cython_transform('cumprod', **kwargs)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def cumsum(self, axis=0, *args, **kwargs):
         """
         Cumulative sum for each group.
@@ -1871,7 +1960,7 @@ class GroupBy(_GroupBy):
         return self._cython_transform('cumsum', **kwargs)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def cummin(self, axis=0, **kwargs):
         """
         Cumulative min for each group.
@@ -1882,7 +1971,7 @@ class GroupBy(_GroupBy):
         return self._cython_transform('cummin', numeric_only=False)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def cummax(self, axis=0, **kwargs):
         """
         Cumulative max for each group.
@@ -1923,10 +2012,16 @@ class GroupBy(_GroupBy):
             Whether the result of the Cython operation is an index of
             values to be retrieved, instead of the actual values themselves
         pre_processing : function, default None
-            Function to be applied to `values` prior to passing to Cython
-            Raises if `needs_values` is False
+            Function to be applied to `values` prior to passing to Cython.
+            Function should return a tuple where the first element is the
+            values to be passed to Cython and the second element is an optional
+            type which the values should be converted to after being returned
+            by the Cython operation. Raises if `needs_values` is False.
         post_processing : function, default None
-            Function to be applied to result of Cython function
+            Function to be applied to result of Cython function. Should accept
+            an array of values as the first argument and type inferences as its
+            second argument, i.e. the signature should be
+            (ndarray, typing.Type).
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -1962,10 +2057,12 @@ class GroupBy(_GroupBy):
 
             result = np.zeros(result_sz, dtype=cython_dtype)
             func = partial(base_func, result, labels)
+            inferences = None
+
             if needs_values:
                 vals = obj.values
                 if pre_processing:
-                    vals = pre_processing(vals)
+                    vals, inferences = pre_processing(vals)
                 func = partial(func, vals)
 
             if needs_mask:
@@ -1981,7 +2078,7 @@ class GroupBy(_GroupBy):
                 result = algorithms.take_nd(obj.values, result)
 
             if post_processing:
-                result = post_processing(result)
+                result = post_processing(result, inferences)
 
             output[name] = result
 
@@ -1991,8 +2088,8 @@ class GroupBy(_GroupBy):
             return self._wrap_transformed_output(output)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
-    def shift(self, periods=1, freq=None, axis=0):
+    @Appender(_common_see_also)
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
         """
         Shift each group by periods observations.
 
@@ -2002,10 +2099,14 @@ class GroupBy(_GroupBy):
             number of periods to shift
         freq : frequency string
         axis : axis to shift, default 0
+        fill_value : optional
+
+            .. versionadded:: 0.24.0
         """
 
-        if freq is not None or axis != 0:
-            return self.apply(lambda x: x.shift(periods, freq, axis))
+        if freq is not None or axis != 0 or not isna(fill_value):
+            return self.apply(lambda x: x.shift(periods, freq,
+                                                axis, fill_value))
 
         return self._get_cythonized_result('group_shift_indexer',
                                            self.grouper, cython_dtype=np.int64,
@@ -2014,7 +2115,7 @@ class GroupBy(_GroupBy):
                                            periods=periods)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Appender(_common_see_also)
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
                    axis=0):
         """
@@ -2031,14 +2132,15 @@ class GroupBy(_GroupBy):
         shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
 
-    @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Substitution(name='groupby', see_also=_common_see_also)
     def head(self, n=5):
         """
-        Returns first n rows of each group.
+        Return first n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
+
+        %(see_also)s
 
         Examples
         --------
@@ -2058,14 +2160,15 @@ class GroupBy(_GroupBy):
         mask = self._cumcount_array() < n
         return self._selected_obj[mask]
 
-    @Substitution(name='groupby')
-    @Appender(_doc_template)
+    @Substitution(name='groupby', see_also=_common_see_also)
     def tail(self, n=5):
         """
-        Returns last n rows of each group.
+        Return last n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
+
+        %(see_also)s
 
         Examples
         --------

@@ -8,7 +8,7 @@ from pytz import utc
 
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
-from pandas.compat import PY3
+from pandas.compat import PY3, PY36
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Timestamp
@@ -163,7 +163,7 @@ class TestTimestampUnaryOps(object):
     def test_round_dst_border_nonexistent(self, method, ts_str, freq):
         # GH 23324 round near "spring forward" DST
         ts = Timestamp(ts_str, tz='America/Chicago')
-        result = getattr(ts, method)(freq, nonexistent='shift')
+        result = getattr(ts, method)(freq, nonexistent='shift_forward')
         expected = Timestamp('2018-03-11 03:00:00', tz='America/Chicago')
         assert result == expected
 
@@ -171,7 +171,7 @@ class TestTimestampUnaryOps(object):
         assert result is NaT
 
         with pytest.raises(pytz.NonExistentTimeError,
-                           message='2018-03-11 02:00:00'):
+                           match='2018-03-11 02:00:00'):
             getattr(ts, method)(freq, nonexistent='raise')
 
     @pytest.mark.parametrize('timestamp', [
@@ -327,6 +327,19 @@ class TestTimestampUnaryOps(object):
         t = Timestamp('2013-11-3', tz='America/Chicago')
         result = t.replace(hour=3)
         expected = Timestamp('2013-11-3 03:00:00', tz='America/Chicago')
+        assert result == expected
+
+    @pytest.mark.skipif(not PY36, reason='Fold not available until PY3.6')
+    @pytest.mark.parametrize('fold', [0, 1])
+    @pytest.mark.parametrize('tz', ['dateutil/Europe/London', 'Europe/London'])
+    def test_replace_dst_fold(self, fold, tz):
+        # GH 25017
+        d = datetime(2019, 10, 27, 2, 30)
+        ts = Timestamp(d, tz=tz)
+        result = ts.replace(hour=1, fold=fold)
+        expected = Timestamp(datetime(2019, 10, 27, 1, 30)).tz_localize(
+            tz, ambiguous=not fold
+        )
         assert result == expected
 
     # --------------------------------------------------------------

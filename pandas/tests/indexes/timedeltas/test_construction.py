@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
+from pandas.core.arrays import TimedeltaArray
 import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, to_timedelta, Timedelta
-from pandas.core.arrays import TimedeltaArrayMixin as TimedeltaArray
 
 
 class TestTimedeltaIndex(object):
@@ -26,7 +26,7 @@ class TestTimedeltaIndex(object):
         #  and copy=False
         arr = np.arange(10, dtype=np.int64)
         tdi = TimedeltaIndex(arr, copy=False)
-        assert tdi._data.base is arr
+        assert tdi._data._data.base is arr
 
     def test_infer_from_tdi(self):
         # GH#23539
@@ -168,10 +168,15 @@ class TestTimedeltaIndex(object):
         tm.assert_index_equal(from_ints, expected)
 
         # non-conforming freq
-        pytest.raises(ValueError, TimedeltaIndex,
-                      ['1 days', '2 days', '4 days'], freq='D')
+        msg = ("Inferred frequency None from passed values does not conform to"
+               " passed frequency D")
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaIndex(['1 days', '2 days', '4 days'], freq='D')
 
-        pytest.raises(ValueError, timedelta_range, periods=10, freq='D')
+        msg = ("Of the four parameters: start, end, periods, and freq, exactly"
+               " three must be specified")
+        with pytest.raises(ValueError, match=msg):
+            timedelta_range(periods=10, freq='D')
 
     def test_constructor_name(self):
         idx = timedelta_range(start='1 days', periods=1, freq='D', name='TEST')
@@ -180,3 +185,20 @@ class TestTimedeltaIndex(object):
         # GH10025
         idx2 = TimedeltaIndex(idx, name='something else')
         assert idx2.name == 'something else'
+
+    def test_constructor_no_precision_warns(self):
+        # GH-24753, GH-24739
+        expected = pd.TimedeltaIndex(['2000'], dtype='timedelta64[ns]')
+
+        # we set the stacklevel for DatetimeIndex
+        with tm.assert_produces_warning(FutureWarning):
+            result = pd.TimedeltaIndex(['2000'], dtype='timedelta64')
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = pd.Index(['2000'], dtype='timedelta64')
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_wrong_precision_raises(self):
+        with pytest.raises(ValueError):
+            pd.TimedeltaIndex(['2000'], dtype='timedelta64[us]')

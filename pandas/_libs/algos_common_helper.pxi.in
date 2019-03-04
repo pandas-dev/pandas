@@ -70,18 +70,6 @@ def diff_2d_{{name}}(ndarray[{{c_type}}, ndim=2] arr,
                 for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
 
-
-def put2d_{{name}}_{{dest_name}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
-                                 ndarray[int64_t] indexer, Py_ssize_t loc,
-                                 ndarray[{{dest_type}}] out):
-    cdef:
-        Py_ssize_t i, j, k
-
-    k = len(values)
-    for j in range(k):
-        i = indexer[j]
-        out[i] = values[j, loc]
-
 {{endfor}}
 
 # ----------------------------------------------------------------------
@@ -109,8 +97,6 @@ def ensure_object(object arr):
             return arr
         else:
             return arr.astype(np.object_)
-    elif hasattr(arr, '_box_values_as_index'):
-        return arr._box_values_as_index()
     else:
         return np.array(arr, dtype=np.object_)
 

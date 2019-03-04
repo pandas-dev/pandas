@@ -44,7 +44,7 @@ def is_number(obj):
 
     See Also
     --------
-    pandas.api.types.is_integer: Checks a subgroup of numbers.
+    api.types.is_integer: Checks a subgroup of numbers.
 
     Examples
     --------
@@ -397,9 +397,15 @@ def is_dict_like(obj):
     True
     >>> is_dict_like([1, 2, 3])
     False
+    >>> is_dict_like(dict)
+    False
+    >>> is_dict_like(dict())
+    True
     """
-
-    return hasattr(obj, '__getitem__') and hasattr(obj, 'keys')
+    dict_like_attrs = ("__getitem__", "keys", "__contains__")
+    return (all(hasattr(obj, attr) for attr in dict_like_attrs)
+            # [GH 25196] exclude classes
+            and not isinstance(obj, type))
 
 
 def is_named_tuple(obj):

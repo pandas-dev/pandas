@@ -4,6 +4,7 @@ from fractions import Fraction
 from numbers import Number
 
 import sys
+import warnings
 
 import cython
 from cython import Py_ssize_t
@@ -39,38 +40,41 @@ cdef extern from "numpy/arrayobject.h":
         # Use PyDataType_* macros when possible, however there are no macros
         # for accessing some of the fields, so some are defined. Please
         # ask on cython-dev if you need more.
-        cdef int type_num
-        cdef int itemsize "elsize"
-        cdef char byteorder
-        cdef object fields
-        cdef tuple names
+        cdef:
+            int type_num
+            int itemsize "elsize"
+            char byteorder
+            object fields
+            tuple names
 
 
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
-cimport util
-from util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
+cimport pandas._libs.util as util
+from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
-from tslib import array_to_datetime
-from tslibs.nattype cimport NPY_NAT
-from tslibs.nattype import NaT
-from tslibs.conversion cimport convert_to_tsobject
-from tslibs.timedeltas cimport convert_to_timedelta64
-from tslibs.timezones cimport get_timezone, tz_compare
+from pandas._libs.tslib import array_to_datetime
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype import NaT
+from pandas._libs.tslibs.conversion cimport convert_to_tsobject
+from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
+from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
-from missing cimport (checknull, isnaobj,
-                      is_null_datetime64, is_null_timedelta64, is_null_period)
+from pandas._libs.missing cimport (
+    checknull, isnaobj, is_null_datetime64, is_null_timedelta64, is_null_period
+)
 
 
 # constants that will be compared to potentially arbitrarily large
 # python int
-cdef object oINT64_MAX = <int64_t>INT64_MAX
-cdef object oINT64_MIN = <int64_t>INT64_MIN
-cdef object oUINT64_MAX = <uint64_t>UINT64_MAX
+cdef:
+    object oINT64_MAX = <int64_t>INT64_MAX
+    object oINT64_MIN = <int64_t>INT64_MIN
+    object oUINT64_MAX = <uint64_t>UINT64_MAX
 
-cdef bint PY2 = sys.version_info[0] == 2
-cdef float64_t NaN = <float64_t>np.NaN
+    bint PY2 = sys.version_info[0] == 2
+    float64_t NaN = <float64_t>np.NaN
 
 
 def values_from_object(obj: object):
@@ -153,10 +157,10 @@ def is_scalar(val: object) -> bool:
     """
 
     return (cnp.PyArray_IsAnyScalar(val)
-            # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            or isinstance(val, (bytes, Fraction, Number))
-            # We differ from numpy (as of 1.10), which claims that None is
-            # not scalar in np.isscalar().
+            # PyArray_IsAnyScalar is always False for bytearrays on Py3
+            or isinstance(val, (Fraction, Number))
+            # We differ from numpy, which claims that None is not scalar;
+            # see np.isscalar
             or val is None
             or PyDate_Check(val)
             or PyDelta_Check(val)
@@ -198,7 +202,21 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays):
+def fast_unique_multiple(list arrays, sort: bool=True):
+    """
+    Generate a list of unique values from a list of arrays.
+
+    Parameters
+    ----------
+    list : array-like
+        A list of array-like objects
+    sort : boolean
+        Whether or not to sort the resulting unique list
+
+    Returns
+    -------
+    unique_list : list of unique values
+    """
     cdef:
         ndarray[object] buf
         Py_ssize_t k = len(arrays)
@@ -215,10 +233,12 @@ def fast_unique_multiple(list arrays):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
+    if sort is None:
+        try:
+            uniques.sort()
+        except Exception:
+            # TODO: RuntimeWarning?
+            pass
 
     return uniques
 
@@ -359,7 +379,7 @@ def fast_zip(list ndarrays):
     return result
 
 
-def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
+def get_reverse_indexer(const int64_t[:] indexer, Py_ssize_t length):
     """
     Reverse indexing operation.
 
@@ -388,7 +408,7 @@ def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def has_infs_f4(ndarray[float32_t] arr) -> bool:
+def has_infs_f4(const float32_t[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
         float32_t inf, neginf, val
@@ -405,7 +425,7 @@ def has_infs_f4(ndarray[float32_t] arr) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def has_infs_f8(ndarray[float64_t] arr) -> bool:
+def has_infs_f8(const float64_t[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
         float64_t inf, neginf, val
@@ -622,7 +642,7 @@ def clean_index_list(obj: list):
         return obj, all_arrays
 
     # don't force numpy coerce with nan's
-    inferred = infer_dtype(obj)
+    inferred = infer_dtype(obj, skipna=False)
     if inferred in ['string', 'bytes', 'unicode', 'mixed', 'mixed-integer']:
         return np.asarray(obj, dtype=object), 0
     elif inferred in ['integer']:
@@ -643,7 +663,7 @@ def clean_index_list(obj: list):
 # is a general, O(max(len(values), len(binner))) method.
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
+def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
                        object closed='left', bint hasnans=0):
     """
     Int64 (datetime64) version of generic python version in groupby.py
@@ -706,7 +726,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def row_bool_subset(ndarray[float64_t, ndim=2] values,
+def row_bool_subset(const float64_t[:, :] values,
                     ndarray[uint8_t, cast=True] mask):
     cdef:
         Py_ssize_t i, j, n, k, pos = 0
@@ -750,8 +770,8 @@ def row_bool_subset_object(ndarray[object, ndim=2] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_level_sorter(ndarray[int64_t, ndim=1] label,
-                     ndarray[int64_t, ndim=1] starts):
+def get_level_sorter(const int64_t[:] label,
+                     const int64_t[:] starts):
     """
     argsort for a single level of a multi-index, keeping the order of higher
     levels unchanged. `starts` points to starts of same-key indices w.r.t
@@ -763,10 +783,11 @@ def get_level_sorter(ndarray[int64_t, ndim=1] label,
         int64_t l, r
         Py_ssize_t i
         ndarray[int64_t, ndim=1] out = np.empty(len(label), dtype=np.int64)
+        ndarray[int64_t, ndim=1] label_arr = np.asarray(label)
 
     for i in range(len(starts) - 1):
         l, r = starts[i], starts[i + 1]
-        out[l:r] = l + label[l:r].argsort(kind='mergesort')
+        out[l:r] = l + label_arr[l:r].argsort(kind='mergesort')
 
     return out
 
@@ -774,7 +795,7 @@ def get_level_sorter(ndarray[int64_t, ndim=1] label,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
-                   ndarray[int64_t, ndim=1] labels,
+                   const int64_t[:] labels,
                    Py_ssize_t max_bin,
                    int axis):
     cdef:
@@ -801,7 +822,7 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     return counts
 
 
-def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
+def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, start
         int64_t lab
@@ -830,7 +851,7 @@ def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(object index, ndarray[int64_t] labels, list keys,
+def indices_fast(object index, const int64_t[:] labels, list keys,
                  list sorted_labels):
     cdef:
         Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
@@ -918,6 +939,7 @@ _TYPE_MAP = {
     'float32': 'floating',
     'float64': 'floating',
     'f': 'floating',
+    'complex64': 'complex',
     'complex128': 'complex',
     'c': 'complex',
     'string': 'string' if PY2 else 'bytes',
@@ -1078,7 +1100,7 @@ cdef _try_infer_map(v):
     return None
 
 
-def infer_dtype(value: object, skipna: bool=False) -> str:
+def infer_dtype(value: object, skipna: object=None) -> str:
     """
     Efficiently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
@@ -1087,8 +1109,7 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
     ----------
     value : scalar, list, ndarray, or pandas type
     skipna : bool, default False
-        Ignore NaN values when inferring the type. The default of ``False``
-        will be deprecated in a later version of pandas.
+        Ignore NaN values when inferring the type.
 
         .. versionadded:: 0.21.0
 
@@ -1185,6 +1206,12 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
         bint seen_pdnat = False
         bint seen_val = False
 
+    if skipna is None:
+        msg = ('A future version of pandas will default to `skipna=True`. To '
+               'silence this warning, pass `skipna=True|False` explicitly.')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        skipna = False
+
     if util.is_array(value):
         values = value
     elif hasattr(value, 'dtype'):
@@ -1209,6 +1236,10 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
         values = construct_1d_object_array_from_listlike(value)
 
     values = getattr(values, 'values', values)
+
+    # make contiguous
+    values = values.ravel()
+
     if skipna:
         values = values[~isnaobj(values)]
 
@@ -1218,9 +1249,6 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
 
     if values.dtype != np.object_:
         values = values.astype('O')
-
-    # make contiguous
-    values = values.ravel()
 
     n = len(values)
     if n == 0:
@@ -1277,6 +1305,9 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
 
     elif is_decimal(val):
         return 'decimal'
+
+    elif is_complex(val):
+        return 'complex'
 
     elif util.is_float_object(val):
         if is_float_array(values):
@@ -1802,7 +1833,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         except (ValueError, OverflowError, TypeError):
             pass
 
-    # otherwise, iterate and do full infererence
+    # Otherwise, iterate and do full inference.
     cdef:
         int status, maybe_int
         Py_ssize_t i, n = values.size
@@ -1839,10 +1870,10 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                 else:
                     seen.float_ = True
 
-            if val <= oINT64_MAX:
+            if oINT64_MIN <= val <= oINT64_MAX:
                 ints[i] = val
 
-            if seen.sint_ and seen.uint_:
+            if val < oINT64_MIN or (seen.sint_ and seen.uint_):
                 seen.float_ = True
 
         elif util.is_bool_object(val):
@@ -1884,23 +1915,28 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                     else:
                         seen.saw_int(as_int)
 
-                    if not (seen.float_ or as_int in na_values):
+                    if as_int not in na_values:
                         if as_int < oINT64_MIN or as_int > oUINT64_MAX:
-                            raise ValueError('Integer out of range.')
+                            if seen.coerce_numeric:
+                                seen.float_ = True
+                            else:
+                                raise ValueError("Integer out of range.")
+                        else:
+                            if as_int >= 0:
+                                uints[i] = as_int
 
-                        if as_int >= 0:
-                            uints[i] = as_int
-                        if as_int <= oINT64_MAX:
-                            ints[i] = as_int
+                            if as_int <= oINT64_MAX:
+                                ints[i] = as_int
 
                     seen.float_ = seen.float_ or (seen.uint_ and seen.sint_)
                 else:
                     seen.float_ = True
             except (TypeError, ValueError) as e:
                 if not seen.coerce_numeric:
-                    raise type(e)(str(e) + ' at position {pos}'.format(pos=i))
+                    raise type(e)(str(e) + " at position {pos}".format(pos=i))
                 elif "uint64" in str(e):  # Exception from check functions.
                     raise
+
                 seen.saw_null()
                 floats[i] = NaN
 
@@ -2003,7 +2039,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
             if not seen.null_:
-                seen.saw_int(int(val))
+                val = int(val)
+                seen.saw_int(val)
 
                 if ((seen.uint_ and seen.sint_) or
                         val > oUINT64_MAX or val < oINT64_MIN):
@@ -2122,7 +2159,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
+def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask,
                    bint convert=1):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference
@@ -2244,7 +2281,7 @@ def to_object_array(rows: object, int min_width=0):
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = <list>input_rows[i]
+        row = list(input_rows[i])
 
         for j in range(len(row)):
             result[i, j] = row[j]

@@ -93,7 +93,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     # this particular codebase (e.g. src/headers, src/klib, src/msgpack). However,
     # we can lint all header files since they aren't "generated" like C files are.
     MSG='Linting .c and .h' ; echo $MSG
-    cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime
+    cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/io/msgpack pandas/_libs/*.cpp pandas/util
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     echo "isort --version-number"
@@ -101,7 +101,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort ' ; echo $MSG
-    isort --recursive --check-only pandas
+    isort --recursive --check-only pandas asv_bench
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -112,6 +112,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
     MSG='Check for non-standard imports' ; echo $MSG
     invgrep -R --include="*.py*" -E "from pandas.core.common import " pandas
+    # invgrep -R --include="*.py*" -E "from numpy import nan " pandas  # GH#24822 not yet implemented since the offending imports have not all been removed
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for pytest warns' ; echo $MSG
@@ -145,11 +146,39 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that the deprecated `assert_raises_regex` is not used (`pytest.raises(match=pattern)` should be used instead)' ; echo $MSG
-    invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_testing.py assert_raises_regex pandas
+    invgrep -R --exclude=*.pyc --exclude=testing.py --exclude=test_util.py assert_raises_regex pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
+    MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instead)' ; echo $MSG
+    invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # Check that we use pytest.raises only as a context manager
+    #
+    # For any flake8-compliant code, the only way this regex gets
+    # matched is if there is no "with" statement preceding "pytest.raises"
+    MSG='Check for pytest.raises as context manager (a line starting with `pytest.raises` is invalid, needs a `with` to precede it)' ; echo $MSG
+    MSG='TODO: This check is currently skipped because so many files fail this. Please enable when all are corrected (xref gh-24332)' ; echo $MSG
+    # invgrep -R --include '*.py' -E '[[:space:]] pytest.raises' pandas/tests
+    # RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for wrong space after code-block directive and before colon (".. code-block ::" instead of ".. code-block::")' ; echo $MSG
+    invgrep -R --include="*.rst" ".. code-block ::" doc/source
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for wrong space after ipython directive and before colon (".. ipython ::" instead of ".. ipython::")' ; echo $MSG
+    invgrep -R --include="*.rst" ".. ipython ::" doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains tailing whitespaces' ; echo $MSG
-    invgrep --exclude="*.svg" -RI "\s$" *
+    set -o pipefail
+    if [[ "$AZURE" == "true" ]]; then
+        # we exclude all c/cpp files as the c/cpp files of pandas code base are tested when Linting .c and .h files
+        ! grep -n '--exclude=*.'{svg,c,cpp,html} -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
+    else
+        ! grep -n '--exclude=*.'{svg,c,cpp,html}  -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
+    fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
@@ -178,7 +207,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -pivot_table -query -reindex -reindex_axis -round"
+        -k" -itertuples -join -reindex -reindex_axis -round"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
@@ -212,8 +241,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL09, GL06, SS04, PR03, PR05, EX04)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL09,GL06,SS04,PR03,PR05,EX04
+    MSG='Validate docstrings (GL06, GL07, GL09, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT04, RT05, SA05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,GL07,GL09,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT04,RT05,SA05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

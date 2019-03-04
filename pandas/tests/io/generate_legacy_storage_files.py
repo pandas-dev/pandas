@@ -35,28 +35,28 @@ run under the older AND the newer version.
 """
 
 from __future__ import print_function
-from warnings import catch_warnings, filterwarnings
-from distutils.version import LooseVersion
-from pandas import (Series, DataFrame, Panel,
-                    SparseSeries, SparseDataFrame,
-                    Index, MultiIndex, bdate_range, to_msgpack,
-                    date_range, period_range, timedelta_range,
-                    Timestamp, NaT, Categorical, Period)
-from pandas.tseries.offsets import (
-    DateOffset, Hour, Minute, Day,
-    MonthBegin, MonthEnd, YearBegin,
-    YearEnd, Week, WeekOfMonth, LastWeekOfMonth,
-    BusinessDay, BusinessHour, CustomBusinessDay, FY5253,
-    Easter,
-    SemiMonthEnd, SemiMonthBegin,
-    QuarterBegin, QuarterEnd)
-from pandas.compat import u
-import os
-import sys
-import numpy as np
-import pandas
-import platform as pl
+
 from datetime import timedelta
+from distutils.version import LooseVersion
+import os
+import platform as pl
+import sys
+
+import numpy as np
+
+from pandas.compat import u
+
+import pandas
+from pandas import (
+    Categorical, DataFrame, Index, MultiIndex, NaT, Period, Series,
+    SparseDataFrame, SparseSeries, Timestamp, bdate_range, date_range,
+    period_range, timedelta_range, to_msgpack)
+
+from pandas.tseries.offsets import (
+    FY5253, BusinessDay, BusinessHour, CustomBusinessDay, DateOffset, Day,
+    Easter, Hour, LastWeekOfMonth, Minute, MonthBegin, MonthEnd, QuarterBegin,
+    QuarterEnd, SemiMonthBegin, SemiMonthEnd, Week, WeekOfMonth, YearBegin,
+    YearEnd)
 
 _loose_version = LooseVersion(pandas.__version__)
 
@@ -186,18 +186,6 @@ def create_data():
                      u'C': Timestamp('20130603', tz='UTC')}, index=range(5))
                  )
 
-    with catch_warnings(record=True):
-        filterwarnings("ignore", "\\nPanel", FutureWarning)
-        mixed_dup_panel = Panel({u'ItemA': frame[u'float'],
-                                 u'ItemB': frame[u'int']})
-        mixed_dup_panel.items = [u'ItemA', u'ItemA']
-        panel = dict(float=Panel({u'ItemA': frame[u'float'],
-                                  u'ItemB': frame[u'float'] + 1}),
-                     dup=Panel(
-                         np.arange(30).reshape(3, 5, 2).astype(np.float64),
-                         items=[u'A', u'B', u'A']),
-                     mixed_dup=mixed_dup_panel)
-
     cat = dict(int8=Categorical(list('abcdefg')),
                int16=Categorical(np.arange(1000)),
                int32=Categorical(np.arange(10000)))
@@ -240,7 +228,6 @@ def create_data():
 
     return dict(series=series,
                 frame=frame,
-                panel=panel,
                 index=index,
                 scalars=scalars,
                 mi=mi,

@@ -8,6 +8,7 @@ import pytest
 from pandas.compat import PYPY
 
 from pandas import Categorical, Index, Series
+from pandas.api.types import is_scalar
 import pandas.util.testing as tm
 
 
@@ -17,8 +18,11 @@ class TestCategoricalAnalytics(object):
 
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
-        pytest.raises(TypeError, lambda: cat.min())
-        pytest.raises(TypeError, lambda: cat.max())
+        msg = "Categorical is not ordered for operation {}"
+        with pytest.raises(TypeError, match=msg.format('min')):
+            cat.min()
+        with pytest.raises(TypeError, match=msg.format('max')):
+            cat.max()
 
         cat = Categorical(["a", "b", "c", "d"], ordered=True)
         _min = cat.min()
@@ -86,9 +90,11 @@ class TestCategoricalAnalytics(object):
         # Searching for single item argument, side='left' (default)
         res_cat = c1.searchsorted('apple')
         assert res_cat == 2
+        assert is_scalar(res_cat)
 
         res_ser = s1.searchsorted('apple')
         assert res_ser == 2
+        assert is_scalar(res_ser)
 
         # Searching for single item array, side='left' (default)
         res_cat = c1.searchsorted(['bread'])
@@ -105,18 +111,24 @@ class TestCategoricalAnalytics(object):
         tm.assert_numpy_array_equal(res_ser, exp)
 
         # Searching for a single value that is not from the Categorical
-        pytest.raises(KeyError, lambda: c1.searchsorted('cucumber'))
-        pytest.raises(KeyError, lambda: s1.searchsorted('cucumber'))
+        msg = r"Value\(s\) to be inserted must be in categories"
+        with pytest.raises(KeyError, match=msg):
+            c1.searchsorted('cucumber')
+        with pytest.raises(KeyError, match=msg):
+            s1.searchsorted('cucumber')
 
         # Searching for multiple values one of each is not from the Categorical
-        pytest.raises(KeyError,
-                      lambda: c1.searchsorted(['bread', 'cucumber']))
-        pytest.raises(KeyError,
-                      lambda: s1.searchsorted(['bread', 'cucumber']))
+        with pytest.raises(KeyError, match=msg):
+            c1.searchsorted(['bread', 'cucumber'])
+        with pytest.raises(KeyError, match=msg):
+            s1.searchsorted(['bread', 'cucumber'])
 
         # searchsorted call for unordered Categorical
-        pytest.raises(ValueError, lambda: c2.searchsorted('apple'))
-        pytest.raises(ValueError, lambda: s2.searchsorted('apple'))
+        msg = "Categorical not ordered"
+        with pytest.raises(ValueError, match=msg):
+            c2.searchsorted('apple')
+        with pytest.raises(ValueError, match=msg):
+            s2.searchsorted('apple')
 
     def test_unique(self):
         # categories are reordered based on value when ordered=False
@@ -291,22 +303,6 @@ class TestCategoricalAnalytics(object):
 
             with pytest.raises(ValueError):
                 cat.sort_values(inplace=value)
-
-    def test_repeat(self):
-        # GH10183
-        cat = Categorical(["a", "b"], categories=["a", "b"])
-        exp = Categorical(["a", "a", "b", "b"], categories=["a", "b"])
-        res = cat.repeat(2)
-        tm.assert_categorical_equal(res, exp)
-
-    def test_numpy_repeat(self):
-        cat = Categorical(["a", "b"], categories=["a", "b"])
-        exp = Categorical(["a", "a", "b", "b"], categories=["a", "b"])
-        tm.assert_categorical_equal(np.repeat(cat, 2), exp)
-
-        msg = "the 'axis' parameter is not supported"
-        with pytest.raises(ValueError, match=msg):
-            np.repeat(cat, 2, axis=1)
 
     def test_isna(self):
         exp = np.array([False, False, True])

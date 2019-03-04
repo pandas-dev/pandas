@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 
-import pytest
 from collections import OrderedDict
 
-from pandas import DataFrame, Series
-from pandas.core.dtypes.common import is_integer_dtype
-from pandas.core.sparse.api import SparseDtype, SparseArray
-import pandas as pd
-
-from numpy import nan
 import numpy as np
+from numpy import nan
+import pytest
 
-from pandas.util.testing import assert_frame_equal
-
-from pandas import get_dummies, Categorical, Index
-import pandas.util.testing as tm
 from pandas.compat import u
+
+from pandas.core.dtypes.common import is_integer_dtype
+
+import pandas as pd
+from pandas import Categorical, DataFrame, Index, Series, get_dummies
+from pandas.core.sparse.api import SparseArray, SparseDtype
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal
 
 
 class TestGetDummies(object):
@@ -581,23 +580,28 @@ class TestGetDummies(object):
 
 class TestCategoricalReshape(object):
 
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_reshaping_panel_categorical(self):
+    def test_reshaping_multi_index_categorical(self):
 
-        p = tm.makePanel()
-        p['str'] = 'foo'
-        df = p.to_frame()
+        # construct a MultiIndexed DataFrame formerly created
+        #  via `tm.makePanel().to_frame()`
+        cols = ['ItemA', 'ItemB', 'ItemC']
+        data = {c: tm.makeTimeDataFrame() for c in cols}
+        df = pd.concat({c: data[c].stack() for c in data}, axis='columns')
+        df.index.names = ['major', 'minor']
+        df['str'] = 'foo'
+
+        dti = df.index.levels[0]
 
         df['category'] = df['str'].astype('category')
         result = df['category'].unstack()
 
-        c = Categorical(['foo'] * len(p.major_axis))
+        c = Categorical(['foo'] * len(dti))
         expected = DataFrame({'A': c.copy(),
                               'B': c.copy(),
                               'C': c.copy(),
                               'D': c.copy()},
                              columns=Index(list('ABCD'), name='minor'),
-                             index=p.major_axis.set_names('major'))
+                             index=dti)
         tm.assert_frame_equal(result, expected)
 
 

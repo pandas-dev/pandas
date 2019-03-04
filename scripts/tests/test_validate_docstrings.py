@@ -4,7 +4,8 @@ import string
 import textwrap
 import pytest
 import numpy as np
-from pandas.util.testing import capture_stderr
+import pandas as pd
+
 import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
@@ -634,6 +635,43 @@ class BadReturns(object):
         """
         return "Hello world!"
 
+    def named_single_return(self):
+        """
+        Provides name but returns only one value.
+
+        Returns
+        -------
+        s : str
+           A nice greeting.
+        """
+        return "Hello world!"
+
+    def no_capitalization(self):
+        """
+        Forgets capitalization in return values description.
+
+        Returns
+        -------
+        foo : str
+           The first returned string.
+        bar : str
+           the second returned string.
+        """
+        return "Hello", "World!"
+
+    def no_period_multi(self):
+        """
+        Forgets period in return values description.
+
+        Returns
+        -------
+        foo : str
+           The first returned string
+        bar : str
+           The second returned string.
+        """
+        return "Hello", "World!"
+
 
 class BadSeeAlso(object):
 
@@ -739,36 +777,32 @@ class TestValidator(object):
 
         return base_path
 
-    @capture_stderr
-    def test_good_class(self):
+    def test_good_class(self, capsys):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings'))['errors']
         assert isinstance(errors, list)
         assert not errors
 
-    @capture_stderr
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains', 'mode', 'good_imports'])
-    def test_good_functions(self, func):
+    def test_good_functions(self, capsys, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
         assert isinstance(errors, list)
         assert not errors
 
-    @capture_stderr
-    def test_bad_class(self):
+    def test_bad_class(self, capsys):
         errors = validate_one(self._import_path(
             klass='BadGenericDocStrings'))['errors']
         assert isinstance(errors, list)
         assert errors
 
-    @capture_stderr
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method',
         'private_classes',
     ])
-    def test_bad_generic_functions(self, func):
+    def test_bad_generic_functions(self, capsys, func):
         errors = validate_one(self._import_path(  # noqa:F821
             klass='BadGenericDocStrings', func=func))['errors']
         assert isinstance(errors, list)
@@ -834,10 +868,18 @@ class TestValidator(object):
         ('BadReturns', 'yield_not_documented', ('No Yields section found',)),
         pytest.param('BadReturns', 'no_type', ('foo',),
                      marks=pytest.mark.xfail),
-        pytest.param('BadReturns', 'no_description', ('foo',),
-                     marks=pytest.mark.xfail),
-        pytest.param('BadReturns', 'no_punctuation', ('foo',),
-                     marks=pytest.mark.xfail),
+        ('BadReturns', 'no_description',
+         ('Return value has no description',)),
+        ('BadReturns', 'no_punctuation',
+         ('Return value description should finish with "."',)),
+        ('BadReturns', 'named_single_return',
+         ('The first line of the Returns section should contain only the '
+          'type, unless multiple values are being returned',)),
+        ('BadReturns', 'no_capitalization',
+         ('Return value description should start with a capital '
+          'letter',)),
+        ('BadReturns', 'no_period_multi',
+         ('Return value description should finish with "."',)),
         # Examples tests
         ('BadGenericDocStrings', 'method',
          ('Do not import numpy, as it is imported automatically',)),
@@ -962,6 +1004,32 @@ class TestApiItems(object):
     def test_item_subsection(self, idx, subsection):
         result = list(validate_docstrings.get_api_items(self.api_doc))
         assert result[idx][3] == subsection
+
+
+class TestDocstringClass(object):
+    @pytest.mark.parametrize('name, expected_obj',
+                             [('pandas.isnull', pd.isnull),
+                              ('pandas.DataFrame', pd.DataFrame),
+                              ('pandas.Series.sum', pd.Series.sum)])
+    def test_resolves_class_name(self, name, expected_obj):
+        d = validate_docstrings.Docstring(name)
+        assert d.obj is expected_obj
+
+    @pytest.mark.parametrize('invalid_name', ['panda', 'panda.DataFrame'])
+    def test_raises_for_invalid_module_name(self, invalid_name):
+        msg = 'No module can be imported from "{}"'.format(invalid_name)
+        with pytest.raises(ImportError, match=msg):
+            validate_docstrings.Docstring(invalid_name)
+
+    @pytest.mark.parametrize('invalid_name',
+                             ['pandas.BadClassName',
+                              'pandas.Series.bad_method_name'])
+    def test_raises_for_invalid_attribute_name(self, invalid_name):
+        name_components = invalid_name.split('.')
+        obj_name, invalid_attr_name = name_components[-2], name_components[-1]
+        msg = "'{}' has no attribute '{}'".format(obj_name, invalid_attr_name)
+        with pytest.raises(AttributeError, match=msg):
+            validate_docstrings.Docstring(invalid_name)
 
 
 class TestMainFunction(object):

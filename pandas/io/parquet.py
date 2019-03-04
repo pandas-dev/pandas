@@ -89,9 +89,9 @@ class PyArrowImpl(BaseImpl):
                 "\nor via pip\n"
                 "pip install -U pyarrow\n"
             )
-        if LooseVersion(pyarrow.__version__) < '0.7.0':
+        if LooseVersion(pyarrow.__version__) < '0.9.0':
             raise ImportError(
-                "pyarrow >= 0.7.0 is required for parquet support\n\n"
+                "pyarrow >= 0.9.0 is required for parquet support\n\n"
                 "you can install via conda\n"
                 "conda install pyarrow -c conda-forge\n"
                 "\nor via pip\n"
@@ -151,9 +151,9 @@ class FastParquetImpl(BaseImpl):
                 "\nor via pip\n"
                 "pip install -U fastparquet"
             )
-        if LooseVersion(fastparquet.__version__) < '0.1.2':
+        if LooseVersion(fastparquet.__version__) < '0.2.1':
             raise ImportError(
-                "fastparquet >= 0.1.2 is required for parquet "
+                "fastparquet >= 0.2.1 is required for parquet "
                 "support\n\n"
                 "you can install via conda\n"
                 "conda install fastparquet -c conda-forge\n"
@@ -262,16 +262,17 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     ----------
     path : string
         File path
-    columns : list, default=None
-        If not None, only these columns will be read from the file.
-
-        .. versionadded 0.21.1
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
-    kwargs are passed to the engine
+    columns : list, default=None
+        If not None, only these columns will be read from the file.
+
+        .. versionadded 0.21.1
+    **kwargs
+        Any additional kwargs are passed to the engine.
 
     Returns
     -------

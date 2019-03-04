@@ -2,7 +2,8 @@
 Module for applying conditional formatting to
 DataFrames and Series.
 """
-from collections import MutableMapping, defaultdict
+
+from collections import defaultdict
 from contextlib import contextmanager
 import copy
 from functools import partial
@@ -18,7 +19,7 @@ from pandas.core.dtypes.common import is_float, is_string_like
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
-from pandas.api.types import is_list_like
+from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
@@ -80,7 +81,7 @@ class Styler(object):
 
     See Also
     --------
-    pandas.DataFrame.style
+    DataFrame.style
 
     Notes
     -----
@@ -401,7 +402,7 @@ class Styler(object):
             row_locs = self.data.index.get_indexer_for(sub_df.index)
             col_locs = self.data.columns.get_indexer_for(sub_df.columns)
 
-        if isinstance(formatter, MutableMapping):
+        if is_dict_like(formatter):
             for col, col_formatter in formatter.items():
                 # formatter must be callable, so '{}' are converted to lambdas
                 col_formatter = _maybe_wrap_formatter(col_formatter)
@@ -423,16 +424,18 @@ class Styler(object):
 
         Parameters
         ----------
-        `**kwargs` : Any additional keyword arguments are passed through
-        to ``self.template.render``. This is useful when you need to provide
-        additional variables for a custom template.
+        **kwargs
+            Any additional keyword arguments are passed
+            through to ``self.template.render``.
+            This is useful when you need to provide
+            additional variables for a custom template.
 
             .. versionadded:: 0.20
 
         Returns
         -------
         rendered : str
-            the rendered HTML
+            The rendered HTML.
 
         Notes
         -----
@@ -1222,7 +1225,7 @@ class Styler(object):
         Returns
         -------
         MyStyler : subclass of Styler
-            has the correct ``env`` and ``template`` class attributes set.
+            Has the correct ``env`` and ``template`` class attributes set.
         """
         loader = ChoiceLoader([
             FileSystemLoader(searchpath),
@@ -1321,7 +1324,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
     Result is a dictionary of (level, inital_position): span
     """
-    sentinel = com.sentinel_factory()
+    sentinel = object()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
 
     if hidden_elements is None:

@@ -2,25 +2,24 @@
 
 from __future__ import print_function
 
-import pytest
-
-import operator
 from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
-
+import operator
 import warnings
-import numpy as np
 
-from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
-                    Timestamp, compat)
-import pandas as pd
+import numpy as np
+import pytest
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.apply import frame_apply
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal)
-import pandas.util.testing as tm
+
+import pandas as pd
+from pandas import (
+    DataFrame, MultiIndex, Series, Timestamp, compat, date_range, notna)
 from pandas.conftest import _get_cython_table_params
+from pandas.core.apply import frame_apply
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 @pytest.fixture
@@ -317,6 +316,13 @@ class TestDataFrameApply():
         float_frame.loc[::2, 'A'] = np.nan
         expected = float_frame.mean(1)
         result = float_frame.apply(np.mean, axis=1)
+        assert_series_equal(result, expected)
+
+    def test_apply_reduce_rows_to_dict(self):
+        # GH 25196
+        data = pd.DataFrame([[1, 2], [3, 4]])
+        expected = pd.Series([{0: 1, 1: 3}, {0: 2, 1: 4}])
+        result = data.apply(dict)
         assert_series_equal(result, expected)
 
     def test_apply_differently_indexed(self):

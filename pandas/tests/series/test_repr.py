@@ -2,7 +2,6 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta
-import sys
 
 import numpy as np
 
@@ -121,15 +120,14 @@ class TestSeriesRepr(TestData):
         a.name = 'title1'
         repr(a)  # should not raise exception
 
-    @tm.capture_stderr
-    def test_repr_bool_fails(self):
+    def test_repr_bool_fails(self, capsys):
         s = Series([DataFrame(np.random.randn(2, 2)) for i in range(5)])
 
         # It works (with no Cython exception barf)!
         repr(s)
 
-        output = sys.stderr.getvalue()
-        assert output == ''
+        captured = capsys.readouterr()
+        assert captured.err == ''
 
     def test_repr_name_iterable_indexable(self):
         s = Series([1, 2, 3], name=np.int64(3))
@@ -199,6 +197,14 @@ class TestSeriesRepr(TestData):
             assert result == s._repr_latex_()
 
         assert s._repr_latex_() is None
+
+    def test_index_repr_in_frame_with_nan(self):
+        # see gh-25061
+        i = Index([1, np.nan])
+        s = Series([1, 2], index=i)
+        exp = """1.0    1\nNaN    2\ndtype: int64"""
+
+        assert repr(s) == exp
 
 
 class TestCategoricalRepr(object):

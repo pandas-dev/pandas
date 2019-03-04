@@ -6,21 +6,21 @@ test all other .agg behavior
 
 from __future__ import print_function
 
-import pytest
 from collections import OrderedDict
-
 import datetime as dt
 from functools import partial
 
 import numpy as np
-import pandas as pd
+import pytest
 
+import pandas as pd
 from pandas import (
-    date_range, DataFrame, Index, MultiIndex, PeriodIndex, period_range, Series
-)
+    DataFrame, Index, MultiIndex, PeriodIndex, Series, date_range,
+    period_range)
 from pandas.core.groupby.groupby import SpecificationError
-from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
+
+from pandas.io.formats.printing import pprint_thing
 
 
 def test_agg_api():
@@ -511,4 +511,19 @@ def test_agg_list_like_func():
     result = grouped.agg({'B': lambda x: list(x)})
     expected = pd.DataFrame({'A': [str(x) for x in range(3)],
                              'B': [[str(x)] for x in range(3)]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_lambda_with_timezone():
+    # GH 23683
+    df = pd.DataFrame({
+        'tag': [1, 1],
+        'date': [
+            pd.Timestamp('2018-01-01', tz='UTC'),
+            pd.Timestamp('2018-01-02', tz='UTC')]
+    })
+    result = df.groupby('tag').agg({'date': lambda e: e.head(1)})
+    expected = pd.DataFrame([pd.Timestamp('2018-01-01', tz='UTC')],
+                            index=pd.Index([1], name='tag'),
+                            columns=['date'])
     tm.assert_frame_equal(result, expected)

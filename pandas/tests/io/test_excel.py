@@ -5,7 +5,6 @@ from distutils.version import LooseVersion
 from functools import partial
 import os
 import warnings
-from warnings import catch_warnings
 
 import numpy as np
 from numpy import nan
@@ -118,6 +117,15 @@ class SharedItems(object):
 
 class ReadingTestsBase(SharedItems):
     # This is based on ExcelWriterBase
+
+    @pytest.fixture(autouse=True, params=['xlrd', None])
+    def set_engine(self, request):
+        func_name = "get_exceldf"
+        old_func = getattr(self, func_name)
+        new_func = partial(old_func, engine=request.param)
+        setattr(self, func_name, new_func)
+        yield
+        setattr(self, func_name, old_func)
 
     @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_usecols_int(self, ext):
@@ -674,14 +682,6 @@ class ReadingTestsBase(SharedItems):
             excel.parse(sheetname='Sheet1',
                         sheet_name='Sheet1')
 
-
-@pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
-class TestXlrdReader(ReadingTestsBase):
-    """
-    This is the base class for the xlrd tests, and 3 different file formats
-    are supported: xls, xlsx, xlsm
-    """
-
     def test_excel_read_buffer(self, ext):
 
         pth = os.path.join(self.dirpath, 'test1' + ext)
@@ -695,25 +695,10 @@ class TestXlrdReader(ReadingTestsBase):
             actual = read_excel(xls, 'Sheet1', index_col=0)
             tm.assert_frame_equal(expected, actual)
 
-    @td.skip_if_no("xlwt")
-    def test_read_xlrd_book(self, ext):
-        import xlrd
-        df = self.frame
-
-        engine = "xlrd"
-        sheet_name = "SheetA"
-
-        with ensure_clean(ext) as pth:
-            df.to_excel(pth, sheet_name)
-            book = xlrd.open_workbook(pth)
-
-            with ExcelFile(book, engine=engine) as xl:
-                result = read_excel(xl, sheet_name, index_col=0)
-                tm.assert_frame_equal(df, result)
-
-            result = read_excel(book, sheet_name=sheet_name,
-                                engine=engine, index_col=0)
-            tm.assert_frame_equal(df, result)
+    def test_bad_engine_raises(self, ext):
+        bad_engine = 'foo'
+        with pytest.raises(ValueError, match="Unknown engine: foo"):
+            read_excel('', engine=bad_engine)
 
     @tm.network
     def test_read_from_http_url(self, ext):
@@ -1154,6 +1139,34 @@ class TestXlrdReader(ReadingTestsBase):
         actual = pd.read_excel(f, 'one_column', squeeze=True)
         expected = pd.Series([1, 2, 3], name='a')
         tm.assert_series_equal(actual, expected)
+
+
+@pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
+class TestXlrdReader(ReadingTestsBase):
+    """
+    This is the base class for the xlrd tests, and 3 different file formats
+    are supported: xls, xlsx, xlsm
+    """
+
+    @td.skip_if_no("xlwt")
+    def test_read_xlrd_book(self, ext):
+        import xlrd
+        df = self.frame
+
+        engine = "xlrd"
+        sheet_name = "SheetA"
+
+        with ensure_clean(ext) as pth:
+            df.to_excel(pth, sheet_name)
+            book = xlrd.open_workbook(pth)
+
+            with ExcelFile(book, engine=engine) as xl:
+                result = read_excel(xl, sheet_name, index_col=0)
+                tm.assert_frame_equal(df, result)
+
+            result = read_excel(book, sheet_name=sheet_name,
+                                engine=engine, index_col=0)
+            tm.assert_frame_equal(df, result)
 
 
 class _WriterBase(SharedItems):
@@ -2346,7 +2359,7 @@ class TestExcelWriterEngineTests(object):
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
-            supported_extensions = ['test', 'xlsx', 'xls']
+            supported_extensions = ['xlsx', 'xls']
             engine = 'dummy'
 
             def save(self):
@@ -2364,19 +2377,13 @@ class TestExcelWriterEngineTests(object):
 
         with pd.option_context('io.excel.xlsx.writer', 'dummy'):
             register_writer(DummyClass)
-            writer = ExcelWriter('something.test')
+            writer = ExcelWriter('something.xlsx')
             assert isinstance(writer, DummyClass)
             df = tm.makeCustomDataframe(1, 1)
-
-            with catch_warnings(record=True):
-                panel = tm.makePanel()
-                func = lambda: df.to_excel('something.test')
-                check_called(func)
-                check_called(lambda: panel.to_excel('something.test'))
-                check_called(lambda: df.to_excel('something.xlsx'))
-                check_called(
-                    lambda: df.to_excel(
-                        'something.xls', engine='dummy'))
+            check_called(lambda: df.to_excel('something.xlsx'))
+            check_called(
+                lambda: df.to_excel(
+                    'something.xls', engine='dummy'))
 
 
 @pytest.mark.parametrize('engine', [
@@ -2403,7 +2410,10 @@ def test_styler_to_excel(engine):
                           ['', '', '']],
                          index=df.index, columns=df.columns)
 
-    def assert_equal_style(cell1, cell2):
+    def assert_equal_style(cell1, cell2, engine):
+        if engine in ['xlsxwriter', 'openpyxl']:
+            pytest.xfail(reason=("GH25351: failing on some attribute "
+                                 "comparisons in {}".format(engine)))
         # XXX: should find a better way to check equality
         assert cell1.alignment.__dict__ == cell2.alignment.__dict__
         assert cell1.border.__dict__ == cell2.border.__dict__
@@ -2447,7 +2457,7 @@ def test_styler_to_excel(engine):
             assert len(col1) == len(col2)
             for cell1, cell2 in zip(col1, col2):
                 assert cell1.value == cell2.value
-                assert_equal_style(cell1, cell2)
+                assert_equal_style(cell1, cell2, engine)
                 n_cells += 1
 
         # ensure iteration actually happened:
@@ -2505,7 +2515,7 @@ def test_styler_to_excel(engine):
                     assert cell1.number_format == 'General'
                     assert cell2.number_format == '0%'
                 else:
-                    assert_equal_style(cell1, cell2)
+                    assert_equal_style(cell1, cell2, engine)
 
                 assert cell1.value == cell2.value
                 n_cells += 1
@@ -2523,7 +2533,7 @@ def test_styler_to_excel(engine):
                     assert not cell1.font.bold
                     assert cell2.font.bold
                 else:
-                    assert_equal_style(cell1, cell2)
+                    assert_equal_style(cell1, cell2, engine)
 
                 assert cell1.value == cell2.value
                 n_cells += 1

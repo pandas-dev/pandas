@@ -5,13 +5,13 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
-from pandas._libs.tslibs import OutOfBoundsDatetime, Period, iNaT
+from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
 from pandas.compat import PY3, string_types, text_type, to_str
 
 from .common import (
-    _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, _string_dtypes,
-    ensure_int8, ensure_int16, ensure_int32, ensure_int64, ensure_object,
-    is_bool, is_bool_dtype, is_categorical_dtype, is_complex, is_complex_dtype,
+    _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, ensure_int8,
+    ensure_int16, ensure_int32, ensure_int64, ensure_object, is_bool,
+    is_bool_dtype, is_categorical_dtype, is_complex, is_complex_dtype,
     is_datetime64_dtype, is_datetime64_ns_dtype, is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype, is_datetimelike, is_dtype_equal,
     is_extension_array_dtype, is_extension_type, is_float, is_float_dtype,
@@ -20,7 +20,9 @@ from .common import (
     pandas_dtype)
 from .dtypes import (
     DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype, PeriodDtype)
-from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
+from .generic import (
+    ABCDatetimeArray, ABCDatetimeIndex, ABCPeriodArray, ABCPeriodIndex,
+    ABCSeries)
 from .inference import is_list_like
 from .missing import isna, notna
 
@@ -73,7 +75,8 @@ def maybe_downcast_to_dtype(result, dtype):
 
     if isinstance(dtype, string_types):
         if dtype == 'infer':
-            inferred_type = lib.infer_dtype(ensure_object(result.ravel()))
+            inferred_type = lib.infer_dtype(ensure_object(result.ravel()),
+                                            skipna=False)
             if inferred_type == 'boolean':
                 dtype = 'bool'
             elif inferred_type == 'integer':
@@ -269,7 +272,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         fill_value = tslibs.Timedelta(fill_value).value
     elif is_datetime64tz_dtype(dtype):
         if isna(fill_value):
-            fill_value = iNaT
+            fill_value = NaT
     elif is_extension_array_dtype(dtype) and isna(fill_value):
         fill_value = dtype.na_value
     elif is_float(fill_value):
@@ -351,7 +354,7 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
-        msg = "invalid ndarray passed to _infer_dtype_from_scalar"
+        msg = "invalid ndarray passed to infer_dtype_from_scalar"
         if val.ndim != 0:
             raise ValueError(msg)
 
@@ -458,7 +461,7 @@ def infer_dtype_from_array(arr, pandas_dtype=False):
         return arr.dtype, np.asarray(arr)
 
     # don't force numpy coerce with nan's
-    inferred = lib.infer_dtype(arr)
+    inferred = lib.infer_dtype(arr, skipna=False)
     if inferred in ['string', 'bytes', 'unicode',
                     'mixed', 'mixed-integer']:
         return (np.object_, arr)
@@ -541,7 +544,7 @@ def invalidate_string_dtypes(dtype_set):
     """Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
     """
-    non_string_dtypes = dtype_set - _string_dtypes
+    non_string_dtypes = dtype_set - {np.dtype('S').type, np.dtype('<U').type}
     if non_string_dtypes != dtype_set:
         raise TypeError("string dtypes are not allowed, use 'object' instead")
 
@@ -566,8 +569,6 @@ def coerce_to_dtypes(result, dtypes):
     if len(result) != len(dtypes):
         raise AssertionError("_coerce_to_dtypes requires equal len arrays")
 
-    from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
-
     def conv(r, dtype):
         try:
             if isna(r):
@@ -575,7 +576,7 @@ def coerce_to_dtypes(result, dtypes):
             elif dtype == _NS_DTYPE:
                 r = tslibs.Timestamp(r)
             elif dtype == _TD_DTYPE:
-                r = _coerce_scalar_to_timedelta_type(r)
+                r = tslibs.Timedelta(r)
             elif dtype == np.bool_:
                 # messy. non 0/1 integers do not get converted.
                 if is_integer(r) and r not in [0, 1]:
@@ -860,7 +861,9 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
 
     """
 
-    if isinstance(value, (ABCDatetimeIndex, ABCPeriodIndex)):
+    # TODO: why not timedelta?
+    if isinstance(value, (ABCDatetimeIndex, ABCPeriodIndex,
+                          ABCDatetimeArray, ABCPeriodArray)):
         return value
     elif isinstance(value, ABCSeries):
         if isinstance(value._values, ABCDatetimeIndex):
@@ -937,10 +940,11 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
 
             # We have at least a NaT and a string
             # try timedelta first to avoid spurious datetime conversions
-            # e.g. '00:00:01' is a timedelta but
-            # technically is also a datetime
+            # e.g. '00:00:01' is a timedelta but technically is also a datetime
             value = try_timedelta(v)
-            if lib.infer_dtype(value) in ['mixed']:
+            if lib.infer_dtype(value, skipna=False) in ['mixed']:
+                # cannot skip missing values, as NaT implies that the string
+                # is actually a datetime
                 value = try_datetime(v)
 
     return value
@@ -1014,7 +1018,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
                             is_dt_string = is_string_dtype(value)
-                            value = to_datetime(value, errors=errors)
+                            value = to_datetime(value, errors=errors).array
                             if is_dt_string:
                                 # Strings here are naive, so directly localize
                                 value = value.tz_localize(dtype.tz)
@@ -1107,11 +1111,9 @@ def find_common_type(types):
     # this is different from numpy, which casts bool with float/int as int
     has_bools = any(is_bool_dtype(t) for t in types)
     if has_bools:
-        has_ints = any(is_integer_dtype(t) for t in types)
-        has_floats = any(is_float_dtype(t) for t in types)
-        has_complex = any(is_complex_dtype(t) for t in types)
-        if has_ints or has_floats or has_complex:
-            return np.object
+        for t in types:
+            if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
+                return np.object
 
     return np.find_common_type(types, [])
 

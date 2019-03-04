@@ -6,7 +6,7 @@ import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.util import testing as tm
 
 
@@ -69,3 +69,26 @@ class TestMultiIndexBasic(object):
         assert s[("a", 7)] == 7
 
         _index._SIZE_CUTOFF = old_cutoff
+
+    def test_multi_nan_indexing(self):
+
+        # GH 3588
+        df = DataFrame({"a": ['R1', 'R2', np.nan, 'R4'],
+                        'b': ["C1", "C2", "C3", "C4"],
+                        "c": [10, 15, np.nan, 20]})
+        result = df.set_index(['a', 'b'], drop=False)
+        expected = DataFrame({"a": ['R1', 'R2', np.nan, 'R4'],
+                              'b': ["C1", "C2", "C3", "C4"],
+                              "c": [10, 15, np.nan, 20]},
+                             index=[Index(['R1', 'R2', np.nan, 'R4'],
+                                          name='a'),
+                                    Index(['C1', 'C2', 'C3', 'C4'], name='b')])
+        tm.assert_frame_equal(result, expected)
+
+    def test_contains(self):
+        # GH 24570
+        tx = pd.timedelta_range('09:30:00', '16:00:00', freq='30 min')
+        idx = MultiIndex.from_arrays([tx, np.arange(len(tx))])
+        assert tx[0] in idx
+        assert 'element_not_exit' not in idx
+        assert '0 day 09:30:00' in idx

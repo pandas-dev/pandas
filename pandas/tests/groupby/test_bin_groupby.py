@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+from numpy import nan
 import pytest
 
-from numpy import nan
-import numpy as np
+from pandas._libs import groupby, lib, reduction
 
 from pandas.core.dtypes.common import ensure_int64
+
 from pandas import Index, isna
 from pandas.core.groupby.ops import generate_bins_generic
-from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
-from pandas._libs import lib, groupby, reduction
+from pandas.util.testing import assert_almost_equal
 
 
 def test_series_grouper():
@@ -72,15 +73,18 @@ class TestBinGroupers(object):
             bins = func(values, binner, closed='right')
             assert ((bins == np.array([3, 6])).all())
 
-        pytest.raises(ValueError, generate_bins_generic, values, [],
-                      'right')
-        pytest.raises(ValueError, generate_bins_generic, values[:0],
-                      binner, 'right')
+        msg = "Invalid length for values or for binner"
+        with pytest.raises(ValueError, match=msg):
+            generate_bins_generic(values, [], 'right')
+        with pytest.raises(ValueError, match=msg):
+            generate_bins_generic(values[:0], binner, 'right')
 
-        pytest.raises(ValueError, generate_bins_generic, values, [4],
-                      'right')
-        pytest.raises(ValueError, generate_bins_generic, values, [-3, -1],
-                      'right')
+        msg = "Values falls before first bin"
+        with pytest.raises(ValueError, match=msg):
+            generate_bins_generic(values, [4], 'right')
+        msg = "Values falls after last bin"
+        with pytest.raises(ValueError, match=msg):
+            generate_bins_generic(values, [-3, -1], 'right')
 
 
 def test_group_ohlc():

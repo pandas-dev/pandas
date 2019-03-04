@@ -5,10 +5,11 @@ from itertools import product
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
-from pandas import DatetimeIndex, MultiIndex
 from pandas._libs import hashtable
 from pandas.compat import range, u
+
+from pandas import DatetimeIndex, MultiIndex
+import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize('names', [None, ['first', 'second']])
@@ -141,6 +142,18 @@ def test_has_duplicates(idx, idx_dup):
                            [0, 1, 2, 0, 0, 1, 2]])
     assert mi.is_unique is False
     assert mi.has_duplicates is True
+
+    # single instance of NaN
+    mi_nan = MultiIndex(levels=[['a', 'b'], [0, 1]],
+                        codes=[[-1, 0, 0, 1, 1], [-1, 0, 1, 0, 1]])
+    assert mi_nan.is_unique is True
+    assert mi_nan.has_duplicates is False
+
+    # multiple instances of NaN
+    mi_nan_dup = MultiIndex(levels=[['a', 'b'], [0, 1]],
+                            codes=[[-1, -1, 0, 0, 1, 1], [-1, -1, 0, 1, 0, 1]])
+    assert mi_nan_dup.is_unique is False
+    assert mi_nan_dup.has_duplicates is True
 
 
 def test_has_duplicates_from_tuples():

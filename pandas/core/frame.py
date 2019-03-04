@@ -13,6 +13,7 @@ labeling information
 from __future__ import division
 
 import collections
+from collections import OrderedDict
 import functools
 import itertools
 import sys
@@ -32,10 +33,9 @@ from pandas.util._validators import (validate_bool_kwarg,
 
 from pandas import compat
 from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
-                           OrderedDict, PY36, raise_with_traceback,
+                           PY36, raise_with_traceback, Iterator,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
-
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -49,6 +49,8 @@ from pandas.core.dtypes.cast import (
     maybe_upcast_putmask,
     find_common_type)
 from pandas.core.dtypes.common import (
+    is_dict_like,
+    is_datetime64tz_dtype,
     is_object_dtype,
     is_extension_type,
     is_extension_array_dtype,
@@ -60,7 +62,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_dtype_equal,
     needs_i8_conversion,
-    _get_dtype_from_object,
+    infer_dtype_from_object,
     ensure_float64,
     ensure_int64,
     ensure_platform_int,
@@ -78,6 +80,9 @@ from pandas.core import nanops
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays.datetimelike import (
+    DatetimeLikeArrayMixin as DatetimeLikeArray
+)
 from pandas.core.config import get_option
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
@@ -314,7 +319,7 @@ class DataFrame(NDFrame):
     DataFrame.from_records : Constructor from tuples, also record arrays.
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
     DataFrame.from_items : From sequence of (key, value) pairs
-        pandas.read_csv, pandas.read_table, pandas.read_clipboard.
+        read_csv, pandas.read_table, pandas.read_clipboard.
 
     Examples
     --------
@@ -397,6 +402,7 @@ class DataFrame(NDFrame):
                 mask = ma.getmaskarray(data)
                 if mask.any():
                     data, fill_value = maybe_upcast(data, copy=True)
+                    data.soften_mask()  # set hardmask False if it was True
                     data[mask] = fill_value
                 else:
                     data = data.copy()
@@ -477,7 +483,7 @@ class DataFrame(NDFrame):
         --------
         >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
         >>> df.axes
-        [RangeIndex(start=0, stop=2, step=1), Index(['coll', 'col2'],
+        [RangeIndex(start=0, stop=2, step=1), Index(['col1', 'col2'],
         dtype='object')]
         """
         return [self.index, self.columns]
@@ -635,16 +641,6 @@ class DataFrame(NDFrame):
 
         Mainly for IPython notebook.
         """
-        # qtconsole doesn't report its line width, and also
-        # behaves badly when outputting an HTML table
-        # that doesn't fit the window, so disable it.
-        # XXX: In IPython 3.x and above, the Qt console will not attempt to
-        # display HTML, so this check can be removed when support for
-        # IPython 2.x is no longer needed.
-        if console.in_qtconsole():
-            # 'HTML output is disabled in QtConsole'
-            return None
-
         if self._info_repr():
             buf = StringIO(u(""))
             self.info(buf=buf)
@@ -722,7 +718,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.io.formats.style.Styler
+        io.formats.style.Styler
         """
         from pandas.io.formats.style import Styler
         return Styler(self)
@@ -842,7 +838,7 @@ class DataFrame(NDFrame):
         ----------
         index : bool, default True
             If True, return the index as the first element of the tuple.
-        name : str, default "Pandas"
+        name : str or None, default "Pandas"
             The name of the returned namedtuples or None to return regular
             tuples.
 
@@ -898,10 +894,10 @@ class DataFrame(NDFrame):
         Animal(Index='hawk', num_legs=2, num_wings=2)
         """
         arrays = []
-        fields = []
+        fields = list(self.columns)
         if index:
             arrays.append(self.index)
-            fields.append("Index")
+            fields.insert(0, "Index")
 
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
@@ -911,10 +907,9 @@ class DataFrame(NDFrame):
         if name is not None and len(self.columns) + index < 256:
             # `rename` is unsupported in Python 2.6
             try:
-                itertuple = collections.namedtuple(name,
-                                                   fields + list(self.columns),
-                                                   rename=True)
+                itertuple = collections.namedtuple(name, fields, rename=True)
                 return map(itertuple._make, zip(*arrays))
+
             except Exception:
                 pass
 
@@ -931,16 +926,70 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or Series objects. Can also be
-        called using `self @ other` in Python >= 3.5.
+        Compute the matrix mutiplication between the DataFrame and other.
+
+        This method computes the matrix product between the DataFrame and the
+        values of an other Series, DataFrame or a numpy array.
+
+        It can also be called using ``self @ other`` in Python >= 3.5.
 
         Parameters
         ----------
-        other : DataFrame or Series
+        other : Series, DataFrame or array-like
+            The other object to compute the matrix product with.
 
         Returns
         -------
-        dot_product : DataFrame or Series
+        Series or DataFrame
+            If other is a Series, return the matrix product between self and
+            other as a Serie. If other is a DataFrame or a numpy.array, return
+            the matrix product of self and other in a DataFrame of a np.array.
+
+        See Also
+        --------
+        Series.dot: Similar method for Series.
+
+        Notes
+        -----
+        The dimensions of DataFrame and other must be compatible in order to
+        compute the matrix multiplication.
+
+        The dot method for Series computes the inner product, instead of the
+        matrix product here.
+
+        Examples
+        --------
+        Here we multiply a DataFrame with a Series.
+
+        >>> df = pd.DataFrame([[0, 1, -2, -1], [1, 1, 1, 1]])
+        >>> s = pd.Series([1, 1, 2, 1])
+        >>> df.dot(s)
+        0    -4
+        1     5
+        dtype: int64
+
+        Here we multiply a DataFrame with another DataFrame.
+
+        >>> other = pd.DataFrame([[0, 1], [1, 2], [-1, -1], [2, 0]])
+        >>> df.dot(other)
+            0   1
+        0   1   4
+        1   2   2
+
+        Note that the dot method give the same result as @
+
+        >>> df @ other
+            0   1
+        0   1   4
+        1   2   2
+
+        The dot method works also if other is an np.array.
+
+        >>> arr = np.array([[0, 1], [1, 2], [-1, -1], [2, 0]])
+        >>> df.dot(arr)
+            0   1
+        0   1   4
+        1   2   2
         """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)
@@ -1016,7 +1065,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        pandas.DataFrame
+        DataFrame
 
         See Also
         --------
@@ -1072,21 +1121,31 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    def to_numpy(self):
+    def to_numpy(self, dtype=None, copy=False):
         """
         Convert the DataFrame to a NumPy array.
 
         .. versionadded:: 0.24.0
 
-        The dtype of the returned array will be the common NumPy
-        dtype of all types in the DataFrame. For example,
-        if the dtypes are ``float16`` and ``float32``, the results
-        dtype will be ``float32``. This may require copying data and
-        coercing values, which may be expensive.
+        By default, the dtype of the returned array will be the common NumPy
+        dtype of all types in the DataFrame. For example, if the dtypes are
+        ``float16`` and ``float32``, the results dtype will be ``float32``.
+        This may require copying data and coercing values, which may be
+        expensive.
+
+        Parameters
+        ----------
+        dtype : str or numpy.dtype, optional
+            The dtype to pass to :meth:`numpy.asarray`
+        copy : bool, default False
+            Whether to ensure that the returned value is a not a view on
+            another array. Note that ``copy=False`` does not *ensure* that
+            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
+            a copy is made, even if not strictly necessary.
 
         Returns
         -------
-        array : numpy.ndarray
+        numpy.ndarray
 
         See Also
         --------
@@ -1114,7 +1173,8 @@ class DataFrame(NDFrame):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
-        return self.values
+        result = np.array(self.values, dtype=dtype, copy=copy)
+        return result
 
     def to_dict(self, orient='dict', into=dict):
         """
@@ -1221,23 +1281,26 @@ class DataFrame(NDFrame):
                            ('columns', self.columns.tolist()),
                            ('data', [
                                list(map(com.maybe_box_datetimelike, t))
-                               for t in self.itertuples(index=False)]
-                            )))
+                               for t in self.itertuples(index=False, name=None)
+                           ])))
         elif orient.lower().startswith('s'):
             return into_c((k, com.maybe_box_datetimelike(v))
                           for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
+            columns = self.columns.tolist()
+            rows = (dict(zip(columns, row))
+                    for row in self.itertuples(index=False, name=None))
             return [
                 into_c((k, com.maybe_box_datetimelike(v))
-                       for k, v in compat.iteritems(row._asdict()))
-                for row in self.itertuples(index=False)]
+                       for k, v in compat.iteritems(row))
+                for row in rows]
         elif orient.lower().startswith('i'):
             if not self.index.is_unique:
                 raise ValueError(
                     "DataFrame index must be unique for orient='index'."
                 )
             return into_c((t[0], dict(zip(self.columns, t[1:])))
-                          for t in self.itertuples())
+                          for t in self.itertuples(name=None))
         else:
             raise ValueError("orient '{o}' not understood".format(o=orient))
 
@@ -1337,7 +1400,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas_gbq.to_gbq : This function in the pandas-gbq library.
-        pandas.read_gbq : Read a DataFrame from Google BigQuery.
+        read_gbq : Read a DataFrame from Google BigQuery.
         """
         from pandas.io import gbq
         return gbq.to_gbq(
@@ -1376,7 +1439,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        df : DataFrame
+        DataFrame
         """
 
         # Make a copy of the input columns so we can modify it
@@ -1455,8 +1518,8 @@ class DataFrame(NDFrame):
                     result_index = Index([], name=index)
             else:
                 try:
-                    to_remove = [arr_columns.get_loc(field) for field in index]
-                    index_data = [arrays[i] for i in to_remove]
+                    index_data = [arrays[arr_columns.get_loc(field)]
+                                  for field in index]
                     result_index = ensure_index_from_sequences(index_data,
                                                                names=index)
 
@@ -1476,7 +1539,8 @@ class DataFrame(NDFrame):
 
         return cls(mgr)
 
-    def to_records(self, index=True, convert_datetime64=None):
+    def to_records(self, index=True, convert_datetime64=None,
+                   column_dtypes=None, index_dtypes=None):
         """
         Convert DataFrame to a NumPy record array.
 
@@ -1493,6 +1557,20 @@ class DataFrame(NDFrame):
 
             Whether to convert the index to datetime.datetime if it is a
             DatetimeIndex.
+        column_dtypes : str, type, dict, default None
+            .. versionadded:: 0.24.0
+
+            If a string or type, the data type to store all columns. If
+            a dictionary, a mapping of column names and indices (zero-indexed)
+            to specific data types.
+        index_dtypes : str, type, dict, default None
+            .. versionadded:: 0.24.0
+
+            If a string or type, the data type to store all index levels. If
+            a dictionary, a mapping of index level names and indices
+            (zero-indexed) to specific data types.
+
+            This mapping is applied only if `index=True`.
 
         Returns
         -------
@@ -1534,6 +1612,23 @@ class DataFrame(NDFrame):
         >>> df.to_records(index=False)
         rec.array([(1, 0.5 ), (2, 0.75)],
                   dtype=[('A', '<i8'), ('B', '<f8')])
+
+        Data types can be specified for the columns:
+
+        >>> df.to_records(column_dtypes={"A": "int32"})
+        rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
+                  dtype=[('I', 'O'), ('A', '<i4'), ('B', '<f8')])
+
+        As well as for the index:
+
+        >>> df.to_records(index_dtypes="<S2")
+        rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
+                  dtype=[('I', 'S2'), ('A', '<i8'), ('B', '<f8')])
+
+        >>> index_dtypes = "<S{}".format(df.index.str.len().max())
+        >>> df.to_records(index_dtypes=index_dtypes)
+        rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
+                  dtype=[('I', 'S1'), ('A', '<i8'), ('B', '<f8')])
         """
 
         if convert_datetime64 is not None:
@@ -1556,6 +1651,7 @@ class DataFrame(NDFrame):
 
             count = 0
             index_names = list(self.index.names)
+
             if isinstance(self.index, MultiIndex):
                 for i, n in enumerate(index_names):
                     if n is None:
@@ -1563,13 +1659,67 @@ class DataFrame(NDFrame):
                         count += 1
             elif index_names[0] is None:
                 index_names = ['index']
+
             names = (lmap(compat.text_type, index_names) +
                      lmap(compat.text_type, self.columns))
         else:
             arrays = [self[c].get_values() for c in self.columns]
             names = lmap(compat.text_type, self.columns)
+            index_names = []
 
-        formats = [v.dtype for v in arrays]
+        index_len = len(index_names)
+        formats = []
+
+        for i, v in enumerate(arrays):
+            index = i
+
+            # When the names and arrays are collected, we
+            # first collect those in the DataFrame's index,
+            # followed by those in its columns.
+            #
+            # Thus, the total length of the array is:
+            # len(index_names) + len(DataFrame.columns).
+            #
+            # This check allows us to see whether we are
+            # handling a name / array in the index or column.
+            if index < index_len:
+                dtype_mapping = index_dtypes
+                name = index_names[index]
+            else:
+                index -= index_len
+                dtype_mapping = column_dtypes
+                name = self.columns[index]
+
+            # We have a dictionary, so we get the data type
+            # associated with the index or column (which can
+            # be denoted by its name in the DataFrame or its
+            # position in DataFrame's array of indices or
+            # columns, whichever is applicable.
+            if is_dict_like(dtype_mapping):
+                if name in dtype_mapping:
+                    dtype_mapping = dtype_mapping[name]
+                elif index in dtype_mapping:
+                    dtype_mapping = dtype_mapping[index]
+                else:
+                    dtype_mapping = None
+
+            # If no mapping can be found, use the array's
+            # dtype attribute for formatting.
+            #
+            # A valid dtype must either be a type or
+            # string naming a type.
+            if dtype_mapping is None:
+                formats.append(v.dtype)
+            elif isinstance(dtype_mapping, (type, np.dtype,
+                                            compat.string_types)):
+                formats.append(dtype_mapping)
+            else:
+                element = "row" if i < index_len else "column"
+                msg = ("Invalid dtype {dtype} specified for "
+                       "{element} {name}").format(dtype=dtype_mapping,
+                                                  element=element, name=name)
+                raise ValueError(msg)
+
         return np.rec.fromarrays(
             arrays,
             dtype={'names': names, 'formats': formats}
@@ -1605,7 +1755,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        frame : DataFrame
+        DataFrame
         """
 
         warnings.warn("from_items is deprecated. Please use "
@@ -1676,14 +1826,14 @@ class DataFrame(NDFrame):
         Read CSV file.
 
         .. deprecated:: 0.21.0
-            Use :func:`pandas.read_csv` instead.
+            Use :func:`read_csv` instead.
 
-        It is preferable to use the more powerful :func:`pandas.read_csv`
+        It is preferable to use the more powerful :func:`read_csv`
         for most general purposes, but ``from_csv`` makes for an easy
         roundtrip to and from a file (the exact counterpart of
         ``to_csv``), especially with a DataFrame of time series data.
 
-        This method only differs from the preferred :func:`pandas.read_csv`
+        This method only differs from the preferred :func:`read_csv`
         in some defaults:
 
         - `index_col` is ``0`` instead of ``None`` (take first column as index
@@ -1716,11 +1866,11 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : DataFrame
+        DataFrame
 
         See Also
         --------
-        pandas.read_csv
+        read_csv
         """
 
         warnings.warn("from_csv is deprecated. Please use read_csv(...) "
@@ -1806,47 +1956,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        panel : Panel
+        Panel
         """
-        # only support this kind for now
-        if (not isinstance(self.index, MultiIndex) or  # pragma: no cover
-                len(self.index.levels) != 2):
-            raise NotImplementedError('Only 2-level MultiIndex are supported.')
-
-        if not self.index.is_unique:
-            raise ValueError("Can't convert non-uniquely indexed "
-                             "DataFrame to Panel")
-
-        self._consolidate_inplace()
-
-        # minor axis must be sorted
-        if self.index.lexsort_depth < 2:
-            selfsorted = self.sort_index(level=0)
-        else:
-            selfsorted = self
-
-        major_axis, minor_axis = selfsorted.index.levels
-        major_codes, minor_codes = selfsorted.index.codes
-        shape = len(major_axis), len(minor_axis)
-
-        # preserve names, if any
-        major_axis = major_axis.copy()
-        major_axis.name = self.index.names[0]
-
-        minor_axis = minor_axis.copy()
-        minor_axis.name = self.index.names[1]
-
-        # create new axes
-        new_axes = [selfsorted.columns, major_axis, minor_axis]
-
-        # create new manager
-        new_mgr = selfsorted._data.reshape_nd(axes=new_axes,
-                                              labels=[major_codes,
-                                                      minor_codes],
-                                              shape=shape,
-                                              ref_items=selfsorted.columns)
-
-        return self._constructor_expanddim(new_mgr)
+        raise NotImplementedError("Panel is being removed in pandas 0.25.0.")
 
     @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,
@@ -2366,7 +2478,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        sizes : Series
+        Series
             A Series whose index is the original column names and whose values
             is the memory usage of each column in bytes.
 
@@ -2375,7 +2487,7 @@ class DataFrame(NDFrame):
         numpy.ndarray.nbytes : Total bytes consumed by the elements of an
             ndarray.
         Series.memory_usage : Bytes consumed by a Series.
-        pandas.Categorical : Memory-efficient array for string values with
+        Categorical : Memory-efficient array for string values with
             many repeated values.
         DataFrame.info : Concise summary of a DataFrame.
 
@@ -2584,7 +2696,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        value : scalar value
+        scalar
         """
 
         warnings.warn("get_value is deprecated and will be removed "
@@ -2624,14 +2736,14 @@ class DataFrame(NDFrame):
         ----------
         index : row label
         col : column label
-        value : scalar value
+        value : scalar
         takeable : interpret the index/col as indexers, default False
 
         Returns
         -------
-        frame : DataFrame
+        DataFrame
             If label pair is contained, will be reference to calling DataFrame,
-            otherwise a new object
+            otherwise a new object.
         """
         warnings.warn("set_value is deprecated and will be removed "
                       "in a future release. Please use "
@@ -2652,7 +2764,10 @@ class DataFrame(NDFrame):
         except (KeyError, TypeError):
 
             # set using a non-recursive method & reset the cache
-            self.loc[index, col] = value
+            if takeable:
+                self.iloc[index, col] = value
+            else:
+                self.loc[index, col] = value
             self._item_cache.pop(col, None)
 
             return self
@@ -2723,6 +2838,7 @@ class DataFrame(NDFrame):
                 return result
 
     def __getitem__(self, key):
+        key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
         # shortcut if the key is in columns
@@ -2847,28 +2963,30 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        expr : string
+        expr : str
             The query string to evaluate.  You can refer to variables
             in the environment by prefixing them with an '@' character like
             ``@a + b``.
         inplace : bool
             Whether the query should modify the data in place or return
-            a modified copy
+            a modified copy.
+        **kwargs
+            See the documentation for :func:`eval` for complete details
+            on the keyword arguments accepted by :meth:`DataFrame.query`.
 
             .. versionadded:: 0.18.0
 
-        kwargs : dict
-            See the documentation for :func:`pandas.eval` for complete details
-            on the keyword arguments accepted by :meth:`DataFrame.query`.
-
         Returns
         -------
-        q : DataFrame
+        DataFrame
+            DataFrame resulting from the provided query expression.
 
         See Also
         --------
-        pandas.eval
-        DataFrame.eval
+        eval : Evaluate a string describing operations on
+            DataFrame columns.
+        DataFrame.eval : Evaluate a string describing operations on
+            DataFrame columns.
 
         Notes
         -----
@@ -2877,7 +2995,7 @@ class DataFrame(NDFrame):
         multidimensional key (e.g., a DataFrame) then the result will be passed
         to :meth:`DataFrame.__getitem__`.
 
-        This method uses the top-level :func:`pandas.eval` function to
+        This method uses the top-level :func:`eval` function to
         evaluate the passed query.
 
         The :meth:`~pandas.DataFrame.query` method uses a slightly
@@ -2907,9 +3025,23 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.randn(10, 2), columns=list('ab'))
-        >>> df.query('a > b')
-        >>> df[df.a > df.b]  # same result as the previous expression
+        >>> df = pd.DataFrame({'A': range(1, 6), 'B': range(10, 0, -2)})
+        >>> df
+           A   B
+        0  1  10
+        1  2   8
+        2  3   6
+        3  4   4
+        4  5   2
+        >>> df.query('A > B')
+           A  B
+        4  5  2
+
+        The previous expression is equivalent to
+
+        >>> df[df.A > df.B]
+           A  B
+        4  5  2
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(expr, compat.string_types):
@@ -2950,7 +3082,7 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.18.0.
         kwargs : dict
-            See the documentation for :func:`~pandas.eval` for complete details
+            See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
             :meth:`~pandas.DataFrame.query`.
 
@@ -2965,12 +3097,12 @@ class DataFrame(NDFrame):
             of a frame.
         DataFrame.assign : Can evaluate an expression or function to create new
             values for a column.
-        pandas.eval : Evaluate a Python expression as a string using various
+        eval : Evaluate a Python expression as a string using various
             backends.
 
         Notes
         -----
-        For more details see the API documentation for :func:`~pandas.eval`.
+        For more details see the API documentation for :func:`~eval`.
         For detailed examples see :ref:`enhancing performance with eval
         <enhancingperf.eval>`.
 
@@ -3046,7 +3178,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        subset : DataFrame
+        DataFrame
             The subset of the frame including the dtypes in ``include`` and
             excluding the dtypes in ``exclude``.
 
@@ -3135,7 +3267,7 @@ class DataFrame(NDFrame):
 
         # convert the myriad valid dtypes object to a single representation
         include, exclude = map(
-            lambda x: frozenset(map(_get_dtype_from_object, x)), selection)
+            lambda x: frozenset(map(infer_dtype_from_object, x)), selection)
         for dtypes in (include, exclude):
             invalidate_string_dtypes(dtypes)
 
@@ -3411,7 +3543,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        sanitized_column : numpy-array
+        numpy.ndarray
         """
 
         def reindexer(value):
@@ -3665,7 +3797,12 @@ class DataFrame(NDFrame):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to drop labels from the index (0 or 'index') or
             columns (1 or 'columns').
-        index, columns : single label or list-like
+        index : single label or list-like
+            Alternative to specifying axis (``labels, axis=0``
+            is equivalent to ``index=labels``).
+
+            .. versionadded:: 0.21.0
+        columns : single label or list-like
             Alternative to specifying axis (``labels, axis=1``
             is equivalent to ``columns=labels``).
 
@@ -3680,12 +3817,13 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        dropped : pandas.DataFrame
+        DataFrame
+            DataFrame without the removed index or column labels.
 
         Raises
         ------
         KeyError
-            If none of the labels are found in the selected axis
+            If any of the labels is not found in the selected axis.
 
         See Also
         --------
@@ -3698,7 +3836,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.arange(12).reshape(3,4),
+        >>> df = pd.DataFrame(np.arange(12).reshape(3, 4),
         ...                   columns=['A', 'B', 'C', 'D'])
         >>> df
            A  B   C   D
@@ -3735,7 +3873,7 @@ class DataFrame(NDFrame):
         >>> df = pd.DataFrame(index=midx, columns=['big', 'small'],
         ...                   data=[[45, 30], [200, 100], [1.5, 1], [30, 20],
         ...                         [250, 150], [1.5, 0.8], [320, 250],
-        ...                         [1, 0.8], [0.3,0.2]])
+        ...                         [1, 0.8], [0.3, 0.2]])
         >>> df
                         big     small
         lama    speed   45.0    30.0
@@ -3805,11 +3943,11 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        renamed : DataFrame
+        DataFrame
 
         See Also
         --------
-        pandas.DataFrame.rename_axis
+        DataFrame.rename_axis
 
         Examples
         --------
@@ -3874,9 +4012,9 @@ class DataFrame(NDFrame):
                                               method=method)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0):
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
         return super(DataFrame, self).shift(periods=periods, freq=freq,
-                                            axis=axis)
+                                            axis=axis, fill_value=fill_value)
 
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
@@ -3884,12 +4022,17 @@ class DataFrame(NDFrame):
         Set the DataFrame index using existing columns.
 
         Set the DataFrame index (row labels) using one or more existing
-        columns. The index can replace the existing index or expand on it.
+        columns or arrays (of the correct length). The index can replace the
+        existing index or expand on it.
 
         Parameters
         ----------
-        keys : label or list of label
-            Name or names of the columns that will be used as the index.
+        keys : label or array-like or list of labels/arrays
+            This parameter can be either a single column key, a single array of
+            the same length as the calling DataFrame, or a list containing an
+            arbitrary combination of column keys and arrays. Here, "array"
+            encompasses :class:`Series`, :class:`Index`, ``np.ndarray``, and
+            instances of :class:`abc.Iterator`.
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False
@@ -3934,7 +4077,7 @@ class DataFrame(NDFrame):
         7      2013    84
         10     2014    31
 
-        Create a multi-index using columns 'year' and 'month':
+        Create a MultiIndex using columns 'year' and 'month':
 
         >>> df.set_index(['year', 'month'])
                     sale
@@ -3944,38 +4087,55 @@ class DataFrame(NDFrame):
         2013  7     84
         2014  10    31
 
-        Create a multi-index using a set of values and a column:
+        Create a MultiIndex using an Index and a column:
 
-        >>> df.set_index([[1, 2, 3, 4], 'year'])
+        >>> df.set_index([pd.Index([1, 2, 3, 4]), 'year'])
                  month  sale
            year
         1  2012  1      55
         2  2014  4      40
         3  2013  7      84
         4  2014  10     31
+
+        Create a MultiIndex using two Series:
+
+        >>> s = pd.Series([1, 2, 3, 4])
+        >>> df.set_index([s, s**2])
+              month  year  sale
+        1 1       1  2012    55
+        2 4       4  2014    40
+        3 9       7  2013    84
+        4 16     10  2014    31
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(keys, list):
             keys = [keys]
 
+        err_msg = ('The parameter "keys" may be a column key, one-dimensional '
+                   'array, or a list containing only valid column keys and '
+                   'one-dimensional arrays.')
+
         missing = []
         for col in keys:
-            if (is_scalar(col) or isinstance(col, tuple)) and col in self:
-                # tuples can be both column keys or list-likes
-                # if they are valid column keys, everything is fine
-                continue
-            elif is_scalar(col) and col not in self:
-                # tuples that are not column keys are considered list-like,
-                # not considered missing
-                missing.append(col)
-            elif (not is_list_like(col, allow_sets=False)
-                  or getattr(col, 'ndim', 1) > 1):
-                raise TypeError('The parameter "keys" may only contain a '
-                                'combination of valid column keys and '
-                                'one-dimensional list-likes')
+            if isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray,
+                                list, Iterator)):
+                # arrays are fine as long as they are one-dimensional
+                # iterators get converted to list below
+                if getattr(col, 'ndim', 1) != 1:
+                    raise ValueError(err_msg)
+            else:
+                # everything else gets tried as a key; see GH 24969
+                try:
+                    found = col in self.columns
+                except TypeError:
+                    raise TypeError(err_msg + ' Received column of '
+                                    'type {}'.format(type(col)))
+                else:
+                    if not found:
+                        missing.append(col)
 
         if missing:
-            raise KeyError('{}'.format(missing))
+            raise KeyError('None of {} are in the columns'.format(missing))
 
         if inplace:
             frame = self
@@ -4005,11 +4165,8 @@ class DataFrame(NDFrame):
             elif isinstance(col, (list, np.ndarray)):
                 arrays.append(col)
                 names.append(None)
-            elif (is_list_like(col)
-                  and not (isinstance(col, tuple) and col in self)):
-                # all other list-likes (but avoid valid column keys)
-                col = list(col)  # ensure iterator do not get read twice etc.
-                arrays.append(col)
+            elif isinstance(col, Iterator):
+                arrays.append(list(col))
                 names.append(None)
             # from here, col can only be a column label
             else:
@@ -4017,6 +4174,15 @@ class DataFrame(NDFrame):
                 names.append(col)
                 if drop:
                     to_remove.append(col)
+
+            if len(arrays[-1]) != len(self):
+                # check newest element against length of calling frame, since
+                # ensure_index_from_sequences would not raise for append=False.
+                raise ValueError('Length mismatch: Expected {len_self} rows, '
+                                 'received array of length {len_col}'.format(
+                                     len_self=len(self),
+                                     len_col=len(arrays[-1])
+                                 ))
 
         index = ensure_index_from_sequences(arrays, names)
 
@@ -4203,9 +4369,25 @@ class DataFrame(NDFrame):
                     values.fill(np.nan)
                 else:
                     values = values.take(labels)
+
+                    # TODO(https://github.com/pandas-dev/pandas/issues/24206)
+                    # Push this into maybe_upcast_putmask?
+                    # We can't pass EAs there right now. Looks a bit
+                    # complicated.
+                    # So we unbox the ndarray_values, op, re-box.
+                    values_type = type(values)
+                    values_dtype = values.dtype
+
+                    if issubclass(values_type, DatetimeLikeArray):
+                        values = values._data
+
                     if mask.any():
                         values, changed = maybe_upcast_putmask(
                             values, mask, np.nan)
+
+                    if issubclass(values_type, DatetimeLikeArray):
+                        values = values_type(values, dtype=values_dtype)
+
             return values
 
         new_index = ibase.default_index(len(new_obj))
@@ -4416,7 +4598,7 @@ class DataFrame(NDFrame):
                 else:
                     raise TypeError('must specify how or thresh')
 
-            result = self._take(mask.nonzero()[0], axis=axis)
+            result = self.loc(axis=axis)[mask]
 
         if inplace:
             self._update_inplace(result)
@@ -4426,7 +4608,8 @@ class DataFrame(NDFrame):
     def drop_duplicates(self, subset=None, keep='first', inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
-        considering certain columns.
+        considering certain columns. Indexes, including time indexes
+        are ignored.
 
         Parameters
         ----------
@@ -4442,7 +4625,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        deduplicated : DataFrame
+        DataFrame
         """
         if self.empty:
             return self.copy()
@@ -4451,7 +4634,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            inds, = (-duplicated).nonzero()
+            inds, = (-duplicated)._ndarray_values.nonzero()
             new_data = self._data.take(inds)
             self._update_inplace(new_data)
         else:
@@ -4476,13 +4659,13 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        duplicated : Series
+        Series
         """
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         if self.empty:
-            return Series()
+            return Series(dtype=bool)
 
         def f(vals):
             labels, shape = algorithms.factorize(
@@ -4844,7 +5027,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        swapped : same type as caller (new object)
+        DataFrame
 
         .. versionchanged:: 0.18.1
 
@@ -4942,8 +5125,7 @@ class DataFrame(NDFrame):
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
-        Perform column-wise combine with another DataFrame based on a
-        passed function.
+        Perform column-wise combine with another DataFrame.
 
         Combines a DataFrame with `other` DataFrame using `func`
         to element-wise combine columns. The row and column indexes of the
@@ -4959,13 +5141,14 @@ class DataFrame(NDFrame):
         fill_value : scalar value, default None
             The value to fill NaNs with prior to passing any column to the
             merge func.
-        overwrite : boolean, default True
+        overwrite : bool, default True
             If True, columns in `self` that do not exist in `other` will be
             overwritten with NaNs.
 
         Returns
         -------
-        result : DataFrame
+        DataFrame
+            Combination of the provided DataFrames.
 
         See Also
         --------
@@ -5009,15 +5192,15 @@ class DataFrame(NDFrame):
         >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [None, 4]})
         >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [None, 3]})
         >>> df1.combine(df2, take_smaller, fill_value=-5)
-           A    B
-        0  0  NaN
+            A    B
+        0  0 -5.0
         1  0  3.0
 
         Example that demonstrates the use of `overwrite` and behavior when
         the axis differ between the dataframes.
 
         >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [4, 4]})
-        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [-10, 1],}, index=[1, 2])
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [-10, 1], }, index=[1, 2])
         >>> df1.combine(df2, take_smaller)
              A    B     C
         0  NaN  NaN   NaN
@@ -5032,7 +5215,7 @@ class DataFrame(NDFrame):
 
         Demonstrating the preference of the passed in dataframe.
 
-        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1], }, index=[1, 2])
         >>> df2.combine(df1, take_smaller)
            A    B   C
         0  0.0  NaN NaN
@@ -5123,7 +5306,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        combined : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -5161,7 +5344,6 @@ class DataFrame(NDFrame):
                 arr = arr._values
 
             if needs_i8_conversion(arr):
-                # TODO(DatetimelikeArray): just use .asi8
                 if is_extension_array_dtype(arr.dtype):
                     arr = arr.asi8
                 else:
@@ -5485,7 +5667,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        table : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -5517,19 +5699,19 @@ class DataFrame(NDFrame):
 
         This first example aggregates values by taking the sum.
 
-        >>> table = pivot_table(df, values='D', index=['A', 'B'],
+        >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
         ...                     columns=['C'], aggfunc=np.sum)
         >>> table
         C        large  small
         A   B
-        bar one      4      5
-            two      7      6
-        foo one      4      1
-            two    NaN      6
+        bar one    4.0    5.0
+            two    7.0    6.0
+        foo one    4.0    1.0
+            two    NaN    6.0
 
         We can also fill missing values using the `fill_value` parameter.
 
-        >>> table = pivot_table(df, values='D', index=['A', 'B'],
+        >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
         ...                     columns=['C'], aggfunc=np.sum, fill_value=0)
         >>> table
         C        large  small
@@ -5541,12 +5723,11 @@ class DataFrame(NDFrame):
 
         The next example aggregates by taking the mean across multiple columns.
 
-        >>> table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
+        >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
         ...                     aggfunc={'D': np.mean,
         ...                              'E': np.mean})
         >>> table
-                          D         E
-                       mean      mean
+                        D         E
         A   C
         bar large  5.500000  7.500000
             small  5.500000  8.500000
@@ -5556,17 +5737,17 @@ class DataFrame(NDFrame):
         We can also calculate multiple types of aggregations for any given
         value column.
 
-        >>> table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
+        >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
         ...                     aggfunc={'D': np.mean,
         ...                              'E': [min, max, np.mean]})
         >>> table
-                          D   E
-                       mean max      mean min
+                        D    E
+                    mean  max      mean  min
         A   C
-        bar large  5.500000  9   7.500000   6
-            small  5.500000  9   8.500000   8
-        foo large  2.000000  5   4.500000   4
-            small  2.333333  6   4.333333   2
+        bar large  5.500000  9.0  7.500000  6.0
+            small  5.500000  9.0  8.500000  8.0
+        foo large  2.000000  5.0  4.500000  4.0
+            small  2.333333  6.0  4.333333  2.0
         """
 
     @Substitution('')
@@ -5626,9 +5807,9 @@ class DataFrame(NDFrame):
         Notes
         -----
         The function is named by analogy with a collection of books
-        being re-organised from being side by side on a horizontal
+        being reorganized from being side by side on a horizontal
         position (the columns of the dataframe) to being stacked
-        vertically on top of of each other (in the index of the
+        vertically on top of each other (in the index of the
         dataframe).
 
         Examples
@@ -5772,7 +5953,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        unstacked : DataFrame or Series
+        Series or DataFrame
 
         See Also
         --------
@@ -5814,7 +5995,7 @@ class DataFrame(NDFrame):
         return unstack(self, level, fill_value)
 
     _shared_docs['melt'] = ("""
-    Unpivots a DataFrame from wide format to long format, optionally
+    Unpivot a DataFrame from wide format to long format, optionally
     leaving identifier variables set.
 
     This function is useful to massage a DataFrame into a format where one
@@ -5938,7 +6119,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        diffed : DataFrame
+        DataFrame
 
         See Also
         --------
@@ -6037,7 +6218,7 @@ class DataFrame(NDFrame):
         # TODO: _shallow_copy(subset)?
         return subset[key]
 
-    _agg_doc = dedent("""
+    _agg_summary_and_see_also_doc = dedent("""
     The aggregation operations are always performed over an axis, either the
     index (default) or the column axis. This behavior is different from
     `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
@@ -6047,6 +6228,19 @@ class DataFrame(NDFrame):
 
     `agg` is an alias for `aggregate`. Use the alias.
 
+    See Also
+    --------
+    DataFrame.apply : Perform any type of operations.
+    DataFrame.transform : Perform transformation type operations.
+    core.groupby.GroupBy : Perform operations over groups.
+    core.resample.Resampler : Perform operations over resampled bins.
+    core.window.Rolling : Perform operations over rolling window.
+    core.window.Expanding : Perform operations over expanding window.
+    core.window.EWM : Perform operation over exponential weighted
+        window.
+    """)
+
+    _agg_examples_doc = dedent("""
     Examples
     --------
     >>> df = pd.DataFrame([[1, 2, 3],
@@ -6078,23 +6272,13 @@ class DataFrame(NDFrame):
     2    8.0
     3    NaN
     dtype: float64
-
-    See Also
-    --------
-    DataFrame.apply : Perform any type of operations.
-    DataFrame.transform : Perform transformation type operations.
-    pandas.core.groupby.GroupBy : Perform operations over groups.
-    pandas.core.resample.Resampler : Perform operations over resampled bins.
-    pandas.core.window.Rolling : Perform operations over rolling window.
-    pandas.core.window.Expanding : Perform operations over expanding window.
-    pandas.core.window.EWM : Perform operation over exponential weighted
-        window.
     """)
 
-    @Appender(_agg_doc)
-    @Appender(_shared_docs['aggregate'] % dict(
-        versionadded='.. versionadded:: 0.20.0',
-        **_shared_doc_kwargs))
+    @Substitution(see_also=_agg_summary_and_see_also_doc,
+                  examples=_agg_examples_doc,
+                  versionadded='.. versionadded:: 0.20.0',
+                  **_shared_doc_kwargs)
+    @Appender(_shared_docs['aggregate'])
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
@@ -6207,7 +6391,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        applied : Series or DataFrame
+        Series or DataFrame
+            Result of applying ``func`` along the given axis of the
+            DataFrame.
 
         See Also
         --------
@@ -6226,7 +6412,7 @@ class DataFrame(NDFrame):
         Examples
         --------
 
-        >>> df = pd.DataFrame([[4, 9],] * 3, columns=['A', 'B'])
+        >>> df = pd.DataFrame([[4, 9]] * 3, columns=['A', 'B'])
         >>> df
            A  B
         0  4  9
@@ -6326,6 +6512,14 @@ class DataFrame(NDFrame):
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
 
+        Notes
+        -----
+        In the current implementation applymap calls `func` twice on the
+        first column/row to decide whether it can take a fast or slow
+        code path. This can lead to unexpected behavior if `func` has
+        side-effects, as they will take effect twice for the first
+        column/row.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
@@ -6392,11 +6586,11 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        appended : DataFrame
+        DataFrame
 
         See Also
         --------
-        pandas.concat : General function to concatenate DataFrame, Series
+        concat : General function to concatenate DataFrame, Series
             or Panel objects.
 
         Notes
@@ -6693,41 +6887,67 @@ class DataFrame(NDFrame):
             columns not included in `decimals` will be left as is. Elements
             of `decimals` which are not columns of the input will be
             ignored.
+        *args
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
+        **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
 
         Returns
         -------
         DataFrame
+            A DataFrame with the affected columns rounded to the specified
+            number of decimal places.
 
         See Also
         --------
-        numpy.around
-        Series.round
+        numpy.around : Round a numpy array to the given number of decimals.
+        Series.round : Round a Series to the given number of decimals.
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.random([3, 3]),
-        ...     columns=['A', 'B', 'C'], index=['first', 'second', 'third'])
+        >>> df = pd.DataFrame([(.21, .32), (.01, .67), (.66, .03), (.21, .18)],
+        ...                   columns=['dogs', 'cats'])
         >>> df
-                       A         B         C
-        first   0.028208  0.992815  0.173891
-        second  0.038683  0.645646  0.577595
-        third   0.877076  0.149370  0.491027
-        >>> df.round(2)
-                   A     B     C
-        first   0.03  0.99  0.17
-        second  0.04  0.65  0.58
-        third   0.88  0.15  0.49
-        >>> df.round({'A': 1, 'C': 2})
-                  A         B     C
-        first   0.0  0.992815  0.17
-        second  0.0  0.645646  0.58
-        third   0.9  0.149370  0.49
-        >>> decimals = pd.Series([1, 0, 2], index=['A', 'B', 'C'])
+            dogs  cats
+        0  0.21  0.32
+        1  0.01  0.67
+        2  0.66  0.03
+        3  0.21  0.18
+
+        By providing an integer each column is rounded to the same number
+        of decimal places
+
+        >>> df.round(1)
+            dogs  cats
+        0   0.2   0.3
+        1   0.0   0.7
+        2   0.7   0.0
+        3   0.2   0.2
+
+        With a dict, the number of places for specific columns can be
+        specfified with the column names as key and the number of decimal
+        places as value
+
+        >>> df.round({'dogs': 1, 'cats': 0})
+            dogs  cats
+        0   0.2   0.0
+        1   0.0   1.0
+        2   0.7   0.0
+        3   0.2   0.0
+
+        Using a Series, the number of places for specific columns can be
+        specfified with the column names as index and the number of
+        decimal places as value
+
+        >>> decimals = pd.Series([0, 1], index=['cats', 'dogs'])
         >>> df.round(decimals)
-                  A  B     C
-        first   0.0  1  0.17
-        second  0.0  1  0.58
-        third   0.9  0  0.49
+            dogs  cats
+        0   0.2   0.0
+        1   0.0   1.0
+        2   0.7   0.0
+        3   0.2   0.0
         """
         from pandas.core.reshape.concat import concat
 
@@ -6780,27 +7000,35 @@ class DataFrame(NDFrame):
             * spearman : Spearman rank correlation
             * callable: callable with input two 1d ndarrays
                 and returning a float
+
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result. Currently only available for pearson
-            and spearman correlation
+            to have a valid result. Currently only available for Pearson
+            and Spearman correlation.
 
         Returns
         -------
-        y : DataFrame
+        DataFrame
+            Correlation matrix.
+
+        See Also
+        --------
+        DataFrame.corrwith
+        Series.corr
 
         Examples
         --------
-        >>> histogram_intersection = lambda a, b: np.minimum(a, b
-        ... ).sum().round(decimals=1)
+        >>> def histogram_intersection(a, b):
+        ...     v = np.minimum(a, b).sum().round(decimals=1)
+        ...     return v
         >>> df = pd.DataFrame([(.2, .3), (.0, .6), (.6, .0), (.2, .1)],
         ...                   columns=['dogs', 'cats'])
         >>> df.corr(method=histogram_intersection)
-              dogs cats
-        dogs   1.0  0.3
-        cats   0.3  1.0
+              dogs  cats
+        dogs   1.0   0.3
+        cats   0.3   1.0
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
@@ -6875,10 +7103,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.Series.cov : Compute covariance with another Series.
-        pandas.core.window.EWM.cov: Exponential weighted sample covariance.
-        pandas.core.window.Expanding.cov : Expanding sample covariance.
-        pandas.core.window.Rolling.cov : Rolling sample covariance.
+        Series.cov : Compute covariance with another Series.
+        core.window.EWM.cov: Exponential weighted sample covariance.
+        core.window.Expanding.cov : Expanding sample covariance.
+        core.window.Rolling.cov : Rolling sample covariance.
 
         Notes
         -----
@@ -6954,54 +7182,91 @@ class DataFrame(NDFrame):
 
         return self._constructor(baseCov, index=idx, columns=cols)
 
-    def corrwith(self, other, axis=0, drop=False):
+    def corrwith(self, other, axis=0, drop=False, method='pearson'):
         """
-        Compute pairwise correlation between rows or columns of two DataFrame
-        objects.
+        Compute pairwise correlation between rows or columns of DataFrame
+        with rows or columns of Series or DataFrame.  DataFrames are first
+        aligned along both axes before computing the correlations.
 
         Parameters
         ----------
         other : DataFrame, Series
+            Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
-        drop : boolean, default False
-            Drop missing indices from result, default returns union of all
+            0 or 'index' to compute column-wise, 1 or 'columns' for row-wise.
+        drop : bool, default False
+            Drop missing indices from result.
+        method : {'pearson', 'kendall', 'spearman'} or callable
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarrays
+                and returning a float
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
-        correls : Series
+        Series
+            Pairwise correlations.
+
+        See Also
+        -------
+        DataFrame.corr
         """
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
 
         if isinstance(other, Series):
-            return this.apply(other.corr, axis=axis)
+            return this.apply(lambda x: other.corr(x, method=method),
+                              axis=axis)
 
         other = other._get_numeric_data()
-
         left, right = this.align(other, join='inner', copy=False)
-
-        # mask missing values
-        left = left + right * 0
-        right = right + left * 0
 
         if axis == 1:
             left = left.T
             right = right.T
 
-        # demeaned data
-        ldem = left - left.mean()
-        rdem = right - right.mean()
+        if method == 'pearson':
+            # mask missing values
+            left = left + right * 0
+            right = right + left * 0
 
-        num = (ldem * rdem).sum()
-        dom = (left.count() - 1) * left.std() * right.std()
+            # demeaned data
+            ldem = left - left.mean()
+            rdem = right - right.mean()
 
-        correl = num / dom
+            num = (ldem * rdem).sum()
+            dom = (left.count() - 1) * left.std() * right.std()
+
+            correl = num / dom
+
+        elif method in ['kendall', 'spearman'] or callable(method):
+            def c(x):
+                return nanops.nancorr(x[0], x[1], method=method)
+
+            correl = Series(map(c,
+                                zip(left.values.T, right.values.T)),
+                            index=left.columns)
+
+        else:
+            raise ValueError("Invalid method {method} was passed, "
+                             "valid methods are: 'pearson', 'kendall', "
+                             "'spearman', or callable".
+                             format(method=method))
 
         if not drop:
+            # Find non-matching labels along the given axis
+            # and append missing correlations (GH 22375)
             raxis = 1 if axis == 0 else 0
-            result_index = this._get_axis(raxis).union(other._get_axis(raxis))
-            correl = correl.reindex(result_index)
+            result_index = (this._get_axis(raxis).
+                            union(other._get_axis(raxis)))
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl.append(Series([np.nan] * len(idx_diff),
+                                              index=idx_diff))
 
         return correl
 
@@ -7024,7 +7289,7 @@ class DataFrame(NDFrame):
             If the axis is a `MultiIndex` (hierarchical), count along a
             particular `level`, collapsing into a `DataFrame`.
             A `str` specifies the level name.
-        numeric_only : boolean, default False
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
         Returns
@@ -7167,7 +7432,9 @@ class DataFrame(NDFrame):
             return op(x, axis=axis, skipna=skipna, **kwds)
 
         # exclude timedelta/datetime unless we are uniform types
-        if axis == 1 and self._is_mixed_type and self._is_datelike_mixed_type:
+        if (axis == 1 and self._is_datelike_mixed_type
+                and (not self._is_homogeneous_type
+                     and not is_datetime64tz_dtype(self.dtypes[0]))):
             numeric_only = True
 
         if numeric_only is None:
@@ -7224,7 +7491,8 @@ class DataFrame(NDFrame):
                 if filter_type is None or filter_type == 'numeric':
                     data = self._get_numeric_data()
                 elif filter_type == 'bool':
-                    data = self._get_bool_data()
+                    # GH 25101, # GH 24434
+                    data = self._get_bool_data() if axis == 0 else self
                 else:  # pragma: no cover
                     msg = ("Generating numeric_only data with filter_type {f}"
                            "not supported.".format(f=filter_type))
@@ -7270,7 +7538,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        nunique : Series
+        Series
 
         See Also
         --------
@@ -7308,7 +7576,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        idxmin : Series
+        Series
+            Indexes of minima along the specified axis.
 
         Raises
         ------
@@ -7344,7 +7613,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        idxmax : Series
+        Series
+            Indexes of maxima along the specified axis.
 
         Raises
         ------
@@ -7491,12 +7761,12 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        quantiles : Series or DataFrame
+        Series or DataFrame
 
-            - If ``q`` is an array, a DataFrame will be returned where the
+            If ``q`` is an array, a DataFrame will be returned where the
               index is ``q``, the columns are the columns of self, and the
               values are the quantiles.
-            - If ``q`` is a float, a Series will be returned where the
+            If ``q`` is a float, a Series will be returned where the
               index is the columns of self and the values are the quantiles.
 
         See Also
@@ -7561,19 +7831,19 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        freq : string, default frequency of PeriodIndex
-            Desired frequency
+        freq : str, default frequency of PeriodIndex
+            Desired frequency.
         how : {'s', 'e', 'start', 'end'}
             Convention for converting period to timestamp; start of period
-            vs. end
+            vs. end.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to convert (the index by default)
-        copy : boolean, default True
-            If false then underlying input data is not copied
+            The axis to convert (the index by default).
+        copy : bool, default True
+            If False then underlying input data is not copied.
 
         Returns
         -------
-        df : DataFrame with DatetimeIndex
+        DataFrame with DatetimeIndex
         """
         new_data = self._data
         if copy:
@@ -7597,15 +7867,16 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        freq : string, default
+        freq : str, default
+            Frequency of the PeriodIndex.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to convert (the index by default)
-        copy : boolean, default True
-            If False then underlying input data is not copied
+            The axis to convert (the index by default).
+        copy : bool, default True
+            If False then underlying input data is not copied.
 
         Returns
         -------
-        ts : TimeSeries with PeriodIndex
+        TimeSeries with PeriodIndex
         """
         new_data = self._data
         if copy:
@@ -7678,7 +7949,7 @@ class DataFrame(NDFrame):
         match. Note that 'falcon' does not match based on the number of legs
         in df2.
 
-        >>> other = pd.DataFrame({'num_legs': [8, 2],'num_wings': [0, 2]},
+        >>> other = pd.DataFrame({'num_legs': [8, 2], 'num_wings': [0, 2]},
         ...                      index=['spider', 'falcon'])
         >>> df.isin(other)
                 num_legs  num_wings

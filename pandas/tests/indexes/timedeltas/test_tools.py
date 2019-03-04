@@ -3,10 +3,11 @@ from datetime import time, timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Series, TimedeltaIndex, isna, to_timedelta
 from pandas._libs.tslib import iNaT
+
+import pandas as pd
+from pandas import Series, TimedeltaIndex, isna, to_timedelta
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
@@ -114,14 +115,22 @@ class TestTimedeltas(object):
             to_timedelta(['foo'], errors='never')
 
         # these will error
-        pytest.raises(ValueError, lambda: to_timedelta([1, 2], unit='foo'))
-        pytest.raises(ValueError, lambda: to_timedelta(1, unit='foo'))
+        msg = "invalid unit abbreviation: foo"
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta([1, 2], unit='foo')
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(1, unit='foo')
 
         # time not supported ATM
-        pytest.raises(ValueError, lambda: to_timedelta(time(second=1)))
+        msg = ("Value must be Timedelta, string, integer, float, timedelta or"
+               " convertible")
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(time(second=1))
         assert to_timedelta(time(second=1), errors='coerce') is pd.NaT
 
-        pytest.raises(ValueError, lambda: to_timedelta(['foo', 'bar']))
+        msg = "unit abbreviation w/o a number"
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(['foo', 'bar'])
         tm.assert_index_equal(TimedeltaIndex([pd.NaT, pd.NaT]),
                               to_timedelta(['foo', 'bar'], errors='coerce'))
 

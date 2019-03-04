@@ -15,22 +15,21 @@ dependencies:
   - numexpr
   - numpy
   - openpyxl
-  - psycopg2
-  - pymysql
   - pytables
   - python-dateutil
   - python=3.6*
   - pytz
   - s3fs
   - scipy
-  - sqlalchemy
   - xarray
   - xlrd
   - xlsxwriter
   - xlwt
   # universal
-  - pytest
+  - pytest>=4.0.2
   - pytest-xdist
+  - pytest-mock
   - moto
+  - isort
   - pip:
     - hypothesis>=3.58.0

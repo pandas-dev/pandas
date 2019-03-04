@@ -33,6 +33,15 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(result, Index(rng.asi8))
         tm.assert_numpy_array_equal(result.values, rng.asi8)
 
+    def test_astype_uint(self):
+        arr = date_range('2000', periods=2)
+        expected = pd.UInt64Index(
+            np.array([946684800000000000, 946771200000000000], dtype="uint64")
+        )
+
+        tm.assert_index_equal(arr.astype("uint64"), expected)
+        tm.assert_index_equal(arr.astype("uint32"), expected)
+
     def test_astype_with_tz(self):
 
         # with tz
@@ -168,7 +177,7 @@ class TestDatetimeIndex(object):
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
-        msg = 'Cannot cast DatetimeIndex to dtype'
+        msg = 'Cannot cast DatetimeArray to dtype'
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
@@ -229,10 +238,10 @@ class TestDatetimeIndex(object):
         ['US/Pacific', 'datetime64[ns, US/Pacific]'],
         [None, 'datetime64[ns]']])
     def test_integer_index_astype_datetime(self, tz, dtype):
-        # GH 20997, 20964
+        # GH 20997, 20964, 24559
         val = [pd.Timestamp('2018-01-01', tz=tz).value]
         result = pd.Index(val).astype(dtype)
-        expected = pd.DatetimeIndex(['2018-01-01'], tz=tz)
+        expected = pd.DatetimeIndex(["2018-01-01"], tz=tz)
         tm.assert_index_equal(result, expected)
 
 
@@ -284,6 +293,15 @@ class TestToPeriod(object):
 
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize('tz', ['Etc/GMT-1', 'Etc/GMT+1'])
+    def test_to_period_tz_utc_offset_consistency(self, tz):
+        # GH 22905
+        ts = pd.date_range('1/1/2000', '2/1/2000', tz='Etc/GMT-1')
+        with tm.assert_produces_warning(UserWarning):
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
+            assert result == expected
+
     def test_to_period_nofreq(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
         with pytest.raises(ValueError):
@@ -300,6 +318,18 @@ class TestToPeriod(object):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'])
         assert idx.freqstr is None
         tm.assert_index_equal(idx.to_period(), expected)
+
+    @pytest.mark.parametrize('tz', [None, 'US/Central'])
+    def test_astype_category(self, tz):
+        obj = pd.date_range("2000", periods=2, tz=tz)
+        result = obj.astype('category')
+        expected = pd.CategoricalIndex([pd.Timestamp('2000-01-01', tz=tz),
+                                        pd.Timestamp('2000-01-02', tz=tz)])
+        tm.assert_index_equal(result, expected)
+
+        result = obj._data.astype('category')
+        expected = expected.values
+        tm.assert_categorical_equal(result, expected)
 
     @pytest.mark.parametrize('tz', [None, 'US/Central'])
     def test_astype_array_fallback(self, tz):
