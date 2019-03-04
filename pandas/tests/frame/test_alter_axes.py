@@ -890,6 +890,10 @@ class TestDataFrameAlterAxes():
         expected = DataFrame(columns=['a', 'B', 'C', 'D'])
         tm.assert_frame_equal(renamed, expected)
 
+        renamed = df.rename(columns=str.lower, errors='raise')
+        expected = DataFrame(columns=['a', 'b', 'c', 'd'])
+        tm.assert_frame_equal(renamed, expected)
+
     def test_reorder_levels(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
                            codes=[[0, 0, 0, 0, 0, 0],
