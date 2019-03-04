@@ -1718,9 +1718,9 @@ def test_groupby_multiindex_nat():
 
 def test_idxmin_idxmax_returns_int_types():
     # GH 25444
-    df = pd.DataFrame({'name': ['A', 'A', 'B', 'B'], 
-                       'c_int': [1, 2, 3, 4], 
-                       'c_float': [4.02, 3.03, 2.04, 1.05], 
+    df = pd.DataFrame({'name': ['A', 'A', 'B', 'B'],
+                       'c_int': [1, 2, 3, 4],
+                       'c_float': [4.02, 3.03, 2.04, 1.05],
                        'c_date': ['2019', '2018', '2016', '2017']})
     df['c_date'] = pd.to_datetime(df['c_date'])
 
@@ -1734,14 +1734,14 @@ def test_idxmin_idxmax_returns_int_types():
     idxmins_expected = pd.DataFrame({'c_int': [0, 2],
                                      'c_float': [1, 3],
                                      'c_date': [1, 2]},
-                                     index=['A', 'B'])
+                                    index=['A', 'B'])
 
     idxmins_expected.index.name = "name"
 
     idxmaxs_expected = pd.DataFrame({'c_int': [1, 3],
                                      'c_float': [0, 2],
                                      'c_date': [0, 3]},
-                                     index=['A', 'B'])
+                                    index=['A', 'B'])
 
     idxmaxs_expected.index.name = "name"
 
