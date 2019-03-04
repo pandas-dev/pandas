@@ -69,22 +69,9 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`23519`).
+Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions.
+Independently, some minimum supported versions of dependencies were updated (:issue:`23519`).
 If installed, we now require:
-
-+-----------------+-----------------+----------+
-| Package         | Minimum Version | Required |
-+=================+=================+==========+
-| pytest (dev)    | 4.0.2           |          |
-+-----------------+-----------------+----------+
-
-.. _whatsnew_0250.api_breaking.deps:
-
-Dependencies have increased minimum versions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Due to dropping support for Python 2.7, a number of optional dependencies have updated
-minimum versions. If installed, we now require:
 
 +-----------------+-----------------+----------+
 | Package         | Minimum Version | Required |
@@ -94,6 +81,8 @@ minimum versions. If installed, we now require:
 | openpyxl        | 2.2.6           |          |
 +-----------------+-----------------+----------+
 | pymysql         | 0.6.6           |          |
++-----------------+-----------------+----------+
+| pytest (dev)    | 4.0.2           |          |
 +-----------------+-----------------+----------+
 | pytz            | 2015.4          |          |
 +-----------------+-----------------+----------+
