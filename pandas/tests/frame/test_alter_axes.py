@@ -1351,7 +1351,7 @@ class TestDataFrameAlterAxes():
         sig = inspect.signature(DataFrame.rename)
         parameters = set(sig.parameters)
         assert parameters == {"self", "mapper", "index", "columns", "axis",
-                              "inplace", "copy", "level"}
+                              "inplace", "copy", "level", "errors"}
 
     @pytest.mark.skipif(PY2, reason="inspect.signature")
     def test_reindex_signature(self):
