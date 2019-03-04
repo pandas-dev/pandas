@@ -3118,6 +3118,7 @@ class StringMethods(NoNewAttributesMixin):
                               docstring=_shared_docs['casemethods'] %
                               _shared_docs['swapcase'])
     casefold = _noarg_wrapper(lambda x: x.casefold(),
+                              name='casefold',
                               docstring=_shared_docs['casemethods'] %
                               _shared_docs['casefold'])
 
