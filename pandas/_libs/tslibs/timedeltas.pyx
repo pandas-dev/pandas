@@ -815,10 +815,10 @@ cdef class _Timedelta(timedelta):
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
-        Converts a Timedelta object into a python datetime.timedelta object.
+        Convert a Timedelta object into a python datetime.timedelta object.
 
-        Timedelta objects are typecast to numpy datetime64[ns] dtype,
-        use to_pytimedelta() to convert back to object dtype.
+        Timedelta objects are internally saved as numpy datetime64[ns] dtype.
+        Use to_pytimedelta() to convert to object dtype.
 
         Returns
         -------
@@ -834,24 +834,23 @@ cdef class _Timedelta(timedelta):
 
         Examples
         --------
-        Converting an array of Timedeltas:
-
-        >>> arr = pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
-        >>> arr
+        >>> idx = pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
+        >>> idx
         TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015',
                        NaT],
                        dtype='timedelta64[ns]', freq=None)
-        >>> arr[1].to_pytimedelta()
-        datetime.timedelta(0, 0, 16)
-        >>> arr.to_pytimedelta()
+
+        >>> idx.to_pytimedelta()
         array([datetime.timedelta(1, 21901, 30), datetime.timedelta(0, 0, 16),
         NaT], dtype=object)
+        >>> idx[1].to_pytimedelta()
+        datetime.timedelta(0, 0, 16)
         """
         return timedelta(microseconds=int(self.value) / 1000)
 
     def to_timedelta64(self):
         """
-        Returns a numpy.timedelta64 object with 'ns' precision.
+        Return a numpy.timedelta64 object with 'ns' precision.
         """
         return np.timedelta64(self.value, 'ns')
 
@@ -870,7 +869,7 @@ cdef class _Timedelta(timedelta):
     @property
     def components(self):
         """
-        Return a Components NamedTuple-like.
+        Return a components namedtuple-like.
         """
         self._ensure_components()
         # return the named tuple
