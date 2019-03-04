@@ -1323,11 +1323,11 @@ def assert_series_equal(left, right, check_dtype=True,
         # .values is an ndarray, but ._values is the ExtensionArray.
         # TODO: Use .array
         assert is_extension_array_dtype(right.dtype)
-        return assert_extension_array_equal(left._values, right._values)
+        assert_extension_array_equal(left._values, right._values)
 
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
-        return assert_extension_array_equal(left.array, right.array)
+        assert_extension_array_equal(left.array, right.array)
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
