@@ -61,7 +61,8 @@ cdef extern from "khash_python.h":
         int starts[256]
 
     kh_str_starts_t* kh_init_str_starts() nogil
-    khint_t kh_put_str_starts_item(kh_str_starts_t* table, char* key, int* ret) nogil
+    khint_t kh_put_str_starts_item(kh_str_starts_t* table, char* key,
+                                                            int* ret) nogil
     khint_t kh_get_str_starts_item(kh_str_starts_t* table, char* key) nogil
     void kh_destroy_str_starts(kh_str_starts_t*) nogil
     void kh_resize_str_starts(kh_str_starts_t*, khint_t) nogil

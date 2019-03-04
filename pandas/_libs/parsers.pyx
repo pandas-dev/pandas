@@ -44,7 +44,8 @@ from pandas._libs.khash cimport (
     kh_put_float64, kh_init_float64, kh_resize_float64,
     kh_strbox_t, kh_put_strbox, kh_get_strbox, kh_init_strbox,
     kh_destroy_strbox,
-    kh_str_starts_t, kh_put_str_starts_item, kh_init_str_starts, kh_get_str_starts_item, kh_destroy_str_starts, kh_resize_str_starts)
+    kh_str_starts_t, kh_put_str_starts_item, kh_init_str_starts,
+    kh_get_str_starts_item, kh_destroy_str_starts, kh_resize_str_starts)
 
 import pandas.compat as compat
 from pandas.core.dtypes.common import (
