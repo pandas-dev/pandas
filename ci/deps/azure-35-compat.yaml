@@ -20,9 +20,9 @@ dependencies:
   - xlsxwriter=0.7.7
   - xlwt=1.0.0
   # universal
-  - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
   - isort
   - pip:
+    - pytest>=4.0.2
     - html5lib==1.0b2
