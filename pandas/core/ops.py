@@ -667,8 +667,6 @@ Series
 See Also
 --------
 Series.{reverse}
-
-{examples}
 """
 
 _arith_doc_FRAME = """
@@ -1058,9 +1056,12 @@ def _make_flex_doc(op_name, typ):
 
     if typ == 'series':
         base_doc = _flex_doc_SERIES
-        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'],
-                              examples=op_desc['series_examples'])
+        doc_no_examples = base_doc.format(desc=op_desc['desc'], op_name=op_name,
+                              equiv=equiv, reverse=op_desc['reverse'])
+        if op_desc['series_examples']:
+            doc = doc_no_examples + op_desc['series_examples']
+        else:
+            doc = doc_no_examples
     elif typ == 'dataframe':
         base_doc = _flex_doc_FRAME
         doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
