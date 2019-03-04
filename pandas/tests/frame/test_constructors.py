@@ -247,7 +247,7 @@ class TestDataFrameConstructors(TestData):
         assert isna(frame['col3']).all()
 
         # Corner cases
-        assert len(DataFrame({})) == 0
+        assert len(DataFrame()) == 0
 
         # mix dict and array, wrong size - no spec for which error should raise
         # first
