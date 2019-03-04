@@ -1717,6 +1717,7 @@ def test_groupby_multiindex_nat():
 
 
 def test_idxmin_idxmax_returns_int_types():
+    # GH 25444
     df = pd.DataFrame({'name': ['A', 'A', 'B', 'B'], 
                        'c_int': [1, 2, 3, 4], 
                        'c_float': [4.02, 3.03, 2.04, 1.05], 
