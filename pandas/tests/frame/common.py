@@ -85,7 +85,7 @@ class TestData(object):
 
     @cache_readonly
     def empty(self):
-        return pd.DataFrame({})
+        return pd.DataFrame()
 
     @cache_readonly
     def ts1(self):

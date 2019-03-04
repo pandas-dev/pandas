@@ -128,14 +128,6 @@ def timezone_frame():
 
 
 @pytest.fixture
-def empty_frame():
-    """
-    Fixture for empty DataFrame
-    """
-    return DataFrame({})
-
-
-@pytest.fixture
 def simple_frame():
     """
     Fixture for simple 3x3 DataFrame

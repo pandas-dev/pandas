@@ -1096,7 +1096,9 @@ class TestDataFrameAnalytics(object):
         assert df['off1'].dtype == 'timedelta64[ns]'
         assert df['off2'].dtype == 'timedelta64[ns]'
 
-    def test_sum_corner(self, empty_frame):
+    def test_sum_corner(self):
+        empty_frame = DataFrame()
+
         axis0 = empty_frame.sum(0)
         axis1 = empty_frame.sum(1)
         assert isinstance(axis0, Series)

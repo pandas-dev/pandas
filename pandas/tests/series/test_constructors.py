@@ -47,7 +47,9 @@ class TestSeriesConstructors():
         assert int(Series([1.])) == 1
         assert long(Series([1.])) == 1
 
-    def test_constructor(self, datetime_series, empty_series):
+    def test_constructor(self, datetime_series):
+        empty_series = Series()
+
         assert datetime_series.index.is_all_dates
 
         # Pass in Series
