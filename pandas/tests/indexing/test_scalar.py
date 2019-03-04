@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-from pytz import FixedOffset
 
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
 from pandas.tests.indexing.common import Base
