@@ -3416,7 +3416,8 @@ class TestStringMethods(object):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))
         rhs = Series(np.array(list('def'), 'S1').astype(object))
         if compat.PY3:
-            with pytest.raises(TypeError, match="can't concat str to bytes"):
+            with pytest.raises(TypeError,
+                               match="Cannot use .str.cat with values of.*"):
                 lhs.str.cat(rhs)
         else:
             result = lhs.str.cat(rhs)
