@@ -260,8 +260,8 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
 
     Parameters
     ----------
-    path : string
-        File path
+    path : str
+        File path.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -277,6 +277,17 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     Returns
     -------
     DataFrame
+        A parquet file is returned as two-dimensional data structure with
+        labeled axes.
+
+    See Also
+    --------
+    to_parquet : Write DataFrame to a parquet file.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+
+    Examples
+    --------
+    >>> pd.read_parquet('data.parquet')  # doctest: +SKIP
     """
 
     impl = get_engine(engine)
