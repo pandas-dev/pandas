@@ -37,7 +37,6 @@ dependencies:
   - xlsxwriter=0.7.7
   - xlwt=1.0.0
   # universal
-  - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
   - hypothesis>=3.58.0
@@ -48,3 +47,5 @@ dependencies:
     - moto
     - pandas-gbq
     - pathlib
+    # for python 3.5, pytest>=4.0.2 is not available in conda
+    - pytest>=4.0.2
