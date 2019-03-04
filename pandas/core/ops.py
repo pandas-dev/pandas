@@ -453,11 +453,11 @@ b    NaN
 d    1.0
 e    NaN
 dtype: float64
->>> a.multiply(b)
+>>> a.multiply(b, fill_value=0)
 a    1.0
-b    NaN
-c    NaN
-d    NaN
+b    0.0
+c    0.0
+d    0.0
 e    NaN
 dtype: float64
 """
