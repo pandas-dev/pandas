@@ -1098,9 +1098,11 @@ class NDFrame(PandasObject, SelectionMixin):
                 level = self.axes[axis]._get_level_number(level)
 
             # GH 13473
-            labels_missing = (self.axes[axis].get_indexer_for(v) == -1).any()
-            if errors == 'raise' and labels_missing:
-                raise KeyError('{} not found in axis'.format(v))
+            indexer = self.axes[axis].get_indexer_for(v)
+            missing_labels = [label for index, label in enumerate(v)
+                              if indexer[index] == -1]
+            if errors == 'raise' and len(missing_labels) > 0:
+                raise KeyError('{} not found in axis'.format(missing_labels))
 
             result._data = result._data.rename_axis(f, axis=baxis, copy=copy,
                                                     level=level)
