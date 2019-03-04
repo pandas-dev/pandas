@@ -364,3 +364,13 @@ class TestSeriesTimezones(object):
                           index=date_range('20131027', periods=5, freq='1H',
                                            tz=tz))
         tm.assert_series_equal(result, expected)
+
+    def test_series_set_tz_timestamp(self):
+        # GH 25506
+        ts = Timestamp('2017-08-05 00:00:00+0100', tz=pytz.FixedOffset(60))
+        result = Series(ts)
+        result.at[1] = ts
+        expected = Series([ts, ts])
+        tm.assert_series_equal(result, expected)
+
+
