@@ -291,6 +291,4 @@ class TestSeriesReplace(TestData):
         s = pd.Series(categorical)
         result = s.replace({'A': 1, 'B': 2})
         expected = pd.Series(numeric)
-        print(result.dtype)
-        print(expected.dtype)
         tm.assert_series_equal(expected, result, check_dtype=False)
