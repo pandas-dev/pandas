@@ -7,7 +7,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY2
+from pandas.compat import PY2, PY36
 
 from pandas import DataFrame, MultiIndex, Series, compat, concat, merge
 from pandas.core import common as com
@@ -405,7 +405,8 @@ class TestSafeSort(object):
         expected = np.array([0, 0, 1, 'a', 'b', 'b'], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
+    @pytest.mark.skipif(PY2 or not PY36,
+                        reason="pytest.raises match regex fails")
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
