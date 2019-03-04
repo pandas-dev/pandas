@@ -488,6 +488,83 @@ e    NaN
 dtype: float64
 """
 
+_floordiv_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.floordiv(b, fill_value=0)
+a    1.0
+b    NaN
+c    NaN
+d    0.0
+e    NaN
+dtype: float64
+"""
+
+_mod_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.mod(b, fill_value=0)
+a    0.0
+b    NaN
+c    NaN
+d    0.0
+e    NaN
+dtype: float64
+"""
+_pow_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.pow(b, fill_value=0)
+a    1.0
+b    1.0
+c    1.0
+d    0.0
+e    NaN
+dtype: float64
+"""
+
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
@@ -506,11 +583,11 @@ _op_descriptions = {
     'mod': {'op': '%',
             'desc': 'Modulo',
             'reverse': 'rmod',
-            'series_examples': None},
+            'series_examples': _mod_example_SERIES},
     'pow': {'op': '**',
             'desc': 'Exponential power',
             'reverse': 'rpow',
-            'series_examples': None,
+            'series_examples': _pow_example_SERIES,
             'df_examples': None},
     'truediv': {'op': '/',
                 'desc': 'Floating division',
@@ -520,7 +597,7 @@ _op_descriptions = {
     'floordiv': {'op': '//',
                  'desc': 'Integer division',
                  'reverse': 'rfloordiv',
-                 'series_examples': None,
+                 'series_examples': _floordiv_example_SERIES,
                  'df_examples': None},
     'divmod': {'op': 'divmod',
                'desc': 'Integer division and modulo',
