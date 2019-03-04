@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+from pytz import FixedOffset
 
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
 from pandas.tests.indexing.common import Base
@@ -184,6 +185,17 @@ class TestScalar(Base):
 
         result = df.at[0, 'date']
         assert result == expected
+
+    @pytest.mark.parametrize('tz', [
+        None, 'UTC', 'US/Eastern', 'Asia/Tokyo',
+        'dateutil/US/Pacific', 'CET', FixedOffset(60)])
+    def test_series_set_tz_timestamp(self, tz):
+        # GH 25506
+        ts = Timestamp('2017-08-05 00:00:00+0100', tz=tz)
+        result = Series(ts)
+        result.at[1] = ts
+        expected = Series([ts, ts])
+        tm.assert_series_equal(result, expected)
 
     def test_mixed_index_at_iat_loc_iloc_series(self):
         # GH 19860
