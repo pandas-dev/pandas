@@ -75,11 +75,15 @@ class TestDataFrameConvertTo(TestData):
         # GH22801
         # Data loss when indexes are not unique. Raise ValueError.
         df = DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
-        pytest.raises(ValueError, df.to_dict, orient='index')
+        msg = "DataFrame index must be unique for orient='index'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_dict(orient='index')
 
     def test_to_dict_invalid_orient(self):
         df = DataFrame({'A': [0, 1]})
-        pytest.raises(ValueError, df.to_dict, orient='xinvalid')
+        msg = "orient 'xinvalid' not understood"
+        with pytest.raises(ValueError, match=msg):
+            df.to_dict(orient='xinvalid')
 
     def test_to_records_dt64(self):
         df = DataFrame([["one", "two", "three"],

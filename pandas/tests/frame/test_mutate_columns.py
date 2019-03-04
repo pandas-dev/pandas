@@ -177,7 +177,9 @@ class TestDataFrameMutateColumns(TestData):
 
         with pytest.raises(ValueError, match='already exists'):
             df.insert(1, 'a', df['b'])
-        pytest.raises(ValueError, df.insert, 1, 'c', df['b'])
+        msg = "cannot insert c, already exists"
+        with pytest.raises(ValueError, match=msg):
+            df.insert(1, 'c', df['b'])
 
         df.columns.name = 'some_name'
         # preserve columns name field
