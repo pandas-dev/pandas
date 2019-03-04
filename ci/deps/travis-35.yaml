@@ -29,7 +29,6 @@ dependencies:
   - python-dateutil=2.5.0
   - python=3.5*
   - pytz=2015.4
-  - s3fs
   - scipy
   - sqlalchemy=1.0.8
   - xarray=0.9.6
@@ -49,3 +48,4 @@ dependencies:
     - pathlib
     # for python 3.5, pytest>=4.0.2 is not available in conda
     - pytest>=4.0.2
+    - s3fs
