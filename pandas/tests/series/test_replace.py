@@ -286,8 +286,10 @@ class TestSeriesReplace(TestData):
         (pd.Categorical(('A', ), categories=['A', 'B']), [1]),
         (pd.Categorical(('A', 'B'), categories=['A', 'B']), [1, 2]),
     ])
-    def test_copy_categorical_ndim(self, categorical, numeric):
+    def test_replace_categorical(self, categorical, numeric):
         # GH 24971
+        # Do not check if dtypes are equal due to a known issue that
+        # Categorical.replace sometimes coerces to object (GH 23305)
         s = pd.Series(categorical)
         result = s.replace({'A': 1, 'B': 2})
         expected = pd.Series(numeric)
