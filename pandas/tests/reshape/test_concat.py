@@ -18,7 +18,7 @@ import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Panel, Series,
     Timestamp, concat, date_range, isna, read_csv)
-from pandas.core.common import dict_keys_to_ordered_list
+import pandas.core.common as com
 from pandas.tests.extension.decimal import to_decimal
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, makeCustomDataframe as mkdf
@@ -1164,7 +1164,7 @@ class TestConcatenate(ConcatenateBase):
                   'baz': DataFrame(np.random.randn(4, 3)),
                   'qux': DataFrame(np.random.randn(4, 3))}
 
-        sorted_keys = dict_keys_to_ordered_list(frames)
+        sorted_keys = com.dict_keys_to_ordered_list(frames)
 
         result = concat(frames)
         expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys)
