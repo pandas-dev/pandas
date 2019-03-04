@@ -3911,7 +3911,8 @@ class DataFrame(NDFrame):
 
     @rewrite_axis_style_signature('mapper', [('copy', True),
                                              ('inplace', False),
-                                             ('level', None)])
+                                             ('level', None),
+                                             ('errors', 'ignore')])
     def rename(self, *args, **kwargs):
         """
         Alter axes labels.
@@ -3924,17 +3925,23 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        mapper, index, columns : dict-like or function, optional
-            dict-like or functions transformations to apply to
+        mapper : dict-like or function
+            Dict-like or functions transformations to apply to
             that axis' values. Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index`` and
             ``columns``.
-        axis : int or str, optional
+        index : dict-like or function
+            Alternative to specifying axis (``mapper, axis=0``
+            is equivalent to ``index=mapper``).
+        columns : dict-like or function
+            Alternative to specifying axis (``mapper, axis=1``
+            is equivalent to ``columns=mapper``).
+        axis : int or str
             Axis to target with ``mapper``. Can be either the axis name
             ('index', 'columns') or number (0, 1). The default is 'index'.
-        copy : boolean, default True
-            Also copy underlying data
-        inplace : boolean, default False
+        copy : bool, default True
+            Also copy underlying data.
+        inplace : bool, default False
             Whether to return a new DataFrame. If True then value of copy is
             ignored.
         level : int or level name, default None
@@ -3942,18 +3949,21 @@ class DataFrame(NDFrame):
             level.
         errors : {'ignore', 'raise'}, default 'ignore'
             If 'ignore', suppress error and existing labels are renamed.
+
         Returns
         -------
         DataFrame
-
-        See Also
-        --------
-        DataFrame.rename_axis
+            DataFrame with the renamed axis labels.
 
         Raises
         ------
         KeyError
             If any of the labels is not found in the selected axis.
+
+        See Also
+        --------
+        DataFrame.rename_axis: Set the name of the axis for the index or
+         columns.
 
         Examples
         --------
