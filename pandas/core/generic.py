@@ -982,7 +982,11 @@ class NDFrame(PandasObject, SelectionMixin):
             In case of a MultiIndex, only rename labels in the specified
             level.
         errors : {'ignore', 'raise'}, default 'ignore'
-            If 'ignore', suppress error and existing labels are renamed.
+            If 'raise', raise a `KeyError` when a dict-like `mapper`, `index`,
+            or `columns` contains labels that are not present in the Index
+            being transformed.
+            If 'ignore', existing keys will be renamed and extra keys will be
+            ignored.
 
         Returns
         -------
@@ -1101,9 +1105,9 @@ class NDFrame(PandasObject, SelectionMixin):
             # GH 13473
             if not callable(v):
                 indexer = self.axes[axis].get_indexer_for(v)
-                missing_labels = [label for index, label in enumerate(v)
-                                  if indexer[index] == -1]
-                if errors == 'raise' and len(missing_labels) > 0:
+                if errors == 'raise' and len(indexer[indexer == -1]):
+                    missing_labels = [label for index, label in enumerate(v)
+                                      if indexer[index] == -1]
                     raise KeyError('{} not found in axis'
                                    .format(missing_labels))
 

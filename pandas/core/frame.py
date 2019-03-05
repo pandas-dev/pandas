@@ -3948,7 +3948,11 @@ class DataFrame(NDFrame):
             In case of a MultiIndex, only rename labels in the specified
             level.
         errors : {'ignore', 'raise'}, default 'ignore'
-            If 'ignore', suppress error and existing labels are renamed.
+            If 'raise', raise a `KeyError` when a dict-like `mapper`, `index`,
+            or `columns` contains labels that are not present in the Index
+            being transformed.
+            If 'ignore', existing keys will be renamed and extra keys will be
+            ignored.
 
         Returns
         -------
@@ -3963,8 +3967,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.rename_axis : Set the name of the axis for the index or
-         columns.
+        DataFrame.rename_axis : Set the name of the axis.
 
         Examples
         --------
