@@ -899,7 +899,7 @@ class Styler(object):
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         subset : IndexSlice
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for ``data`` to limit the style application to.
         text_color_threshold : float or int
             luminance threshold for determining text color. Facilitates text
             visibility across varying background colors. From 0 to 1.
@@ -1151,7 +1151,7 @@ class Styler(object):
         Parameters
         ----------
         subset : IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
         axis : int, str or None, default 0
             apply to each column (``axis=0`` or ``'index'``), to each row
@@ -1172,7 +1172,7 @@ class Styler(object):
         Parameters
         ----------
         subset : IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
         axis : int, str or None, default 0
             apply to each column (``axis=0`` or ``'index'``), to each row
