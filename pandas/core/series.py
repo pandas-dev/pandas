@@ -1669,6 +1669,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             * Sparse
             * IntegerNA
 
+        See Examples section.
+
         Examples
         --------
         >>> pd.Series([2, 1, 3, 3], name='A').unique()
@@ -3096,8 +3098,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : take the first occurrences based on the index order
-            - ``last`` : take the last occurrences based on the index order
+            - ``first`` : return the first `n` occurrences in order
+                of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+                order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
@@ -3192,8 +3196,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : take the first occurrences based on the index order
-            - ``last`` : take the last occurrences based on the index order
+            - ``first`` : return the first `n` occurrences in order
+                of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+                order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
@@ -3234,7 +3240,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Monserat        5200
         dtype: int64
 
-        The `n` largest elements where ``n=5`` by default.
+        The `n` smallest elements where ``n=5`` by default.
 
         >>> s.nsmallest()
         Monserat      5200
