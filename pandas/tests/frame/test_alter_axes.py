@@ -633,7 +633,8 @@ class TestDataFrameAlterAxes():
         tm.assert_index_equal(renamed.index, Index(['BAR', 'FOO']))
 
         # have to pass something
-        pytest.raises(TypeError, float_frame.rename)
+        with pytest.raises(TypeError, match="must pass an index to rename"):
+            float_frame.rename()
 
         # partial columns
         renamed = float_frame.rename(columns={'C': 'foo', 'D': 'bar'})

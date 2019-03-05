@@ -5,6 +5,8 @@ from __future__ import print_function
 import numpy as np
 import pytest
 
+from pandas.compat import PY2
+
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
 from pandas.tests.frame.common import TestData
@@ -71,6 +73,7 @@ class TestDataFrameQuantile(TestData):
         with pytest.raises(TypeError):
             df.quantile(.5, axis=1, numeric_only=False)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_quantile_axis_parameter(self):
         # GH 9543/9544
 
@@ -92,8 +95,12 @@ class TestDataFrameQuantile(TestData):
         result = df.quantile(.5, axis="columns")
         assert_series_equal(result, expected)
 
-        pytest.raises(ValueError, df.quantile, 0.1, axis=-1)
-        pytest.raises(ValueError, df.quantile, 0.1, axis="column")
+        msg = "No axis named -1 for object type <class 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            df.quantile(0.1, axis=-1)
+        msg = "No axis named column for object type <class 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            df.quantile(0.1, axis="column")
 
     def test_quantile_interpolation(self):
         # see gh-10174
