@@ -192,8 +192,8 @@ def test_rich_comparison_with_unsupported_type():
     timestamp = Timestamp('2018-11-30')
 
     for left, right in [(inf, timestamp), (timestamp, inf)]:
-        assert left > right or right < left
-        assert left >= right or right <= left
+        assert left > right or left < right
+        assert left >= right or left <= right
         assert not (left == right)
         assert left != right
         
