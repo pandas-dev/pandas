@@ -2194,6 +2194,10 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
                            tz=dateutil.tz.tzutc())
    rng_utc.tz
 
+.. versionadded:: 0.25.0
+
+.. ipython:: python
+
    # datetime.timezone
    rng_utc = pd.date_range('3/6/2012 00:00', periods=3, freq='D',
                            tz=datetime.timezone.utc)
