@@ -1324,10 +1324,12 @@ def assert_series_equal(left, right, check_dtype=True,
         # TODO: Use .array
         assert is_extension_array_dtype(right.dtype)
         assert_extension_array_equal(left._values, right._values)
+        return
 
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
         assert_extension_array_equal(left.array, right.array)
+        return
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
