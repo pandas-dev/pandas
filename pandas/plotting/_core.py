@@ -312,8 +312,9 @@ class MPLPlot(object):
         input_log = {self.logx, self.logy, self.loglog}
         if input_log - valid_log:
             invalid_log = next(iter((input_log - valid_log)))
-            raise ValueError(f"Valid inputs are boolean, None and 'sym'"
-                             f", '{invalid_log}' is given.")
+            raise ValueError(
+                f"Boolean, None and 'sym' are valid, '{invalid_log}' is given."
+            )
 
         if self.logx is True or self.loglog is True:
             [a.set_xscale('log') for a in axes]
