@@ -13,6 +13,7 @@ dependencies:
   - lxml
   - matplotlib=2.2.2
   - mock
+  - moto
   - nomkl
   - numexpr
   - numpy=1.13*
@@ -31,6 +32,7 @@ dependencies:
   - pytz=2015.4
   - scipy
   - sqlalchemy=1.0.8
+  - s3fs
   - xarray=0.9.6
   - xlrd=1.0.0
   - xlsxwriter=0.7.7
@@ -43,9 +45,7 @@ dependencies:
   - pip:
     - backports.lzma
     - fastparquet>=0.2.1
-    - moto
     - pandas-gbq
     - pathlib
     # for python 3.5, pytest>=4.0.2 is not available in conda
     - pytest>=4.0.2
-    - s3fs
