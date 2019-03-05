@@ -311,7 +311,7 @@ class MPLPlot(object):
         valid_log = {False, True, 'sym', None}
         input_log = {self.logx, self.logy, self.loglog}
         if input_log - valid_log:
-            invalid_log = list(input_log - valid_log)[0]
+            invalid_log = next(iter((input_log - valid_log)))
             raise ValueError(f"Valid inputs are boolean, None and 'sym'"
                              f", '{invalid_log}' is given.")
 
