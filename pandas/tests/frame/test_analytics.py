@@ -898,6 +898,7 @@ class TestDataFrameAnalytics(object):
             result = nanops.nanvar(arr, axis=0)
             assert not (result < 0).any()
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     @pytest.mark.parametrize(
         "meth", ['sem', 'var', 'std'])
     def test_numeric_only_flag(self, meth):
@@ -919,10 +920,12 @@ class TestDataFrameAnalytics(object):
         tm.assert_series_equal(expected, result)
 
         # df1 has all numbers, df2 has a letter inside
-        pytest.raises(TypeError, lambda: getattr(df1, meth)(
-            axis=1, numeric_only=False))
-        pytest.raises(TypeError, lambda: getattr(df2, meth)(
-            axis=1, numeric_only=False))
+        msg = r"unsupported operand type\(s\) for -: 'float' and 'str'"
+        with pytest.raises(TypeError, match=msg):
+            getattr(df1, meth)(axis=1, numeric_only=False)
+        msg = "could not convert string to float: 'a'"
+        with pytest.raises(TypeError, match=msg):
+            getattr(df2, meth)(axis=1, numeric_only=False)
 
     def test_sem(self, datetime_frame):
         result = datetime_frame.sem(ddof=4)
@@ -1096,7 +1099,9 @@ class TestDataFrameAnalytics(object):
         assert df['off1'].dtype == 'timedelta64[ns]'
         assert df['off2'].dtype == 'timedelta64[ns]'
 
-    def test_sum_corner(self, empty_frame):
+    def test_sum_corner(self):
+        empty_frame = DataFrame()
+
         axis0 = empty_frame.sum(0)
         axis1 = empty_frame.sum(1)
         assert isinstance(axis0, Series)
@@ -1367,6 +1372,7 @@ class TestDataFrameAnalytics(object):
     # ----------------------------------------------------------------------
     # Index of max / min
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_idxmin(self, float_frame, int_frame):
         frame = float_frame
         frame.loc[5:10] = np.nan
@@ -1379,8 +1385,11 @@ class TestDataFrameAnalytics(object):
                                         skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        pytest.raises(ValueError, frame.idxmin, axis=2)
+        msg = "No axis named 2 for object type <class 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            frame.idxmin(axis=2)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_idxmax(self, float_frame, int_frame):
         frame = float_frame
         frame.loc[5:10] = np.nan
@@ -1393,7 +1402,9 @@ class TestDataFrameAnalytics(object):
                                         skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        pytest.raises(ValueError, frame.idxmax, axis=2)
+        msg = "No axis named 2 for object type <class 'type'>"
+        with pytest.raises(ValueError, match=msg):
+            frame.idxmax(axis=2)
 
     # ----------------------------------------------------------------------
     # Logical reductions
@@ -1879,7 +1890,9 @@ class TestDataFrameAnalytics(object):
         tm.assert_index_equal(rounded.index, dfs.index)
 
         decimals = pd.Series([1, 0, 2], index=['A', 'B', 'A'])
-        pytest.raises(ValueError, df.round, decimals)
+        msg = "Index of decimals must be unique"
+        with pytest.raises(ValueError, match=msg):
+            df.round(decimals)
 
     def test_built_in_round(self):
         if not compat.PY3:
