@@ -264,7 +264,7 @@ class TestDataFramePlots(TestPlotBase):
         # GH: 24867
         df = DataFrame({'a': np.arange(100)}, index=np.arange(100))
 
-        msg = "Valid inputs are boolean, None and 'sym'."
+        msg = "Valid inputs are boolean, None and 'sym'"
         with pytest.raises(ValueError, match=msg):
             df.plot(**{input_param: wrong_input})
 
