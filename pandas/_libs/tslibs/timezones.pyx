@@ -29,7 +29,7 @@ cdef object utc_stdlib = timezone.utc
 # ----------------------------------------------------------------------
 
 cpdef inline bint is_utc(object tz):
-    return tz is UTC or or tz is utc_stdlib or isinstance(tz, _dateutil_tzutc)
+    return tz is UTC or tz is utc_stdlib or isinstance(tz, _dateutil_tzutc)
 
 
 cdef inline bint is_tzlocal(object tz):
