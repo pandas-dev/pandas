@@ -991,7 +991,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Raises
         ------
         KeyError
-            If any of the labels is not found in the selected axis.
+            If any of the labels is not found in the selected axis and
+            "errors='raise'".
 
         See Also
         --------

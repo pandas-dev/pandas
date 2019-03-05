@@ -3958,11 +3958,12 @@ class DataFrame(NDFrame):
         Raises
         ------
         KeyError
-            If any of the labels is not found in the selected axis.
+            If any of the labels is not found in the selected axis and
+            "errors='raise'".
 
         See Also
         --------
-        DataFrame.rename_axis: Set the name of the axis for the index or
+        DataFrame.rename_axis : Set the name of the axis for the index or
          columns.
 
         Examples
@@ -3988,6 +3989,10 @@ class DataFrame(NDFrame):
         0  1  4
         1  2  5
         2  3  6
+
+        >>> df.rename(index=str, columns={"A": "a", "C": "c"}, errors="raise")
+        Traceback (most recent call last):
+        KeyError: ['C'] not found in axis
 
         Using axis-style parameters
 

@@ -871,27 +871,21 @@ class TestDataFrameAlterAxes():
                              columns=["a"])
         tm.assert_frame_equal(df, expected)
 
-    def test_rename_errors(self):
-        # GH 13473
-        # rename now works with errors parameter
-
-        # Error has to be thrown and is thrown
+    def test_rename_errors_raises(self):
         df = DataFrame(columns=['A', 'B', 'C', 'D'])
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match='\'E\'] not found in axis'):
             df.rename(columns={'A': 'a', 'E': 'e'}, errors='raise')
 
-        # Error should be ignored
-        renamed = df.rename(columns={'A': 'a', 'E': 'e'})
-        expected = DataFrame(columns=['a', 'B', 'C', 'D'])
-        tm.assert_frame_equal(renamed, expected)
-
-        # Correct behaviour with raising errors.
-        renamed = df.rename(columns={'A': 'a'}, errors='raise')
-        expected = DataFrame(columns=['a', 'B', 'C', 'D'])
-        tm.assert_frame_equal(renamed, expected)
-
-        renamed = df.rename(columns=str.lower, errors='raise')
-        expected = DataFrame(columns=['a', 'b', 'c', 'd'])
+    @pytest.mark.parametrize('mapper, errors, expected_columns', [
+        ({'A': 'a', 'E': 'e'}, 'ignore', ['a', 'B', 'C', 'D']),
+        ({'A': 'a'}, 'raise', ['a', 'B', 'C', 'D']),
+        (str.lower, 'raise', ['a', 'b', 'c', 'd'])])
+    def test_rename_errors(self, mapper, errors, expected_columns):
+        # GH 13473
+        # rename now works with errors parameter
+        df = DataFrame(columns=['A', 'B', 'C', 'D'])
+        renamed = df.rename(columns=mapper, errors=errors)
+        expected = DataFrame(columns=expected_columns)
         tm.assert_frame_equal(renamed, expected)
 
     def test_reorder_levels(self):
