@@ -313,7 +313,8 @@ class MPLPlot(object):
         if input_log - valid_log:
             invalid_log = next(iter((input_log - valid_log)))
             raise ValueError(
-                f"Boolean, None and 'sym' are valid, '{invalid_log}' is given."
+                "Boolean, None and 'sym' are valid,"
+                " '{}' is given.".format(invalid_log)
             )
 
         if self.logx is True or self.loglog is True:
