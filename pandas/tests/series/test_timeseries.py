@@ -876,7 +876,7 @@ class TestTimeSeries(TestData):
 
         assert len(ts.between_time(stime, etime)) == expected_length
         assert len(ts.between_time(stime, etime, axis=0)) == expected_length
-        msg = r"No axis named 1 for object type <(class|type) 'type'>"
+        msg = "No axis named 1 for object type 'Series'"
         with pytest.raises(ValueError, match=msg):
             ts.between_time(stime, etime, axis=1)
 

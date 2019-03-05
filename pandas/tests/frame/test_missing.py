@@ -9,7 +9,7 @@ import dateutil
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -83,7 +83,6 @@ class TestDataFrameMissingData(TestData):
         tm.assert_index_equal(samesize_frame.index, self.frame.index)
         tm.assert_index_equal(inp_frame2.index, self.frame.index)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_dropna(self):
         df = DataFrame(np.random.randn(6, 4))
         df[2][:2] = np.nan
@@ -140,7 +139,7 @@ class TestDataFrameMissingData(TestData):
         assert_frame_equal(dropped, expected)
 
         # bad input
-        msg = "No axis named 3 for object type <class 'type'>"
+        msg = "No axis named 3 for object type 'DataFrame'"
         with pytest.raises(ValueError, match=msg):
             df.dropna(axis=3)
 

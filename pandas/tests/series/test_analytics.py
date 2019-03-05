@@ -796,7 +796,7 @@ class TestSeriesAnalytics(object):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
-        msg = r"No axis named 1 for object type <(class|type) 'type'>"
+        msg = "No axis named 1 for object type 'Series'"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):

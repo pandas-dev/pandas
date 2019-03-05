@@ -1372,7 +1372,6 @@ class TestDataFrameAnalytics(object):
     # ----------------------------------------------------------------------
     # Index of max / min
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_idxmin(self, float_frame, int_frame):
         frame = float_frame
         frame.loc[5:10] = np.nan
@@ -1385,11 +1384,10 @@ class TestDataFrameAnalytics(object):
                                         skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type <class 'type'>"
+        msg = "No axis named 2 for object type 'DataFrame'"
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_idxmax(self, float_frame, int_frame):
         frame = float_frame
         frame.loc[5:10] = np.nan
@@ -1402,7 +1400,7 @@ class TestDataFrameAnalytics(object):
                                         skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type <class 'type'>"
+        msg = "No axis named 2 for object type 'DataFrame'"
         with pytest.raises(ValueError, match=msg):
             frame.idxmax(axis=2)
 

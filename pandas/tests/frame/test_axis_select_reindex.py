@@ -7,7 +7,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange, lzip, u
+from pandas.compat import lrange, lzip, u
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -1051,7 +1051,6 @@ class TestDataFrameSelectReindex(TestData):
         smaller = self.intframe.reindex(columns=['A', 'B', 'E'])
         assert smaller['E'].dtype == np.float64
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_reindex_axis(self):
         cols = ['A', 'B', 'E']
         with tm.assert_produces_warning(FutureWarning) as m:
@@ -1067,7 +1066,7 @@ class TestDataFrameSelectReindex(TestData):
         reindexed2 = self.intframe.reindex(index=rows)
         assert_frame_equal(reindexed1, reindexed2)
 
-        msg = "No axis named 2 for object type <class 'type'>"
+        msg = "No axis named 2 for object type 'DataFrame'"
         with pytest.raises(ValueError, match=msg):
             self.intframe.reindex_axis(rows, axis=2)
 
