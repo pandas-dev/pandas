@@ -1056,20 +1056,32 @@ def _make_flex_doc(op_name, typ):
 
     if typ == 'series':
         base_doc = _flex_doc_SERIES
-        doc_no_examples = base_doc.format(desc=op_desc['desc'],
-            op_name=op_name, equiv=equiv, reverse=op_desc['reverse'])
+        doc_no_examples = base_doc.format(
+            desc=op_desc['desc'],
+            op_name=op_name,
+            equiv=equiv,
+            reverse=op_desc['reverse']
+        )
         if op_desc['series_examples']:
             doc = doc_no_examples + op_desc['series_examples']
         else:
             doc = doc_no_examples
     elif typ == 'dataframe':
         base_doc = _flex_doc_FRAME
-        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'])
+        doc = base_doc.format(
+            desc=op_desc['desc'],
+            op_name=op_name,
+            equiv=equiv,
+            reverse=op_desc['reverse']
+        )
     elif typ == 'panel':
         base_doc = _flex_doc_PANEL
-        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'])
+        doc = base_doc.format(
+            desc=op_desc['desc'],
+            op_name=op_name,
+            equiv=equiv,
+            reverse=op_desc['reverse']
+        )
     else:
         raise AssertionError('Invalid typ argument.')
     return doc
