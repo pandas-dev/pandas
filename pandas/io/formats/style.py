@@ -576,7 +576,7 @@ class Styler(object):
             on ``axis``), and return an object with the same shape.
             Must return a DataFrame with identical index and
             column labels when ``axis=None``
-        axis : int, str or None
+        axis : int, str or None, default 0
             apply to each column (``axis=0`` or ``'index'``)
             or to each row (``axis=1`` or ``'columns'``) or
             to the entire DataFrame at once with ``axis=None``
@@ -894,7 +894,7 @@ class Styler(object):
             matplotlib colormap
         low, high : float
             compress the range by these values.
-        axis : int, str or None
+        axis : int, str or None, default 0
             apply to each column (``axis=0`` or ``'index'``) or to each row
             (``axis=1`` or ``'columns'``) or to the entire DataFrame at once
             with ``axis=None``.
@@ -1153,7 +1153,7 @@ class Styler(object):
         subset : IndexSlice, default None
             a valid slice for ``data`` to limit the style application to
         color : str, default 'yellow'
-        axis : int, str or None
+        axis : int, str or None, default 0
             apply to each column (``axis=0`` or ``'index'``) or to each row
             (``axis=1`` or ``'columns'``) or to the entire DataFrame at once
             with ``axis=None``.
@@ -1174,7 +1174,7 @@ class Styler(object):
         subset : IndexSlice, default None
             a valid slice for ``data`` to limit the style application to
         color : str, default 'yellow'
-        axis : int, str or None
+        axis : int, str or None, default 0
             apply to each column (``axis=0`` or ``'index'``) or to each row
             (``axis=1`` or ``'columns'``) or to the entire DataFrame at once
             with ``axis=None``.
