@@ -894,9 +894,10 @@ class Styler(object):
             matplotlib colormap
         low, high : float
             compress the range by these values.
-        axis : int or str
-            0 or 'index' for columnwise, 1 or 'columns' for rowwise, or
-            ``None`` for tablewise
+        axis : int, str or None
+            apply to each column (``axis=0`` or ``'index'``) or to each row
+            (``axis=1`` or ``'columns'``) or to the entire DataFrame at once
+            with ``axis=None``.
         subset : IndexSlice
             a valid slice for ``data`` to limit the style application to
         text_color_threshold : float or int
@@ -1152,9 +1153,10 @@ class Styler(object):
         subset : IndexSlice, default None
             a valid slice for ``data`` to limit the style application to
         color : str, default 'yellow'
-        axis : int, str, or None; default 0
-            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
-            or ``None`` for tablewise
+        axis : int, str or None
+            apply to each column (``axis=0`` or ``'index'``) or to each row
+            (``axis=1`` or ``'columns'``) or to the entire DataFrame at once
+            with ``axis=None``.
 
         Returns
         -------
@@ -1172,9 +1174,10 @@ class Styler(object):
         subset : IndexSlice, default None
             a valid slice for ``data`` to limit the style application to
         color : str, default 'yellow'
-        axis : int, str, or None; default 0
-            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
-            or ``None`` for tablewise
+        axis : int, str or None
+            apply to each column (``axis=0`` or ``'index'``) or to each row
+            (``axis=1`` or ``'columns'``) or to the entire DataFrame at once
+            with ``axis=None``.
 
         Returns
         -------
