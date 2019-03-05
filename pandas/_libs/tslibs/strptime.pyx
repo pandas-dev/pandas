@@ -636,7 +636,16 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
                               int day_of_week, int week_starts_Mon):
     """Calculate the Julian day based on the year, week of the year, and day of
     the week, with week_start_day representing whether the week of the year
-    assumes the week starts on Sunday or Monday (6 or 0)."""
+    assumes the week starts on Sunday or Monday (6 or 0).
+
+    :param year: the year
+    :param week_of_year: week taken from format U or W
+    :param day_of_week: weekday
+    :param week_starts_Mon: represent whether the week of the year 
+                assumes the week starts on Sunday or Monday (6 or 0)
+    :returns: converted julian day.
+    :rtype: int
+    """
 
     cdef:
         int first_weekday, week_0_length, days_to_week
@@ -662,7 +671,14 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
 cdef _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday):
     """Calculate the Julian day based on the ISO 8601 year, week, and weekday.
     ISO weeks start on Mondays, with week 01 being the week containing 4 Jan.
-    ISO week days range from 1 (Monday) to 7 (Sunday)."""
+    ISO week days range from 1 (Monday) to 7 (Sunday).
+    
+    :param iso_year: the year taken from format %G
+    :param iso_week: the week taken from format %V
+    :param iso_weekday: weekday taken from format %u
+    :returns: the passed in year and the Gregorian ordinal date / julian date system
+    :rtype: (int, int) 
+    """
 
     cdef:
         int correction, ordinal
