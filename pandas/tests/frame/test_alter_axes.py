@@ -884,9 +884,9 @@ class TestDataFrameAlterAxes():
         # GH 13473
         # rename now works with errors parameter
         df = DataFrame(columns=['A', 'B', 'C', 'D'])
-        renamed = df.rename(columns=mapper, errors=errors)
+        result = df.rename(columns=mapper, errors=errors)
         expected = DataFrame(columns=expected_columns)
-        tm.assert_frame_equal(renamed, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_reorder_levels(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
