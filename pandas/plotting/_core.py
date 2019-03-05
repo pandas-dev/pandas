@@ -360,8 +360,7 @@ class MPLPlot(object):
 
         # no empty frames or series allowed
         if is_empty:
-            raise TypeError('Empty {0!r}: no numeric data to '
-                            'plot'.format(numeric_data.__class__.__name__))
+            raise TypeError('no numeric data to plot')
 
         self.data = numeric_data
 
