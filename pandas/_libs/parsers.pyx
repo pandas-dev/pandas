@@ -2085,7 +2085,7 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
 
         # None creeps in sometimes, which isn't possible here
         if not isinstance(val, bytes):
-            kh_destroy_str(table)
+            kh_destroy_str_starts(table)
             raise ValueError('Must be all encoded bytes')
 
         kh_put_str_starts_item(table, PyBytes_AsString(val), &ret)
