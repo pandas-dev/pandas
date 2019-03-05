@@ -682,7 +682,6 @@ cdef _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday):
 
     cdef:
         int correction, ordinal
-        
     correction = datetime_date(iso_year, 1, 4).isoweekday() + 3
     ordinal = (iso_week * 7) + iso_weekday - correction
     # ordinal may be negative or 0 now, which means the date is in the previous
