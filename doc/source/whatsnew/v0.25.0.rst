@@ -121,7 +121,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 - Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
-- Bug in :func: `plot` for a `pd.Series` or a `pd.DataFrame` which had a confusing error message mentioning an "Empty" DataFrame, now raises ``TypeError: no numeric data to plot`` (:issue:`25481`)
+- Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
 -
 
 Categorical
