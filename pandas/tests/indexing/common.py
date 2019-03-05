@@ -4,15 +4,13 @@ import itertools
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
-import pytest
 
 from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_scalar
 
 from pandas import (
-    DataFrame, Float64Index, MultiIndex, Panel, Series, UInt64Index,
-    date_range)
+    DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range)
 from pandas.util import testing as tm
 
 from pandas.io.formats.printing import pprint_thing
@@ -31,11 +29,10 @@ def _axify(obj, key, axis):
     return tuple(axes)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class Base(object):
     """ indexing comprehensive base class """
 
-    _objs = {'series', 'frame', 'panel'}
+    _objs = {'series', 'frame'}
     _typs = {'ints', 'uints', 'labels', 'mixed', 'ts', 'floats', 'empty',
              'ts_rev', 'multi'}
 
@@ -45,31 +42,18 @@ class Base(object):
         self.frame_ints = DataFrame(np.random.randn(4, 4),
                                     index=lrange(0, 8, 2),
                                     columns=lrange(0, 12, 3))
-        with catch_warnings(record=True):
-            self.panel_ints = Panel(np.random.rand(4, 4, 4),
-                                    items=lrange(0, 8, 2),
-                                    major_axis=lrange(0, 12, 3),
-                                    minor_axis=lrange(0, 16, 4))
 
         self.series_uints = Series(np.random.rand(4),
                                    index=UInt64Index(lrange(0, 8, 2)))
         self.frame_uints = DataFrame(np.random.randn(4, 4),
                                      index=UInt64Index(lrange(0, 8, 2)),
                                      columns=UInt64Index(lrange(0, 12, 3)))
-        self.panel_uints = Panel(np.random.rand(4, 4, 4),
-                                 items=UInt64Index(lrange(0, 8, 2)),
-                                 major_axis=UInt64Index(lrange(0, 12, 3)),
-                                 minor_axis=UInt64Index(lrange(0, 16, 4)))
 
         self.series_floats = Series(np.random.rand(4),
                                     index=Float64Index(range(0, 8, 2)))
         self.frame_floats = DataFrame(np.random.randn(4, 4),
                                       index=Float64Index(range(0, 8, 2)),
                                       columns=Float64Index(range(0, 12, 3)))
-        self.panel_floats = Panel(np.random.rand(4, 4, 4),
-                                  items=Float64Index(range(0, 8, 2)),
-                                  major_axis=Float64Index(range(0, 12, 3)),
-                                  minor_axis=Float64Index(range(0, 16, 4)))
 
         m_idces = [MultiIndex.from_product([[1, 2], [3, 4]]),
                    MultiIndex.from_product([[5, 6], [7, 8]]),
@@ -80,31 +64,19 @@ class Base(object):
         self.frame_multi = DataFrame(np.random.randn(4, 4),
                                      index=m_idces[0],
                                      columns=m_idces[1])
-        self.panel_multi = Panel(np.random.rand(4, 4, 4),
-                                 items=m_idces[0],
-                                 major_axis=m_idces[1],
-                                 minor_axis=m_idces[2])
 
         self.series_labels = Series(np.random.randn(4), index=list('abcd'))
         self.frame_labels = DataFrame(np.random.randn(4, 4),
                                       index=list('abcd'), columns=list('ABCD'))
-        self.panel_labels = Panel(np.random.randn(4, 4, 4),
-                                  items=list('abcd'),
-                                  major_axis=list('ABCD'),
-                                  minor_axis=list('ZYXW'))
 
         self.series_mixed = Series(np.random.randn(4), index=[2, 4, 'null', 8])
         self.frame_mixed = DataFrame(np.random.randn(4, 4),
                                      index=[2, 4, 'null', 8])
-        self.panel_mixed = Panel(np.random.randn(4, 4, 4),
-                                 items=[2, 4, 'null', 8])
 
         self.series_ts = Series(np.random.randn(4),
                                 index=date_range('20130101', periods=4))
         self.frame_ts = DataFrame(np.random.randn(4, 4),
                                   index=date_range('20130101', periods=4))
-        self.panel_ts = Panel(np.random.randn(4, 4, 4),
-                              items=date_range('20130101', periods=4))
 
         dates_rev = (date_range('20130101', periods=4)
                      .sort_values(ascending=False))
@@ -112,12 +84,9 @@ class Base(object):
                                     index=dates_rev)
         self.frame_ts_rev = DataFrame(np.random.randn(4, 4),
                                       index=dates_rev)
-        self.panel_ts_rev = Panel(np.random.randn(4, 4, 4),
-                                  items=dates_rev)
 
         self.frame_empty = DataFrame({})
         self.series_empty = Series({})
-        self.panel_empty = Panel({})
 
         # form agglomerates
         for o in self._objs:
@@ -273,7 +242,7 @@ class Base(object):
             else:
                 axes = list(axes)
         else:
-            axes = [0, 1, 2]
+            axes = [0, 1]
 
         # check
         for o in objs:
@@ -296,10 +265,4 @@ class Base(object):
                         k2 = key2
                         _eq(t, o, a, obj, key1, k2)
 
-                    # Panel deprecations
-                    if isinstance(obj, Panel):
-                        with catch_warnings():
-                            filterwarnings("ignore", "\nPanel*", FutureWarning)
-                            _call()
-                    else:
-                        _call()
+                    _call()
