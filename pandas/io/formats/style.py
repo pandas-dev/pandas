@@ -895,7 +895,8 @@ class Styler(object):
         low, high : float
             compress the range by these values.
         axis : int or str
-            1 or 'columns' for columnwise, 0 or 'index' for rowwise
+            0 or 'index' for columnwise, 1 or 'columns' for rowwise, or
+            ``None`` for tablewise
         subset : IndexSlice
             a valid slice for ``data`` to limit the style application to
         text_color_threshold : float or int
