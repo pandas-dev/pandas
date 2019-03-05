@@ -196,8 +196,14 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if copy:
             periods = periods.copy()
 
+        # Support readonly `scalars`.
+        # TODO: remove flag unsetting / setting once Cython supports
+        # const object.
+        writeable = periods.flags.writeable
+        periods.setflags(write=True)
         freq = freq or libperiod.extract_freq(periods)
         ordinals = libperiod.extract_ordinals(periods, freq)
+        periods.setflags(write=writeable)
         return cls(ordinals, freq=freq)
 
     @classmethod
