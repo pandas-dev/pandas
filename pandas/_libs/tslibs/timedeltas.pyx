@@ -837,12 +837,12 @@ cdef class _Timedelta(timedelta):
         >>> idx = pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
         >>> idx
         TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015',
-                       NaT],
+                        NaT],
                        dtype='timedelta64[ns]', freq=None)
 
         >>> idx.to_pytimedelta()
         array([datetime.timedelta(1, 21901, 30), datetime.timedelta(0, 0, 16),
-        NaT], dtype=object)
+               NaT], dtype=object)
         >>> idx[1].to_pytimedelta()
         datetime.timedelta(0, 0, 16)
         """
