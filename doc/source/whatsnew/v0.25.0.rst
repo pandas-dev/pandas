@@ -196,7 +196,7 @@ Missing
 ^^^^^^^
 
 - Fixed misleading exception message in :meth:`Series.missing` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
--
+- Fixed class type displayed in exception message in :meth:`DataFrame.dropna` if invalid ``axis`` parameter passed (:issue:`25555`)
 -
 
 MultiIndex
@@ -254,7 +254,7 @@ Sparse
 Other
 ^^^^^
 
-- Bug in error message raised when invalid ``axis`` parameter passed (:issue:`25555`)
+-
 -
 -
 
