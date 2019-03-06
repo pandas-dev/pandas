@@ -4494,7 +4494,7 @@ class Index(IndexOpsMixin, PandasObject):
         # map to the label
         result = {k: self.take(v) for k, v in compat.iteritems(result)}
 
-        return BaseGroupbyGroups(result)
+        return IndexGroupbyGroups(result)
 
     def map(self, mapper, na_action=None):
         """

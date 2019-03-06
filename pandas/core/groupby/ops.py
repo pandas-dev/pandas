@@ -241,7 +241,7 @@ class BaseGrouper(object):
         else:
             to_groupby = lzip(*(ping.grouper for ping in self.groupings))
             to_groupby = Index(to_groupby)
-            return BaseGrouperGroups(self.axis.groupby(to_groupby))
+            return self.axis.groupby(to_groupby)
 
     @cache_readonly
     def is_monotonic(self):
