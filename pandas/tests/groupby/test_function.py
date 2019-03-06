@@ -400,11 +400,11 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
         assert res.iloc[0].b == data["expected"]
 
 
-@pytest.mark.parametrize("func, expected", [
+@pytest.mark.parametrize("func, values", [
     ("idxmin", {'c_int': [0, 2], 'c_float': [1, 3], 'c_date': [1, 2]}),
     ("idxmax", {'c_int': [1, 3], 'c_float': [0, 2], 'c_date': [0, 3]})
 ])
-def test_idxmin_idxmax_returns_int_types(func, expected):
+def test_idxmin_idxmax_returns_int_types(func, values):
     # GH 25444
     df = pd.DataFrame({'name': ['A', 'A', 'B', 'B'],
                        'c_int': [1, 2, 3, 4],
@@ -414,12 +414,9 @@ def test_idxmin_idxmax_returns_int_types(func, expected):
 
     result = getattr(df.groupby('name'), func)()
 
-    for col in result:
-        assert result[col].dtype == np.int64
+    expected = pd.DataFrame(values, index=Index(['A', 'B'], name="name"))
 
-    df_expected = pd.DataFrame(expected, index=Index(['A', 'B'], name="name"))
-
-    tm.assert_frame_equal(result, df_expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_fill_consistency():
