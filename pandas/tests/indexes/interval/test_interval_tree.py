@@ -172,6 +172,7 @@ class TestIntervalTree(object):
         tree = IntervalTree(left, right, closed=closed)
         assert tree.is_overlapping is False
 
+    @pytest.mark.skipif(compat.is_platform_32bit(), reason='GH 23440')
     def test_construction_overflow(self):
         # GH 25485
         left, right = np.arange(101), [np.iinfo(np.int64).max] * 101
