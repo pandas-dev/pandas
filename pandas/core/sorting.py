@@ -454,7 +454,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
         try:
             nums = np.sort(values[~str_pos])
         except TypeError as e:
-            raise SortError(e) from e
+            raise SortError(e)
         strs = np.sort(values[str_pos])
         return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
