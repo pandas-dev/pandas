@@ -255,8 +255,10 @@ class NDFrameGroupBy(GroupBy):
                 colg = SeriesGroupBy(data, selection=item,
                                      grouper=self.grouper)
 
+                cast = self._transform_should_cast(func)
+
                 result[item] = colg.aggregate(func, *args, **kwargs)
-                if func != "idxmin" and func != "idxmax":
+                if cast:
                     result[item] = self._try_cast(result[item], data)
 
             except ValueError:
