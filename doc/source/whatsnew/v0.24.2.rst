@@ -86,6 +86,7 @@ Bug Fixes
 
 - Bug in :meth:`pandas.core.groupby.GroupBy.transform` where applying a function to a timezone aware column would return a timezone naive result (:issue:`24198`)
 - Bug in :func:`DataFrame.join` when joining on a timezone aware :class:`DatetimeIndex` (:issue:`23931`)
+- Bug in groupby.idxmin() that returns DateTime values for DataTime columns (:issue:`25444`)
 -
 
 **Visualization**
