@@ -412,7 +412,8 @@ class TestSafeSort(object):
         msg = (r"'(<|>)' not supported between instances of ('"
                r"datetime\.datetime' and 'int'|'int' and 'datetime\.datetime"
                r"')|"
-               r"unorderable types: int\(\) (<|>) datetime\.datetime\(\)")
+               r"unorderable types: int\(\) < datetime\.datetime\(\)|"
+               r"unorderable types: datetime\.datetime\(\) < int\(\)")
         if compat.PY2:
             # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
             with warnings.catch_warnings():
