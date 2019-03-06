@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import product
+from pandas.compat import PY2, product
 
 import pandas as pd
 from pandas import (
@@ -836,6 +836,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
                                  'new': [1e9, None]}, dtype='datetime64[ns]')
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_frame_to_period(self):
         K = 5
 
@@ -861,7 +862,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
         pts = df.to_period('M', axis=1)
         tm.assert_index_equal(pts.columns, exp.columns.asfreq('M'))
 
-        msg = "No axis named 2 for object type 'DataFrame'"
+        msg = ("No axis named 2 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
         with pytest.raises(ValueError, match=msg):
             df.to_period(axis=2)
 

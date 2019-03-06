@@ -357,8 +357,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 return cls._AXIS_NUMBERS[axis]
             except KeyError:
                 pass
-        raise ValueError("No axis named {0} for object type '{1}'"
-                         .format(axis, cls.__name__))
+        raise ValueError('No axis named {0} for object type {1}'
+                         .format(axis, cls))
 
     @classmethod
     def _get_axis_name(cls, axis):
@@ -371,8 +371,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 return cls._AXIS_NAMES[axis]
             except KeyError:
                 pass
-        raise ValueError("No axis named {0} for object type '{1}'"
-                         .format(axis, cls.__name__))
+        raise ValueError('No axis named {0} for object type {1}'
+                         .format(axis, cls))
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)

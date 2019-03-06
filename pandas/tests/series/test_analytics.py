@@ -771,6 +771,7 @@ class TestSeriesAnalytics(object):
         result = s.isin(empty)
         tm.assert_series_equal(expected, result)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_ptp(self):
         # GH21614
         N = 1000
@@ -796,7 +797,8 @@ class TestSeriesAnalytics(object):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
-        msg = "No axis named 1 for object type 'Series'"
+        msg = ("No axis named 1 for object type"
+               " <class 'pandas.core.series.Series'>")
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
