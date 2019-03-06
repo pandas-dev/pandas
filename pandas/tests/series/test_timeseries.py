@@ -8,7 +8,7 @@ import pytest
 
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas.compat import StringIO, lrange, product
+from pandas.compat import PY2, StringIO, lrange, product
 from pandas.errors import NullFrequencyError
 import pandas.util._test_decorators as td
 
@@ -867,6 +867,7 @@ class TestTimeSeries(TestData):
         for time_string in strings:
             assert len(ts.between_time(*time_string)) == expected_length
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_between_time_axis(self):
         # issue 8839
         rng = date_range('1/1/2000', periods=100, freq='10min')
@@ -876,7 +877,8 @@ class TestTimeSeries(TestData):
 
         assert len(ts.between_time(stime, etime)) == expected_length
         assert len(ts.between_time(stime, etime, axis=0)) == expected_length
-        msg = r"No axis named 1 for object type <(class|type) 'type'>"
+        msg = ("No axis named 1 for object type"
+               " <class 'pandas.core.series.Series'>")
         with pytest.raises(ValueError, match=msg):
             ts.between_time(stime, etime, axis=1)
 

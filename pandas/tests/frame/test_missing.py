@@ -140,7 +140,8 @@ class TestDataFrameMissingData(TestData):
         assert_frame_equal(dropped, expected)
 
         # bad input
-        msg = "No axis named 3 for object type <class 'type'>"
+        msg = ("No axis named 3 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
         with pytest.raises(ValueError, match=msg):
             df.dropna(axis=3)
 
