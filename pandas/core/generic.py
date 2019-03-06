@@ -988,7 +988,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        renamed : %(klass)s
+        %(klass)s
             %(klass)s with %(altered)s altered.
 
         Raises
@@ -999,7 +999,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        %(klass)s.rename_axis
+        %(klass)s.rename_axis: Set the name of the axis.
         """
 
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)

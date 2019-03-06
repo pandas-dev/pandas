@@ -1259,12 +1259,11 @@ class Panel(NDFrame):
                                       "Series.name attribute, and raise on "
                                       "DataFrame or Panel, dict-like or "
                                       "functions are transformations to "
-                                      "apply to that axis' values.")
+                                      "apply to that axis'"
+                                      " values.".expandtabs())
     @Substitution(generic_documentation=NDFrame.rename.__doc__)
     def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):
-        """
-        %(generic_documentation)s
-
+        """%(generic_documentation)s
         Examples
         --------
 
@@ -1274,7 +1273,7 @@ class Panel(NDFrame):
         1    2
         2    3
         dtype: int64
-        >>> s.rename("my_name") # scalar, changes Series.name
+        >>> s.rename("my_name")  # scalar, changes Series.name
         0    1
         1    2
         2    3

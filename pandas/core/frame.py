@@ -3928,13 +3928,16 @@ class DataFrame(NDFrame):
                                       "columns : dict-like or function\n\t\t"
                                       "Alternative to specifying axis ("
                                       "``mapper, axis=1`` is equivalent to "
-                                      "``columns=mapper``).\n"
+                                      "``columns=mapper``).\n\t"
+                                      "axis : int or str\n\t\t"
+                                      "Axis to target with mapper. Can be "
+                                      "either the axis name ('index', "
+                                      "'columns') or number (0, 1). The "
+                                      "default is 'index'.".expandtabs()
                   )
     @Substitution(generic_documentation=NDFrame.rename.__doc__)
     def rename(self, *args, **kwargs):
-        """
-        %(generic_documentation)s
-
+        """%(generic_documentation)s
         Examples
         --------
 

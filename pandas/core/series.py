@@ -3742,12 +3742,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                       "Dict-like or functions are "
                                       "transformations to apply to the index. "
                                       "Scalar or hashable sequence-like will "
-                                      "alter the Series.name attribute.")
+                                      "alter the Series.name "
+                                      "attribute.".expandtabs())
     @Substitution(generic_documentation=generic.NDFrame.rename.__doc__)
     def rename(self, index=None, **kwargs):
-        """
-        %(generic_documentation)s
-
+        """%(generic_documentation)s
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
