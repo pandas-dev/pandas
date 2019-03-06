@@ -11,7 +11,7 @@ import pytest
 
 from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
-from pandas.compat import PY2, PY36, lrange, range
+from pandas.compat import PY2, lrange, range
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 

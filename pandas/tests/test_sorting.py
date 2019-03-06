@@ -7,7 +7,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY2, PY36
+from pandas.compat import PY2
 
 from pandas import DataFrame, MultiIndex, Series, compat, concat, merge
 from pandas.core import common as com
