@@ -25,7 +25,7 @@ Other Enhancements
 - ``Series.str`` has gained :meth:`Series.str.casefold` method to removes all case distinctions present in a string (:issue:`25405`)
 - :meth:`DataFrame.set_index` now works for instances of ``abc.Iterator``, provided their output is of the same length as the calling frame (:issue:`22484`, :issue:`24984`)
 - :meth:`DatetimeIndex.union` now supports the ``sort`` argument. The behaviour of the sort parameter matches that of :meth:`Index.union` (:issue:`24994`)
--
+- :meth:`DataFrame.rename` now supports the ``errors`` argument to raise errors when attempting to rename nonexistent keys (:issue:`13473`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -150,7 +150,7 @@ Timezones
 
 - Bug in :func:`to_datetime` with ``utc=True`` and datetime strings that would apply previously parsed UTC offsets to subsequent arguments (:issue:`24992`)
 - Bug in :func:`Timestamp.tz_localize` and :func:`Timestamp.tz_convert` does not propagate ``freq`` (:issue:`25241`)
--
+- Bug in :func:`Series.at` where setting :class:`Timestamp` with timezone raises ``TypeError`` (:issue:`25506`)
 
 Numeric
 ^^^^^^^
