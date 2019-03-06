@@ -11,8 +11,9 @@ import pytest
 
 from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
-from pandas.compat import PY2, lrange, range
+from pandas.compat import lrange, range
 from pandas.compat.numpy import np_array_datetime64_compat
+from pandas.errors import SortError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
@@ -224,15 +225,11 @@ class TestFactorize(object):
                                                      dtype=object)
         tm.assert_numpy_array_equal(result[1], expected_level_array)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        msg = (r"'(<|>)' not supported between instances of 'complex' and"
-               r" 'complex'|"
-               r"unorderable types: complex\(\) > complex\(\)")
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(SortError, match="complex.*complex"):
             algos.factorize(x17[::-1], sort=True)
 
     def test_float64_factorize(self, writable):

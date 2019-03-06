@@ -5,6 +5,7 @@ import numpy as np
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import PY3, long, string_types
+from pandas.errors import SortError
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
@@ -430,8 +431,9 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     ------
     TypeError
         * If ``values`` is not list-like or if ``labels`` is neither None
-        nor list-like
-        * If ``values`` cannot be sorted
+        nor list-like.
+    pandas.error.SortError
+        * If ``values`` cannot be sorted.
     ValueError
         * If ``labels`` is not None and ``values`` contain duplicates.
     """
@@ -449,7 +451,10 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
         # order ints before strings, safe in py3
         str_pos = np.array([isinstance(x, string_types) for x in values],
                            dtype=bool)
-        nums = np.sort(values[~str_pos])
+        try:
+            nums = np.sort(values[~str_pos])
+        except TypeError as e:
+            raise SortError(e) from e
         strs = np.sort(values[str_pos])
         return np.concatenate([nums, np.asarray(strs, dtype=object)])
 

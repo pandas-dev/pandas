@@ -13,6 +13,7 @@ from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
 from pandas.compat import range, set_function_name, u
 from pandas.compat.numpy import function as nv
+from pandas.errors import SortError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
@@ -2344,7 +2345,7 @@ class Index(IndexOpsMixin, PandasObject):
             if sort is None:
                 try:
                     result = sorting.safe_sort(result)
-                except TypeError as e:
+                except SortError as e:
                     warnings.warn("{}, sort order is undefined for "
                                   "incomparable objects".format(e),
                                   RuntimeWarning, stacklevel=3)
@@ -2503,7 +2504,7 @@ class Index(IndexOpsMixin, PandasObject):
         if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)
-            except TypeError:
+            except SortError:
                 pass
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
@@ -2579,7 +2580,7 @@ class Index(IndexOpsMixin, PandasObject):
         if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)
-            except TypeError:
+            except SortError:
                 pass
 
         attribs = self._get_attributes_dict()

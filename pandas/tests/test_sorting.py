@@ -7,7 +7,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY2
+from pandas.errors import SortError
 
 from pandas import DataFrame, MultiIndex, Series, compat, concat, merge
 from pandas.core import common as com
@@ -405,21 +405,17 @@ class TestSafeSort(object):
         expected = np.array([0, 0, 1, 'a', 'b', 'b'], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        msg = (r"'(<|>)' not supported between instances of ('"
-               r"datetime\.datetime' and 'int'|'int' and 'datetime\.datetime"
-               r"')|"
-               r"unorderable types: int\(\) > datetime\.datetime\(\)")
+        msg = "int.*datetime|datetime.*int"
         if compat.PY2:
             # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
             with warnings.catch_warnings():
-                with pytest.raises(TypeError, match=msg):
+                with pytest.raises(SortError, match=msg):
                     safe_sort(arr)
         else:
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(SortError, match=msg):
                 safe_sort(arr)
 
     def test_exceptions(self):
