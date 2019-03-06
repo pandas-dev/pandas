@@ -224,15 +224,14 @@ class TestFactorize(object):
                                                      dtype=object)
         tm.assert_numpy_array_equal(result[1], expected_level_array)
 
-    @pytest.mark.skipif(PY2 or not PY36,
-                        reason="pytest.raises match regex fails")
+    @pytest.mark.skipif(PY2,reason="pytest.raises match regex fails")
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
         msg = (r"'(<|>)' not supported between instances of 'complex' and"
                r" 'complex'|"
-               r"unorderable types: complex\(\) > complex\(\)")
+               r"unorderable types: complex\(\) (<|>) complex\(\)")
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
 
