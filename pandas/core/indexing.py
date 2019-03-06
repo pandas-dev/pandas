@@ -14,7 +14,7 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.common import (
     ensure_platform_int, is_float, is_integer, is_integer_dtype, is_iterator,
     is_list_like, is_scalar, is_sequence, is_sparse)
-from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
@@ -453,10 +453,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     self.obj._maybe_update_cacher(clear=True)
                     return self.obj
 
-                # set using setitem (Panel and > dims)
-                elif self.ndim >= 3:
-                    return self.obj.__setitem__(indexer, value)
-
         # set
         item_labels = self.obj._get_axis(info_axis)
 
@@ -645,9 +641,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             elif isinstance(value, ABCDataFrame):
                 value = self._align_frame(indexer, value)
 
-            if isinstance(value, ABCPanel):
-                value = self._align_panel(indexer, value)
-
             # check for chained assignment
             self.obj._check_is_chained_assignment_possible()
 
@@ -693,7 +686,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             sum_aligners = sum(aligners)
             single_aligner = sum_aligners == 1
             is_frame = self.obj.ndim == 2
-            is_panel = self.obj.ndim >= 3
             obj = self.obj
 
             # are we a single alignable value on a non-primary
@@ -704,11 +696,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # frame
             if is_frame:
                 single_aligner = single_aligner and aligners[0]
-
-            # panel
-            elif is_panel:
-                single_aligner = (single_aligner and
-                                  (aligners[1] or aligners[2]))
 
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
@@ -741,37 +728,13 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     return ser.reindex(new_ix)._values
 
                 # 2 dims
-                elif single_aligner and is_frame:
+                elif single_aligner:
 
                     # reindex along index
                     ax = self.obj.axes[1]
                     if ser.index.equals(ax) or not len(ax):
                         return ser._values.copy()
                     return ser.reindex(ax)._values
-
-                # >2 dims
-                elif single_aligner:
-
-                    broadcast = []
-                    for n, labels in enumerate(self.obj._get_plane_axes(i)):
-
-                        # reindex along the matching dimensions
-                        if len(labels & ser.index):
-                            ser = ser.reindex(labels)
-                        else:
-                            broadcast.append((n, len(labels)))
-
-                    # broadcast along other dims
-                    ser = ser._values.copy()
-                    for (axis, l) in broadcast:
-                        shape = [-1] * (len(broadcast) + 1)
-                        shape[axis] = l
-                        ser = np.tile(ser, l).reshape(shape)
-
-                    if self.obj.ndim == 3:
-                        ser = ser.T
-
-                    return ser
 
         elif is_scalar(indexer):
             ax = self.obj._get_axis(1)
@@ -785,7 +748,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def _align_frame(self, indexer, df):
         is_frame = self.obj.ndim == 2
-        is_panel = self.obj.ndim >= 3
 
         if isinstance(indexer, tuple):
 
@@ -804,21 +766,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         break
                 else:
                     sindexers.append(i)
-
-            # panel
-            if is_panel:
-
-                # need to conform to the convention
-                # as we are not selecting on the items axis
-                # and we have a single indexer
-                # GH 7763
-                if len(sindexers) == 1 and sindexers[0] != 0:
-                    df = df.T
-
-                if idx is None:
-                    idx = df.index
-                if cols is None:
-                    cols = df.columns
 
             if idx is not None and cols is not None:
 
@@ -846,23 +793,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 val = df.reindex(index=ax)._values
             return val
 
-        elif is_scalar(indexer) and is_panel:
-            idx = self.obj.axes[1]
-            cols = self.obj.axes[2]
-
-            # by definition we are indexing on the 0th axis
-            # a passed in dataframe which is actually a transpose
-            # of what is needed
-            if idx.equals(df.index) and cols.equals(df.columns):
-                return df.copy()._values
-
-            return df.reindex(idx, columns=cols)._values
-
         raise ValueError('Incompatible indexer with DataFrame')
-
-    def _align_panel(self, indexer, df):
-        raise NotImplementedError("cannot set using an indexer with a Panel "
-                                  "yet!")
 
     def _getitem_tuple(self, tup):
         try:
@@ -1056,13 +987,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # has the dim of the obj changed?
             # GH 7199
             if obj.ndim < current_ndim:
-
-                # GH 7516
-                # if had a 3 dim and are going to a 2d
-                # axes are reversed on a DataFrame
-                if i >= 1 and current_ndim == 3 and obj.ndim == 2:
-                    obj = obj.T
-
                 axis -= 1
 
         return obj
@@ -1559,8 +1483,8 @@ class _LocIndexer(_LocationIndexer):
 
     - A boolean array of the same length as the axis being sliced,
       e.g. ``[True, False, True]``.
-    - A ``callable`` function with one argument (the calling Series, DataFrame
-      or Panel) and that returns valid output for indexing (one of the above)
+    - A ``callable`` function with one argument (the calling Series or
+      DataFrame) and that returns valid output for indexing (one of the above)
 
     See more at :ref:`Selection by Label <indexing.label>`
 
@@ -1929,8 +1853,8 @@ class _iLocIndexer(_LocationIndexer):
     - A list or array of integers, e.g. ``[4, 3, 0]``.
     - A slice object with ints, e.g. ``1:7``.
     - A boolean array.
-    - A ``callable`` function with one argument (the calling Series, DataFrame
-      or Panel) and that returns valid output for indexing (one of the above).
+    - A ``callable`` function with one argument (the calling Series or
+      DataFrame) and that returns valid output for indexing (one of the above).
       This is useful in method chains, when you don't have a reference to the
       calling object, but would like to base your selection on some value.
 
