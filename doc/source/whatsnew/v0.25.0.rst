@@ -254,7 +254,7 @@ Sparse
 Other
 ^^^^^
 
--
+- Bug in error message raised when invalid ``axis`` parameter passed (:issue:`25555`)
 -
 -
 
