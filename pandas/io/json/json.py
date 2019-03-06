@@ -9,7 +9,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.compat import StringIO, long, to_str, u
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.common import is_period_dtype, is_categorical_dtype
 
 from pandas import DataFrame, MultiIndex, Series, compat, isna, to_datetime
 from pandas.core.reshape.concat import concat
@@ -712,6 +712,10 @@ class Parser(object):
                 # dtype to force
                 dtype = (self.dtype.get(name)
                          if isinstance(self.dtype, dict) else self.dtype)
+                
+                if is_categorical_dtype(dtype):
+                    return data.astype('category'), True
+                
                 if dtype is not None:
                     try:
                         dtype = np.dtype(dtype)
