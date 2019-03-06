@@ -958,23 +958,21 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # ----------------------------------------------------------------------
     # Rename
-
     def rename(self, *args, **kwargs):
         """
-        Alter axes input function or functions. Function / dict values must be
-        unique (1-to-1). Labels not contained in a dict / Series will be left
-        as-is. Extra labels listed don't throw an error. Alternatively, change
-        ``Series.name`` with a scalar value (Series only).
+        Alter %(altered)s.
+
+        Function / dict values must be unique (1-to-1). Labels not contained in
+        the %(altered)s will be left as-is. Extra labels listed do not throw an
+        error, unless "errors='raise'". %(alternative_use)s
+
+        See the :ref:`user guide <basics.rename>` for more.
 
         Parameters
         ----------
-        %(axes)s : scalar, list-like, dict-like or function, optional
-            Scalar or list-like will alter the ``Series.name`` attribute,
-            and raise on DataFrame or Panel.
-            dict-like or functions are transformations to apply to
-            that axis' values
+        %(specific_parameters)s
         copy : bool, default True
-            Also copy underlying data.
+            Whether to copy underlying data.
         inplace : bool, default False
             Whether to return a new %(klass)s. If True then value of copy is
             ignored.
@@ -990,88 +988,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        renamed : %(klass)s (new object)
+        renamed : %(klass)s
+            %(klass)s with %(altered)s altered.
 
         Raises
         ------
         KeyError
             If any of the labels is not found in the selected axis and
-            "errors='raise'".
+            ``errors='raise'``.
 
         See Also
         --------
-        NDFrame.rename_axis
-
-        Examples
-        --------
-
-        >>> s = pd.Series([1, 2, 3])
-        >>> s
-        0    1
-        1    2
-        2    3
-        dtype: int64
-        >>> s.rename("my_name") # scalar, changes Series.name
-        0    1
-        1    2
-        2    3
-        Name: my_name, dtype: int64
-        >>> s.rename(lambda x: x ** 2)  # function, changes labels
-        0    1
-        1    2
-        4    3
-        dtype: int64
-        >>> s.rename({1: 3, 2: 5})  # mapping, changes labels
-        0    1
-        3    2
-        5    3
-        dtype: int64
-
-        Since ``DataFrame`` doesn't have a ``.name`` attribute,
-        only mapping-type arguments are allowed.
-
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename(2)
-        Traceback (most recent call last):
-        ...
-        TypeError: 'int' object is not callable
-
-        ``DataFrame.rename`` supports two calling conventions
-
-        * ``(index=index_mapper, columns=columns_mapper, ...)``
-        * ``(mapper, axis={'index', 'columns'}, ...)``
-
-        We *highly* recommend using keyword arguments to clarify your
-        intent.
-
-        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
-           a  c
-        0  1  4
-        1  2  5
-        2  3  6
-
-        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
-           a  B
-        0  1  4
-        1  2  5
-        2  3  6
-
-        Using axis-style parameters
-
-        >>> df.rename(str.lower, axis='columns')
-           a  b
-        0  1  4
-        1  2  5
-        2  3  6
-
-        >>> df.rename({1: 2, 2: 4}, axis='index')
-           A  B
-        0  1  4
-        2  2  5
-        4  3  6
-
-        See the :ref:`user guide <basics.rename>` for more.
+        %(klass)s.rename_axis
         """
+
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)

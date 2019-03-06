@@ -3733,42 +3733,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          limit=limit, fill_axis=fill_axis,
                                          broadcast_axis=broadcast_axis)
 
+    @Substitution(klass="Series",
+                  altered="Series index labels or name",
+                  alternative_use="Alternatively, change Series.name with a "
+                                  "scalar value.",
+                  specific_parameters="index : scalar, hashable sequence"
+                                      " dict-like or function, optional\n\t\t"
+                                      "Dict-like or functions are "
+                                      "transformations to apply to the index. "
+                                      "Scalar or hashable sequence-like will "
+                                      "alter the Series.name attribute.")
+    @Substitution(generic_documentation=generic.NDFrame.rename.__doc__)
     def rename(self, index=None, **kwargs):
         """
-        Alter Series index labels or name.
-
-        Function / dict values must be unique (1-to-1). Labels not contained in
-        a dict / Series will be left as-is. Extra labels listed don't throw an
-        error.
-
-        Alternatively, change ``Series.name`` with a scalar value.
-
-        See the :ref:`user guide <basics.rename>` for more.
-
-        Parameters
-        ----------
-        index : scalar, hashable sequence, dict-like or function, optional
-            dict-like or functions are transformations to apply to
-            the index.
-            Scalar or hashable sequence-like will alter the ``Series.name``
-            attribute.
-        copy : bool, default True
-            Whether to copy underlying data.
-        inplace : bool, default False
-            Whether to return a new Series. If True then value of copy is
-            ignored.
-        level : int or level name, default None
-            In case of a MultiIndex, only rename labels in the specified
-            level.
-
-        Returns
-        -------
-        Series
-            Series with index labels or name altered.
-
-        See Also
-        --------
-        Series.rename_axis : Set the name of the axis.
+        %(generic_documentation)s
 
         Examples
         --------
@@ -3778,7 +3756,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1    2
         2    3
         dtype: int64
-        >>> s.rename("my_name")  # scalar, changes Series.name
+        >>> s.rename("my_name")   # scalar, changes Series.name
         0    1
         1    2
         2    3

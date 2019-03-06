@@ -1249,9 +1249,92 @@ class Panel(NDFrame):
             result = super(Panel, self).reindex(**kwargs)
         return result
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(NDFrame.rename.__doc__)
+    @Substitution(klass="Panel",
+                  altered="axes input function or functions",
+                  alternative_use="",
+                  specific_parameters="items, major_axis, minor_axis : "
+                                      "scalar, list-like, dict-like or "
+                                      "function, optional\n\t\t"
+                                      "Scalar or list-like will alter the "
+                                      "Series.name attribute, and raise on "
+                                      "DataFrame or Panel, dict-like or "
+                                      "functions are transformations to "
+                                      "apply to that axis' values.")
+    @Substitution(generic_documentation=NDFrame.rename.__doc__)
     def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):
+        """
+        %(generic_documentation)s
+
+        Examples
+        --------
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s
+        0    1
+        1    2
+        2    3
+        dtype: int64
+        >>> s.rename("my_name") # scalar, changes Series.name
+        0    1
+        1    2
+        2    3
+        Name: my_name, dtype: int64
+        >>> s.rename(lambda x: x ** 2)  # function, changes labels
+        0    1
+        1    2
+        4    3
+        dtype: int64
+        >>> s.rename({1: 3, 2: 5})  # mapping, changes labels
+        0    1
+        3    2
+        5    3
+        dtype: int64
+
+        Since ``DataFrame`` doesn't have a ``.name`` attribute,
+        only mapping-type arguments are allowed.
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df.rename(2)
+        Traceback (most recent call last):
+        ...
+        TypeError: 'int' object is not callable
+
+        ``DataFrame.rename`` supports two calling conventions
+
+        * ``(index=index_mapper, columns=columns_mapper, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
+
+        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
+           a  c
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
+           a  B
+        0  1  4
+        1  2  5
+        2  3  6
+
+        Using axis-style parameters
+
+        >>> df.rename(str.lower, axis='columns')
+           a  b
+        0  1  4
+        1  2  5
+        2  3  6
+
+        >>> df.rename({1: 2, 2: 4}, axis='index')
+           A  B
+        0  1  4
+        2  2  5
+        4  3  6
+
+        See the :ref:`user guide <basics.rename>` for more.
+        """
         major_axis = (major_axis if major_axis is not None else
                       kwargs.pop('major', None))
         minor_axis = (minor_axis if minor_axis is not None else
