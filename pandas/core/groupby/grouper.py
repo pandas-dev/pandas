@@ -236,7 +236,6 @@ class Grouping(object):
 
     def __init__(self, index, grouper=None, obj=None, name=None, level=None,
                  sort=True, observed=False, in_axis=False):
-
         self.name = name
         self.level = level
         self.grouper = _convert_grouper(index, grouper)

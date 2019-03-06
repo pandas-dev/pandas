@@ -667,21 +667,21 @@ class TestGetGroup():
 
 class TestIteration():
 
-    # def test_groups(self, df):
-    #     grouped = df.groupby(['A'])
-    #     groups = grouped.groups
-    #     assert groups is grouped.groups  # caching works
-    #
-    #     for k, v in compat.iteritems(grouped.groups):
-    #         assert (df.loc[v]['A'] == k).all()
-    #
-    #     grouped = df.groupby(['A', 'B'])
-    #     groups = grouped.groups
-    #     assert groups is grouped.groups  # caching works
-    #
-    #     for k, v in compat.iteritems(grouped.groups):
-    #         assert (df.loc[v]['A'] == k[0]).all()
-    #         assert (df.loc[v]['B'] == k[1]).all()
+    def test_groups(self, df):
+        grouped = df.groupby(['A'])
+        groups = grouped.groups
+        assert groups is grouped.groups  # caching works
+
+        for k, v in compat.iteritems(grouped.groups):
+            assert (df.loc[v]['A'] == k).all()
+
+        grouped = df.groupby(['A', 'B'])
+        groups = grouped.groups
+        assert groups is grouped.groups  # caching works
+
+        for k, v in compat.iteritems(grouped.groups):
+            assert (df.loc[v]['A'] == k[0]).all()
+            assert (df.loc[v]['B'] == k[1]).all()
 
     def test_grouping_is_iterable(self, tsframe):
         # this code path isn't used anywhere else

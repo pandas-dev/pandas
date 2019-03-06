@@ -390,7 +390,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         Dict {group name -> group labels}.
         """
         self._assure_grouper()
-        return DataFrameGroups(self.grouper.groups)
+        return self.grouper.groups
 
     @property
     def ngroups(self):
@@ -2204,25 +2204,3 @@ def groupby(obj, by, **kwds):
         raise TypeError('invalid type: {}'.format(obj))
 
     return klass(obj, by, **kwds)
-
-
-class DataFrameGroups(dict):
-    def __repr__(self):
-        from pandas.compat import u
-
-        nitems = get_option('display.max_rows') or len(self)
-
-        fmt = u("{{{things}}}")
-        pfmt = u("{key}: {val}")
-
-        pairs = []
-        for k, v in list(self.items()):
-            pairs.append(pfmt.format(key=k, val=v))
-
-        if nitems < len(self):
-            start_cnt, end_cnt = nitems - int(nitems / 2), int(nitems / 2)
-            return fmt.format(things=", ".join(pairs[:start_cnt]) +
-                                     ", ... , " +
-                                     ", ".join(pairs[-end_cnt:]))
-        else:
-            return fmt.format(things=", ".join(pairs))

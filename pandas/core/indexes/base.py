@@ -38,6 +38,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.config import get_option
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name, make_invalid_op
@@ -4493,7 +4494,7 @@ class Index(IndexOpsMixin, PandasObject):
         # map to the label
         result = {k: self.take(v) for k, v in compat.iteritems(result)}
 
-        return result
+        return BaseGroupbyGroups(result)
 
     def map(self, mapper, na_action=None):
         """
@@ -5288,6 +5289,29 @@ class Index(IndexOpsMixin, PandasObject):
 Index._add_numeric_methods_disabled()
 Index._add_logical_methods()
 Index._add_comparison_methods()
+
+
+class IndexGroupbyGroups(dict):
+    def __repr__(self):
+        from pandas.compat import u
+
+        nitems = get_option('display.max_rows') or len(self)
+
+        fmt = u("{{{things}}}")
+        pfmt = u("{key}: {val}")
+
+        pairs = []
+        for k, v in list(self.items()):
+            pairs.append(pfmt.format(key=k, val=v))
+
+        if nitems < len(self):
+            print("Truncating repr")
+            start_cnt, end_cnt = nitems - int(nitems / 2), int(nitems / 2)
+            return fmt.format(things=", ".join(pairs[:start_cnt]) +
+                                     ", ... , " +
+                                     ", ".join(pairs[-end_cnt:]))
+        else:
+            return fmt.format(things=", ".join(pairs))
 
 
 def ensure_index_from_sequences(sequences, names=None):
