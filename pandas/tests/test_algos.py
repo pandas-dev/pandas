@@ -229,7 +229,7 @@ class TestFactorize(object):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        with pytest.raises(SortError, match="complex.*complex"):
+        with pytest.raises(SortError, match="complex"):
             algos.factorize(x17[::-1], sort=True)
 
     def test_float64_factorize(self, writable):
