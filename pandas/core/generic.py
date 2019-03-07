@@ -9321,7 +9321,7 @@ class NDFrame(PandasObject, SelectionMixin):
               times
         nonexistent : str, default 'raise'
             A nonexistent time does not exist in a particular timezone
-            where clocks moved forward due to DST. Valid valuse are:
+            where clocks moved forward due to DST. Valid values are:
 
             - 'shift_forward' will shift the nonexistent time forward to the
               closest existing time
