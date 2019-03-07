@@ -28,7 +28,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import PY36, lrange, range, string_types
+from pandas.compat import PY2, PY36, lrange, range, string_types
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype, is_datetime64tz_dtype)
@@ -1115,7 +1115,8 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason='SQLAlchemy is installed')
     def test_con_string_import_error(self):
         conn = 'mysql://root@localhost/pandas_nosetest'
-        with pytest.raises(ImportError, match="<insert message here>"):
+        msg = "Using URI string without sqlalchemy installed"
+        with pytest.raises(ImportError, match=msg):
             sql.read_sql("SELECT * FROM iris", conn)
 
     def test_read_sql_delegate(self):
@@ -1612,6 +1613,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                               check_index_type=False)
         self.drop_table(tbl)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_dtype(self):
         cols = ['A', 'B']
         data = [(0.8, True),
@@ -1910,7 +1912,8 @@ class _TestPostgreSQLAlchemy(object):
         res4 = sql.read_sql_table('test_schema_other', self.conn,
                                   schema='other')
         tm.assert_frame_equal(df, res4)
-        with pytest.raises(ValueError, match="<insert message here>"):
+        msg = "Table test_schema_other not found"
+        with pytest.raises(ValueError, match=msg):
             sql.read_sql_table('test_schema_other', self.conn, schema='public')
 
         # different if_exists options
