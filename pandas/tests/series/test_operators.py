@@ -742,6 +742,7 @@ class TestSeriesOperators(TestData):
         assert_series_equal(result, expected)
 
     def test_divmod(self):
+        # GH25557
         a = Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
         b = Series([2, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
 

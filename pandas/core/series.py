@@ -2503,14 +2503,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series
         """
 
-        def mk_ret(result, new_index, name):
-            ret = self._constructor(result, index=new_index, name=name)
-            ret.__finalize__(self)
-            if name is None:
-                # When name is None, __finalize__ overwrites current name
-                ret.name = None
-            return ret
-
         if not isinstance(other, Series):
             raise AssertionError('Other operand must be Series')
 
@@ -2527,14 +2519,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         with np.errstate(all='ignore'):
             result = func(this_vals, other_vals)
+
         name = ops.get_op_result_name(self, other)
-        if isinstance(result, tuple):
-            final_result = ()
-            for r in result:
-                final_result = (*final_result, mk_ret(r, new_index, name))
+        if func.__name__ in ['divmod', 'rdivmod']:
+            ret = ops._construct_divmod_result(self, result, new_index, name)
         else:
-            final_result = mk_ret(result, new_index, name)
-        return final_result
+            ret = ops._construct_result(self, result, new_index, name)
+        return ret
 
     def combine(self, other, func, fill_value=None):
         """
