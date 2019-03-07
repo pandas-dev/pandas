@@ -277,7 +277,7 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     Returns
     -------
     DataFrame
-        A parquet file is returned as two-dimensional data structure with
+        DataFrame with appropriate data.
         labeled axes.
 
     See Also
