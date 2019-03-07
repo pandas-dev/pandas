@@ -105,7 +105,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         is a PeriodArray (or box around), it's checked that ``values.freq``
         matches `freq`.
     dtype : PeriodDtype, optional
-        A PeriodDtype instance from which to extract a `freq`.
+        A PeriodDtype instance from which to extract a `freq`. If both
+        `freq` and `dtype` are specified, then the frequencies must match.
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
