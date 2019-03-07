@@ -282,7 +282,7 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
 
     See Also
     --------
-    to_parquet : Write DataFrame to a parquet file.
+    DataFrame.to_parquet : Write DataFrame to a parquet file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
 
     Examples
