@@ -8,7 +8,9 @@ from pandas.compat import PY3, long, string_types
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
-    ensure_int64, ensure_platform_int, is_categorical_dtype, is_list_like)
+    ensure_int64, ensure_platform_int, is_categorical_dtype, is_list_like,
+    is_extension_array_dtype)
+from pandas.core.dtypes.generic import ABCIndexClass
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
@@ -239,7 +241,9 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
     """
 
     # specially handle Categorical
-    if is_categorical_dtype(items):
+    if is_extension_array_dtype(items):
+        if isinstance(items, ABCIndexClass):
+            items = items._values
         if na_position not in {'first', 'last'}:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
 

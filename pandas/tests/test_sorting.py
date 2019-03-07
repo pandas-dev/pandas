@@ -9,7 +9,9 @@ import pytest
 
 from pandas.compat import PY2
 
-from pandas import DataFrame, MultiIndex, Series, compat, concat, merge
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, compat,
+    concat, merge, to_datetime)
 from pandas.core import common as com
 from pandas.core.sorting import (
     decons_group_index, get_group_index, is_int64_overflow_possible,
@@ -182,6 +184,22 @@ class TestSorting(object):
                           na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
+
+    @pytest.mark.parametrize('data', [
+        Categorical(['a', 'c', 'a', 'b']),
+        to_datetime([0, 2, 0, 1]).tz_localize('Europe/Brussels')])
+    def test_nargsort_extension_array(self, data):
+        result = nargsort(data)
+        expected = np.array([0, 2, 3, 1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_nargsort_datetimearray_warning(self, recwarn):
+        # https://github.com/pandas-dev/pandas/issues/25439
+        # can be removed once the FutureWarning for np.array(DTA) is removed
+        data = to_datetime([0, 2, 0, 1]).tz_localize('Europe/Brussels')
+        nargsort(data)
+        msg = "Converting timezone-aware DatetimeArray to timezone-naive"
+        assert len([w for w in recwarn.list if msg in str(w.message)]) == 0
 
 
 class TestMerge(object):
