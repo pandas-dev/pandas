@@ -5293,8 +5293,6 @@ Index._add_comparison_methods()
 
 class IndexGroupbyGroups(dict):
     def __repr__(self):
-        from pandas.compat import u
-
         nitems = get_option('display.max_rows') or len(self)
 
         fmt = u("{{{things}}}")

@@ -10,6 +10,7 @@ from pandas.util._decorators import make_signature
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
+
 class GroupByMixin(object):
     """
     Provide the groupby facilities to the mixed object.
