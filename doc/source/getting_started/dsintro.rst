@@ -576,14 +576,14 @@ To write code compatible with all versions of Python, split the assignment in tw
 
 .. warning::
 
-   Dependent assignment maybe subtly change the behavior of your code between
+   Dependent assignment may subtly change the behavior of your code between
    Python 3.6 and older versions of Python.
 
-   If you wish write code that supports versions of python before and after 3.6,
+   If you wish to write code that supports versions of python before and after 3.6,
    you'll need to take care when passing ``assign`` expressions that
 
-   * Updating an existing column
-   * Referring to the newly updated column in the same ``assign``
+   * Update an existing column
+   * Refer to the newly updated column in the same ``assign``
 
    For example, we'll update column "A" and then refer to it when creating "B".
 
@@ -665,8 +665,8 @@ row-wise. For example:
 
    df - df.iloc[0]
 
-In the special case of working with time series data, and the DataFrame index
-also contains dates, the broadcasting will be column-wise:
+In the special case of working with time series data, if the DataFrame index
+contains dates, the broadcasting will be column-wise:
 
 .. ipython:: python
    :okwarning:
