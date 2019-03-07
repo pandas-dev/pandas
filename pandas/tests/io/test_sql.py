@@ -1613,7 +1613,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                               check_index_type=False)
         self.drop_table(tbl)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_dtype(self):
         cols = ['A', 'B']
         data = [(0.8, True),
@@ -2130,6 +2129,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
                 return ctype
         raise ValueError('Table %s, column %s not found' % (table, column))
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_dtype(self):
         if self.flavor == 'mysql':
             pytest.skip('Not applicable to MySQL legacy')
