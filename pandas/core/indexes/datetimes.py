@@ -787,8 +787,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             snapped[i] = s
 
         # we know it conforms; skip check
-        return DatetimeIndex._simple_new(snapped, freq=freq)
-        # TODO: what about self.name?  tz? if so, use shallow_copy?
+        return DatetimeIndex._simple_new(snapped, name=self.name, freq=freq)
 
     def join(self, other, how='left', level=None, return_indexers=False,
              sort=False):

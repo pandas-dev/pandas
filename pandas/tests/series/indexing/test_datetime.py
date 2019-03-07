@@ -54,12 +54,14 @@ def test_fancy_setitem():
 
 def test_dti_snap():
     dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
-                         '1/5/2002', '1/6/2002', '1/7/2002'], freq='D')
+                         '1/5/2002', '1/6/2002', '1/7/2002'],
+                        name='my_dti', freq='D')
 
     res = dti.snap(freq='W-MON')
-    exp = date_range('12/31/2001', '1/7/2002', freq='w-mon')
+    exp = date_range('12/31/2001', '1/7/2002', name='my_dti', freq='w-mon')
     exp = exp.repeat([3, 4])
     assert (res == exp).all()
+    assert res.name == exp.name
 
     res = dti.snap(freq='B')
 
