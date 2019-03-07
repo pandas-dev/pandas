@@ -1438,7 +1438,9 @@ cdef accessor _get_accessor_func(int code):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def extract_ordinals(object[:] values, freq):
+def extract_ordinals(ndarray[object] values, freq):
+    # TODO: Change type to const object[:] when Cython supports that.
+
     cdef:
         Py_ssize_t i, n = len(values)
         int64_t[:] ordinals = np.empty(n, dtype=np.int64)
@@ -1472,7 +1474,9 @@ def extract_ordinals(object[:] values, freq):
     return ordinals.base  # .base to access underlying np.ndarray
 
 
-def extract_freq(object[:] values):
+def extract_freq(ndarray[object] values):
+    # TODO: Change type to const object[:] when Cython supports that.
+
     cdef:
         Py_ssize_t i, n = len(values)
         object p
