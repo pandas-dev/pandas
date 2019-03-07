@@ -939,6 +939,7 @@ _TYPE_MAP = {
     'float32': 'floating',
     'float64': 'floating',
     'f': 'floating',
+    'complex64': 'complex',
     'complex128': 'complex',
     'c': 'complex',
     'string': 'string' if PY2 else 'bytes',
@@ -1304,6 +1305,9 @@ def infer_dtype(value: object, skipna: object=None) -> str:
 
     elif is_decimal(val):
         return 'decimal'
+
+    elif is_complex(val):
+        return 'complex'
 
     elif util.is_float_object(val):
         if is_float_array(values):

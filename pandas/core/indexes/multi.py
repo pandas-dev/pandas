@@ -61,7 +61,7 @@ class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine,
         Returns
         ------
         int_keys : scalar or 1-dimensional array, of dtype uint64
-            Integer(s) representing one combination (each)
+            Integer(s) representing one combination (each).
         """
         # Shift the representation of each level by the pre-calculated number
         # of bits:
@@ -101,7 +101,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
         Returns
         ------
         int_keys : int, or 1-dimensional array of dtype object
-            Integer(s) representing one combination (each)
+            Integer(s) representing one combination (each).
         """
 
         # Shift the representation of each level by the pre-calculated number
@@ -324,10 +324,16 @@ class MultiIndex(Index):
                    codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
                    names=['number', 'color'])
         """
+        error_msg = "Input must be a list / sequence of array-likes."
         if not is_list_like(arrays):
-            raise TypeError("Input must be a list / sequence of array-likes.")
+            raise TypeError(error_msg)
         elif is_iterator(arrays):
             arrays = list(arrays)
+
+        # Check if elements of array are list-like
+        for array in arrays:
+            if not is_list_like(array):
+                raise TypeError(error_msg)
 
         # Check if lengths of all arrays are equal or not,
         # raise ValueError, if not
@@ -840,7 +846,7 @@ class MultiIndex(Index):
         try:
             self.get_loc(key)
             return True
-        except (LookupError, TypeError):
+        except (LookupError, TypeError, ValueError):
             return False
 
     contains = __contains__
@@ -2189,7 +2195,7 @@ class MultiIndex(Index):
         new_index : pd.MultiIndex
             Resulting index
         indexer : np.ndarray or None
-            Indices of output values in original index
+            Indices of output values in original index.
 
         """
         # GH6552: preserve names when reindexing to non-named target

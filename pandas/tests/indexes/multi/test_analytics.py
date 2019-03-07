@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY2, lrange
-from pandas.compat.numpy import _np_version_under1p16
+from pandas.compat.numpy import _np_version_under1p17
 
 import pandas as pd
 from pandas import Index, MultiIndex, date_range, period_range
@@ -287,7 +287,7 @@ def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
     # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
-    if _np_version_under1p16:
+    if _np_version_under1p17:
         expected_exception = AttributeError
         msg = "'tuple' object has no attribute '{}'".format(func.__name__)
     else:
