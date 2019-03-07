@@ -92,7 +92,7 @@ Bug Fixes
 
 **Visualization**
 
--
+- Bug in :meth:`Series.plot` where a secondary y axis could not be set to log scale (:issue:`25545`)
 -
 -
 
