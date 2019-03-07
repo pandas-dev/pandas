@@ -20,6 +20,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.config import get_option
@@ -574,6 +575,13 @@ class MPLPlot(object):
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
+        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
+        # np.ndarray before plot.
+        if isinstance(x, ExtensionArray):
+            x = x.__array__()
+        if isinstance(y, ExtensionArray):
+            y = y.__array__()
+
         mask = isna(y)
         if mask.any():
             y = np.ma.array(y)
@@ -1792,7 +1800,6 @@ def _plot(data, x=None, y=None, subplots=False,
                         )
                     label_name = label_kw or data.columns
                     data.columns = label_name
-
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()

@@ -144,6 +144,12 @@ class TestDataFramePlots(TestPlotBase):
         result = ax.axes
         assert result is axes[0]
 
+    # GH 25587
+    def test_integer_array_plot(self):
+        s = Series([4, 5, 3, 2], dtype="UInt32")
+        _check_plot_works(s.plot, yticks=[1, 2, 3, 4])
+        _check_plot_works(s.plot, xticks=[4, 5, 3, 2])
+
     # GH 15516
     def test_mpl2_color_cycle_str(self):
         colors = ['C' + str(x) for x in range(10)]
