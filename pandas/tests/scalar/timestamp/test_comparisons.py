@@ -169,7 +169,7 @@ class TestTimestampComparison(object):
 
 
 def test_rich_comparison_with_unsupported_type():
-    # Comparisons with unsupported objects should return NotImplemented 
+    # Comparisons with unsupported objects should return NotImplemented
     # (it previously raised TypeError)
 
     class Inf(object):
@@ -196,5 +196,3 @@ def test_rich_comparison_with_unsupported_type():
         assert left >= right or left <= right
         assert not (left == right)
         assert left != right
-        
-    
