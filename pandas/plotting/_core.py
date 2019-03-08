@@ -21,7 +21,6 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
-from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.config import get_option
