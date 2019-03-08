@@ -20,4 +20,5 @@ cdef class _NDFrameIndexerBase:
         ndim = self._ndim
         if ndim is None:
             ndim = self._ndim = self.obj.ndim
+        assert not ndim > 2, 'Internal Error: NDFrameIndexer ndim > 2'
         return ndim

@@ -740,12 +740,9 @@ class TestNDFrame(object):
         # don't fail with 0 length dimensions GH11229 & GH8999
         empty_series = Series([], name='five')
         empty_frame = DataFrame([empty_series])
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            empty_panel = Panel({'six': empty_frame})
 
         [tm.assert_series_equal(empty_series, higher_dim.squeeze())
-         for higher_dim in [empty_series, empty_frame, empty_panel]]
+         for higher_dim in [empty_series, empty_frame]]
 
         # axis argument
         df = tm.makeTimeDataFrame(nper=1).iloc[:, :1]
