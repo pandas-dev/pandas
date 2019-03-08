@@ -172,6 +172,15 @@ Conversion
 Strings
 ^^^^^^^
 
+**The ``.str``-accessor performs stricter type checks**
+
+Due to the lack of a native string dtype in numpy, :attr:`Series.str` only checked whether the data was of ``object`` dtype.
+From now on, the inferred dtype of the Series is checked to be correct (particularly, not ``'bytes'``), as :attr:`Index.str` does already.
+
+For more details, see this :ref:`warning<text.warn_types>`.
+
+**Other bugs**
+
 - Bug in the ``__name__`` attribute of several methods of :class:`Series.str`, which were set incorrectly (:issue:`23551`)
 -
 -

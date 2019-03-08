@@ -1764,7 +1764,7 @@ def forbid_nonstring_types(forbidden, name=None):
 
     Parameters
     ----------
-    forbidden : list or None
+    forbidden : list-of-str or None
         List of forbidden non-string types, may be one or more of
         `['bytes', 'mixed', 'mixed-integer']`.
     name : str, default None
