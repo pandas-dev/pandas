@@ -750,6 +750,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
+
         data = [1, 2]
         df = DataFrame(columns=['x', 'y'])
         msg = "cannot copy sequence with size 2 to array axis with dimension 0"
