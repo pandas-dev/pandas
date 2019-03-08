@@ -1092,8 +1092,7 @@ class TestDataFrameIndexing(TestData):
             simplefilter("ignore", DeprecationWarning)
 
             # labels that aren't contained
-            with pytest.raises(KeyError,
-                               match=r"\[1\] not in index"):
+            with pytest.raises(KeyError,  match=r"\[1\] not in index"):
                 df.ix[[0, 1, 2], [2, 3, 4]] = 5
 
             # try to set indices not contained in frame
