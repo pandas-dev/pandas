@@ -187,7 +187,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- loc creates required  missing columns and index if a list is passed except if a MultiIndex is used.
 -
 -
 
