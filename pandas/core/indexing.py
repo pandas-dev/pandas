@@ -449,8 +449,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     # and set inplace
                     key, _ = convert_missing_indexer(idx)
 
-                    idx_as_list = (is_list_like_indexer(key) and not
-                                   isinstance(self.obj.axes[i], MultiIndex))
+                    idx_as_list = can_use_idx_as_list(key, i)
 
                     # if this is the items axes, then take the main missing
                     # path first
@@ -524,8 +523,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             indexer, missing = convert_missing_indexer(indexer)
 
             if missing:
-                if (is_list_like_indexer(indexer) and
-                        not isinstance(self.obj.axes[0], MultiIndex)):
+                if can_use_idx_as_list(indexer, 0):
                     # reindex the axis
                     # make sure to clear the cache because we are
                     # just replacing the block manager here
