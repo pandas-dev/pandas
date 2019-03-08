@@ -1041,7 +1041,7 @@ class GroupBy(_GroupBy):
         """
 
         def objs_to_bool(vals):
-            # type: np.ndarray -> (np.ndarray, typing.Type)
+            # type: (np.ndarray) -> (np.ndarray, typing.Type)
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
             else:
@@ -1743,7 +1743,7 @@ class GroupBy(_GroupBy):
         """
 
         def pre_processor(vals):
-            # type: np.ndarray -> (np.ndarray, Optional[typing.Type])
+            # type: (np.ndarray) -> (np.ndarray, Optional[typing.Type])
             if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
