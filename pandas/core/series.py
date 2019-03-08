@@ -3733,17 +3733,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          limit=limit, fill_axis=fill_axis,
                                          broadcast_axis=broadcast_axis)
 
-    @Substitution(klass="Series",
-                  altered="Series index labels or name",
-                  alternative_use="Alternatively, change Series.name with a "
-                                  "scalar value.",
-                  specific_parameters="index : scalar, hashable sequence"
-                                      " dict-like or function, optional\n\t\t"
-                                      "Dict-like or functions are "
-                                      "transformations to apply to the index. "
-                                      "Scalar or hashable sequence-like will "
-                                      "alter the Series.name "
-                                      "attribute.".expandtabs())
+    @Substitution(**{**_shared_doc_kwargs,
+                     **{'altered': "Series index labels or name",
+                        'axes_alt_types': 'scalar, hashable sequence',
+                        'alternative_use': "Alternatively, change Series.name "
+                                           "with a scalar value or hashable "
+                                           "sequence-like."}})
     @Substitution(generic_documentation=generic.NDFrame.rename.__doc__)
     def rename(self, index=None, **kwargs):
         """%(generic_documentation)s

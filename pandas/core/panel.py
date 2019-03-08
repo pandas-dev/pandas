@@ -1249,18 +1249,10 @@ class Panel(NDFrame):
             result = super(Panel, self).reindex(**kwargs)
         return result
 
-    @Substitution(klass="Panel",
-                  altered="axes input function or functions",
-                  alternative_use="",
-                  specific_parameters="items, major_axis, minor_axis : "
-                                      "scalar, list-like, dict-like or "
-                                      "function, optional\n\t\t"
-                                      "Scalar or list-like will alter the "
-                                      "Series.name attribute, and raise on "
-                                      "DataFrame or Panel, dict-like or "
-                                      "functions are transformations to "
-                                      "apply to that axis'"
-                                      " values.".expandtabs())
+    @Substitution(**{**_shared_doc_kwargs,
+                     **{'altered': 'axes input function or functions',
+                        'alternative_use': '',
+                        'axes_alt_types': ''}})
     @Substitution(generic_documentation=NDFrame.rename.__doc__)
     def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):
         """%(generic_documentation)s

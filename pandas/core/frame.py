@@ -3913,28 +3913,10 @@ class DataFrame(NDFrame):
                                              ('inplace', False),
                                              ('level', None),
                                              ('errors', 'ignore')])
-    @Substitution(klass="DataFrame",
-                  altered="axis labels",
-                  alternative_use="",
-                  specific_parameters="mapper : dict-like or function\n\t\t"
-                                      "Dict-like or functions transformation "
-                                      "to apply to that axis' values. Use"
-                                      " ``axis`` to specify the axis to target"
-                                      " with ``mapper``.\n\t"
-                                      "index : dict-like or function\n\t\t"
-                                      "Alternative to specifying axis ("
-                                      "``mapper, axis=0`` is equivalent to "
-                                      "``index=mapper``).\n\t"
-                                      "columns : dict-like or function\n\t\t"
-                                      "Alternative to specifying axis ("
-                                      "``mapper, axis=1`` is equivalent to "
-                                      "``columns=mapper``).\n\t"
-                                      "axis : int or str\n\t\t"
-                                      "Axis to target with mapper. Can be "
-                                      "either the axis name ('index', "
-                                      "'columns') or number (0, 1). The "
-                                      "default is 'index'.".expandtabs()
-                  )
+    @Substitution(**{**_shared_doc_kwargs,
+                     **{'altered': 'axis labels',
+                        'axes_alt_types': '',
+                        'alternative_use': ''}})
     @Substitution(generic_documentation=NDFrame.rename.__doc__)
     def rename(self, *args, **kwargs):
         """%(generic_documentation)s

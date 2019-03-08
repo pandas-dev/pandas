@@ -970,7 +970,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        %(specific_parameters)s
+        %(axes)s : dict-like, %(axes_alt_types)s or function, optional
+            Dict-like or function is the transformation to apply to {%(axes)s}.
+            %(alternative_use)s
+        %(optional_axis)s
         copy : bool, default True
             Whether to copy underlying data.
         inplace : bool, default False
