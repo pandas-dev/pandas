@@ -102,9 +102,9 @@ def test_loc_setitem_boolean(test_data):
 def test_loc_setitem_corner(test_data):
     inds = list(test_data.series.index[[5, 8, 12]])
     test_data.series.loc[inds] = 5
-    msg = r"\['foo'\] not in index"
-    with pytest.raises(KeyError, match=msg):
-        test_data.series.loc[inds + ['foo']] = 5
+    test_data.series.loc[inds + ['foo']] = 5
+    assert test_data.series.loc['foo'] == 5
+    assert test_data.series.loc[inds[0]] == 5
 
 
 def test_basic_setitem_with_labels(test_data):

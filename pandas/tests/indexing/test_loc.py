@@ -256,8 +256,8 @@ class TestLoc(Base):
 
         del s['a']
 
-        with pytest.raises(KeyError, match=msg):
-            s.loc[[-2]] = 0
+        s.loc[[-2]] = 0
+        tm.assert_series_equal(Series([1., 3, 0], index=[1, -1, -2]), s)
 
         # inconsistency between .loc[values] and .loc[values,:]
         # GH 7999
@@ -741,16 +741,17 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[0, 'x'] = expected.loc[0, 'x']
         tm.assert_frame_equal(df, expected)
 
+        data = [1, 2]
+        df = DataFrame(columns=['x', 'y'],
+                       dtype=np.float)
+        df.loc[[0, 1], 'x'] = data
+        expected = DataFrame({'x': [1., 2.], 'y': [np.nan, np.nan]})
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
-
         data = [1, 2]
         df = DataFrame(columns=['x', 'y'])
-        msg = (r"None of \[Int64Index\(\[0, 1\], dtype='int64'\)\] "
-               r"are in the \[index\]")
-        with pytest.raises(KeyError, match=msg):
-            df.loc[[0, 1], 'x'] = data
-
         msg = "cannot copy sequence with size 2 to array axis with dimension 0"
         with pytest.raises(ValueError, match=msg):
             df.loc[0:2, 'x'] = data

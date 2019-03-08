@@ -449,6 +449,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     # and set inplace
                     key, _ = convert_missing_indexer(idx)
 
+                    idx_as_list = (is_list_like_indexer(key) and not
+                                   isinstance(self.obj.axes[i], MultiIndex))
+
                     # if this is the items axes, then take the main missing
                     # path first
                     # this correctly sets the dtype and avoids cache issues
@@ -472,7 +475,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
                         # add a new item with the dtype setup
                         labels = self.obj._get_axis(i)
-                        if is_list_like_indexer(key):
+                        # If use multilabel, can't create more than one axis
+                        if idx_as_list:
                             for k, v in get_key_value_list(key, value):
                                 if k not in labels:
                                     self.obj[k] = _infer_fill_value(v)
@@ -494,7 +498,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     # just replacing the block manager here
                     # so the object is the same
                     index = self.obj._get_axis(i)
-                    if is_list_like_indexer(key):
+                    if idx_as_list:
                         labels = index
                         for k in key:
                             if k not in labels:
@@ -504,7 +508,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     self.obj._data = self.obj.reindex(labels, axis=i)._data
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
-                    if is_list_like_indexer(key):
+                    if idx_as_list:
                         nindexer.append(self._get_listlike_indexer(
                                 key, axis=i, raise_missing=True)[1])
                     else:
@@ -519,7 +523,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             indexer, missing = convert_missing_indexer(indexer)
 
             if missing:
-                if is_list_like_indexer(indexer):
+                if (is_list_like_indexer(indexer) and
+                        not isinstance(self.obj.axes[0], MultiIndex)):
                     # reindex the axis
                     # make sure to clear the cache because we are
                     # just replacing the block manager here
@@ -531,6 +536,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     self.obj._data = self.obj.reindex(labels, axis=0)._data
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
+                    indexer = self._get_listlike_indexer(
+                                indexer, axis=0, raise_missing=True)[1]
 
                 # reindex the axis to the new value
                 # and set inplace
