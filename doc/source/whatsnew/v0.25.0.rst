@@ -94,6 +94,7 @@ Deprecations
 ~~~~~~~~~~~~
 
 - Deprecated the `M (months)` and `Y (year)` `units` parameter of :func: `pandas.to_timedelta`, :func: `pandas.Timedelta` and :func: `pandas.TimedeltaIndex` (:issue:`16344`)
+- The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64`/:meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
 
 .. _whatsnew_0250.prior_deprecations:
 
