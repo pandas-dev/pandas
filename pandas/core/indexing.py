@@ -457,6 +457,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     # essentially this separates out the block that is needed
                     # to possibly be modified
                     if self.ndim > 1 and i == self.obj._info_axis_number:
+
                         # add the new item, and set the value
                         # must have all defined axes if we have a scalar
                         # or a list-like on the non-info axes if we have a
@@ -508,6 +509,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     self.obj._data = self.obj.reindex(labels, axis=i)._data
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
+
                     if idx_as_list:
                         nindexer.append(self._get_listlike_indexer(
                             key, axis=i, raise_missing=True)[1])
