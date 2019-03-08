@@ -368,6 +368,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                             multiindex_indexer)
                     else:
                         v = np.nan
+
                     ret.append((item, v))
                 return ret
 
@@ -428,6 +429,17 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     lplane_indexer = 0
             return plane_indexer, lplane_indexer
 
+        def can_use_idx_as_list(idx, axis):
+            """Returns True if we can safely wiew idx as a list on index"""
+            if self.name != 'loc':
+                # Loc is the only case where this is acceptable
+                return False
+            if isinstance(self.obj.axes[axis], MultiIndex):
+                return False
+            if not is_list_like_indexer(idx):
+                return False
+            return True
+
         if isinstance(indexer, tuple):
             nindexer = []
             for i, idx in enumerate(indexer):
@@ -443,7 +455,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     # essentially this separates out the block that is needed
                     # to possibly be modified
                     if self.ndim > 1 and i == self.obj._info_axis_number:
-
                         # add the new item, and set the value
                         # must have all defined axes if we have a scalar
                         # or a list-like on the non-info axes if we have a
@@ -460,10 +471,20 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                             return self.obj
 
                         # add a new item with the dtype setup
-                        self.obj[key] = _infer_fill_value(value)
-
-                        new_indexer = convert_from_missing_indexer_tuple(
-                            indexer, self.obj.axes)
+                        labels = self.obj._get_axis(i)
+                        if is_list_like_indexer(key):
+                            for k, v in get_key_value_list(key, value):
+                                if k not in labels:
+                                    self.obj[k] = _infer_fill_value(v)
+                            new_indexer = tuple(
+                                    convert_missing_indexer(_idx)[0]
+                                    if isinstance(_idx, dict) else _idx
+                                    for _idx in indexer)
+                            new_indexer = self._get_setitem_indexer(new_indexer)
+                        else:
+                            self.obj[key] = _infer_fill_value(value)
+                            new_indexer = convert_from_missing_indexer_tuple(
+                                    indexer, self.obj.axes)
                         self._setitem_with_indexer(new_indexer, value)
 
                         return self.obj
@@ -473,12 +494,21 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     # just replacing the block manager here
                     # so the object is the same
                     index = self.obj._get_axis(i)
-                    labels = index.insert(len(index), key)
+                    if is_list_like_indexer(key):
+                        labels = index
+                        for k in key:
+                            if k not in labels:
+                                labels = labels.insert(len(labels), k)
+                    else:
+                        labels = index.insert(len(index), key)
                     self.obj._data = self.obj.reindex(labels, axis=i)._data
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
-
-                    nindexer.append(labels.get_loc(key))
+                    if is_list_like_indexer(key):
+                        nindexer.append(self._get_listlike_indexer(
+                                key, axis=i, raise_missing=True)[1])
+                    else:
+                        nindexer.append(labels.get_loc(key))
 
                 else:
                     nindexer.append(idx)
@@ -489,10 +519,22 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             indexer, missing = convert_missing_indexer(indexer)
 
             if missing:
+                if is_list_like_indexer(indexer):
+                    # reindex the axis
+                    # make sure to clear the cache because we are
+                    # just replacing the block manager here
+                    # so the object is the same
+                    labels = self.obj._get_axis(0)
+                    for k in indexer:
+                        if k not in labels:
+                            labels = labels.insert(len(labels), k)
+                    self.obj._data = self.obj.reindex(labels, axis=0)._data
+                    self.obj._maybe_update_cacher(clear=True)
+                    self.obj._is_copy = None
 
                 # reindex the axis to the new value
                 # and set inplace
-                if self.ndim == 1:
+                elif self.ndim == 1:
                     index = self.obj.index
                     new_index = index.insert(len(index), indexer)
 
@@ -1366,7 +1408,12 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # When setting, missing keys are not allowed, even with .loc:
                 kwargs = {'raise_missing': True if is_setter else
                           raise_missing}
-                return self._get_listlike_indexer(obj, axis, **kwargs)[1]
+                try:
+                    return self._get_listlike_indexer(obj, axis, **kwargs)[1]
+                except KeyError:
+                    if is_setter:
+                        return {'key': obj}
+                    raise
         else:
             try:
                 return labels.get_loc(obj)
