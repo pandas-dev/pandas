@@ -187,7 +187,7 @@ Interval
 Indexing
 ^^^^^^^^
 
-- loc creates required  missing columns and index if a list is passed except if a MultiIndex is used.
+- :meth:`loc` creates required  missing columns and index if a list is passed except if the axis is a :meth:`MultiIndex`, as this would lead to ambiguities.
 -
 -
 
