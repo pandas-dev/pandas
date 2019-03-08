@@ -481,14 +481,15 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                                 if k not in labels:
                                     self.obj[k] = _infer_fill_value(v)
                             new_indexer = tuple(
-                                    convert_missing_indexer(_idx)[0]
-                                    if isinstance(_idx, dict) else _idx
-                                    for _idx in indexer)
-                            new_indexer = self._get_setitem_indexer(new_indexer)
+                                convert_missing_indexer(_idx)[0]
+                                if isinstance(_idx, dict) else _idx
+                                for _idx in indexer)
+                            new_indexer = self._get_setitem_indexer(
+                                new_indexer)
                         else:
                             self.obj[key] = _infer_fill_value(value)
                             new_indexer = convert_from_missing_indexer_tuple(
-                                    indexer, self.obj.axes)
+                                indexer, self.obj.axes)
                         self._setitem_with_indexer(new_indexer, value)
 
                         return self.obj
@@ -510,7 +511,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     self.obj._is_copy = None
                     if idx_as_list:
                         nindexer.append(self._get_listlike_indexer(
-                                key, axis=i, raise_missing=True)[1])
+                            key, axis=i, raise_missing=True)[1])
                     else:
                         nindexer.append(labels.get_loc(key))
 
@@ -537,7 +538,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
                     indexer = self._get_listlike_indexer(
-                                indexer, axis=0, raise_missing=True)[1]
+                        indexer, axis=0, raise_missing=True)[1]
 
                 # reindex the axis to the new value
                 # and set inplace
