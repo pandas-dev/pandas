@@ -1714,3 +1714,12 @@ def test_groupby_multiindex_nat():
     result = ser.groupby(level=1).mean()
     expected = pd.Series([3., 2.5], index=["a", "b"])
     assert_series_equal(result, expected)
+
+
+def test_groupby_empty_list_raises():
+    # GH 5289
+    values = zip(range(10), range(10))
+    df = DataFrame(values, columns=['apple', 'b'])
+    msg = "Grouper and axis must be same length"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby([[]])

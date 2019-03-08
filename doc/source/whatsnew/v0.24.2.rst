@@ -29,7 +29,9 @@ Fixed Regressions
 - Fixed regression in subtraction between :class:`Series` objects with ``datetime64[ns]`` dtype incorrectly raising ``OverflowError`` when the ``Series`` on the right contains null values (:issue:`25317`)
 - Fixed regression in :class:`TimedeltaIndex` where ``np.sum(index)`` incorrectly returned a zero-dimensional object instead of a scalar (:issue:`25282`)
 - Fixed regression in ``IntervalDtype`` construction where passing an incorrect string with 'Interval' as a prefix could result in a ``RecursionError``. (:issue:`25338`)
+- Fixed regression in creating a period-dtype array from a read-only NumPy array of period objects. (:issue:`25403`)
 - Fixed regression in :class:`Categorical`, where constructing it from a categorical ``Series`` and an explicit ``categories=`` that differed from that in the ``Series`` created an invalid object which could trigger segfaults. (:issue:`25318`)
+- Fixed pip installing from source into an environment without NumPy (:issue:`25193`)
 
 .. _whatsnew_0242.enhancements:
 
@@ -90,7 +92,7 @@ Bug Fixes
 
 **Visualization**
 
--
+- Bug in :meth:`Series.plot` where a secondary y axis could not be set to log scale (:issue:`25545`)
 -
 -
 

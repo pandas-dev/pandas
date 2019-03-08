@@ -1385,7 +1385,8 @@ class TestDataFrameAnalytics(object):
                                         skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type <class 'type'>"
+        msg = ("No axis named 2 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
@@ -1402,7 +1403,8 @@ class TestDataFrameAnalytics(object):
                                         skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        msg = "No axis named 2 for object type <class 'type'>"
+        msg = ("No axis named 2 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
         with pytest.raises(ValueError, match=msg):
             frame.idxmax(axis=2)
 
