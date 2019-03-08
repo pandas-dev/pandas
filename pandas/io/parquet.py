@@ -278,7 +278,6 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     -------
     DataFrame
         DataFrame with appropriate data.
-        labeled axes.
 
     See Also
     --------
