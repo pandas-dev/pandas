@@ -102,7 +102,7 @@ def test_resample_basic(series, closed, expected):
 
 
 def test_resample_integerarray():
-    # resample on IntegerArray
+    # GH 25580, resample on IntegerArray
     ts = pd.Series(range(9),
                    index=pd.date_range('1/1/2000', periods=9, freq='T'),
                    dtype='Int64')

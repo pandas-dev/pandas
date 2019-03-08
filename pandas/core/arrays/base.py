@@ -46,7 +46,6 @@ class ExtensionArray(object):
     * __len__
     * dtype
     * nbytes
-    * size
     * isna
     * take
     * copy
@@ -318,18 +317,6 @@ class ExtensionArray(object):
         # If this is expensive to compute, return an approximate lower bound
         # on the number of bytes needed.
         raise AbstractMethodError(self)
-
-    @property
-    def size(self):
-        # type: () -> int
-        """
-        The number of elements in this array.
-
-        Returns
-        -------
-        size : int
-        """
-        return len(self)
 
     # ------------------------------------------------------------------------
     # Additional Methods

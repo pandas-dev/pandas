@@ -745,7 +745,7 @@ class IndexOpsMixin(object):
         """
         Return the number of bytes in the underlying data.
         """
-        return self._values.nbytes
+        return len(self._values)
 
     @property
     def strides(self):
