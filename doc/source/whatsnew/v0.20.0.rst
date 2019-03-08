@@ -1354,34 +1354,6 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
    df.iloc[[0, 2], df.columns.get_loc('A')]
 
 
-.. _whatsnew_0200.api_breaking.deprecate_panel:
-
-Deprecate Panel
-^^^^^^^^^^^^^^^
-
-``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
-with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
-provides a :meth:`~Panel.to_xarray` method to automate this conversion. For more details see :ref:`Deprecate Panel <dsintro.deprecate_panel>` documentation. (:issue:`13563`).
-
-.. ipython:: python
-   :okwarning:
-
-   p = tm.makePanel()
-   p
-
-Convert to a MultiIndex DataFrame
-
-.. ipython:: python
-
-   p.to_frame()
-
-Convert to an xarray DataArray
-
-.. ipython:: python
-   :okwarning:
-
-   p.to_xarray()
-
 .. _whatsnew_0200.api_breaking.deprecate_group_agg_dict:
 
 Deprecate groupby.agg() with a dictionary when renaming
