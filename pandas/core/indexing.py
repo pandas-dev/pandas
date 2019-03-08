@@ -1411,13 +1411,13 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 inds, = obj.nonzero()
                 return inds
             else:
-                # When setting, missing keys are not allowed, even with .loc:
+                # When setting, missing keys are not allowed, except with .loc:
                 kwargs = {'raise_missing': True if is_setter else
                           raise_missing}
                 try:
                     return self._get_listlike_indexer(obj, axis, **kwargs)[1]
                 except KeyError:
-                    if is_setter:
+                    if is_setter and self.name == 'loc':
                         return {'key': obj}
                     raise
         else:
