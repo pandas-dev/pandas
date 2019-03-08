@@ -144,14 +144,17 @@ class TestDataFramePlots(TestPlotBase):
         result = ax.axes
         assert result is axes[0]
 
-    # GH 25587
-    def test_integer_array_plot(self):
+    @pytest.mark.parametrize("kwargs", [
+        dict(yticks=[1, 2, 3, 4]),
+        dict(xticks=[4, 5, 3, 2])
+    ])
+    def test_integer_array_plot(self, kwargs):
+        # GH 25587
         s = Series([4, 5, 3, 2], dtype="UInt32")
-        _check_plot_works(s.plot, yticks=[1, 2, 3, 4])
-        _check_plot_works(s.plot, xticks=[4, 5, 3, 2])
+        _check_plot_works(s.plot, **kwargs)
 
-    # GH 15516
     def test_mpl2_color_cycle_str(self):
+        # GH 15516
         colors = ['C' + str(x) for x in range(10)]
         df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
         for c in colors:

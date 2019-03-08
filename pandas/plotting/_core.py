@@ -15,7 +15,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    is_hashable, is_integer, is_iterator, is_list_like, is_number)
+    is_hashable, is_integer, is_iterator, is_list_like, is_number,
+    is_extension_array_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
@@ -577,10 +578,10 @@ class MPLPlot(object):
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
         # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
         # np.ndarray before plot.
-        if isinstance(x, ExtensionArray):
-            x = x.__array__()
-        if isinstance(y, ExtensionArray):
-            y = y.__array__()
+        if is_extension_array_dtype(x):
+            x = np.asarray(x)
+        if is_extension_array_dtype(y):
+            y = np.asarray(y)
 
         mask = isna(y)
         if mask.any():
