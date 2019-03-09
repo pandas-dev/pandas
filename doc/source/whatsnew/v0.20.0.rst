@@ -1360,10 +1360,12 @@ provides a :meth:`~Panel.to_xarray` method to automate this conversion. For more
 
 .. code-block:: ipython
 
+    In [133]: import pandas.util.testing as tm
+
     In [134]: p = tm.makePanel()
 
     In [135]: p
-    Out[135]: 
+    Out[135]:
     <class 'pandas.core.panel.Panel'>
     Dimensions: 3 (items) x 3 (major_axis) x 4 (minor_axis)
     Items axis: ItemA to ItemC
@@ -1375,9 +1377,9 @@ Convert to a MultiIndex DataFrame
 .. code-block:: ipython
 
     In [136]: p.to_frame()
-    Out[136]: 
+    Out[136]:
                          ItemA     ItemB     ItemC
-    major      minor                              
+    major      minor
     2000-01-03 A      0.628776 -1.409432  0.209395
                B      0.988138 -1.347533 -0.896581
                C     -0.938153  1.272395 -0.161137
@@ -1398,7 +1400,7 @@ Convert to an xarray DataArray
 .. code-block:: ipython
 
     In [137]: p.to_xarray()
-    Out[137]: 
+    Out[137]:
     <xarray.DataArray (items: 3, major_axis: 3, minor_axis: 4)>
     array([[[ 0.628776,  0.988138, -0.938153, -0.223019],
             [ 0.186494, -0.072608, -1.239072,  2.123692],

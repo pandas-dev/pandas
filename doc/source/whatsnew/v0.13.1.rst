@@ -229,7 +229,7 @@ Enhancements
       In [29]: panel = tm.makePanel(5)
 
       In [30]: panel
-      Out[30]: 
+      Out[30]:
       <class 'pandas.core.panel.Panel'>
       Dimensions: 3 (items) x 5 (major_axis) x 4 (minor_axis)
       Items axis: ItemA to ItemC
@@ -237,7 +237,7 @@ Enhancements
       Minor_axis axis: A to D
 
       In [31]: panel['ItemA']
-      Out[31]: 
+      Out[31]:
                          A         B         C         D
       2000-01-03 -0.673690  0.577046 -1.344312 -1.469388
       2000-01-04  0.113648 -1.715002  0.844885  0.357021
@@ -252,7 +252,7 @@ Enhancements
   .. code-block:: ipython
 
       In [32]: panel.apply(lambda x: x.dtype, axis='items')
-      Out[32]: 
+      Out[32]:
                         A        B        C        D
       2000-01-03  float64  float64  float64  float64
       2000-01-04  float64  float64  float64  float64
@@ -267,7 +267,7 @@ Enhancements
   .. code-block:: ipython
 
       In [33]: panel.apply(lambda x: x.sum(), axis='major_axis')
-      Out[33]: 
+      Out[33]:
             ItemA     ItemB     ItemC
       A -1.108775 -1.090118 -2.984435
       B -3.705764  0.409204  1.866240
@@ -281,7 +281,7 @@ Enhancements
   .. code-block:: ipython
 
       In [34]: panel.sum('major_axis')
-      Out[34]: 
+      Out[34]:
             ItemA     ItemB     ItemC
       A -1.108775 -1.090118 -2.984435
       B -3.705764  0.409204  1.866240
@@ -297,18 +297,18 @@ Enhancements
 
       In [35]: result = panel.apply(lambda x: (x - x.mean()) / x.std(),
         ....:                      axis='major_axis')
-        ....: 
+        ....:
 
       In [36]: result
-      Out[36]: 
+      Out[36]:
       <class 'pandas.core.panel.Panel'>
       Dimensions: 3 (items) x 5 (major_axis) x 4 (minor_axis)
       Items axis: ItemA to ItemC
       Major_axis axis: 2000-01-03 00:00:00 to 2000-01-07 00:00:00
       Minor_axis axis: A to D
 
-      In [37]: result['ItemA']
-      Out[37]: 
+      In [37]: result['ItemA']                           # noqa E999
+      Out[37]:
                         A         B         C         D
       2000-01-03 -0.535778  1.500802 -1.506416 -0.681456
       2000-01-04  0.397628 -1.108752  0.360481  1.529895
@@ -324,12 +324,12 @@ Enhancements
 
       In [38]: def f(x):
          ....:     return ((x.T - x.mean(1)) / x.std(1)).T
-         ....: 
+         ....:
 
       In [39]: result = panel.apply(f, axis=['items', 'major_axis'])
 
       In [40]: result
-      Out[40]: 
+      Out[40]:
       <class 'pandas.core.panel.Panel'>
       Dimensions: 4 (items) x 5 (major_axis) x 3 (minor_axis)
       Items axis: A to D
@@ -337,7 +337,7 @@ Enhancements
       Minor_axis axis: ItemA to ItemC
 
       In [41]: result.loc[:, :, 'ItemA']
-      Out[41]: 
+      Out[41]:
                          A         B         C         D
       2000-01-03  0.012922 -0.030874 -0.629546 -0.757034
       2000-01-04  0.392053 -1.071665  0.163228  0.548188
@@ -354,7 +354,7 @@ Enhancements
       In [42]: result = pd.Panel({ax: f(panel.loc[:, :, ax]) for ax in panel.minor_axis})
 
       In [43]: result
-      Out[43]: 
+      Out[43]:
       <class 'pandas.core.panel.Panel'>
       Dimensions: 4 (items) x 5 (major_axis) x 3 (minor_axis)
       Items axis: A to D
@@ -362,7 +362,7 @@ Enhancements
       Minor_axis axis: ItemA to ItemC
 
       In [44]: result.loc[:, :, 'ItemA']
-      Out[44]: 
+      Out[44]:
                          A         B         C         D
       2000-01-03  0.012922 -0.030874 -0.629546 -0.757034
       2000-01-04  0.392053 -1.071665  0.163228  0.548188
