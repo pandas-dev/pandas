@@ -126,9 +126,7 @@ def whitelist_method_generator(base, klass, whitelist):
     property_wrapper_template = \
         """@property
 def %(name)s(self) :
-    \"""
-    %(doc)s
-    \"""
+    \"""%(doc)s\"""
     return self.__getattr__('%(name)s')"""
 
     for name in whitelist:
@@ -139,7 +137,7 @@ def %(name)s(self) :
         # ugly, but we need the name string itself in the method.
         f = getattr(klass, name)
         doc = f.__doc__
-        doc = doc.strip() if type(doc) == str else ''
+        doc = doc if type(doc) == str else ''
         if isinstance(f, types.MethodType):
             wrapper_template = method_wrapper_template
             decl, args = make_signature(f)
