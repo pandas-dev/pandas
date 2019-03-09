@@ -633,6 +633,16 @@ We are stopping on the included end-point as it is part of the index:
    dft2 = dft2.swaplevel(0, 1).sort_index()
    dft2.loc[idx[:, '2013-01-05'], :]
 
+.. versionadded:: 0.25.0
+
+Slicing with string indexing also honors UTC offset.
+
+.. ipython:: python
+
+    df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
+    df
+    df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
+
 .. _timeseries.slice_vs_exact_match:
 
 Slice vs. Exact Match
