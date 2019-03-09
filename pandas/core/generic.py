@@ -10458,8 +10458,7 @@ core.window.Expanding.%(accum_func_name)s : Similar functionality
 %(name2)s.cumsum : Return cumulative sum over %(name2)s axis.
 %(name2)s.cumprod : Return cumulative product over %(name2)s axis.
 
-%(examples)s\
-"""
+%(examples)s"""
 
 _cummin_examples = """\
 Examples
