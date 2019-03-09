@@ -130,6 +130,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     floor
     ceil
     to_frame
+    mean
 
     See Also
     ---------
