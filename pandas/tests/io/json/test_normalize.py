@@ -65,6 +65,7 @@ def author_missing_data():
          {'first': 'Jane', 'last_name': 'Doe'}
          }]
 
+
 @pytest.fixture
 def address_missing_data():
     return [
@@ -75,7 +76,7 @@ def address_missing_data():
                         'state': 'OH',
                         'zip': 44646}]
          },
-        {'addresses': [{'number':  8449,
+        {'addresses': [{'number': 8449,
                         'street': 'Spring St.',
                         'city': 'Elizabethton',
                         'state': 'TN',
