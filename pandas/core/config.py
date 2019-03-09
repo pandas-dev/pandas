@@ -53,8 +53,10 @@ from contextlib import contextmanager
 import re
 import warnings
 
-import pandas.compat as compat
-from pandas.compat import lmap, map, u
+try:
+    unicode
+except NameError:
+    unicode = str
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
 RegisteredOption = namedtuple('RegisteredOption',
@@ -140,7 +142,7 @@ def _describe_option(pat='', _print_desc=True):
     if len(keys) == 0:
         raise OptionError('No such keys(s)')
 
-    s = u('')
+    s = u''
     for k in keys:  # filter by pat
         s += _build_option_description(k)
 
@@ -634,7 +636,7 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = u('{k} ').format(k=k)
+    s = u'{k} '.format(k=k)
 
     if o.doc:
         s += '\n'.join(o.doc.strip().split('\n'))
@@ -642,14 +644,14 @@ def _build_option_description(k):
         s += 'No description available.'
 
     if o:
-        s += (u('\n    [default: {default}] [currently: {current}]')
+        s += (u'\n    [default: {default}] [currently: {current}]'
               .format(default=o.defval, current=_get_option(k, True)))
 
     if d:
-        s += u('\n    (Deprecated')
-        s += (u(', use `{rkey}` instead.')
+        s += u'\n    (Deprecated'
+        s += (u', use `{rkey}` instead.'
               .format(rkey=d.rkey if d.rkey else ''))
-        s += u(')')
+        s += u')'
 
     s += '\n\n'
     return s
@@ -777,8 +779,7 @@ def is_instance_factory(_type):
     """
     if isinstance(_type, (tuple, list)):
         _type = tuple(_type)
-        from pandas.io.formats.printing import pprint_thing
-        type_repr = "|".join(map(pprint_thing, _type))
+        type_repr = "|".join(map(str, _type))
     else:
         type_repr = "'{typ}'".format(typ=_type)
 
@@ -796,11 +797,11 @@ def is_one_of_factory(legal_values):
     legal_values = [c for c in legal_values if not callable(c)]
 
     def inner(x):
-        from pandas.io.formats.printing import pprint_thing as pp
         if x not in legal_values:
 
             if not any(c(x) for c in callables):
-                pp_values = pp("|".join(lmap(pp, legal_values)))
+                uvals = [str(lval) for lval in legal_values]
+                pp_values = "|".join(uvals)
                 msg = "Value must be one of {pp_values}"
                 if len(callables):
                     msg += " or a callable"
@@ -815,7 +816,7 @@ is_int = is_type_factory(int)
 is_bool = is_type_factory(bool)
 is_float = is_type_factory(float)
 is_str = is_type_factory(str)
-is_unicode = is_type_factory(compat.text_type)
+is_unicode = is_type_factory(unicode)
 is_text = is_instance_factory((str, bytes))
 
 
