@@ -163,7 +163,7 @@ class HTMLFormatter(TableFormatter):
             if isinstance(self.classes, str):
                 self.classes = self.classes.split()
             if not isinstance(self.classes, (list, tuple)):
-                raise TypeError('classes must be a string, list or tuple, '
+                raise TypeError('classes must be a string, list, or tuple, '
                                 'not {typ}'.format(typ=type(self.classes)))
             _classes.extend(self.classes)
 
