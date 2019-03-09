@@ -419,8 +419,8 @@ class TestNestedToRecord(object):
              'zip': 37643,
              'name': np.nan}
         ]
-        expected = DataFrame(ex_data, columns=ex_data[0].keys())
-        tm.assert_frame_equal(result, expected)
+        expected = DataFrame(ex_data)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     def test_donot_drop_nonevalues(self):
         # GH21356
