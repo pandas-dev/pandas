@@ -13,6 +13,7 @@ moto
 pytest>=4.0.2
 pytest-mock
 sphinx
+sphinx_rtd_theme
 numpydoc
 beautifulsoup4>=4.2.1
 blosc
