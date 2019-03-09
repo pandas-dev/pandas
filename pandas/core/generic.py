@@ -4534,11 +4534,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         items : list-like
-            List of axis to restrict to (must not all be present).
+            Keep labels from axis which are in items.
         like : string
-            Keep axis where "arg in col == True".
+            Keep labels from axis for which "like in label == True".
         regex : string (regular expression)
-            Keep axis with re.search(regex, col) == True.
+            Keep labels from axis for which re.search(regex, label) == True.
         axis : int or string axis name
             The axis to filter on.  By default this is the info axis,
             'index' for Series, 'columns' for DataFrame.
@@ -4561,7 +4561,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.array(([1,2,3], [4,5,6])),
+        >>> df = pd.DataFrame(np.array(([1, 2, 3], [4, 5, 6])),
         ...                   index=['mouse', 'rabbit'],
         ...                   columns=['one', 'two', 'three'])
 
