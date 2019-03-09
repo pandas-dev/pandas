@@ -26,6 +26,8 @@ import inspect
 import importlib
 import doctest
 import tempfile
+import configparser
+import itertools
 
 import flake8.main.application
 
@@ -152,6 +154,19 @@ def error(code, **kwargs):
         Error message with varaibles replaced.
     """
     return (code, ERROR_MSGS[code].format(**kwargs))
+
+
+def get_setupcfg():
+    """
+    Returns a ConfigParser which reads the setup.cfg file in the root
+    directory.
+    """
+    setup_cfg = os.path.join(BASE_PATH, 'setup.cfg')
+    config = configparser.ConfigParser(inline_comment_prefixes='#')
+    config.optionxform = str
+    with open(setup_cfg, 'r') as file:
+        config.read_file(file)
+    return config
 
 
 def get_api_items(api_doc_fd):
@@ -773,7 +788,7 @@ def validate_one(func_name):
             'examples_errors': examples_errs}
 
 
-def validate_all(prefix, ignore_deprecated=False):
+def validate_all(prefix, ignore_deprecated=False, ignore_known_fail=False):
     """
     Execute the validation of all docstrings, and return a dict with the
     results.
@@ -794,6 +809,9 @@ def validate_all(prefix, ignore_deprecated=False):
     """
     result = {}
     seen = {}
+    if ignore_known_fail:
+        config = get_setupcfg()
+        known_fails = dict(config.items('known_fail'))
 
     # functions from the API docs
     api_doc_fnames = os.path.join(
@@ -808,6 +826,12 @@ def validate_all(prefix, ignore_deprecated=False):
         doc_info = validate_one(func_name)
         if ignore_deprecated and doc_info['deprecated']:
             continue
+        if ignore_known_fail and func_name in known_fails:
+            doc_info['errors'] = list(itertools.filterfalse(
+                lambda x: x[0] in known_fails[func_name].split(','),
+                doc_info['errors']))
+            if not doc_info['errors']:
+                continue
         result[func_name] = doc_info
 
         shared_code_key = doc_info['file'], doc_info['file_line']
@@ -831,13 +855,20 @@ def validate_all(prefix, ignore_deprecated=False):
                 doc_info = validate_one(func_name)
                 if ignore_deprecated and doc_info['deprecated']:
                     continue
+                if ignore_known_fail and func_name in known_fails:
+                    doc_info['errors'] = list(itertools.filterfalse(
+                        lambda x: x[0] in known_fails[func_name].split(','),
+                        doc_info['errors']))
+                    if not doc_info['errors']:
+                        continue
                 result[func_name] = doc_info
                 result[func_name]['in_api'] = False
 
     return result
 
 
-def main(func_name, prefix, errors, output_format, ignore_deprecated):
+def main(func_name, prefix, errors, output_format, ignore_deprecated,
+         ignore_known_fail):
     def header(title, width=80, char='#'):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -851,7 +882,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
 
     exit_status = 0
     if func_name is None:
-        result = validate_all(prefix, ignore_deprecated)
+        result = validate_all(prefix, ignore_deprecated, ignore_known_fail)
 
         if output_format == 'json':
             output = json.dumps(result)
@@ -946,9 +977,14 @@ if __name__ == '__main__':
                            action='store_true', help='if this flag is set, '
                            'deprecated objects are ignored when validating '
                            'all docstrings')
+    argparser.add_argument('--ignore_known_fail', default=False,
+                           action='store_true', help='if this flag is set, '
+                           'objects listed in setup.cfg as known_fail are '
+                           'ignored when validating all docstrings')
 
     args = argparser.parse_args()
     sys.exit(main(args.function, args.prefix,
                   args.errors.split(',') if args.errors else None,
                   args.format,
-                  args.ignore_deprecated))
+                  args.ignore_deprecated,
+                  args.ignore_known_fail))
