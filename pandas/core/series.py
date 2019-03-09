@@ -1229,7 +1229,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self._values[label] = value
             else:
                 self.index._engine.set_value(self._values, label, value)
-        except KeyError:
+        except (KeyError, TypeError):
 
             # set using a non-recursive method
             self.loc[label] = value
@@ -3098,8 +3098,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : take the first occurrences based on the index order
-            - ``last`` : take the last occurrences based on the index order
+            - ``first`` : return the first `n` occurrences in order
+                of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+                order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
@@ -3194,8 +3196,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : take the first occurrences based on the index order
-            - ``last`` : take the last occurrences based on the index order
+            - ``first`` : return the first `n` occurrences in order
+                of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+                order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
@@ -3236,7 +3240,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Monserat        5200
         dtype: int64
 
-        The `n` largest elements where ``n=5`` by default.
+        The `n` smallest elements where ``n=5`` by default.
 
         >>> s.nsmallest()
         Monserat      5200

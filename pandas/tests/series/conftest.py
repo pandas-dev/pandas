@@ -1,6 +1,5 @@
 import pytest
 
-from pandas import Series
 import pandas.util.testing as tm
 
 
@@ -32,11 +31,3 @@ def object_series():
     s = tm.makeObjectSeries()
     s.name = 'objects'
     return s
-
-
-@pytest.fixture
-def empty_series():
-    """
-    Fixture for empty Series
-    """
-    return Series([], index=[])
