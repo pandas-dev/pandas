@@ -745,7 +745,7 @@ class IndexOpsMixin(object):
         """
         Return the number of bytes in the underlying data.
         """
-        return len(self._values)
+        return self._values.nbytes
 
     @property
     def strides(self):
@@ -762,7 +762,7 @@ class IndexOpsMixin(object):
         """
         Return the number of elements in the underlying data.
         """
-        return self._values.size
+        return len(self._values)
 
     @property
     def flags(self):
