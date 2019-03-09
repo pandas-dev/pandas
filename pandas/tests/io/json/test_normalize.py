@@ -65,6 +65,24 @@ def author_missing_data():
          {'first': 'Jane', 'last_name': 'Doe'}
          }]
 
+@pytest.fixture
+def address_missing_data():
+    return [
+        {'name': 'Alice',
+         'addresses': [{'number': 9562,
+                        'street': 'Morris St.',
+                        'city': 'Massillon',
+                        'state': 'OH',
+                        'zip': 44646}]
+         },
+        {'addresses': [{'number':  8449,
+                        'street': 'Spring St.',
+                        'city': 'Elizabethton',
+                        'state': 'TN',
+                        'zip': 37643}]
+         }
+    ]
+
 
 class TestJSONNormalize(object):
 
@@ -377,6 +395,31 @@ class TestNestedToRecord(object):
                 meta=[['general', 'tradeid'],
                       ['general', 'trade_version']],
                 errors='raise')
+
+    def test_missing_meta(self, address_missing_data):
+        # GH25468: If metadata is nullable with errors set to ignore, the null
+        # values should be numpy.nan values
+        result = json_normalize(
+            data=address_missing_data,
+            record_path='addresses',
+            meta='name',
+            errors='ignore')
+        ex_data = [
+            {'city': 'Massillon',
+             'number': 9562,
+             'state': 'OH',
+             'street': 'Morris St.',
+             'zip': 44646,
+             'name': 'Alice'},
+            {'city': 'Elizabethton',
+             'number': 8449,
+             'state': 'TN',
+             'street': 'Spring St.',
+             'zip': 37643,
+             'name': np.nan}
+        ]
+        expected = DataFrame(ex_data, columns=ex_data[0].keys())
+        tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
         # GH21356
