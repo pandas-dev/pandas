@@ -22,6 +22,7 @@ dependencies:
   - pytest>=4.0.2
   - pytest-mock
   - sphinx
+  - sphinx_rtd_theme
   - numpydoc
 
   # optional
