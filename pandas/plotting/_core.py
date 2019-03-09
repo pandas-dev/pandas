@@ -15,8 +15,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    is_hashable, is_integer, is_iterator, is_list_like, is_number,
-    is_extension_array_dtype)
+    is_extension_array_dtype, is_hashable, is_integer, is_iterator,
+    is_list_like, is_number)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
@@ -364,6 +364,12 @@ class MPLPlot(object):
             raise TypeError('Empty {0!r}: no numeric data to '
                             'plot'.format(numeric_data.__class__.__name__))
 
+        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
+        # np.ndarray before plot.
+        for col in numeric_data:
+            if is_extension_array_dtype(numeric_data[col]):
+                numeric_data[col] = np.asarray(numeric_data[col])
+
         self.data = numeric_data
 
     def _make_plot(self):
@@ -575,13 +581,6 @@ class MPLPlot(object):
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
-        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
-        # np.ndarray before plot.
-        if is_extension_array_dtype(x):
-            x = np.asarray(x)
-        if is_extension_array_dtype(y):
-            y = np.asarray(y)
-
         mask = isna(y)
         if mask.any():
             y = np.ma.array(y)

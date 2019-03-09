@@ -13,6 +13,7 @@ import pytest
 from pandas.compat import PY3, lmap, lrange, lzip, range, u, zip
 import pandas.util._test_decorators as td
 
+from pandas.core.arrays import integer_array
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
@@ -144,14 +145,24 @@ class TestDataFramePlots(TestPlotBase):
         result = ax.axes
         assert result is axes[0]
 
-    @pytest.mark.parametrize("kwargs", [
-        dict(yticks=[1, 2, 3, 4]),
-        dict(xticks=[4, 5, 3, 2])
-    ])
-    def test_integer_array_plot(self, kwargs):
+    def test_integer_array_plot(self):
         # GH 25587
-        s = Series([4, 5, 3, 2], dtype="UInt32")
-        _check_plot_works(s.plot, **kwargs)
+        arr = integer_array([1, 2, 3, 4], dtype="UInt32")
+
+        s = Series(arr)
+        _check_plot_works(s.plot.line)
+        _check_plot_works(s.plot.bar)
+        _check_plot_works(s.plot.hist)
+        _check_plot_works(s.plot.pie)
+
+        df = DataFrame({'x': arr, 'y': arr})
+        _check_plot_works(df.plot.line)
+        _check_plot_works(df.plot.bar)
+        _check_plot_works(df.plot.hist)
+        _check_plot_works(df.plot.area)
+        _check_plot_works(df.plot.pie, y='y')
+        _check_plot_works(df.plot.scatter, x='x', y='y')
+        _check_plot_works(df.plot.hexbin, x='x', y='y')
 
     def test_mpl2_color_cycle_str(self):
         # GH 15516
