@@ -7,7 +7,7 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, range, zip
+from pandas.compat import PY2, PY3, range, zip
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -15,8 +15,6 @@ import pandas as pd
 from pandas import DataFrame, MultiIndex, Panel, Series, date_range
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-
-import pandas.io.formats.printing as printing
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -135,37 +133,51 @@ class Generic(object):
         # GH 4633
         # look at the boolean/nonzero behavior for objects
         obj = self._construct(shape=4)
-        pytest.raises(ValueError, lambda: bool(obj == 0))
-        pytest.raises(ValueError, lambda: bool(obj == 1))
-        pytest.raises(ValueError, lambda: bool(obj))
+        msg = "The truth value of a {} is ambiguous".format(
+            self._typ.__name__)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 0)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 1)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         obj = self._construct(shape=4, value=1)
-        pytest.raises(ValueError, lambda: bool(obj == 0))
-        pytest.raises(ValueError, lambda: bool(obj == 1))
-        pytest.raises(ValueError, lambda: bool(obj))
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 0)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 1)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         obj = self._construct(shape=4, value=np.nan)
-        pytest.raises(ValueError, lambda: bool(obj == 0))
-        pytest.raises(ValueError, lambda: bool(obj == 1))
-        pytest.raises(ValueError, lambda: bool(obj))
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 0)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 1)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         # empty
         obj = self._construct(shape=0)
-        pytest.raises(ValueError, lambda: bool(obj))
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         # invalid behaviors
 
         obj1 = self._construct(shape=4, value=1)
         obj2 = self._construct(shape=4, value=1)
 
-        def f():
+        with pytest.raises(ValueError, match=msg):
             if obj1:
-                printing.pprint_thing("this works and shouldn't")
+                pass
 
-        pytest.raises(ValueError, f)
-        pytest.raises(ValueError, lambda: obj1 and obj2)
-        pytest.raises(ValueError, lambda: obj1 or obj2)
-        pytest.raises(ValueError, lambda: not obj1)
+        with pytest.raises(ValueError, match=msg):
+            obj1 and obj2
+        with pytest.raises(ValueError, match=msg):
+            obj1 or obj2
+        with pytest.raises(ValueError, match=msg):
+            not obj1
 
     def test_downcast(self):
         # test close downcasting
@@ -200,9 +212,10 @@ class Generic(object):
         def f(dtype):
             return self._construct(shape=3, value=1, dtype=dtype)
 
-        pytest.raises(NotImplementedError, f, [("A", "datetime64[h]"),
-                                               ("B", "str"),
-                                               ("C", "int32")])
+        msg = ("compound dtypes are not implemented in the {} constructor"
+               .format(self._typ.__name__))
+        with pytest.raises(NotImplementedError, match=msg):
+            f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
         # these work (though results may be unexpected)
         f('int64')
@@ -725,6 +738,7 @@ class TestNDFrame(object):
         with pytest.raises(ValueError):
             df.sample(1, weights=s4)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_squeeze(self):
         # noop
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
@@ -752,8 +766,14 @@ class TestNDFrame(object):
         tm.assert_series_equal(df.squeeze(axis=1), df.iloc[:, 0])
         tm.assert_series_equal(df.squeeze(axis='columns'), df.iloc[:, 0])
         assert df.squeeze() == df.iloc[0, 0]
-        pytest.raises(ValueError, df.squeeze, axis=2)
-        pytest.raises(ValueError, df.squeeze, axis='x')
+        msg = ("No axis named 2 for object type <class"
+               " 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            df.squeeze(axis=2)
+        msg = ("No axis named x for object type <class"
+               " 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            df.squeeze(axis='x')
 
         df = tm.makeTimeDataFrame(3)
         tm.assert_frame_equal(df.squeeze(axis=0), df)
