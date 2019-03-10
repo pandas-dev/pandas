@@ -97,7 +97,7 @@ class TestTSPlot(TestPlotBase):
         assert len(ax.get_lines()) == 1  # B was plotted
         self.plt.close(fig)
 
-        msg = "Empty 'DataFrame': no numeric data to plot"
+        msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
             df['A'].plot()
 

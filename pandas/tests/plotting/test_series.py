@@ -706,7 +706,9 @@ class TestSeriesPlots(TestPlotBase):
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            with pytest.raises(TypeError):
+
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
                 s.plot(kind=kind, ax=ax)
 
     @pytest.mark.slow
@@ -723,7 +725,9 @@ class TestSeriesPlots(TestPlotBase):
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            with pytest.raises(TypeError):
+
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
                 s.plot(kind=kind, ax=ax)
 
     def test_invalid_kind(self):
