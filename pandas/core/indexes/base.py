@@ -2,10 +2,11 @@ from datetime import datetime, timedelta
 import operator
 from textwrap import dedent
 import warnings
+from typing import Union
 
 import numpy as np
 
-from pandas._libs import (
+from pandas._libs import (  # type: ignore
     algos as libalgos, index as libindex, join as libjoin, lib)
 from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp

@@ -4,6 +4,7 @@ Base and utility classes for tseries type pandas objects.
 """
 import operator
 import warnings
+from typing import Set
 
 import numpy as np
 
@@ -698,9 +699,9 @@ class DatetimelikeDelegateMixin(PandasDelegate):
         boxed in an index, after being returned from the array
     """
     # raw_methods : dispatch methods that shouldn't be boxed in an Index
-    _raw_methods = set()
+    _raw_methods = set()  # type: Set[str]
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
-    _raw_properties = set()
+    _raw_properties = set()  # type: Set[str]
     name = None
     _data = None
 
