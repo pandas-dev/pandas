@@ -128,6 +128,22 @@ def timezone_frame():
 
 
 @pytest.fixture
+def datetime_series():
+    """
+    Fixture for Series of floats with DatetimeIndex
+    """
+    return tm.makeTimeSeries(nper=30)
+
+
+@pytest.fixture
+def datetime_series_short():
+    """
+    Fixture for Series of floats with DatetimeIndex
+    """
+    return tm.makeTimeSeries(nper=30)[5:]
+
+
+@pytest.fixture
 def simple_frame():
     """
     Fixture for simple 3x3 DataFrame
