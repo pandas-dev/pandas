@@ -32,7 +32,7 @@ Fixed Regressions
 - Fixed regression in creating a period-dtype array from a read-only NumPy array of period objects. (:issue:`25403`)
 - Fixed regression in :class:`Categorical`, where constructing it from a categorical ``Series`` and an explicit ``categories=`` that differed from that in the ``Series`` created an invalid object which could trigger segfaults. (:issue:`25318`)
 - Fixed pip installing from source into an environment without NumPy (:issue:`25193`)
-- Fixed regression in :func:`replace` where large strings of numbers would be coerced into int, causing an ``OverflowError`` (:issue:`25616`)
+- Fixed regression in :meth:`DataFrame.replace` where large strings of numbers would be coerced into ``int64``, causing an ``OverflowError`` (:issue:`25616`)
 
 .. _whatsnew_0242.enhancements:
 
