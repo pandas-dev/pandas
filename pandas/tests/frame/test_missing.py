@@ -215,8 +215,7 @@ class TestDataFrameMissingData():
                              index=[0, 3])
         assert_frame_equal(result, expected)
 
-    def test_fillna(self, float_string_frame, mixed_float_frame,
-                    datetime_frame):
+    def test_fillna_datetime(self, datetime_frame):
         tf = datetime_frame
         tf.loc[tf.index[:5], 'A'] = np.nan
         tf.loc[tf.index[-5:], 'A'] = np.nan
@@ -229,19 +228,22 @@ class TestDataFrameMissingData():
         assert (padded.loc[padded.index[-5:], 'A'] ==
                 padded.loc[padded.index[-5], 'A']).all()
 
-        # mixed type
-        mf = float_string_frame
-        mf.loc[mf.index[5:20], 'foo'] = np.nan
-        mf.loc[mf.index[-10:], 'A'] = np.nan
-        result = float_string_frame.fillna(value=0)
-        result = float_string_frame.fillna(method='pad')
-
         msg = "Must specify a fill 'value' or 'method'"
         with pytest.raises(ValueError, match=msg):
             datetime_frame.fillna()
         msg = "Cannot specify both 'value' and 'method'"
         with pytest.raises(ValueError, match=msg):
             datetime_frame.fillna(5, method='ffill')
+
+    def test_fillna_mixed_type(self, float_string_frame):
+
+        mf = float_string_frame
+        mf.loc[mf.index[5:20], 'foo'] = np.nan
+        mf.loc[mf.index[-10:], 'A'] = np.nan
+        result = float_string_frame.fillna(value=0)
+        result = float_string_frame.fillna(method='pad')  # noqa
+
+    def test_fillna_mixed_float(self, mixed_float_frame):
 
         # mixed numeric (but no float16)
         mf = mixed_float_frame.reindex(columns=['A', 'B', 'D'])
@@ -252,6 +254,7 @@ class TestDataFrameMissingData():
         result = mf.fillna(method='pad')
         _check_mixed_float(result, dtype=dict(C=None))
 
+    def test_fillna_other(self):
         # empty frame (GH #2778)
         df = DataFrame(columns=['x'])
         for m in ['pad', 'backfill']:
