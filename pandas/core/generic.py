@@ -38,7 +38,6 @@ from pandas.core import config, missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
-from pandas.core.computation.common import _remove_spaces_column_name
 from pandas.core.index import (
     Index, InvalidIndexError, MultiIndex, RangeIndex, ensure_index)
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -431,6 +430,7 @@ class NDFrame(PandasObject, SelectionMixin):
         to by backtick quoting.
         Used in :meth:`DataFrame.eval`.
         """
+        from pandas.core.computation.common import _remove_spaces_column_name
 
         return {_remove_spaces_column_name(k): v for k, v
                 in self.iteritems()}

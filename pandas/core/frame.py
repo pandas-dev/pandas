@@ -3034,23 +3034,37 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': range(1, 6), 'B': range(10, 0, -2)})
+        >>> df = pd.DataFrame({'A': range(1, 6),
+        ...                    'B': range(10, 0, -2),
+        ...                    'C C': range(10, 5, -1)})
         >>> df
-           A   B
-        0  1  10
-        1  2   8
-        2  3   6
-        3  4   4
-        4  5   2
+           A   B  C C
+        0  1  10   10
+        1  2   8    9
+        2  3   6    8
+        3  4   4    7
+        4  5   2    6
         >>> df.query('A > B')
-           A  B
-        4  5  2
+           A  B  C C
+        4  5  2    6
 
         The previous expression is equivalent to
 
         >>> df[df.A > df.B]
-           A  B
-        4  5  2
+           A  B  C C
+        4  5  2    6
+
+        For columns with spaces in their name, you can use backtick quoting.
+
+        >>> df.query('B == `C C`')
+           A   B  C C
+        0  1  10   10
+
+        The previous expression is equivalent to
+
+        >>> df[df.B == df['C C']]
+           A   B  C C
+        0  1  10   10
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(expr, compat.string_types):
