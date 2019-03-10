@@ -290,7 +290,7 @@ class TestSeriesReplace(TestData):
         tm.assert_series_equal(result, expected)
 
         s = pd.Series([0, '100000000000000000000',
-                                 '100000000000000000001'])
+                      '100000000000000000001'])
         result = s.replace(['100000000000000000000'], [1])
         expected = pd.Series([0, 1, '100000000000000000001'])
         tm.assert_series_equal(result, expected)
