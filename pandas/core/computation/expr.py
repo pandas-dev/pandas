@@ -16,7 +16,7 @@ from pandas import compat
 from pandas.core import common as com
 from pandas.core.base import StringMixin
 from pandas.core.computation.common import (
-    _BACKTICK_QUOTED_STRING, _clean_column_name_with_spaces)
+    _BACKTICK_QUOTED_STRING, _remove_spaces_column_name)
 from pandas.core.computation.ops import (
     _LOCAL_TAG, BinOp, Constant, Div, FuncNode, Op, Term, UnaryOp,
     UndefinedVariableError, _arith_ops_syms, _bool_ops_syms, _cmp_ops_syms,
@@ -36,6 +36,10 @@ def tokenize_string(source):
     """
     line_reader = StringIO(source).readline
     token_generator = tokenize.generate_tokens(line_reader)
+
+    # Loop over all tokens till a backtick (`) is found.
+    # Then, take all tokens till the next backtick to form a backtick quoted
+    # string.
     for toknum, tokval, _, _, _ in token_generator:
         if tokval == '`':
             tokval = " ".join(it.takewhile(
@@ -117,9 +121,9 @@ def _clean_spaces_backtick_quoted_names(tok):
 
     Backtick quoted string are indicated by a certain tokval value. If a string
     is a backtick quoted token it will processed by
-    :func:`_clean_column_name_with_spaces` so that the parser can find this
-    string when the query is executed. See also :func:`_get_column_resolvers`
-    used in :meth:`DataFrame.eval`.
+    :func:`_remove_spaces_column_name` so that the parser can find this
+    string when the query is executed.
+    See also :meth:`NDFrame._get_space_character_free_column_resolver`.
 
     Parameters
     ----------
@@ -133,7 +137,7 @@ def _clean_spaces_backtick_quoted_names(tok):
     """
     toknum, tokval = tok
     if toknum == _BACKTICK_QUOTED_STRING:
-        return tokenize.NAME, _clean_column_name_with_spaces(tokval)
+        return tokenize.NAME, _remove_spaces_column_name(tokval)
     return toknum, tokval
 
 

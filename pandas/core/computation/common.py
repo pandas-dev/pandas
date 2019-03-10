@@ -1,3 +1,5 @@
+import uuid
+
 import numpy as np
 
 from pandas.compat import reduce, string_types
@@ -25,24 +27,15 @@ def _result_type_many(*arrays_and_dtypes):
         return reduce(np.result_type, arrays_and_dtypes)
 
 
-def _clean_column_name_with_spaces(name):
+def _remove_spaces_column_name(name):
     """Check if name contains any spaces, if it contains any spaces
     the spaces will be removed and an underscore suffix is added."""
     if not isinstance(name, string_types) or " " not in name:
         return name
-    return "_BACKTICK_QUOTED_STRING_" + name.replace(" ", "_")
 
-
-def _get_column_resolvers(dataFrame):
-    """Return the axis resolvers of a dataframe.
-
-    Column names with spaces are 'cleaned up' so that they can be referred to
-    by backtick quoting. See also :func:`_clean_spaces_backtick_quoted_names`
-    from :mod:`pandas.core.computation`
-    """
-
-    return {_clean_column_name_with_spaces(k): v for k, v
-            in dataFrame.iteritems()}
+    # uuid3 will provide a unique string that can be independently reproduced.
+    return name.replace(" ", "_") + "_" + \
+        str(uuid.uuid3(uuid.NAMESPACE_DNS, name)).replace("-", "")
 
 
 class NameResolutionError(NameError):

@@ -2971,7 +2971,10 @@ class DataFrame(NDFrame):
             .. versionadded:: 0.25.0
 
             You can refer to column names that contain spaces by surrounding
-            them in backticks like ```a a` + b``.
+            them in backticks.
+
+            For example, if one of your columns is called ``a a`` and you want
+            to sum it with ``b``, your query should be ```a a` + b``.
 
         inplace : bool
             Whether the query should modify the data in place or return
@@ -3165,10 +3168,9 @@ class DataFrame(NDFrame):
         resolvers = kwargs.pop('resolvers', None)
         kwargs['level'] = kwargs.pop('level', 0) + 1
         if resolvers is None:
-            from pandas.core.computation.common import _get_column_resolvers
-
             index_resolvers = self._get_index_resolvers()
-            column_resolvers = _get_column_resolvers(self)
+            column_resolvers = \
+                self._get_space_character_free_column_resolvers()
             resolvers = column_resolvers, index_resolvers
         if 'target' not in kwargs:
             kwargs['target'] = self

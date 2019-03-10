@@ -38,6 +38,7 @@ from pandas.core import config, missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
+from pandas.core.computation.common import _remove_spaces_column_name
 from pandas.core.index import (
     Index, InvalidIndexError, MultiIndex, RangeIndex, ensure_index)
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -422,6 +423,17 @@ class NDFrame(PandasObject, SelectionMixin):
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
         return d
+
+    def _get_space_character_free_column_resolvers(self):
+        """Return the space character free column resolvers of a dataframe.
+
+        Column names with spaces are 'cleaned up' so that they can be referred
+        to by backtick quoting.
+        Used in :meth:`DataFrame.eval`.
+        """
+
+        return {_remove_spaces_column_name(k): v for k, v
+                in self.iteritems()}
 
     @property
     def _info_axis(self):
