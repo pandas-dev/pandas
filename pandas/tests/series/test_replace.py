@@ -181,6 +181,20 @@ class TestSeriesReplace(TestData):
         tr, v = [3, 4], [3.5, True]
         check_replace(tr, v, e)
 
+        # GH 25616
+        # casts to object without Exception due to OverflowError
+        e = pd.Series([0, 1, 2, '100000000000000000000', 4])
+        tr, v = [3], ['100000000000000000000']
+        check_replace(tr, v, e)
+
+        # GH 25616
+        # casts to object without Exception due to OverflowError
+        original = pd.Series([0, '100000000000000000000',
+                                 '100000000000000000001'])
+        result = original.replace(['100000000000000000000'], [1])
+        expected = pd.Series([0, 1, '100000000000000000001'])
+        tm.assert_series_equal(result, expected)
+
         # test an object with dates + floats + integers + strings
         dr = pd.date_range('1/1/2001', '1/10/2001',
                            freq='D').to_series().reset_index(drop=True)
