@@ -7,6 +7,18 @@ from pandas import DataFrame, Series, Timestamp, date_range, to_datetime
 import pandas.util.testing as tm
 
 
+@pytest.fixture
+def date_range_frame():
+    """
+    Fixture for DataFrame of ints with date_range index
+
+    Columns are ['A', 'B'].
+    """
+    N = 50
+    rng = date_range('1/1/1990', periods=N, freq='53s')
+    return DataFrame({'A': np.arange(N), 'B': np.arange(N)}, index=rng)
+
+
 class TestFrameAsof():
 
     def test_basic(self, date_range_frame):
