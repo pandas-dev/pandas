@@ -26,8 +26,9 @@
   <td>Package Status</td>
   <td>
 		<a href="https://pypi.org/project/pandas/">
-		<img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" /></td>
+		<img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" />
 		</a>
+  </td>
 </tr>
 <tr>
   <td>License</td>
@@ -73,8 +74,8 @@
 	<td>Gitter</td>
 	<td>
 		<a href="https://gitter.im/pydata/pandas">
-		<img src="https://badges.gitter.im/Join%20Chat.svg"
-	</a>
+		<img src="https://badges.gitter.im/Join%20Chat.svg" />
+		</a>
 	</td>
 </tr>
 </table>

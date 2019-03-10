@@ -58,7 +58,7 @@ class TestDataFrameReshape(TestData):
     def test_pivot_empty(self):
         df = DataFrame({}, columns=['a', 'b', 'c'])
         result = df.pivot('a', 'b', 'c')
-        expected = DataFrame({})
+        expected = DataFrame()
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_pivot_integer_bug(self):
@@ -394,7 +394,10 @@ class TestDataFrameReshape(TestData):
 
         # When mixed types are passed and the ints are not level
         # names, raise
-        pytest.raises(ValueError, df2.stack, level=['animal', 0])
+        msg = ("level should contain all level names or all level numbers, not"
+               " a mixture of the two")
+        with pytest.raises(ValueError, match=msg):
+            df2.stack(level=['animal', 0])
 
         # GH #8584: Having 0 in the level names could raise a
         # strange error about lexsort depth

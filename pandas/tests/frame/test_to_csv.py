@@ -109,8 +109,9 @@ class TestDataFrameToCSV(TestData):
             xp.columns = col_aliases
             assert_frame_equal(xp, rs)
 
-            pytest.raises(ValueError, self.frame2.to_csv, path,
-                          header=['AA', 'X'])
+            msg = "Writing 4 cols but got 2 aliases"
+            with pytest.raises(ValueError, match=msg):
+                self.frame2.to_csv(path, header=['AA', 'X'])
 
     def test_to_csv_from_csv3(self):
 

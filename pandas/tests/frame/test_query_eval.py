@@ -78,10 +78,10 @@ class TestCompat(object):
             result = df.eval('A+1', engine='numexpr')
             assert_series_equal(result, self.expected2, check_names=False)
         else:
-            pytest.raises(ImportError,
-                          lambda: df.query('A>0', engine='numexpr'))
-            pytest.raises(ImportError,
-                          lambda: df.eval('A+1', engine='numexpr'))
+            with pytest.raises(ImportError):
+                df.query('A>0', engine='numexpr')
+            with pytest.raises(ImportError):
+                df.eval('A+1', engine='numexpr')
 
 
 class TestDataFrameEval(TestData):
@@ -852,9 +852,10 @@ class TestDataFrameQueryStrings(object):
 
             for lhs, op, rhs in zip(lhs, ops, rhs):
                 ex = '{lhs} {op} {rhs}'.format(lhs=lhs, op=op, rhs=rhs)
-                pytest.raises(NotImplementedError, df.query, ex,
-                              engine=engine, parser=parser,
-                              local_dict={'strings': df.strings})
+                msg = r"'(Not)?In' nodes are not implemented"
+                with pytest.raises(NotImplementedError, match=msg):
+                    df.query(ex, engine=engine, parser=parser,
+                             local_dict={'strings': df.strings})
         else:
             res = df.query('"a" == strings', engine=engine, parser=parser)
             assert_frame_equal(res, expect)
