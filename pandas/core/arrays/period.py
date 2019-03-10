@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 import operator
+from typing import Any, Callable, List, Optional, Sequence, Union
 
 import numpy as np
 
 from pandas._libs.tslibs import (
     NaT, frequencies as libfrequencies, iNaT, period as libperiod)
+from pandas._libs.tslibs.nattype import NaTType
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period, get_period_field_arr,
     period_asfreq_arr)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 import pandas.compat as compat
+from pandas.core.arrays.base import ExtensionArray
+from pandas.core.indexes.base import Index
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -132,7 +136,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     _scalar_type = Period
 
     # Names others delegate to us
-    _other_ops = []
+    _other_ops = []     # type: List[str]
     _bool_ops = ['is_leap_year']
     _object_ops = ['start_time', 'end_time', 'freq']
     _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',

@@ -4,6 +4,7 @@ from __future__ import division
 from datetime import timedelta
 import textwrap
 import warnings
+from typing import List
 
 import numpy as np
 
@@ -134,8 +135,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _scalar_type = Timedelta
     __array_priority__ = 1000
     # define my properties & methods for delegation
-    _other_ops = []
-    _bool_ops = []
+    _other_ops = []     # type: List[str]
+    _bool_ops = []      # type: List[str]
     _object_ops = ['freq']
     _field_ops = ['days', 'seconds', 'microseconds', 'nanoseconds']
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops

@@ -7,12 +7,13 @@ import numbers
 import operator
 import re
 import warnings
+from typing import Any, Callable, Type, Union
 
 import numpy as np
 
 from pandas._libs import index as libindex, lib
 import pandas._libs.sparse as splib
-from pandas._libs.sparse import BlockIndex, IntIndex
+from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -79,7 +80,7 @@ class SparseDtype(ExtensionDtype):
     _metadata = ('_dtype', '_fill_value', '_is_na_fill_value')
 
     def __init__(self, dtype=np.float64, fill_value=None):
-        # type: (Union[str, np.dtype, 'ExtensionDtype', type], Any) -> None
+        # type: (Union[str, np.dtype, 'ExtensionDtype', Type], Any) -> None
         from pandas.core.dtypes.missing import na_value_for_dtype
         from pandas.core.dtypes.common import (
             pandas_dtype, is_string_dtype, is_scalar
@@ -372,7 +373,7 @@ _sparray_doc_kwargs = dict(klass='SparseArray')
 
 
 def _get_fill(arr):
-    # type: (SparseArray) -> ndarray
+    # type: (SparseArray) -> np.ndarray
     """
     Create a 0-dim ndarray containing the fill value
 

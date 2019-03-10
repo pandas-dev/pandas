@@ -2,15 +2,17 @@
 from datetime import datetime, timedelta
 import operator
 import warnings
+from typing import Union, Sequence, Tuple
 
 import numpy as np
 
 from pandas._libs import NaT, algos, iNaT, lib
+from pandas._libs.tslibs.nattype import NaTType
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import (
-    RoundTo, maybe_integer_op_deprecated, round_nsint64)
+    RoundTo, maybe_integer_op_deprecated, round_nsint64, Timestamp)
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -350,7 +352,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     @property
     def asi8(self):
-        # type: () -> ndarray
+        # type: () -> np.ndarray
         """
         Integer representation of the values.
 
