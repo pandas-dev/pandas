@@ -128,6 +128,17 @@ def timezone_frame():
 
 
 @pytest.fixture
+def uint64_frame():
+    """
+    Fixture for DataFrame with uint64 values
+
+    Columns are ['A', 'B']
+    """
+    return DataFrame({'A': np.arange(3), 'B': [2**63, 2**63 + 5, 2**63 + 10]},
+                     dtype=np.uint64)
+
+
+@pytest.fixture
 def simple_frame():
     """
     Fixture for simple 3x3 DataFrame
