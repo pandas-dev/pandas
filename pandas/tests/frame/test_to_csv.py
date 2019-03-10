@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import csv
 import os
+import gzip
 
 import numpy as np
 import pytest
@@ -1220,4 +1221,14 @@ class TestDataFrameToCSV(TestData):
                          '0,1,2,3,4',
                          '1,5,6,7,8']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected
+
+    def test_gz_lineend(self):
+        df = pd.DataFrame({'a': [1, 2]})
+        expected_rows = ['a', '1', '2']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        with ensure_clean('__test_gz_lineend.csv.gz') as path:
+            df.to_csv(path, index=False)
+            result = gzip.open(path, mode='rt', newline='').read()
+
         assert result == expected
