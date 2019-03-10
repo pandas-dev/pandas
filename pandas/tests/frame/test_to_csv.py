@@ -1224,6 +1224,7 @@ class TestDataFrameToCSV(TestData):
         assert result == expected
 
     def test_gz_lineend(self):
+        # GH 25311
         df = pd.DataFrame({'a': [1, 2]})
         expected_rows = ['a', '1', '2']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
