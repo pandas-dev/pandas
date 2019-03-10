@@ -682,7 +682,7 @@ class TestDataFrameConstructors(TestData):
         frame = DataFrame(['foo', 'bar'], index=[0, 1], columns=['A'])
         assert len(frame) == 2
 
-    @pytest.mark.skipif(PY2 & _np_version_under1p13,
+    @pytest.mark.skipif(PY2 and _np_version_under1p13,
                         reason="old numpy & py2")
     def test_constructor_maskedarray(self):
         self._check_basic_constructor(ma.masked_all)
@@ -700,6 +700,8 @@ class TestDataFrameConstructors(TestData):
         frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
         assert np.all(~np.asarray(frame == frame))
 
+    @pytest.mark.skipif(PY2 and _np_version_under1p13,
+                        reason="old numpy & py2")
     def test_constructor_maskedarray_nonfloat(self):
         # masked int promoted to float
         mat = ma.masked_all((2, 3), dtype=int)
@@ -767,6 +769,8 @@ class TestDataFrameConstructors(TestData):
         assert frame['A'][1] is True
         assert frame['C'][2] is False
 
+    @pytest.mark.skipif(PY2 and _np_version_under1p13,
+                        reason="old numpy & py2")
     def test_constructor_maskedarray_hardened(self):
         # Check numpy masked arrays with hard masks -- from GH24574
         mat_hard = ma.masked_all((2, 2), dtype=float).harden_mask()
@@ -789,6 +793,8 @@ class TestDataFrameConstructors(TestData):
             dtype=float)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(PY2 and _np_version_under1p13,
+                        reason="old numpy & py2")
     def test_constructor_maskedrecarray_dtype(self):
         # Ensure constructor honors dtype
         data = np.ma.array(
@@ -800,6 +806,8 @@ class TestDataFrameConstructors(TestData):
                                 columns=['date', 'price'])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(PY2 and _np_version_under1p13,
+                        reason="old numpy & py2")
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479
