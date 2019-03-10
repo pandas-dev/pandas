@@ -94,6 +94,9 @@ def mixed_float_frame():
     return df
 
 
+mixed_float_frame2 = mixed_float_frame
+
+
 @pytest.fixture
 def mixed_int_frame():
     """
