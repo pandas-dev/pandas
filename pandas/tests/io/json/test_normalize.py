@@ -374,9 +374,13 @@ class TestNestedToRecord(object):
              'zip': 37643,
              'name': np.nan}
         ]
-        columns = ex_data[0].keys()
-        expected = DataFrame(ex_data)
-        tm.assert_frame_equal(result[columns], expected[columns])
+        ex_data = [
+            ['Massillon', 9562, 'OH', 'Morris St.', 44646, 'Alice'],
+            ['Elizabethton', 8449, 'TN', 'Spring St.', 37643, np.nan]
+        ]
+        columns = ['city', 'number', 'state', 'street', 'zip', 'name']
+        expected = DataFrame(ex_data, columns=columns)
+        tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
         # GH21356
