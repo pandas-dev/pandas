@@ -36,6 +36,7 @@ See the :ref:`overview` for more detail about what's in the library.
 {% else -%}
 .. toctree::
     :maxdepth: 3
+    :hidden:
 {% endif %}
 
     {% if not single_doc -%}
