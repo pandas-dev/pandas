@@ -221,8 +221,7 @@ See more `here
 
 Examples
 --------
-%(examples)s\
-"""
+%(examples)s"""
 
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
