@@ -358,7 +358,7 @@ class NDFrame(PandasObject, SelectionMixin):
             except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
-                         .format(axis, type(cls)))
+                         .format(axis, cls))
 
     @classmethod
     def _get_axis_name(cls, axis):
@@ -372,7 +372,7 @@ class NDFrame(PandasObject, SelectionMixin):
             except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
-                         .format(axis, type(cls)))
+                         .format(axis, cls))
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
@@ -981,10 +981,22 @@ class NDFrame(PandasObject, SelectionMixin):
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
             level.
+        errors : {'ignore', 'raise'}, default 'ignore'
+            If 'raise', raise a `KeyError` when a dict-like `mapper`, `index`,
+            or `columns` contains labels that are not present in the Index
+            being transformed.
+            If 'ignore', existing keys will be renamed and extra keys will be
+            ignored.
 
         Returns
         -------
         renamed : %(klass)s (new object)
+
+        Raises
+        ------
+        KeyError
+            If any of the labels is not found in the selected axis and
+            "errors='raise'".
 
         See Also
         --------
@@ -1065,6 +1077,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace = kwargs.pop('inplace', False)
         level = kwargs.pop('level', None)
         axis = kwargs.pop('axis', None)
+        errors = kwargs.pop('errors', 'ignore')
         if axis is not None:
             # Validate the axis
             self._get_axis_number(axis)
@@ -1085,10 +1098,19 @@ class NDFrame(PandasObject, SelectionMixin):
             if v is None:
                 continue
             f = com._get_rename_function(v)
-
             baxis = self._get_block_manager_axis(axis)
             if level is not None:
                 level = self.axes[axis]._get_level_number(level)
+
+            # GH 13473
+            if not callable(v):
+                indexer = self.axes[axis].get_indexer_for(v)
+                if errors == 'raise' and len(indexer[indexer == -1]):
+                    missing_labels = [label for index, label in enumerate(v)
+                                      if indexer[index] == -1]
+                    raise KeyError('{} not found in axis'
+                                   .format(missing_labels))
+
             result._data = result._data.rename_axis(f, axis=baxis, copy=copy,
                                                     level=level)
             result._clear_item_cache()
@@ -1815,7 +1837,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         ' hashed'.format(self.__class__.__name__))
 
     def __iter__(self):
-        """Iterate over infor axis"""
+        """Iterate over info axis"""
         return iter(self._info_axis)
 
     # can we get a better explanation of this?
@@ -2807,14 +2829,17 @@ class NDFrame(PandasObject, SelectionMixin):
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
+
             .. versionadded:: 0.18.0
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
             The default will be read from the config module.
+
             .. versionadded:: 0.20.0
         multicolumn_format : str, default 'l'
             The alignment for multicolumns, similar to `column_format`
             The default will be read from the config module.
+
             .. versionadded:: 0.20.0
         multirow : bool, default False
             Use \multirow to enhance MultiIndex rows. Requires adding a
@@ -2822,6 +2847,7 @@ class NDFrame(PandasObject, SelectionMixin):
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
             from the pandas config module.
+
             .. versionadded:: 0.20.0
 
         Returns
@@ -4508,11 +4534,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         items : list-like
-            List of axis to restrict to (must not all be present).
+            Keep labels from axis which are in items.
         like : string
-            Keep axis where "arg in col == True".
+            Keep labels from axis for which "like in label == True".
         regex : string (regular expression)
-            Keep axis with re.search(regex, col) == True.
+            Keep labels from axis for which re.search(regex, label) == True.
         axis : int or string axis name
             The axis to filter on.  By default this is the info axis,
             'index' for Series, 'columns' for DataFrame.
@@ -4535,7 +4561,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.array(([1,2,3], [4,5,6])),
+        >>> df = pd.DataFrame(np.array(([1, 2, 3], [4, 5, 6])),
         ...                   index=['mouse', 'rabbit'],
         ...                   columns=['one', 'two', 'three'])
 
@@ -4948,11 +4974,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Returns
     -------
-    DataFrame, Series or scalar
-        If DataFrame.agg is called with a single function, returns a Series
-        If DataFrame.agg is called with several functions, returns a DataFrame
-        If Series.agg is called with single function, returns a scalar
-        If Series.agg is called with several functions, returns a Series.
+    scalar, Series or DataFrame
+
+        The return can be:
+
+        * scalar : when Series.agg is called with single function
+        * Series : when DataFrame.agg is called with a single function
+        * DataFrame : when DataFrame.agg is called with several functions
+
+        Return scalar, Series or DataFrame.
 
     %(see_also)s
 
@@ -6610,10 +6640,10 @@ class NDFrame(PandasObject, SelectionMixin):
             * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'spline',
               'barycentric', 'polynomial': Passed to
-              `scipy.interpolate.interp1d`. Both 'polynomial' and 'spline'
-              require that you also specify an `order` (int),
-              e.g. ``df.interpolate(method='polynomial', order=5)``.
-              These use the numerical values of the index.
+              `scipy.interpolate.interp1d`. These methods use the numerical
+              values of the index.  Both 'polynomial' and 'spline' require that
+              you also specify an `order` (int), e.g.
+              ``df.interpolate(method='polynomial', order=5)``.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
               Wrappers around the SciPy interpolation methods of similar
               names. See `Notes`.
@@ -6879,11 +6909,15 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         scalar, Series, or DataFrame
 
-           Scalar : when `self` is a Series and `where` is a scalar.
-           Series: when `self` is a Series and `where` is an array-like,
-             or when `self` is a DataFrame and `where` is a scalar.
-           DataFrame : when `self` is a DataFrame and `where` is an
-             array-like.
+            The return can be:
+
+            * scalar : when `self` is a Series and `where` is a scalar
+            * Series: when `self` is a Series and `where` is an array-like,
+              or when `self` is a DataFrame and `where` is a scalar
+            * DataFrame : when `self` is a DataFrame and `where` is an
+              array-like
+
+            Return scalar, Series, or DataFrame.
 
         See Also
         --------
@@ -9287,7 +9321,7 @@ class NDFrame(PandasObject, SelectionMixin):
               times
         nonexistent : str, default 'raise'
             A nonexistent time does not exist in a particular timezone
-            where clocks moved forward due to DST. Valid valuse are:
+            where clocks moved forward due to DST. Valid values are:
 
             - 'shift_forward' will shift the nonexistent time forward to the
               closest existing time

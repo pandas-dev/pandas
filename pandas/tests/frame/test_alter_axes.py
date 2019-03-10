@@ -633,7 +633,8 @@ class TestDataFrameAlterAxes():
         tm.assert_index_equal(renamed.index, Index(['BAR', 'FOO']))
 
         # have to pass something
-        pytest.raises(TypeError, float_frame.rename)
+        with pytest.raises(TypeError, match="must pass an index to rename"):
+            float_frame.rename()
 
         # partial columns
         renamed = float_frame.rename(columns={'C': 'foo', 'D': 'bar'})
@@ -870,6 +871,23 @@ class TestDataFrameAlterAxes():
         expected = DataFrame(data=np.arange(3), index=[(0, 0), (5, 4), (2, 2)],
                              columns=["a"])
         tm.assert_frame_equal(df, expected)
+
+    def test_rename_errors_raises(self):
+        df = DataFrame(columns=['A', 'B', 'C', 'D'])
+        with pytest.raises(KeyError, match='\'E\'] not found in axis'):
+            df.rename(columns={'A': 'a', 'E': 'e'}, errors='raise')
+
+    @pytest.mark.parametrize('mapper, errors, expected_columns', [
+        ({'A': 'a', 'E': 'e'}, 'ignore', ['a', 'B', 'C', 'D']),
+        ({'A': 'a'}, 'raise', ['a', 'B', 'C', 'D']),
+        (str.lower, 'raise', ['a', 'b', 'c', 'd'])])
+    def test_rename_errors(self, mapper, errors, expected_columns):
+        # GH 13473
+        # rename now works with errors parameter
+        df = DataFrame(columns=['A', 'B', 'C', 'D'])
+        result = df.rename(columns=mapper, errors=errors)
+        expected = DataFrame(columns=expected_columns)
+        tm.assert_frame_equal(result, expected)
 
     def test_reorder_levels(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
@@ -1328,7 +1346,7 @@ class TestDataFrameAlterAxes():
         sig = inspect.signature(DataFrame.rename)
         parameters = set(sig.parameters)
         assert parameters == {"self", "mapper", "index", "columns", "axis",
-                              "inplace", "copy", "level"}
+                              "inplace", "copy", "level", "errors"}
 
     @pytest.mark.skipif(PY2, reason="inspect.signature")
     def test_reindex_signature(self):
