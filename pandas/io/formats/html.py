@@ -5,13 +5,14 @@ Module for formatting output data in HTML.
 
 from __future__ import print_function
 
+from collections import OrderedDict
 from textwrap import dedent
 
-from pandas.compat import OrderedDict, lzip, map, range, u, unichr, zip
+from pandas.compat import lzip, map, range, u, unichr, zip
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas import compat
+from pandas import compat, option_context
 from pandas.core.config import get_option
 
 from pandas.io.common import _is_url
@@ -319,9 +320,15 @@ class HTMLFormatter(TableFormatter):
 
         self.write('</thead>', indent)
 
+    def _get_formatted_values(self):
+        with option_context('display.max_colwidth', 999999):
+            fmt_values = {i: self.fmt._format_col(i)
+                          for i in range(self.ncols)}
+        return fmt_values
+
     def _write_body(self, indent):
         self.write('<tbody>', indent)
-        fmt_values = {i: self.fmt._format_col(i) for i in range(self.ncols)}
+        fmt_values = self._get_formatted_values()
 
         # write values
         if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
@@ -484,6 +491,9 @@ class NotebookFormatter(HTMLFormatter):
     Notebooks. This class is intended for functionality specific to
     DataFrame._repr_html_() and DataFrame.to_html(notebook=True)
     """
+
+    def _get_formatted_values(self):
+        return {i: self.fmt._format_col(i) for i in range(self.ncols)}
 
     def write_style(self):
         # We use the "scoped" attribute here so that the desired

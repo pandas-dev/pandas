@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    OrderedDict, StringIO, lmap, lrange, lzip, map, range, zip)
+from pandas.compat import StringIO, lmap, lrange, lzip, map, range, zip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -209,7 +208,7 @@ def test_pass_args_kwargs(ts, tsframe):
     trans_expected = ts_grouped.transform(g)
 
     assert_series_equal(apply_result, agg_expected)
-    assert_series_equal(agg_result, agg_expected, check_names=False)
+    assert_series_equal(agg_result, agg_expected)
     assert_series_equal(trans_result, trans_expected)
 
     agg_result = ts_grouped.agg(f, q=80)
@@ -224,13 +223,13 @@ def test_pass_args_kwargs(ts, tsframe):
     agg_result = df_grouped.agg(np.percentile, 80, axis=0)
     apply_result = df_grouped.apply(DataFrame.quantile, .8)
     expected = df_grouped.quantile(.8)
-    assert_frame_equal(apply_result, expected)
-    assert_frame_equal(agg_result, expected, check_names=False)
+    assert_frame_equal(apply_result, expected, check_names=False)
+    assert_frame_equal(agg_result, expected)
 
     agg_result = df_grouped.agg(f, q=80)
     apply_result = df_grouped.apply(DataFrame.quantile, q=.8)
-    assert_frame_equal(agg_result, expected, check_names=False)
-    assert_frame_equal(apply_result, expected)
+    assert_frame_equal(agg_result, expected)
+    assert_frame_equal(apply_result, expected, check_names=False)
 
 
 def test_len():
@@ -1219,51 +1218,6 @@ def test_groupby_nat_exclude():
             grouped.get_group(pd.NaT)
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-def test_sparse_friendly(df):
-    sdf = df[['C', 'D']].to_sparse()
-    panel = tm.makePanel()
-    tm.add_nans(panel)
-
-    def _check_work(gp):
-        gp.mean()
-        gp.agg(np.mean)
-        dict(iter(gp))
-
-    # it works!
-    _check_work(sdf.groupby(lambda x: x // 2))
-    _check_work(sdf['C'].groupby(lambda x: x // 2))
-    _check_work(sdf.groupby(df['A']))
-
-    # do this someday
-    # _check_work(panel.groupby(lambda x: x.month, axis=1))
-
-
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-def test_panel_groupby():
-    panel = tm.makePanel()
-    tm.add_nans(panel)
-    grouped = panel.groupby({'ItemA': 0, 'ItemB': 0, 'ItemC': 1},
-                            axis='items')
-    agged = grouped.mean()
-    agged2 = grouped.agg(lambda x: x.mean('items'))
-
-    tm.assert_panel_equal(agged, agged2)
-
-    tm.assert_index_equal(agged.items, Index([0, 1]))
-
-    grouped = panel.groupby(lambda x: x.month, axis='major')
-    agged = grouped.mean()
-
-    exp = Index(sorted(list(set(panel.major_axis.month))))
-    tm.assert_index_equal(agged.major_axis, exp)
-
-    grouped = panel.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
-                            axis='minor')
-    agged = grouped.mean()
-    tm.assert_index_equal(agged.minor_axis, Index([0, 1]))
-
-
 def test_groupby_2d_malformed():
     d = DataFrame(index=lrange(2))
     d['group'] = ['g1', 'g2']
@@ -1744,3 +1698,28 @@ def test_groupby_agg_ohlc_non_first():
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_multiindex_nat():
+    # GH 9236
+    values = [
+        (pd.NaT, 'a'),
+        (datetime(2012, 1, 2), 'a'),
+        (datetime(2012, 1, 2), 'b'),
+        (datetime(2012, 1, 3), 'a')
+    ]
+    mi = pd.MultiIndex.from_tuples(values, names=['date', None])
+    ser = pd.Series([3, 2, 2.5, 4], index=mi)
+
+    result = ser.groupby(level=1).mean()
+    expected = pd.Series([3., 2.5], index=["a", "b"])
+    assert_series_equal(result, expected)
+
+
+def test_groupby_empty_list_raises():
+    # GH 5289
+    values = zip(range(10), range(10))
+    df = DataFrame(values, columns=['apple', 'b'])
+    msg = "Grouper and axis must be same length"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby([[]])

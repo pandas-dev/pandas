@@ -29,8 +29,8 @@ https://bugs.python.org/issue29943
 #ifndef PYPY_VERSION
 # if PY_VERSION_HEX < 0x03070000 && defined(PySlice_GetIndicesEx)
 #   undef PySlice_GetIndicesEx
-# endif
-#endif
+# endif  // PY_VERSION_HEX
+#endif  // PYPY_VERSION
 
 PANDAS_INLINE int slice_get_indices(PyObject *s,
                                     Py_ssize_t length,
@@ -44,7 +44,7 @@ PANDAS_INLINE int slice_get_indices(PyObject *s,
 #else
   return PySlice_GetIndicesEx((PySliceObject *)s, length, start,
                               stop, step, slicelength);
-#endif
+#endif  // PY_VERSION_HEX
 }
 
 #endif  // PANDAS__LIBS_SRC_COMPAT_HELPER_H_

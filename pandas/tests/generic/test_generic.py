@@ -7,17 +7,14 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, range, zip
+from pandas.compat import PY2, PY3, range, zip
 
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Panel, Series, date_range
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_frame_equal, assert_panel_equal, assert_series_equal)
-
-import pandas.io.formats.printing as printing
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -136,37 +133,51 @@ class Generic(object):
         # GH 4633
         # look at the boolean/nonzero behavior for objects
         obj = self._construct(shape=4)
-        pytest.raises(ValueError, lambda: bool(obj == 0))
-        pytest.raises(ValueError, lambda: bool(obj == 1))
-        pytest.raises(ValueError, lambda: bool(obj))
+        msg = "The truth value of a {} is ambiguous".format(
+            self._typ.__name__)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 0)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 1)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         obj = self._construct(shape=4, value=1)
-        pytest.raises(ValueError, lambda: bool(obj == 0))
-        pytest.raises(ValueError, lambda: bool(obj == 1))
-        pytest.raises(ValueError, lambda: bool(obj))
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 0)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 1)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         obj = self._construct(shape=4, value=np.nan)
-        pytest.raises(ValueError, lambda: bool(obj == 0))
-        pytest.raises(ValueError, lambda: bool(obj == 1))
-        pytest.raises(ValueError, lambda: bool(obj))
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 0)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 1)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         # empty
         obj = self._construct(shape=0)
-        pytest.raises(ValueError, lambda: bool(obj))
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         # invalid behaviors
 
         obj1 = self._construct(shape=4, value=1)
         obj2 = self._construct(shape=4, value=1)
 
-        def f():
+        with pytest.raises(ValueError, match=msg):
             if obj1:
-                printing.pprint_thing("this works and shouldn't")
+                pass
 
-        pytest.raises(ValueError, f)
-        pytest.raises(ValueError, lambda: obj1 and obj2)
-        pytest.raises(ValueError, lambda: obj1 or obj2)
-        pytest.raises(ValueError, lambda: not obj1)
+        with pytest.raises(ValueError, match=msg):
+            obj1 and obj2
+        with pytest.raises(ValueError, match=msg):
+            obj1 or obj2
+        with pytest.raises(ValueError, match=msg):
+            not obj1
 
     def test_downcast(self):
         # test close downcasting
@@ -201,9 +212,10 @@ class Generic(object):
         def f(dtype):
             return self._construct(shape=3, value=1, dtype=dtype)
 
-        pytest.raises(NotImplementedError, f, [("A", "datetime64[h]"),
-                                               ("B", "str"),
-                                               ("C", "int32")])
+        msg = ("compound dtypes are not implemented in the {} constructor"
+               .format(self._typ.__name__))
+        with pytest.raises(NotImplementedError, match=msg):
+            f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
         # these work (though results may be unexpected)
         f('int64')
@@ -701,16 +713,9 @@ class TestNDFrame(object):
         assert_frame_equal(sample1, df[['colString']])
 
         # Test default axes
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            p = Panel(items=['a', 'b', 'c'], major_axis=[2, 4, 6],
-                      minor_axis=[1, 3, 5])
-            assert_panel_equal(
-                p.sample(n=3, random_state=42), p.sample(n=3, axis=1,
-                                                         random_state=42))
-            assert_frame_equal(
-                df.sample(n=3, random_state=42), df.sample(n=3, axis=0,
-                                                           random_state=42))
+        assert_frame_equal(
+            df.sample(n=3, random_state=42), df.sample(n=3, axis=0,
+                                                       random_state=42))
 
         # Test that function aligns weights with frame
         df = DataFrame(
@@ -733,6 +738,7 @@ class TestNDFrame(object):
         with pytest.raises(ValueError):
             df.sample(1, weights=s4)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_squeeze(self):
         # noop
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
@@ -740,22 +746,10 @@ class TestNDFrame(object):
             tm.assert_series_equal(s.squeeze(), s)
         for df in [tm.makeTimeDataFrame()]:
             tm.assert_frame_equal(df.squeeze(), df)
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            for p in [tm.makePanel()]:
-                tm.assert_panel_equal(p.squeeze(), p)
 
         # squeezing
         df = tm.makeTimeDataFrame().reindex(columns=['A'])
         tm.assert_series_equal(df.squeeze(), df['A'])
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            p = tm.makePanel().reindex(items=['ItemA'])
-            tm.assert_frame_equal(p.squeeze(), p['ItemA'])
-
-            p = tm.makePanel().reindex(items=['ItemA'], minor_axis=['A'])
-            tm.assert_series_equal(p.squeeze(), p.loc['ItemA', :, 'A'])
 
         # don't fail with 0 length dimensions GH11229 & GH8999
         empty_series = Series([], name='five')
@@ -775,8 +769,14 @@ class TestNDFrame(object):
         tm.assert_series_equal(df.squeeze(axis=1), df.iloc[:, 0])
         tm.assert_series_equal(df.squeeze(axis='columns'), df.iloc[:, 0])
         assert df.squeeze() == df.iloc[0, 0]
-        pytest.raises(ValueError, df.squeeze, axis=2)
-        pytest.raises(ValueError, df.squeeze, axis='x')
+        msg = ("No axis named 2 for object type <class"
+               " 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            df.squeeze(axis=2)
+        msg = ("No axis named x for object type <class"
+               " 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            df.squeeze(axis='x')
 
         df = tm.makeTimeDataFrame(3)
         tm.assert_frame_equal(df.squeeze(axis=0), df)
@@ -789,22 +789,12 @@ class TestNDFrame(object):
         tm.assert_series_equal(np.squeeze(df), df['A'])
 
     def test_transpose(self):
-        msg = (r"transpose\(\) got multiple values for "
-               r"keyword argument 'axes'")
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
                   tm.makeObjectSeries()]:
             # calls implementation in pandas/core/base.py
             tm.assert_series_equal(s.transpose(), s)
         for df in [tm.makeTimeDataFrame()]:
             tm.assert_frame_equal(df.transpose().transpose(), df)
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            for p in [tm.makePanel()]:
-                tm.assert_panel_equal(p.transpose(2, 0, 1)
-                                      .transpose(1, 2, 0), p)
-                with pytest.raises(TypeError, match=msg):
-                    p.transpose(2, 0, 1, axes=(2, 0, 1))
 
     def test_numpy_transpose(self):
         msg = "the 'axes' parameter is not supported"
@@ -821,13 +811,6 @@ class TestNDFrame(object):
         with pytest.raises(ValueError, match=msg):
             np.transpose(df, axes=1)
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            p = tm.makePanel()
-            tm.assert_panel_equal(np.transpose(
-                np.transpose(p, axes=(2, 0, 1)),
-                axes=(1, 2, 0)), p)
-
     def test_take(self):
         indices = [1, 5, -2, 6, 3, -1]
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
@@ -843,27 +826,12 @@ class TestNDFrame(object):
                                  columns=df.columns)
             tm.assert_frame_equal(out, expected)
 
-        indices = [-3, 2, 0, 1]
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            for p in [tm.makePanel()]:
-                out = p.take(indices)
-                expected = Panel(data=p.values.take(indices, axis=0),
-                                 items=p.items.take(indices),
-                                 major_axis=p.major_axis,
-                                 minor_axis=p.minor_axis)
-                tm.assert_panel_equal(out, expected)
-
     def test_take_invalid_kwargs(self):
         indices = [-3, 2, 0, 1]
         s = tm.makeFloatSeries()
         df = tm.makeTimeDataFrame()
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            p = tm.makePanel()
-
-        for obj in (s, df, p):
+        for obj in (s, df):
             msg = r"take\(\) got an unexpected keyword argument 'foo'"
             with pytest.raises(TypeError, match=msg):
                 obj.take(indices, foo=2)
@@ -966,12 +934,6 @@ class TestNDFrame(object):
         assert a.equals(e)
         assert e.equals(f)
 
-    def test_describe_raises(self):
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            with pytest.raises(NotImplementedError):
-                tm.makePanel().describe()
-
     def test_pipe(self):
         df = DataFrame({'A': [1, 2, 3]})
         f = lambda x, y: x ** y
@@ -999,22 +961,6 @@ class TestNDFrame(object):
 
         with pytest.raises(ValueError):
             df.A.pipe((f, 'y'), x=1, y=0)
-
-    def test_pipe_panel(self):
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            wp = Panel({'r1': DataFrame({"A": [1, 2, 3]})})
-            f = lambda x, y: x + y
-            result = wp.pipe(f, 2)
-            expected = wp + 2
-            assert_panel_equal(result, expected)
-
-            result = wp.pipe((f, 'y'), x=1)
-            expected = wp + 1
-            assert_panel_equal(result, expected)
-
-            with pytest.raises(ValueError):
-                wp.pipe((f, 'y'), x=1, y=1)
 
     @pytest.mark.parametrize('box', [pd.Series, pd.DataFrame])
     def test_axis_classmethods(self, box):
