@@ -126,9 +126,7 @@ def whitelist_method_generator(base, klass, whitelist):
     property_wrapper_template = \
         """@property
 def %(name)s(self) :
-    \"""
-    %(doc)s
-    \"""
+    \"""%(doc)s\"""
     return self.__getattr__('%(name)s')"""
 
     for name in whitelist:

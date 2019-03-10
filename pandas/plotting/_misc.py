@@ -303,7 +303,6 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     Returns
     -------
     class:`matplotlip.axis.Axes`
-
     """
     from math import sqrt, pi
     import matplotlib.pyplot as plt
