@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, MultiIndex, Series, Timedelta, Timestamp,
-    compat, date_range, isna, _np_version_under1p13)
+    _np_version_under1p13, compat, date_range, isna)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
