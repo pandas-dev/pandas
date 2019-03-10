@@ -418,7 +418,7 @@ class TestDataFrameDataTypes():
         result = frame.ftypes.sort_values()
         assert_series_equal(result, expected)
 
-    def test_astype(self, float_frame, mixed_float_frame, mixed_type_frame):
+    def test_astype_float(self, float_frame):
         casted = float_frame.astype(int)
         expected = DataFrame(float_frame.values.astype(int),
                              index=float_frame.index,
@@ -438,6 +438,22 @@ class TestDataFrameDataTypes():
                              columns=float_frame.columns)
         assert_frame_equal(casted, expected)
 
+    def test_astype_mixed_float(self, mixed_float_frame):
+        # mixed casting
+        def _check_cast(df, v):
+            assert (list({s.dtype.name for
+                          _, s in compat.iteritems(df)})[0] == v)
+
+        casted = mixed_float_frame.reindex(
+            columns=['A', 'B']).astype('float32')
+        _check_cast(casted, 'float32')
+
+        casted = mixed_float_frame.reindex(
+            columns=['A', 'B']).astype('float16')
+        _check_cast(casted, 'float16')
+
+    def test_astype_mixed_type(self, mixed_type_frame):
+
         # mixed casting
         def _check_cast(df, v):
             assert (list({s.dtype.name for
@@ -453,15 +469,7 @@ class TestDataFrameDataTypes():
         casted = mn.astype('int64')
         _check_cast(casted, 'int64')
 
-        casted = mixed_float_frame.reindex(
-            columns=['A', 'B']).astype('float32')
-        _check_cast(casted, 'float32')
-
         casted = mn.reindex(columns=['little_float']).astype('float16')
-        _check_cast(casted, 'float16')
-
-        casted = mixed_float_frame.reindex(
-            columns=['A', 'B']).astype('float16')
         _check_cast(casted, 'float16')
 
         casted = mn.astype('float32')
@@ -491,13 +499,7 @@ class TestDataFrameDataTypes():
         expected['string'] = 'foo'
         assert_frame_equal(casted, expected)
 
-    def test_astype_with_view(self, float_frame, mixed_float_frame):
-
-        tf = mixed_float_frame.reindex(columns=['A', 'B', 'C'])
-
-        casted = tf.astype(np.int64)
-
-        casted = tf.astype(np.float32)
+    def test_astype_with_view_float(self, float_frame):
 
         # this is the only real reason to do it this way
         tf = np.round(float_frame).astype(np.int32)
@@ -506,6 +508,13 @@ class TestDataFrameDataTypes():
         # TODO(wesm): verification?
         tf = float_frame.astype(np.float64)
         casted = tf.astype(np.int64, copy=False)  # noqa
+
+    def test_astype_with_view_mixed_float(self, mixed_float_frame):
+
+        tf = mixed_float_frame.reindex(columns=['A', 'B', 'C'])
+
+        casted = tf.astype(np.int64)
+        casted = tf.astype(np.float32)  # noqa
 
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     @pytest.mark.parametrize("val", [np.nan, np.inf])
