@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, MultiIndex, Series, Timedelta, Timestamp,
-    compat, date_range, isna)
+    _np_version_under1p13, compat, date_range, isna)
 import pandas.util.testing as tm
 
 MIXED_FLOAT_DTYPES = ['float16', 'float32', 'float64']
@@ -686,6 +686,8 @@ class TestDataFrameConstructors():
         frame = DataFrame(['foo', 'bar'], index=[0, 1], columns=['A'])
         assert len(frame) == 2
 
+    @pytest.mark.skipif(PY2 & _np_version_under1p13,
+                        reason="old numpy & py2")
     def test_constructor_maskedarray(self):
         self._check_basic_constructor(ma.masked_all)
 
