@@ -38,6 +38,7 @@ import struct
 import inspect
 from collections import namedtuple
 import collections
+import uuid
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] >= 3
@@ -115,6 +116,7 @@ if PY3:
     reduce = functools.reduce
     long = int
     unichr = chr
+    uuid3 = uuid.uuid3
 
     # This was introduced in Python 3.3, but we don't support
     # Python 3.x < 3.5, so checking PY3 is safe.
@@ -161,6 +163,10 @@ else:
 
     def signature(f):
         return inspect.getargspec(f)
+
+    # See also: https://bugs.python.org/issue34145
+    def uuid3(namespace, name):
+        return uuid.uuid3(namespace, name.encode('utf-8'))
 
     def get_range_parameters(data):
         """Gets the start, stop, and step parameters from a range object"""

@@ -2,7 +2,7 @@ import uuid
 
 import numpy as np
 
-from pandas.compat import reduce, string_types
+from pandas.compat import reduce, string_types, uuid3
 
 import pandas as pd
 
@@ -34,8 +34,8 @@ def _remove_spaces_column_name(name):
         return name
 
     # uuid3 will provide a unique string that can be independently reproduced.
-    return name.replace(" ", "_") + "_" + \
-        str(uuid.uuid3(uuid.NAMESPACE_DNS, name)).replace("-", "")
+    return name.replace(" ", "_") + "_" + str(uuid3(
+        uuid.NAMESPACE_DNS, name)).replace("-", "")
 
 
 class NameResolutionError(NameError):
