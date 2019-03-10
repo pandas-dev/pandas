@@ -67,7 +67,7 @@ def author_missing_data():
 
 
 @pytest.fixture
-def address_missing_data():
+def missing_metadata():
     return [
         {'name': 'Alice',
          'addresses': [{'number': 9562,
@@ -397,11 +397,12 @@ class TestNestedToRecord(object):
                       ['general', 'trade_version']],
                 errors='raise')
 
-    def test_missing_meta(self, address_missing_data):
-        # GH25468: If metadata is nullable with errors set to ignore, the null
-        # values should be numpy.nan values
+    def test_missing_meta(self, missing_metadata):
+        # GH25468
+        # If metadata is nullable with errors set to ignore, the null values
+        # should be numpy.nan values
         result = json_normalize(
-            data=address_missing_data,
+            data=missing_metadata,
             record_path='addresses',
             meta='name',
             errors='ignore')
@@ -419,8 +420,9 @@ class TestNestedToRecord(object):
              'zip': 37643,
              'name': np.nan}
         ]
+        columns = ex_data[0].keys()
         expected = DataFrame(ex_data)
-        tm.assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result[columns], expected[columns])
 
     def test_donot_drop_nonevalues(self):
         # GH21356
