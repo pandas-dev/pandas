@@ -4,10 +4,12 @@ import functools
 import inspect
 import re
 import warnings
+from typing import Any, List, Optional
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, lib, tslib, tslibs
+from pandas._libs import (internals as libinternals,  # type: ignore
+                          lib, tslib, tslibs)
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
 import pandas.compat as compat
 from pandas.compat import range, zip
@@ -1826,8 +1828,12 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                  limit=limit),
             placement=self.mgr_locs)
 
-    def shift(self, periods, axis=0, fill_value=None):
-        # type: (int, Optional[BlockPlacement], Any) -> List[ExtensionBlock]
+    def shift(self,
+              periods,          # type: int
+              axis=0,           # type: Optional[libinternals.BlockPlacement]
+              fill_value=None   # type: Any
+    ):
+        # type: (...) -> List[ExtensionBlock]
         """
         Shift the block by `periods`.
 
