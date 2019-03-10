@@ -550,8 +550,7 @@ class TestDataFrameSelectReindex():
         for res in [res2, res3]:
             tm.assert_frame_equal(res1, res)
 
-    def test_align(self, float_frame, int_frame, float_string_frame,
-                   mixed_int_frame, mixed_float_frame):
+    def test_align_float(self, float_frame):
         af, bf = float_frame.align(float_frame)
         assert af._data is not float_frame._data
 
@@ -600,29 +599,12 @@ class TestDataFrameSelectReindex():
         af, bf = float_frame.align(other, join='inner', axis=1, method='pad')
         tm.assert_index_equal(bf.columns, other.columns)
 
-        # test other non-float types
-        af, bf = int_frame.align(other, join='inner', axis=1, method='pad')
-        tm.assert_index_equal(bf.columns, other.columns)
-
-        af, bf = float_string_frame.align(float_string_frame,
-                                          join='inner', axis=1, method='pad')
-        tm.assert_index_equal(bf.columns, float_string_frame.columns)
-
         af, bf = float_frame.align(other.iloc[:, 0], join='inner', axis=1,
                                    method=None, fill_value=None)
         tm.assert_index_equal(bf.index, Index([]))
 
         af, bf = float_frame.align(other.iloc[:, 0], join='inner', axis=1,
                                    method=None, fill_value=0)
-        tm.assert_index_equal(bf.index, Index([]))
-
-        # mixed floats/ints
-        af, bf = mixed_float_frame.align(other.iloc[:, 0], join='inner',
-                                         axis=1, method=None, fill_value=0)
-        tm.assert_index_equal(bf.index, Index([]))
-
-        af, bf = mixed_int_frame.align(other.iloc[:, 0], join='inner', axis=1,
-                                       method=None, fill_value=0)
         tm.assert_index_equal(bf.index, Index([]))
 
         # Try to align DataFrame to Series along bad axis
@@ -654,6 +636,35 @@ class TestDataFrameSelectReindex():
         result = df.where(df['a'] == 2, 0)
         expected = DataFrame({'a': [0, 2, 0], 'b': [0, 5, 0]})
         tm.assert_frame_equal(result, expected)
+
+    def test_align_int(self, int_frame):
+        # test other non-float types
+        other = DataFrame(index=range(5), columns=['A', 'B', 'C'])
+
+        af, bf = int_frame.align(other, join='inner', axis=1, method='pad')
+        tm.assert_index_equal(bf.columns, other.columns)
+
+    def test_align_mixed_type(self, float_string_frame):
+        other = DataFrame(index=range(5), columns=['A', 'B', 'C'])
+
+        af, bf = float_string_frame.align(float_string_frame,
+                                          join='inner', axis=1, method='pad')
+        tm.assert_index_equal(bf.columns, float_string_frame.columns)
+
+    def test_align_mixed_float(self, mixed_float_frame):
+        # mixed floats/ints
+        other = DataFrame(index=range(5), columns=['A', 'B', 'C'])
+
+        af, bf = mixed_float_frame.align(other.iloc[:, 0], join='inner',
+                                         axis=1, method=None, fill_value=0)
+        tm.assert_index_equal(bf.index, Index([]))
+
+    def test_align_mixed_int(self, mixed_int_frame):
+        other = DataFrame(index=range(5), columns=['A', 'B', 'C'])
+
+        af, bf = mixed_int_frame.align(other.iloc[:, 0], join='inner', axis=1,
+                                       method=None, fill_value=0)
+        tm.assert_index_equal(bf.index, Index([]))
 
     def _check_align(self, a, b, axis, fill_axis, how, method, limit=None):
         aa, ab = a.align(b, axis=axis, join=how, method=method, limit=limit,
