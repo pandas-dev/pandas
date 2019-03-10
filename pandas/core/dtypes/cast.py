@@ -304,7 +304,7 @@ def maybe_promote(dtype, fill_value=np.nan):
     elif isinstance(fill_value, (np.ndarray, ABCSeries, ABCIndexClass)):
         return maybe_promote_with_array(dtype, fill_value)
     else:
-        fill_type = type(fill_value)
+        fill_type = type(fill_value).__name__
         raise ValueError('fill_value must either be scalar, or a Series / '
                          'Index / np.ndarray; received {}'.format(fill_type))
 
@@ -359,46 +359,46 @@ def maybe_promote_with_scalar(dtype, fill_value=np.nan):
     """
     from pandas import Series
 
-    if is_scalar(fill_value) or isinstance(fill_value, tuple):
-        # unify handling of scalar and array values to simplify actual
-        # promotion logic in maybe_promote_with_array;
-        if is_object_dtype(dtype) and fill_value is not None:
-            # inserting into object does not cast (except for None -> np.nan)
-            return np.dtype(object), fill_value
-
-        # use Series to construct, since np.array cannot deal with
-        # pandas-internal dtypes (e.g. DatetimeTZDtype); furthermore, we want
-        # to treat tuples as scalar, but numpy casts those to a new dimension
-        fill_array = Series([fill_value], dtype=object)
-        dtype, na_value = maybe_promote_with_array(dtype, fill_array)
-
-        # maybe_promote_with_array returns the na-marker for the new dtype;
-        # maybe_promote_with_scalar always casts fill_value to the new dtype
-        if is_integer_dtype(dtype) and _is_iNaT(fill_value):
-            # maybe_promote_with_array considers iNaT a missing value, and
-            # since int dtypes cannot hold missing values, that method returns
-            # None as the na_value. For scalars, we need to keep it however,
-            # to ensure correct operations for datetime/timedelta code.
-            fill_value = iNaT
-        elif fill_value is NaT and is_object_dtype(dtype):
-            # the presence of pd.NaT forced upcasting to object, and therefore
-            # fill_value does not get cast to na-marker of object (cf. below)
-            pass
-        elif isna(fill_value) or _is_iNaT(fill_value):
-            # cast missing values (incl. iNaT) to correct missing value marker
-            # for the updated dtype
-            fill_value = na_value
-        # otherwise casts fill_value (= only entry of fill_array) to new dtype
-        elif is_datetime_or_timedelta_dtype(dtype):
-            # for datetime/timedelta, we need to return the underlying ints
-            fill_value = fill_array.astype(dtype)[0].value
-        else:
-            fill_value = fill_array.astype(dtype)[0]
-
-        return dtype, fill_value
-    else:
+    if not (is_scalar(fill_value) or isinstance(fill_value, tuple)):
         raise ValueError('fill_value must be a scalar, received '
                          '{}'.format(type(fill_value)))
+
+    # unify handling of scalar and array values to simplify actual
+    # promotion logic in maybe_promote_with_array;
+    if is_object_dtype(dtype) and fill_value is not None:
+        # inserting into object does not cast (except for None -> np.nan)
+        return np.dtype(object), fill_value
+
+    # use Series to construct, since np.array cannot deal with pandas-internal
+    # dtypes (e.g. DatetimeTZDtype); furthermore, we want to treat tuples as
+    # scalar, but numpy casts those to a new dimension
+    fill_array = Series([fill_value], dtype=object)
+    dtype, na_value = maybe_promote_with_array(dtype, fill_array)
+
+    # maybe_promote_with_array returns the na-marker for the new dtype;
+    # maybe_promote_with_scalar always casts fill_value to the new dtype
+    if is_integer_dtype(dtype) and _is_iNaT(fill_value):
+        # maybe_promote_with_array considers iNaT a missing value, and since
+        # int dtypes cannot hold missing values, that method returns None as
+        # the na_value. For scalars, we need to keep it however, to ensure
+        # correct operations for datetime/timedelta code.
+        fill_value = iNaT
+    elif fill_value is NaT and is_object_dtype(dtype):
+        # the presence of pd.NaT forced upcasting to object, and therefore
+        # fill_value does not get cast to na-marker of object (cf. below)
+        pass
+    elif isna(fill_value) or _is_iNaT(fill_value):
+        # cast missing values (incl. iNaT) to correct missing value marker for
+        # the updated dtype
+        fill_value = na_value
+    # otherwise casts fill_value (= only entry of fill_array) to new dtype
+    elif is_datetime_or_timedelta_dtype(dtype):
+        # for datetime/timedelta, we need to return the underlying ints
+        fill_value = fill_array.astype(dtype)[0].value
+    else:
+        fill_value = fill_array.astype(dtype)[0]
+
+    return dtype, fill_value
 
 
 def maybe_promote_with_array(dtype, fill_value=np.nan):
@@ -458,7 +458,7 @@ def maybe_promote_with_array(dtype, fill_value=np.nan):
             # ndarray, but too high-dimensional
             fill_value = fill_value.ravel()
     elif not isinstance(fill_value, (ABCSeries, ABCIndexClass)):
-        fill_type = type(fill_value)
+        fill_type = type(fill_value).__name__
         raise ValueError('fill_value must either be a Series / Index / '
                          'np.ndarray, received {}'.format(fill_type))
 
