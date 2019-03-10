@@ -808,6 +808,8 @@ class TestDataFrameConstructors(TestData):
                                 columns=['date', 'price'])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(PY2 and _np_version_under1p13,
+                        reason="old numpy & py2")
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479
