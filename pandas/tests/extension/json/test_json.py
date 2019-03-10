@@ -291,6 +291,8 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
             ser + data
 
     def test_divmod_series_array(self):
+        # GH 23287
+        # skipping because it is not implemented
         pass
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
