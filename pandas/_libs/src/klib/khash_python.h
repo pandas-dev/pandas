@@ -99,13 +99,13 @@ inline static kh_str_starts_t* kh_init_str_starts(void) {
 inline static khint_t kh_put_str_starts_item(kh_str_starts_t* table, char* key, int* ret) {
     khint_t result = kh_put_str(table->table, key, ret);
 	if (*ret != 0) {
-		table->starts[key[0]] = 1;
+		table->starts[(unsigned char)key[0]] = 1;
 	}
     return result;
 }
 
 inline static khint_t kh_get_str_starts_item(kh_str_starts_t* table, char* key) {
-    int ch = *key;
+    unsigned char ch = *key;
 	if (table->starts[ch]) {
 		if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets) return 1;
 	}
