@@ -280,7 +280,7 @@ Property Attributes          ``Series``              ``DataFrame``
 ===========================  ======================= =============
 ``_constructor``             ``Series``              ``DataFrame``
 ``_constructor_sliced``      ``NotImplementedError`` ``Series``
-``_constructor_expanddim``   ``DataFrame``
+``_constructor_expanddim``   ``DataFrame``           ``NotImplementedError``
 ===========================  ======================= =============
 
 Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
