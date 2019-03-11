@@ -865,7 +865,6 @@ class TestIndexing(object):
 
     def test_get_slice(self):
         def assert_slice_ok(mgr, axis, slobj):
-            # import pudb; pudb.set_trace()
             mat = mgr.as_array()
 
             # we maybe using an ndarray to test slicing and
