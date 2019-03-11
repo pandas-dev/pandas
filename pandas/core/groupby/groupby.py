@@ -221,8 +221,7 @@ See more `here
 
 Examples
 --------
-%(examples)s
-"""
+%(examples)s"""
 
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
@@ -1106,9 +1105,7 @@ class GroupBy(_GroupBy):
         Returns
         -------
         pandas.Series or pandas.DataFrame
-
         %(see_also)s
-
         Examples
         --------
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
@@ -1564,9 +1561,7 @@ class GroupBy(_GroupBy):
         dropna : None or str, optional
             apply the specified dropna operation before counting which row is
             the nth row. Needs to be None, 'any' or 'all'
-
         %(see_also)s
-
         Examples
         --------
 
@@ -2139,9 +2134,7 @@ class GroupBy(_GroupBy):
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
-
         %(see_also)s
-
         Examples
         --------
 
@@ -2167,9 +2160,7 @@ class GroupBy(_GroupBy):
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
-
         %(see_also)s
-
         Examples
         --------
 
