@@ -651,7 +651,6 @@ def _build_option_description(k):
               .format(rkey=d.rkey if d.rkey else ''))
         s += u(')')
 
-    s += '\n\n'
     return s
 
 
