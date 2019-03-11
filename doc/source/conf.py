@@ -16,7 +16,6 @@ import os
 import inspect
 import importlib
 import logging
-import warnings
 import jinja2
 from sphinx.ext.autosummary import _import_by_name
 from numpydoc.docscrape import NumpyDocString
