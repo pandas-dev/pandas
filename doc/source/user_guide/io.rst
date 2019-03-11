@@ -1689,7 +1689,7 @@ The ``Series`` and ``DataFrame`` objects have an instance method ``to_csv`` whic
 allows storing the contents of the object as a comma-separated-values file. The
 function takes a number of arguments. Only the first is required.
 
-* ``path_or_buf``: A string path to the file to write or a StringIO
+* ``path_or_buf``: A string path to the file to write or a file object.  If a file object it must be opened with `newline=''`
 * ``sep`` : Field delimiter for the output file (default ",")
 * ``na_rep``: A string representation of a missing value (default '')
 * ``float_format``: Format string for floating point numbers
@@ -1702,7 +1702,7 @@ function takes a number of arguments. Only the first is required.
 * ``mode`` : Python write mode, default 'w'
 * ``encoding``: a string representing the encoding to use if the contents are
   non-ASCII, for Python versions prior to 3
-* ``line_terminator``: Character sequence denoting line end (default '\\n')
+* ``line_terminator``: Character sequence denoting line end (default `os.linesep`)
 * ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL). Note that if you have set a `float_format` then floats are converted to strings and csv.QUOTE_NONNUMERIC will treat them as non-numeric
 * ``quotechar``: Character used to quote fields (default '"')
 * ``doublequote``: Control quoting of ``quotechar`` in fields (default True)
