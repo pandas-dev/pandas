@@ -14,7 +14,7 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 
 import pandas as pd
-from pandas import DataFrame, Panel, Series, date_range
+from pandas import DataFrame, Series, date_range
 from pandas.core.computation import pytables
 from pandas.core.computation.check import _NUMEXPR_VERSION
 from pandas.core.computation.engines import NumExprClobberingError, _engines
@@ -1141,14 +1141,6 @@ class TestOperationsNumExprPandas(object):
             res = self.eval(ex)
             exp = eval(ex)
             assert res == exp
-
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_panel_fails(self):
-        x = Panel(randn(3, 4, 5))
-        y = Series(randn(10))
-        with pytest.raises(NotImplementedError):
-            self.eval('x + y',
-                      local_dict={'x': x, 'y': y})
 
     def test_4d_ndarray_fails(self):
         x = randn(3, 4, 5, 6)
