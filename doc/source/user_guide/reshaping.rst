@@ -90,6 +90,19 @@ You can then select subsets from the pivoted ``DataFrame``:
 Note that this returns a view on the underlying data in the case where the data
 are homogeneously-typed.
 
+Now :meth:`DataFrame.pivot` method also supports multiple columns as indexes.
+
+.. ipython:: python
+
+   df1 = pd.DataFrame({'variable1': ['A', 'A', 'A', 'A', 'B', 'B', 'B', 'B'],
+                       'variable2': ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b'],
+                       'variable3': ['C', 'D', 'C', 'D', 'C', 'D', 'C', 'D'],
+                       'value': np.arange(8)})
+   df1
+
+   df1.pivot(index=['variable1', 'variable2'], columns='variable3',
+            values='value')
+
 .. note::
    :func:`~pandas.pivot` will error with a ``ValueError: Index contains duplicate
    entries, cannot reshape`` if the index/column pair is not unique. In this
