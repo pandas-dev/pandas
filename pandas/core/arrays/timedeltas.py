@@ -918,13 +918,9 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         copy = copy and not copy_made
 
     elif is_float_dtype(data.dtype):
-        # treat as multiples of the given unit.  If after converting to nanos,
-        #  there are fractional components left, these are truncated
-        #  (i.e. NOT rounded)
-        mask = np.isnan(data)
-        coeff = np.timedelta64(1, unit) / np.timedelta64(1, 'ns')
-        data = (coeff * data).astype(np.int64).view('timedelta64[ns]')
-        data[mask] = iNaT
+        # object_to_td64ns has custom logic for float -> int conversion
+        # to avoid precision issues
+        data = objects_to_td64ns(data, unit=unit, errors=errors)
         copy = False
 
     elif is_timedelta64_dtype(data.dtype):
