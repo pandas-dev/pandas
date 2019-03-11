@@ -246,6 +246,47 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     return iresult.base  # .base to access underlying np.ndarray
 
 
+def precision_from_unit(object unit):
+    cdef:
+        int64_t m
+        int p
+
+    if unit == 'Y':
+        m = 1000000000L * 31556952
+        p = 9
+    elif unit == 'M':
+        m = 1000000000L * 2629746
+        p = 9
+    elif unit == 'W':
+        m = 1000000000L * DAY_SECONDS * 7
+        p = 9
+    elif unit == 'D' or unit == 'd':
+        m = 1000000000L * DAY_SECONDS
+        p = 9
+    elif unit == 'h':
+        m = 1000000000L * 3600
+        p = 9
+    elif unit == 'm':
+        m = 1000000000L * 60
+        p = 9
+    elif unit == 's':
+        m = 1000000000L
+        p = 9
+    elif unit == 'ms':
+        m = 1000000L
+        p = 6
+    elif unit == 'us':
+        m = 1000L
+        p = 3
+    elif unit == 'ns' or unit is None:
+        m = 1L
+        p = 0
+    else:
+        raise ValueError("cannot cast unit {unit}".format(unit=unit))
+
+    return m, p
+
+
 cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     """ return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """

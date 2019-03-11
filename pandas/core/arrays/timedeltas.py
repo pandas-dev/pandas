@@ -11,7 +11,7 @@ from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
-    array_to_timedelta64, parse_timedelta_unit)
+    array_to_timedelta64, parse_timedelta_unit, precision_from_unit)
 import pandas.compat as compat
 from pandas.util._decorators import Appender
 
@@ -918,9 +918,16 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         copy = copy and not copy_made
 
     elif is_float_dtype(data.dtype):
-        # object_to_td64ns has custom logic for float -> int conversion
-        # to avoid precision issues
-        data = objects_to_td64ns(data, unit=unit, errors=errors)
+        # cast the unit, multiply base/frace separately
+        # to avoid precision issues from float -> int
+        mask = np.isnan(data)
+        m, p = precision_from_unit(unit)
+        base = data.astype(np.int64)
+        frac = data - base
+        if p:
+            frac = np.round(frac, p)
+        data = (base * m + (frac * m).astype(np.int64)).view('timedelta64[ns]')
+        data[mask] = iNaT
         copy = False
 
     elif is_timedelta64_dtype(data.dtype):
