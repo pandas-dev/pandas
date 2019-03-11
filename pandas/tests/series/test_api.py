@@ -493,6 +493,13 @@ class TestSeriesMisc(TestData, SharedWithSparse):
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('s.', 1))
 
+    def test_integer_series_size(self):
+        # GH 25580
+        s = Series(range(9))
+        assert s.size == 9
+        s = Series(range(9), dtype="Int64")
+        assert s.size == 9
+
 
 class TestCategoricalSeries(object):
 
