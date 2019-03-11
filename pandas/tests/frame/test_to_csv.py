@@ -1230,6 +1230,7 @@ class TestDataFrameToCSV(TestData):
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         with ensure_clean('__test_gz_lineend.csv.gz') as path:
             df.to_csv(path, index=False)
-            result = gzip.open(path, mode='rt', newline='').read()
+            with tm.decompress_file(path, compression='gzip') as f:
+                result = f.read().decode('utf-8')
 
         assert result == expected
