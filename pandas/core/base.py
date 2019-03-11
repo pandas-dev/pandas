@@ -761,7 +761,7 @@ class IndexOpsMixin(object):
         """
         Return the number of elements in the underlying data.
         """
-        return self._values.size
+        return len(self._values)
 
     @property
     def flags(self):
