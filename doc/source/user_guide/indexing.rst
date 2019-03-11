@@ -190,7 +190,7 @@ Attribute Access
 
 .. _indexing.attribute_access:
 
-You may access an index on a ``Series``, column on a ``DataFrame``, and an item on a ``Panel`` directly
+You may access an index on a ``Series`` or  column on a ``DataFrame`` directly
 as an attribute:
 
 .. ipython:: python
