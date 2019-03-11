@@ -31,7 +31,6 @@ from pandas.util.testing import (
     assert_series_equal, makeCustomDataframe as mkdf, randbool)
 
 _series_frame_incompatible = _bool_ops_syms
-_scalar_skip = 'in', 'not in'
 
 
 @pytest.fixture(params=(
@@ -168,7 +167,15 @@ class TestEvalNumexprPandas(object):
         for lhs, cmp1, rhs, binop, cmp2 in product(self.lhses, cmp_ops,
                                                    self.rhses, self.bin_ops,
                                                    cmp2_ops):
-            self.check_complex_cmp_op(lhs, cmp1, rhs, binop, cmp2)
+            lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
+            rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
+            expected = _eval_single_bin(
+                lhs_new, binop, rhs_new, self.engine)
+
+            ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(
+                cmp1=cmp1, binop=binop, cmp2=cmp2)
+            result = pd.eval(ex, engine=self.engine, parser=self.parser)
+            self.check_equal(result, expected)
 
     def test_simple_cmp_ops(self):
         bool_lhses = (DataFrame(randbool(size=(10, 5))),
@@ -224,41 +231,6 @@ class TestEvalNumexprPandas(object):
             tm.assert_numpy_array_equal(result, expected)
         else:
             assert result == expected
-
-    def check_complex_cmp_op(self, lhs, cmp1, rhs, binop, cmp2):
-        skip_these = _scalar_skip
-        ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(cmp1=cmp1,
-                                                                binop=binop,
-                                                                cmp2=cmp2)
-        scalar_with_in_notin = (is_scalar(rhs) and (cmp1 in skip_these or
-                                                    cmp2 in skip_these))
-        if scalar_with_in_notin:
-            with pytest.raises(TypeError):
-                pd.eval(ex, engine=self.engine, parser=self.parser)
-            with pytest.raises(TypeError):
-                pd.eval(ex, engine=self.engine, parser=self.parser,
-                        local_dict={'lhs': lhs, 'rhs': rhs})
-        else:
-            lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
-            rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
-            if (isinstance(lhs_new, Series) and
-                    isinstance(rhs_new, DataFrame) and
-                    binop in _series_frame_incompatible):
-                pass
-                # TODO: the code below should be added back when left and right
-                # hand side bool ops are fixed.
-                #
-                # try:
-                #     pytest.raises(Exception, pd.eval, ex,
-                #                   local_dict={'lhs': lhs, 'rhs': rhs},
-                #                   engine=self.engine, parser=self.parser)
-                # except AssertionError:
-                #     raise
-            else:
-                expected = _eval_single_bin(
-                    lhs_new, binop, rhs_new, self.engine)
-                result = pd.eval(ex, engine=self.engine, parser=self.parser)
-                self.check_equal(result, expected)
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
 
