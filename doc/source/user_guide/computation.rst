@@ -13,7 +13,7 @@ Statistical Functions
 Percent Change
 ~~~~~~~~~~~~~~
 
-``Series`` or ``DataFrame`` all have a method
+``Series`` and ``DataFrame`` have a method
 :meth:`~DataFrame.pct_change` to compute the percent change over a given number
 of periods (using ``fill_method`` to fill NA/null values *before* computing
 the percent change).

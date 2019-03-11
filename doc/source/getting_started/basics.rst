@@ -383,7 +383,7 @@ This is because NaNs do not compare as equals:
 
    np.nan == np.nan
 
-So, NDFrames (such as Series, DataFrames)
+So, NDFrames (such as Series and DataFrames)
 have an :meth:`~DataFrame.equals` method for testing equality, with NaNs in
 corresponding locations treated as equal.
 
