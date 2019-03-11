@@ -253,9 +253,6 @@ class TestEvalNumexprPandas(object):
                 #                   local_dict={'lhs': lhs, 'rhs': rhs},
                 #                   engine=self.engine, parser=self.parser)
                 # except AssertionError:
-                #     import ipdb
-                #
-                #     ipdb.set_trace()
                 #     raise
             else:
                 expected = _eval_single_bin(
@@ -285,10 +282,14 @@ class TestEvalNumexprPandas(object):
 
     def check_simple_cmp_op(self, lhs, cmp1, rhs):
         ex = 'lhs {0} rhs'.format(cmp1)
+        msg = (r"only list-like( or dict-like)? objects are allowed to be"
+               r" passed to (DataFrame\.)?isin\(\), you passed a"
+               r" (\[|')bool(\]|')|"
+               "argument of type 'bool' is not iterable")
         if cmp1 in ('in', 'not in') and not is_list_like(rhs):
-            pytest.raises(TypeError, pd.eval, ex, engine=self.engine,
-                          parser=self.parser, local_dict={'lhs': lhs,
-                                                          'rhs': rhs})
+            with pytest.raises(TypeError, match=msg):
+                pd.eval(ex, engine=self.engine, parser=self.parser,
+                        local_dict={'lhs': lhs, 'rhs': rhs})
         else:
             expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
             result = pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -341,9 +342,11 @@ class TestEvalNumexprPandas(object):
             expected = lhs // rhs
             self.check_equal(res, expected)
         else:
-            pytest.raises(TypeError, pd.eval, ex,
-                          local_dict={'lhs': lhs, 'rhs': rhs},
-                          engine=self.engine, parser=self.parser)
+            msg = (r"unsupported operand type\(s\) for //: 'VariableNode' and"
+                   " 'VariableNode'")
+            with pytest.raises(TypeError, match=msg):
+                pd.eval(ex, local_dict={'lhs': lhs, 'rhs': rhs},
+                        engine=self.engine, parser=self.parser)
 
     def get_expected_pow_result(self, lhs, rhs):
         try:
@@ -396,10 +399,14 @@ class TestEvalNumexprPandas(object):
         skip_these = 'in', 'not in'
         ex = '~(lhs {0} rhs)'.format(cmp1)
 
+        msg = (r"only list-like( or dict-like)? objects are allowed to be"
+               r" passed to (DataFrame\.)?isin\(\), you passed a"
+               r" (\[|')float(\]|')|"
+               "argument of type 'float' is not iterable")
         if is_scalar(rhs) and cmp1 in skip_these:
-            pytest.raises(TypeError, pd.eval, ex, engine=self.engine,
-                          parser=self.parser, local_dict={'lhs': lhs,
-                                                          'rhs': rhs})
+            with pytest.raises(TypeError, match=msg):
+                pd.eval(ex, engine=self.engine, parser=self.parser,
+                        local_dict={'lhs': lhs, 'rhs': rhs})
         else:
             # compound
             if is_scalar(lhs) and is_scalar(rhs):
@@ -1101,8 +1108,9 @@ class TestOperationsNumExprPandas(object):
             ex3 = '1 {0} (x + 1)'.format(op)
 
             if op in ('in', 'not in'):
-                pytest.raises(TypeError, pd.eval, ex,
-                              engine=self.engine, parser=self.parser)
+                msg = "argument of type 'int' is not iterable"
+                with pytest.raises(TypeError, match=msg):
+                    pd.eval(ex, engine=self.engine, parser=self.parser)
             else:
                 expec = _eval_single_bin(1, op, 1, self.engine)
                 x = self.eval(ex, engine=self.engine, parser=self.parser)
@@ -1236,19 +1244,25 @@ class TestOperationsNumExprPandas(object):
         df = DataFrame(np.random.randn(5, 3), columns=list('abc'))
         df2 = DataFrame(np.random.randn(5, 3))
         expr1 = 'df = df2'
-        pytest.raises(ValueError, self.eval, expr1,
-                      local_dict={'df': df, 'df2': df2})
+        msg = "cannot assign without a target object"
+        with pytest.raises(ValueError, match=msg):
+            self.eval(expr1, local_dict={'df': df, 'df2': df2})
 
     def test_assignment_column(self):
         df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
         orig_df = df.copy()
 
         # multiple assignees
-        pytest.raises(SyntaxError, df.eval, 'd c = a + b')
+        with pytest.raises(SyntaxError, match="invalid syntax"):
+            df.eval('d c = a + b')
 
         # invalid assignees
-        pytest.raises(SyntaxError, df.eval, 'd,c = a + b')
-        pytest.raises(SyntaxError, df.eval, 'Timestamp("20131001") = a + b')
+        msg = "left hand side of an assignment must be a single name"
+        with pytest.raises(SyntaxError, match=msg):
+            df.eval('d,c = a + b')
+        msg = "can't assign to function call"
+        with pytest.raises(SyntaxError, match=msg):
+            df.eval('Timestamp("20131001") = a + b')
 
         # single assignment - existing variable
         expected = orig_df.copy()
@@ -1291,7 +1305,9 @@ class TestOperationsNumExprPandas(object):
         # multiple assignment
         df = orig_df.copy()
         df.eval('c = a + b', inplace=True)
-        pytest.raises(SyntaxError, df.eval, 'c = a = b')
+        msg = "can only assign a single expression"
+        with pytest.raises(SyntaxError, match=msg):
+            df.eval('c = a = b')
 
         # explicit targets
         df = orig_df.copy()
@@ -1545,21 +1561,24 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     def test_fails_and(self):
         df = DataFrame(np.random.randn(5, 3))
-        pytest.raises(NotImplementedError, pd.eval, 'df > 2 and df > 3',
-                      local_dict={'df': df}, parser=self.parser,
-                      engine=self.engine)
+        msg = "'BoolOp' nodes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.eval('df > 2 and df > 3', local_dict={'df': df},
+                    parser=self.parser, engine=self.engine)
 
     def test_fails_or(self):
         df = DataFrame(np.random.randn(5, 3))
-        pytest.raises(NotImplementedError, pd.eval, 'df > 2 or df > 3',
-                      local_dict={'df': df}, parser=self.parser,
-                      engine=self.engine)
+        msg = "'BoolOp' nodes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.eval('df > 2 or df > 3', local_dict={'df': df},
+                    parser=self.parser, engine=self.engine)
 
     def test_fails_not(self):
         df = DataFrame(np.random.randn(5, 3))
-        pytest.raises(NotImplementedError, pd.eval, 'not df > 2',
-                      local_dict={'df': df}, parser=self.parser,
-                      engine=self.engine)
+        msg = "'Not' nodes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.eval('not df > 2', local_dict={'df': df}, parser=self.parser,
+                    engine=self.engine)
 
     def test_fails_ampersand(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
