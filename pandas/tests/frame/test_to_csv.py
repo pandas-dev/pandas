@@ -1220,3 +1220,15 @@ class TestDataFrameToCSV(TestData):
                          '1,5,6,7,8']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
+
+    def test_gz_lineend(self):
+        # GH 25311
+        df = pd.DataFrame({'a': [1, 2]})
+        expected_rows = ['a', '1', '2']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        with ensure_clean('__test_gz_lineend.csv.gz') as path:
+            df.to_csv(path, index=False)
+            with tm.decompress_file(path, compression='gzip') as f:
+                result = f.read().decode('utf-8')
+
+        assert result == expected
