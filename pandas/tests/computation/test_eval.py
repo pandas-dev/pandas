@@ -159,12 +159,12 @@ class TestEvalNumexprPandas(object):
         del self.pandas_rhses, self.pandas_lhses, self.current_engines
 
     @pytest.mark.slow
-    def test_complex_cmp_ops(self):
-        cmp_ops = ('!=', '==', '<=', '>=', '<', '>')
-        cmp2_ops = ('>', '<')
-        for lhs, cmp1, rhs, binop, cmp2 in product(self.lhses, cmp_ops,
-                                                   self.rhses, self.bin_ops,
-                                                   cmp2_ops):
+    @pytest.mark.parametrize('cmp1', ['!=', '==', '<=', '>=', '<', '>'],
+                             ids=['ne', 'eq', 'le', 'ge', 'lt', 'gt'])
+    @pytest.mark.parametrize('cmp2', ['>', '<'], ids=['gt', 'lt'])
+    def test_complex_cmp_ops(self, cmp1, cmp2):
+        for lhs, rhs, binop in product(
+                self.lhses, self.rhses, self.bin_ops):
             lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
             rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
             expected = _eval_single_bin(
