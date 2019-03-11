@@ -55,7 +55,7 @@ See the :ref:`overview` for more detail about what's in the library.
 {% endif -%}
 
 
-* :doc:`whatsnew/v0.24.1`
+* :doc:`whatsnew/v0.25.0`
 * :doc:`install`
 * :doc:`getting_started/index`
 
