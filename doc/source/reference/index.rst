@@ -19,6 +19,9 @@ public functions related to data types in pandas.
 
     The ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are PRIVATE. Stable functionality in such modules is not guaranteed.
 
+.. If you update this toctree, also update the manual toctree in the
+   main index.rst.template
+
 .. toctree::
    :maxdepth: 2
 
