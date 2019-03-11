@@ -319,7 +319,7 @@ class TestDataFrameOperators(object):
         assert_frame_equal(df1 + df2, exp)
 
     def test_combineFrame(self, float_frame, mixed_float_frame,
-                          mixed_float_frame2, mixed_int_frame):
+                          mixed_int_frame):
         frame_copy = float_frame.reindex(float_frame.index[::2])
 
         del frame_copy['D']
@@ -351,13 +351,13 @@ class TestDataFrameOperators(object):
         # corner cases
 
         # empty
-        plus_empty = float_frame + DataFrame({})
+        plus_empty = float_frame + DataFrame()
         assert np.isnan(plus_empty.values).all()
 
-        empty_plus = DataFrame({}) + float_frame
+        empty_plus = DataFrame() + float_frame
         assert np.isnan(empty_plus.values).all()
 
-        empty_empty = DataFrame({}) + DataFrame({})
+        empty_empty = DataFrame() + DataFrame()
         assert empty_empty.empty
 
         # out of order
@@ -372,9 +372,7 @@ class TestDataFrameOperators(object):
         _check_mixed_float(added, dtype='float64')
 
         # mix vs mix
-        added = mixed_float_frame + mixed_float_frame2
-        _check_mixed_float(added, dtype=dict(C=None))
-        added = mixed_float_frame2 + mixed_float_frame
+        added = mixed_float_frame + mixed_float_frame
         _check_mixed_float(added, dtype=dict(C=None))
 
         # with int
@@ -476,8 +474,8 @@ class TestDataFrameOperators(object):
                 s.values, mixed_float_frame[c].values * 2)
         _check_mixed_float(result, dtype=dict(C=None))
 
-        result = DataFrame({}) * 2
-        assert result.index.equals(DataFrame({}).index)
+        result = DataFrame() * 2
+        assert result.index.equals(DataFrame().index)
         assert len(result.columns) == 0
 
     def test_comparisons(self, simple_frame, float_frame):
