@@ -246,50 +246,47 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     return iresult.base  # .base to access underlying np.ndarray
 
 
-cdef inline int _precision_from_unit(object unit,
-                                     int64_t* m, int* p) except? -1:
-    if unit == 'Y':
-        m[0] = 1000000000L * 31556952
-        p[0] = 9
-    elif unit == 'M':
-        m[0] = 1000000000L * 2629746
-        p[0] = 9
-    elif unit == 'W':
-        m[0] = 1000000000L * DAY_SECONDS * 7
-        p[0] = 9
-    elif unit == 'D' or unit == 'd':
-        m[0] = 1000000000L * DAY_SECONDS
-        p[0] = 9
-    elif unit == 'h':
-        m[0] = 1000000000L * 3600
-        p[0] = 9
-    elif unit == 'm':
-        m[0] = 1000000000L * 60
-        p[0] = 9
-    elif unit == 's':
-        m[0] = 1000000000L
-        p[0] = 9
-    elif unit == 'ms':
-        m[0] = 1000000L
-        p[0] = 6
-    elif unit == 'us':
-        m[0] = 1000L
-        p[0] = 3
-    elif unit == 'ns' or unit is None:
-        m[0] = 1L
-        p[0] = 0
-    else:
-        raise ValueError("cannot cast unit {unit}".format(unit=unit))
-    return 0
-
-
-def precision_from_unit(object unit):
+cpdef inline object precision_from_unit(object unit):
+    """
+    Return a casting of the unit represented to nanoseconds + the precision
+    to round the fractional part.
+    """
     cdef:
         int64_t m
         int p
 
-    _precision_from_unit(unit, &m, &p)
-
+    if unit == 'Y':
+        m = 1000000000L * 31556952
+        p = 9
+    elif unit == 'M':
+        m = 1000000000L * 2629746
+        p = 9
+    elif unit == 'W':
+        m = 1000000000L * DAY_SECONDS * 7
+        p = 9
+    elif unit == 'D' or unit == 'd':
+        m = 1000000000L * DAY_SECONDS
+        p = 9
+    elif unit == 'h':
+        m = 1000000000L * 3600
+        p = 9
+    elif unit == 'm':
+        m = 1000000000L * 60
+        p = 9
+    elif unit == 's':
+        m = 1000000000L
+        p = 9
+    elif unit == 'ms':
+        m = 1000000L
+        p = 6
+    elif unit == 'us':
+        m = 1000L
+        p = 3
+    elif unit == 'ns' or unit is None:
+        m = 1L
+        p = 0
+    else:
+        raise ValueError("cannot cast unit {unit}".format(unit=unit))
     return m, p
 
 
@@ -300,7 +297,7 @@ cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
         int64_t m
         int p
 
-    _precision_from_unit(unit, &m, &p)
+    m, p = precision_from_unit(unit)
 
     # just give me the unit back
     if ts is None:
