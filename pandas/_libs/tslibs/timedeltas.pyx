@@ -246,7 +246,8 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     return iresult.base  # .base to access underlying np.ndarray
 
 
-cdef int _precision_from_unit(object unit, int64_t* m, int* p):
+cdef inline int _precision_from_unit(object unit,
+                                     int64_t* m, int* p) except? -1:
     if unit == 'Y':
         m[0] = 1000000000L * 31556952
         p[0] = 9
@@ -278,7 +279,7 @@ cdef int _precision_from_unit(object unit, int64_t* m, int* p):
         m[0] = 1L
         p[0] = 0
     else:
-        return -1
+        raise ValueError("cannot cast unit {unit}".format(unit=unit))
     return 0
 
 
@@ -287,9 +288,7 @@ def precision_from_unit(object unit):
         int64_t m
         int p
 
-    status = _precision_from_unit(unit, &m, &p)
-    if status == -1:
-        raise ValueError("cannot cast unit {unit}".format(unit=unit))
+    _precision_from_unit(unit, &m, &p)
 
     return m, p
 
@@ -301,9 +300,7 @@ cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
         int64_t m
         int p
 
-    status = _precision_from_unit(unit, &m, &p)
-    if status == -1:
-        raise ValueError("cannot cast unit {unit}".format(unit=unit))
+    _precision_from_unit(unit, &m, &p)
 
     # just give me the unit back
     if ts is None:
