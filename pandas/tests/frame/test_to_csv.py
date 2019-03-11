@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import csv
 import os
-import gzip
 
 import numpy as np
 import pytest
