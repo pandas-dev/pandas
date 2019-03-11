@@ -474,6 +474,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
             return self
         if len(other) == 0:
             return other
+
+        self = self.sort_values()
+        other = other.sort_values()
+
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
             left, right = self, other
@@ -486,7 +490,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if end < start:
             return type(self)(data=[])
         else:
-            lslice = slice(*left.slice_locs(start, end))
+            lstart, lend = left.slice_locs(start, end)
+            lslice = np.arange(lstart, lend)
+            mask = [left_elem in right for left_elem in left[lstart: lend]]
+            lslice = lslice[mask]
             left_chunk = left.values[lslice]
             return self._shallow_copy(left_chunk)
 

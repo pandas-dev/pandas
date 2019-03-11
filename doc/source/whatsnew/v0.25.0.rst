@@ -273,7 +273,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 
--
+- bug when TimedeltaIndex intersects with another decreasing TimedeltaIndex (:issue:`17391`) 
 -
 -
 

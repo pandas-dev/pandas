@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import Int64Index, TimedeltaIndex, timedelta_range
@@ -73,3 +74,34 @@ class TestTimedeltaIndex(object):
         result = index_1 & index_2
         expected = timedelta_range('1 day 01:00:00', periods=3, freq='h')
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('left, right, expected', [
+        (pd.to_timedelta(range(3), unit='s'),
+         pd.to_timedelta(range(2, -1, -1), unit='s'),
+         pd.to_timedelta(range(3), unit='s')),
+        (pd.to_timedelta(range(6, 3, -1), unit='s'),
+         pd.to_timedelta(range(5, 1, -1), unit='s'),
+         TimedeltaIndex(['00:00:04', '00:00:05'])),
+        (pd.to_timedelta(range(5, 1, -1), unit='s'),
+         pd.to_timedelta(range(6, 3, -1), unit='s'),
+         TimedeltaIndex(['00:00:04', '00:00:05'])),
+        (pd.to_timedelta((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20), unit='s'),
+         pd.to_timedelta(range(1, 20), unit='s'),
+         pd.to_timedelta(range(1, 11), unit='s')),
+        (pd.to_timedelta((1, 2, 5, 6, 7), unit='s'),
+         pd.to_timedelta((3, 5, 6, 7), unit='s'),
+         pd.to_timedelta((5, 6, 7), unit='s'))
+    ])
+    def test_intersect(self, left, right, expected):
+        # GH 17391
+        result = left.intersection(right)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('idx', [
+        pd.to_timedelta(range(1, 2), unit='s'),
+        pd.to_timedelta(range(2, -1, -1), unit='s')
+    ])
+    def test_intersect_self(self, idx):
+        # GH 17391
+        result = idx.intersection(idx)
+        tm.assert_index_equal(idx, result)
