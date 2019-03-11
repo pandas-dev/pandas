@@ -1249,10 +1249,10 @@ class Panel(NDFrame):
             result = super(Panel, self).reindex(**kwargs)
         return result
 
-    @Substitution(**{**_shared_doc_kwargs,
-                     **{'altered': 'axes input function or functions',
-                        'alternative_use': '',
-                        'axes_alt_types': ''}})
+    @Substitution(**dict(_shared_doc_kwargs,
+                         **{'altered': 'axes input function or functions',
+                            'alternative_use': '',
+                            'axes_alt_types': ''}))
     @Substitution(generic_documentation=NDFrame.rename.__doc__)
     def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):
         """%(generic_documentation)s

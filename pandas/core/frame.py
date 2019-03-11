@@ -3913,10 +3913,10 @@ class DataFrame(NDFrame):
                                              ('inplace', False),
                                              ('level', None),
                                              ('errors', 'ignore')])
-    @Substitution(**{**_shared_doc_kwargs,
-                     **{'altered': 'axis labels',
-                        'axes_alt_types': '',
-                        'alternative_use': ''}})
+    @Substitution(**dict(_shared_doc_kwargs,
+                         **{'altered': 'axis labels',
+                            'axes_alt_types': '',
+                            'alternative_use': ''}))
     @Substitution(generic_documentation=NDFrame.rename.__doc__)
     def rename(self, *args, **kwargs):
         """%(generic_documentation)s
