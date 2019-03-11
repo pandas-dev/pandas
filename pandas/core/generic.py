@@ -2895,7 +2895,8 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         path_or_buf : str or file handle, default None
             File path or object, if None is provided the result is returned as
-            a string.
+            a string.  If a file object is passed it should be opened with
+            `newline=''`, disabling universal newlines.
 
             .. versionchanged:: 0.24.0
 
