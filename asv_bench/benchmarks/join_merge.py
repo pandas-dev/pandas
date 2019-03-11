@@ -1,4 +1,3 @@
-import warnings
 import string
 
 import numpy as np
