@@ -397,6 +397,7 @@ def _get_fill(arr):
 
 
 def _sparse_array_op(left, right, op, name):
+    # type: (SparseArray, SparseArray, Callable, str) -> Any
     """
     Perform a binary operation between two arrays.
 
@@ -413,7 +414,6 @@ def _sparse_array_op(left, right, op, name):
     -------
     SparseArray
     """
-    # type: (SparseArray, SparseArray, Callable, str) -> Any
     if name.startswith('__'):
         # For lookups in _libs.sparse we need non-dunder op name
         name = name[2:-2]
@@ -540,7 +540,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
            a ``SparseDtype``
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
-
 
     kind : {'integer', 'block'}, default 'integer'
         The type of storage for sparse locations.
