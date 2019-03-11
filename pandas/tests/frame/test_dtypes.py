@@ -27,6 +27,13 @@ def text_dtype(request):
     return request.param
 
 
+def _check_cast(df, v):
+    """
+    Check if all dtypes of df are equal to v
+    """
+    assert all(s.dtype.name == v for _, s in compat.iteritems(df))
+
+
 class TestDataFrameDataTypes():
 
     def test_concat_empty_dataframe_dtypes(self):
@@ -440,10 +447,6 @@ class TestDataFrameDataTypes():
 
     def test_astype_mixed_float(self, mixed_float_frame):
         # mixed casting
-        def _check_cast(df, v):
-            assert (list({s.dtype.name for
-                          _, s in compat.iteritems(df)})[0] == v)
-
         casted = mixed_float_frame.reindex(
             columns=['A', 'B']).astype('float32')
         _check_cast(casted, 'float32')
@@ -453,12 +456,7 @@ class TestDataFrameDataTypes():
         _check_cast(casted, 'float16')
 
     def test_astype_mixed_type(self, mixed_type_frame):
-
         # mixed casting
-        def _check_cast(df, v):
-            assert (list({s.dtype.name for
-                          _, s in compat.iteritems(df)})[0] == v)
-
         mn = mixed_type_frame._get_numeric_data().copy()
         mn['little_float'] = np.array(12345., dtype='float16')
         mn['big_float'] = np.array(123456789101112., dtype='float64')
