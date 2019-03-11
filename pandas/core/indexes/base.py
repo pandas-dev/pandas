@@ -3170,7 +3170,6 @@ class Index(IndexOpsMixin, PandasObject):
             Resulting index.
         indexer : np.ndarray or None
             Indices of output values in original index.
-
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).

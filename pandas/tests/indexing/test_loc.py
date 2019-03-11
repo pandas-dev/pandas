@@ -95,8 +95,6 @@ class TestLoc(Base):
                           typs=['ints', 'uints'], axes=0)
         self.check_result('int label', 'loc', 3, 'ix', 3,
                           typs=['ints', 'uints'], axes=1)
-        self.check_result('int label', 'loc', 4, 'ix', 4,
-                          typs=['ints', 'uints'], axes=2)
         self.check_result('int label', 'loc', 2, 'ix', 2,
                           typs=['label'], fails=KeyError)
 
@@ -137,14 +135,10 @@ class TestLoc(Base):
                           typs=['ints', 'uints'], axes=0)
         self.check_result('list lbl', 'loc', [3, 6, 9], 'ix', [3, 6, 9],
                           typs=['ints', 'uints'], axes=1)
-        self.check_result('list lbl', 'loc', [4, 8, 12], 'ix', [4, 8, 12],
-                          typs=['ints', 'uints'], axes=2)
         self.check_result('list lbl', 'loc', ['a', 'b', 'd'], 'ix',
                           ['a', 'b', 'd'], typs=['labels'], axes=0)
         self.check_result('list lbl', 'loc', ['A', 'B', 'C'], 'ix',
                           ['A', 'B', 'C'], typs=['labels'], axes=1)
-        self.check_result('list lbl', 'loc', ['Z', 'Y', 'W'], 'ix',
-                          ['Z', 'Y', 'W'], typs=['labels'], axes=2)
         self.check_result('list lbl', 'loc', [2, 8, 'null'], 'ix',
                           [2, 8, 'null'], typs=['mixed'], axes=0)
         self.check_result('list lbl', 'loc',
@@ -166,11 +160,6 @@ class TestLoc(Base):
             self.check_result('list lbl', 'loc', [3, 6, 7], 'ix', [3, 6, 7],
                               typs=['ints', 'uints', 'floats'],
                               axes=1, fails=KeyError)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.check_result('list lbl', 'loc', [4, 8, 10], 'ix', [4, 8, 10],
-                              typs=['ints', 'uints', 'floats'],
-                              axes=2, fails=KeyError)
 
         # GH 17758 - MultiIndex and missing keys
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -194,8 +183,6 @@ class TestLoc(Base):
         # fails
         self.check_result('list lbl', 'loc', [20, 30, 40], 'ix', [20, 30, 40],
                           typs=['ints', 'uints'], axes=1, fails=KeyError)
-        self.check_result('list lbl', 'loc', [20, 30, 40], 'ix', [20, 30, 40],
-                          typs=['ints', 'uints'], axes=2, fails=KeyError)
 
     def test_loc_getitem_label_array_like(self):
         # array like
@@ -203,8 +190,6 @@ class TestLoc(Base):
                           'ix', [0, 2, 4], typs=['ints', 'uints'], axes=0)
         self.check_result('array like', 'loc', Series(index=[3, 6, 9]).index,
                           'ix', [3, 6, 9], typs=['ints', 'uints'], axes=1)
-        self.check_result('array like', 'loc', Series(index=[4, 8, 12]).index,
-                          'ix', [4, 8, 12], typs=['ints', 'uints'], axes=2)
 
     def test_loc_getitem_bool(self):
         # boolean indexers
@@ -222,8 +207,6 @@ class TestLoc(Base):
                           typs=['ints', 'uints'], axes=0)
         self.check_result('int slice2', 'loc', slice(3, 6), 'ix', [3, 6],
                           typs=['ints', 'uints'], axes=1)
-        self.check_result('int slice2', 'loc', slice(4, 8), 'ix', [4, 8],
-                          typs=['ints', 'uints'], axes=2)
 
     def test_loc_to_fail(self):
 
@@ -318,8 +301,6 @@ class TestLoc(Base):
                           'ix', slice('a', 'c'), typs=['labels'], axes=0)
         self.check_result('lab slice', 'loc', slice('A', 'C'),
                           'ix', slice('A', 'C'), typs=['labels'], axes=1)
-        self.check_result('lab slice', 'loc', slice('W', 'Z'),
-                          'ix', slice('W', 'Z'), typs=['labels'], axes=2)
 
         self.check_result('ts  slice', 'loc', slice('20130102', '20130104'),
                           'ix', slice('20130102', '20130104'),
@@ -327,9 +308,6 @@ class TestLoc(Base):
         self.check_result('ts  slice', 'loc', slice('20130102', '20130104'),
                           'ix', slice('20130102', '20130104'),
                           typs=['ts'], axes=1, fails=TypeError)
-        self.check_result('ts  slice', 'loc', slice('20130102', '20130104'),
-                          'ix', slice('20130102', '20130104'),
-                          typs=['ts'], axes=2, fails=TypeError)
 
         # GH 14316
         self.check_result('ts slice rev', 'loc', slice('20130104', '20130102'),
@@ -339,8 +317,6 @@ class TestLoc(Base):
                           typs=['mixed'], axes=0, fails=TypeError)
         self.check_result('mixed slice', 'loc', slice(2, 8), 'ix', slice(2, 8),
                           typs=['mixed'], axes=1, fails=KeyError)
-        self.check_result('mixed slice', 'loc', slice(2, 8), 'ix', slice(2, 8),
-                          typs=['mixed'], axes=2, fails=KeyError)
 
         self.check_result('mixed slice', 'loc', slice(2, 4, 2), 'ix', slice(
             2, 4, 2), typs=['mixed'], axes=0, fails=TypeError)

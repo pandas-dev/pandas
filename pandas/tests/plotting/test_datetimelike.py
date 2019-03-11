@@ -97,7 +97,9 @@ class TestTSPlot(TestPlotBase):
         assert len(ax.get_lines()) == 1  # B was plotted
         self.plt.close(fig)
 
-        pytest.raises(TypeError, df['A'].plot)
+        msg = "no numeric data to plot"
+        with pytest.raises(TypeError, match=msg):
+            df['A'].plot()
 
     def test_tsplot_deprecated(self):
         from pandas.tseries.plotting import tsplot
@@ -140,10 +142,15 @@ class TestTSPlot(TestPlotBase):
     def test_both_style_and_color(self):
 
         ts = tm.makeTimeSeries()
-        pytest.raises(ValueError, ts.plot, style='b-', color='#000099')
+        msg = ("Cannot pass 'style' string with a color symbol and 'color' "
+               "keyword argument. Please use one or the other or pass 'style'"
+               " without a color symbol")
+        with pytest.raises(ValueError, match=msg):
+            ts.plot(style='b-', color='#000099')
 
         s = ts.reset_index(drop=True)
-        pytest.raises(ValueError, s.plot, style='b-', color='#000099')
+        with pytest.raises(ValueError, match=msg):
+            s.plot(style='b-', color='#000099')
 
     @pytest.mark.slow
     def test_high_freq(self):
