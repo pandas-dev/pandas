@@ -15,6 +15,15 @@ from pandas.util import testing as tm
 
 import pandas.io.formats.format as fmt
 
+lorem_ipsum = (
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod"
+    " tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"
+    " veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex"
+    " ea commodo consequat. Duis aute irure dolor in reprehenderit in"
+    " voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur"
+    " sint occaecat cupidatat non proident, sunt in culpa qui officia"
+    " deserunt mollit anim id est laborum.")
+
 
 def expected_html(datapath, name):
     """
@@ -600,3 +609,27 @@ def test_to_html_render_links(render_links, expected, datapath):
     result = df.to_html(render_links=render_links)
     expected = expected_html(datapath, expected)
     assert result == expected
+
+
+@pytest.mark.parametrize('method,expected', [
+    ('to_html', lambda x:lorem_ipsum),
+    ('_repr_html_', lambda x:lorem_ipsum[:x - 4] + '...')  # regression case
+])
+@pytest.mark.parametrize('max_colwidth', [10, 20, 50, 100])
+def test_ignore_display_max_colwidth(method, expected, max_colwidth):
+    # see gh-17004
+    df = DataFrame([lorem_ipsum])
+    with pd.option_context('display.max_colwidth', max_colwidth):
+        result = getattr(df, method)()
+    expected = expected(max_colwidth)
+    assert expected in result
+
+
+@pytest.mark.parametrize("classes", [True, 0])
+def test_to_html_invalid_classes_type(classes):
+    # GH 25608
+    df = DataFrame()
+    msg = "classes must be a string, list, or tuple"
+
+    with pytest.raises(TypeError, match=msg):
+        df.to_html(classes=classes)
