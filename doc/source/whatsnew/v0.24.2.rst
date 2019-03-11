@@ -111,7 +111,7 @@ Contributors
 .. Including the contributors hardcoded for this release, as backporting with
    MeeseeksDev loses the commit authors
 
-A total of 24 people contributed patches to this release. People with a "+" by their names contributed a patch for the first time.
+A total of 25 people contributed patches to this release. People with a "+" by their names contributed a patch for the first time.
 
 * Albert Villanova del Moral
 * Arno Veenstra +
@@ -132,6 +132,7 @@ A total of 24 people contributed patches to this release. People with a "+" by t
 * Max Bolingbroke +
 * rbenes +
 * Sterling Paramore +
+* Tao He +
 * Thomas A Caswell
 * Tom Augspurger
 * Vibhu Agarwal +
