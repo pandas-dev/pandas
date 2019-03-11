@@ -240,8 +240,9 @@ class TestDataFrameMissingData():
         mf = float_string_frame
         mf.loc[mf.index[5:20], 'foo'] = np.nan
         mf.loc[mf.index[-10:], 'A'] = np.nan
-        result = float_string_frame.fillna(value=0)
-        result = float_string_frame.fillna(method='pad')  # noqa
+        # TODO: make stronger assertion here, GH 25640
+        mf.fillna(value=0)
+        mf.fillna(method='pad')
 
     def test_fillna_mixed_float(self, mixed_float_frame):
 
