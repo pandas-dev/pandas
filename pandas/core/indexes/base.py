@@ -2330,10 +2330,14 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
 
+        Union matching dtypes
+
         >>> idx1 = pd.Index([1, 2, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.union(idx2)
         Int64Index([1, 2, 3, 4, 5, 6], dtype='int64')
+
+        Union mismatched dtypes
 
         >>> idx1 = pd.Index(['a', 'b', 'c', 'd'])
         >>> idx2 = pd.Index([1, 2, 3, 4])
