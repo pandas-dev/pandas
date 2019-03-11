@@ -15,6 +15,9 @@ Users brand-new to pandas should start with :ref:`10min`.
 Further information on any specific method can be obtained in the
 :ref:`api`.
 
+.. If you update this toctree, also update the manual toctree in the
+   main index.rst.template
+
 .. toctree::
     :maxdepth: 2
 
