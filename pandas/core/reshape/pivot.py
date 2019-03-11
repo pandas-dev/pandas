@@ -369,10 +369,13 @@ def _convert_by(by):
 def pivot(data, index=None, columns=None, values=None):
     if values is None:
         # Make acceptable for multiple column indexes.
-        if index is None:
-            cols = [columns]
-        elif is_list_like(index):
-            cols = index
+        # cols = []
+        if is_list_like(index):
+            cols = index  # cols.extend(index)
+        elif index is not None:
+            cols = [index]
+        else:
+            cols = []
         cols.append(columns)
 
         append = index is None
