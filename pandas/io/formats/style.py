@@ -576,10 +576,10 @@ class Styler(object):
             on ``axis``), and return an object with the same shape.
             Must return a DataFrame with identical index and
             column labels when ``axis=None``
-        axis : int, str or None
-            apply to each column (``axis=0`` or ``'index'``)
-            or to each row (``axis=1`` or ``'columns'``) or
-            to the entire DataFrame at once with ``axis=None``
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
         subset : IndexSlice
             a valid indexer to limit ``data`` to *before* applying the
             function. Consider using a pandas.IndexSlice
@@ -894,10 +894,12 @@ class Styler(object):
             matplotlib colormap
         low, high : float
             compress the range by these values.
-        axis : int or str
-            1 or 'columns' for columnwise, 0 or 'index' for rowwise
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
         subset : IndexSlice
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for ``data`` to limit the style application to.
         text_color_threshold : float or int
             luminance threshold for determining text color. Facilitates text
             visibility across varying background colors. From 0 to 1.
@@ -1081,10 +1083,10 @@ class Styler(object):
         ----------
         subset : IndexSlice, optional
             A valid slice for `data` to limit the style application to.
-        axis : int, str or None, default 0
-            Apply to each column (`axis=0` or `'index'`)
-            or to each row (`axis=1` or `'columns'`) or
-            to the entire DataFrame at once with `axis=None`.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
         color : str or 2-tuple/list
             If a str is passed, the color is the same for both
             negative and positive numbers. If 2-tuple/list is used, the
@@ -1149,11 +1151,12 @@ class Styler(object):
         Parameters
         ----------
         subset : IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
-        axis : int, str, or None; default 0
-            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
-            or ``None`` for tablewise
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
 
         Returns
         -------
@@ -1169,11 +1172,12 @@ class Styler(object):
         Parameters
         ----------
         subset : IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
-        axis : int, str, or None; default 0
-            0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
-            or ``None`` for tablewise
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
 
         Returns
         -------

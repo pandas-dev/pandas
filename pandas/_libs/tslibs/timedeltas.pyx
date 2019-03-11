@@ -1156,7 +1156,6 @@ class Timedelta(_Timedelta):
     Notes
     -----
     The ``.value`` attribute is always in ns.
-
     """
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
