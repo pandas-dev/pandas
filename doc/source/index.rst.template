@@ -40,7 +40,7 @@ See the :ref:`overview` for more detail about what's in the library.
 {% endif %}
 
     {% if not single_doc -%}
-    What's New in 0.24.1 <whatsnew/v0.24.1>
+    What's New in 0.24.2 <whatsnew/v0.24.2>
     install
     getting_started/index
     user_guide/index
@@ -55,7 +55,7 @@ See the :ref:`overview` for more detail about what's in the library.
 {% endif -%}
 
 
-* :doc:`whatsnew/v0.25.0`
+* :doc:`whatsnew/v0.24.2`
 * :doc:`install`
 * :doc:`getting_started/index`
 
