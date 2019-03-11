@@ -41,40 +41,40 @@ public functions related to data types in pandas.
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.
 
-.. toctree::
-   :hidden:
+..
+    .. toctree::
 
-   api/pandas.DataFrame.blocks
-   api/pandas.DataFrame.as_matrix
-   api/pandas.DataFrame.ix
-   api/pandas.Index.asi8
-   api/pandas.Index.data
-   api/pandas.Index.flags
-   api/pandas.Index.holds_integer
-   api/pandas.Index.is_type_compatible
-   api/pandas.Index.nlevels
-   api/pandas.Index.sort
-   api/pandas.Panel.agg
-   api/pandas.Panel.aggregate
-   api/pandas.Panel.blocks
-   api/pandas.Panel.empty
-   api/pandas.Panel.is_copy
-   api/pandas.Panel.items
-   api/pandas.Panel.ix
-   api/pandas.Panel.major_axis
-   api/pandas.Panel.minor_axis
-   api/pandas.Series.asobject
-   api/pandas.Series.blocks
-   api/pandas.Series.from_array
-   api/pandas.Series.ix
-   api/pandas.Series.imag
-   api/pandas.Series.real
+        api/pandas.DataFrame.blocks
+        api/pandas.DataFrame.as_matrix
+        api/pandas.DataFrame.ix
+        api/pandas.Index.asi8
+        api/pandas.Index.data
+        api/pandas.Index.flags
+        api/pandas.Index.holds_integer
+        api/pandas.Index.is_type_compatible
+        api/pandas.Index.nlevels
+        api/pandas.Index.sort
+        api/pandas.Panel.agg
+        api/pandas.Panel.aggregate
+        api/pandas.Panel.blocks
+        api/pandas.Panel.empty
+        api/pandas.Panel.is_copy
+        api/pandas.Panel.items
+        api/pandas.Panel.ix
+        api/pandas.Panel.major_axis
+        api/pandas.Panel.minor_axis
+        api/pandas.Series.asobject
+        api/pandas.Series.blocks
+        api/pandas.Series.from_array
+        api/pandas.Series.ix
+        api/pandas.Series.imag
+        api/pandas.Series.real
 
 
 .. Can't convince sphinx to generate toctree for this class attribute.
 .. So we do it manually to avoid a warning
 
-.. toctree::
-   :hidden:
+..
+    .. toctree::
 
-   api/pandas.api.extensions.ExtensionDtype.na_value
+        api/pandas.api.extensions.ExtensionDtype.na_value
