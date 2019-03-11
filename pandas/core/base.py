@@ -870,7 +870,6 @@ class IndexOpsMixin(object):
 
         .. versionadded:: 0.24.0
 
-
         Parameters
         ----------
         dtype : str or numpy.dtype, optional
