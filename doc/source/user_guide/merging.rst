@@ -1284,8 +1284,8 @@ similarly.
 
 .. _merging.multiple_join:
 
-Joining multiple DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Joining multiple DataFrames
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A list or tuple of ``DataFrames`` can also be passed to :meth:`~DataFrame.join`
 to join them together on their indexes.

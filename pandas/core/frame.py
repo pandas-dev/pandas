@@ -369,6 +369,7 @@ class DataFrame(NDFrame):
 
     @property
     def _constructor_expanddim(self):
+        # TODO: Raise NotImplementedError or change note in extending.rst
         from pandas.core.panel import Panel
         return Panel
 

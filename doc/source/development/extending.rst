@@ -271,7 +271,7 @@ There are 3 constructor properties to be defined:
 
 * ``_constructor``: Used when a manipulation result has the same dimensions as the original.
 * ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
-* ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()`` and ``DataFrame.to_panel()``.
+* ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()``.
 
 Following table shows how ``pandas`` data structures define constructor properties by default.
 
