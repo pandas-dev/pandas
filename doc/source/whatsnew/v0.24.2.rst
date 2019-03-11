@@ -31,7 +31,6 @@ Fixed Regressions
 - Fixed regression in ``IntervalDtype`` construction where passing an incorrect string with 'Interval' as a prefix could result in a ``RecursionError``. (:issue:`25338`)
 - Fixed regression in :class:`Categorical`, where constructing it from a categorical ``Series`` and an explicit ``categories=`` that differed from that in the ``Series`` created an invalid object which could trigger segfaults. (:issue:`25318`)
 - Fixed pip installing from source into an environment without NumPy (:issue:`25193`)
-- Fixed bug where :meth:`Index.size` could not return correct result for :class:`api.extensions.ExtensionArray` (:issue:`25580`)
 
 .. _whatsnew_0242.enhancements:
 
@@ -101,7 +100,8 @@ Bug Fixes
 - Bug in :meth:`Series.is_unique` where single occurrences of ``NaN`` were not considered unique (:issue:`25180`)
 - Bug in :func:`merge` when merging an empty ``DataFrame`` with an ``Int64`` column or a non-empty ``DataFrame`` with an ``Int64`` column that is all ``NaN`` (:issue:`25183`)
 - Bug in ``IntervalTree`` where a ``RecursionError`` occurs upon construction due to an overflow when adding endpoints, which also causes :class:`IntervalIndex` to crash during indexing operations (:issue:`25485`)
--
+- Bug in :meth:`Series.size` raising for some extension-array-backed ``Series``, rather than returning the size (:issue:`25580`)
+- Bug in resampling raising for nullable integer-dtype columns (:issue:`25580`)
 
 .. _whatsnew_0242.contributors:
 
