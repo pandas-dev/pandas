@@ -23,14 +23,12 @@ from pandas.core.computation.expr import PandasExprVisitor, PythonExprVisitor
 from pandas.core.computation.expressions import (
     _NUMEXPR_INSTALLED, _USE_NUMEXPR)
 from pandas.core.computation.ops import (
-    _arith_ops_syms, _binary_math_ops, _binary_ops_dict, _bool_ops_syms,
+    _arith_ops_syms, _binary_math_ops, _binary_ops_dict,
     _special_case_arith_ops_syms, _unary_math_ops)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_numpy_array_equal, assert_produces_warning,
     assert_series_equal, makeCustomDataframe as mkdf, randbool)
-
-_series_frame_incompatible = _bool_ops_syms
 
 
 @pytest.fixture(params=(
