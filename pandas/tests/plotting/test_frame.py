@@ -159,7 +159,6 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.line)
         _check_plot_works(df.plot.bar)
         _check_plot_works(df.plot.hist)
-        _check_plot_works(df.plot.area)
         _check_plot_works(df.plot.pie, y='y')
         _check_plot_works(df.plot.scatter, x='x', y='y')
         _check_plot_works(df.plot.hexbin, x='x', y='y')
