@@ -253,9 +253,6 @@ class TestEvalNumexprPandas(object):
                 #                   local_dict={'lhs': lhs, 'rhs': rhs},
                 #                   engine=self.engine, parser=self.parser)
                 # except AssertionError:
-                #     import ipdb
-                #
-                #     ipdb.set_trace()
                 #     raise
             else:
                 expected = _eval_single_bin(
