@@ -28,6 +28,30 @@ from pandas.util.testing import assert_series_equal
 
 class TestSeriesConstructors():
 
+    @pytest.mark.parametrize('constructor,check_index_type', [
+        # NOTE: some overlap with test_constructor_empty but that test does not
+        # test for None or an empty generator.
+        # test_constructor_pass_none tests None but only with the index also
+        # passed.
+        (lambda: Series(), True),
+        (lambda: Series(None), True),
+        (lambda: Series({}), True),
+        (lambda: Series(()), False),  # creates a RangeIndex
+        (lambda: Series([]), False),  # creates a RangeIndex
+        (lambda: Series((x for x in [])), False),  # creates a RangeIndex
+        (lambda: Series(data=None), True),
+        (lambda: Series(data={}), True),
+        (lambda: Series(data=()), False),  # creates a RangeIndex
+        (lambda: Series(data=[]), False),  # creates a RangeIndex
+        (lambda: Series(data=(x for x in [])), False),  # creates a RangeIndex
+    ])
+    def test_empty_constructor(self, constructor, check_index_type):
+        expected = Series()
+        result = constructor()
+        assert len(result.index) == 0
+        tm.assert_series_equal(result, expected,
+                               check_index_type=check_index_type)
+
     def test_invalid_dtype(self):
         # GH15520
         msg = 'not understood'
@@ -66,7 +90,7 @@ class TestSeriesConstructors():
         assert mixed[1] is np.NaN
 
         assert not empty_series.index.is_all_dates
-        assert not Series({}).index.is_all_dates
+        assert not Series().index.is_all_dates
 
         # exception raised is of type Exception
         with pytest.raises(Exception, match="Data must be 1-dimensional"):

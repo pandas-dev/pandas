@@ -314,7 +314,7 @@ class TestMultiLevel(Base):
 
         df = self.frame[:0]
         result = df.count(level=0)
-        expected = DataFrame({}, index=s.index.levels[0],
+        expected = DataFrame(index=s.index.levels[0],
                              columns=df.columns).fillna(0).astype(np.int64)
         tm.assert_frame_equal(result, expected)
 

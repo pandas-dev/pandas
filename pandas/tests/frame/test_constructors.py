@@ -32,12 +32,33 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
 
 class TestDataFrameConstructors(TestData):
 
-    def test_constructor(self):
-        df = DataFrame()
-        assert len(df.index) == 0
-
-        df = DataFrame(data={})
-        assert len(df.index) == 0
+    @pytest.mark.parametrize('constructor', [
+        lambda: DataFrame(),
+        lambda: DataFrame(None),
+        lambda: DataFrame({}),
+        lambda: DataFrame(()),
+        lambda: DataFrame([]),
+        lambda: DataFrame((x for x in [])),
+        lambda: DataFrame(data=None),
+        lambda: DataFrame(data={}),
+        lambda: DataFrame(data=()),
+        lambda: DataFrame(data=[]),
+        lambda: DataFrame(data=(x for x in [])),
+        # these are NOT empty DataFrames
+        pytest.param(lambda: DataFrame([[]]), marks=pytest.mark.xfail(
+            reason='creates a non-zero length RangeIndex')),
+        pytest.param(lambda: DataFrame([[], []]), marks=pytest.mark.xfail(
+            reason='creates a non-zero length RangeIndex')),
+        pytest.param(lambda: DataFrame([(x for x in [])]),
+                     marks=pytest.mark.xfail(
+            reason='creates a non-zero length RangeIndex'))
+    ])
+    def test_empty_constructor(self, constructor):
+        expected = DataFrame()
+        result = constructor()
+        assert len(result.index) == 0
+        assert len(result.columns) == 0
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_mixed(self):
         index, data = tm.getMixedTypeDict()
@@ -95,7 +116,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_list_frames(self):
         # see gh-3243
-        result = DataFrame([DataFrame([])])
+        result = DataFrame([DataFrame()])
         assert result.shape == (1, 0)
 
         result = DataFrame([DataFrame(dict(A=lrange(5)))])
@@ -265,7 +286,7 @@ class TestDataFrameConstructors(TestData):
         frame = DataFrame({}, index=idx)
         assert frame.index is idx
 
-        # empty with index and columns
+        # empty dict with index and columns
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx, columns=idx)
         assert frame.index is idx
@@ -1122,7 +1143,7 @@ class TestDataFrameConstructors(TestData):
         result2 = DataFrame(data, index=np.arange(6))
         tm.assert_frame_equal(result, result2)
 
-        result = DataFrame([Series({})])
+        result = DataFrame([Series()])
         expected = DataFrame(index=[0])
         tm.assert_frame_equal(result, expected)
 

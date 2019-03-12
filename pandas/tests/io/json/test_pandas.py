@@ -54,7 +54,7 @@ class TestPandasContainer(object):
         self.objSeries.name = 'objects'
 
         self.empty_series = Series([], index=[])
-        self.empty_frame = DataFrame({})
+        self.empty_frame = DataFrame()
 
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
