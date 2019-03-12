@@ -21,6 +21,20 @@ _msg_validate_usecols_names = ("Usecols do not match columns, columns "
                                "expected but not found: {0}")
 
 
+@pytest.mark.parametrize("names,usecols", [
+    (None, [0, 3]),
+    (["a", "b", "c"], [0, -1, 2]),
+    (None, [3]),
+    (["a"], [3])
+])
+def test_usecols_out_of_bounds(all_parsers, names, usecols):
+    data = "a,b,c\n1,2,3\n4,5,6"
+    parser = all_parsers
+
+    with pytest.raises(ValueError, match=_msg_validate_usecols_names):
+        parser.read_csv(StringIO(data), usecols=usecols, names=names)
+
+
 def test_raise_on_mixed_dtype_usecols(all_parsers):
     # See gh-12678
     data = """a,b,c
