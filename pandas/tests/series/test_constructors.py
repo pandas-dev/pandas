@@ -683,12 +683,10 @@ class TestSeriesConstructors():
         assert s.dtype == 'M8[ns]'
 
         # GH3414 related
-        # msg = (r"cannot astype a datetimelike from \[datetime64\[ns\]\] to"
-        #        r" \[int32\]")
-        # with pytest.raises(TypeError, match=msg):
-        #     Series(Series(dates).astype('int') / 1000000, dtype='M8[ms]')
-        pytest.raises(TypeError, lambda x: Series(
-            Series(dates).astype('int') / 1000000, dtype='M8[ms]'))
+        msg = (r"cannot astype a datetimelike from \[datetime64\[ns\]\] to"
+               r" \[int32\]")
+        with pytest.raises(TypeError, match=msg):
+            Series(Series(dates).astype('int') / 1000000, dtype='M8[ms]')
 
         expected = Series([
             datetime(2013, 1, 1),
