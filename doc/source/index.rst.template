@@ -25,7 +25,7 @@ See the :ref:`overview` for more detail about what's in the library.
 
 {% if single_doc and single_doc.endswith('.rst') -%}
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
 
     {{ single_doc[:-4] }}
 {% elif single_doc %}
@@ -35,7 +35,8 @@ See the :ref:`overview` for more detail about what's in the library.
     {{ single_doc }}
 {% else -%}
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
+    :hidden:
 {% endif %}
 
     {% if not single_doc -%}
@@ -51,4 +52,67 @@ See the :ref:`overview` for more detail about what's in the library.
     {% if not single_doc -%}
     development/index
     whatsnew/index
-    {% endif -%}
+{% endif -%}
+
+
+* :doc:`whatsnew/v0.25.0`
+* :doc:`install`
+* :doc:`getting_started/index`
+
+  * :doc:`getting_started/overview`
+  * :doc:`getting_started/10min`
+  * :doc:`getting_started/basics`
+  * :doc:`getting_started/dsintro`
+  * :doc:`getting_started/comparison/index`
+  * :doc:`getting_started/tutorials`
+
+* :doc:`user_guide/index`
+
+  * :doc:`user_guide/io`
+  * :doc:`user_guide/indexing`
+  * :doc:`user_guide/advanced`
+  * :doc:`user_guide/merging`
+  * :doc:`user_guide/reshaping`
+  * :doc:`user_guide/text`
+  * :doc:`user_guide/missing_data`
+  * :doc:`user_guide/categorical`
+  * :doc:`user_guide/integer_na`
+  * :doc:`user_guide/visualization`
+  * :doc:`user_guide/computation`
+  * :doc:`user_guide/groupby`
+  * :doc:`user_guide/timeseries`
+  * :doc:`user_guide/timedeltas`
+  * :doc:`user_guide/style`
+  * :doc:`user_guide/options`
+  * :doc:`user_guide/enhancingperf`
+  * :doc:`user_guide/sparse`
+  * :doc:`user_guide/gotchas`
+  * :doc:`user_guide/cookbook`
+
+* :doc:`ecosystem`
+* :doc:`reference/index`
+
+  * :doc:`reference/io`
+  * :doc:`reference/general_functions`
+  * :doc:`reference/series`
+  * :doc:`reference/frame`
+  * :doc:`reference/arrays`
+  * :doc:`reference/panel`
+  * :doc:`reference/indexing`
+  * :doc:`reference/offset_frequency`
+  * :doc:`reference/window`
+  * :doc:`reference/groupby`
+  * :doc:`reference/resampling`
+  * :doc:`reference/style`
+  * :doc:`reference/plotting`
+  * :doc:`reference/general_utility_functions`
+  * :doc:`reference/extensions`
+
+* :doc:`development/index`
+
+  * :doc:`development/contributing`
+  * :doc:`development/internals`
+  * :doc:`development/extending`
+  * :doc:`development/developer`
+
+* :doc:`whatsnew/index`
