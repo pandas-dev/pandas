@@ -686,22 +686,34 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         Parameters
         ----------
         data : scipy.sparse.sp_matrix
-            This should be a 2-D SciPy sparse where the size
+            This should be a SciPy sparse matrix where the size
             of the second dimension is 1. In other words, a
             sparse matrix with a single column.
 
         Returns
         -------
-        SparseArray.
-        """
-        assert data.ndim == 2
+        SparseArray
 
+        Examples
+        --------
+        >>> import scipy.sparse
+        >>> mat = scipy.sparse.coo_matrix((4, 1))
+        >>> pd.SparseArray.from_spmatrix(mat)
+        [0.0, 0.0, 0.0, 0.0]
+        Fill: 0.0
+        IntIndex
+        Indices: array([], dtype=int32)
+        """
         length, ncol = data.shape
 
-        assert ncol == 1
+        if ncol != 1:
+            raise ValueError(
+                "'data' must have a single column, not '{}'".format(ncol)
+            )
 
         arr = data.data
         idx, _ = data.nonzero()
+        idx.sort()
         zero = np.array(0, dtype=arr.dtype).item()
         dtype = SparseDtype(arr.dtype, zero)
         index = IntIndex(length, idx)
@@ -1921,28 +1933,32 @@ def _make_index(length, indices, kind):
 # ----------------------------------------------------------------------------
 # Accessor
 
-_validation_msg = "Can only use the '.sparse' accessor with Sparse data."
+
+class BaseAccessor(object):
+    _validation_msg = "Can only use the '.sparse' accessor with Sparse data."
+
+    def __init__(self, data=None):
+        self._parent = data
+        self._validate(data)
+
+    def _validate(self, data):
+        raise NotImplementedError
 
 
 @delegate_names(SparseArray, ['npoints', 'density', 'fill_value',
                               'sp_values'],
                 typ='property')
-class SparseAccessor(PandasDelegate):
+class SparseAccessor(BaseAccessor, PandasDelegate):
     """
     Accessor for SparseSparse from other sparse matrix data types.
     """
 
-    def __init__(self, data=None):
-        # Store the Series since we need that for to_coo
-        self._parent = data
-        self._validate(data)
-
     def _validate(self, data):
         if not isinstance(data.dtype, SparseDtype):
-            raise AttributeError(_validation_msg)
+            raise AttributeError(self._validation_msg)
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        return getattr(self._parent.values, name)
+        return getattr(self._parent.array, name)
 
     def _delegate_method(self, name, *args, **kwargs):
         if name == 'from_coo':
@@ -2064,17 +2080,12 @@ class SparseAccessor(PandasDelegate):
                       name=self._parent.name)
 
 
-class SparseFrameAccessor(PandasDelegate):
-
-    def __init__(self, data=None):
-        # Store the Series since we need that for to_coo
-        self._parent = data
-        self._validate(data)
+class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
     def _validate(self, data):
         dtypes = data.dtypes
         if not all(isinstance(t, SparseDtype) for t in dtypes):
-            raise AttributeError(_validation_msg)
+            raise AttributeError(self._validation_msg)
 
     @classmethod
     def from_spmatrix(cls, data, index=None, columns=None):

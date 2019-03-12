@@ -172,6 +172,24 @@ class TestSparseArray(object):
         else:
             assert result == fill_value
 
+    @pytest.mark.parametrize('format', ['coo', 'csc', 'csr'])
+    def test_from_spmatrix(self, format):
+        pytest.importorskip('scipy')
+        import scipy.sparse
+
+        mat = scipy.sparse.random(10, 1, density=0.5, format=format)
+        result = SparseArray.from_spmatrix(mat)
+        np.testing.assert_array_equal(mat.data, result.sp_values)
+
+    def test_from_spmatrix_raises(self):
+        pytest.importorskip('scipy')
+        import scipy.sparse
+
+        mat = scipy.sparse.eye(5, 4, format='csc')
+
+        with pytest.raises(ValueError, match="not '4'"):
+            SparseArray.from_spmatrix(mat)
+
     @pytest.mark.parametrize('scalar,dtype', [
         (False, SparseDtype(bool, False)),
         (0.0, SparseDtype('float64', 0)),

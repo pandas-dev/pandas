@@ -5,10 +5,11 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 
 class TestSeriesAccessor(object):
-    # TODO: collect other accessor tests
+    # TODO: collect other Series accessor tests
     def test_to_dense(self):
         s = pd.Series([0, 1, 0, 10], dtype='Sparse[int64]')
         result = s.sparse.to_dense()
@@ -17,15 +18,22 @@ class TestSeriesAccessor(object):
 
 
 class TestFrameAccessor(object):
+
+    def test_accessor_raises(self):
+        df = pd.DataFrame({"A": [0, 1]})
+        with pytest.raises(AttributeError, match='sparse'):
+            df.sparse
+
     @pytest.mark.parametrize('format', ['csc', 'csr', 'coo'])
     @pytest.mark.parametrize("labels", [
         None,
         list(string.ascii_letters[:10]),
     ])
     @pytest.mark.parametrize('dtype', ['float64', 'int64'])
+    @td.skip_if_no_scipy
     def test_from_spmatrix(self, format, labels, dtype):
-        pytest.importorskip("scipy")
         import scipy.sparse
+
         sp_dtype = pd.SparseDtype(dtype, np.array(0, dtype=dtype).item())
 
         mat = scipy.sparse.eye(10, format=format, dtype=dtype)
@@ -39,8 +47,8 @@ class TestFrameAccessor(object):
         ).astype(sp_dtype)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_to_coo(self):
-        pytest.importorskip("scipy")
         import scipy.sparse
 
         df = pd.DataFrame({

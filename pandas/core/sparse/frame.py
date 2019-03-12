@@ -19,12 +19,11 @@ from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays.sparse import SparseArray
+from pandas.core.arrays.sparse import SparseArray, SparseFrameAccessor
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 import pandas.core.generic as generic
 from pandas.core.index import Index, MultiIndex, ensure_index
-import pandas.core.indexes.base as ibase
 from pandas.core.internals import (
     BlockManager, create_block_manager_from_arrays)
 from pandas.core.internals.construction import extract_index, prep_ndarray
@@ -198,7 +197,7 @@ class SparseDataFrame(DataFrame):
         Init self from ndarray or list of lists.
         """
         data = prep_ndarray(data, copy=False)
-        index, columns = self._prep_index(data, index, columns)
+        index, columns = SparseFrameAccessor._prep_index(data, index, columns)
         data = {idx: data[:, i] for i, idx in enumerate(columns)}
         return self._init_dict(data, index, columns, dtype)
 
@@ -207,7 +206,7 @@ class SparseDataFrame(DataFrame):
         """
         Init self from scipy.sparse matrix.
         """
-        index, columns = self._prep_index(data, index, columns)
+        index, columns = SparseFrameAccessor._prep_index(data, index, columns)
         data = data.tocoo()
         N = len(index)
 
@@ -234,21 +233,6 @@ class SparseDataFrame(DataFrame):
 
         return self._init_dict(sdict, index, columns, dtype)
 
-    def _prep_index(self, data, index, columns):
-        N, K = data.shape
-        if index is None:
-            index = ibase.default_index(N)
-        if columns is None:
-            columns = ibase.default_index(K)
-
-        if len(columns) != K:
-            raise ValueError('Column length mismatch: {columns} vs. {K}'
-                             .format(columns=len(columns), K=K))
-        if len(index) != N:
-            raise ValueError('Index length mismatch: {index} vs. {N}'
-                             .format(index=len(index), N=N))
-        return index, columns
-
     def to_coo(self):
         """
         Return the contents of the frame as a sparse SciPy COO matrix.
@@ -271,7 +255,6 @@ class SparseDataFrame(DataFrame):
         float32. By numpy.find_common_type convention, mixing int64 and
         and uint64 will result in a float64 dtype.
         """
-        from pandas.core.arrays.sparse import SparseFrameAccessor
         return SparseFrameAccessor(self).to_coo()
 
     def __array_wrap__(self, result):
