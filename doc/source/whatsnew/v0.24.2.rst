@@ -111,4 +111,33 @@ Bug Fixes
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.24.1..v0.24.2
+.. Including the contributors hardcoded for this release, as backporting with
+   MeeseeksDev loses the commit authors
+
+A total of 25 people contributed patches to this release. People with a "+" by their names contributed a patch for the first time.
+
+* Albert Villanova del Moral
+* Arno Veenstra +
+* chris-b1
+* Devin Petersohn +
+* EternalLearner42 +
+* Flavien Lambert +
+* gfyoung
+* Gioia Ballin
+* jbrockmendel
+* Jeff Reback
+* Jeremy Schendel
+* Johan von Forstner +
+* Joris Van den Bossche
+* Josh
+* Justin Zheng
+* Matthew Roeschke
+* Max Bolingbroke +
+* rbenes +
+* Sterling Paramore +
+* Tao He +
+* Thomas A Caswell
+* Tom Augspurger
+* Vibhu Agarwal +
+* William Ayd
+* Zach Angell
