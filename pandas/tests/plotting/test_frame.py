@@ -13,12 +13,12 @@ import pytest
 from pandas.compat import PY3, lmap, lrange, lzip, range, u, zip
 import pandas.util._test_decorators as td
 
-from pandas.core.arrays import integer_array
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
 from pandas import (
     DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range)
+from pandas.core.arrays import integer_array
 from pandas.tests.plotting.common import (
     TestPlotBase, _check_plot_works, _ok_for_gaussian_kde,
     _skip_if_no_scipy_gaussian_kde)
