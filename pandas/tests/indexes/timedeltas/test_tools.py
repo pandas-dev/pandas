@@ -115,14 +115,22 @@ class TestTimedeltas(object):
             to_timedelta(['foo'], errors='never')
 
         # these will error
-        pytest.raises(ValueError, lambda: to_timedelta([1, 2], unit='foo'))
-        pytest.raises(ValueError, lambda: to_timedelta(1, unit='foo'))
+        msg = "invalid unit abbreviation: foo"
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta([1, 2], unit='foo')
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(1, unit='foo')
 
         # time not supported ATM
-        pytest.raises(ValueError, lambda: to_timedelta(time(second=1)))
+        msg = ("Value must be Timedelta, string, integer, float, timedelta or"
+               " convertible")
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(time(second=1))
         assert to_timedelta(time(second=1), errors='coerce') is pd.NaT
 
-        pytest.raises(ValueError, lambda: to_timedelta(['foo', 'bar']))
+        msg = "unit abbreviation w/o a number"
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(['foo', 'bar'])
         tm.assert_index_equal(TimedeltaIndex([pd.NaT, pd.NaT]),
                               to_timedelta(['foo', 'bar'], errors='coerce'))
 
@@ -173,3 +181,10 @@ class TestTimedeltas(object):
 
         actual = pd.to_timedelta(pd.NaT)
         assert actual.value == timedelta_NaT.astype('int64')
+
+    def test_to_timedelta_float(self):
+        # https://github.com/pandas-dev/pandas/issues/25077
+        arr = np.arange(0, 1, 1e-6)[-10:]
+        result = pd.to_timedelta(arr, unit='s')
+        expected_asi8 = np.arange(999990000, int(1e9), 1000, dtype='int64')
+        tm.assert_numpy_array_equal(result.asi8, expected_asi8)

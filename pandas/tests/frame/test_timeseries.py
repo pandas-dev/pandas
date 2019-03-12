@@ -6,8 +6,9 @@ from datetime import datetime, time
 
 import numpy as np
 import pytest
+import pytz
 
-from pandas.compat import product
+from pandas.compat import PY2, product
 
 import pandas as pd
 from pandas import (
@@ -394,7 +395,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(unshifted, inferred_ts)
 
         no_freq = self.tsframe.iloc[[0, 5, 7], :]
-        pytest.raises(ValueError, no_freq.tshift)
+        msg = "Freq was not given and was not set in the index"
+        with pytest.raises(ValueError, match=msg):
+            no_freq.tshift()
 
     def test_truncate(self):
         ts = self.tsframe[::3]
@@ -435,9 +438,10 @@ class TestDataFrameTimeSeriesMethods(TestData):
         truncated = ts.truncate(after=end_missing)
         assert_frame_equal(truncated, expected)
 
-        pytest.raises(ValueError, ts.truncate,
-                      before=ts.index[-1] - ts.index.freq,
-                      after=ts.index[0] + ts.index.freq)
+        msg = "Truncate: 2000-01-06 00:00:00 must be after 2000-02-04 00:00:00"
+        with pytest.raises(ValueError, match=msg):
+            ts.truncate(before=ts.index[-1] - ts.index.freq,
+                        after=ts.index[0] + ts.index.freq)
 
     def test_truncate_copy(self):
         index = self.tsframe.index
@@ -647,6 +651,28 @@ class TestDataFrameTimeSeriesMethods(TestData):
         rs = ts.at_time('16:00')
         assert len(rs) == 0
 
+    @pytest.mark.parametrize('hour', ['1:00', '1:00AM', time(1),
+                                      time(1, tzinfo=pytz.UTC)])
+    def test_at_time_errors(self, hour):
+        # GH 24043
+        dti = pd.date_range('2018', periods=3, freq='H')
+        df = pd.DataFrame(list(range(len(dti))), index=dti)
+        if getattr(hour, 'tzinfo', None) is None:
+            result = df.at_time(hour)
+            expected = df.iloc[1:2]
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(ValueError, match="Index must be timezone"):
+                df.at_time(hour)
+
+    def test_at_time_tz(self):
+        # GH 24043
+        dti = pd.date_range('2018', periods=3, freq='H', tz='US/Pacific')
+        df = pd.DataFrame(list(range(len(dti))), index=dti)
+        result = df.at_time(time(4, tzinfo=pytz.timezone('US/Eastern')))
+        expected = df.iloc[1:2]
+        tm.assert_frame_equal(result, expected)
+
     def test_at_time_raises(self):
         # GH20725
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
@@ -758,14 +784,18 @@ class TestDataFrameTimeSeriesMethods(TestData):
         ts = DataFrame(rand_data, index=rng, columns=rng)
         stime, etime = ('08:00:00', '09:00:00')
 
+        msg = "Index must be DatetimeIndex"
         if axis in ['columns', 1]:
             ts.index = mask
-            pytest.raises(TypeError, ts.between_time, stime, etime)
-            pytest.raises(TypeError, ts.between_time, stime, etime, axis=0)
+            with pytest.raises(TypeError, match=msg):
+                ts.between_time(stime, etime)
+            with pytest.raises(TypeError, match=msg):
+                ts.between_time(stime, etime, axis=0)
 
         if axis in ['index', 0]:
             ts.columns = mask
-            pytest.raises(TypeError, ts.between_time, stime, etime, axis=1)
+            with pytest.raises(TypeError, match=msg):
+                ts.between_time(stime, etime, axis=1)
 
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.
@@ -806,6 +836,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
                                  'new': [1e9, None]}, dtype='datetime64[ns]')
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_frame_to_period(self):
         K = 5
 
@@ -831,7 +862,10 @@ class TestDataFrameTimeSeriesMethods(TestData):
         pts = df.to_period('M', axis=1)
         tm.assert_index_equal(pts.columns, exp.columns.asfreq('M'))
 
-        pytest.raises(ValueError, df.to_period, axis=2)
+        msg = ("No axis named 2 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            df.to_period(axis=2)
 
     @pytest.mark.parametrize("fn", ['tz_localize', 'tz_convert'])
     def test_tz_convert_and_localize(self, fn):

@@ -450,12 +450,18 @@ if '--with-cython-coverage' in sys.argv:
 # Note: if not using `cythonize`, coverage can be enabled by
 # pinning `ext.cython_directives = directives` to each ext in extensions.
 # github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
-directives = {'linetrace': False}
+directives = {'linetrace': False,
+              'language_level': 2}
 macros = []
 if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py
     directives['linetrace'] = True
     macros = [('CYTHON_TRACE', '1'), ('CYTHON_TRACE_NOGIL', '1')]
+
+# in numpy>=1.16.0, silence build warnings about deprecated API usage
+#  we can't do anything about these warnings because they stem from
+#  cython+numpy version mismatches.
+macros.append(('NPY_NO_DEPRECATED_API', '0'))
 
 
 # ----------------------------------------------------------------------
@@ -471,6 +477,11 @@ def maybe_cythonize(extensions, *args, **kwargs):
         # Avoid running cythonize on `python setup.py clean`
         # See https://github.com/cython/cython/issues/1495
         return extensions
+    if not cython:
+        # Avoid trying to look up numpy when installing from sdist
+        # https://github.com/pandas-dev/pandas/issues/25193
+        # TODO: See if this can be removed after pyproject.toml added.
+        return extensions
 
     numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
     # TODO: Is this really necessary here?
@@ -479,11 +490,8 @@ def maybe_cythonize(extensions, *args, **kwargs):
                 numpy_incl not in ext.include_dirs):
             ext.include_dirs.append(numpy_incl)
 
-    if cython:
-        build_ext.render_templates(_pxifiles)
-        return cythonize(extensions, *args, **kwargs)
-    else:
-        return extensions
+    build_ext.render_templates(_pxifiles)
+    return cythonize(extensions, *args, **kwargs)
 
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):

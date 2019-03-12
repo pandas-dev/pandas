@@ -14,7 +14,6 @@ import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
 from pandas.tests.frame.common import TestData
-import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, makeCustomDataframe as mkdf)
 
@@ -79,10 +78,10 @@ class TestCompat(object):
             result = df.eval('A+1', engine='numexpr')
             assert_series_equal(result, self.expected2, check_names=False)
         else:
-            pytest.raises(ImportError,
-                          lambda: df.query('A>0', engine='numexpr'))
-            pytest.raises(ImportError,
-                          lambda: df.eval('A+1', engine='numexpr'))
+            with pytest.raises(ImportError):
+                df.query('A>0', engine='numexpr')
+            with pytest.raises(ImportError):
+                df.eval('A+1', engine='numexpr')
 
 
 class TestDataFrameEval(TestData):
@@ -354,13 +353,6 @@ class TestDataFrameQueryWithMultiIndex(object):
                 assert_series_equal(v, expected[k])
             else:
                 raise AssertionError("object must be a Series or Index")
-
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_raise_on_panel_with_multiindex(self, parser, engine):
-        p = tm.makePanel(7)
-        p.items = tm.makeCustomIndex(len(p.items), nlevels=2)
-        with pytest.raises(NotImplementedError):
-            pd.eval('p + 1', parser=parser, engine=engine)
 
 
 @td.skip_if_no_ne
@@ -860,9 +852,10 @@ class TestDataFrameQueryStrings(object):
 
             for lhs, op, rhs in zip(lhs, ops, rhs):
                 ex = '{lhs} {op} {rhs}'.format(lhs=lhs, op=op, rhs=rhs)
-                pytest.raises(NotImplementedError, df.query, ex,
-                              engine=engine, parser=parser,
-                              local_dict={'strings': df.strings})
+                msg = r"'(Not)?In' nodes are not implemented"
+                with pytest.raises(NotImplementedError, match=msg):
+                    df.query(ex, engine=engine, parser=parser,
+                             local_dict={'strings': df.strings})
         else:
             res = df.query('"a" == strings', engine=engine, parser=parser)
             assert_frame_equal(res, expect)

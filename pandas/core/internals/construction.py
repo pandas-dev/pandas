@@ -93,7 +93,7 @@ def masked_rec_array_to_mgr(data, index, columns, dtype, copy):
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, arr_columns, index, columns)
+    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype)
 
     if copy:
         mgr = mgr.copy()
@@ -197,18 +197,12 @@ def init_dict(data, index, columns, dtype=None):
             arrays.loc[missing] = [val] * missing.sum()
 
     else:
-
-        for key in data:
-            if (isinstance(data[key], ABCDatetimeIndex) and
-                    data[key].tz is not None):
-                # GH#24096 need copy to be deep for datetime64tz case
-                # TODO: See if we can avoid these copies
-                data[key] = data[key].copy(deep=True)
-
         keys = com.dict_keys_to_ordered_list(data)
         columns = data_names = Index(keys)
-        arrays = [data[k] for k in keys]
-
+        # GH#24096 need copy to be deep for datetime64tz case
+        # TODO: See if we can avoid these copies
+        arrays = [data[k] if not is_datetime64tz_dtype(data[k]) else
+                  data[k].copy(deep=True) for k in keys]
     return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
 
 

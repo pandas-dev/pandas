@@ -3,7 +3,7 @@ import datetime as dt
 from datetime import datetime
 from decimal import Decimal
 from itertools import combinations
-from warnings import catch_warnings, simplefilter
+from warnings import catch_warnings
 
 import dateutil
 import numpy as np
@@ -16,7 +16,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Panel, Series,
+    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series,
     Timestamp, concat, date_range, isna, read_csv)
 from pandas.tests.extension.decimal import to_decimal
 from pandas.util import testing as tm
@@ -196,9 +196,8 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_series_equal(res, exp, check_index_type=True)
 
             # cannot append non-index
-            msg = (r'cannot concatenate object of type \"(.+?)\";'
-                   ' only pd.Series, pd.DataFrame, and pd.Panel'
-                   r' \(deprecated\) objs are valid')
+            msg = (r"cannot concatenate object of type '.+';"
+                   " only Series and DataFrame objs are valid")
             with pytest.raises(TypeError, match=msg):
                 pd.Series(vals1).append(vals2)
 
@@ -1499,15 +1498,6 @@ class TestConcatenate(ConcatenateBase):
         result = concat([s1, df, s2], ignore_index=True)
         assert_frame_equal(result, expected)
 
-        # invalid concatente of mixed dims
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            panel = tm.makePanel()
-            msg = ("cannot concatenate unaligned mixed dimensional NDFrame"
-                   " objects")
-            with pytest.raises(ValueError, match=msg):
-                concat([panel, s1], axis=1)
-
     def test_empty_dtype_coerce(self):
 
         # xref to #12411
@@ -1542,61 +1532,6 @@ class TestConcatenate(ConcatenateBase):
         df = DataFrame({'text': ['some words'] + [None] * 9})
         result = concat([df.iloc[[0]], df.iloc[[1]]])
         tm.assert_series_equal(result.dtypes, df.dtypes)
-
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_panel_concat_other_axes(self):
-        panel = tm.makePanel()
-
-        p1 = panel.iloc[:, :5, :]
-        p2 = panel.iloc[:, 5:, :]
-
-        result = concat([p1, p2], axis=1)
-        tm.assert_panel_equal(result, panel)
-
-        p1 = panel.iloc[:, :, :2]
-        p2 = panel.iloc[:, :, 2:]
-
-        result = concat([p1, p2], axis=2)
-        tm.assert_panel_equal(result, panel)
-
-        # if things are a bit misbehaved
-        p1 = panel.iloc[:2, :, :2]
-        p2 = panel.iloc[:, :, 2:]
-        p1['ItemC'] = 'baz'
-
-        result = concat([p1, p2], axis=2)
-
-        expected = panel.copy()
-        expected['ItemC'] = expected['ItemC'].astype('O')
-        expected.loc['ItemC', :, :2] = 'baz'
-        tm.assert_panel_equal(result, expected)
-
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    # Panel.rename warning we don't care about
-    @pytest.mark.filterwarnings("ignore:Using:FutureWarning")
-    def test_panel_concat_buglet(self, sort):
-        # #2257
-        def make_panel():
-            index = 5
-            cols = 3
-
-            def df():
-                return DataFrame(np.random.randn(index, cols),
-                                 index=["I%s" % i for i in range(index)],
-                                 columns=["C%s" % i for i in range(cols)])
-            return Panel({"Item%s" % x: df() for x in ['A', 'B', 'C']})
-
-        panel1 = make_panel()
-        panel2 = make_panel()
-
-        panel2 = panel2.rename(major_axis={x: "%s_1" % x
-                                           for x in panel2.major_axis})
-
-        panel3 = panel2.rename(major_axis=lambda x: '%s_1' % x)
-        panel3 = panel3.rename(minor_axis=lambda x: '%s_1' % x)
-
-        # it works!
-        concat([panel1, panel3], axis=1, verify_integrity=True, sort=sort)
 
     def test_concat_series(self):
 
@@ -1818,9 +1753,8 @@ class TestConcatenate(ConcatenateBase):
 
         # trying to concat a ndframe with a non-ndframe
         df1 = mkdf(10, 2)
-        msg = ('cannot concatenate object of type "{}";'
-               ' only pd.Series, pd.DataFrame, and pd.Panel'
-               r' \(deprecated\) objs are valid')
+        msg = ("cannot concatenate object of type '{}';"
+               " only Series and DataFrame objs are valid")
         for obj in [1, dict(), [1, 2], (1, 2)]:
             with pytest.raises(TypeError, match=msg.format(type(obj))):
                 concat([df1, obj])
@@ -2437,9 +2371,8 @@ bar2,12,13,14,15
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
+@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame])
 @pytest.mark.parametrize('dt', np.sctypes['float'])
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_concat_no_unnecessary_upcast(dt, pdt):
     # GH 13247
     dims = pdt().ndim
@@ -2450,9 +2383,8 @@ def test_concat_no_unnecessary_upcast(dt, pdt):
     assert x.values.dtype == dt
 
 
-@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
+@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame])
 @pytest.mark.parametrize('dt', np.sctypes['int'])
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_concat_will_upcast(dt, pdt):
     with catch_warnings(record=True):
         dims = pdt().ndim

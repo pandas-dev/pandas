@@ -20,7 +20,7 @@ import pandas as pd
 import pandas.core.algorithms as algos
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
-from pandas.core.groupby.generic import PanelGroupBy, SeriesGroupBy
+from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     GroupBy, _GroupBy, _pipe_template, groupby)
 from pandas.core.groupby.grouper import Grouper
@@ -30,14 +30,12 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import (
-    DateOffset, Day, Nano, Tick, delta_to_nanoseconds)
+from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
 _shared_docs_kwargs = dict()
 
 
 class Resampler(_GroupBy):
-
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -85,9 +83,9 @@ class Resampler(_GroupBy):
         """
         Provide a nice str repr of our rolling object.
         """
-        attrs = ["{k}={v}".format(k=k, v=getattr(self.groupby, k))
+        attrs = ("{k}={v}".format(k=k, v=getattr(self.groupby, k))
                  for k in self._attributes if
-                 getattr(self.groupby, k, None) is not None]
+                 getattr(self.groupby, k, None) is not None)
         return "{klass} [{attrs}]".format(klass=self.__class__.__name__,
                                           attrs=', '.join(attrs))
 
@@ -108,7 +106,7 @@ class Resampler(_GroupBy):
         Returns
         -------
         Generator yielding sequence of (name, subsetted object)
-        for each group
+        for each group.
 
         See Also
         --------
@@ -215,9 +213,9 @@ class Resampler(_GroupBy):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.DataFrame.groupby.aggregate
-    pandas.DataFrame.resample.transform
-    pandas.DataFrame.aggregate
+    DataFrame.groupby.aggregate
+    DataFrame.resample.transform
+    DataFrame.aggregate
     """)
 
     _agg_examples_doc = dedent("""
@@ -287,8 +285,8 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        func : function
-            To apply to each group. Should return a Series with the same index
+        arg : function
+            To apply to each group. Should return a Series with the same index.
 
         Returns
         -------
@@ -342,15 +340,10 @@ class Resampler(_GroupBy):
 
         obj = self._selected_obj
 
-        try:
-            grouped = groupby(obj, by=None, grouper=grouper, axis=self.axis)
-        except TypeError:
-
-            # panel grouper
-            grouped = PanelGroupBy(obj, grouper=grouper, axis=self.axis)
+        grouped = groupby(obj, by=None, grouper=grouper, axis=self.axis)
 
         try:
-            if isinstance(obj, ABCDataFrame) and compat.callable(how):
+            if isinstance(obj, ABCDataFrame) and callable(how):
                 # Check if the function is reducing or not.
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
@@ -424,7 +417,7 @@ class Resampler(_GroupBy):
 
         Returns
         -------
-        an upsampled Series
+        An upsampled Series.
 
         See Also
         --------
@@ -524,9 +517,9 @@ class Resampler(_GroupBy):
             'backfill'.
         nearest : Fill NaN values with nearest neighbor starting from center.
         pad : Forward fill NaN values.
-        pandas.Series.fillna : Fill NaN values in the Series using the
+        Series.fillna : Fill NaN values in the Series using the
             specified method, which can be 'backfill'.
-        pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
+        DataFrame.fillna : Fill NaN values in the DataFrame using the
             specified method, which can be 'backfill'.
 
         References
@@ -637,9 +630,9 @@ class Resampler(_GroupBy):
         nearest : Fill NaN values in the resampled data
             with nearest neighbor starting from center.
         interpolate : Fill NaN values using interpolation.
-        pandas.Series.fillna : Fill NaN values in the Series using the
+        Series.fillna : Fill NaN values in the Series using the
             specified method, which can be 'bfill' and 'ffill'.
-        pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
+        DataFrame.fillna : Fill NaN values in the DataFrame using the
             specified method, which can be 'bfill' and 'ffill'.
 
         References
@@ -802,7 +795,7 @@ class Resampler(_GroupBy):
         Parameters
         ----------
         ddof : integer, default 1
-        degrees of freedom
+            Degrees of freedom.
         """
         nv.validate_resampler_func('std', args, kwargs)
         return self._downsample('std', ddof=ddof)
@@ -1613,20 +1606,20 @@ def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
     if isinstance(offset, Tick):
-        is_day = isinstance(offset, Day)
-        day_nanos = delta_to_nanoseconds(timedelta(1))
+        if isinstance(offset, Day):
+            # _adjust_dates_anchored assumes 'D' means 24H, but first/last
+            # might contain a DST transition (23H, 24H, or 25H).
+            # So "pretend" the dates are naive when adjusting the endpoints
+            tz = first.tz
+            first = first.tz_localize(None)
+            last = last.tz_localize(None)
 
-        # #1165 and #24127
-        if (is_day and not offset.nanos % day_nanos) or not is_day:
-            first, last = _adjust_dates_anchored(first, last, offset,
-                                                 closed=closed, base=base)
-            if is_day and first.tz is not None:
-                # _adjust_dates_anchored assumes 'D' means 24H, but first/last
-                # might contain a DST transition (23H, 24H, or 25H).
-                # Ensure first/last snap to midnight.
-                first = first.normalize()
-                last = last.normalize()
-            return first, last
+        first, last = _adjust_dates_anchored(first, last, offset,
+                                             closed=closed, base=base)
+        if isinstance(offset, Day):
+            first = first.tz_localize(tz)
+            last = last.tz_localize(tz)
+        return first, last
 
     else:
         first = first.normalize()

@@ -38,15 +38,15 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         If a dict is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
-        they are all None in which case a ValueError will be raised
+        they are all None in which case a ValueError will be raised.
     axis : {0/'index', 1/'columns'}, default 0
-        The axis to concatenate along
+        The axis to concatenate along.
     join : {'inner', 'outer'}, default 'outer'
-        How to handle indexes on other axis(es)
+        How to handle indexes on other axis (or axes).
     join_axes : list of Index objects
         Specific indexes to use for the other n - 1 axes instead of performing
-        inner/outer set logic
-    ignore_index : boolean, default False
+        inner/outer set logic.
+    ignore_index : bool, default False
         If True, do not use the index values along the concatenation axis. The
         resulting axis will be labeled 0, ..., n - 1. This is useful if you are
         concatenating objects where the concatenation axis does not have
@@ -54,16 +54,16 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         axes are still respected in the join.
     keys : sequence, default None
         If multiple levels passed, should contain tuples. Construct
-        hierarchical index using the passed keys as the outermost level
+        hierarchical index using the passed keys as the outermost level.
     levels : list of sequences, default None
         Specific levels (unique values) to use for constructing a
-        MultiIndex. Otherwise they will be inferred from the keys
+        MultiIndex. Otherwise they will be inferred from the keys.
     names : list, default None
-        Names for the levels in the resulting hierarchical index
-    verify_integrity : boolean, default False
+        Names for the levels in the resulting hierarchical index.
+    verify_integrity : bool, default False
         Check whether the new concatenated axis contains duplicates. This can
-        be very expensive relative to the actual data concatenation
-    sort : boolean, default None
+        be very expensive relative to the actual data concatenation.
+    sort : bool, default None
         Sort non-concatenation axis if it is not already aligned when `join`
         is 'outer'. The current default of sorting is deprecated and will
         change to not-sorting in a future version of pandas.
@@ -76,12 +76,12 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
         .. versionadded:: 0.23.0
 
-    copy : boolean, default True
-        If False, do not copy data unnecessarily
+    copy : bool, default True
+        If False, do not copy data unnecessarily.
 
     Returns
     -------
-    concatenated : object, type of objs
+    object, type of objs
         When concatenating all ``Series`` along the index (axis=0), a
         ``Series`` is returned. When ``objs`` contains at least one
         ``DataFrame``, a ``DataFrame`` is returned. When concatenating along
@@ -89,10 +89,10 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     See Also
     --------
-    Series.append
-    DataFrame.append
-    DataFrame.join
-    DataFrame.merge
+    Series.append : Concatenate Series.
+    DataFrame.append : Concatenate DataFrames.
+    DataFrame.join : Join DataFrames using indexes.
+    DataFrame.merge : Merge DataFrames by indexes or columns.
 
     Notes
     -----
@@ -128,7 +128,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     Add a hierarchical index at the outermost level of
     the data with the ``keys`` option.
 
-    >>> pd.concat([s1, s2], keys=['s1', 's2',])
+    >>> pd.concat([s1, s2], keys=['s1', 's2'])
     s1  0    a
         1    b
     s2  0    c
@@ -282,10 +282,10 @@ class _Concatenator(object):
         # consolidate data & figure out what our result ndim is going to be
         ndims = set()
         for obj in objs:
-            if not isinstance(obj, NDFrame):
-                msg = ('cannot concatenate object of type "{0}";'
-                       ' only pd.Series, pd.DataFrame, and pd.Panel'
-                       ' (deprecated) objs are valid'.format(type(obj)))
+            if not isinstance(obj, (Series, DataFrame)):
+                msg = ("cannot concatenate object of type '{}';"
+                       ' only Series and DataFrame objs are valid'
+                       .format(type(obj)))
                 raise TypeError(msg)
 
             # consolidate

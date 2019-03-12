@@ -571,6 +571,18 @@ class TestSeriesPlots(TestPlotBase):
         tm.close()
 
     @pytest.mark.slow
+    def test_secondary_logy(self):
+        # GH 25545
+        s1 = Series(np.random.randn(30))
+        s2 = Series(np.random.randn(30))
+
+        ax1 = s1.plot(logy=True)
+        ax2 = s2.plot(secondary_y=True, logy=True)
+
+        assert ax1.get_yscale() == 'log'
+        assert ax2.get_yscale() == 'log'
+
+    @pytest.mark.slow
     def test_plot_fails_with_dupe_color_and_style(self):
         x = Series(randn(2))
         with pytest.raises(ValueError):
@@ -694,7 +706,9 @@ class TestSeriesPlots(TestPlotBase):
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            with pytest.raises(TypeError):
+
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
                 s.plot(kind=kind, ax=ax)
 
     @pytest.mark.slow
@@ -711,7 +725,9 @@ class TestSeriesPlots(TestPlotBase):
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            with pytest.raises(TypeError):
+
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
                 s.plot(kind=kind, ax=ax)
 
     def test_invalid_kind(self):
@@ -877,19 +893,6 @@ class TestSeriesPlots(TestPlotBase):
             freq=CustomBusinessDay(holidays=['2014-05-26'])))
 
         _check_plot_works(s.plot)
-
-    def test_misc_bindings(self, monkeypatch):
-        s = Series(randn(10))
-        monkeypatch.setattr('pandas.plotting._misc.lag_plot',
-                            lambda x: 2)
-        monkeypatch.setattr('pandas.plotting._misc.autocorrelation_plot',
-                            lambda x: 2)
-        monkeypatch.setattr('pandas.plotting._misc.bootstrap_plot',
-                            lambda x: 2)
-
-        assert s.plot.lag() == 2
-        assert s.plot.autocorrelation() == 2
-        assert s.plot.bootstrap() == 2
 
     @pytest.mark.xfail
     def test_plot_accessor_updates_on_inplace(self):

@@ -159,13 +159,15 @@ def test_is_nested_list_like_fails(obj):
 
 
 @pytest.mark.parametrize(
-    "ll", [{}, {'A': 1}, Series([1])])
+    "ll", [{}, {'A': 1}, Series([1]), collections.defaultdict()])
 def test_is_dict_like_passes(ll):
     assert inference.is_dict_like(ll)
 
 
-@pytest.mark.parametrize(
-    "ll", ['1', 1, [1, 2], (1, 2), range(2), Index([1])])
+@pytest.mark.parametrize("ll", [
+    '1', 1, [1, 2], (1, 2), range(2), Index([1]),
+    dict, collections.defaultdict, Series
+])
 def test_is_dict_like_fails(ll):
     assert not inference.is_dict_like(ll)
 
@@ -615,6 +617,37 @@ class TestTypeInference(object):
         arr = np.array([Decimal(1), np.nan, Decimal(3)], dtype='O')
         result = lib.infer_dtype(arr, skipna=True)
         assert result == 'decimal'
+
+    # complex is compatible with nan, so skipna has no effect
+    @pytest.mark.parametrize('skipna', [True, False])
+    def test_complex(self, skipna):
+        # gets cast to complex on array construction
+        arr = np.array([1.0, 2.0, 1 + 1j])
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        arr = np.array([1.0, 2.0, 1 + 1j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'mixed'
+
+        # gets cast to complex on array construction
+        arr = np.array([1, np.nan, 1 + 1j])
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        arr = np.array([1.0, np.nan, 1 + 1j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'mixed'
+
+        # complex with nans stays complex
+        arr = np.array([1 + 1j, np.nan, 3 + 3j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        # test smaller complex dtype; will pass through _try_infer_map fastpath
+        arr = np.array([1 + 1j, np.nan, 3 + 3j], dtype=np.complex64)
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
 
     def test_string(self):
         pass

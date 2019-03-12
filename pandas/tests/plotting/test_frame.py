@@ -485,7 +485,9 @@ class TestDataFramePlots(TestPlotBase):
         ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
         assert (ax_datetime_all_tz.get_lines()[0].get_data()[1] ==
                 testdata["datetime_all_tz"].values).all()
-        with pytest.raises(TypeError):
+
+        msg = "no numeric data to plot"
+        with pytest.raises(TypeError, match=msg):
             testdata.plot(y="text")
 
     @pytest.mark.xfail(reason='not support for period, categorical, '
@@ -2219,7 +2221,9 @@ class TestDataFramePlots(TestPlotBase):
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            with pytest.raises(TypeError):
+
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
                 df.plot(kind=kind)
 
     @pytest.mark.slow
@@ -2230,7 +2234,9 @@ class TestDataFramePlots(TestPlotBase):
             for kind in plotting._core._common_kinds:
                 if not _ok_for_gaussian_kde(kind):
                     continue
-                with pytest.raises(TypeError):
+
+                msg = "no numeric data to plot"
+                with pytest.raises(TypeError, match=msg):
                     df.plot(kind=kind)
 
         with tm.RNGContext(42):
@@ -2987,22 +2993,6 @@ class TestDataFramePlots(TestPlotBase):
         ax = getattr(df.plot, method)(**kwargs)
         self._check_ticks_props(axes=ax.right_ax,
                                 ylabelsize=fontsize)
-
-    def test_misc_bindings(self, monkeypatch):
-        df = pd.DataFrame(randn(10, 10), columns=list('abcdefghij'))
-        monkeypatch.setattr('pandas.plotting._misc.scatter_matrix',
-                            lambda x: 2)
-        monkeypatch.setattr('pandas.plotting._misc.andrews_curves',
-                            lambda x, y: 2)
-        monkeypatch.setattr('pandas.plotting._misc.parallel_coordinates',
-                            lambda x, y: 2)
-        monkeypatch.setattr('pandas.plotting._misc.radviz',
-                            lambda x, y: 2)
-
-        assert df.plot.scatter_matrix() == 2
-        assert df.plot.andrews_curves('a') == 2
-        assert df.plot.parallel_coordinates('a') == 2
-        assert df.plot.radviz('a') == 2
 
 
 def _generate_4_axes_via_gridspec():

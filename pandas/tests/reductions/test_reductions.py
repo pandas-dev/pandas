@@ -276,7 +276,9 @@ class TestIndexReductions(object):
 
         # invalid ops
         for op in ['skew', 'kurt', 'sem', 'prod']:
-            pytest.raises(TypeError, getattr(td, op))
+            msg = "reduction operation '{}' not allowed for this dtype"
+            with pytest.raises(TypeError, match=msg.format(op)):
+                getattr(td, op)()
 
         # GH#10040
         # make sure NaT is properly handled by median()
@@ -959,6 +961,27 @@ class TestCategoricalSeriesReductions(object):
         _max = cat.max()
         assert np.isnan(_min)
         assert _max == 1
+
+    def test_min_max_numeric_only(self):
+        # TODO deprecate numeric_only argument for Categorical and use
+        # skipna as well, see GH25303
+        cat = Series(Categorical(
+            ["a", "b", np.nan, "a"], categories=['b', 'a'], ordered=True))
+
+        _min = cat.min()
+        _max = cat.max()
+        assert np.isnan(_min)
+        assert _max == "a"
+
+        _min = cat.min(numeric_only=True)
+        _max = cat.max(numeric_only=True)
+        assert _min == "b"
+        assert _max == "a"
+
+        _min = cat.min(numeric_only=False)
+        _max = cat.max(numeric_only=False)
+        assert np.isnan(_min)
+        assert _max == "a"
 
 
 class TestSeriesMode(object):

@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat import PY2
 from pandas.compat.numpy import _np_version_under1p13
 import pandas.util._test_decorators as td
 
@@ -728,6 +729,7 @@ class TestEnsureNumeric(object):
         # Test complex
         assert nanops._ensure_numeric(1 + 2j) == 1 + 2j
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_ndarray(self):
         # Test numeric ndarray
         values = np.array([1, 2, 3])
@@ -743,7 +745,9 @@ class TestEnsureNumeric(object):
 
         # Test non-convertible string ndarray
         s_values = np.array(['foo', 'bar', 'baz'], dtype=object)
-        pytest.raises(ValueError, lambda: nanops._ensure_numeric(s_values))
+        msg = r"could not convert string to float: '(foo|baz)'"
+        with pytest.raises(ValueError, match=msg):
+            nanops._ensure_numeric(s_values)
 
     def test_convertable_values(self):
         assert np.allclose(nanops._ensure_numeric('1'), 1.0)
@@ -751,9 +755,15 @@ class TestEnsureNumeric(object):
         assert np.allclose(nanops._ensure_numeric('1+1j'), 1 + 1j)
 
     def test_non_convertable_values(self):
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric('foo'))
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric({}))
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric([]))
+        msg = "Could not convert foo to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric('foo')
+        msg = "Could not convert {} to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric({})
+        msg = r"Could not convert \[\] to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric([])
 
 
 class TestNanvarFixedValues(object):
@@ -971,6 +981,9 @@ class TestNankurtFixedValues(object):
 
 class TestDatetime64NaNOps(object):
     @pytest.mark.parametrize('tz', [None, 'UTC'])
+    @pytest.mark.xfail(reason="disabled")
+    # Enabling mean changes the behavior of DataFrame.mean
+    # See https://github.com/pandas-dev/pandas/issues/24752
     def test_nanmean(self, tz):
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         expected = dti[1]

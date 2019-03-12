@@ -98,9 +98,9 @@ if pattern:
                 if (fname == 'index.rst'
                         and os.path.abspath(dirname) == source_path):
                     continue
-                elif pattern == '-api' and dirname == 'api':
+                elif pattern == '-api' and dirname == 'reference':
                     exclude_patterns.append(fname)
-                elif fname != pattern:
+                elif pattern != '-api' and fname != pattern:
                     exclude_patterns.append(fname)
 
 with open(os.path.join(source_path, 'index.rst.template')) as f:
