@@ -504,17 +504,15 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                                 if k not in labels:
                                     # The dtype will be set later
                                     self.obj[k] = np.nan
-
-                            new_indexer = tuple(
-                                convert_missing_indexer(_idx)[0]
-                                if isinstance(_idx, dict) else _idx
-                                for _idx in indexer)
-                            new_indexer = self._get_setitem_indexer(
-                                new_indexer)
                         else:
                             self.obj[key] = _infer_fill_value(value)
-                            new_indexer = convert_from_missing_indexer_tuple(
-                                indexer, self.obj.axes)
+
+                        new_indexer = tuple(
+                            convert_missing_indexer(_idx)[0]
+                            if isinstance(_idx, dict) else _idx
+                            for _idx in indexer)
+                        new_indexer = self._get_setitem_indexer(
+                            new_indexer)
                         self._setitem_with_indexer(new_indexer, value)
 
                         return self.obj

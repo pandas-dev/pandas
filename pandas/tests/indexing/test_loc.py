@@ -761,6 +761,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[[5, 6], ['a', 'b']] = expected
         tm.assert_frame_equal(df, expected)
 
+        df = pd.DataFrame()
+        df.loc[('a', 'b'), 'c'] = 1
+
+        expected = pd.DataFrame([1., 1.], columns=['c'], index=['a', 'b'])
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
 
