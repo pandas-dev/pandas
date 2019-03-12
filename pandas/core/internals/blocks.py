@@ -1079,7 +1079,7 @@ class Block(PandasObject):
 
         try:
             return self.astype(dtype)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, OverflowError):
             pass
 
         return self.astype(object)
@@ -3210,7 +3210,7 @@ def _putmask_smart(v, m, n):
                 nv = v.copy()
                 nv[m] = nn_at
                 return nv
-    except (ValueError, IndexError, TypeError):
+    except (ValueError, IndexError, TypeError, OverflowError):
         pass
 
     n = np.asarray(n)

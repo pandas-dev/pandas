@@ -280,3 +280,17 @@ class TestSeriesReplace(TestData):
         result = s.replace([2, '4'], np.nan)
         expected = pd.Series([1, np.nan, 3, np.nan, 4, 5])
         tm.assert_series_equal(expected, result)
+
+    def test_replace_with_no_overflowerror(self):
+        # GH 25616
+        # casts to object without Exception from OverflowError
+        s = pd.Series([0, 1, 2, 3, 4])
+        result = s.replace([3], ['100000000000000000000'])
+        expected = pd.Series([0, 1, 2, '100000000000000000000', 4])
+        tm.assert_series_equal(result, expected)
+
+        s = pd.Series([0, '100000000000000000000',
+                      '100000000000000000001'])
+        result = s.replace(['100000000000000000000'], [1])
+        expected = pd.Series([0, 1, '100000000000000000001'])
+        tm.assert_series_equal(result, expected)
