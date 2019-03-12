@@ -31,6 +31,7 @@ Fixed Regressions
 - Fixed regression in ``IntervalDtype`` construction where passing an incorrect string with 'Interval' as a prefix could result in a ``RecursionError``. (:issue:`25338`)
 - Fixed regression in creating a period-dtype array from a read-only NumPy array of period objects. (:issue:`25403`)
 - Fixed regression in :class:`Categorical`, where constructing it from a categorical ``Series`` and an explicit ``categories=`` that differed from that in the ``Series`` created an invalid object which could trigger segfaults. (:issue:`25318`)
+- Fixed regression in :func:`to_timedelta` losing precision when converting floating data to ``Timedelta`` data (:issue:`25077`).
 - Fixed pip installing from source into an environment without NumPy (:issue:`25193`)
 - Fixed regression in :meth:`DataFrame.to_csv` writing duplicate line endings with gzip compress (:issue:`25311`)
 
