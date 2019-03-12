@@ -91,6 +91,7 @@ A total of 25 people contributed patches to this release. People with a "+" by t
 * Joris Van den Bossche
 * Josh
 * Justin Zheng
+* Kendall Masse
 * Matthew Roeschke
 * Max Bolingbroke +
 * rbenes +
