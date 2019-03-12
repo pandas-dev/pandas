@@ -639,35 +639,6 @@ def set_defaultencoding(encoding):
 
 
 # -----------------------------------------------------------------------------
-# Console debugging tools
-
-
-def debug(f, *args, **kwargs):
-    from pdb import Pdb as OldPdb
-    try:
-        from IPython.core.debugger import Pdb
-        kw = dict(color_scheme='Linux')
-    except ImportError:
-        Pdb = OldPdb
-        kw = {}
-    pdb = Pdb(**kw)
-    return pdb.runcall(f, *args, **kwargs)
-
-
-def pudebug(f, *args, **kwargs):
-    import pudb
-    return pudb.runcall(f, *args, **kwargs)
-
-
-def set_trace():
-    from IPython.core.debugger import Pdb
-    try:
-        Pdb(color_scheme='Linux').set_trace(sys._getframe().f_back)
-    except Exception:
-        from pdb import Pdb as OldPdb
-        OldPdb().set_trace(sys._getframe().f_back)
-
-# -----------------------------------------------------------------------------
 # contextmanager to ensure the file cleanup
 
 

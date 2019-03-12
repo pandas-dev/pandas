@@ -710,7 +710,7 @@ def _raise_on_incompatible(left, right):
 # Constructor Helpers
 
 def period_array(data, freq=None, copy=False):
-    # type: (Sequence[Optional[Period]], Optional[Tick]) -> PeriodArray
+    # type: (Sequence[Optional[Period]], Optional[Tick], bool) -> PeriodArray
     """
     Construct a new PeriodArray from a sequence of Period scalars.
 
