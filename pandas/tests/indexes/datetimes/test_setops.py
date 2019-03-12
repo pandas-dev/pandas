@@ -35,8 +35,9 @@ class TestDatetimeIndexSetOps(object):
         ).astype('O')
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
+            print('hi')
             result = first.union(case, sort=sort)
-            assert tm.equalContents(result, expected)
+            tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("tz", tz)
     @pytest.mark.parametrize("sort", [None, False])
