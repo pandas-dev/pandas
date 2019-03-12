@@ -219,7 +219,7 @@ class NDFrameGroupBy(GroupBy):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result = {}
+        result = collections.OrderedDict()
         if axis != obj._info_axis_number:
             try:
                 for name, data in self:
@@ -246,7 +246,7 @@ class NDFrameGroupBy(GroupBy):
         # only for axis==0
 
         obj = self._obj_with_exclusions
-        result = {}
+        result = collections.OrderedDict()
         cannot_agg = []
         errors = None
         for item in obj:
@@ -822,7 +822,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(com.get_callable_name(f))
             arg = lzip(columns, arg)
 
-        results = {}
+        results = collections.OrderedDict()
         for name, func in arg:
             obj = self
             if name in results:
@@ -899,7 +899,7 @@ class SeriesGroupBy(GroupBy):
                           name=self._selection_name)
 
     def _aggregate_named(self, func, *args, **kwargs):
-        result = {}
+        result = collections.OrderedDict()
 
         for name, group in self:
             group.name = name
