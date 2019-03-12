@@ -196,9 +196,8 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_series_equal(res, exp, check_index_type=True)
 
             # cannot append non-index
-            msg = (r'cannot concatenate object of type \"(.+?)\";'
-                   ' only pd.Series, pd.DataFrame, and pd.Panel'
-                   r' \(deprecated\) objs are valid')
+            msg = (r"cannot concatenate object of type '.+';"
+                   " only Series and DataFrame objs are valid")
             with pytest.raises(TypeError, match=msg):
                 pd.Series(vals1).append(vals2)
 
@@ -1754,9 +1753,8 @@ class TestConcatenate(ConcatenateBase):
 
         # trying to concat a ndframe with a non-ndframe
         df1 = mkdf(10, 2)
-        msg = ('cannot concatenate object of type "{}";'
-               ' only pd.Series, pd.DataFrame, and pd.Panel'
-               r' \(deprecated\) objs are valid')
+        msg = ("cannot concatenate object of type '{}';"
+               " only Series and DataFrame objs are valid")
         for obj in [1, dict(), [1, 2], (1, 2)]:
             with pytest.raises(TypeError, match=msg.format(type(obj))):
                 concat([df1, obj])
