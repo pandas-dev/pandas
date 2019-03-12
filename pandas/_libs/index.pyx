@@ -591,7 +591,7 @@ cdef class BaseMultiIndexCodesEngine:
     level, then locating (the integer representation of) codes.
     """
     def __init__(self, object levels, object labels,
-                 ndarray[uint64_t, ndim=1] offsets):
+                 ndarray[uint64_t, ndim=1] offsets, hasnans):
         """
         Parameters
         ----------
@@ -605,6 +605,7 @@ cdef class BaseMultiIndexCodesEngine:
 
         self.levels = levels
         self.offsets = offsets
+        self.hasnans = hasnans
 
         # Transform labels in a single array, and add 1 so that we are working
         # with positive integers (-1 for NaN becomes 0):
@@ -657,6 +658,14 @@ cdef class BaseMultiIndexCodesEngine:
             indexer = indexer[order]
         else:
             indexer = self._base.get_indexer(self, lab_ints)
+            # HashTable return same value for 'NaN' and new value
+            # simple fix by take maximum value from array and plus once
+            len = indexer.size - 1
+            if len + 1 > 1 and self.hasnans:
+                check_dup = np.any(self._isin(indexer[0:len],
+                                   indexer[len:indexer.size]))
+                if check_dup and indexer[len]==-1:
+                    indexer[len] = np.max(indexer) + 1
 
         return indexer
 
@@ -673,8 +682,18 @@ cdef class BaseMultiIndexCodesEngine:
 
         # Transform indices into single integer:
         lab_int = self._codes_to_ints(np.array(indices, dtype='uint64'))
-
-        return self._base.get_loc(self, lab_int)
+        ret = []
+        try:
+            ret = self._base.get_loc(self, lab_int)
+        except KeyError:
+            if self.hasnans:
+                # as NaN value, we have 0 bit represent for codes
+                # hacking here by add position of NaN in levels.
+                lab_int += len(self.levels[len(self.levels)-1])
+                ret = self._base.get_loc(self, np.uint64(lab_int))
+            else:
+                raise KeyError(lab_int)
+        return ret
 
     def get_indexer_non_unique(self, object target):
         # This needs to be overridden just because the default one works on

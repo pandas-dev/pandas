@@ -127,3 +127,73 @@ def test_nan_stays_float():
     assert pd.isna(df0.index.get_level_values(1)).all()
     # the following failed in 0.14.1
     assert pd.isna(dfm.index.get_level_values(1)[:-1]).all()
+
+
+def test_nan_multi_index():
+    # GH 22247
+    # When using the MultiIndex features of pandas, when an `np.nan`
+    # is in the index when new values are added to the DF then the
+    # values are not `np.nan`, but copied from the `np.nan` row.
+    df = pd.DataFrame(
+        [
+            ['A', np.nan, 1.23, 4.56],
+            ['A', 'G', 1.23, 4.56],
+            ['A', 'D', 9.87, 10.54],
+        ],
+        columns=['pivot_0', 'pivot_1', 'col_1', 'col_2'],
+    )
+    df.set_index(['pivot_0', 'pivot_1'], inplace=True)
+    pivot_0 = 'A'
+    pivot_1_values = ['D', 'E', 'F']
+    for value in pivot_1_values:
+        if value not in df.index.get_level_values('pivot_1').tolist():
+            df.at[(pivot_0, value), 'col_2'] = 0.0
+
+    assert df.loc[('A', 'F')]['col_2'] == 0.0  # Pass
+    # Fails: value of 1.23 from the first row in the df is copied
+    # This behavior shows for all versions v0.23.x, however is fine for 0.22.0.
+    assert pd.isna(df.loc[('A', 'F')]['col_1'])
+
+
+def test_nan_set_value_multi_index():
+    # GH 22247
+    # When using the MultiIndex features of pandas, when an `np.nan`
+    # is in the index when new values are added to the DF then the
+    # values are not `np.nan`, but copied from the `np.nan` row.
+    df = pd.DataFrame(
+        [
+            ['A', 'G', 1.23, 4.56],
+            ['A', 'D', 9.87, 10.54],
+        ],
+        columns=['pivot_0', 'pivot_1', 'col_1', 'col_2'],
+    )
+    df.set_index(['pivot_0', 'pivot_1'], inplace=True)
+    df.at[('A', 'E'), 'col_2'] = 0.0
+    df.at[('A', 'F'), 'col_2'] = 0.0
+    # Fails: raise exception
+    # This behavior shows for all versions v0.23.x, however is fine for 0.22.0.
+    df.at[('A', np.nan), 'col_2'] = 0.0
+
+    assert df.loc[('A', np.nan)]['col_2'] == 0.0
+    assert pd.isna(df.loc[('A', np.nan)]['col_1'])
+
+
+def test_nan_sigle_index():
+    # GH 22247
+    df = pd.DataFrame(
+        [
+            [np.nan, 1.23, 4.56],
+            ['G', 1.23, 4.56],
+            ['D', 9.87, 10.54],
+        ],
+        columns=['pivot_0', 'col_1', 'col_2'],
+    )
+    df.set_index(['pivot_0'], inplace=True)
+
+    pivot_0_values = ['D', 'E', 'F']
+    for value in pivot_0_values:
+        if value not in df.index.get_level_values('pivot_0').tolist():
+            df.at[(value), 'col_2'] = 0.0
+
+    assert df.loc[('F')]['col_2'] == 0.0
+    assert pd.isna(df.loc[('F')]['col_1'])

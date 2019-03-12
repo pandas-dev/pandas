@@ -17,7 +17,7 @@ from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_categorical_dtype, is_hashable,
     is_integer, is_iterator, is_list_like, is_object_dtype, is_scalar,
-    pandas_dtype)
+    is_string_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import ExtensionDtype, PandasExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.missing import array_equivalent, isna
@@ -74,8 +74,30 @@ class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine,
             # Single key
             return np.bitwise_or.reduce(codes)
 
+        codes = np.bitwise_or.reduce(codes, axis=1)
+        if codes.size > 1 and self.hasnans:
+            check_dup = np.any(algos.isin(codes[0:codes.size - 1],
+                                          codes[codes.size - 1:codes.size]))
+            if check_dup:
+                codes[codes.size - 1] = np.max(codes) + 1
+
         # Multiple keys
-        return np.bitwise_or.reduce(codes, axis=1)
+        return codes
+
+    def _isin(self, comps, values):
+        """
+        Compute the isin boolean array
+        Note just wraping algorithms.isin function to avoid fail of isort
+        Parameters
+        ----------
+        comps : array-like
+        values : array-like
+
+        Returns
+        -------
+        boolean array same length as comps
+        """
+        return algos.isin(comps, values)
 
 
 class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
@@ -116,8 +138,32 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
             # Single key
             return np.bitwise_or.reduce(codes)
 
+        codes = np.bitwise_or.reduce(codes, axis=1)
+        # Shift return same value for 'NaN' and new value
+        # simple fix by take maximum value from array and plus once
+        if codes.size > 1 and self.hasnans:
+            check_dup = np.any(algos.isin(codes[0:codes.size - 1],
+                                          codes[codes.size - 1:codes.size]))
+            if check_dup:
+                codes[codes.size - 1] = np.max(codes) + 1
+
         # Multiple keys
-        return np.bitwise_or.reduce(codes, axis=1)
+        return codes
+
+    def _isin(self, comps, values):
+        """
+        Compute the isin boolean array
+        Note just wraping algorithms.isin function to avoid fail of isort
+        Parameters
+        ----------
+        comps : array-like
+        values : array-like
+
+        Returns
+        -------
+        boolean array same length as comps
+        """
+        return algos.isin(comps, values)
 
 
 class MultiIndex(Index):
@@ -208,6 +254,7 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _codes = FrozenList()
     _comparables = ['names']
+    _isna = False
     rename = Index.set_names
 
     # --------------------------------------------------------------------
@@ -702,6 +749,34 @@ class MultiIndex(Index):
         self._codes = new_codes
         self._tuples = None
         self._reset_cache()
+        self._hasnans()
+
+    def _hasnans(self):
+        """
+        Return if I have any nans
+        """
+        is_not_right_level = False
+        try:
+            self._verify_integrity()
+        except ValueError:
+            is_not_right_level = True
+
+        if is_not_right_level:
+            return
+
+        if (self.values.size > 0 and is_string_dtype(self.values)):
+            flat = []
+            # flatten tuple to 1-D array for searching 'NaN'
+            for row in self.values:
+                flat.extend(row)
+            # algorithms.isin can not pass test_has_duplicates_overflow
+            with warnings.catch_warnings():
+                warnings.simplefilter(action='ignore', category=FutureWarning)
+                try:
+                    self._isna = np.array(np.where(
+                                          np.hstack(flat) == 'nan')).size > 0
+                except UnicodeDecodeError:
+                    self._isna = False
 
     def set_labels(self, labels, level=None, inplace=False,
                    verify_integrity=True):
@@ -1161,8 +1236,10 @@ class MultiIndex(Index):
         # Check the total number of bits needed for our representation:
         if lev_bits[0] > 64:
             # The levels would overflow a 64 bit uint - use Python integers:
-            return MultiIndexPyIntEngine(self.levels, self.codes, offsets)
-        return MultiIndexUIntEngine(self.levels, self.codes, offsets)
+            return MultiIndexPyIntEngine(self.levels,
+                                         self.codes, offsets, self._isna)
+        return MultiIndexUIntEngine(self.levels,
+                                    self.codes, offsets, self._isna)
 
     @property
     def values(self):

@@ -199,6 +199,7 @@ Missing
 
 - Fixed misleading exception message in :meth:`Series.missing` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
 - Fixed class type displayed in exception message in :meth:`DataFrame.dropna` if invalid ``axis`` parameter passed (:issue:`25555`)
+- Fixed MultiIndex bug copying values incorrectly when adding values to index, in case `NaN` is included in the index (:issue:`22247`)
 -
 
 MultiIndex
