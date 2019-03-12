@@ -17,4 +17,4 @@ pycodestyle:
         - C406,  # Unnecessary list literal - rewrite as a dict literal.
         - C408,  # Unnecessary dict call - rewrite as a literal.
         - C409,  # Unnecessary list passed to tuple() - rewrite as a tuple literal.
-	- F821   # undefined name (temporarily for type hints)
+        - F821   # undefined name (temporarily for type hints)
