@@ -505,7 +505,9 @@ class TestDataFramePlots(TestPlotBase):
         ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
         assert (ax_datetime_all_tz.get_lines()[0].get_data()[1] ==
                 testdata["datetime_all_tz"].values).all()
-        with pytest.raises(TypeError):
+
+        msg = "no numeric data to plot"
+        with pytest.raises(TypeError, match=msg):
             testdata.plot(y="text")
 
     @pytest.mark.xfail(reason='not support for period, categorical, '
@@ -2239,7 +2241,9 @@ class TestDataFramePlots(TestPlotBase):
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            with pytest.raises(TypeError):
+
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
                 df.plot(kind=kind)
 
     @pytest.mark.slow
@@ -2250,7 +2254,9 @@ class TestDataFramePlots(TestPlotBase):
             for kind in plotting._core._common_kinds:
                 if not _ok_for_gaussian_kde(kind):
                     continue
-                with pytest.raises(TypeError):
+
+                msg = "no numeric data to plot"
+                with pytest.raises(TypeError, match=msg):
                     df.plot(kind=kind)
 
         with tm.RNGContext(42):
