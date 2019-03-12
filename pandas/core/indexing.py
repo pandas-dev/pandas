@@ -440,6 +440,30 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 return False
             return True
 
+        def reindex_axis_with_key(key, i):
+            """reindex the axis with the new key"""
+            # make sure to clear the cache because we are
+            # just replacing the block manager here
+            # so the object is the same
+            index = self.obj._get_axis(i)
+            idx_as_list = can_use_idx_as_list(key, i)
+            if idx_as_list:
+                labels = index
+                for k in key:
+                    if k not in labels:
+                        labels = labels.insert(len(labels), k)
+            else:
+                labels = index.insert(len(index), key)
+            self.obj._data = self.obj.reindex(labels, axis=i)._data
+            self.obj._maybe_update_cacher(clear=True)
+            self.obj._is_copy = None
+
+            if idx_as_list:
+                return self._get_listlike_indexer(
+                    key, axis=i, raise_missing=True)[1]
+            else:
+                return labels.get_loc(key)
+
         if isinstance(indexer, tuple):
             nindexer = []
             for i, idx in enumerate(indexer):
@@ -448,8 +472,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     # reindex the axis to the new value
                     # and set inplace
                     key, _ = convert_missing_indexer(idx)
-
-                    idx_as_list = can_use_idx_as_list(key, i)
 
                     # if this is the items axes, then take the main missing
                     # path first
@@ -476,10 +498,13 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         # add a new item with the dtype setup
                         labels = self.obj._get_axis(i)
                         # If use multilabel, can't create more than one axis
-                        if idx_as_list:
-                            for k, v in get_key_value_list(key, value):
+                        if can_use_idx_as_list(key, i):
+
+                            for k, v in get_key_value_list(
+                                    key, value, [0], 0):
                                 if k not in labels:
                                     self.obj[k] = _infer_fill_value(v)
+
                             new_indexer = tuple(
                                 convert_missing_indexer(_idx)[0]
                                 if isinstance(_idx, dict) else _idx
@@ -494,27 +519,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
                         return self.obj
 
-                    # reindex the axis
-                    # make sure to clear the cache because we are
-                    # just replacing the block manager here
-                    # so the object is the same
-                    index = self.obj._get_axis(i)
-                    if idx_as_list:
-                        labels = index
-                        for k in key:
-                            if k not in labels:
-                                labels = labels.insert(len(labels), k)
-                    else:
-                        labels = index.insert(len(index), key)
-                    self.obj._data = self.obj.reindex(labels, axis=i)._data
-                    self.obj._maybe_update_cacher(clear=True)
-                    self.obj._is_copy = None
-
-                    if idx_as_list:
-                        nindexer.append(self._get_listlike_indexer(
-                            key, axis=i, raise_missing=True)[1])
-                    else:
-                        nindexer.append(labels.get_loc(key))
+                    nindexer.append(reindex_axis_with_key(key, i))
 
                 else:
                     nindexer.append(idx)
@@ -526,19 +531,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             if missing:
                 if can_use_idx_as_list(indexer, 0):
-                    # reindex the axis
-                    # make sure to clear the cache because we are
-                    # just replacing the block manager here
-                    # so the object is the same
-                    labels = self.obj._get_axis(0)
-                    for k in indexer:
-                        if k not in labels:
-                            labels = labels.insert(len(labels), k)
-                    self.obj._data = self.obj.reindex(labels, axis=0)._data
-                    self.obj._maybe_update_cacher(clear=True)
-                    self.obj._is_copy = None
-                    indexer = self._get_listlike_indexer(
-                        indexer, axis=0, raise_missing=True)[1]
+                    indexer = reindex_axis_with_key(indexer, 0)
 
                 # reindex the axis to the new value
                 # and set inplace
