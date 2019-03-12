@@ -1263,7 +1263,7 @@ def assert_series_equal(left, right, check_dtype=True,
                 not check_categorical):
             pass
         else:
-            assert_attr_equal('dtype', left, right)
+            assert_attr_equal('dtype', left, right, obj=obj)
 
     if check_exact:
         assert_numpy_array_equal(left.get_values(), right.get_values(),
