@@ -122,8 +122,7 @@ Bug Fixes
 ~~~~~~~~~
 - Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
 - Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
-- Fixed bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` (:issue:`25557`)
--
+- Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` object as result (:issue:`25557`)
 
 Categorical
 ^^^^^^^^^^^

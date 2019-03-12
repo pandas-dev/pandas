@@ -1661,8 +1661,7 @@ def _construct_result(left, result, index, name, dtype=None):
     """
     out = left._constructor(result, index=index, dtype=dtype)
     out.__finalize__(left)
-    if name is None:
-        out.name = name
+    out.name = name
     return out
 
 
