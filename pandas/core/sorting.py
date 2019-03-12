@@ -11,6 +11,7 @@ from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_categorical_dtype, is_list_like)
 from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.generic import ABCExtensionArray
 
 import pandas.core.algorithms as algorithms
 
@@ -404,7 +405,8 @@ def _reorder_by_uniques(uniques, labels):
     return uniques, labels
 
 
-def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
+def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False, 
+              check_outofbounds=True):
     """
     Sort ``values`` and reorder corresponding ``labels``.
     ``values`` should be unique if ``labels`` is not None.
@@ -425,6 +427,10 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     assume_unique : bool, default False
         When True, ``values`` are assumed to be unique, which can speed up
         the calculation. Ignored when ``labels`` is None.
+    check_outofbounds : bool, default True
+        Check if labels are out of bound for the values and put out of bound
+        labels equal to na_sentinel. If ``check_outofbounds=False``, it is
+        assumed there are no out of bound labels.
 
     Returns
     -------
@@ -446,8 +452,8 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
         raise TypeError("Only list-like objects are allowed to be passed to"
                         "safe_sort as values")
 
-    if not isinstance(values, np.ndarray):
-
+    if (not isinstance(values, np.ndarray)
+            and not isinstance(values, ABCExtensionArray)):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
         values = np.asarray(values, dtype=dtype)
@@ -461,7 +467,8 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
         return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
     sorter = None
-    if PY3 and lib.infer_dtype(values, skipna=False) == 'mixed-integer':
+    if (PY3 and not isinstance(values, ABCExtensionArray)
+            and lib.infer_dtype(values, skipna=False) == 'mixed-integer'):
         # unorderable in py3 if mixed str/int
         ordered = sort_mixed(values)
     else:
@@ -494,15 +501,26 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))
 
-    reverse_indexer = np.empty(len(sorter), dtype=np.int_)
-    reverse_indexer.put(sorter, np.arange(len(sorter)))
+    if na_sentinel == -1:
+        # take_1d is faster, but only works for na_sentinels of -1
+        order2 = sorter.argsort()
+        new_labels = algorithms.take_1d(order2, labels, fill_value=-1)
+        if check_outofbounds:
+            mask = (labels < -len(values)) | (labels >= len(values))
+        else:
+            mask = None
+    else:
+        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
+        reverse_indexer.put(sorter, np.arange(len(sorter)))
+        # Out of bound indices will be masked with `na_sentinel` next, so we
+        # may deal with them here without performance loss using `mode='wrap'`
+        new_labels = reverse_indexer.take(labels, mode='wrap')
 
-    mask = (labels < -len(values)) | (labels >= len(values)) | \
-        (labels == na_sentinel)
+        mask = labels == na_sentinel
+        if check_outofbounds:
+            mask = mask | (labels < -len(values)) | (labels >= len(values))
 
-    # (Out of bound indices will be masked with `na_sentinel` next, so we may
-    # deal with them here without performance loss using `mode='wrap'`.)
-    new_labels = reverse_indexer.take(labels, mode='wrap')
-    np.putmask(new_labels, mask, na_sentinel)
+    if mask is not None:
+        np.putmask(new_labels, mask, na_sentinel)
 
     return ordered, ensure_platform_int(new_labels)
