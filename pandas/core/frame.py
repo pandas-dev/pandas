@@ -36,6 +36,7 @@ from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
                            PY36, raise_with_traceback, Iterator,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
+from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -8009,6 +8010,7 @@ class DataFrame(NDFrame):
     plot = CachedAccessor("plot", gfx.FramePlotMethods)
     hist = gfx.hist_frame
     boxplot = gfx.boxplot_frame
+    sparse = CachedAccessor("sparse", SparseFrameAccessor)
 
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,

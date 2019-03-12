@@ -14,12 +14,12 @@ from pandas.compat import lmap
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import find_common_type, maybe_upcast
+from pandas.core.dtypes.cast import maybe_upcast
 from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import SparseArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 import pandas.core.generic as generic
@@ -271,27 +271,8 @@ class SparseDataFrame(DataFrame):
         float32. By numpy.find_common_type convention, mixing int64 and
         and uint64 will result in a float64 dtype.
         """
-        try:
-            from scipy.sparse import coo_matrix
-        except ImportError:
-            raise ImportError('Scipy is not installed')
-
-        dtype = find_common_type(self.dtypes)
-        if isinstance(dtype, SparseDtype):
-            dtype = dtype.subtype
-
-        cols, rows, datas = [], [], []
-        for col, name in enumerate(self):
-            s = self[name]
-            row = s.sp_index.to_int_index().indices
-            cols.append(np.repeat(col, len(row)))
-            rows.append(row)
-            datas.append(s.sp_values.astype(dtype, copy=False))
-
-        cols = np.concatenate(cols)
-        rows = np.concatenate(rows)
-        datas = np.concatenate(datas)
-        return coo_matrix((datas, (rows, cols)), shape=self.shape)
+        from pandas.core.arrays.sparse import SparseFrameAccessor
+        return SparseFrameAccessor(self).to_coo()
 
     def __array_wrap__(self, result):
         return self._constructor(

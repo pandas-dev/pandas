@@ -678,6 +678,36 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         new._dtype = dtype
         return new
 
+    @classmethod
+    def from_spmatrix(cls, data):
+        """
+        Create a SparseArray from a scipy.sparse matrix.
+
+        Parameters
+        ----------
+        data : scipy.sparse.sp_matrix
+            This should be a 2-D SciPy sparse where the size
+            of the second dimension is 1. In other words, a
+            sparse matrix with a single column.
+
+        Returns
+        -------
+        SparseArray.
+        """
+        assert data.ndim == 2
+
+        length, ncol = data.shape
+
+        assert ncol == 1
+
+        arr = data.data
+        idx, _ = data.nonzero()
+        zero = np.array(0, dtype=arr.dtype).item()
+        dtype = SparseDtype(arr.dtype, zero)
+        index = IntIndex(length, idx)
+
+        return cls._simple_new(arr, index, dtype)
+
     def __array__(self, dtype=None, copy=True):
         fill_value = self.fill_value
 
@@ -1891,6 +1921,9 @@ def _make_index(length, indices, kind):
 # ----------------------------------------------------------------------------
 # Accessor
 
+_validation_msg = "Can only use the '.sparse' accessor with Sparse data."
+
+
 @delegate_names(SparseArray, ['npoints', 'density', 'fill_value',
                               'sp_values'],
                 typ='property')
@@ -1900,15 +1933,13 @@ class SparseAccessor(PandasDelegate):
     """
 
     def __init__(self, data=None):
-        self._validate(data)
         # Store the Series since we need that for to_coo
         self._parent = data
+        self._validate(data)
 
-    @staticmethod
-    def _validate(data):
+    def _validate(self, data):
         if not isinstance(data.dtype, SparseDtype):
-            msg = "Can only use the '.sparse' accessor with Sparse data."
-            raise AttributeError(msg)
+            raise AttributeError(_validation_msg)
 
     def _delegate_property_get(self, name, *args, **kwargs):
         return getattr(self._parent.values, name)
@@ -2025,3 +2056,126 @@ class SparseAccessor(PandasDelegate):
                                                  column_levels,
                                                  sort_labels=sort_labels)
         return A, rows, columns
+
+    def to_dense(self):
+        from pandas import Series
+        return Series(self._parent.array.to_dense(),
+                      index=self._parent.index,
+                      name=self._parent.name)
+
+
+class SparseFrameAccessor(PandasDelegate):
+
+    def __init__(self, data=None):
+        # Store the Series since we need that for to_coo
+        self._parent = data
+        self._validate(data)
+
+    def _validate(self, data):
+        dtypes = data.dtypes
+        if not all(isinstance(t, SparseDtype) for t in dtypes):
+            raise AttributeError(_validation_msg)
+
+    @classmethod
+    def from_spmatrix(cls, data, index=None, columns=None):
+        """
+        Create a new DataFrame from a scipy sparse matrix.
+
+        Parameters
+        ----------
+        data : scipy.sparse.spmatrix
+            Must be convertible to csc format.
+        index, columns : Index, optional
+            Row and column labels to use for the resulting DataFrame.
+            Defaults to a RangeIndex.
+
+        Returns
+        -------
+        DataFrame
+
+        Examples
+        --------
+        >>> import scipy.sparse
+        >>> mat = scipy.sparse.eye(3)
+        >>> pd.DataFrame.sparse.from_spmatrix(mat)
+             0    1    2
+        0  1.0  0.0  0.0
+        1  0.0  1.0  0.0
+        2  0.0  0.0  1.0
+        """
+        from pandas import DataFrame
+
+        data = data.tocsc()
+        index, columns = cls._prep_index(data, index, columns)
+        sparrays = [
+            SparseArray.from_spmatrix(data[:, i])
+            for i in range(data.shape[1])
+        ]
+        data = dict(zip(columns, sparrays))
+        return DataFrame(data, index=index)
+
+    def to_dense(self):
+        """
+        Convert to dense DataFrame
+
+        Returns
+        -------
+        df : DataFrame
+        """
+        from pandas import DataFrame
+
+        data = {k: v.array.to_dense()
+                for k, v in compat.iteritems(self._parent)}
+        return DataFrame(data,
+                         index=self._parent.index,
+                         columns=self._parent.columns)
+
+    def to_coo(self):
+        try:
+            from scipy.sparse import coo_matrix
+        except ImportError:
+            raise ImportError('Scipy is not installed')
+
+        dtype = find_common_type(self._parent.dtypes)
+        if isinstance(dtype, SparseDtype):
+            dtype = dtype.subtype
+
+        cols, rows, datas = [], [], []
+        for col, name in enumerate(self._parent):
+            s = self._parent[name]
+            row = s.array.sp_index.to_int_index().indices
+            cols.append(np.repeat(col, len(row)))
+            rows.append(row)
+            datas.append(s.array.sp_values.astype(dtype, copy=False))
+
+        cols = np.concatenate(cols)
+        rows = np.concatenate(rows)
+        datas = np.concatenate(datas)
+        return coo_matrix((datas, (rows, cols)), shape=self._parent.shape)
+
+    @property
+    def density(self):
+        """
+        Ratio of non-sparse points to total (dense) data points
+        represented in the DataFrame.
+        """
+        return np.mean([column.array.density
+                        for _, column in self._parent.iteritems()])
+
+    @staticmethod
+    def _prep_index(data, index, columns):
+        import pandas.core.indexes.base as ibase
+
+        N, K = data.shape
+        if index is None:
+            index = ibase.default_index(N)
+        if columns is None:
+            columns = ibase.default_index(K)
+
+        if len(columns) != K:
+            raise ValueError('Column length mismatch: {columns} vs. {K}'
+                             .format(columns=len(columns), K=K))
+        if len(index) != N:
+            raise ValueError('Index length mismatch: {index} vs. {N}'
+                             .format(index=len(index), N=N))
+        return index, columns
