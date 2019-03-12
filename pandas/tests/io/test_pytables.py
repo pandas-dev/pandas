@@ -2244,6 +2244,7 @@ class TestHDFStore(Base):
         self._check_roundtrip(ts3, tm.assert_series_equal,
                               check_index_type=False)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series(self):
 
         s = tm.makeStringSeries()
@@ -2260,6 +2261,7 @@ class TestHDFStore(Base):
         self._check_roundtrip(ss3, tm.assert_series_equal,
                               check_series_type=True)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_frame(self):
 
         s = tm.makeDataFrame()
@@ -3742,6 +3744,7 @@ class TestHDFStore(Base):
             expected = df.loc[[0], ['foo', 'bar']]
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_start_stop_fixed(self):
 
         with ensure_clean_store(self.path) as store:

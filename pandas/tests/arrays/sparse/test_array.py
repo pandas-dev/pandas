@@ -209,6 +209,7 @@ class TestSparseArray(object):
         assert exp.dtype == dtype
 
     @pytest.mark.parametrize("fill", [1, np.nan, 0])
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series_round_trip(self, kind, fill):
         # see gh-13999
         arr = SparseArray([np.nan, 1, np.nan, 2, 3],
@@ -225,6 +226,7 @@ class TestSparseArray(object):
         tm.assert_sp_array_equal(arr, res)
 
     @pytest.mark.parametrize("fill", [True, False, np.nan])
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series_round_trip2(self, kind, fill):
         # see gh-13999
         arr = SparseArray([True, False, True, True], dtype=np.bool,
@@ -1093,6 +1095,7 @@ class TestSparseArrayAnalytics(object):
         assert arr.npoints == 1
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestAccessor(object):
 
     @pytest.mark.parametrize('attr', [

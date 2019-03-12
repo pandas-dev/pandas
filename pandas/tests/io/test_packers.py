@@ -551,6 +551,7 @@ class TestNDFrame(TestPackers):
         assert_frame_equal(result_3, expected_3)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparse(TestPackers):
 
     def _check_roundtrip(self, obj, comparator, **kwargs):
@@ -841,6 +842,7 @@ def legacy_packer(request, datapath):
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestMsgpack(object):
     """
     How to add msgpack tests:

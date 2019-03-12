@@ -1,5 +1,6 @@
 # coding=utf-8
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import SparseDtype
@@ -40,6 +41,7 @@ class TestSeriesSubclassing(object):
         tm.assert_frame_equal(res, exp)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseSeriesSubclassing(object):
 
     def test_subclass_sparse_slice(self):

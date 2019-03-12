@@ -29,6 +29,11 @@ from pandas.core.series import Series
 from pandas.core.sparse.series import SparseSeries
 
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
+depr_msg = """\
+SparseDataFrame is deprecated.
+
+See ... for more.
+"""
 
 
 class SparseDataFrame(DataFrame):
@@ -57,6 +62,7 @@ class SparseDataFrame(DataFrame):
     def __init__(self, data=None, index=None, columns=None, default_kind=None,
                  default_fill_value=None, dtype=None, copy=False):
 
+        warnings.warn(depr_msg, FutureWarning, stacklevel=2)
         # pick up the defaults from the Sparse structures
         if isinstance(data, SparseDataFrame):
             if index is None:
