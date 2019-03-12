@@ -500,10 +500,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         # If use multilabel, can't create more than one axis
                         if can_use_idx_as_list(key, i):
 
-                            for k, v in get_key_value_list(
-                                    key, value, [0], 0):
+                            for k in key:
                                 if k not in labels:
-                                    self.obj[k] = _infer_fill_value(v)
+                                    # The dtype will be set later
+                                    self.obj[k] = np.nan
 
                             new_indexer = tuple(
                                 convert_missing_indexer(_idx)[0]

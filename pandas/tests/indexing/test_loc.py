@@ -748,6 +748,19 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame({'x': [1., 2.], 'y': [np.nan, np.nan]})
         tm.assert_frame_equal(df, expected)
 
+        df = pd.DataFrame()
+        s = pd.Series({'float': 1.2, 'str': 'a'})
+        df.loc[1, ['str', 'float']] = s
+
+        expected = pd.DataFrame({'str': 'a', 'float': 1.2},
+                                index=[1])
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame()
+        expected = pd.DataFrame({'a': [1, 2], 'b': [3, 4]}, index=[5, 6])
+        df.loc[[5, 6], ['a', 'b']] = expected
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
 
