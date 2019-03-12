@@ -55,19 +55,22 @@ def test_fancy_setitem():
 def test_dti_snap():
     dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
                          '1/5/2002', '1/6/2002', '1/7/2002'],
-                        name='my_dti', freq='D')
+                        name='my_dti', tz='Asia/Shanghai', freq='D')
 
-    res = dti.snap(freq='W-MON')
-    exp = date_range('12/31/2001', '1/7/2002', name='my_dti', freq='w-mon')
-    exp = exp.repeat([3, 4])
-    assert (res == exp).all()
-    assert res.name == exp.name
+    result = dti.snap(freq='W-MON')
+    expected = date_range('12/31/2001', '1/7/2002', name='my_dti',
+                          tz='Asia/Shanghai', freq='w-mon')
+    expected = expected.repeat([3, 4])
+    tm.assert_index_equal(result, expected)
+    assert result.tz == expected.tz
 
-    res = dti.snap(freq='B')
+    result = dti.snap(freq='B')
 
-    exp = date_range('1/1/2002', '1/7/2002', freq='b')
-    exp = exp.repeat([1, 1, 1, 2, 2])
-    assert (res == exp).all()
+    expected = date_range('1/1/2002', '1/7/2002', name='my_dti',
+                          tz='Asia/Shanghai', freq='b')
+    expected = expected.repeat([1, 1, 1, 2, 2])
+    tm.assert_index_equal(result, expected)
+    assert result.tz == expected.tz
 
 
 def test_dti_reset_index_round_trip():
