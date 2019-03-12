@@ -735,3 +735,19 @@ NaN & 2 &  4 \\
 \end{tabular}
 """
         assert df.to_latex(float_format='%.0f') == expected
+
+    def test_to_latex_multindex_header(self):
+        # GH 16718
+        df = (pd.DataFrame({'a': [0], 'b': [1], 'c': [2], 'd': [3]})
+              .set_index(['a', 'b']))
+        observed = df.to_latex(header=['r1', 'r2'])
+        expected = r"""\begin{tabular}{llrr}
+\toprule
+  &   & r1 & r2 \\
+a & b &    &    \\
+\midrule
+0 & 1 &  2 &  3 \\
+\bottomrule
+\end{tabular}
+"""
+        assert observed == expected

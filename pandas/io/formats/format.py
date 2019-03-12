@@ -528,6 +528,10 @@ class DataFrameFormatter(TableFormatter):
             else:
                 str_columns = self._get_formatted_column_labels(frame)
 
+            if self.show_row_idx_names:
+                for x in str_columns:
+                    x.append('')
+
             stringified = []
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
@@ -770,11 +774,6 @@ class DataFrameFormatter(TableFormatter):
                             need_leadsp[x] else x]
                            for i, (col, x) in enumerate(zip(columns,
                                                             fmt_columns))]
-
-        if self.show_row_idx_names:
-            for x in str_columns:
-                x.append('')
-
         # self.str_columns = str_columns
         return str_columns
 
