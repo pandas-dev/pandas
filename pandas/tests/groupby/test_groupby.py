@@ -1690,13 +1690,10 @@ def test_groupby_agg_ohlc_non_first():
         [1, 1, 1, 1, 1],
         [1, 1, 1, 1, 1]
     ], columns=pd.MultiIndex.from_tuples((
-        ('foo', 'ohlc', 'open'), ('foo', 'ohlc', 'high'),
-        ('foo', 'ohlc', 'low'), ('foo', 'ohlc', 'close'),
-        ('foo', 'sum', 'foo'))), index=pd.date_range(
+        ('foo', 'sum', 'foo'), ('foo', 'ohlc', 'open'),
+        ('foo', 'ohlc', 'high'), ('foo', 'ohlc', 'low'),
+        ('foo', 'ohlc', 'close'))), index=pd.date_range(
             '2018-01-01', periods=2, freq='D'))
-
-    if compat.PY36:
-        expected = expected[sorted(expected, key=lambda x: x[1], reverse=True)]
 
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
 
