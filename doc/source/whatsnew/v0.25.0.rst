@@ -216,6 +216,7 @@ I/O
 - Bug in :func:`read_json` for ``orient='table'`` and string of float column names, as it makes a column name type conversion to Timestamp, which is not applicable because column names are already defined in the JSON schema (:issue:`25435`)
 - Bug in :func:`json_normalize` for ``errors='ignore'`` where missing values in the input data, were filled in resulting ``DataFrame`` with the string "nan" instead of ``numpy.nan`` (:issue:`25468`)
 - :meth:`DataFrame.to_html` now raises ``TypeError`` when using an invalid type for the ``classes`` parameter instead of ``AsseertionError`` (:issue:`25608`)
+- Bug in :meth:`DataFrame.to_string` and :meth:`DataFrame.to_latex` that would lead to incorrect output when the ``header`` keyword is used (:issue:`16718`)
 -
 
 
@@ -241,6 +242,7 @@ Reshaping
 - Bug in :func:`pandas.merge` adds a string of ``None`` if ``None`` is assigned in suffixes instead of remain the column name as-is (:issue:`24782`).
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
+- Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
 
 
 Sparse
