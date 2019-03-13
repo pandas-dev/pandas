@@ -70,7 +70,7 @@ Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions.
-Independently, some minimum supported versions of dependencies were updated (:issue:`23519`).
+Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`24942`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
@@ -82,8 +82,6 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | pymysql         | 0.6.6           |          |
 +-----------------+-----------------+----------+
-| pytest (dev)    | 4.0.2           |          |
-+-----------------+-----------------+----------+
 | pytz            | 2015.4          |          |
 +-----------------+-----------------+----------+
 | sqlalchemy      | 1.0.8           |          |
@@ -91,6 +89,8 @@ If installed, we now require:
 | xlsxwriter      | 0.7.7           |          |
 +-----------------+-----------------+----------+
 | xlwt            | 1.0.0           |          |
++-----------------+-----------------+----------+
+| pytest (dev)    | 4.0.2           |          |
 +-----------------+-----------------+----------+
 
 .. _whatsnew_0250.api.other:
