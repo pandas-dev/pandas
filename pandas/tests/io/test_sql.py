@@ -28,11 +28,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-<<<<<<< HEAD
-from pandas.compat import PY35, PY36, lrange, range, string_types
-=======
-from pandas.compat import PY2, PY36, lrange, range, string_types
->>>>>>> upstream/master
+from pandas.compat import PY2, PY35, PY36, lrange, range, string_types
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype, is_datetime64tz_dtype)
