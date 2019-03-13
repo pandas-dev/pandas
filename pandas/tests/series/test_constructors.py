@@ -690,7 +690,7 @@ class TestSeriesConstructors():
         ], dtype='datetime64[ns]')
 
         result = Series(
-            Series(dates).astype(np.intp) / 1000000, dtype='M8[ms]')
+            Series(dates).astype(np.int64) / 1000000, dtype='M8[ms]')
         tm.assert_series_equal(result, expected)
 
         result = Series(dates, dtype='datetime64[ns]')
@@ -702,6 +702,24 @@ class TestSeriesConstructors():
             datetime(2013, 1, 3),
         ], dtype='datetime64[ns]')
         result = Series([np.nan] + dates[1:], dtype='datetime64[ns]')
+        tm.assert_series_equal(result, expected)
+
+        dts = Series(dates, dtype='datetime64[ns]')
+
+        # valid astype
+        dts.astype('int64')
+
+        # invalid casting
+        msg = (r"cannot astype a datetimelike from \[datetime64\[ns\]\] to"
+               r" \[int32\]")
+        with pytest.raises(TypeError, match=msg):
+            dts.astype('int32')
+
+        # ints are ok
+        # we test with np.int64 to get similar results on
+        # windows / 32-bit platforms
+        result = Series(dts, dtype=np.int64)
+        expected = Series(dts.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
         # invalid dates can be help as object
