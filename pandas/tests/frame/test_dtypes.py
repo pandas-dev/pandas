@@ -813,10 +813,10 @@ class TestDataFrameDataTypes(TestData):
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
-        msg = (r"cannot astype a datetimelike from \[timedelta64\[ns\]\] to"
+        msg = (r"cannot astype a timedelta from \[timedelta64\[ns\]\] to"
                r" \[datetime64\[{}\]\]").format(unit)
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df.astype(dtype)
 
     def test_timedeltas(self):
