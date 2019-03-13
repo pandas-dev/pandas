@@ -70,6 +70,7 @@ descriptor format for these as is follows:
 
 .. code-block:: python
 
+   index = pd.RangeIndex(0, 10, 2)
    {'kind': 'range',
     'name': index.name,
     'start': index._start,
