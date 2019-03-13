@@ -33,7 +33,6 @@ Fixed Regressions
 - Fixed regression in :class:`Categorical`, where constructing it from a categorical ``Series`` and an explicit ``categories=`` that differed from that in the ``Series`` created an invalid object which could trigger segfaults. (:issue:`25318`)
 - Fixed pip installing from source into an environment without NumPy (:issue:`25193`)
 - Fixed regression in :meth:`DataFrame.to_csv` writing duplicate line endings with gzip compress (:issue:`25311`)
-- Fixed bug where :class:`api.extensions.ExtensionArray` could not be used in matplotlib plotting (:issue:`25587`)
 
 .. _whatsnew_0242.enhancements:
 
