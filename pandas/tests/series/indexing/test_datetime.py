@@ -52,6 +52,7 @@ def test_fancy_setitem():
     assert (s[48:54] == -3).all()
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.parametrize('tz', [None, 'Asia/Shanghai', 'Europe/Berlin'])
 @pytest.mark.parametrize('name', [None, 'my_dti'])
 def test_dti_snap(name, tz):
