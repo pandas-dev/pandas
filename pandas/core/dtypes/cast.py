@@ -794,10 +794,10 @@ def soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
         # Immediate return if coerce
         if datetime:
             from pandas import to_datetime
-            return to_datetime(values, errors='coerce', box=False)
+            return to_datetime(values, errors='coerce').to_numpy()
         elif timedelta:
             from pandas import to_timedelta
-            return to_timedelta(values, errors='coerce', box=False)
+            return to_timedelta(values, errors='coerce').to_numpy()
         elif numeric:
             from pandas import to_numeric
             return to_numeric(values, errors='coerce')

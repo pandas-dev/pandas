@@ -318,12 +318,12 @@ class TestTimedeltas(object):
         assert to_timedelta('P0DT0H0M1S') == expected
 
     def test_nat_converters(self):
-        result = to_timedelta('nat', box=False)
-        assert result.dtype.kind == 'm'
+        result = to_timedelta('nat').to_numpy()
+        assert result.dtype.kind == 'M'
         assert result.astype('int64') == iNaT
 
-        result = to_timedelta('nan', box=False)
-        assert result.dtype.kind == 'm'
+        result = to_timedelta('nan').to_numpy()
+        assert result.dtype.kind == 'M'
         assert result.astype('int64') == iNaT
 
     @pytest.mark.filterwarnings("ignore:M and Y units are deprecated")
