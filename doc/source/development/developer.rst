@@ -70,7 +70,7 @@ descriptor format for these as is follows:
 
 .. code-block:: python
 
-   {'kind': range,
+   {'kind': 'range',
     'name': index.name,
     'start': index._start,
     'stop': index._stop,
