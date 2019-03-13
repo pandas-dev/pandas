@@ -822,7 +822,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(com.get_callable_name(f))
             arg = lzip(columns, arg)
 
-        results = {}
+        results = collections.OrderedDict()
         for name, func in arg:
             obj = self
             if name in results:

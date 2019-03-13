@@ -1,4 +1,4 @@
-from collections import deque
+from collections import OrderedDict, deque
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
@@ -18,6 +18,7 @@ import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series,
     Timestamp, concat, date_range, isna, read_csv)
+import pandas.core.common as com
 from pandas.tests.extension.decimal import to_decimal
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, makeCustomDataframe as mkdf
@@ -1162,7 +1163,7 @@ class TestConcatenate(ConcatenateBase):
                   'baz': DataFrame(np.random.randn(4, 3)),
                   'qux': DataFrame(np.random.randn(4, 3))}
 
-        sorted_keys = sorted(frames)
+        sorted_keys = com.dict_keys_to_ordered_list(frames)
 
         result = concat(frames)
         expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys)
@@ -2368,6 +2369,14 @@ bar2,12,13,14,15
             1, 2,
             Decimal(1), Decimal(2)
         ], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+    def test_concat_odered_dict(self):
+        # GH 21510
+        expected = pd.concat([pd.Series(range(3)), pd.Series(range(4))],
+                             keys=['First', 'Another'])
+        result = pd.concat(OrderedDict([('First', pd.Series(range(3))),
+                                        ('Another', pd.Series(range(4)))]))
         tm.assert_series_equal(result, expected)
 
 
