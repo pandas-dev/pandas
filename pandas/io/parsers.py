@@ -3180,11 +3180,11 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                 return tools.to_datetime(
                     ensure_object(strs),
                     utc=None,
-                    box=False,
                     dayfirst=dayfirst,
                     errors='ignore',
                     infer_datetime_format=infer_datetime_format
-                )
+                ).to_numpy()
+
             except ValueError:
                 return tools.to_datetime(
                     parsing.try_parse_dates(strs, dayfirst=dayfirst))
