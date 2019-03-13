@@ -415,7 +415,9 @@ class TestSeriesDtypes(object):
         data = [1]
         s = Series(data)
 
-        msg = "dtype has no unit. Please pass in"
+        msg = ((r"The '{dtype}' dtype has no unit\. "
+                r"Please pass in '{dtype}\[ns\]' instead.")
+               .format(dtype=dtype.__name__))
         with pytest.raises(ValueError, match=msg):
             s.astype(dtype)
 
