@@ -122,7 +122,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 - Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
--
+- Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
 -
 
 Categorical
@@ -197,7 +197,7 @@ Missing
 ^^^^^^^
 
 - Fixed misleading exception message in :meth:`Series.missing` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
--
+- Fixed class type displayed in exception message in :meth:`DataFrame.dropna` if invalid ``axis`` parameter passed (:issue:`25555`)
 -
 
 MultiIndex
@@ -215,7 +215,8 @@ I/O
 - Bug in :func:`read_json` for ``orient='table'`` when it tries to infer dtypes by default, which is not applicable as dtypes are already defined in the JSON schema (:issue:`21345`)
 - Bug in :func:`read_json` for ``orient='table'`` and float index, as it infers index dtype by default, which is not applicable because index dtype is already defined in the JSON schema (:issue:`25433`)
 - Bug in :func:`read_json` for ``orient='table'`` and string of float column names, as it makes a column name type conversion to Timestamp, which is not applicable because column names are already defined in the JSON schema (:issue:`25435`)
--
+- :meth:`DataFrame.to_html` now raises ``TypeError`` when using an invalid type for the ``classes`` parameter instead of ``AsseertionError`` (:issue:`25608`)
+- Bug in :meth:`DataFrame.to_string` and :meth:`DataFrame.to_latex` that would lead to incorrect output when the ``header`` keyword is used (:issue:`16718`)
 -
 -
 
