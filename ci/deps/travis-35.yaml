@@ -3,6 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - backports.lzma
   - beautifulsoup4
   - bottleneck
   - cython=0.28.2
@@ -18,6 +19,7 @@ dependencies:
   - numexpr
   - numpy=1.13*
   - openpyxl=2.4.0
+  - pathlib
   - patsy
   - psycopg2
   - py
@@ -42,10 +44,14 @@ dependencies:
   - pytest-mock
   - hypothesis>=3.58.0
   - isort
+  # satisfy fastparquet deps with conda
+  - llvmlite
+  - numba
+  # satisfy pandas-gbq deps with conda
+  - protobuf
+  - thrift
   - pip:
-    - backports.lzma
+    # not available for python 3.5 through conda
     - fastparquet>=0.2.1
     - pandas-gbq
-    - pathlib
-    # for python 3.5, pytest>=4.0.2 is not available in conda
     - pytest>=4.0.2
