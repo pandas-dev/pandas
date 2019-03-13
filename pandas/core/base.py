@@ -762,7 +762,7 @@ class IndexOpsMixin(object):
         """
         Return the number of elements in the underlying data.
         """
-        return self._values.size
+        return len(self._values)
 
     @property
     def flags(self):
@@ -869,7 +869,6 @@ class IndexOpsMixin(object):
         A NumPy ndarray representing the values in this Series or Index.
 
         .. versionadded:: 0.24.0
-
 
         Parameters
         ----------

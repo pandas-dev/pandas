@@ -95,10 +95,12 @@ class TestDataFrameQuantile(TestData):
         result = df.quantile(.5, axis="columns")
         assert_series_equal(result, expected)
 
-        msg = "No axis named -1 for object type <class 'type'>"
+        msg = ("No axis named -1 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
         with pytest.raises(ValueError, match=msg):
             df.quantile(0.1, axis=-1)
-        msg = "No axis named column for object type <class 'type'>"
+        msg = ("No axis named column for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
         with pytest.raises(ValueError, match=msg):
             df.quantile(0.1, axis="column")
 

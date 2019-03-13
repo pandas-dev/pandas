@@ -287,6 +287,9 @@ class MPLPlot(object):
 
             if not self._has_plotted_object(orig_ax):  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
+
+            if self.logy or self.loglog:
+                new_ax.set_yscale('log')
             return new_ax
 
     def _setup_subplots(self):
@@ -358,10 +361,9 @@ class MPLPlot(object):
         except AttributeError:
             is_empty = not len(numeric_data)
 
-        # no empty frames or series allowed
+        # no non-numeric frames or series allowed
         if is_empty:
-            raise TypeError('Empty {0!r}: no numeric data to '
-                            'plot'.format(numeric_data.__class__.__name__))
+            raise TypeError('no numeric data to plot')
 
         self.data = numeric_data
 
