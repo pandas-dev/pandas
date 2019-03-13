@@ -17,7 +17,6 @@ from pandas.util.testing import assert_frame_equal
 a_ = np.array
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestJoin(object):
 
     def setup_method(self, method):

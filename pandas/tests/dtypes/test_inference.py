@@ -11,7 +11,6 @@ from decimal import Decimal
 from fractions import Fraction
 from numbers import Number
 import re
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
@@ -30,8 +29,8 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Panel,
-    Period, Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna)
+    Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Period,
+    Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna)
 from pandas.util import testing as tm
 
 
@@ -1305,10 +1304,6 @@ class TestIsScalar(object):
         assert not is_scalar(Series([1]))
         assert not is_scalar(DataFrame())
         assert not is_scalar(DataFrame([[1]]))
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            assert not is_scalar(Panel())
-            assert not is_scalar(Panel([[[1]]]))
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
 

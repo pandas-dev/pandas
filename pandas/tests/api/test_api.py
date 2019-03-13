@@ -53,10 +53,10 @@ class TestPDApi(Base):
                ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['TimeGrouper']
+    deprecated_classes = ['TimeGrouper', 'Panel']
 
     # these should be deprecated in the future
-    deprecated_classes_in_future = ['Panel']
+    deprecated_classes_in_future = []
 
     # external modules exposed in pandas namespace
     modules = ['np', 'datetime']

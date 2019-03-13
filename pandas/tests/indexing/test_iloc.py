@@ -217,7 +217,6 @@ class TestiLoc(Base):
 
     def test_iloc_getitem_dups(self):
 
-        # no dups in panel (bug?)
         self.check_result('list int (dups)', 'iloc', [0, 1, 1, 3], 'ix',
                           {0: [0, 2, 2, 6], 1: [0, 3, 3, 9]},
                           objs=['series', 'frame'], typs=['ints', 'uints'])
