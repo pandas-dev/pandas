@@ -110,7 +110,6 @@ def read_feather(path, columns=None, use_threads=True):
     Returns
     -------
     type of object stored in file
-
     """
 
     feather, pyarrow = _try_import()
