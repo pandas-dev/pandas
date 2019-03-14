@@ -113,8 +113,6 @@ names : array-like, default ``None``
 index_col : int, str, sequence of int / str, or False, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as string name or column index.
   If a sequence of int / str is given, a MultiIndex is used.
-  Columns used for the index (row names) are dropped from the actual columns of the input dataframe.
-  They are accessible via ``.index``.
   (Note: ``index_col=False`` can be used to force pandas to *not* use the first column as the index, e.g. when you have a malformed file with delimiters at the end of each line.)
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
