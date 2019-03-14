@@ -2,8 +2,8 @@
 
 .. _whatsnew_0242:
 
-Whats New in 0.24.2 (February XX, 2019)
----------------------------------------
+Whats New in 0.24.2 (March 12, 2019)
+------------------------------------
 
 .. warning::
 
@@ -33,6 +33,8 @@ Fixed Regressions
 - Fixed regression in :class:`Categorical`, where constructing it from a categorical ``Series`` and an explicit ``categories=`` that differed from that in the ``Series`` created an invalid object which could trigger segfaults. (:issue:`25318`)
 - Fixed regression in :func:`to_timedelta` losing precision when converting floating data to ``Timedelta`` data (:issue:`25077`).
 - Fixed pip installing from source into an environment without NumPy (:issue:`25193`)
+- Fixed regression in :meth:`DataFrame.replace` where large strings of numbers would be coerced into ``int64``, causing an ``OverflowError`` (:issue:`25616`)
+- Fixed regression in :func:`factorize` when passing a custom ``na_sentinel`` value with ``sort=True`` (:issue:`25409`).
 - Fixed regression in :meth:`DataFrame.to_csv` writing duplicate line endings with gzip compress (:issue:`25311`)
 
 .. _whatsnew_0242.bug_fixes:
@@ -89,6 +91,7 @@ A total of 25 people contributed patches to this release. People with a "+" by t
 * Joris Van den Bossche
 * Josh
 * Justin Zheng
+* Kendall Masse
 * Matthew Roeschke
 * Max Bolingbroke +
 * rbenes +
