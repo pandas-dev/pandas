@@ -1202,12 +1202,26 @@ class TestDataFrameConstructors(TestData):
         expected = DataFrame([[1, 2], [3, 4]])
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_tuples(self):
+    @pytest.mark.parametrize("tuples,lists", [
+        ((), []),
+        ((()), []),
+        (((), ()), [(), ()]),
+        (((), ()), [[], []]),
+        (([], []), [[], []]),
+        (([1, 2, 3], [4, 5, 6]), [[1, 2, 3], [4, 5, 6]])
+    ])
+    def test_constructor_tuple(self, tuples, lists):
+        # GH 25691
+        result = DataFrame(tuples)
+        expected = DataFrame(lists)
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_tuples(self):
         result = DataFrame({'A': [(1, 2), (3, 4)]})
         expected = DataFrame({'A': Series([(1, 2), (3, 4)])})
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_namedtuples(self):
+    def test_constructor_list_of_namedtuples(self):
         # GH11181
         from collections import namedtuple
         named_tuple = namedtuple("Pandas", list('ab'))
