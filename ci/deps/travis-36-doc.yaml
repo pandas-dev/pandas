@@ -15,10 +15,10 @@ dependencies:
   - ipywidgets
   - lxml
   - matplotlib
-  - nbconvert
+  - nbconvert>=5.4.1
   - nbformat
   - nbsphinx
-  - notebook
+  - notebook>=5.7.5
   - numexpr
   - numpy=1.13*
   - numpydoc
