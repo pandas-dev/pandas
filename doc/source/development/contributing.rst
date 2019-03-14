@@ -178,6 +178,7 @@ We'll now kick off a three-step process:
    # Create and activate the build environment
    conda env create -f environment.yml
    conda activate pandas-dev
+   conda uninstall --force pandas
 
    # or with older versions of Anaconda:
    source activate pandas-dev
@@ -428,10 +429,10 @@ reducing the turn-around time for checking your changes.
     python make.py clean
     python make.py --no-api
 
-    # compile the docs with only a single
-    # section, that which is in indexing.rst
+    # compile the docs with only a single section, relative to the "source" folder.
+    # For example, compiling only this guide (docs/source/development/contributing.rst)
     python make.py clean
-    python make.py --single indexing
+    python make.py --single development/contributing.rst
 
     # compile the reference docs for a single function
     python make.py clean

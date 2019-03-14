@@ -229,7 +229,7 @@ class TestFactorize(object):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        msg = ("'<' not supported between instances of 'complex' and"
+        msg = (r"'(<|>)' not supported between instances of 'complex' and"
                r" 'complex'|"
                r"unorderable types: complex\(\) > complex\(\)")
         with pytest.raises(TypeError, match=msg):
@@ -325,6 +325,21 @@ class TestFactorize(object):
         expected_labels = np.array([-1, 0, -1, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(l, expected_labels)
         tm.assert_numpy_array_equal(u, expected_uniques)
+
+    @pytest.mark.parametrize('sort', [True, False])
+    @pytest.mark.parametrize('na_sentinel', [-1, -10, 100])
+    def test_factorize_na_sentinel(self, sort, na_sentinel):
+        data = np.array(['b', 'a', None, 'b'], dtype=object)
+        labels, uniques = algos.factorize(data, sort=sort,
+                                          na_sentinel=na_sentinel)
+        if sort:
+            expected_labels = np.array([1, 0, na_sentinel, 1], dtype=np.intp)
+            expected_uniques = np.array(['a', 'b'], dtype=object)
+        else:
+            expected_labels = np.array([0, 1, na_sentinel, 0], dtype=np.intp)
+            expected_uniques = np.array(['b', 'a'], dtype=object)
+        tm.assert_numpy_array_equal(labels, expected_labels)
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
 
 
 class TestUnique(object):

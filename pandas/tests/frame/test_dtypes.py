@@ -154,8 +154,8 @@ class TestDataFrameDataTypes(TestData):
         ei = df[['h', 'i']]
         assert_frame_equal(ri, ei)
 
-        pytest.raises(NotImplementedError,
-                      lambda: df.select_dtypes(include=['period']))
+        with pytest.raises(NotImplementedError, match=r"^$"):
+            df.select_dtypes(include=['period'])
 
     def test_select_dtypes_exclude_using_list_like(self):
         df = DataFrame({'a': list('abc'),
@@ -218,8 +218,8 @@ class TestDataFrameDataTypes(TestData):
         ei = df[['f']]
         assert_frame_equal(ri, ei)
 
-        pytest.raises(NotImplementedError,
-                      lambda: df.select_dtypes(include='period'))
+        with pytest.raises(NotImplementedError, match=r"^$"):
+            df.select_dtypes(include='period')
 
     def test_select_dtypes_exclude_using_scalars(self):
         df = DataFrame({'a': list('abc'),
@@ -245,8 +245,8 @@ class TestDataFrameDataTypes(TestData):
         ei = df[['a', 'b', 'c', 'd', 'e', 'g', 'h', 'i', 'j', 'k']]
         assert_frame_equal(ri, ei)
 
-        pytest.raises(NotImplementedError,
-                      lambda: df.select_dtypes(exclude='period'))
+        with pytest.raises(NotImplementedError, match=r"^$"):
+            df.select_dtypes(exclude='period')
 
     def test_select_dtypes_include_exclude_using_scalars(self):
         df = DataFrame({'a': list('abc'),
@@ -601,8 +601,12 @@ class TestDataFrameDataTypes(TestData):
         # in the keys of the dtype dict
         dt4 = dtype_class({'b': str, 2: str})
         dt5 = dtype_class({'e': str})
-        pytest.raises(KeyError, df.astype, dt4)
-        pytest.raises(KeyError, df.astype, dt5)
+        msg = ("Only a column name can be used for the key in a dtype mappings"
+               " argument")
+        with pytest.raises(KeyError, match=msg):
+            df.astype(dt4)
+        with pytest.raises(KeyError, match=msg):
+            df.astype(dt5)
         assert_frame_equal(df, original)
 
         # if the dtypes provided are the same as the original dtypes, the
@@ -804,11 +808,15 @@ class TestDataFrameDataTypes(TestData):
         other = "m8[{}]".format(unit)
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
-        with pytest.raises(TypeError):
+        msg = (r"cannot astype a datetimelike from \[datetime64\[ns\]\] to"
+               r" \[timedelta64\[{}\]\]").format(unit)
+        with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
+        msg = (r"cannot astype a timedelta from \[timedelta64\[ns\]\] to"
+               r" \[datetime64\[{}\]\]").format(unit)
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df.astype(dtype)
 
     def test_timedeltas(self):

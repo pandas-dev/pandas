@@ -837,7 +837,9 @@ class TestDataFrameReplace(TestData):
             expected.replace(to_rep[i], values[i], inplace=True)
         assert_frame_equal(result, expected)
 
-        pytest.raises(ValueError, df.replace, to_rep, values[1:])
+        msg = r"Replacement lists must match in length\. Expecting 3 got 2"
+        with pytest.raises(ValueError, match=msg):
+            df.replace(to_rep, values[1:])
 
     def test_replace_input_formats_scalar(self):
         df = DataFrame({'A': [np.nan, 0, np.inf], 'B': [0, 2, 5],
@@ -850,7 +852,9 @@ class TestDataFrameReplace(TestData):
                     for k, v in compat.iteritems(df)}
         assert_frame_equal(filled, DataFrame(expected))
 
-        pytest.raises(TypeError, df.replace, to_rep, [np.nan, 0, ''])
+        msg = "value argument must be scalar, dict, or Series"
+        with pytest.raises(TypeError, match=msg):
+            df.replace(to_rep, [np.nan, 0, ''])
 
         # list to scalar
         to_rep = [np.nan, 0, '']
