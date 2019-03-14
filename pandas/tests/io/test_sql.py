@@ -28,7 +28,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import PY2, PY35, PY36, lrange, range, string_types
+from pandas.compat import PY2, PY36, lrange, range, string_types
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype, is_datetime64tz_dtype)
@@ -924,7 +924,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         iris_frame2 = sql.read_sql('iris', self.conn)
         tm.assert_frame_equal(iris_frame1, iris_frame2)
 
-    @pytest.mark.xfail(PY35 and not PY36, reason='too many warnings?')
+    @pytest.mark.xfail(not PY36, reason='too many warnings?')
     def test_not_reflect_all_tables(self):
         # create invalid table
         qry = """CREATE TABLE invalid (x INTEGER, y UNKNOWN);"""
@@ -941,7 +941,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
             # Verify some things
             assert len(w) == 0
 
-    @pytest.mark.xfail(PY35 and not PY36, reason='too many warnings?')
+    @pytest.mark.xfail(not PY36, reason='too many warnings?')
     def test_warning_case_insensitive_table_name(self):
         # see gh-7815
         #
@@ -1775,7 +1775,7 @@ class _TestSQLiteAlchemy(object):
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
         assert not issubclass(df.DateCol.dtype.type, np.datetime64)
 
-    @pytest.mark.xfail(PY35 and not PY36, reason='too many warnings?')
+    @pytest.mark.xfail(not PY36, reason='too many warnings?')
     def test_bigint_warning(self):
         # test no warning for BIGINT (to support int64) is raised (GH7433)
         df = DataFrame({'a': [1, 2]}, dtype='int64')
@@ -1822,8 +1822,7 @@ class _TestMySQLAlchemy(object):
         # Bool column with NA = int column with NA values => becomes float
         assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
 
-    @pytest.mark.xfail(PY35 and not PY36, reason='unkown; also flaky',
-                       strict=False)
+    @pytest.mark.xfail(not PY36, reason='unkown; also flaky', strict=False)
     def test_read_procedure(self):
         import pymysql
         # see GH7324. Although it is more an api test, it is added to the

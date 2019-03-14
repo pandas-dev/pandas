@@ -20,7 +20,7 @@ dependencies:
   - nbsphinx
   - notebook>=5.7.5
   - numexpr
-  - numpy=1.13*
+  - numpy
   - numpydoc
   - openpyxl
   - pandoc
