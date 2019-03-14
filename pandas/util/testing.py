@@ -2571,7 +2571,8 @@ class _AssertRaisesContextmanager(object):
 
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
-                            clear=None, check_stacklevel=True):
+                            clear=None, check_stacklevel=True,
+                            raise_on_extra_warnings=True):
     """
     Context manager for running code expected to either raise a specific
     warning, or not raise any warnings. Verifies that the code raises the
@@ -2597,7 +2598,6 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         * "module" - print the warning the first time it is generated
           from each module
         * "once" - print the warning the first time it is generated
-        * None - do not apply a new filter
 
     clear : str, default None
         If not ``None`` then remove any previously raised warnings from
@@ -2609,6 +2609,9 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
         line that implements the function is displayed.
+    raise_on_extra_warnings : bool, default True
+        Whether extra warnings not of the type `expected_warning` should
+        cause the test to fail.
 
     Examples
     --------
@@ -2647,12 +2650,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                     pass
 
         saw_warning = False
-        if expected_warning and filter_level:
-            warnings.filterwarnings(filter_level, message='',
-                                    category=expected_warning)
-        elif filter_level:
-            # no expected warnings.
-            warnings.simplefilter(filter_level)
+        warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
 
@@ -2682,8 +2680,10 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             msg = "Did not see expected warning of class {name!r}.".format(
                 name=expected_warning.__name__)
             assert saw_warning, msg
-        assert not extra_warnings, ("Caused unexpected warning(s): {extra!r}."
-                                    ).format(extra=extra_warnings)
+        if raise_on_extra_warnings and extra_warnings:
+            raise AssertionError(
+                "Caused unexpected warning(s): {!r}.".format(extra_warnings)
+            )
 
 
 class RNGContext(object):

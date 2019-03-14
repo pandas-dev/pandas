@@ -5,13 +5,18 @@ import pytest
 import pandas.util.testing as tm
 
 
-def f(a=FutureWarning, b=RuntimeWarning):
-    warnings.warn('f1', a)
-    warnings.warn('f2', b)
+def f():
+    warnings.warn('f1', FutureWarning)
+    warnings.warn('f2', RuntimeWarning)
 
 
 @pytest.mark.filterwarnings('ignore:f1:FutureWarning')
-@pytest.mark.filterwarnings('ignore:f2:RuntimeWarning')
 def test_assert_produces_warning_honors_filter():
-    with tm.assert_produces_warning(RuntimeWarning):
+    # raise by default
+    with pytest.raises(AssertionError):
+        with tm.assert_produces_warning(RuntimeWarning):
+            f()
+
+    with tm.assert_produces_warning(RuntimeWarning,
+                                    raise_on_extra_warnings=False):
         f()
