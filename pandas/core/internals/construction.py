@@ -394,7 +394,7 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
                 return [[]] * len(columns), columns
         return [], []  # columns if columns is not None else []
     if isinstance(data[0], (list, tuple)):
-        return _list_to_arrays(list(data), columns, coerce_float=coerce_float,
+        return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
     elif isinstance(data[0], compat.Mapping):
         return _list_of_dict_to_arrays(data, columns,
@@ -422,10 +422,10 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
     if len(data) > 0 and isinstance(data[0], tuple):
-        content = list(lib.to_object_array_tuples(data).T)
+        content = list(lib.to_object_array_tuples(list(data)).T)
     else:
         # list of lists
-        content = list(lib.to_object_array(data).T)
+        content = list(lib.to_object_array(list(data)).T)
     return _convert_object_array(content, columns, dtype=dtype,
                                  coerce_float=coerce_float)
 

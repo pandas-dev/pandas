@@ -245,7 +245,7 @@ Reshaping
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
 - Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
-- Segmentation fault when construct :class:`DataFrame` from non-empty tuples (:issue:`25691`)
+- Bug in :class:`DataFrame` construct when passing non-empty tuples would cause segmentation fault (:issue:`25691`)
 
 
 Sparse
