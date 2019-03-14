@@ -95,11 +95,10 @@ jobs:
       pytest --capture=no --strict scripts
     displayName: 'Testing docstring validaton script'
     condition: true
-  # We downgrade numpy due to GH 24839
+
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
-      conda install numpy==1.15.4
       git remote add upstream https://github.com/pandas-dev/pandas.git
       git fetch upstream
       if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
