@@ -7088,8 +7088,8 @@ class DataFrame(NDFrame):
                     correl[j, i] = c
         else:
             raise ValueError("method must be either 'pearson', "
-                             "'spearman', or 'kendall', '{method}' "
-                             "was supplied".format(method=method))
+                             "'spearman', 'kendall', or a callable, "
+                             "'{method}' was supplied".format(method=method))
 
         return self._constructor(correl, index=idx, columns=cols)
 

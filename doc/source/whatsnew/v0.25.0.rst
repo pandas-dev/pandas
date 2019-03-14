@@ -124,7 +124,7 @@ Bug Fixes
 ~~~~~~~~~
 - Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
 - Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
-- Segmentation fault when construct :class:`DataFrame` from non-empty tuples (:issue:`25691`)
+- Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
 
 Categorical
 ^^^^^^^^^^^
@@ -245,6 +245,7 @@ Reshaping
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
 - Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
+- Segmentation fault when construct :class:`DataFrame` from non-empty tuples (:issue:`25691`)
 
 
 Sparse
