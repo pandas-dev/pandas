@@ -683,6 +683,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         Create a SparseArray from a scipy.sparse matrix.
 
+        .. versionadded:: 0.25.0
+
         Parameters
         ----------
         data : scipy.sparse.sp_matrix
@@ -711,9 +713,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 "'data' must have a single column, not '{}'".format(ncol)
             )
 
+        # our sparse index classes require that the positions be strictly
+        # increasing. So we need to sort loc, and arr accordingly.
         arr = data.data
         idx, _ = data.nonzero()
+        loc = np.argsort(idx)
+        arr = arr.take(loc)
         idx.sort()
+
         zero = np.array(0, dtype=arr.dtype).item()
         dtype = SparseDtype(arr.dtype, zero)
         index = IntIndex(length, idx)
@@ -2074,6 +2081,31 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         return A, rows, columns
 
     def to_dense(self):
+        """
+        Convert a Series from sparse values to dense.
+
+        .. versionadded:: 0.25.0
+
+        Returns
+        -------
+        Series:
+            A Series with the same values, stored as a dense array.
+
+        Examples
+        --------
+        >>> series = pd.Series(pd.SparseArray([0, 1, 0]))
+        >>> series
+        0    0
+        1    1
+        2    0
+        dtype: Sparse[int64, 0]
+
+        >>> series.sparse.to_dense()
+        0    0
+        1    1
+        2    0
+        dtype: int64
+        """
         from pandas import Series
         return Series(self._parent.array.to_dense(),
                       index=self._parent.index,
@@ -2081,6 +2113,11 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
 
 class SparseFrameAccessor(BaseAccessor, PandasDelegate):
+    """
+    DataFrame accessor for sparse data.
+
+    .. versionadded :: 0.25.0
+    """
 
     def _validate(self, data):
         dtypes = data.dtypes
@@ -2091,6 +2128,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     def from_spmatrix(cls, data, index=None, columns=None):
         """
         Create a new DataFrame from a scipy sparse matrix.
+
+        .. versionadded:: 0.25.0
 
         Parameters
         ----------
@@ -2103,6 +2142,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         Returns
         -------
         DataFrame
+            Each column of the DataFrame is stored as a
+            :class:`SparseArray`.
 
         Examples
         --------
@@ -2127,11 +2168,23 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
     def to_dense(self):
         """
-        Convert to dense DataFrame
+        Convert a DataFrame with sparse values to dense.
+
+        .. versionadded:: 0.25.0
 
         Returns
         -------
-        df : DataFrame
+        DataFrame
+            A DataFrame with the same values stored as dense arrays.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": pd.SparseArray([0, 1, 0])})
+        >>> df.sparse.to_dense()
+           A
+        0  0
+        1  1
+        2  0
         """
         from pandas import DataFrame
 
@@ -2142,6 +2195,27 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
                          columns=self._parent.columns)
 
     def to_coo(self):
+        """
+        Return the contents of the frame as a sparse SciPy COO matrix.
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        coo_matrix : scipy.sparse.spmatrix
+            If the caller is heterogeneous and contains booleans or objects,
+            the result will be of dtype=object. See Notes.
+
+        Notes
+        -----
+        The dtype will be the lowest-common-denominator type (implicit
+        upcasting); that is to say if the dtypes (even of numeric types)
+        are mixed, the one that accommodates all will be chosen.
+
+        e.g. If the dtypes are float16 and float32, dtype will be upcast to
+        float32. By numpy.find_common_type convention, mixing int64 and
+        and uint64 will result in a float64 dtype.
+        """
         try:
             from scipy.sparse import coo_matrix
         except ImportError:

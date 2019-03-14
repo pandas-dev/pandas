@@ -233,28 +233,8 @@ class SparseDataFrame(DataFrame):
 
         return self._init_dict(sdict, index, columns, dtype)
 
+    @Appender(SparseFrameAccessor.to_coo.__doc__)
     def to_coo(self):
-        """
-        Return the contents of the frame as a sparse SciPy COO matrix.
-
-        .. versionadded:: 0.20.0
-
-        Returns
-        -------
-        coo_matrix : scipy.sparse.spmatrix
-            If the caller is heterogeneous and contains booleans or objects,
-            the result will be of dtype=object. See Notes.
-
-        Notes
-        -----
-        The dtype will be the lowest-common-denominator type (implicit
-        upcasting); that is to say if the dtypes (even of numeric types)
-        are mixed, the one that accommodates all will be chosen.
-
-        e.g. If the dtypes are float16 and float32, dtype will be upcast to
-        float32. By numpy.find_common_type convention, mixing int64 and
-        and uint64 will result in a float64 dtype.
-        """
         return SparseFrameAccessor(self).to_coo()
 
     def __array_wrap__(self, result):
@@ -296,16 +276,9 @@ class SparseDataFrame(DataFrame):
         self._default_fill_value = fv
         self._default_kind = kind
 
+    @Appender(SparseFrameAccessor.to_dense.__doc__)
     def to_dense(self):
-        """
-        Convert to dense DataFrame
-
-        Returns
-        -------
-        df : DataFrame
-        """
-        data = {k: v.to_dense() for k, v in compat.iteritems(self)}
-        return DataFrame(data, index=self.index, columns=self.columns)
+        return SparseFrameAccessor(self).to_dense()
 
     def _apply_columns(self, func):
         """

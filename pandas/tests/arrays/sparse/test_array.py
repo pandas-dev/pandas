@@ -173,13 +173,17 @@ class TestSparseArray(object):
             assert result == fill_value
 
     @pytest.mark.parametrize('format', ['coo', 'csc', 'csr'])
-    def test_from_spmatrix(self, format):
+    @pytest.mark.parametrize('size', [0, 10])
+    def test_from_spmatrix(self, size, format):
         pytest.importorskip('scipy')
         import scipy.sparse
 
-        mat = scipy.sparse.random(10, 1, density=0.5, format=format)
+        mat = scipy.sparse.random(size, 1, density=0.5, format=format)
         result = SparseArray.from_spmatrix(mat)
-        tm.assert_numpy_array_equal(mat.data, result.sp_values)
+
+        result = np.asarray(result)
+        expected = mat.toarray().ravel()
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_from_spmatrix_raises(self):
         pytest.importorskip('scipy')
