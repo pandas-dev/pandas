@@ -2584,7 +2584,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         The type of Exception raised. ``exception.Warning`` is the base
         class for all warnings. To check that no warning is returned,
         specify ``False`` or ``None``.
-    filter_level : str, default "always"
+    filter_level : str or None, default "always"
         Specifies whether warnings are ignored, displayed, or turned
         into errors.
         Valid values are:
@@ -2597,6 +2597,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         * "module" - print the warning the first time it is generated
           from each module
         * "once" - print the warning the first time it is generated
+        * None - do not apply a new filter
 
     clear : str, default None
         If not ``None`` then remove any previously raised warnings from
@@ -2646,7 +2647,8 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                     pass
 
         saw_warning = False
-        warnings.simplefilter(filter_level)
+        if filter_level:
+            warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
 
