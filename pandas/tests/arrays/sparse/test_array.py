@@ -179,7 +179,7 @@ class TestSparseArray(object):
 
         mat = scipy.sparse.random(10, 1, density=0.5, format=format)
         result = SparseArray.from_spmatrix(mat)
-        np.testing.assert_array_equal(mat.data, result.sp_values)
+        tm.assert_numpy_array_equal(mat.data, result.sp_values)
 
     def test_from_spmatrix_raises(self):
         pytest.importorskip('scipy')
