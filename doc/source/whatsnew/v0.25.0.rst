@@ -236,6 +236,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.nunique` in which the names of column levels were lost (:issue:`23222`)
 - Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying a aggregation function to timezone aware data (:issue:`23683`)
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
+- Replaced regular dictionaries with ``OrderedDict`` in the aggregation functions of ``groupby`` to make the ordering consistent in all versions of Python (:issue:`25692`) 
 
 
 Reshaping
