@@ -15,9 +15,3 @@ def f(a=FutureWarning, b=RuntimeWarning):
 def test_assert_produces_warning_honors_filter():
     with tm.assert_produces_warning(RuntimeWarning):
         f()
-
-
-@pytest.mark.filterwarnings('ignore:f1:FutureWarning')
-def test_assert_produces_warning_message():
-    with tm.assert_produces_warning(FutureWarning, message='f2'):
-        f(FutureWarning, FutureWarning)

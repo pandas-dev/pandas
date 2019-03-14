@@ -2571,8 +2571,7 @@ class _AssertRaisesContextmanager(object):
 
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
-                            clear=None, check_stacklevel=True,
-                            message=''):
+                            clear=None, check_stacklevel=True):
     """
     Context manager for running code expected to either raise a specific
     warning, or not raise any warnings. Verifies that the code raises the
@@ -2610,9 +2609,6 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
         line that implements the function is displayed.
-    message : str, default ''
-        Use in the filter with `filter_level` and `expected_warning`
-        the control which warnings the filter applies to.
 
     Examples
     --------
@@ -2652,7 +2648,8 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
 
         saw_warning = False
         if expected_warning and filter_level:
-            warnings.filterwarnings(filter_level, message, expected_warning)
+            warnings.filterwarnings(filter_level, message='',
+                                    category=expected_warning)
         elif filter_level:
             # no expected warnings.
             warnings.simplefilter(filter_level)
