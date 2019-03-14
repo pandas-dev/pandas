@@ -1229,7 +1229,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self._values[label] = value
             else:
                 self.index._engine.set_value(self._values, label, value)
-        except KeyError:
+        except (KeyError, TypeError):
 
             # set using a non-recursive method
             self.loc[label] = value
@@ -2159,8 +2159,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                   min_periods=min_periods)
 
         raise ValueError("method must be either 'pearson', "
-                         "'spearman', or 'kendall', '{method}' "
-                         "was supplied".format(method=method))
+                         "'spearman', 'kendall', or a callable, "
+                         "'{method}' was supplied".format(method=method))
 
     def cov(self, other, min_periods=None):
         """
