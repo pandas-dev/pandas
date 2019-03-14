@@ -367,11 +367,11 @@ class MPLPlot(object):
 
         # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
         # np.ndarray before plot.
-        numeric_data_np = numeric_data.copy()
+        numeric_data = numeric_data.copy()
         for col in numeric_data:
-            numeric_data_np[col] = np.asarray(numeric_data[col])
+            numeric_data[col] = np.asarray(numeric_data[col])
 
-        self.data = numeric_data_np
+        self.data = numeric_data
 
     def _make_plot(self):
         raise AbstractMethodError(self)
