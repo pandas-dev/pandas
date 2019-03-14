@@ -253,7 +253,7 @@ class _Concatenator(object):
 
         if isinstance(objs, dict):
             if keys is None:
-                keys = sorted(objs)
+                keys = com.dict_keys_to_ordered_list(objs)
             objs = [objs[k] for k in keys]
         else:
             objs = list(objs)
