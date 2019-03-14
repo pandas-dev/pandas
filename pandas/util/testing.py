@@ -2651,8 +2651,11 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                     pass
 
         saw_warning = False
-        if filter_level:
+        if expected_warning and filter_level:
             warnings.filterwarnings(filter_level, message, expected_warning)
+        elif filter_level:
+            # no expected warnings.
+            warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
 
