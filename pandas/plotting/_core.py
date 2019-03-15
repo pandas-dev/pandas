@@ -365,6 +365,12 @@ class MPLPlot(object):
         if is_empty:
             raise TypeError('no numeric data to plot')
 
+        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
+        # np.ndarray before plot.
+        numeric_data = numeric_data.copy()
+        for col in numeric_data:
+            numeric_data[col] = np.asarray(numeric_data[col])
+
         self.data = numeric_data
 
     def _make_plot(self):
@@ -1794,7 +1800,6 @@ def _plot(data, x=None, y=None, subplots=False,
                         )
                     label_name = label_kw or data.columns
                     data.columns = label_name
-
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()

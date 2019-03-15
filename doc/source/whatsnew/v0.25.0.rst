@@ -240,6 +240,7 @@ I/O
 Plotting
 ^^^^^^^^
 
+- Fixed bug where :class:`api.extensions.ExtensionArray` could not be used in matplotlib plotting (:issue:`25587`)
 -
 -
 -
