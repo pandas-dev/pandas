@@ -267,8 +267,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     With multiple id columns
 
     >>> df = pd.DataFrame({
-    ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
     ...     'birth': [1, 2, 3, 1, 2, 3, 1, 2, 3],
+    ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
     ...     'ht1': [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],
     ...     'ht2': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
     ... })
@@ -368,8 +368,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     have non-integers as suffixes.
 
     >>> df = pd.DataFrame({
-    ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
     ...     'birth': [1, 2, 3, 1, 2, 3, 1, 2, 3],
+    ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
     ...     'ht_one': [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],
     ...     'ht_two': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
     ... })
@@ -386,7 +386,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     8      3      3     2.1     2.9
 
     >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age',
-                            sep='_', suffix='\w+')
+    ...                     sep='_', suffix='\w+')
     >>> l
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht

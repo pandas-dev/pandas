@@ -224,6 +224,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules \
         pandas/core/reshape/concat.py \
         pandas/core/reshape/pivot.py \
+        pandas/core/reshape/melt.py \
         pandas/core/reshape/reshape.py \
         pandas/core/reshape/tile.py \
         -k"-crosstab -pivot_table -cut"
