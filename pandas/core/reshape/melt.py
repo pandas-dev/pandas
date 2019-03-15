@@ -333,14 +333,11 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     ...                    'X' : np.random.randint(3, size=3)})
     >>> df['id'] = df.index
     >>> df # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
-       A(quarterly)-2010  A(quarterly)-2011  B(quarterly)-2010  ...
-    0           0.548814           0.544883           0.437587  ...
-    1           0.715189           0.423655           0.891773  ...
-    2           0.602763           0.645894           0.963663  ...
-       X  id
-    0  0   0
-    1  1   1
-    2  1   2
+       A(quarterly)-2010  A(quarterly)-2011  B(quarterly)-2010  ...  X  id
+    0           0.548814           0.544883           0.437587  ...  0  0
+    1           0.715189           0.423655           0.891773  ...  1  1
+    2           0.602763           0.645894           0.963663  ...  2  2
+
 
     >>> pd.wide_to_long(df, ['A(quarterly)', 'B(quarterly)'], i='id',
     ...                 j='year', sep='-')
