@@ -54,7 +54,7 @@ _common_see_also = """
 
 _apply_docs = dict(
     template="""
-    Apply function `func`  group-wise and combine the results together.
+    Apply function `func` group-wise and combine the results together.
 
     The function passed to `apply` must take a {input} as its first
     argument and return a DataFrame, Series or scalar. `apply` will

@@ -5291,24 +5291,11 @@ Index._add_comparison_methods()
 
 
 class IndexGroupbyGroups(dict):
+    """Dict extension to support abbreviated __repr__"""
+    from pandas.io.formats.printing import pprint_thing
+
     def __repr__(self):
-        nitems = get_option('display.max_rows') or len(self)
-
-        fmt = u("{{{things}}}")
-        pfmt = u("{key}: {val}")
-
-        pairs = []
-        for k, v in list(self.items()):
-            pairs.append(pfmt.format(key=k, val=v))
-
-        if nitems < len(self):
-            print("Truncating repr")
-            start_cnt, end_cnt = nitems - int(nitems / 2), int(nitems / 2)
-            return fmt.format(things=", ".join(pairs[:start_cnt]) +
-                                     ", ... , " +
-                                     ", ".join(pairs[-end_cnt:]))
-        else:
-            return fmt.format(things=", ".join(pairs))
+        return pprint_thing(self, max_seq_items=get_option('display.max_rows'))
 
 
 def ensure_index_from_sequences(sequences, names=None):
