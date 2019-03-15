@@ -338,7 +338,6 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     1           0.715189           0.423655           0.891773  ...  1  1
     2           0.602763           0.645894           0.963663  ...  2  2
 
-
     >>> pd.wide_to_long(df, ['A(quarterly)', 'B(quarterly)'], i='id',
     ...                 j='year', sep='-')
     ... # doctest: +NORMALIZE_WHITESPACE
