@@ -12,10 +12,6 @@ jobs:
         ENV_FILE: ci/deps/azure-windows-36.yaml
         CONDA_PY: "36"
 
-      py37_np141:
-        ENV_FILE: ci/deps/azure-windows-37.yaml
-        CONDA_PY: "37"
-
   steps:
     - task: CondaEnvironment@1
       inputs:
