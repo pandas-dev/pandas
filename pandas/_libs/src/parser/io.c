@@ -49,7 +49,8 @@ void *new_file_source(char *fname, size_t buffer_size) {
             free(fs);
             return NULL;
         }
-        if (MultiByteToWideChar(CP_UTF8, 0, fname, -1, wname, required) < required) {
+        if (MultiByteToWideChar(CP_UTF8, 0, fname, -1, wname, required) <
+                                                                required) {
             free(wname);
             free(fs);
             return NULL;
