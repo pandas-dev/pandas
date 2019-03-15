@@ -526,6 +526,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         if isinstance(obj, DataFrame):
             all_in_columns_index = all(g in obj.columns or g in obj.index.names
                                        for g in keys)
+        elif isinstance(obj, Series):
+            all_in_columns_index = all(g in obj.index.names for g in keys)
         else:
             all_in_columns_index = False
     except Exception:

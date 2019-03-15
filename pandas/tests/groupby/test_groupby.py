@@ -1723,3 +1723,23 @@ def test_groupby_empty_list_raises():
     msg = "Grouper and axis must be same length"
     with pytest.raises(ValueError, match=msg):
         df.groupby([[]])
+
+
+def test_groupby_multiindex_series_keys_len_equal_group_axis():
+    # GH 25704
+    index_array = [
+        ['x', 'x'],
+        ['a', 'b'],
+        ['k', 'k']
+    ]
+    index_names = ['first', 'second', 'third']
+    ri = pd.MultiIndex.from_arrays(index_array, names=index_names)
+    s = pd.Series(data=[1, 2], index=ri)
+    result = s.groupby(['first', 'third']).sum()
+
+    index_array = [['x'], ['k']]
+    index_names = ['first', 'third']
+    ei = pd.MultiIndex.from_arrays(index_array, names=index_names)
+    expected = pd.Series([3], index=ei)
+
+    assert_series_equal(result, expected)
