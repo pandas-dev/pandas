@@ -1289,6 +1289,33 @@ class TestPivotTable(object):
             df.pivot_table(index='ind1', columns='ind2',
                            values='count', aggfunc='count')
 
+    def test_pivot_table_aggfunc_dropna(self):
+        # GH 22159
+        df = pd.DataFrame({'fruit': ['apple', 'peach', 'apple'],
+                           'size': [1, 1, 2],
+                           'taste': [7, 6, 6]})
+
+        def ret_one(x):
+            return 1
+
+        def ret_sum(x):
+            return sum(x)
+
+        def ret_none(x):
+            return None
+
+        df2 = pd.pivot_table(df, columns='fruit',
+                             aggfunc=[ret_sum, ret_none, ret_one],
+                             dropna=False)
+
+        data = [[3, 1, None, None, 1, 1], [13, 6, None, None, 1, 1]]
+        col = pd.MultiIndex.from_product([['ret_sum', 'ret_none', 'ret_one'],
+                                         ['apple', 'peach']],
+                                         names=[None, 'fruit'])
+        df3 = pd.DataFrame(data, index=['size', 'taste'], columns=col)
+
+        tm.assert_frame_equal(df2, df3)
+
 
 class TestCrosstab(object):
 
