@@ -16,9 +16,9 @@ from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas.compat import StringIO, lzip, map, u, zip
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_extension_array_dtype, is_float, is_float_dtype, is_integer,
-    is_integer_dtype, is_list_like, is_numeric_dtype, is_scalar,
+    is_categorical_dtype, is_complex_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_extension_array_dtype, is_float, is_float_dtype,
+    is_integer, is_integer_dtype, is_list_like, is_numeric_dtype, is_scalar,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCMultiIndex, ABCSeries, ABCSparseArray)
@@ -884,6 +884,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     elif is_extension_array_dtype(values.dtype):
         fmt_klass = ExtensionArrayFormatter
     elif is_float_dtype(values.dtype):
+        fmt_klass = FloatArrayFormatter
+    elif is_complex_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
     elif is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
