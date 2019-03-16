@@ -2,21 +2,18 @@
 # pylint: disable-msg=E1101,W0612
 
 from copy import copy, deepcopy
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, range, zip
+from pandas.compat import PY2, PY3, range, zip
 
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Panel, Series, date_range
+from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-
-import pandas.io.formats.printing as printing
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -135,37 +132,51 @@ class Generic(object):
         # GH 4633
         # look at the boolean/nonzero behavior for objects
         obj = self._construct(shape=4)
-        pytest.raises(ValueError, lambda: bool(obj == 0))
-        pytest.raises(ValueError, lambda: bool(obj == 1))
-        pytest.raises(ValueError, lambda: bool(obj))
+        msg = "The truth value of a {} is ambiguous".format(
+            self._typ.__name__)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 0)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 1)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         obj = self._construct(shape=4, value=1)
-        pytest.raises(ValueError, lambda: bool(obj == 0))
-        pytest.raises(ValueError, lambda: bool(obj == 1))
-        pytest.raises(ValueError, lambda: bool(obj))
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 0)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 1)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         obj = self._construct(shape=4, value=np.nan)
-        pytest.raises(ValueError, lambda: bool(obj == 0))
-        pytest.raises(ValueError, lambda: bool(obj == 1))
-        pytest.raises(ValueError, lambda: bool(obj))
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 0)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj == 1)
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         # empty
         obj = self._construct(shape=0)
-        pytest.raises(ValueError, lambda: bool(obj))
+        with pytest.raises(ValueError, match=msg):
+            bool(obj)
 
         # invalid behaviors
 
         obj1 = self._construct(shape=4, value=1)
         obj2 = self._construct(shape=4, value=1)
 
-        def f():
+        with pytest.raises(ValueError, match=msg):
             if obj1:
-                printing.pprint_thing("this works and shouldn't")
+                pass
 
-        pytest.raises(ValueError, f)
-        pytest.raises(ValueError, lambda: obj1 and obj2)
-        pytest.raises(ValueError, lambda: obj1 or obj2)
-        pytest.raises(ValueError, lambda: not obj1)
+        with pytest.raises(ValueError, match=msg):
+            obj1 and obj2
+        with pytest.raises(ValueError, match=msg):
+            obj1 or obj2
+        with pytest.raises(ValueError, match=msg):
+            not obj1
 
     def test_downcast(self):
         # test close downcasting
@@ -200,9 +211,10 @@ class Generic(object):
         def f(dtype):
             return self._construct(shape=3, value=1, dtype=dtype)
 
-        pytest.raises(NotImplementedError, f, [("A", "datetime64[h]"),
-                                               ("B", "str"),
-                                               ("C", "int32")])
+        msg = ("compound dtypes are not implemented in the {} constructor"
+               .format(self._typ.__name__))
+        with pytest.raises(NotImplementedError, match=msg):
+            f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
         # these work (though results may be unexpected)
         f('int64')
@@ -225,12 +237,6 @@ class Generic(object):
         o2 = self._construct(shape=3)
         o2.name = 'bar'
 
-        # TODO
-        # Once panel can do non-trivial combine operations
-        # (currently there is an a raise in the Panel arith_ops to prevent
-        # this, though it actually does work)
-        # can remove all of these try: except: blocks on the actual operations
-
         # ----------
         # preserving
         # ----------
@@ -242,63 +248,37 @@ class Generic(object):
 
         # ops with like
         for op in ['__add__', '__sub__', '__truediv__', '__mul__']:
-            try:
-                result = getattr(o, op)(o)
-                self.check_metadata(o, result)
-            except (ValueError, AttributeError):
-                pass
+            result = getattr(o, op)(o)
+            self.check_metadata(o, result)
 
         # simple boolean
         for op in ['__eq__', '__le__', '__ge__']:
             v1 = getattr(o, op)(o)
             self.check_metadata(o, v1)
-
-            try:
-                self.check_metadata(o, v1 & v1)
-            except (ValueError):
-                pass
-
-            try:
-                self.check_metadata(o, v1 | v1)
-            except (ValueError):
-                pass
+            self.check_metadata(o, v1 & v1)
+            self.check_metadata(o, v1 | v1)
 
         # combine_first
-        try:
-            result = o.combine_first(o2)
-            self.check_metadata(o, result)
-        except (AttributeError):
-            pass
+        result = o.combine_first(o2)
+        self.check_metadata(o, result)
 
         # ---------------------------
         # non-preserving (by default)
         # ---------------------------
 
         # add non-like
-        try:
-            result = o + o2
-            self.check_metadata(result)
-        except (ValueError, AttributeError):
-            pass
+        result = o + o2
+        self.check_metadata(result)
 
         # simple boolean
         for op in ['__eq__', '__le__', '__ge__']:
 
             # this is a name matching op
             v1 = getattr(o, op)(o)
-
             v2 = getattr(o, op)(o2)
             self.check_metadata(v2)
-
-            try:
-                self.check_metadata(v1 & v2)
-            except (ValueError):
-                pass
-
-            try:
-                self.check_metadata(v1 | v2)
-            except (ValueError):
-                pass
+            self.check_metadata(v1 & v2)
+            self.check_metadata(v1 | v2)
 
     def test_head_tail(self):
         # GH5370
@@ -312,12 +292,7 @@ class Generic(object):
             axis = o._get_axis_name(0)
             setattr(o, axis, index(len(getattr(o, axis))))
 
-            # Panel + dims
-            try:
-                o.head()
-            except (NotImplementedError):
-                pytest.skip('not implemented on {0}'.format(
-                    o.__class__.__name__))
+            o.head()
 
             self._compare(o.head(), o.iloc[:5])
             self._compare(o.tail(), o.iloc[-5:])
@@ -626,18 +601,11 @@ class TestNDFrame(object):
         sample1 = df.sample(n=1, weights='easyweights')
         assert_frame_equal(sample1, df.iloc[5:6])
 
-        # Ensure proper error if string given as weight for Series, panel, or
+        # Ensure proper error if string given as weight for Series or
         # DataFrame with axis = 1.
         s = Series(range(10))
         with pytest.raises(ValueError):
             s.sample(n=3, weights='weight_column')
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            panel = Panel(items=[0, 1, 2], major_axis=[2, 3, 4],
-                          minor_axis=[3, 4, 5])
-            with pytest.raises(ValueError):
-                panel.sample(n=1, weights='weight_column')
 
         with pytest.raises(ValueError):
             df.sample(n=1, weights='weight_column', axis=1)
@@ -725,6 +693,7 @@ class TestNDFrame(object):
         with pytest.raises(ValueError):
             df.sample(1, weights=s4)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_squeeze(self):
         # noop
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
@@ -740,12 +709,9 @@ class TestNDFrame(object):
         # don't fail with 0 length dimensions GH11229 & GH8999
         empty_series = Series([], name='five')
         empty_frame = DataFrame([empty_series])
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            empty_panel = Panel({'six': empty_frame})
 
         [tm.assert_series_equal(empty_series, higher_dim.squeeze())
-         for higher_dim in [empty_series, empty_frame, empty_panel]]
+         for higher_dim in [empty_series, empty_frame]]
 
         # axis argument
         df = tm.makeTimeDataFrame(nper=1).iloc[:, :1]
@@ -755,8 +721,14 @@ class TestNDFrame(object):
         tm.assert_series_equal(df.squeeze(axis=1), df.iloc[:, 0])
         tm.assert_series_equal(df.squeeze(axis='columns'), df.iloc[:, 0])
         assert df.squeeze() == df.iloc[0, 0]
-        pytest.raises(ValueError, df.squeeze, axis=2)
-        pytest.raises(ValueError, df.squeeze, axis='x')
+        msg = ("No axis named 2 for object type <class"
+               " 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            df.squeeze(axis=2)
+        msg = ("No axis named x for object type <class"
+               " 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            df.squeeze(axis='x')
 
         df = tm.makeTimeDataFrame(3)
         tm.assert_frame_equal(df.squeeze(axis=0), df)

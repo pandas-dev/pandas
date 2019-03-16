@@ -576,14 +576,14 @@ To write code compatible with all versions of Python, split the assignment in tw
 
 .. warning::
 
-   Dependent assignment maybe subtly change the behavior of your code between
+   Dependent assignment may subtly change the behavior of your code between
    Python 3.6 and older versions of Python.
 
-   If you wish write code that supports versions of python before and after 3.6,
+   If you wish to write code that supports versions of python before and after 3.6,
    you'll need to take care when passing ``assign`` expressions that
 
-   * Updating an existing column
-   * Referring to the newly updated column in the same ``assign``
+   * Update an existing column
+   * Refer to the newly updated column in the same ``assign``
 
    For example, we'll update column "A" and then refer to it when creating "B".
 
@@ -665,8 +665,8 @@ row-wise. For example:
 
    df - df.iloc[0]
 
-In the special case of working with time series data, and the DataFrame index
-also contains dates, the broadcasting will be column-wise:
+In the special case of working with time series data, if the DataFrame index
+contains dates, the broadcasting will be column-wise:
 
 .. ipython:: python
    :okwarning:
@@ -1030,47 +1030,3 @@ method:
                     major_axis=pd.date_range('1/1/2000', periods=5),
                     minor_axis=['a', 'b', 'c', 'd'])
    panel.to_frame()
-
-
-.. _dsintro.deprecate_panel:
-
-Deprecate Panel
----------------
-
-Over the last few years, pandas has increased in both breadth and depth, with new features,
-datatype support, and manipulation routines. As a result, supporting efficient indexing and functional
-routines for ``Series``, ``DataFrame`` and ``Panel`` has contributed to an increasingly fragmented and
-difficult-to-understand code base.
-
-The 3-D structure of a ``Panel`` is much less common for many types of data analysis,
-than the 1-D of the ``Series`` or the 2-D of the ``DataFrame``. Going forward it makes sense for
-pandas to focus on these areas exclusively.
-
-Oftentimes, one can simply use a MultiIndex ``DataFrame`` for easily working with higher dimensional data.
-
-In addition, the ``xarray`` package was built from the ground up, specifically in order to
-support the multi-dimensional analysis that is one of ``Panel`` s main use cases.
-`Here is a link to the xarray panel-transition documentation <https://xarray.pydata.org/en/stable/pandas.html#panel-transition>`__.
-
-.. ipython:: python
-   :okwarning:
-
-   import pandas.util.testing as tm
-   p = tm.makePanel()
-   p
-
-Convert to a MultiIndex DataFrame.
-
-.. ipython:: python
-   :okwarning:
-
-   p.to_frame()
-
-Alternatively, one can convert to an xarray ``DataArray``.
-
-.. ipython:: python
-   :okwarning:
-
-   p.to_xarray()
-
-You can see the full-documentation for the `xarray package <https://xarray.pydata.org/en/stable/>`__.
