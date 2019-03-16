@@ -1459,8 +1459,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.apply : Invoke function on values of Series.
-        Series.map : Map values of Series according to input correspondence.
         DataFrame.iteritems : Equivalent to Series.iteritems for DataFrame.
 
         Examples
