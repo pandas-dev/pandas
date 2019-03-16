@@ -9918,7 +9918,7 @@ class NDFrame(PandasObject, SelectionMixin):
         computation and eventually the results are reindexed like the original
         object, thus keeping the original NAs.
 
-        >>> s = pd.Series([90, 91, None, 85, None, 95])
+        >>> s = pd.Series([90, 91, np.nan, 85, np.nan, 95])
         >>> s
         0    90.0
         1    91.0
@@ -9996,9 +9996,9 @@ class NDFrame(PandasObject, SelectionMixin):
         the results are eventually reindexed as originally.
 
         >>> df = pd.DataFrame({
-        ...     'a': [90, 91, None, 85, None, 95],
-        ...     'b': [91, None, 85, None, 95, None],
-        ...     'c': [None, 85, None, 95, None, None]})
+        ...     'a': [90, 91, np.nan, 85, np.nan, 95],
+        ...     'b': [91, np.nan, 85, np.nan, 95, np.nan],
+        ...     'c': [np.nan, 85, np.nan, 95, np.nan, np.nan]})
         >>> df
               a     b     c
         0  90.0  91.0   NaN
