@@ -10049,7 +10049,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if fill_method is None and limit is None and skipna is None:
             skipna = True
         axis = self._get_axis_number(kwargs.pop('axis', self._stat_axis_name))
-        if skipna and isinstance(self, pd.DataFrame):
+        if skipna and isinstance(self, ABCDataFrame):
             # If DataFrame, apply to each column/row
             return self.apply(
                 lambda s: s.pct_change(periods=periods, freq=freq,
