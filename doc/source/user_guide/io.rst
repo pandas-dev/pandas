@@ -4207,12 +4207,6 @@ the other hand a delete operation on the ``minor_axis`` will be very
 expensive. In this case it would almost certainly be faster to rewrite
 the table using a ``where`` that selects all but the missing data.
 
-.. ipython:: python
-
-   # returns the number of rows deleted
-   store.remove('wp', 'major_axis > 20000102')
-   store.select('wp')
-
 .. warning::
 
    Please note that HDF5 **DOES NOT RECLAIM SPACE** in the h5 files
