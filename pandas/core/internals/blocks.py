@@ -87,7 +87,8 @@ class Block(PandasObject):
                 '{mgr}'.format(val=len(self.values), mgr=len(self.mgr_locs)))
 
     def _check_ndim(self, values, ndim):
-        """ndim inference and validation.
+        """
+        ndim inference and validation.
 
         Infers ndim from 'values' if not provided to __init__.
         Validates that values.ndim and ndim are consistent if and only if
@@ -266,20 +267,6 @@ class Block(PandasObject):
     def _slice(self, slicer):
         """ return a slice of my values """
         return self.values[slicer]
-
-    def reshape_nd(self, labels, shape, ref_items):
-        """
-        Parameters
-        ----------
-        labels : list of new axis labels
-        shape : new shape
-        ref_items : new ref_items
-
-        return a new block that is transformed to a nd block
-        """
-        return _block2d_to_blocknd(values=self.get_values().T,
-                                   placement=self.mgr_locs, shape=shape,
-                                   labels=labels, ref_items=ref_items)
 
     def getitem_block(self, slicer, new_mgr_locs=None):
         """
@@ -1092,7 +1079,7 @@ class Block(PandasObject):
 
         try:
             return self.astype(dtype)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, OverflowError):
             pass
 
         return self.astype(object)
@@ -1128,24 +1115,18 @@ class Block(PandasObject):
                                                fill_value=fill_value,
                                                coerce=coerce,
                                                downcast=downcast)
-        # try an interp method
-        try:
-            m = missing.clean_interp_method(method, **kwargs)
-        except ValueError:
-            m = None
+        # validate the interp method
+        m = missing.clean_interp_method(method, **kwargs)
 
-        if m is not None:
-            r = check_int_bool(self, inplace)
-            if r is not None:
-                return r
-            return self._interpolate(method=m, index=index, values=values,
-                                     axis=axis, limit=limit,
-                                     limit_direction=limit_direction,
-                                     limit_area=limit_area,
-                                     fill_value=fill_value, inplace=inplace,
-                                     downcast=downcast, **kwargs)
-
-        raise ValueError("invalid method '{0}' to interpolate.".format(method))
+        r = check_int_bool(self, inplace)
+        if r is not None:
+            return r
+        return self._interpolate(method=m, index=index, values=values,
+                                 axis=axis, limit=limit,
+                                 limit_direction=limit_direction,
+                                 limit_area=limit_area,
+                                 fill_value=fill_value, inplace=inplace,
+                                 downcast=downcast, **kwargs)
 
     def _interpolate_with_fill(self, method='pad', axis=0, inplace=False,
                                limit=None, fill_value=None, coerce=False,
@@ -1846,13 +1827,13 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             placement=self.mgr_locs)
 
     def shift(self, periods, axis=0, fill_value=None):
+        # type: (int, Optional[BlockPlacement], Any) -> List[ExtensionBlock]
         """
         Shift the block by `periods`.
 
         Dispatches to underlying ExtensionArray and re-boxes in an
         ExtensionBlock.
         """
-        # type: (int, Optional[BlockPlacement]) -> List[ExtensionBlock]
         return [
             self.make_block_same_class(
                 self.values.shift(periods=periods, fill_value=fill_value),
@@ -2072,17 +2053,9 @@ class DatetimeLikeBlockMixin(object):
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
         if is_object_dtype(dtype):
-            values = self.values
-
-            if self.ndim > 1:
-                values = values.ravel()
-
-            values = lib.map_infer(values, self._box_func)
-
-            if self.ndim > 1:
-                values = values.reshape(self.values.shape)
-
-            return values
+            values = self.values.ravel()
+            result = self._holder(values).astype(object)
+            return result.reshape(self.values.shape)
         return self.values
 
 
@@ -3155,31 +3128,6 @@ def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
     return blocks
 
 
-def _block2d_to_blocknd(values, placement, shape, labels, ref_items):
-    """ pivot to the labels shape """
-    panel_shape = (len(placement),) + shape
-
-    # TODO: lexsort depth needs to be 2!!
-
-    # Create observation selection vector using major and minor
-    # labels, for converting to panel format.
-    selector = _factor_indexer(shape[1:], labels)
-    mask = np.zeros(np.prod(shape), dtype=bool)
-    mask.put(selector, True)
-
-    if mask.all():
-        pvalues = np.empty(panel_shape, dtype=values.dtype)
-    else:
-        dtype, fill_value = maybe_promote(values.dtype)
-        pvalues = np.empty(panel_shape, dtype=dtype)
-        pvalues.fill(fill_value)
-
-    for i in range(len(placement)):
-        pvalues[i].flat[mask] = values[:, i]
-
-    return make_block(pvalues, placement=placement)
-
-
 def _safe_reshape(arr, new_shape):
     """
     If possible, reshape `arr` to have shape `new_shape`,
@@ -3200,16 +3148,6 @@ def _safe_reshape(arr, new_shape):
     if not isinstance(arr, ABCExtensionArray):
         arr = arr.reshape(new_shape)
     return arr
-
-
-def _factor_indexer(shape, labels):
-    """
-    given a tuple of shape and a list of Categorical labels, return the
-    expanded label indexer
-    """
-    mult = np.array(shape)[::-1].cumprod()[::-1]
-    return ensure_platform_int(
-        np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)
 
 
 def _putmask_smart(v, m, n):
@@ -3272,7 +3210,7 @@ def _putmask_smart(v, m, n):
                 nv = v.copy()
                 nv[m] = nn_at
                 return nv
-    except (ValueError, IndexError, TypeError):
+    except (ValueError, IndexError, TypeError, OverflowError):
         pass
 
     n = np.asarray(n)

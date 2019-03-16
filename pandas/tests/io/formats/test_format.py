@@ -12,6 +12,7 @@ from operator import methodcaller
 import os
 import re
 import sys
+import textwrap
 import warnings
 
 import dateutil
@@ -2379,6 +2380,14 @@ class TestSeriesFormatting(object):
         exp = '0    0\n    ..\n9    9'
         assert res == exp
 
+    def test_to_string_multindex_header(self):
+        # GH 16718
+        df = (pd.DataFrame({'a': [0], 'b': [1], 'c': [2], 'd': [3]})
+              .set_index(['a', 'b']))
+        res = df.to_string(header=['r1', 'r2'])
+        exp = '    r1 r2\na b      \n0 1  2  3'
+        assert res == exp
+
 
 def _three_digit_exp():
     return '{x:.4g}'.format(x=1.7e8) == '1.7e+008'
@@ -2777,3 +2786,17 @@ def test_format_percentiles():
         fmt.format_percentiles([2, 0.1, 0.5])
     with pytest.raises(ValueError, match=msg):
         fmt.format_percentiles([0.1, 0.5, 'a'])
+
+
+def test_repr_html_ipython_config(ip):
+    code = textwrap.dedent("""\
+    import pandas as pd
+    df = pd.DataFrame({"A": [1, 2]})
+    df._repr_html_()
+
+    cfg = get_ipython().config
+    cfg['IPKernelApp']['parent_appname']
+    df._repr_html_()
+    """)
+    result = ip.run_cell(code)
+    assert not result.error_in_exec

@@ -18,7 +18,6 @@ cnp.import_array()
 
 
 cimport pandas._libs.util as util
-util.import_array()
 
 from pandas._libs.hashtable cimport Int64Vector, Int64VectorData
 
@@ -151,9 +150,6 @@ cdef class Interval(IntervalMixin):
         Left bound for the interval.
     right : orderable scalar
         Right bound for the interval.
-    closed : {'left', 'right', 'both', 'neither'}, default 'right'
-        Whether the interval is closed on the left-side, right-side, both or
-        neither.
     closed : {'right', 'left', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
         neither. See the Notes for more detailed explanation.

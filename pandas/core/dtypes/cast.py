@@ -794,10 +794,10 @@ def soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
         # Immediate return if coerce
         if datetime:
             from pandas import to_datetime
-            return to_datetime(values, errors='coerce', box=False)
+            return to_datetime(values, errors='coerce').to_numpy()
         elif timedelta:
             from pandas import to_timedelta
-            return to_timedelta(values, errors='coerce', box=False)
+            return to_timedelta(values, errors='coerce').to_numpy()
         elif numeric:
             from pandas import to_numeric
             return to_numeric(values, errors='coerce')
@@ -1111,11 +1111,9 @@ def find_common_type(types):
     # this is different from numpy, which casts bool with float/int as int
     has_bools = any(is_bool_dtype(t) for t in types)
     if has_bools:
-        has_ints = any(is_integer_dtype(t) for t in types)
-        has_floats = any(is_float_dtype(t) for t in types)
-        has_complex = any(is_complex_dtype(t) for t in types)
-        if has_ints or has_floats or has_complex:
-            return np.object
+        for t in types:
+            if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
+                return np.object
 
     return np.find_common_type(types, [])
 

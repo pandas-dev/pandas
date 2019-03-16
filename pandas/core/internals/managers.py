@@ -552,9 +552,9 @@ class BlockManager(PandasObject):
             if isna(s):
                 return isna(values)
             if hasattr(s, 'asm8'):
-                return _compare_or_regex_match(maybe_convert_objects(values),
-                                               getattr(s, 'asm8'), regex)
-            return _compare_or_regex_match(values, s, regex)
+                return _compare_or_regex_search(maybe_convert_objects(values),
+                                                getattr(s, 'asm8'), regex)
+            return _compare_or_regex_search(values, s, regex)
 
         masks = [comp(s, regex) for i, s in enumerate(src_list)]
 
@@ -583,10 +583,6 @@ class BlockManager(PandasObject):
         bm = self.__class__(result_blocks, self.axes)
         bm._consolidate_inplace()
         return bm
-
-    def reshape_nd(self, axes, **kwargs):
-        """ a 2d-nd reshape operation on a BlockManager """
-        return self.apply('reshape_nd', axes=axes, **kwargs)
 
     def is_consolidated(self):
         """
@@ -1901,11 +1897,11 @@ def _consolidate(blocks):
     return new_blocks
 
 
-def _compare_or_regex_match(a, b, regex=False):
+def _compare_or_regex_search(a, b, regex=False):
     """
     Compare two array_like inputs of the same shape or two scalar values
 
-    Calls operator.eq or re.match, depending on regex argument. If regex is
+    Calls operator.eq or re.search, depending on regex argument. If regex is
     True, perform an element-wise regex matching.
 
     Parameters
@@ -1921,7 +1917,7 @@ def _compare_or_regex_match(a, b, regex=False):
     if not regex:
         op = lambda x: operator.eq(x, b)
     else:
-        op = np.vectorize(lambda x: bool(re.match(b, x)) if isinstance(x, str)
+        op = np.vectorize(lambda x: bool(re.search(b, x)) if isinstance(x, str)
                           else False)
 
     is_a_array = isinstance(a, np.ndarray)
@@ -1971,15 +1967,27 @@ def items_overlap_with_suffix(left, lsuffix, right, rsuffix):
             raise ValueError('columns overlap but no suffix specified: '
                              '{rename}'.format(rename=to_rename))
 
-        def lrenamer(x):
-            if x in to_rename:
-                return '{x}{lsuffix}'.format(x=x, lsuffix=lsuffix)
+        def renamer(x, suffix):
+            """Rename the left and right indices.
+
+            If there is overlap, and suffix is not None, add
+            suffix, otherwise, leave it as-is.
+
+            Parameters
+            ----------
+            x : original column name
+            suffix : str or None
+
+            Returns
+            -------
+            x : renamed column name
+            """
+            if x in to_rename and suffix is not None:
+                return '{x}{suffix}'.format(x=x, suffix=suffix)
             return x
 
-        def rrenamer(x):
-            if x in to_rename:
-                return '{x}{rsuffix}'.format(x=x, rsuffix=rsuffix)
-            return x
+        lrenamer = partial(renamer, suffix=lsuffix)
+        rrenamer = partial(renamer, suffix=rsuffix)
 
         return (_transform_index(left, lrenamer),
                 _transform_index(right, rrenamer))

@@ -110,11 +110,14 @@ names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list will cause
   a ``UserWarning`` to be issued.
-index_col :  int or sequence or ``False``, default ``None``
-  Column to use as the row labels of the ``DataFrame``. If a sequence is given, a
-  MultiIndex is used. If you have a malformed file with delimiters at the end of
-  each line, you might consider ``index_col=False`` to force pandas to *not* use
-  the first column as the index (row names).
+index_col : int, str, sequence of int / str, or False, default ``None``
+  Column(s) to use as the row labels of the ``DataFrame``, either given as
+  string name or column index. If a sequence of int / str is given, a
+  MultiIndex is used.
+
+  Note: ``index_col=False`` can be used to force pandas to *not* use the first
+  column as the index, e.g. when you have a malformed file with delimiters at
+  the end of each line.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
@@ -989,6 +992,36 @@ a single date rather than the entire array.
 
    os.remove('tmp.csv')
 
+
+.. _io.csv.mixed_timezones:
+
+Parsing a CSV with mixed Timezones
+++++++++++++++++++++++++++++++++++
+
+Pandas cannot natively represent a column or index with mixed timezones. If your CSV
+file contains columns with a mixture of timezones, the default result will be
+an object-dtype column with strings, even with ``parse_dates``.
+
+
+.. ipython:: python
+
+   content = """\
+   a
+   2000-01-01T00:00:00+05:00
+   2000-01-01T00:00:00+06:00"""
+   df = pd.read_csv(StringIO(content), parse_dates=['a'])
+   df['a']
+
+To parse the mixed-timezone values as a datetime column, pass a partially-applied
+:func:`to_datetime` with ``utc=True`` as the ``date_parser``.
+
+.. ipython:: python
+
+   df = pd.read_csv(StringIO(content), parse_dates=['a'],
+                    date_parser=lambda col: pd.to_datetime(col, utc=True))
+   df['a']
+
+
 .. _io.dayfirst:
 
 
@@ -1659,7 +1692,7 @@ The ``Series`` and ``DataFrame`` objects have an instance method ``to_csv`` whic
 allows storing the contents of the object as a comma-separated-values file. The
 function takes a number of arguments. Only the first is required.
 
-* ``path_or_buf``: A string path to the file to write or a StringIO
+* ``path_or_buf``: A string path to the file to write or a file object.  If a file object it must be opened with `newline=''`
 * ``sep`` : Field delimiter for the output file (default ",")
 * ``na_rep``: A string representation of a missing value (default '')
 * ``float_format``: Format string for floating point numbers
@@ -1672,7 +1705,7 @@ function takes a number of arguments. Only the first is required.
 * ``mode`` : Python write mode, default 'w'
 * ``encoding``: a string representing the encoding to use if the contents are
   non-ASCII, for Python versions prior to 3
-* ``line_terminator``: Character sequence denoting line end (default '\\n')
+* ``line_terminator``: Character sequence denoting line end (default `os.linesep`)
 * ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL). Note that if you have set a `float_format` then floats are converted to strings and csv.QUOTE_NONNUMERIC will treat them as non-numeric
 * ``quotechar``: Character used to quote fields (default '"')
 * ``doublequote``: Control quoting of ``quotechar`` in fields (default True)

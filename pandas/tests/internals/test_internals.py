@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0102
-
+from collections import OrderedDict
 from datetime import date, datetime
 from distutils.version import LooseVersion
 import itertools
@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
-from pandas.compat import OrderedDict, lrange, u, zip
+from pandas.compat import lrange, u, zip
 
 import pandas as pd
 from pandas import (
@@ -865,7 +865,6 @@ class TestIndexing(object):
 
     def test_get_slice(self):
         def assert_slice_ok(mgr, axis, slobj):
-            # import pudb; pudb.set_trace()
             mat = mgr.as_array()
 
             # we maybe using an ndarray to test slicing and

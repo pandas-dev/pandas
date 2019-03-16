@@ -35,47 +35,25 @@ class TestRangeIndex(Numeric):
         with pytest.raises(ValueError, match="^Length"):
             self.index.names = ["roger", "harold"]
 
-    def test_constructor(self):
-        index = RangeIndex(5)
-        expected = np.arange(5, dtype=np.int64)
-        assert isinstance(index, RangeIndex)
-        assert index._start == 0
-        assert index._stop == 5
-        assert index._step == 1
-        assert index.name is None
-        tm.assert_index_equal(Index(expected), index)
-
-        index = RangeIndex(1, 5)
-        expected = np.arange(1, 5, dtype=np.int64)
-        assert isinstance(index, RangeIndex)
-        assert index._start == 1
-        tm.assert_index_equal(Index(expected), index)
-
-        index = RangeIndex(1, 5, 2)
-        expected = np.arange(1, 5, 2, dtype=np.int64)
-        assert isinstance(index, RangeIndex)
-        assert index._step == 2
-        tm.assert_index_equal(Index(expected), index)
-
-        for index in [RangeIndex(0), RangeIndex(start=0), RangeIndex(stop=0),
-                      RangeIndex(0, 0)]:
-            expected = np.empty(0, dtype=np.int64)
-            assert isinstance(index, RangeIndex)
-            assert index._start == 0
-            assert index._stop == 0
-            assert index._step == 1
-            tm.assert_index_equal(Index(expected), index)
-
-        for index in [RangeIndex(0, name='Foo'),
-                      RangeIndex(start=0, name='Foo'),
-                      RangeIndex(stop=0, name='Foo'),
-                      RangeIndex(0, 0, name='Foo')]:
-            assert isinstance(index, RangeIndex)
-            assert index.name == 'Foo'
-
-        # we don't allow on a bare Index
-        with pytest.raises(TypeError):
-            Index(0, 1000)
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('args, kwargs, start, stop, step', [
+        ((5,), dict(), 0, 5, 1),
+        ((1, 5), dict(), 1, 5, 1),
+        ((1, 5, 2), dict(), 1, 5, 2),
+        ((0,), dict(), 0, 0, 1),
+        ((0, 0), dict(), 0, 0, 1),
+        (tuple(), dict(start=0), 0, 0, 1),
+        (tuple(), dict(stop=0), 0, 0, 1)])
+    def test_constructor(self, args, kwargs, start, stop, step, name):
+        result = RangeIndex(*args, name=name, **kwargs)
+        expected = Index(np.arange(start, stop, step, dtype=np.int64),
+                         name=name)
+        assert isinstance(result, RangeIndex)
+        assert result._start == start
+        assert result._stop == stop
+        assert result._step == step
+        assert result.name is name
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_invalid_args(self):
         msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
@@ -91,6 +69,12 @@ class TestRangeIndex(Numeric):
                   np.array([1]), [1]]:
             with pytest.raises(TypeError):
                 RangeIndex(i)
+
+        # we don't allow on a bare Index
+        msg = (r'Index\(\.\.\.\) must be called with a collection of some '
+               r'kind, 0 was passed')
+        with pytest.raises(TypeError, match=msg):
+            Index(0, 1000)
 
     def test_constructor_same(self):
 
@@ -171,6 +155,17 @@ class TestRangeIndex(Numeric):
         # invalid passed type
         with pytest.raises(TypeError):
             RangeIndex(1, 5, dtype='float64')
+
+    @pytest.mark.parametrize('index, start, stop, step', [
+        (RangeIndex(5), 0, 5, 1),
+        (RangeIndex(0, 5), 0, 5, 1),
+        (RangeIndex(5, step=2), 0, 5, 2),
+        (RangeIndex(1, 5, 2), 1, 5, 2)])
+    def test_start_stop_step_attrs(self, index, start, stop, step):
+        # GH 25710
+        assert index.start == start
+        assert index.stop == stop
+        assert index.step == step
 
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
@@ -503,7 +498,7 @@ class TestRangeIndex(Numeric):
             joined = self.index.join(self.index, how=kind)
             assert self.index is joined
 
-    @pytest.mark.parametrize("sort", [True, False])
+    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, sort):
         # intersect with Int64Index
         other = Index(np.arange(1, 6))

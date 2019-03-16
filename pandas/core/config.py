@@ -282,8 +282,8 @@ pat : str
     Note: partial matches are supported for convenience, but unless you use the
     full option name (e.g. x.y.z.option_name), your code may break in future
     versions if new options with similar names are introduced.
-value :
-    new value of option.
+value : object
+    New value of option.
 
 Returns
 -------
@@ -651,7 +651,6 @@ def _build_option_description(k):
               .format(rkey=d.rkey if d.rkey else ''))
         s += u(')')
 
-    s += '\n\n'
     return s
 
 
