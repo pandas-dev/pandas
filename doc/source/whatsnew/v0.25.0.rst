@@ -167,7 +167,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 
--
+- Bug in :meth:`localize_pydatetime` where some ``datetime`` were incorrectly treated as pandas :class:`Timestamp` (:issue:`25734`)
 -
 -
 

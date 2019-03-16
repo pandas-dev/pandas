@@ -227,3 +227,18 @@ cdef inline bint is_nan(object val):
     is_nan : bool
     """
     return (is_float_object(val) or is_complex_object(val)) and val != val
+
+
+cdef inline bint is_timestamp(object val):
+    """
+    Cython equivalent of `isinstance(val, pd.Timestamp)`
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_timestamp : bool
+    """
+    return getattr(val, '_typ', None) == "timestamp"

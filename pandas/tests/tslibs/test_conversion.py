@@ -3,12 +3,15 @@
 import numpy as np
 import pytest
 from pytz import UTC
+from datetime import datetime
 
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs import conversion, timezones
 
 from pandas import date_range
 import pandas.util.testing as tm
+
+from pandas import Timestamp
 
 
 def _compare_utc_to_local(tz_didx):
@@ -66,3 +69,26 @@ def test_length_zero_copy(dtype, copy):
     arr = np.array([], dtype=dtype)
     result = conversion.ensure_datetime64ns(arr, copy=copy)
     assert result.base is (None if copy else arr)
+
+
+class MetaDatetime(type):
+    pass
+
+
+class FakeDatetime(MetaDatetime("NewBase", (datetime,), {})):
+    pass
+
+
+@pytest.mark.parametrize("dt, expected", [
+    pytest.param(Timestamp("2000-01-01"),
+                 Timestamp("2000-01-01", tz=UTC), id="timestamp"),
+    pytest.param(datetime(2000, 1, 1),
+                 datetime(2000, 1, 1, tzinfo=UTC),
+                 id="datetime"),
+    pytest.param(FakeDatetime(2000, 1, 1),
+                 FakeDatetime(2000, 1, 1, tzinfo=UTC),
+                 id="fakedatetime")])
+def test_localize_pydatetime_dt_types(dt, expected):
+    # GH 25734
+    result = conversion.localize_pydatetime(dt, UTC)
+    assert result == expected
