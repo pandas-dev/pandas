@@ -61,109 +61,115 @@ class TestFloatIndexers(object):
                 s.iloc[3.0] = 0
 
     @ignore_ix
-    def test_scalar_non_numeric(self):
+    @pytest.mark.parametrize('index', [
+        tm.makeStringIndex,
+        tm.makeUnicodeIndex,
+        tm.makeCategoricalIndex,
+        tm.makeDateIndex,
+        tm.makeTimedeltaIndex,
+        tm.makePeriodIndex])
+    def test_scalar_non_numeric(self, index):
 
         # GH 4892
         # float_indexers should raise exceptions
         # on appropriate Index types & accessors
 
-        for index in [tm.makeStringIndex, tm.makeUnicodeIndex,
-                      tm.makeCategoricalIndex,
-                      tm.makeDateIndex, tm.makeTimedeltaIndex,
-                      tm.makePeriodIndex]:
+        i = index(5)
 
-            i = index(5)
+        for obj in [
+            Series(np.arange(len(i)), index=i),
+            DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i)
+        ]:
 
-            for s in [Series(
-                    np.arange(len(i)), index=i), DataFrame(
-                        np.random.randn(
-                            len(i), len(i)), index=i, columns=i)]:
+            # getting
+            for idxr, getitem, iloc, loc in [
+                    (lambda x: x.ix, False, False, False),
+                    (lambda x: x.iloc, False, True, False),
+                    (lambda x: x, True, False, False),
+                    (lambda x: x.loc, False, False, True)]:
 
-                # getting
-                for idxr, getitem in [(lambda x: x.ix, False),
-                                      (lambda x: x.iloc, False),
-                                      (lambda x: x, True)]:
-
+                if getitem and isinstance(obj, DataFrame):
                     # gettitem on a DataFrame is a KeyError as it is indexing
                     # via labels on the columns
-                    if getitem and isinstance(s, DataFrame):
-                        error = KeyError
-                        msg = r"^3(\.0)?$"
-                    else:
-                        error = TypeError
-                        msg = (r"cannot do (label|index|positional) indexing"
-                               r" on {klass} with these indexers \[3\.0\] of"
-                               r" {kind}|"
-                               "Cannot index by location index with a"
-                               " non-integer key"
-                               .format(klass=type(i), kind=str(float)))
-                    with catch_warnings(record=True):
-                        with pytest.raises(error, match=msg):
-                            idxr(s)[3.0]
-
-                # label based can be a TypeError or KeyError
-                if s.index.inferred_type in ['string', 'unicode', 'mixed']:
+                    error = KeyError
+                    msg = r"^3(\.0)?$"
+                elif loc and obj.index.inferred_type in [
+                        'string', 'unicode']:
+                    # label based can be a KeyError with object Index types
                     error = KeyError
                     msg = r"^3$"
                 else:
                     error = TypeError
-                    msg = (r"cannot do (label|index) indexing"
-                           r" on {klass} with these indexers \[3\.0\] of"
-                           r" {kind}"
-                           .format(klass=type(i), kind=str(float)))
+                    if iloc:
+                        msg = ("Cannot index by location index with a"
+                               " non-integer key")
+                    else:
+                        msg = (r"cannot do (label|index) indexing"
+                               r" on {klass} with these indexers \[3\.0\] of"
+                               r" {kind}"
+                               .format(klass=type(i), kind=str(float)))
                 with pytest.raises(error, match=msg):
-                    s.loc[3.0]
+                    idxr(obj)[3.0]
 
-                # contains
-                assert 3.0 not in s
+            # contains
+            assert 3.0 not in obj
+            assert 3.0 not in obj.index
+            if isinstance(obj, DataFrame):
+                assert 3.0 not in obj.columns
 
-                # setting with a float fails with iloc
-                msg = (r"cannot do (label|index|positional) indexing"
-                       r" on {klass} with these indexers \[3\.0\] of"
-                       r" {kind}"
-                       .format(klass=type(i), kind=str(float)))
-                with pytest.raises(TypeError, match=msg):
-                    s.iloc[3.0] = 0
-
-                # setting with an indexer
-                if s.index.inferred_type in ['categorical']:
-                    # Value or Type Error
-                    pass
-                elif s.index.inferred_type in ['datetime64', 'timedelta64',
-                                               'period']:
-
-                    # these should prob work
-                    # and are inconsisten between series/dataframe ATM
-                    # for idxr in [lambda x: x.ix,
-                    #             lambda x: x]:
-                    #    s2 = s.copy()
-                    #    def f():
-                    #        idxr(s2)[3.0] = 0
-                    #    pytest.raises(TypeError, f)
-                    pass
-
-                else:
-
-                    s2 = s.copy()
-                    s2.loc[3.0] = 10
-                    assert s2.index.is_object()
-
-                    for idxr in [lambda x: x.ix,
-                                 lambda x: x]:
-                        s2 = s.copy()
-                        with catch_warnings(record=True):
-                            idxr(s2)[3.0] = 0
-                        assert s2.index.is_object()
-
-            # fallsback to position selection, series only
-            s = Series(np.arange(len(i)), index=i)
-            s[3]
-            msg = (r"cannot do (label|index) indexing"
+            # setting with a float fails with iloc
+            msg = (r"cannot do (label|index|positional) indexing"
                    r" on {klass} with these indexers \[3\.0\] of"
                    r" {kind}"
                    .format(klass=type(i), kind=str(float)))
+            obj_copy = obj.copy()
             with pytest.raises(TypeError, match=msg):
-                s[3.0]
+                obj_copy.iloc[3.0] = 0
+
+            # setting
+            for idxr, setitem in [(lambda x: x.loc, False),
+                                  (lambda x: x.ix, False),
+                                  (lambda x: x, True)]:
+                obj_copy = obj.copy()
+
+                if obj.index.inferred_type in ['categorical']:
+                    if isinstance(obj, Series) or setitem:
+                        # setitem produces same message for both Series and
+                        # DataFrame
+                        msg = ("cannot insert an item into a CategoricalIndex"
+                               " that is not already an existing category")
+                    else:
+                        # loc and ix indexers produce a different message for
+                        # a DataFrame
+                        msg = ("cannot append a non-category item to a"
+                               " CategoricalIndex")
+                    with pytest.raises(TypeError, match=msg):
+                        idxr(obj_copy)[3.0] = 0
+
+                elif (obj.index.inferred_type in ['datetime64', 'timedelta64']
+                      and not (isinstance(obj, DataFrame) and not setitem)):
+                    # loc and ix indexers do not raise on a DataFrame
+                    msg = ("cannot insert {} with incompatible"
+                           " label").format(i.__class__.__name__)
+                    with pytest.raises(TypeError, match=msg):
+                        idxr(obj_copy)[3.0] = 0
+
+                else:
+                    # StringIndex and UnicodeIndex have dtype='object'
+                    # loc, ix and getitem indexers do not raise on a
+                    # PeriodIndex, the index is changed to an object Index
+                    # only loc and ix indexers on a DataFrame do not raise on
+                    # datetime64 or timedelta64 index, the index is changed t
+                    # an object Index
+                    idxr(obj_copy)[3.0] = 0
+                    if setitem and isinstance(obj, DataFrame):
+                        # setitem on a DataFrame is setting
+                        # via labels on the columns
+                        assert obj_copy.columns.is_object()
+                        assert 3.0 in obj_copy.columns
+                    else:
+                        assert obj_copy.index.is_object()
+                        assert 3.0 in obj_copy.index
 
     @ignore_ix
     def test_scalar_with_mixed(self):
