@@ -6,6 +6,7 @@ import pytest
 from pandas import Int64Index, Interval, IntervalIndex
 import pandas.util.testing as tm
 
+# TODO: unskip these tests and enter error messages for pytest.raises
 pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
 
 
@@ -49,7 +50,8 @@ class TestIntervalIndex(object):
         if scalar in correct[closed].keys():
             assert idx.get_loc(scalar) == correct[closed][scalar]
         else:
-            pytest.raises(KeyError, idx.get_loc, scalar)
+            with pytest.raises(KeyError, match="<enter message here>"):
+                idx.get_loc(scalar)
 
     def test_slice_locs_with_interval(self):
 
@@ -89,13 +91,19 @@ class TestIntervalIndex(object):
         # unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
 
-        pytest.raises(KeyError, index.slice_locs(
-            start=Interval(0, 2), end=Interval(2, 4)))
-        pytest.raises(KeyError, index.slice_locs(start=Interval(0, 2)))
+        with pytest.raises(KeyError, match="<enter message here>"):
+            index.slice_locs(start=Interval(0, 2), end=Interval(2, 4))
+
+        with pytest.raises(KeyError, match="<enter message here>"):
+            index.slice_locs(start=Interval(0, 2))
+
         assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
-        pytest.raises(KeyError, index.slice_locs(end=Interval(0, 2)))
-        pytest.raises(KeyError, index.slice_locs(
-            start=Interval(2, 4), end=Interval(0, 2)))
+
+        with pytest.raises(KeyError, match="<enter message here>"):
+            index.slice_locs(end=Interval(0, 2))
+
+        with pytest.raises(KeyError, match="<enter message here>"):
+            index.slice_locs(start=Interval(2, 4), end=Interval(0, 2))
 
         # another unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])

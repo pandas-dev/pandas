@@ -1118,8 +1118,10 @@ class TestSeriesConstructors():
         assert td.dtype == 'timedelta64[ns]'
 
         # these are frequency conversion astypes
+        # TODO: fix this. does not raise.
         # for t in ['s', 'D', 'us', 'ms']:
-        #    pytest.raises(TypeError, td.astype, 'm8[%s]' % t)
+        #     with pytest.raises(TypeError, match="<enter message here>"):
+        #         td.astype('m8[%s]' % t)
 
         # valid astype
         td.astype('int64')

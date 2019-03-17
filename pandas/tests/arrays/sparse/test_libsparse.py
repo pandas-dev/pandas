@@ -197,7 +197,8 @@ class TestSparseIndexIntersect(object):
             assert (result.equals(expected))
 
         def _check_length_exc(a, longer):
-            pytest.raises(Exception, a.intersect, longer)
+            with pytest.raises(Exception, match="<enter message here>"):
+                a.intersect(longer)
 
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)

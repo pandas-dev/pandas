@@ -134,21 +134,23 @@ class TestMultiIndexPartial(object):
 
     def test_partial_ix_missing(
             self, multiindex_year_month_day_dataframe_random_data):
-        pytest.skip("skipping for now")
+        pytest.skip("skipping for now")  # TODO: fix this
 
         ymd = multiindex_year_month_day_dataframe_random_data
         result = ymd.loc[2000, 0]
         expected = ymd.loc[2000]['A']
         tm.assert_series_equal(result, expected)
 
-        # need to put in some work here
+        # TODO: need to put in some work here
 
         # self.ymd.loc[2000, 0] = 0
         # assert (self.ymd.loc[2000]['A'] == 0).all()
 
         # Pretty sure the second (and maybe even the first) is already wrong.
-        pytest.raises(Exception, ymd.loc.__getitem__, (2000, 6))
-        pytest.raises(Exception, ymd.loc.__getitem__, (2000, 6), 0)
+        with pytest.raises(Exception, match="<enter message here>"):
+            ymd.loc.__getitem__((2000, 6))
+        with pytest.raises(Exception, match="<enter message here>"):
+            ymd.loc.__getitem__((2000, 6), 0)
 
     # ---------------------------------------------------------------------
 
