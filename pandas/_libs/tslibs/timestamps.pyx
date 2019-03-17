@@ -203,8 +203,6 @@ def round_nsint64(values, mode, freq):
 # shadows the python class, where we do any heavy lifting.
 cdef class _Timestamp(datetime):
 
-    _typ = 'timestamp'
-
     cdef readonly:
         int64_t value, nanosecond
         object freq       # frequency reference

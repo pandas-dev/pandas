@@ -5,6 +5,7 @@
 from datetime import datetime, timedelta
 from itertools import product, starmap
 import operator
+import sys
 import warnings
 
 import numpy as np
@@ -15,6 +16,7 @@ from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.tseries.offsets import CustomBusinessDay
 
 import pandas as pd
 from pandas import (
@@ -2350,3 +2352,34 @@ def test_shift_months(years, months):
            for x in dti]
     expected = DatetimeIndex(raw)
     tm.assert_index_equal(actual, expected)
+
+
+def test_add_with_monkeypatched_datetime(monkeypatch):
+    # GH 25734
+
+    class MetaDatetime(type):
+        @classmethod
+        def __instancecheck__(self, obj):
+            return isinstance(obj, datetime)
+
+    class FakeDatetime(MetaDatetime("NewBase", (datetime,), {})):
+        pass
+
+    with monkeypatch.context() as m:
+        # monkeypatch datetime everywhere
+        for mod_name, module in list(sys.modules.items()):
+            if (mod_name == __name__ or
+               module.__name__ in ('datetime',)):
+                continue
+            for attribute_name in dir(module):
+                try:
+                    attribute_value = getattr(module, attribute_name)
+                except (ImportError, AttributeError, TypeError):
+                    continue
+                if id(datetime) == id(attribute_value):
+                    m.setattr(module, attribute_name, FakeDatetime)
+
+        dt = FakeDatetime(2000, 1, 1, tzinfo=pytz.UTC)
+        result = Timestamp(dt) + CustomBusinessDay()
+        expected = Timestamp("2000-01-03", tzinfo=pytz.UTC)
+        assert result == expected

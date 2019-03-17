@@ -27,8 +27,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.util cimport (
-    is_string_object, is_datetime64_object, is_integer_object, is_float_object,
-    is_timestamp)
+    is_string_object, is_datetime64_object, is_integer_object, is_float_object)
 
 from pandas._libs.tslibs.timedeltas cimport (cast_from_unit,
                                              delta_to_nanoseconds)
@@ -381,9 +380,11 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.value -= int(offset.total_seconds() * 1e9)
 
     if not PyDateTime_CheckExact(ts):
-        # datetime instance but not datetime type --> Timestamp
-        obj.value += ts.nanosecond
-        obj.dts.ps = ts.nanosecond * 1000
+        try:
+            obj.value += ts.nanosecond
+            obj.dts.ps = ts.nanosecond * 1000
+        except AttributeError:
+            pass
 
     if nanos:
         obj.value += nanos
@@ -608,8 +609,11 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
     """
     if tz is None:
         return dt
-    elif is_timestamp(dt):
-        return dt.tz_localize(tz)
+    elif not PyDateTime_CheckExact(dt):
+        try:
+            return dt.tz_localize(tz)
+        except AttributeError:
+            pass
     elif is_utc(tz):
         return _localize_pydatetime(dt, tz)
     try:

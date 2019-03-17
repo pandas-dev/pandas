@@ -8,10 +8,8 @@ from datetime import datetime
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs import conversion, timezones
 
-from pandas import date_range
+from pandas import date_range, Timestamp
 import pandas.util.testing as tm
-
-from pandas import Timestamp
 
 
 def _compare_utc_to_local(tz_didx):
@@ -71,11 +69,7 @@ def test_length_zero_copy(dtype, copy):
     assert result.base is (None if copy else arr)
 
 
-class MetaDatetime(type):
-    pass
-
-
-class FakeDatetime(MetaDatetime("NewBase", (datetime,), {})):
+class FakeDatetime(datetime):
     pass
 
 

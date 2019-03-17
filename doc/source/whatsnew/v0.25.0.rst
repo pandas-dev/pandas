@@ -136,7 +136,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 
--
+- Bug with :class:`Timestamp` and :class:`CustomBusinessDay` arithmatic throwing an exception with datetime subclasses (:issue:`25734`)
 -
 -
 
@@ -167,7 +167,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 
-- Bug in :meth:`localize_pydatetime` where some ``datetime`` were incorrectly treated as pandas :class:`Timestamp` (:issue:`25734`)
+-
 -
 -
 
