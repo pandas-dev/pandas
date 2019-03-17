@@ -302,24 +302,6 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
     return parsed, parsed, reso
 
 
-cpdef bint _does_string_look_like_datetime(object date_string):
-    if date_string.startswith('0'):
-        # Strings starting with 0 are more consistent with a
-        # date-like string than a number
-        return True
-
-    try:
-        if float(date_string) < 1000:
-            return False
-    except ValueError:
-        pass
-
-    if date_string in _not_datelike_strings:
-        return False
-
-    return True
-
-
 cdef inline object _parse_dateabbr_string(object date_string, object default,
                                           object freq):
     cdef:

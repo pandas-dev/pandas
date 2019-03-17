@@ -13,6 +13,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.datehelpers import concat_date_cols as _concat_date_cols
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
@@ -3186,7 +3187,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                          infer_datetime_format=False, cache_dates=True):
     def converter(*date_cols):
         if date_parser is None:
-            strs = _concat_date_cols(date_cols)
+            strs = _concat_date_cols(date_cols, keep_trivial_numbers=True)
 
             try:
                 return tools.to_datetime(
@@ -3216,7 +3217,11 @@ def _make_date_converter(date_parser=None, dayfirst=False,
             except Exception:
                 try:
                     return tools.to_datetime(
-                        parsing.try_parse_dates(_concat_date_cols(date_cols),
+                        parsing.try_parse_dates(
+                            _concat_date_cols(
+                                date_cols,
+                                keep_trivial_numbers=True
+                            ),
                                                 parser=date_parser,
                                                 dayfirst=dayfirst),
                         cache=cache_dates,
@@ -3509,15 +3514,6 @@ def _get_col_names(colspec, columns):
         elif isinstance(c, int):
             colnames.append(columns[c])
     return colnames
-
-
-def _concat_date_cols(date_cols):
-    if len(date_cols) == 1:
-        return np.array([str(x) for x in date_cols[0]], dtype=object)
-
-    rs = np.array([' '.join(str(y) for y in x)
-                   for x in zip(*date_cols)], dtype=object)
-    return rs
 
 
 class FixedWidthReader(BaseIterator):

@@ -243,6 +243,7 @@ class CleanCommand(Command):
         ujson_lib = pjoin(base, 'ujson', 'lib')
         self._clean_exclude = [pjoin(dt, 'np_datetime.c'),
                                pjoin(dt, 'np_datetime_strings.c'),
+                               pjoin(dt, 'datehelpers.c'),
                                pjoin(parser, 'tokenizer.c'),
                                pjoin(parser, 'io.c'),
                                pjoin(ujson_python, 'ujson.c'),
@@ -761,6 +762,23 @@ _move_ext = Extension('pandas.util._move',
                       extra_compile_args=extra_compile_args,
                       extra_link_args=extra_link_args)
 extensions.append(_move_ext)
+
+# ----------------------------------------------------------------------
+# datehelpers
+datehelpers_sources = [
+    'pandas/_libs/tslibs/src/datetime/datehelpers.c',
+    'pandas/_libs/src/parser/tokenizer.c'
+]
+datehelpers_ext = Extension('pandas._libs.datehelpers',
+                            depends=[
+                                'pandas/_libs/src/parser/tokenizer.h'
+                            ],
+                            sources=datehelpers_sources,
+                            include_dirs=['pandas/_libs/src/klib/'],
+                            extra_compile_args=extra_compile_args,
+                            define_macros=macros)
+extensions.append(datehelpers_ext)
+
 
 # The build cache system does string matching below this point.
 # if you change something, be careful.
