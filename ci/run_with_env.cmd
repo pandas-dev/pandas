@@ -1,5 +1,5 @@
 :: EXPECTED ENV VARS: PYTHON_ARCH (either x86 or x64)
-::                    CONDA_PY (either 27, 33, 35 etc. - only major version is extracted)
+::                    CONDA_PY (either 35, 36 etc. - only major version is extracted)
 ::
 ::
 :: To build extensions for 64 bit Python 3, we need to configure environment
@@ -45,7 +45,7 @@ SET WIN_SDK_ROOT=C:\Program Files\Microsoft SDKs\Windows
 SET MAJOR_PYTHON_VERSION=%CONDA_PY:~0,1%
 
 IF "%CONDA_PY:~2,1%" == "" (
-    :: CONDA_PY style, such as 27, 34 etc.
+    :: CONDA_PY style, such as 36, 37 etc.
     SET MINOR_PYTHON_VERSION=%CONDA_PY:~1,1%
 ) ELSE (
     IF "%CONDA_PY:~3,1%" == "." (
