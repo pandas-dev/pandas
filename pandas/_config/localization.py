@@ -9,7 +9,8 @@ import locale
 
 @contextmanager
 def set_locale(new_locale, lc_var=locale.LC_ALL):
-    """Context manager for temporarily setting a locale.
+    """
+    Context manager for temporarily setting a locale.
 
     Parameters
     ----------
@@ -37,3 +38,56 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
             yield new_locale
     finally:
         locale.setlocale(lc_var, current_locale)
+
+
+def can_set_locale(lc, lc_var=locale.LC_ALL):
+    """
+    Check to see if we can set a locale, and subsequently get the locale,
+    without raising an Exception.
+
+    Parameters
+    ----------
+    lc : str
+        The locale to attempt to set.
+    lc_var : int, default `locale.LC_ALL`
+        The category of the locale being set.
+
+    Returns
+    -------
+    is_valid : bool
+        Whether the passed locale can be set
+    """
+
+    try:
+        with set_locale(lc, lc_var=lc_var):
+            pass
+    except (ValueError, locale.Error):
+        # horrible name for a Exception subclass
+        return False
+    else:
+        return True
+
+
+def _valid_locales(locales, normalize):
+    """
+    Return a list of normalized locales that do not throw an ``Exception``
+    when set.
+
+    Parameters
+    ----------
+    locales : str
+        A string where each locale is separated by a newline.
+    normalize : bool
+        Whether to call ``locale.normalize`` on each locale.
+
+    Returns
+    -------
+    valid_locales : list
+        A list of valid locales.
+    """
+    if normalize:
+        normalizer = lambda x: locale.normalize(x.strip())
+    else:
+        normalizer = lambda x: x.strip()
+
+    return list(filter(can_set_locale, map(normalizer, locales)))

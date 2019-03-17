@@ -4,7 +4,6 @@ from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-import locale
 import os
 import re
 from shutil import rmtree
@@ -18,12 +17,13 @@ import warnings
 import numpy as np
 from numpy.random import rand, randn
 
-from pandas._config.localization import set_locale
+from pandas._config.localization import (  # noqa:F401
+    can_set_locale, set_locale, _valid_locales)
 
 from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
-    PY2, PY3, filter, httplib, lmap, lrange, lzip, map, raise_with_traceback,
+    PY2, PY3, httplib, lmap, lrange, lzip, map, raise_with_traceback,
     range, string_types, u, unichr, zip)
 
 from pandas.core.dtypes.common import (
@@ -41,7 +41,6 @@ from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
     period_array)
-import pandas.core.common as com
 
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
@@ -530,57 +529,6 @@ def get_locales(prefix=None, normalize=True,
     found = pattern.findall('\n'.join(out_locales))
     return _valid_locales(found, normalize)
 
-
-def can_set_locale(lc, lc_var=locale.LC_ALL):
-    """
-    Check to see if we can set a locale, and subsequently get the locale,
-    without raising an Exception.
-
-    Parameters
-    ----------
-    lc : str
-        The locale to attempt to set.
-    lc_var : int, default `locale.LC_ALL`
-        The category of the locale being set.
-
-    Returns
-    -------
-    is_valid : bool
-        Whether the passed locale can be set
-    """
-
-    try:
-        with set_locale(lc, lc_var=lc_var):
-            pass
-    except (ValueError,
-            locale.Error):  # horrible name for a Exception subclass
-        return False
-    else:
-        return True
-
-
-def _valid_locales(locales, normalize):
-    """Return a list of normalized locales that do not throw an ``Exception``
-    when set.
-
-    Parameters
-    ----------
-    locales : str
-        A string where each locale is separated by a newline.
-    normalize : bool
-        Whether to call ``locale.normalize`` on each locale.
-
-    Returns
-    -------
-    valid_locales : list
-        A list of valid locales.
-    """
-    if normalize:
-        normalizer = lambda x: locale.normalize(x.strip())
-    else:
-        normalizer = lambda x: x.strip()
-
-    return list(filter(can_set_locale, map(normalizer, locales)))
 
 # -----------------------------------------------------------------------------
 # Stdout / stderr decorators
