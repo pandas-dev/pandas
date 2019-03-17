@@ -159,7 +159,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # For any flake8-compliant code, the only way this regex gets
     # matched is if there is no "with" statement preceding "pytest.raises"
     MSG='Check for pytest.raises as context manager (a line starting with `pytest.raises` is invalid, needs a `with` to precede it)' ; echo $MSG
-    MSG='TODO: This check is currently skipped because so many files fail this. Please enable when all are corrected (xref gh-24332)' ; echo $MSG
     invgrep -R --include '*.py' -E '[[:space:]] pytest.raises' pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
