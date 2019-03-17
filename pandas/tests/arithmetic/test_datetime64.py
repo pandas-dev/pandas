@@ -22,8 +22,9 @@ from pandas import (
     DatetimeIndex, NaT, Period, Series, Timedelta, TimedeltaIndex, Timestamp,
     date_range)
 from pandas.core.indexes.datetimes import _to_M8
-from pandas.tseries.offsets import CustomBusinessDay
 import pandas.util.testing as tm
+
+from pandas.tseries.offsets import CustomBusinessDay
 
 
 def assert_all(obj):
