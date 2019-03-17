@@ -197,7 +197,8 @@ class TestSparseIndexIntersect(object):
             assert (result.equals(expected))
 
         def _check_length_exc(a, longer):
-            with pytest.raises(Exception, match="<enter message here>"):
+            msg = "Indices must reference same underlying length"
+            with pytest.raises(Exception, match=msg):
                 a.intersect(longer)
 
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
