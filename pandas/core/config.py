@@ -53,11 +53,6 @@ from contextlib import contextmanager
 import re
 import warnings
 
-try:
-    unicode
-except NameError:
-    unicode = str
-
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
 RegisteredOption = namedtuple('RegisteredOption',
                               'key defval doc validator cb')
@@ -815,7 +810,6 @@ is_int = is_type_factory(int)
 is_bool = is_type_factory(bool)
 is_float = is_type_factory(float)
 is_str = is_type_factory(str)
-is_unicode = is_type_factory(unicode)
 is_text = is_instance_factory((str, bytes))
 
 
