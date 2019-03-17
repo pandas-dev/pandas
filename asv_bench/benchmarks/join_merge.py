@@ -1,9 +1,8 @@
-import warnings
 import string
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, Panel, MultiIndex,
+from pandas import (DataFrame, Series, MultiIndex,
                     date_range, concat, merge, merge_asof)
 
 try:
@@ -64,31 +63,6 @@ class Concat(object):
 
     def time_concat_mixed_ndims(self, axis):
         concat(self.mixed_ndims, axis=axis)
-
-
-class ConcatPanels(object):
-
-    params = ([0, 1, 2], [True, False])
-    param_names = ['axis', 'ignore_index']
-
-    def setup(self, axis, ignore_index):
-        with warnings.catch_warnings(record=True):
-            panel_c = Panel(np.zeros((10000, 200, 2),
-                                     dtype=np.float32,
-                                     order='C'))
-            self.panels_c = [panel_c] * 20
-            panel_f = Panel(np.zeros((10000, 200, 2),
-                            dtype=np.float32,
-                            order='F'))
-            self.panels_f = [panel_f] * 20
-
-    def time_c_ordered(self, axis, ignore_index):
-        with warnings.catch_warnings(record=True):
-            concat(self.panels_c, axis=axis, ignore_index=ignore_index)
-
-    def time_f_ordered(self, axis, ignore_index):
-        with warnings.catch_warnings(record=True):
-            concat(self.panels_f, axis=axis, ignore_index=ignore_index)
 
 
 class ConcatDataFrames(object):

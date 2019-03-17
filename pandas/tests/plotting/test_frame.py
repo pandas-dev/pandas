@@ -18,6 +18,7 @@ from pandas.core.dtypes.api import is_list_like
 import pandas as pd
 from pandas import (
     DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range)
+from pandas.core.arrays import integer_array
 from pandas.tests.plotting.common import (
     TestPlotBase, _check_plot_works, _ok_for_gaussian_kde,
     _skip_if_no_scipy_gaussian_kde)
@@ -144,8 +145,26 @@ class TestDataFramePlots(TestPlotBase):
         result = ax.axes
         assert result is axes[0]
 
-    # GH 15516
+    def test_integer_array_plot(self):
+        # GH 25587
+        arr = integer_array([1, 2, 3, 4], dtype="UInt32")
+
+        s = Series(arr)
+        _check_plot_works(s.plot.line)
+        _check_plot_works(s.plot.bar)
+        _check_plot_works(s.plot.hist)
+        _check_plot_works(s.plot.pie)
+
+        df = DataFrame({'x': arr, 'y': arr})
+        _check_plot_works(df.plot.line)
+        _check_plot_works(df.plot.bar)
+        _check_plot_works(df.plot.hist)
+        _check_plot_works(df.plot.pie, y='y')
+        _check_plot_works(df.plot.scatter, x='x', y='y')
+        _check_plot_works(df.plot.hexbin, x='x', y='y')
+
     def test_mpl2_color_cycle_str(self):
+        # GH 15516
         colors = ['C' + str(x) for x in range(10)]
         df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
         for c in colors:
@@ -485,7 +504,9 @@ class TestDataFramePlots(TestPlotBase):
         ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
         assert (ax_datetime_all_tz.get_lines()[0].get_data()[1] ==
                 testdata["datetime_all_tz"].values).all()
-        with pytest.raises(TypeError):
+
+        msg = "no numeric data to plot"
+        with pytest.raises(TypeError, match=msg):
             testdata.plot(y="text")
 
     @pytest.mark.xfail(reason='not support for period, categorical, '
@@ -2219,7 +2240,9 @@ class TestDataFramePlots(TestPlotBase):
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            with pytest.raises(TypeError):
+
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
                 df.plot(kind=kind)
 
     @pytest.mark.slow
@@ -2230,7 +2253,9 @@ class TestDataFramePlots(TestPlotBase):
             for kind in plotting._core._common_kinds:
                 if not _ok_for_gaussian_kde(kind):
                     continue
-                with pytest.raises(TypeError):
+
+                msg = "no numeric data to plot"
+                with pytest.raises(TypeError, match=msg):
                     df.plot(kind=kind)
 
         with tm.RNGContext(42):

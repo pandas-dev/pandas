@@ -2184,7 +2184,6 @@ class DataFrame(NDFrame):
             Convert URLs to HTML links.
 
             .. versionadded:: 0.24.0
-
         %(returns)s
         See Also
         --------
@@ -6027,7 +6026,6 @@ class DataFrame(NDFrame):
     columns, considered measured variables (`value_vars`), are "unpivoted" to
     the row axis, leaving just two non-identifier columns, 'variable' and
     'value'.
-
     %(versionadded)s
     Parameters
     ----------
@@ -7090,8 +7088,8 @@ class DataFrame(NDFrame):
                     correl[j, i] = c
         else:
             raise ValueError("method must be either 'pearson', "
-                             "'spearman', or 'kendall', '{method}' "
-                             "was supplied".format(method=method))
+                             "'spearman', 'kendall', or a callable, "
+                             "'{method}' was supplied".format(method=method))
 
         return self._constructor(correl, index=idx, columns=cols)
 

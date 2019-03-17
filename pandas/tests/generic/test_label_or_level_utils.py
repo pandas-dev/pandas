@@ -3,7 +3,6 @@ import pytest
 from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
-import pandas.util.testing as tm
 
 
 # Fixtures
@@ -44,13 +43,6 @@ def df_duplabels(df):
     df = pd.concat([df, df['L2']], axis=1)
 
     return df
-
-
-@pytest.fixture
-def panel():
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        return pd.Panel()
 
 
 # Test is label/level reference
@@ -134,32 +126,6 @@ def test_is_level_reference_series_axis1_error(df):
         s._is_level_reference('L1', axis=1)
 
 
-# Panel
-# -----
-def test_is_level_reference_panel_error(panel):
-    msg = ("_is_level_reference is not implemented for {type}"
-           .format(type=type(panel)))
-
-    with pytest.raises(NotImplementedError, match=msg):
-        panel._is_level_reference('L1', axis=0)
-
-
-def test_is_label_reference_panel_error(panel):
-    msg = ("_is_label_reference is not implemented for {type}"
-           .format(type=type(panel)))
-
-    with pytest.raises(NotImplementedError, match=msg):
-        panel._is_label_reference('L1', axis=0)
-
-
-def test_is_label_or_level_reference_panel_error(panel):
-    msg = ("_is_label_or_level_reference is not implemented for {type}"
-           .format(type=type(panel)))
-
-    with pytest.raises(NotImplementedError, match=msg):
-        panel._is_label_or_level_reference('L1', axis=0)
-
-
 # Test _check_label_or_level_ambiguity_df
 # =======================================
 
@@ -213,16 +179,6 @@ def test_check_label_or_level_ambiguity_series_axis1_error(df):
 
     with pytest.raises(ValueError, match="No axis named 1"):
         s._check_label_or_level_ambiguity('L1', axis=1)
-
-
-# Panel
-# -----
-def test_check_label_or_level_ambiguity_panel_error(panel):
-    msg = ("_check_label_or_level_ambiguity is not implemented for {type}"
-           .format(type=type(panel)))
-
-    with pytest.raises(NotImplementedError, match=msg):
-        panel._check_label_or_level_ambiguity("L1", axis=0)
 
 
 # Test _get_label_or_level_values
@@ -322,16 +278,6 @@ def test_get_label_or_level_values_series_axis1_error(df):
         s._get_label_or_level_values('L1', axis=1)
 
 
-# Panel
-# -----
-def test_get_label_or_level_values_panel_error(panel):
-    msg = ("_get_label_or_level_values is not implemented for {type}"
-           .format(type=type(panel)))
-
-    with pytest.raises(NotImplementedError, match=msg):
-        panel._get_label_or_level_values('L1', axis=0)
-
-
 # Test _drop_labels_or_levels
 # ===========================
 def assert_labels_dropped(frame, labels, axis):
@@ -394,13 +340,3 @@ def test_drop_labels_or_levels_series(df):
 
     with pytest.raises(ValueError, match="not valid labels or levels"):
         s._drop_labels_or_levels('L4', axis=0)
-
-
-# Panel
-# -----
-def test_drop_labels_or_levels_panel_error(panel):
-    msg = ("_drop_labels_or_levels is not implemented for {type}"
-           .format(type=type(panel)))
-
-    with pytest.raises(NotImplementedError, match=msg):
-        panel._drop_labels_or_levels('L1', axis=0)

@@ -26,6 +26,7 @@ Other Enhancements
 - :meth:`DataFrame.set_index` now works for instances of ``abc.Iterator``, provided their output is of the same length as the calling frame (:issue:`22484`, :issue:`24984`)
 - :meth:`DatetimeIndex.union` now supports the ``sort`` argument. The behaviour of the sort parameter matches that of :meth:`Index.union` (:issue:`24994`)
 - :meth:`DataFrame.rename` now supports the ``errors`` argument to raise errors when attempting to rename nonexistent keys (:issue:`13473`)
+- :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -69,12 +70,27 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`23519`).
+Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions.
+Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`24942`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
 | Package         | Minimum Version | Required |
 +=================+=================+==========+
+| beautifulsoup4  | 4.4.1           |          |
++-----------------+-----------------+----------+
+| openpyxl        | 2.2.6           |          |
++-----------------+-----------------+----------+
+| pymysql         | 0.6.6           |          |
++-----------------+-----------------+----------+
+| pytz            | 2015.4          |          |
++-----------------+-----------------+----------+
+| sqlalchemy      | 1.0.8           |          |
++-----------------+-----------------+----------+
+| xlsxwriter      | 0.7.7           |          |
++-----------------+-----------------+----------+
+| xlwt            | 1.0.0           |          |
++-----------------+-----------------+----------+
 | pytest (dev)    | 4.0.2           |          |
 +-----------------+-----------------+----------+
 
@@ -86,7 +102,7 @@ Other API Changes
 - :class:`DatetimeTZDtype` will now standardize pytz timezones to a common timezone instance (:issue:`24713`)
 - ``Timestamp`` and ``Timedelta`` scalars now implement the :meth:`to_numpy` method as aliases to :meth:`Timestamp.to_datetime64` and :meth:`Timedelta.to_timedelta64`, respectively. (:issue:`24653`)
 - :meth:`Timestamp.strptime` will now rise a ``NotImplementedError`` (:issue:`25016`)
--
+- Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
 
 .. _whatsnew_0250.deprecations:
 
@@ -94,6 +110,7 @@ Deprecations
 ~~~~~~~~~~~~
 
 - Deprecated the `M (months)` and `Y (year)` `units` parameter of :func: `pandas.to_timedelta`, :func: `pandas.Timedelta` and :func: `pandas.TimedeltaIndex` (:issue:`16344`)
+- The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64`/:meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -121,8 +138,8 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 - Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
--
--
+- Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
+- Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
 
 Categorical
 ^^^^^^^^^^^
@@ -214,14 +231,16 @@ I/O
 - Bug in :func:`read_json` for ``orient='table'`` when it tries to infer dtypes by default, which is not applicable as dtypes are already defined in the JSON schema (:issue:`21345`)
 - Bug in :func:`read_json` for ``orient='table'`` and float index, as it infers index dtype by default, which is not applicable because index dtype is already defined in the JSON schema (:issue:`25433`)
 - Bug in :func:`read_json` for ``orient='table'`` and string of float column names, as it makes a column name type conversion to Timestamp, which is not applicable because column names are already defined in the JSON schema (:issue:`25435`)
--
--
+- Bug in :func:`json_normalize` for ``errors='ignore'`` where missing values in the input data, were filled in resulting ``DataFrame`` with the string "nan" instead of ``numpy.nan`` (:issue:`25468`)
+- :meth:`DataFrame.to_html` now raises ``TypeError`` when using an invalid type for the ``classes`` parameter instead of ``AsseertionError`` (:issue:`25608`)
+- Bug in :meth:`DataFrame.to_string` and :meth:`DataFrame.to_latex` that would lead to incorrect output when the ``header`` keyword is used (:issue:`16718`)
 -
 
 
 Plotting
 ^^^^^^^^
 
+- Fixed bug where :class:`api.extensions.ExtensionArray` could not be used in matplotlib plotting (:issue:`25587`)
 -
 -
 -
@@ -241,6 +260,7 @@ Reshaping
 - Bug in :func:`pandas.merge` adds a string of ``None`` if ``None`` is assigned in suffixes instead of remain the column name as-is (:issue:`24782`).
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
+- Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
 
 
 Sparse
