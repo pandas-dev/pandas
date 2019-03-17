@@ -167,7 +167,7 @@ def maybe_downcast_to_dtype(result, dtype):
     return result
 
 
-def maybe_upast_putmask(result, mask, other):
+def maybe_upcast_putmask(result, mask, other):
     """
     A safe version of putmask that potentially upcasts the result.
     The result is replaced with the first N elements of other,
