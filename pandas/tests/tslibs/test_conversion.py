@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
+
 import numpy as np
 import pytest
 from pytz import UTC
-from datetime import datetime
 
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs import conversion, timezones
