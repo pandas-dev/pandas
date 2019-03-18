@@ -18,13 +18,13 @@ import numpy as np
 from numpy.random import rand, randn
 
 from pandas._config.localization import (  # noqa:F401
-    can_set_locale, set_locale, _valid_locales)
+    _valid_locales, can_set_locale, set_locale)
 
 from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
-    PY2, PY3, httplib, lmap, lrange, lzip, map, raise_with_traceback,
-    range, string_types, u, unichr, zip)
+    PY2, PY3, httplib, lmap, lrange, lzip, map, raise_with_traceback, range,
+    string_types, u, unichr, zip)
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
