@@ -204,7 +204,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Added an exception message when calling :meth:`DataFrame.iloc` with a list of non-integer objects.
 -
 -
 
