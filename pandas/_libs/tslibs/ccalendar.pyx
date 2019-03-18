@@ -208,7 +208,7 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
     return day_of_year
 
 
-def get_locale_names(name_type : object, locale : object=None):
+def get_locale_names(name_type: object, locale: object=None):
     """Returns an array of localized day or month names
 
     Parameters
