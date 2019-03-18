@@ -118,39 +118,20 @@ class TestiLoc(Base):
         with pytest.raises(IndexError, match=msg):
             dfl.iloc[:, 4]
 
-    def test_iloc_non_integer(self):
-
-        # iloc should throw IndexError if non-numeric list is passed
-        df = DataFrame(np.random.random_sample((20, 5)), columns=list('ABCDE'))
-
+    @pytest.mark.parametrize("index,columns", [(np.arange(20), list('ABCDE'))])
+    @pytest.mark.parametrize("index_vals,column_vals", [
+        ([slice(None), ['A', 'D']]),
+        (['1', '2'], slice(None)),
+        ([pd.datetime(2019, 1, 1)], slice(None))])
+    def test_iloc_non_integer_raises(self, index, columns,
+                                     index_vals, column_vals):
+        # GH 25753
+        df = DataFrame(np.random.randn(len(index), len(columns)),
+                       index=index,
+                       columns=columns)
         msg = '.iloc requires integer indexers, got'
         with pytest.raises(IndexError, match=msg):
-            df.iloc[:, ['A', 'D']]
-        with pytest.raises(IndexError, match=msg):
-            df.iloc[['1', '2'], :]
-        with pytest.raises(IndexError, match=msg):
-            df.iloc[[pd.datetime(2019, 1, 1)], :]
-
-        # Numeric or booleans should not raise errors
-        result = df.iloc[:, [0, 1]]
-        expected = df.loc[:, ['A', 'B']]
-        tm.assert_frame_equal(result, expected)
-
-        result = df.iloc[[0, 1], [0, 1, 3]]
-        expected = df.loc[[0, 1], ['A', 'B', 'D']]
-        tm.assert_frame_equal(result, expected)
-
-        result = df.iloc[:, [True, False, False, True]]
-        expected = df.loc[:, ['A', 'D']]
-        tm.assert_frame_equal(result, expected)
-
-        result = df.iloc[:, [0, 0.5]]
-        expected = df.loc[:, ['A', 'A']]
-        tm.assert_frame_equal(result, expected)
-
-        result = df.iloc[[True, False, True], :]
-        expected = df.loc[[0, 2], :]
-        tm.assert_frame_equal(result, expected)
+            df.iloc[index_vals, column_vals]
 
     def test_iloc_getitem_int(self):
 
