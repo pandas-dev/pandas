@@ -2371,7 +2371,7 @@ def test_add_with_monkeypatched_datetime(monkeypatch):
         for mod_name, module in list(sys.modules.items()):
             try:
                 if (mod_name == __name__ or
-                module.__name__ in ('datetime',)):
+                   module.__name__ in ('datetime',)):
                     continue
             except AttributeError:
                 continue
