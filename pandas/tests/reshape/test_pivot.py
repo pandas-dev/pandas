@@ -1317,8 +1317,8 @@ class TestPivotTable(object):
                                          names=[None, 'fruit'])
         df3 = pd.DataFrame(data, index=['size', 'taste'], columns=col)
 
-        if input_vals == True:
-            df3 = df3.iloc[:, df3.columns.get_level_values(0)!='ret_none']
+        if input_vals is True:
+            df3 = df3.iloc[:, df3.columns.get_level_values(0) != 'ret_none']
 
         tm.assert_frame_equal(df2, df3)
 
