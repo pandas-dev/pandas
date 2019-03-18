@@ -897,6 +897,15 @@ def test_nunique_with_timegrouper():
     tm.assert_series_equal(result, expected)
 
 
+def test_nunique_preserves_column_level_names():
+    # GH 23222
+    test = pd.DataFrame([1, 2, 2],
+                        columns=pd.Index(['A'], name="level_0"))
+    result = test.groupby([0, 0, 0]).nunique()
+    expected = pd.DataFrame([2], columns=test.columns)
+    tm.assert_frame_equal(result, expected)
+
+
 # count
 # --------------------------------
 
@@ -1058,6 +1067,55 @@ def test_size(df):
     df = DataFrame([], columns=['A', 'B'])
     out = Series([], dtype='int64', index=Index([], name='A'))
     tm.assert_series_equal(df.groupby('A').size(), out)
+
+
+# quantile
+# --------------------------------
+@pytest.mark.parametrize("interpolation", [
+    "linear", "lower", "higher", "nearest", "midpoint"])
+@pytest.mark.parametrize("a_vals,b_vals", [
+    # Ints
+    ([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]),
+    ([1, 2, 3, 4], [4, 3, 2, 1]),
+    ([1, 2, 3, 4, 5], [4, 3, 2, 1]),
+    # Floats
+    ([1., 2., 3., 4., 5.], [5., 4., 3., 2., 1.]),
+    # Missing data
+    ([1., np.nan, 3., np.nan, 5.], [5., np.nan, 3., np.nan, 1.]),
+    ([np.nan, 4., np.nan, 2., np.nan], [np.nan, 4., np.nan, 2., np.nan]),
+    # Timestamps
+    ([x for x in pd.date_range('1/1/18', freq='D', periods=5)],
+     [x for x in pd.date_range('1/1/18', freq='D', periods=5)][::-1]),
+    # All NA
+    ([np.nan] * 5, [np.nan] * 5),
+])
+@pytest.mark.parametrize('q', [0, .25, .5, .75, 1])
+def test_quantile(interpolation, a_vals, b_vals, q):
+    if interpolation == 'nearest' and q == 0.5 and b_vals == [4, 3, 2, 1]:
+        pytest.skip("Unclear numpy expectation for nearest result with "
+                    "equidistant data")
+
+    a_expected = pd.Series(a_vals).quantile(q, interpolation=interpolation)
+    b_expected = pd.Series(b_vals).quantile(q, interpolation=interpolation)
+
+    df = DataFrame({
+        'key': ['a'] * len(a_vals) + ['b'] * len(b_vals),
+        'val': a_vals + b_vals})
+
+    expected = DataFrame([a_expected, b_expected], columns=['val'],
+                         index=Index(['a', 'b'], name='key'))
+    result = df.groupby('key').quantile(q, interpolation=interpolation)
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_quantile_raises():
+    df = pd.DataFrame([
+        ['foo', 'a'], ['foo', 'b'], ['foo', 'c']], columns=['key', 'val'])
+
+    with pytest.raises(TypeError, match="cannot be performed against "
+                       "'object' dtypes"):
+        df.groupby('key').quantile()
 
 
 # pipe

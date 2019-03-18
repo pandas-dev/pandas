@@ -670,9 +670,11 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                     # dateutil parser will return incorrect result because
                     # it will ignore nanoseconds
                     if is_raise:
-                        raise ValueError("time data {val} doesn't "
-                                         "match format specified"
-                                         .format(val=val))
+
+                        # Still raise OutOfBoundsDatetime,
+                        # as error message is informative.
+                        raise
+
                     assert is_ignore
                     return values, tz_out
                 raise

@@ -822,7 +822,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(com.get_callable_name(f))
             arg = lzip(columns, arg)
 
-        results = {}
+        results = collections.OrderedDict()
         for name, func in arg:
             obj = self
             if name in results:
@@ -1579,6 +1579,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             from pandas.core.reshape.concat import concat
             results = [groupby_series(obj[col], col) for col in obj.columns]
             results = concat(results, axis=1)
+            results.columns.names = obj.columns.names
 
         if not self.as_index:
             results.index = ibase.default_index(len(results))
