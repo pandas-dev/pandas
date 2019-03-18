@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (Series, DataFrame, Panel, MultiIndex,
+from pandas import (Series, DataFrame, MultiIndex,
                     Int64Index, UInt64Index, Float64Index,
                     IntervalIndex, CategoricalIndex,
                     IndexSlice, concat, date_range)
@@ -275,18 +275,6 @@ class CategoricalIndexIndexing(object):
 
     def time_get_indexer_list(self, index):
         self.data.get_indexer(self.cat_list)
-
-
-class PanelIndexing(object):
-
-    def setup(self):
-        with warnings.catch_warnings(record=True):
-            self.p = Panel(np.random.randn(100, 100, 100))
-            self.inds = range(0, 100, 10)
-
-    def time_subset(self):
-        with warnings.catch_warnings(record=True):
-            self.p.ix[(self.inds, self.inds, self.inds)]
 
 
 class MethodLookup(object):
