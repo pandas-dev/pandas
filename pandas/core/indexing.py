@@ -2079,7 +2079,7 @@ class _iLocIndexer(_LocationIndexer):
             arr = np.array(key)
             len_axis = len(self.obj._get_axis(axis))
 
-            if not np.issubdtype(arr.dtype, np.int):
+            if not np.issubdtype(arr.dtype, np.number):
                 raise IndexError(".iloc requires integer indexers, found "
                                  "type {dtype}".format(dtype=arr.dtype))
 
