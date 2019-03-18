@@ -2369,8 +2369,11 @@ def test_add_with_monkeypatched_datetime(monkeypatch):
     with monkeypatch.context() as m:
         # monkeypatch datetime everywhere
         for mod_name, module in list(sys.modules.items()):
-            if (mod_name == __name__ or
-               module.__name__ in ('datetime',)):
+            try:
+                if (mod_name == __name__ or
+                module.__name__ in ('datetime',)):
+                    continue
+            except AttributeError:
                 continue
             for attribute_name in dir(module):
                 try:

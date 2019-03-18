@@ -384,6 +384,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
             obj.value += ts.nanosecond
             obj.dts.ps = ts.nanosecond * 1000
         except AttributeError:
+            # probably a subclass of datetime
             pass
 
     if nanos:
@@ -613,6 +614,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
         try:
             return dt.tz_localize(tz)
         except AttributeError:
+            # probably a subclass of datetime
             pass
     elif is_utc(tz):
         return _localize_pydatetime(dt, tz)

@@ -136,7 +136,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 
-- Bug with :class:`Timestamp` and :class:`CustomBusinessDay` arithmatic throwing an exception with datetime subclasses (:issue:`25734`)
+- Bug with :class:`Timestamp` and :class:`CustomBusinessDay` arithmetic throwing an exception with datetime subclasses (:issue:`25734`)
 -
 -
 
