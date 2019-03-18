@@ -2080,8 +2080,8 @@ class _iLocIndexer(_LocationIndexer):
             len_axis = len(self.obj._get_axis(axis))
 
             if not np.issubdtype(arr.dtype, np.number):
-                raise IndexError(".iloc requires integer indexers, found "
-                                 "type {dtype}".format(dtype=arr.dtype))
+                raise IndexError(".iloc requires integer indexers, got "
+                                 "{arr}".format(arr=arr))
 
             if len(arr) and (arr.max() >= len_axis or arr.min() < -len_axis):
                 raise IndexError("positional indexers are out-of-bounds")
