@@ -2373,9 +2373,10 @@ def test_add_with_monkeypatched_datetime(monkeypatch):
                 if (mod_name == __name__ or
                    module.__name__ in ('datetime',)):
                     continue
+                module_attributes = dir(module)
             except (ImportError, AttributeError, TypeError):
                 continue
-            for attribute_name in dir(module):
+            for attribute_name in module_attributes:
                 try:
                     attribute_value = getattr(module, attribute_name)
                 except (ImportError, AttributeError, TypeError):
