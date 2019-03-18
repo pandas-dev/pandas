@@ -198,7 +198,7 @@ Strings
 Interval
 ^^^^^^^^
 
--
+- Construction of :class:`Interval` is restricted to numeric, :class:`Timestamp` and :class:`Timedelta` endpoints (:issue:`23013`)
 -
 -
 
