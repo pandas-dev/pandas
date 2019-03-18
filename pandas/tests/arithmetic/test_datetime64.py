@@ -2373,7 +2373,7 @@ def test_add_with_monkeypatched_datetime(monkeypatch):
                 if (mod_name == __name__ or
                    module.__name__ in ('datetime',)):
                     continue
-            except AttributeError:
+            except (ImportError, AttributeError, TypeError):
                 continue
             for attribute_name in dir(module):
                 try:
