@@ -471,6 +471,18 @@ class Docstring(object):
                 desc = desc[:desc.index(full_directive)]
         return desc
 
+    def parameter_desc_list(self, param):
+        i = list(self.doc_parameters).index(param)
+        desc_list = self.doc._parsed_data['Parameters'][i][-1]
+        # Find and strip out any sphinx directives
+        for directive in DIRECTIVES:
+            full_directive = '.. {}'.format(directive)
+            for desc_item in desc_list:
+                if full_directive in desc_item:
+                    # Only retain any description before the directive
+                    desc_list = desc_list[:desc_list.index(desc_item)]
+        return desc_list
+
     @property
     def see_also(self):
         return collections.OrderedDict((name, ''.join(desc))
@@ -725,7 +737,21 @@ def get_validation_data(doc):
             if not doc.parameter_desc(param)[0].isupper():
                 errs.append(error('PR08', param_name=param))
             if doc.parameter_desc(param)[-1] != '.':
-                errs.append(error('PR09', param_name=param))
+
+                def end_with_bullet(param_desc_list):
+                    # Return True if a parameter description ends
+                    # with a bullet point
+                    desc_line = param_desc_list[-1]
+                    if desc_line and desc_line[0] in ['*', '-', '+']:
+                        return True
+                    elif desc_line and desc_line[0:2] == '  ':
+                        return end_with_bullet(param_desc_list[:-1])
+                    else:
+                        return False
+
+                desc_list = doc.parameter_desc_list(param)
+                if desc_list[-1][-1] != '.' and not end_with_bullet(desc_list):
+                    errs.append(error('PR09', param_name=param))
 
     if doc.is_function_or_method:
         if not doc.returns:
