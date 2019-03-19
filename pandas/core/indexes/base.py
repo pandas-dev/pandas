@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 import operator
 from textwrap import dedent
-import warnings
 from typing import Union
+import warnings
 
 import numpy as np
 

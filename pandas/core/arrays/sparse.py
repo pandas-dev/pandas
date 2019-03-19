@@ -6,8 +6,8 @@ from __future__ import division
 import numbers
 import operator
 import re
-import warnings
 from typing import Any, Callable, Union
+import warnings
 
 import numpy as np
 

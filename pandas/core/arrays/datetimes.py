@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, time, timedelta
 import textwrap
-import warnings
 from typing import Union
+import warnings
 
 import numpy as np
 from pytz import utc

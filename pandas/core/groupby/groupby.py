@@ -12,8 +12,8 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-import warnings
 from typing import Optional, Type
+import warnings
 
 import numpy as np
 
