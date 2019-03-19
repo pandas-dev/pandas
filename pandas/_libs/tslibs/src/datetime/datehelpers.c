@@ -322,74 +322,12 @@ static PyObject* concat_date_cols(PyObject *self, PyObject *args,
     }
 }
 
-static char not_datelike[sizeof(char) * 256];
-
-static PyObject* _does_string_look_like_datetime(PyObject* unused,
-                                                 PyObject* arg) {
-    char *buf = NULL, *endptr = NULL;
-    Py_ssize_t length = -1;
-    double converted_date;
-    int error = 0;
-    int result = 1;
-
-#if PY_MAJOR_VERSION == 2
-    if (!PyString_CheckExact(arg)) {
-        if (!PyUnicode_CheckExact(arg)) {
-            // arg is not a string, so it's certainly
-            // not a datetime-looking string
-            PyErr_SetString(PyExc_ValueError,
-                            "_does_string_look_like_datetime expects a string");
-            return NULL;
-        }
-        buf = PyUnicode_AS_DATA(arg);
-        length = (int)PyUnicode_GET_SIZE(arg);
-    } else {
-        if (PyString_AsStringAndSize(arg, &buf, &length) == -1) {
-            return NULL;
-        }
-    }
-#else
-    if (!PyUnicode_CheckExact(arg) || !PyUnicode_IS_READY(arg)) {
-        PyErr_SetString(PyExc_ValueError,
-                        "_does_string_look_like_datetime expects a string");
-        return NULL;
-    }
-    buf = PyUnicode_DATA(arg);
-    length = PyUnicode_GET_LENGTH(arg);
-#endif
-
-    if (length >= 1) {
-        char first = *buf;
-        if (first == '0') {
-            result = 1;
-        } else if (length == 1 && not_datelike[Py_CHARMASK(first)]) {
-            result = 0;
-        } else {
-            converted_date = xstrtod(buf, &endptr, '.', 'e', '\0', 1);
-            if ((errno == 0) && (endptr == buf + length)) {
-                result = (converted_date >= 1000) ? 1 : 0;
-            }
-        }
-    }
-
-    if (result) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
 static PyMethodDef module_methods[] = {
     /* name from python, name in C-file, ..., __doc__ string of method */
     {
         "concat_date_cols", (PyCFunction)concat_date_cols,
         METH_VARARGS | METH_KEYWORDS,
         "concatenates date cols and returns numpy array"
-    },
-    {
-        "_does_string_look_like_datetime", _does_string_look_like_datetime,
-        METH_O,
-        "checks if string looks like a datetime"
     },
     {NULL, NULL, 0, NULL}
 };
@@ -417,12 +355,6 @@ PY_DATEHELPERS_MODULE_INIT {
     import_array();
 
     module = PY_MODULE_CREATE;
-
-    memset(not_datelike, 0, sizeof(not_datelike));
-    not_datelike['a'] = not_datelike['A'] = 1;
-    not_datelike['m'] = not_datelike['M'] = 1;
-    not_datelike['p'] = not_datelike['P'] = 1;
-    not_datelike['t'] = not_datelike['T'] = 1;
 
     PY_RETURN_MODULE;
 }

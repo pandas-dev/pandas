@@ -635,7 +635,9 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
-        'include': []},
+        'include': common_include,
+        'depends': ['pandas/_libs/src/parser/tokenizer.h'],
+        'sources': ['pandas/_libs/src/parser/tokenizer.c']},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'include': ts_include,

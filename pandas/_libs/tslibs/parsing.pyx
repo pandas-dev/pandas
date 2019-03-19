@@ -6,6 +6,7 @@ import time
 from io import StringIO
 
 from libc.string cimport strchr
+from cpython cimport PyUnicode_Check, PyBytes_Check, PyBytes_AsStringAndSize
 
 from cpython.datetime cimport datetime, datetime_new, import_datetime
 from cpython.version cimport PY_VERSION_HEX
@@ -31,6 +32,21 @@ from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 cdef extern from "../src/headers/portable.h":
     int getdigit_ascii(char c, int default) nogil
 
+cdef extern from "../src/parser/tokenizer.h":
+    double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
+                   int skip_trailing)
+
+cdef extern from *:
+    char* PyUnicode_AsUTF8AndSize(object unicode, Py_ssize_t* length)
+
+cdef inline bint get_string_data(object s, char **buf, Py_ssize_t *length):
+    if PyUnicode_Check(s):
+        buf[0] = PyUnicode_AsUTF8AndSize(s, length)
+        return buf[0] != NULL
+    if PyBytes_Check(s):
+        return PyBytes_AsStringAndSize(s, buf, length) == 0
+    return False
+
 # ----------------------------------------------------------------------
 # Constants
 
@@ -43,6 +59,8 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
 
 cdef:
+    set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
+
     set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 # ----------------------------------------------------------------------
@@ -300,6 +318,30 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
     if parsed is None:
         raise DateParseError("Could not parse {dstr}".format(dstr=date_string))
     return parsed, parsed, reso
+
+
+cpdef bint _does_string_look_like_datetime(object date_string):
+    cdef:
+        char *buf = NULL
+        char *endptr = NULL
+        Py_ssize_t length = -1
+        double converted_date
+        char first
+
+    if not get_string_data(date_string, &buf, &length):
+        return False
+    if length >= 1:
+        first = buf[0]
+        if first == '0':
+            return True
+        elif length == 1 and date_string in _not_datelike_strings:
+            return False
+        else:
+            converted_date = xstrtod(buf, &endptr, '.', 'e', '\0', 1)
+            if errno == 0 and endptr == buf + length:
+                return converted_date >= 1000
+
+    return True
 
 
 cdef inline object _parse_dateabbr_string(object date_string, object default,
