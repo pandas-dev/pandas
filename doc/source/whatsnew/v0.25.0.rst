@@ -75,7 +75,7 @@ a dict to a Series groupby aggregation (:ref:`whatsnew_0200.api_breaking.depreca
 See :ref:`_groupby.aggregate.named` for more.
 
 
-.. _whatsnew_0240.enhancements.multi_index_repr:
+.. _whatsnew_0250.enhancements.multi_index_repr:
 
 Better repr for MultiIndex
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

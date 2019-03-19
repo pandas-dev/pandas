@@ -285,9 +285,9 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
     line_break_each_value : bool, default False
         If True, inserts a line break for each value of ``obj``.
         If False, only break lines when the a line of values gets wider
-        than the display width
+        than the display width.
 
-        .. versionadded:: 0.24.0
+        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -433,8 +433,7 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
 
 def _justify(head, tail):
     """
-    Justify each item in each list-like in head and tail, so each item
-    right-aligns when the two list-likes are stacked vertically.
+    Justify items in head and tail, so they are right-aligned when stacked.
 
     Parameters
     ----------
@@ -443,8 +442,9 @@ def _justify(head, tail):
 
     Returns
     -------
-    head : list of tuples of strings
-    tail : list of tuples of strings
+    tuple of list of tuples of strings
+        Same as head and tail, but items are right aligned when stacked
+        vertically.
 
     Examples
     --------
