@@ -105,6 +105,14 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
 
+    def test_factorize_empty(self, data):
+        labels, uniques = pd.factorize(data[:0])
+        expected_labels = np.array([], dtype=np.intp)
+        expected_uniques = type(data)._from_sequence([], dtype=data[:0].dtype)
+
+        tm.assert_numpy_array_equal(labels, expected_labels)
+        self.assert_extension_array_equal(uniques, expected_uniques)
+
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr})
@@ -232,7 +240,6 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = data.take([2, 3, 0, 0])
         self.assert_extension_array_equal(result, expected)
 
-    @pytest.mark.parametrize("as_frame", [True, False])
     def test_hash_pandas_object_works(self, data, as_frame):
         # https://github.com/pandas-dev/pandas/issues/23066
         data = pd.Series(data)
@@ -242,7 +249,6 @@ class BaseMethodsTests(BaseExtensionTests):
         b = pd.util.hash_pandas_object(data)
         self.assert_equal(a, b)
 
-    @pytest.mark.parametrize("as_series", [True, False])
     def test_searchsorted(self, data_for_sorting, as_series):
         b, c, a = data_for_sorting
         arr = type(data_for_sorting)._from_sequence([a, b, c])
@@ -267,7 +273,6 @@ class BaseMethodsTests(BaseExtensionTests):
         sorter = np.array([1, 2, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
-    @pytest.mark.parametrize("as_frame", [True, False])
     def test_where_series(self, data, na_value, as_frame):
         assert data[0] != data[1]
         cls = type(data)
@@ -301,8 +306,6 @@ class BaseMethodsTests(BaseExtensionTests):
             expected = expected.to_frame(name='a')
         self.assert_equal(result, expected)
 
-    @pytest.mark.parametrize("use_numpy", [True, False])
-    @pytest.mark.parametrize("as_series", [True, False])
     @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
     def test_repeat(self, data, repeats, as_series, use_numpy):
         arr = type(data)._from_sequence(data[:3], dtype=data.dtype)
@@ -319,7 +322,6 @@ class BaseMethodsTests(BaseExtensionTests):
 
         self.assert_equal(result, expected)
 
-    @pytest.mark.parametrize("use_numpy", [True, False])
     @pytest.mark.parametrize('repeats, kwargs, error, msg', [
         (2, dict(axis=1), ValueError, "'axis"),
         (-1, dict(), ValueError, "negative"),

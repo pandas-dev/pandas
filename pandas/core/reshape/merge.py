@@ -159,9 +159,15 @@ def merge_ordered(left, right, on=None,
         left DataFrame
     fill_method : {'ffill', None}, default None
         Interpolation method for data
-    suffixes : 2-length sequence (tuple, list, ...)
-        Suffix to apply to overlapping column names in the left and right
-        side, respectively
+    suffixes : Sequence, default is ("_x", "_y")
+        A length-2 sequence where each element is optionally a string
+        indicating the suffix to add to overlapping column names in
+        `left` and `right` respectively. Pass a value of `None` instead
+        of a string to indicate that the column name from `left` or
+        `right` should be left as-is, with no suffix. At least one of the
+        values must not be None.
+
+        .. versionchanged:: 0.25.0
     how : {'left', 'right', 'outer', 'inner'}, default 'outer'
         * left: use only keys from left frame (SQL: left outer join)
         * right: use only keys from right frame (SQL: right outer join)
@@ -757,13 +763,21 @@ class _MergeOperation(object):
 
             if self.right_index:
                 if len(self.left) > 0:
-                    join_index = self.left.index.take(left_indexer)
+                    join_index = self._create_join_index(self.left.index,
+                                                         self.right.index,
+                                                         left_indexer,
+                                                         right_indexer,
+                                                         how='right')
                 else:
                     join_index = self.right.index.take(right_indexer)
                     left_indexer = np.array([-1] * len(join_index))
             elif self.left_index:
                 if len(self.right) > 0:
-                    join_index = self.right.index.take(right_indexer)
+                    join_index = self._create_join_index(self.right.index,
+                                                         self.left.index,
+                                                         right_indexer,
+                                                         left_indexer,
+                                                         how='left')
                 else:
                     join_index = self.left.index.take(left_indexer)
                     right_indexer = np.array([-1] * len(join_index))
@@ -773,6 +787,39 @@ class _MergeOperation(object):
         if len(join_index) == 0:
             join_index = join_index.astype(object)
         return join_index, left_indexer, right_indexer
+
+    def _create_join_index(self, index, other_index, indexer,
+                           other_indexer, how='left'):
+        """
+        Create a join index by rearranging one index to match another
+
+        Parameters
+        ----------
+        index: Index being rearranged
+        other_index: Index used to supply values not found in index
+        indexer: how to rearrange index
+        how: replacement is only necessary if indexer based on other_index
+
+        Returns
+        -------
+        join_index
+        """
+        join_index = index.take(indexer)
+        if (self.how in (how, 'outer') and
+                not isinstance(other_index, MultiIndex)):
+            # if final index requires values in other_index but not target
+            # index, indexer may hold missing (-1) values, causing Index.take
+            # to take the final value in target index
+            mask = indexer == -1
+            if np.any(mask):
+                # if values missing (-1) from target index,
+                # take from other_index instead
+                join_list = join_index.to_numpy()
+                other_list = other_index.take(other_indexer).to_numpy()
+                join_list[mask] = other_list[mask]
+                join_index = Index(join_list, dtype=join_index.dtype,
+                                   name=join_index.name)
+        return join_index
 
     def _get_merge_keys(self):
         """
@@ -862,7 +909,7 @@ class _MergeOperation(object):
                               in zip(self.right.index.levels,
                                      self.right.index.codes)]
             else:
-                right_keys = [self.right.index.values]
+                right_keys = [self.right.index._values]
         elif _any(self.right_on):
             for k in self.right_on:
                 if is_rkey(k):
@@ -962,8 +1009,8 @@ class _MergeOperation(object):
             # object values are allowed to be merged
             elif ((lk_is_object and is_numeric_dtype(rk)) or
                   (is_numeric_dtype(lk) and rk_is_object)):
-                inferred_left = lib.infer_dtype(lk)
-                inferred_right = lib.infer_dtype(rk)
+                inferred_left = lib.infer_dtype(lk, skipna=False)
+                inferred_right = lib.infer_dtype(rk, skipna=False)
                 bool_types = ['integer', 'mixed-integer', 'boolean', 'empty']
                 string_types = ['string', 'unicode', 'mixed', 'bytes', 'empty']
 
@@ -1087,7 +1134,7 @@ class _MergeOperation(object):
         elif validate in ["one_to_many", "1:m"]:
             if not left_unique:
                 raise MergeError("Merge keys are not unique in left dataset;"
-                                 "not a one-to-many merge")
+                                 " not a one-to-many merge")
 
         elif validate in ["many_to_one", "m:1"]:
             if not right_unique:

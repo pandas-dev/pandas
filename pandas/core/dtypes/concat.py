@@ -9,8 +9,7 @@ from pandas._libs import tslib, tslibs
 from pandas.core.dtypes.common import (
     _NS_DTYPE, _TD_DTYPE, is_bool_dtype, is_categorical_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_dtype_equal,
-    is_extension_array_dtype, is_interval_dtype, is_object_dtype,
-    is_period_dtype, is_sparse, is_timedelta64_dtype)
+    is_extension_array_dtype, is_object_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex,
     ABCRangeIndex, ABCSparseDataFrame, ABCTimedeltaIndex)
@@ -51,9 +50,7 @@ def get_dtype_kinds(l):
             typ = 'object'
         elif is_bool_dtype(dtype):
             typ = 'bool'
-        elif is_period_dtype(dtype):
-            typ = str(arr.dtype)
-        elif is_interval_dtype(dtype):
+        elif is_extension_array_dtype(dtype):
             typ = str(arr.dtype)
         else:
             typ = dtype.kind
@@ -126,8 +123,6 @@ def _concat_compat(to_concat, axis=0):
         except Exception:
             return True
 
-    nonempty = [x for x in to_concat if is_nonempty(x)]
-
     # If all arrays are empty, there's nothing to convert, just short-cut to
     # the concatenation, #3121.
     #
@@ -136,7 +131,6 @@ def _concat_compat(to_concat, axis=0):
     # np.concatenate which has them both implemented is compiled.
 
     typs = get_dtype_kinds(to_concat)
-
     _contains_datetime = any(typ.startswith('datetime') for typ in typs)
     _contains_period = any(typ.startswith('period') for typ in typs)
 
@@ -152,11 +146,11 @@ def _concat_compat(to_concat, axis=0):
     elif 'sparse' in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
 
-    extensions = [is_extension_array_dtype(x) for x in to_concat]
-    if any(extensions) and axis == 1:
+    all_empty = all(not is_nonempty(x) for x in to_concat)
+    if any(is_extension_array_dtype(x) for x in to_concat) and axis == 1:
         to_concat = [np.atleast_2d(x.astype('object')) for x in to_concat]
 
-    if not nonempty:
+    if all_empty:
         # we have all empties, but may need to coerce the result dtype to
         # object if we have non-numeric type operands (numpy would otherwise
         # cast this to float)

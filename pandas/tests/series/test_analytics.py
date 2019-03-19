@@ -9,7 +9,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY35, lrange, range
+from pandas.compat import PY2, PY35, is_platform_windows, lrange, range
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -97,8 +97,10 @@ class TestSeriesAnalytics(object):
                                check_dtype=False)
         tm.assert_series_equal(qindexer, Series(qexpected),
                                check_dtype=False)
-        pytest.raises(AssertionError, tm.assert_numpy_array_equal,
-                      qindexer, mindexer)
+        msg = (r"ndarray Expected type <(class|type) 'numpy\.ndarray'>,"
+               r" found <class 'pandas\.core\.series\.Series'> instead")
+        with pytest.raises(AssertionError, match=msg):
+            tm.assert_numpy_array_equal(qindexer, mindexer)
 
     def test_cumsum(self, datetime_series):
         self._check_accum_op('cumsum', datetime_series)
@@ -283,6 +285,17 @@ class TestSeriesAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.round(s, decimals=0, out=s)
 
+    @pytest.mark.xfail(
+        PY2 and is_platform_windows(), reason="numpy/numpy#7882",
+        raises=AssertionError, strict=True)
+    def test_numpy_round_nan(self):
+        # See gh-14197
+        s = Series([1.53, np.nan, 0.06])
+        with tm.assert_produces_warning(None):
+            result = s.round()
+        expected = Series([2., np.nan, 0.])
+        assert_series_equal(result, expected)
+
     def test_built_in_round(self):
         if not compat.PY3:
             pytest.skip(
@@ -374,8 +387,8 @@ class TestSeriesAnalytics(object):
         # GH PR #22298
         s1 = pd.Series(np.random.randn(10))
         s2 = pd.Series(np.random.randn(10))
-        msg = ("method must be either 'pearson', 'spearman', "
-               "or 'kendall'")
+        msg = ("method must be either 'pearson', "
+               "'spearman', 'kendall', or a callable, ")
         with pytest.raises(ValueError, match=msg):
             s1.corr(s2, method="____")
 
@@ -476,8 +489,13 @@ class TestSeriesAnalytics(object):
         assert_almost_equal(a.dot(b['1']), expected['1'])
         assert_almost_equal(a.dot(b2['1']), expected['1'])
 
-        pytest.raises(Exception, a.dot, a.values[:3])
-        pytest.raises(ValueError, a.dot, b.T)
+        msg = r"Dot product shape mismatch, \(4L?,\) vs \(3L?,\)"
+        # exception raised is of type Exception
+        with pytest.raises(Exception, match=msg):
+            a.dot(a.values[:3])
+        msg = "matrices are not aligned"
+        with pytest.raises(ValueError, match=msg):
+            a.dot(b.T)
 
     @pytest.mark.skipif(not PY35,
                         reason='matmul supported for Python>=3.5')
@@ -541,8 +559,13 @@ class TestSeriesAnalytics(object):
                           index=['1', '2', '3'])
         assert_series_equal(result, expected)
 
-        pytest.raises(Exception, a.dot, a.values[:3])
-        pytest.raises(ValueError, a.dot, b.T)
+        msg = r"Dot product shape mismatch, \(4,\) vs \(3,\)"
+        # exception raised is of type Exception
+        with pytest.raises(Exception, match=msg):
+            a.dot(a.values[:3])
+        msg = "matrices are not aligned"
+        with pytest.raises(ValueError, match=msg):
+            a.dot(b.T)
 
     def test_clip(self, datetime_series):
         val = datetime_series.median()
@@ -697,11 +720,13 @@ class TestSeriesAnalytics(object):
     def test_isin_with_string_scalar(self):
         # GH4763
         s = Series(['A', 'B', 'C', 'a', 'B', 'B', 'A', 'C'])
-        with pytest.raises(TypeError):
+        msg = (r"only list-like objects are allowed to be passed to isin\(\),"
+               r" you passed a \[str\]")
+        with pytest.raises(TypeError, match=msg):
             s.isin('a')
 
-        with pytest.raises(TypeError):
-            s = Series(['aaa', 'b', 'c'])
+        s = Series(['aaa', 'b', 'c'])
+        with pytest.raises(TypeError, match=msg):
             s.isin('aaa')
 
     def test_isin_with_i8(self):
@@ -746,6 +771,7 @@ class TestSeriesAnalytics(object):
         result = s.isin(empty)
         tm.assert_series_equal(expected, result)
 
+    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_ptp(self):
         # GH21614
         N = 1000
@@ -771,18 +797,22 @@ class TestSeriesAnalytics(object):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
-        with pytest.raises(ValueError):
+        msg = ("No axis named 1 for object type"
+               " <class 'pandas.core.series.Series'>")
+        with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 s.ptp(axis=1)
 
         s = pd.Series(['a', 'b', 'c', 'd', 'e'])
-        with pytest.raises(TypeError):
+        msg = r"unsupported operand type\(s\) for -: 'str' and 'str'"
+        with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 s.ptp()
 
-        with pytest.raises(NotImplementedError):
+        msg = r"Series\.ptp does not implement numeric_only\."
+        with pytest.raises(NotImplementedError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 s.ptp(numeric_only=True)
@@ -1103,20 +1133,27 @@ class TestSeriesAnalytics(object):
         param = list(kwargs)[0]
         name = func.__name__
 
-        msg = "the '{}' parameter .* {}".format(param, name)
+        msg = (r"the '{arg}' parameter is not "
+               r"supported in the pandas "
+               r"implementation of {fname}\(\)").format(arg=param, fname=name)
         with pytest.raises(ValueError, match=msg):
             func(s, **kwargs)
 
     @td.skip_if_np_lt_115
     def test_validate_sum_initial(self):
         s = pd.Series([1, 2])
-        with pytest.raises(ValueError, match="the 'initial' .* sum"):
+        msg = (r"the 'initial' parameter is not "
+               r"supported in the pandas "
+               r"implementation of sum\(\)")
+        with pytest.raises(ValueError, match=msg):
             np.sum(s, initial=10)
 
     def test_validate_median_initial(self):
         s = pd.Series([1, 2])
-        with pytest.raises(ValueError,
-                           match="the 'overwrite_input' .* median"):
+        msg = (r"the 'overwrite_input' parameter is not "
+               r"supported in the pandas "
+               r"implementation of median\(\)")
+        with pytest.raises(ValueError, match=msg):
             # It seems like np.median doesn't dispatch, so we use the
             # method instead of the ufunc.
             s.median(overwrite_input=True)
@@ -1124,8 +1161,10 @@ class TestSeriesAnalytics(object):
     @td.skip_if_np_lt_115
     def test_validate_stat_keepdims(self):
         s = pd.Series([1, 2])
-        with pytest.raises(ValueError,
-                           match="the 'keepdims'"):
+        msg = (r"the 'keepdims' parameter is not "
+               r"supported in the pandas "
+               r"implementation of sum\(\)")
+        with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
 
 

@@ -1,9 +1,9 @@
-from collections import deque
+from collections import OrderedDict, deque
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
 from itertools import combinations
-from warnings import catch_warnings, simplefilter
+from warnings import catch_warnings
 
 import dateutil
 import numpy as np
@@ -16,8 +16,9 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Panel, Series,
+    Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series,
     Timestamp, concat, date_range, isna, read_csv)
+import pandas.core.common as com
 from pandas.tests.extension.decimal import to_decimal
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, makeCustomDataframe as mkdf
@@ -196,9 +197,8 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_series_equal(res, exp, check_index_type=True)
 
             # cannot append non-index
-            msg = (r'cannot concatenate object of type \"(.+?)\";'
-                   ' only pd.Series, pd.DataFrame, and pd.Panel'
-                   r' \(deprecated\) objs are valid')
+            msg = (r"cannot concatenate object of type '.+';"
+                   " only Series and DataFrame objs are valid")
             with pytest.raises(TypeError, match=msg):
                 pd.Series(vals1).append(vals2)
 
@@ -495,7 +495,7 @@ class TestConcatAppendCommon(ConcatenateBase):
         s1 = pd.Series([10, 11, np.nan], dtype='category')
         s2 = pd.Series([np.nan, 1, 3, 2], dtype='category')
 
-        exp = pd.Series([10, 11, np.nan, np.nan, 1, 3, 2])
+        exp = pd.Series([10, 11, np.nan, np.nan, 1, 3, 2], dtype='object')
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
@@ -515,12 +515,12 @@ class TestConcatAppendCommon(ConcatenateBase):
         s1 = pd.Series([1, 2, np.nan], dtype='category')
         s2 = pd.Series([2, 1, 2])
 
-        exp = pd.Series([1, 2, np.nan, 2, 1, 2])
+        exp = pd.Series([1, 2, np.nan, 2, 1, 2], dtype='object')
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
         # result shouldn't be affected by 1st elem dtype
-        exp = pd.Series([2, 1, 2, 1, 2, np.nan])
+        exp = pd.Series([2, 1, 2, 1, 2, np.nan], dtype='object')
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
@@ -540,11 +540,11 @@ class TestConcatAppendCommon(ConcatenateBase):
         s1 = pd.Series([10, 11, np.nan], dtype='category')
         s2 = pd.Series([1, 3, 2])
 
-        exp = pd.Series([10, 11, np.nan, 1, 3, 2])
+        exp = pd.Series([10, 11, np.nan, 1, 3, 2], dtype='object')
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
-        exp = pd.Series([1, 3, 2, 10, 11, np.nan])
+        exp = pd.Series([1, 3, 2, 10, 11, np.nan], dtype='object')
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
@@ -580,11 +580,13 @@ class TestConcatAppendCommon(ConcatenateBase):
         s2 = pd.Series([2, 1, 2], dtype='category')
         s3 = pd.Series([1, 2, 1, 2, np.nan])
 
-        exp = pd.Series([1, 2, np.nan, 2, 1, 2, 1, 2, 1, 2, np.nan])
+        exp = pd.Series([1, 2, np.nan, 2, 1, 2, 1, 2, 1, 2, np.nan],
+                        dtype='object')
         tm.assert_series_equal(pd.concat([s1, s2, s3], ignore_index=True), exp)
         tm.assert_series_equal(s1.append([s2, s3], ignore_index=True), exp)
 
-        exp = pd.Series([1, 2, 1, 2, np.nan, 1, 2, np.nan, 2, 1, 2])
+        exp = pd.Series([1, 2, 1, 2, np.nan, 1, 2, np.nan, 2, 1, 2],
+                        dtype='object')
         tm.assert_series_equal(pd.concat([s3, s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s3.append([s1, s2], ignore_index=True), exp)
 
@@ -668,7 +670,7 @@ class TestConcatAppendCommon(ConcatenateBase):
         s1 = pd.Series([1, np.nan], dtype='category')
         s2 = pd.Series([np.nan, np.nan])
 
-        exp = pd.Series([1, np.nan, np.nan, np.nan])
+        exp = pd.Series([1, np.nan, np.nan, np.nan], dtype='object')
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
@@ -775,7 +777,8 @@ class TestAppend(ConcatenateBase):
         assert appended is not self.frame
 
         # Overlap
-        with pytest.raises(ValueError):
+        msg = "Indexes have overlapping values"
+        with pytest.raises(ValueError, match=msg):
             self.frame.append(self.frame, verify_integrity=True)
 
         # see gh-6129: new columns
@@ -958,13 +961,23 @@ class TestAppend(ConcatenateBase):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=index_can_append)
         ser = pd.Series([7, 8, 9], index=index_cannot_append_with_other,
                         name=2)
-        with pytest.raises(TypeError):
+        msg = ("the other index needs to be an IntervalIndex too, but was"
+               r" type {}|"
+               r"object of type '(int|long|float|Timestamp)' has no len\(\)|"
+               "Expected tuple, got str")
+        with pytest.raises(TypeError, match=msg.format(
+                index_can_append.__class__.__name__)):
             df.append(ser)
 
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]],
                           columns=index_cannot_append_with_other)
         ser = pd.Series([7, 8, 9], index=index_can_append, name=2)
-        with pytest.raises(TypeError):
+        msg = (r"unorderable types: (Interval|int)\(\) > "
+               r"(int|long|float|str)\(\)|"
+               r"Expected tuple, got (int|long|float|str)|"
+               r"Cannot compare type 'Timestamp' with type '(int|long)'|"
+               r"'>' not supported between instances of 'int' and 'str'")
+        with pytest.raises(TypeError, match=msg):
             df.append(ser)
 
     def test_append_dtype_coerce(self, sort):
@@ -1150,7 +1163,7 @@ class TestConcatenate(ConcatenateBase):
                   'baz': DataFrame(np.random.randn(4, 3)),
                   'qux': DataFrame(np.random.randn(4, 3))}
 
-        sorted_keys = sorted(frames)
+        sorted_keys = com.dict_keys_to_ordered_list(frames)
 
         result = concat(frames)
         expected = concat([frames[k] for k in sorted_keys], keys=sorted_keys)
@@ -1289,11 +1302,15 @@ class TestConcatenate(ConcatenateBase):
         df = DataFrame(np.random.randn(1, 3), index=['a'])
         df2 = DataFrame(np.random.randn(1, 4), index=['b'])
 
-        pytest.raises(ValueError, concat, [df, df],
-                      keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+        msg = "Values not found in passed level"
+        with pytest.raises(ValueError, match=msg):
+            concat([df, df],
+                   keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
 
-        pytest.raises(ValueError, concat, [df, df2],
-                      keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+        msg = "Key one not in level"
+        with pytest.raises(ValueError, match=msg):
+            concat([df, df2],
+                   keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
 
     def test_concat_rename_index(self):
         a = DataFrame(np.random.rand(3, 3),
@@ -1482,12 +1499,6 @@ class TestConcatenate(ConcatenateBase):
         result = concat([s1, df, s2], ignore_index=True)
         assert_frame_equal(result, expected)
 
-        # invalid concatente of mixed dims
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            panel = tm.makePanel()
-            pytest.raises(ValueError, lambda: concat([panel, s1], axis=1))
-
     def test_empty_dtype_coerce(self):
 
         # xref to #12411
@@ -1522,61 +1533,6 @@ class TestConcatenate(ConcatenateBase):
         df = DataFrame({'text': ['some words'] + [None] * 9})
         result = concat([df.iloc[[0]], df.iloc[[1]]])
         tm.assert_series_equal(result.dtypes, df.dtypes)
-
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_panel_concat_other_axes(self):
-        panel = tm.makePanel()
-
-        p1 = panel.iloc[:, :5, :]
-        p2 = panel.iloc[:, 5:, :]
-
-        result = concat([p1, p2], axis=1)
-        tm.assert_panel_equal(result, panel)
-
-        p1 = panel.iloc[:, :, :2]
-        p2 = panel.iloc[:, :, 2:]
-
-        result = concat([p1, p2], axis=2)
-        tm.assert_panel_equal(result, panel)
-
-        # if things are a bit misbehaved
-        p1 = panel.iloc[:2, :, :2]
-        p2 = panel.iloc[:, :, 2:]
-        p1['ItemC'] = 'baz'
-
-        result = concat([p1, p2], axis=2)
-
-        expected = panel.copy()
-        expected['ItemC'] = expected['ItemC'].astype('O')
-        expected.loc['ItemC', :, :2] = 'baz'
-        tm.assert_panel_equal(result, expected)
-
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    # Panel.rename warning we don't care about
-    @pytest.mark.filterwarnings("ignore:Using:FutureWarning")
-    def test_panel_concat_buglet(self, sort):
-        # #2257
-        def make_panel():
-            index = 5
-            cols = 3
-
-            def df():
-                return DataFrame(np.random.randn(index, cols),
-                                 index=["I%s" % i for i in range(index)],
-                                 columns=["C%s" % i for i in range(cols)])
-            return Panel({"Item%s" % x: df() for x in ['A', 'B', 'C']})
-
-        panel1 = make_panel()
-        panel2 = make_panel()
-
-        panel2 = panel2.rename(major_axis={x: "%s_1" % x
-                                           for x in panel2.major_axis})
-
-        panel3 = panel2.rename(major_axis=lambda x: '%s_1' % x)
-        panel3 = panel3.rename(minor_axis=lambda x: '%s_1' % x)
-
-        # it works!
-        concat([panel1, panel3], axis=1, verify_integrity=True, sort=sort)
 
     def test_concat_series(self):
 
@@ -1664,7 +1620,8 @@ class TestConcatenate(ConcatenateBase):
         pieces = [df[:5], None, None, df[5:]]
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
-        pytest.raises(ValueError, concat, [None, None])
+        with pytest.raises(ValueError, match="All objects passed were None"):
+            concat([None, None])
 
     def test_concat_datetime64_block(self):
         from pandas.core.indexes.datetimes import date_range
@@ -1797,13 +1754,19 @@ class TestConcatenate(ConcatenateBase):
 
         # trying to concat a ndframe with a non-ndframe
         df1 = mkdf(10, 2)
+        msg = ("cannot concatenate object of type '{}';"
+               " only Series and DataFrame objs are valid")
         for obj in [1, dict(), [1, 2], (1, 2)]:
-            pytest.raises(TypeError, lambda x: concat([df1, obj]))
+            with pytest.raises(TypeError, match=msg.format(type(obj))):
+                concat([df1, obj])
 
     def test_concat_invalid_first_argument(self):
         df1 = mkdf(10, 2)
         df2 = mkdf(10, 2)
-        pytest.raises(TypeError, concat, df1, df2)
+        msg = ('first argument must be an iterable of pandas '
+               'objects, you passed an object of type "DataFrame"')
+        with pytest.raises(TypeError, match=msg):
+            concat(df1, df2)
 
         # generator ok though
         concat(DataFrame(np.random.rand(5, 5)) for _ in range(3))
@@ -2308,7 +2271,9 @@ bar2,12,13,14,15
         # wrong catgories
         df3 = DataFrame({'A': a, 'B': Categorical(b, categories=list('abe'))
                          }).set_index('B')
-        pytest.raises(TypeError, lambda: pd.concat([df2, df3]))
+        msg = "categories must match existing categories when appending"
+        with pytest.raises(TypeError, match=msg):
+            pd.concat([df2, df3])
 
     def test_concat_categoricalindex(self):
         # GH 16111, categories that aren't lexsorted
@@ -2406,10 +2371,17 @@ bar2,12,13,14,15
         ], dtype=object)
         tm.assert_series_equal(result, expected)
 
+    def test_concat_odered_dict(self):
+        # GH 21510
+        expected = pd.concat([pd.Series(range(3)), pd.Series(range(4))],
+                             keys=['First', 'Another'])
+        result = pd.concat(OrderedDict([('First', pd.Series(range(3))),
+                                        ('Another', pd.Series(range(4)))]))
+        tm.assert_series_equal(result, expected)
 
-@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
+
+@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame])
 @pytest.mark.parametrize('dt', np.sctypes['float'])
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_concat_no_unnecessary_upcast(dt, pdt):
     # GH 13247
     dims = pdt().ndim
@@ -2420,9 +2392,8 @@ def test_concat_no_unnecessary_upcast(dt, pdt):
     assert x.values.dtype == dt
 
 
-@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
+@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame])
 @pytest.mark.parametrize('dt', np.sctypes['int'])
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_concat_will_upcast(dt, pdt):
     with catch_warnings(record=True):
         dims = pdt().ndim

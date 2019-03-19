@@ -5,6 +5,7 @@ import cython
 import time
 from cpython.datetime cimport (PyDateTime_IMPORT,
                                PyDateTime_Check,
+                               PyDelta_Check,
                                datetime, timedelta,
                                time as dt_time)
 PyDateTime_IMPORT
@@ -17,6 +18,7 @@ from numpy cimport int64_t
 cnp.import_array()
 
 
+from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport is_string_object, is_integer_object
 
 from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
@@ -27,6 +29,9 @@ from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
 from pandas._libs.tslibs.timezones import UTC
+
+
+PY2 = bytes == str
 
 # ---------------------------------------------------------------------
 # Constants
@@ -125,6 +130,26 @@ def apply_index_wraps(func):
         pass
     return wrapper
 
+
+cdef _wrap_timedelta_result(result):
+    """
+    Tick operations dispatch to their Timedelta counterparts.  Wrap the result
+    of these operations in a Tick if possible.
+
+    Parameters
+    ----------
+    result : object
+
+    Returns
+    -------
+    object
+    """
+    if PyDelta_Check(result):
+        # convert Timedelta back to a Tick
+        from pandas.tseries.offsets import _delta_to_tick
+        return _delta_to_tick(result)
+
+    return result
 
 # ---------------------------------------------------------------------
 # Business Helpers
@@ -384,16 +409,20 @@ class _BaseOffset(object):
         return self.apply(other)
 
     def __mul__(self, other):
+        if hasattr(other, "_typ"):
+            return NotImplemented
+        if util.is_array(other):
+            return np.array([self * x for x in other])
         return type(self)(n=other * self.n, normalize=self.normalize,
                           **self.kwds)
 
     def __neg__(self):
-        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # Note: we are deferring directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * -1
 
     def copy(self):
-        # Note: we are defering directly to __mul__ instead of __rmul__, as
+        # Note: we are deferring directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * 1
 
@@ -434,6 +463,9 @@ class _BaseOffset(object):
         TypeError if `int(n)` raises
         ValueError if n != int(n)
         """
+        if util.is_timedelta64_object(n):
+            raise TypeError('`n` argument must be an integer, '
+                            'got {ntype}'.format(ntype=type(n)))
         try:
             nint = int(n)
         except (ValueError, TypeError):
@@ -508,7 +540,21 @@ class _Tick(object):
     dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
     can do isinstance checks on _Tick and avoid importing tseries.offsets
     """
-    pass
+
+    # ensure that reversed-ops with numpy scalars return NotImplemented
+    __array_priority__ = 1000
+
+    def __truediv__(self, other):
+        result = self.delta.__truediv__(other)
+        return _wrap_timedelta_result(result)
+
+    def __rtruediv__(self, other):
+        result = self.delta.__rtruediv__(other)
+        return _wrap_timedelta_result(result)
+
+    if PY2:
+        __div__ = __truediv__
+        __rdiv__ = __rtruediv__
 
 
 # ----------------------------------------------------------------------
@@ -847,11 +893,15 @@ def shift_month(stamp: datetime, months: int,
     ----------
     stamp : datetime or Timestamp
     months : int
-    day_opt : None, 'start', 'end', or an integer
+    day_opt : None, 'start', 'end', 'business_start', 'business_end', or int
         None: returned datetimelike has the same day as the input, or the
               last day of the month if the new month is too short
         'start': returned datetimelike has day=1
         'end': returned datetimelike has day on the last day of the month
+        'business_start': returned datetimelike has day on the first
+            business day of the month
+        'business_end': returned datetimelike has day on the last
+            business day of the month
         int: returned datetimelike has day equal to day_opt
 
     Returns
@@ -899,9 +949,13 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     Parameters
     ----------
     other : datetime or Timestamp
-    day_opt : 'start', 'end'
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
         'start': returns 1
         'end': returns last day of the month
+        'business_start': returns the first business day of the month
+        'business_end': returns the last business day of the month
+        int: returns the day in the month indicated by `other`, or the last of
+            day the month if the value exceeds in that month's number of days.
 
     Returns
     -------
@@ -976,7 +1030,7 @@ def roll_qtrday(other: datetime, n: int, month: int,
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
     month : int reference month giving the first month of the year
-    day_opt : 'start', 'end', 'business_start', 'business_end'
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
         The convention to use in finding the day in a given month against
         which to compare for rollforward/rollbackward decisions.
     modby : int 3 for quarters, 12 for years
@@ -984,6 +1038,10 @@ def roll_qtrday(other: datetime, n: int, month: int,
     Returns
     -------
     n : int number of periods to increment
+
+    See Also
+    --------
+    get_day_of_month : Find the day in a month provided an offset.
     """
     cdef:
         int months_since
@@ -1018,9 +1076,16 @@ def roll_yearday(other: datetime, n: int, month: int, day_opt: object) -> int:
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
     month : reference month giving the first month of the year
-    day_opt : 'start', 'end'
-        'start': returns 1
-        'end': returns last day of the month
+    day_opt : 'start', 'end', 'business_start', 'business_end', or int
+        The day of the month to compare against that of `other` when
+        incrementing or decrementing the number of periods:
+
+        'start': 1
+        'end': last day of the month
+        'business_start': first business day of the month
+        'business_end': last business day of the month
+        int: day in the month indicated by `other`, or the last of day
+            the month if the value exceeds in that month's number of days.
 
     Returns
     -------

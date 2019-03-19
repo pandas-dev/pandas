@@ -157,7 +157,7 @@ def _stringify_path(filepath_or_buffer):
         return text_type(filepath_or_buffer)
     if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
         return filepath_or_buffer.strpath
-    return filepath_or_buffer
+    return _expand_user(filepath_or_buffer)
 
 
 def is_s3_url(url):
@@ -434,7 +434,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     if (compat.PY3 and is_text and
             (compression or isinstance(f, need_text_wrapping))):
         from io import TextIOWrapper
-        f = TextIOWrapper(f, encoding=encoding)
+        f = TextIOWrapper(f, encoding=encoding, newline='')
         handles.append(f)
 
     if memory_map and hasattr(f, 'fileno'):

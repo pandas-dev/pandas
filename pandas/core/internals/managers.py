@@ -16,7 +16,7 @@ from pandas.core.dtypes.cast import (
     maybe_promote)
 from pandas.core.dtypes.common import (
     _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
-    is_extension_type, is_numeric_v_string_like, is_scalar)
+    is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -402,40 +402,58 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
-    def reduction(self, f, axis=0, consolidate=True, transposed=False,
-                  **kwargs):
+    def quantile(self, axis=0, consolidate=True, transposed=False,
+                 interpolation='linear', qs=None, numeric_only=None):
         """
-        iterate over the blocks, collect and create a new block manager.
+        Iterate over blocks applying quantile reduction.
         This routine is intended for reduction type operations and
         will do inference on the generated blocks.
 
         Parameters
         ----------
-        f: the callable or function name to operate on at the block level
         axis: reduction axis, default 0
         consolidate: boolean, default True. Join together blocks having same
             dtype
         transposed: boolean, default False
             we are holding transposed data
+        interpolation : type of interpolation, default 'linear'
+        qs : a scalar or list of the quantiles to be computed
+        numeric_only : ignored
 
         Returns
         -------
         Block Manager (new object)
-
         """
+
+        # Series dispatches to DataFrame for quantile, which allows us to
+        #  simplify some of the code here and in the blocks
+        assert self.ndim >= 2
 
         if consolidate:
             self._consolidate_inplace()
 
+        def get_axe(block, qs, axes):
+            from pandas import Float64Index
+            if is_list_like(qs):
+                ax = Float64Index(qs)
+            elif block.ndim == 1:
+                ax = Float64Index([qs])
+            else:
+                ax = axes[0]
+            return ax
+
         axes, blocks = [], []
         for b in self.blocks:
-            axe, block = getattr(b, f)(axis=axis, axes=self.axes, **kwargs)
+            block = b.quantile(axis=axis, qs=qs, interpolation=interpolation)
+
+            axe = get_axe(b, qs, axes=self.axes)
 
             axes.append(axe)
             blocks.append(block)
 
         # note that some DatetimeTZ, Categorical are always ndim==1
         ndim = {b.ndim for b in blocks}
+        assert 0 not in ndim, ndim
 
         if 2 in ndim:
 
@@ -461,15 +479,7 @@ class BlockManager(PandasObject):
 
             return self.__class__(blocks, new_axes)
 
-        # 0 ndim
-        if 0 in ndim and 1 not in ndim:
-            values = np.array([b.values for b in blocks])
-            if len(values) == 1:
-                return values.item()
-            blocks = [make_block(values, ndim=1)]
-            axes = Index([ax[0] for ax in axes])
-
-        # single block
+        # single block, i.e. ndim == {1}
         values = _concat._concat_compat([b.values for b in blocks])
 
         # compute the orderings of our original data
@@ -495,9 +505,6 @@ class BlockManager(PandasObject):
 
     def where(self, **kwargs):
         return self.apply('where', **kwargs)
-
-    def quantile(self, **kwargs):
-        return self.reduction('quantile', **kwargs)
 
     def setitem(self, **kwargs):
         return self.apply('setitem', **kwargs)
@@ -545,9 +552,9 @@ class BlockManager(PandasObject):
             if isna(s):
                 return isna(values)
             if hasattr(s, 'asm8'):
-                return _compare_or_regex_match(maybe_convert_objects(values),
-                                               getattr(s, 'asm8'), regex)
-            return _compare_or_regex_match(values, s, regex)
+                return _compare_or_regex_search(maybe_convert_objects(values),
+                                                getattr(s, 'asm8'), regex)
+            return _compare_or_regex_search(values, s, regex)
 
         masks = [comp(s, regex) for i, s in enumerate(src_list)]
 
@@ -576,10 +583,6 @@ class BlockManager(PandasObject):
         bm = self.__class__(result_blocks, self.axes)
         bm._consolidate_inplace()
         return bm
-
-    def reshape_nd(self, axes, **kwargs):
-        """ a 2d-nd reshape operation on a BlockManager """
-        return self.apply('reshape_nd', axes=axes, **kwargs)
 
     def is_consolidated(self):
         """
@@ -1667,7 +1670,15 @@ def create_block_manager_from_arrays(arrays, names, axes):
 def construction_error(tot_items, block_shape, axes, e=None):
     """ raise a helpful message about our construction """
     passed = tuple(map(int, [tot_items] + list(block_shape)))
-    implied = tuple(map(int, [len(ax) for ax in axes]))
+    # Correcting the user facing error message during dataframe construction
+    if len(passed) <= 2:
+        passed = passed[::-1]
+
+    implied = tuple(len(ax) for ax in axes)
+    # Correcting the user facing error message during dataframe construction
+    if len(implied) <= 2:
+        implied = implied[::-1]
+
     if passed == implied and e is not None:
         raise e
     if block_shape[0] == 0:
@@ -1886,11 +1897,11 @@ def _consolidate(blocks):
     return new_blocks
 
 
-def _compare_or_regex_match(a, b, regex=False):
+def _compare_or_regex_search(a, b, regex=False):
     """
     Compare two array_like inputs of the same shape or two scalar values
 
-    Calls operator.eq or re.match, depending on regex argument. If regex is
+    Calls operator.eq or re.search, depending on regex argument. If regex is
     True, perform an element-wise regex matching.
 
     Parameters
@@ -1906,7 +1917,7 @@ def _compare_or_regex_match(a, b, regex=False):
     if not regex:
         op = lambda x: operator.eq(x, b)
     else:
-        op = np.vectorize(lambda x: bool(re.match(b, x)) if isinstance(x, str)
+        op = np.vectorize(lambda x: bool(re.search(b, x)) if isinstance(x, str)
                           else False)
 
     is_a_array = isinstance(a, np.ndarray)
@@ -1956,15 +1967,27 @@ def items_overlap_with_suffix(left, lsuffix, right, rsuffix):
             raise ValueError('columns overlap but no suffix specified: '
                              '{rename}'.format(rename=to_rename))
 
-        def lrenamer(x):
-            if x in to_rename:
-                return '{x}{lsuffix}'.format(x=x, lsuffix=lsuffix)
+        def renamer(x, suffix):
+            """Rename the left and right indices.
+
+            If there is overlap, and suffix is not None, add
+            suffix, otherwise, leave it as-is.
+
+            Parameters
+            ----------
+            x : original column name
+            suffix : str or None
+
+            Returns
+            -------
+            x : renamed column name
+            """
+            if x in to_rename and suffix is not None:
+                return '{x}{suffix}'.format(x=x, suffix=suffix)
             return x
 
-        def rrenamer(x):
-            if x in to_rename:
-                return '{x}{rsuffix}'.format(x=x, rsuffix=rsuffix)
-            return x
+        lrenamer = partial(renamer, suffix=lsuffix)
+        rrenamer = partial(renamer, suffix=rsuffix)
 
         return (_transform_index(left, lrenamer),
                 _transform_index(right, rrenamer))

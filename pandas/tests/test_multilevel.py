@@ -15,7 +15,7 @@ from pandas.compat import (
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Panel, Series, Timestamp, isna
+from pandas import DataFrame, Series, Timestamp, isna
 from pandas.core.index import Index, MultiIndex
 import pandas.util.testing as tm
 
@@ -47,8 +47,7 @@ class Base(object):
         s[3] = np.NaN
         self.series = s
 
-        tm.N = 100
-        self.tdf = tm.makeTimeDataFrame()
+        self.tdf = tm.makeTimeDataFrame(100)
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
                                      lambda x: x.day]).sum()
 
@@ -819,18 +818,6 @@ Thur,Lunch,Yes,51.51,17"""
         exp = self.frame.swaplevel('first', 'second').T
         tm.assert_frame_equal(swapped, exp)
 
-    def test_swaplevel_panel(self):
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
-            expected = panel.copy()
-            expected.major_axis = expected.major_axis.swaplevel(0, 1)
-
-            for result in (panel.swaplevel(axis='major'),
-                           panel.swaplevel(0, axis='major'),
-                           panel.swaplevel(0, 1, axis='major')):
-                tm.assert_panel_equal(result, expected)
-
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(['month', 'day', 'year'])
         expected = self.ymd.swaplevel(0, 1).swaplevel(1, 2)
@@ -899,8 +886,11 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expect, check_names=False)
         assert result.index.name == 'a'
 
-        pytest.raises(KeyError, series.count, 'x')
-        pytest.raises(KeyError, frame.count, level='x')
+        msg = "Level x not found"
+        with pytest.raises(KeyError, match=msg):
+            series.count('x')
+        with pytest.raises(KeyError, match=msg):
+            frame.count(level='x')
 
     @pytest.mark.parametrize('op', AGG_FUNCTIONS)
     @pytest.mark.parametrize('level', [0, 1])
@@ -1132,7 +1122,8 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
 
-        pytest.raises(KeyError, series.__getitem__, (('foo', 'bar', 0), 2))
+        with pytest.raises(KeyError, match=r"^\(\('foo', 'bar', 0\), 2\)$"):
+            series[('foo', 'bar', 0), 2]
 
         result = frame.loc[('foo', 'bar', 0)]
         result2 = frame.xs(('foo', 'bar', 0))

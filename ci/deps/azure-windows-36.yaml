@@ -6,7 +6,7 @@ dependencies:
   - blosc
   - bottleneck
   - boost-cpp<1.67
-  - fastparquet
+  - fastparquet>=0.2.1
   - matplotlib
   - numexpr
   - numpy=1.14*
@@ -15,15 +15,16 @@ dependencies:
   - pyarrow
   - pytables
   - python-dateutil
-  - python=3.6.6
+  - python=3.6.*
   - pytz
   - scipy
-  - thrift=0.10*
   - xlrd
   - xlsxwriter
   - xlwt
   # universal
   - cython>=0.28.2
-  - pytest
+  - pytest>=4.0.2
   - pytest-xdist
+  - pytest-mock
   - hypothesis>=3.58.0
+  - isort

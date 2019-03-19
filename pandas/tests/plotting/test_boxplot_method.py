@@ -1,21 +1,20 @@
 # coding: utf-8
 
-import pytest
 import itertools
 import string
 
-from pandas import Series, DataFrame, MultiIndex
-from pandas.compat import range, lzip
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
 import numpy as np
 from numpy import random
+import pytest
+
+from pandas.compat import lzip, range
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame, MultiIndex, Series
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+import pandas.util.testing as tm
 
 import pandas.plotting as plotting
-
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
-
 
 """ Test cases for .boxplot method """
 
@@ -268,13 +267,20 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     def test_grouped_box_layout(self):
         df = self.hist_df
 
-        pytest.raises(ValueError, df.boxplot, column=['weight', 'height'],
-                      by=df.gender, layout=(1, 1))
-        pytest.raises(ValueError, df.boxplot,
-                      column=['height', 'weight', 'category'],
-                      layout=(2, 1), return_type='dict')
-        pytest.raises(ValueError, df.boxplot, column=['weight', 'height'],
-                      by=df.gender, layout=(-1, -1))
+        msg = "Layout of 1x1 must be larger than required size 2"
+        with pytest.raises(ValueError, match=msg):
+            df.boxplot(column=['weight', 'height'], by=df.gender,
+                       layout=(1, 1))
+
+        msg = "The 'layout' keyword is not supported when 'by' is None"
+        with pytest.raises(ValueError, match=msg):
+            df.boxplot(column=['height', 'weight', 'category'],
+                       layout=(2, 1), return_type='dict')
+
+        msg = "At least one dimension of layout must be positive"
+        with pytest.raises(ValueError, match=msg):
+            df.boxplot(column=['weight', 'height'], by=df.gender,
+                       layout=(-1, -1))
 
         # _check_plot_works adds an ax so catch warning. see GH #13188
         with tm.assert_produces_warning(UserWarning):

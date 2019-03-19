@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import itertools
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas.compat import StringIO
@@ -216,7 +215,7 @@ class TestDataFrameBlockInternals():
         # test construction edge cases with mixed types
 
         # f7u12, this does not work without extensive workaround
-        data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
+        data = [[datetime(2001, 1, 5), np.nan, datetime(2001, 1, 2)],
                 [datetime(2000, 1, 2), datetime(2000, 1, 3),
                  datetime(2000, 1, 1)]]
         df = DataFrame(data)
@@ -275,10 +274,12 @@ class TestDataFrameBlockInternals():
                              columns=["A", "B", "C"],
                              dtype=dtype)
 
-        pytest.raises(NotImplementedError, f,
-                      [("A", "datetime64[h]"),
-                       ("B", "str"),
-                       ("C", "int32")])
+        msg = ("compound dtypes are not implemented in the DataFrame"
+               " constructor")
+        with pytest.raises(NotImplementedError, match=msg):
+            f([("A", "datetime64[h]"),
+               ("B", "str"),
+               ("C", "int32")])
 
         # these work (though results may be unexpected)
         f('int64')
@@ -348,7 +349,9 @@ class TestDataFrameBlockInternals():
         copy = float_string_frame.copy()
         assert copy._data is not float_string_frame._data
 
-    def test_pickle(self, float_string_frame, empty_frame, timezone_frame):
+    def test_pickle(self, float_string_frame, timezone_frame):
+        empty_frame = DataFrame()
+
         unpickled = tm.round_trip_pickle(float_string_frame)
         assert_frame_equal(float_string_frame, unpickled)
 
@@ -558,18 +561,18 @@ starting,ending,measure
     def test_strange_column_corruption_issue(self):
         # (wesm) Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
-        df[0] = nan
+        df[0] = np.nan
         wasCol = {}
         # uncommenting these makes the results match
         # for col in xrange(100, 200):
         #    wasCol[col] = 1
-        #    df[col] = nan
+        #    df[col] = np.nan
 
         for i, dt in enumerate(df.index):
             for col in range(100, 200):
                 if col not in wasCol:
                     wasCol[col] = 1
-                    df[col] = nan
+                    df[col] = np.nan
                 df[col][dt] = i
 
         myid = 100

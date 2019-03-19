@@ -6,6 +6,7 @@ import time
 import warnings
 
 from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
+from errno import ENOENT
 
 from libc.stdlib cimport free
 from libc.string cimport strncpy, strlen, strcasecmp
@@ -63,10 +64,11 @@ from pandas.errors import (ParserError, DtypeWarning,
 CParserError = ParserError
 
 
-cdef bint PY3 = (sys.version_info[0] >= 3)
+cdef:
+    bint PY3 = (sys.version_info[0] >= 3)
 
-cdef float64_t INF = <float64_t>np.inf
-cdef float64_t NEGINF = -INF
+    float64_t INF = <float64_t>np.inf
+    float64_t NEGINF = -INF
 
 
 cdef extern from "errno.h":
@@ -676,7 +678,13 @@ cdef class TextReader:
 
         if isinstance(source, basestring):
             if not isinstance(source, bytes):
-                source = source.encode(sys.getfilesystemencoding() or 'utf-8')
+                if compat.PY36 and compat.is_platform_windows():
+                    # see gh-15086.
+                    encoding = "mbcs"
+                else:
+                    encoding = sys.getfilesystemencoding() or "utf-8"
+
+                source = source.encode(encoding)
 
             if self.memory_map:
                 ptr = new_mmap(source)
@@ -696,7 +704,9 @@ cdef class TextReader:
             if ptr == NULL:
                 if not os.path.exists(source):
                     raise compat.FileNotFoundError(
-                        'File {source} does not exist'.format(source=source))
+                        ENOENT,
+                        'File {source} does not exist'.format(source=source),
+                        source)
                 raise IOError('Initializing from file failed')
 
             self.parser.source = ptr
@@ -726,7 +736,7 @@ cdef class TextReader:
             int status
             int64_t hr, data_line
             char *errors = "strict"
-            cdef StringPath path = _string_path(self.c_encoding)
+            StringPath path = _string_path(self.c_encoding)
 
         header = []
         unnamed_cols = set()
@@ -1380,8 +1390,9 @@ cdef class TextReader:
                 return None
 
 
-cdef object _true_values = [b'True', b'TRUE', b'true']
-cdef object _false_values = [b'False', b'FALSE', b'false']
+cdef:
+    object _true_values = [b'True', b'TRUE', b'true']
+    object _false_values = [b'False', b'FALSE', b'false']
 
 
 def _ensure_encoded(list lst):
@@ -1628,7 +1639,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         int64_t current_category = 0
 
         char *errors = "strict"
-        cdef StringPath path = _string_path(encoding)
+        StringPath path = _string_path(encoding)
 
         int ret = 0
         kh_str_t *table
@@ -1718,9 +1729,10 @@ cdef inline void _to_fw_string_nogil(parser_t *parser, int64_t col,
         data += width
 
 
-cdef char* cinf = b'inf'
-cdef char* cposinf = b'+inf'
-cdef char* cneginf = b'-inf'
+cdef:
+    char* cinf = b'inf'
+    char* cposinf = b'+inf'
+    char* cneginf = b'-inf'
 
 
 cdef _try_double(parser_t *parser, int64_t col,

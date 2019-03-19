@@ -34,6 +34,7 @@ from pandas.core.index import (
 from pandas.core.indexes import base as ibase
 from pandas.core.internals import (
     create_block_manager_from_arrays, create_block_manager_from_blocks)
+from pandas.core.internals.arrays import extract_array
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -92,7 +93,7 @@ def masked_rec_array_to_mgr(data, index, columns, dtype, copy):
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, arr_columns, index, columns)
+    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype)
 
     if copy:
         mgr = mgr.copy()
@@ -196,18 +197,12 @@ def init_dict(data, index, columns, dtype=None):
             arrays.loc[missing] = [val] * missing.sum()
 
     else:
-
-        for key in data:
-            if (isinstance(data[key], ABCDatetimeIndex) and
-                    data[key].tz is not None):
-                # GH#24096 need copy to be deep for datetime64tz case
-                # TODO: See if we can avoid these copies
-                data[key] = data[key].copy(deep=True)
-
         keys = com.dict_keys_to_ordered_list(data)
         columns = data_names = Index(keys)
-        arrays = [data[k] for k in keys]
-
+        # GH#24096 need copy to be deep for datetime64tz case
+        # TODO: See if we can avoid these copies
+        arrays = [data[k] if not is_datetime64tz_dtype(data[k]) else
+                  data[k].copy(deep=True) for k in keys]
     return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
 
 
@@ -539,7 +534,6 @@ def sanitize_array(data, index, dtype=None, copy=False,
     Sanitize input data to an ndarray, copy if specified, coerce to the
     dtype if specified.
     """
-
     if dtype is not None:
         dtype = pandas_dtype(dtype)
 
@@ -547,23 +541,27 @@ def sanitize_array(data, index, dtype=None, copy=False,
         mask = ma.getmaskarray(data)
         if mask.any():
             data, fill_value = maybe_upcast(data, copy=True)
+            data.soften_mask()  # set hardmask False if it was True
             data[mask] = fill_value
         else:
             data = data.copy()
 
+    data = extract_array(data, extract_numpy=True)
+
     # GH#846
-    if isinstance(data, (np.ndarray, Index, ABCSeries)):
+    if isinstance(data, np.ndarray):
 
         if dtype is not None:
             subarr = np.array(data, copy=False)
 
             # possibility of nan -> garbage
             if is_float_dtype(data.dtype) and is_integer_dtype(dtype):
-                if not isna(data).any():
+                try:
                     subarr = _try_cast(data, True, dtype, copy,
-                                       raise_cast_failure)
-                elif copy:
-                    subarr = data.copy()
+                                       True)
+                except ValueError:
+                    if copy:
+                        subarr = data.copy()
             else:
                 subarr = _try_cast(data, True, dtype, copy, raise_cast_failure)
         elif isinstance(data, Index):

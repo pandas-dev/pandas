@@ -136,7 +136,7 @@ groupby operations on the index will preserve the index nature as well
 reindexing operations, will return a resulting index based on the type of the passed
 indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
 a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
-of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarily index these even with
 values NOT in the categories, similarly to how you can reindex ANY pandas index.
 
 .. code-block:: ipython
@@ -181,9 +181,9 @@ total number or rows or columns. It also has options for sampling with or withou
 for passing in a column for weights for non-uniform sampling, and for setting seed values to
 facilitate replication. (:issue:`2419`)
 
-.. ipython :: python
+.. ipython:: python
 
-   example_series = Series([0,1,2,3,4,5])
+   example_series = pd.Series([0, 1, 2, 3, 4, 5])
 
    # When no arguments are passed, returns 1
    example_series.sample()
@@ -207,9 +207,10 @@ facilitate replication. (:issue:`2419`)
 When applied to a DataFrame, one may pass the name of a column to specify sampling weights
 when sampling from rows.
 
-.. ipython :: python
+.. ipython:: python
 
-   df = DataFrame({'col1':[9,8,7,6], 'weight_column':[0.5, 0.4, 0.1, 0]})
+   df = pd.DataFrame({'col1': [9, 8, 7, 6],
+                      'weight_column': [0.5, 0.4, 0.1, 0]})
    df.sample(n=3, weights='weight_column')
 
 

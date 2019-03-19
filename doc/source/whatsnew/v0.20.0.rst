@@ -45,11 +45,6 @@ Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations
 New features
 ~~~~~~~~~~~~
 
-.. ipython:: python
-   :suppress:
-
-   import pandas.util.testing as tm
-
 .. _whatsnew_0200.enhancements.agg:
 
 ``agg`` API for DataFrame/Series
@@ -1363,24 +1358,65 @@ Deprecate Panel
 with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
 provides a :meth:`~Panel.to_xarray` method to automate this conversion. For more details see :ref:`Deprecate Panel <dsintro.deprecate_panel>` documentation. (:issue:`13563`).
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   p = tm.makePanel()
-   p
+    In [133]: import pandas.util.testing as tm
+
+    In [134]: p = tm.makePanel()
+
+    In [135]: p
+    Out[135]:
+    <class 'pandas.core.panel.Panel'>
+    Dimensions: 3 (items) x 3 (major_axis) x 4 (minor_axis)
+    Items axis: ItemA to ItemC
+    Major_axis axis: 2000-01-03 00:00:00 to 2000-01-05 00:00:00
+    Minor_axis axis: A to D
 
 Convert to a MultiIndex DataFrame
 
-.. ipython:: python
+.. code-block:: ipython
 
-   p.to_frame()
+    In [136]: p.to_frame()
+    Out[136]:
+                         ItemA     ItemB     ItemC
+    major      minor
+    2000-01-03 A      0.628776 -1.409432  0.209395
+               B      0.988138 -1.347533 -0.896581
+               C     -0.938153  1.272395 -0.161137
+               D     -0.223019 -0.591863 -1.051539
+    2000-01-04 A      0.186494  1.422986 -0.592886
+               B     -0.072608  0.363565  1.104352
+               C     -1.239072 -1.449567  0.889157
+               D      2.123692 -0.414505 -0.319561
+    2000-01-05 A      0.952478 -2.147855 -1.473116
+               B     -0.550603 -0.014752 -0.431550
+               C      0.139683 -1.195524  0.288377
+               D      0.122273 -1.425795 -0.619993
+
+    [12 rows x 3 columns]
 
 Convert to an xarray DataArray
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   p.to_xarray()
+    In [137]: p.to_xarray()
+    Out[137]:
+    <xarray.DataArray (items: 3, major_axis: 3, minor_axis: 4)>
+    array([[[ 0.628776,  0.988138, -0.938153, -0.223019],
+            [ 0.186494, -0.072608, -1.239072,  2.123692],
+            [ 0.952478, -0.550603,  0.139683,  0.122273]],
+
+           [[-1.409432, -1.347533,  1.272395, -0.591863],
+            [ 1.422986,  0.363565, -1.449567, -0.414505],
+            [-2.147855, -0.014752, -1.195524, -1.425795]],
+
+           [[ 0.209395, -0.896581, -0.161137, -1.051539],
+            [-0.592886,  1.104352,  0.889157, -0.319561],
+            [-1.473116, -0.43155 ,  0.288377, -0.619993]]])
+    Coordinates:
+      * items       (items) object 'ItemA' 'ItemB' 'ItemC'
+      * major_axis  (major_axis) datetime64[ns] 2000-01-03 2000-01-04 2000-01-05
+      * minor_axis  (minor_axis) object 'A' 'B' 'C' 'D'
 
 .. _whatsnew_0200.api_breaking.deprecate_group_agg_dict:
 

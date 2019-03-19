@@ -32,8 +32,14 @@ class _IntegerDtype(ExtensionDtype):
     The attributes name & type are set when these subclasses are created.
     """
     name = None
+    base = None
     type = None
     na_value = np.nan
+
+    def __repr__(self):
+        sign = 'U' if self.is_unsigned_integer else ''
+        return "{sign}Int{size}Dtype()".format(sign=sign,
+                                               size=8 * self.itemsize)
 
     @cache_readonly
     def is_signed_integer(self):
@@ -153,6 +159,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
             # https://github.com/numpy/numpy/pull/7476
             dtype = dtype.lower()
+
         if not issubclass(type(dtype), _IntegerDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
@@ -218,24 +225,57 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     """
     Array of integer (optional missing) values.
 
+    .. versionadded:: 0.24.0
+
+    .. warning::
+
+       IntegerArray is currently experimental, and its API or internal
+       implementation may change without warning.
+
     We represent an IntegerArray with 2 numpy arrays:
 
     - data: contains a numpy integer array of the appropriate dtype
     - mask: a boolean array holding a mask on the data, True is missing
 
     To construct an IntegerArray from generic array-like input, use
-    ``integer_array`` function instead.
+    :func:`pandas.array` with one of the integer dtypes (see examples).
+
+    See :ref:`integer_na` for more.
 
     Parameters
     ----------
-    values : integer 1D numpy array
-    mask : boolean 1D numpy array
+    values : numpy.ndarray
+        A 1-d integer-dtype array.
+    mask : numpy.ndarray
+        A 1-d boolean-dtype array indicating missing values.
     copy : bool, default False
+        Whether to copy the `values` and `mask`.
 
     Returns
     -------
     IntegerArray
 
+    Examples
+    --------
+    Create an IntegerArray with :func:`pandas.array`.
+
+    >>> int_array = pd.array([1, None, 3], dtype=pd.Int32Dtype())
+    >>> int_array
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: Int32
+
+    String aliases for the dtypes are also available. They are capitalized.
+
+    >>> pd.array([1, None, 3], dtype='Int32')
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: Int32
+
+    >>> pd.array([1, None, 3], dtype='UInt16')
+    <IntegerArray>
+    [1, NaN, 3]
+    Length: 3, dtype: UInt16
     """
 
     @cache_readonly
@@ -521,7 +561,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             else:
                 mask = self._mask | mask
 
-            result[mask] = True if op_name == 'ne' else False
+            result[mask] = op_name == 'ne'
             return result
 
         name = '__{name}__'.format(name=op.__name__)
@@ -655,7 +695,8 @@ for dtype in ['int8', 'int16', 'int32', 'int64',
     else:
         name = dtype.capitalize()
     classname = "{}Dtype".format(name)
-    attributes_dict = {'type': getattr(np, dtype),
+    numpy_dtype = getattr(np, dtype)
+    attributes_dict = {'type': numpy_dtype,
                        'name': name}
     dtype_type = register_extension_dtype(
         type(classname, (_IntegerDtype, ), attributes_dict)

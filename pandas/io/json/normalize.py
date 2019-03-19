@@ -326,6 +326,5 @@ def json_normalize(data, record_path=None, meta=None,
         if k in result:
             raise ValueError('Conflicting metadata name {name}, '
                              'need distinguishing prefix '.format(name=k))
-
         result[k] = np.array(v).repeat(lengths)
     return result

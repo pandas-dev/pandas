@@ -32,12 +32,13 @@ _shared_docs = dict(**_shared_docs)
 _doc_template = """
         Returns
         -------
-        same type as input
+        Series or DataFrame
+            Return type is determined by the caller.
 
         See Also
         --------
-        Series.%(name)s
-        DataFrame.%(name)s
+        Series.%(name)s : Series %(name)s.
+        DataFrame.%(name)s : DataFrame %(name)s.
 """
 
 
@@ -163,9 +164,9 @@ class _Window(PandasObject, SelectionMixin):
         Provide a nice str repr of our rolling object.
         """
 
-        attrs = ["{k}={v}".format(k=k, v=getattr(self, k))
+        attrs = ("{k}={v}".format(k=k, v=getattr(self, k))
                  for k in self._attributes
-                 if getattr(self, k, None) is not None]
+                 if getattr(self, k, None) is not None)
         return "{klass} [{attrs}]".format(klass=self._window_type,
                                           attrs=','.join(attrs))
 
@@ -437,7 +438,7 @@ class _Window(PandasObject, SelectionMixin):
 
 class Window(_Window):
     """
-    Provides rolling window calculations.
+    Provide rolling window calculations.
 
     .. versionadded:: 0.18.0
 
@@ -899,9 +900,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.%(name)s : Calling object with Series data.
-    pandas.DataFrame.%(name)s : Calling object with DataFrames.
-    pandas.DataFrame.count : Count of the full DataFrame.
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    DataFrame.count : Count of the full DataFrame.
 
     Examples
     --------
@@ -946,13 +947,13 @@ class _Rolling_and_Expanding(_Rolling):
         return self._wrap_results(results, blocks, obj)
 
     _shared_docs['apply'] = dedent(r"""
-    %(name)s function apply.
+    The %(name)s function's apply function.
 
     Parameters
     ----------
     func : function
         Must produce a single value from an ndarray input if ``raw=True``
-        or a Series if ``raw=False``
+        or a single value from a Series if ``raw=False``.
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
@@ -965,8 +966,19 @@ class _Rolling_and_Expanding(_Rolling):
         not passed. In the future `raw` will default to False.
 
         .. versionadded:: 0.23.0
+    *args, **kwargs
+        Arguments and keyword arguments to be passed into func.
 
-    \*args and \*\*kwargs are passed to the function""")
+    Returns
+    -------
+    Series or DataFrame
+        Return type is determined by the caller.
+
+    See Also
+    --------
+    Series.%(name)s : Series %(name)s.
+    DataFrame.%(name)s : DataFrame %(name)s.
+    """)
 
     def apply(self, func, raw=None, args=(), kwargs={}):
         from pandas import Series
@@ -1005,6 +1017,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs['max'] = dedent("""
     Calculate the %(name)s maximum.
+
+    Parameters
+    ----------
+    *args, **kwargs
+        Arguments and keyword arguments to be passed into func.
     """)
 
     def max(self, *args, **kwargs):
@@ -1227,7 +1244,14 @@ class _Rolling_and_Expanding(_Rolling):
                            check_minp=_require_min_periods(1), ddof=ddof,
                            **kwargs)
 
-    _shared_docs['skew'] = """Unbiased %(name)s skewness"""
+    _shared_docs['skew'] = """
+    Unbiased %(name)s skewness.
+
+    Parameters
+    ----------
+    **kwargs
+        Keyword arguments to be passed into func.
+    """
 
     def skew(self, **kwargs):
         return self._apply('roll_skew', 'skew',
@@ -1247,7 +1271,7 @@ class _Rolling_and_Expanding(_Rolling):
     -------
     Series or DataFrame
         Returned object type is determined by the caller of the %(name)s
-        calculation
+        calculation.
 
     See Also
     --------
@@ -1298,9 +1322,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.quantile : Computes value at the given quantile over all data
+    Series.quantile : Computes value at the given quantile over all data
         in Series.
-    pandas.DataFrame.quantile : Computes values at the given quantile over
+    DataFrame.quantile : Computes values at the given quantile over
         requested axis in DataFrame.
 
     Examples
@@ -1359,6 +1383,8 @@ class _Rolling_and_Expanding(_Rolling):
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+        **kwargs
+            Keyword arguments to be passed into func.
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
@@ -1600,8 +1626,8 @@ class Rolling(_Rolling_and_Expanding):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.Series.rolling
-    pandas.DataFrame.rolling
+    Series.rolling
+    DataFrame.rolling
     """)
 
     _agg_examples_doc = dedent("""
@@ -1671,7 +1697,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).count()
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
     def apply(self, func, raw=None, args=(), kwargs={}):
         return super(Rolling, self).apply(
@@ -1778,7 +1803,7 @@ class Rolling(_Rolling_and_Expanding):
 
 class RollingGroupby(_GroupByMixin, Rolling):
     """
-    Provides a rolling groupby implementation.
+    Provide a rolling groupby implementation.
 
     .. versionadded:: 0.18.1
 
@@ -1809,7 +1834,7 @@ class RollingGroupby(_GroupByMixin, Rolling):
 
 class Expanding(_Rolling_and_Expanding):
     """
-    Provides expanding transformations.
+    Provide expanding transformations.
 
     .. versionadded:: 0.18.0
 
@@ -1891,9 +1916,9 @@ class Expanding(_Rolling_and_Expanding):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.DataFrame.expanding.aggregate
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
+    DataFrame.expanding.aggregate
+    DataFrame.rolling.aggregate
+    DataFrame.aggregate
     """)
 
     _agg_examples_doc = dedent("""
@@ -1945,7 +1970,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).count(**kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
     def apply(self, func, raw=None, args=(), kwargs={}):
         return super(Expanding, self).apply(
@@ -2052,7 +2076,7 @@ class Expanding(_Rolling_and_Expanding):
 
 class ExpandingGroupby(_GroupByMixin, Expanding):
     """
-    Provides a expanding groupby implementation.
+    Provide a expanding groupby implementation.
 
     .. versionadded:: 0.18.1
 
@@ -2066,7 +2090,9 @@ _bias_template = """
         Parameters
         ----------
         bias : bool, default False
-            Use a standard estimation bias correction
+            Use a standard estimation bias correction.
+        *args, **kwargs
+            Arguments and keyword arguments to be passed into func.
 """
 
 _pairwise_template = """
@@ -2083,13 +2109,15 @@ _pairwise_template = """
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
         bias : bool, default False
-           Use a standard estimation bias correction
+           Use a standard estimation bias correction.
+        **kwargs
+           Keyword arguments to be passed into func.
 """
 
 
 class EWM(_Rolling):
     r"""
-    Provides exponential weighted functions.
+    Provide exponential weighted functions.
 
     .. versionadded:: 0.18.0
 
@@ -2097,16 +2125,17 @@ class EWM(_Rolling):
     ----------
     com : float, optional
         Specify decay in terms of center of mass,
-        :math:`\alpha = 1 / (1 + com),\text{ for } com \geq 0`
+        :math:`\alpha = 1 / (1 + com),\text{ for } com \geq 0`.
     span : float, optional
         Specify decay in terms of span,
-        :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`
+        :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`.
     halflife : float, optional
         Specify decay in terms of half-life,
-        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for } halflife > 0`
+        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for }
+            halflife > 0`.
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
-        :math:`0 < \alpha \leq 1`
+        :math:`0 < \alpha \leq 1`.
 
         .. versionadded:: 0.18.0
 
@@ -2115,14 +2144,19 @@ class EWM(_Rolling):
         (otherwise result is NA).
     adjust : bool, default True
         Divide by decaying adjustment factor in beginning periods to account
-        for imbalance in relative weightings (viewing EWMA as a moving average)
+        for imbalance in relative weightings
+        (viewing EWMA as a moving average).
     ignore_na : bool, default False
         Ignore missing values when calculating weights;
-        specify True to reproduce pre-0.15.0 behavior
+        specify True to reproduce pre-0.15.0 behavior.
+    axis : {0 or 'index', 1 or 'columns'}, default 0
+        The axis to use. The value 0 identifies the rows, and 1
+        identifies the columns.
 
     Returns
     -------
-    a Window sub-classed for the particular operation
+    DataFrame
+        A Window sub-classed for the particular operation.
 
     See Also
     --------
@@ -2160,6 +2194,7 @@ class EWM(_Rolling):
     --------
 
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df
          B
     0  0.0
     1  1.0
@@ -2287,6 +2322,11 @@ class EWM(_Rolling):
     def mean(self, *args, **kwargs):
         """
         Exponential weighted moving average.
+
+        Parameters
+        ----------
+        *args, **kwargs
+            Arguments and keyword arguments to be passed into func.
         """
         nv.validate_window_func('mean', args, kwargs)
         return self._apply('ewma', **kwargs)

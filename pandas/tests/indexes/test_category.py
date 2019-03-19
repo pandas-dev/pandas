@@ -158,7 +158,7 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # error when combining categories/ordered and dtype kwargs
-        msg = 'Cannot specify both `dtype` and `categories` or `ordered`.'
+        msg = "Cannot specify `categories` or `ordered` together with `dtype`."
         with pytest.raises(ValueError, match=msg):
             CategoricalIndex(data, categories=cats, dtype=dtype)
 
@@ -181,18 +181,21 @@ class TestCategoricalIndex(Base):
         expected = Categorical(['a', 'b', 'c'])
         tm.assert_categorical_equal(result, expected)
 
-    def test_disallow_set_ops(self):
-
+    @pytest.mark.parametrize('func,op_name', [
+        (lambda idx: idx - idx, '__sub__'),
+        (lambda idx: idx + idx, '__add__'),
+        (lambda idx: idx - ['a', 'b'], '__sub__'),
+        (lambda idx: idx + ['a', 'b'], '__add__'),
+        (lambda idx: ['a', 'b'] - idx, '__rsub__'),
+        (lambda idx: ['a', 'b'] + idx, '__radd__'),
+    ])
+    def test_disallow_set_ops(self, func, op_name):
         # GH 10039
         # set ops (+/-) raise TypeError
         idx = pd.Index(pd.Categorical(['a', 'b']))
-
-        pytest.raises(TypeError, lambda: idx - idx)
-        pytest.raises(TypeError, lambda: idx + idx)
-        pytest.raises(TypeError, lambda: idx - ['a', 'b'])
-        pytest.raises(TypeError, lambda: idx + ['a', 'b'])
-        pytest.raises(TypeError, lambda: ['a', 'b'] - idx)
-        pytest.raises(TypeError, lambda: ['a', 'b'] + idx)
+        msg = "cannot perform {} with this index type: CategoricalIndex"
+        with pytest.raises(TypeError, match=msg.format(op_name)):
+            func(idx)
 
     def test_method_delegation(self):
 
@@ -231,8 +234,9 @@ class TestCategoricalIndex(Base):
             list('aabbca'), categories=list('cabdef'), ordered=True))
 
         # invalid
-        pytest.raises(ValueError, lambda: ci.set_categories(
-            list('cab'), inplace=True))
+        msg = "cannot use inplace with CategoricalIndex"
+        with pytest.raises(ValueError, match=msg):
+            ci.set_categories(list('cab'), inplace=True)
 
     def test_contains(self):
 
@@ -250,17 +254,6 @@ class TestCategoricalIndex(Base):
         ci = CategoricalIndex(
             list('aabbca') + [np.nan], categories=list('cabdef'))
         assert np.nan in ci
-
-    def test_min_max(self):
-
-        ci = self.create_index(ordered=False)
-        pytest.raises(TypeError, lambda: ci.min())
-        pytest.raises(TypeError, lambda: ci.max())
-
-        ci = self.create_index(ordered=True)
-
-        assert ci.min() == 'c'
-        assert ci.max() == 'b'
 
     def test_map(self):
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('CBA'),
@@ -368,12 +361,11 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, ci, exact=True)
 
         # appending with different categories or reordered is not ok
-        pytest.raises(
-            TypeError,
-            lambda: ci.append(ci.values.set_categories(list('abcd'))))
-        pytest.raises(
-            TypeError,
-            lambda: ci.append(ci.values.reorder_categories(list('abc'))))
+        msg = "all inputs must be Index"
+        with pytest.raises(TypeError, match=msg):
+            ci.append(ci.values.set_categories(list('abcd')))
+        with pytest.raises(TypeError, match=msg):
+            ci.append(ci.values.reorder_categories(list('abc')))
 
         # with objects
         result = ci.append(Index(['c', 'a']))
@@ -381,7 +373,9 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid objects
-        pytest.raises(TypeError, lambda: ci.append(Index(['a', 'd'])))
+        msg = "cannot append a non-category item to a CategoricalIndex"
+        with pytest.raises(TypeError, match=msg):
+            ci.append(Index(['a', 'd']))
 
         # GH14298 - if base object is not categorical -> coerce to object
         result = Index(['c', 'a']).append(ci)
@@ -417,7 +411,10 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid
-        pytest.raises(TypeError, lambda: ci.insert(0, 'd'))
+        msg = ("cannot insert an item into a CategoricalIndex that is not"
+               " already an existing category")
+        with pytest.raises(TypeError, match=msg):
+            ci.insert(0, 'd')
 
         # GH 18295 (test missing)
         expected = CategoricalIndex(['a', np.nan, 'a', 'b', 'c', 'b'])
@@ -622,15 +619,6 @@ class TestCategoricalIndex(Base):
         assert c.is_monotonic_increasing is True
         assert c.is_monotonic_decreasing is False
 
-    @pytest.mark.parametrize('values, expected', [
-        ([1, 2, 3], True),
-        ([1, 3, 1], False),
-        (list('abc'), True),
-        (list('aba'), False)])
-    def test_is_unique(self, values, expected):
-        ci = CategoricalIndex(values)
-        assert ci.is_unique is expected
-
     def test_has_duplicates(self):
 
         idx = CategoricalIndex([0, 0, 0], name='foo')
@@ -653,12 +641,16 @@ class TestCategoricalIndex(Base):
             r1 = idx1.get_indexer(idx2)
             assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
 
-        pytest.raises(NotImplementedError,
-                      lambda: idx2.get_indexer(idx1, method='pad'))
-        pytest.raises(NotImplementedError,
-                      lambda: idx2.get_indexer(idx1, method='backfill'))
-        pytest.raises(NotImplementedError,
-                      lambda: idx2.get_indexer(idx1, method='nearest'))
+        msg = ("method='pad' and method='backfill' not implemented yet for"
+               " CategoricalIndex")
+        with pytest.raises(NotImplementedError, match=msg):
+            idx2.get_indexer(idx1, method='pad')
+        with pytest.raises(NotImplementedError, match=msg):
+            idx2.get_indexer(idx1, method='backfill')
+
+        msg = "method='nearest' not implemented yet for CategoricalIndex"
+        with pytest.raises(NotImplementedError, match=msg):
+            idx2.get_indexer(idx1, method='nearest')
 
     def test_get_loc(self):
         # GH 12531
@@ -796,12 +788,15 @@ class TestCategoricalIndex(Base):
         # invalid comparisons
         with pytest.raises(ValueError, match="Lengths must match"):
             ci1 == Index(['a', 'b', 'c'])
-        pytest.raises(TypeError, lambda: ci1 == ci2)
-        pytest.raises(
-            TypeError, lambda: ci1 == Categorical(ci1.values, ordered=False))
-        pytest.raises(
-            TypeError,
-            lambda: ci1 == Categorical(ci1.values, categories=list('abc')))
+
+        msg = ("categorical index comparisons must have the same categories"
+               " and ordered attributes")
+        with pytest.raises(TypeError, match=msg):
+            ci1 == ci2
+        with pytest.raises(TypeError, match=msg):
+            ci1 == Categorical(ci1.values, ordered=False)
+        with pytest.raises(TypeError, match=msg):
+            ci1 == Categorical(ci1.values, categories=list('abc'))
 
         # tests
         # make sure that we are testing for category inclusion properly

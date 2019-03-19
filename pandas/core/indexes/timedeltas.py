@@ -17,8 +17,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td)
+from pandas.core.arrays.timedeltas import TimedeltaArray, _is_convertible_to_td
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -27,7 +26,6 @@ from pandas.core.indexes.datetimelike import (
     wrap_arithmetic_op)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
 
 from pandas.tseries.frequencies import to_offset
 
@@ -37,7 +35,7 @@ def _make_wrapped_arith_op(opname):
     meth = getattr(TimedeltaArray, opname)
 
     def method(self, other):
-        result = meth(self._eadata, maybe_unwrap_index(other))
+        result = meth(self._data, maybe_unwrap_index(other))
         return wrap_arithmetic_op(self, other, result)
 
     method.__name__ = opname
@@ -209,6 +207,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
                             'collection of some kind, {data} was passed'
                             .format(cls=cls.__name__, data=repr(data)))
 
+        if unit in {'Y', 'y', 'M'}:
+            warnings.warn("M and Y units are deprecated and "
+                          "will be removed in a future version.",
+                          FutureWarning, stacklevel=2)
+
         if isinstance(data, TimedeltaArray):
             if copy:
                 data = data.copy()
@@ -234,12 +237,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if not isinstance(values, TimedeltaArray):
             values = TimedeltaArray._simple_new(values, dtype=dtype,
                                                 freq=freq)
+        else:
+            if freq is None:
+                freq = values.freq
         assert isinstance(values, TimedeltaArray), type(values)
         assert dtype == _TD_DTYPE, dtype
         assert values.dtype == 'm8[ns]', values.dtype
 
-        freq = to_offset(freq)
-        tdarr = TimedeltaArray._simple_new(values, freq=freq)
+        tdarr = TimedeltaArray._simple_new(values._data, freq=freq)
         result = object.__new__(cls)
         result._data = tdarr
         result.name = name
@@ -308,7 +313,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         return lambda x: Timedelta(x, unit='ns')
 
     def __getitem__(self, key):
-        result = self._eadata.__getitem__(key)
+        result = self._data.__getitem__(key)
         if is_scalar(result):
             return result
         return type(self)(result, name=self.name)
@@ -322,7 +327,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
             # Have to repeat the check for 'timedelta64' (not ns) dtype
             #  so that we can return a numeric index, since pandas will return
             #  a TimedeltaIndex when dtype='timedelta'
-            result = self._eadata.astype(dtype, copy=copy)
+            result = self._data.astype(dtype, copy=copy)
             if self.hasnans:
                 return Index(result, name=self.name)
             return Index(result.astype('i8'), name=self.name)
@@ -581,7 +586,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         assert kind in ['ix', 'loc', 'getitem', None]
 
         if isinstance(label, compat.string_types):
-            parsed = _coerce_scalar_to_timedelta_type(label, box=True)
+            parsed = Timedelta(label)
             lbound = parsed.round(parsed.resolution)
             if side == 'left':
                 return lbound

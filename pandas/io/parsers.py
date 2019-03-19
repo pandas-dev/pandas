@@ -102,11 +102,14 @@ names : array-like, optional
     List of column names to use. If file contains no header row, then you
     should explicitly pass ``header=None``. Duplicates in this list will cause
     a ``UserWarning`` to be issued.
-index_col : int, sequence or bool, optional
-    Column to use as the row labels of the DataFrame. If a sequence is given, a
-    MultiIndex is used. If you have a malformed file with delimiters at the end
-    of each line, you might consider ``index_col=False`` to force pandas to
-    not use the first column as the index (row names).
+index_col : int, str, sequence of int / str, or False, default ``None``
+  Column(s) to use as the row labels of the ``DataFrame``, either given as
+  string name or column index. If a sequence of int / str is given, a
+  MultiIndex is used.
+
+  Note: ``index_col=False`` can be used to force pandas to *not* use the first
+  column as the index, e.g. when you have a malformed file with delimiters at
+  the end of each line.
 usecols : list-like or callable, optional
     Return a subset of the columns. If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
@@ -203,9 +206,14 @@ default False
     * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
       result 'foo'
 
-    If a column or index contains an unparseable date, the entire column or
-    index will be returned unaltered as an object data type. For non-standard
-    datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
+    If a column or index cannot be represented as an array of datetimes,
+    say because of an unparseable value or a mixture of timezones, the column
+    or index will be returned unaltered as an object data type. For
+    non-standard datetime parsing, use ``pd.to_datetime`` after
+    ``pd.read_csv``. To parse an index or column with a mixture of timezones,
+    specify ``date_parser`` to be a partially-applied
+    :func:`pandas.to_datetime` with ``utc=True``. See
+    :ref:`io.csv.mixed_timezones` for more.
 
     Note: A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : bool, default False
@@ -1296,15 +1304,28 @@ def _validate_usecols_arg(usecols):
     if usecols is not None:
         if callable(usecols):
             return usecols, None
-        # GH20529, ensure is iterable container but not string.
-        elif not is_list_like(usecols):
+
+        if not is_list_like(usecols):
+            # see gh-20529
+            #
+            # Ensure it is iterable container but not string.
             raise ValueError(msg)
-        else:
-            usecols_dtype = lib.infer_dtype(usecols, skipna=False)
-            if usecols_dtype not in ('empty', 'integer',
-                                     'string', 'unicode'):
-                raise ValueError(msg)
-        return set(usecols), usecols_dtype
+
+        usecols_dtype = lib.infer_dtype(usecols, skipna=False)
+
+        if usecols_dtype not in ("empty", "integer",
+                                 "string", "unicode"):
+            raise ValueError(msg)
+
+        usecols = set(usecols)
+
+        if usecols_dtype == "unicode":
+            # see gh-13253
+            #
+            # Python 2.x compatibility
+            usecols = {col.encode("utf-8") for col in usecols}
+
+        return usecols, usecols_dtype
     return usecols, None
 
 
@@ -3146,11 +3167,11 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                 return tools.to_datetime(
                     ensure_object(strs),
                     utc=None,
-                    box=False,
                     dayfirst=dayfirst,
                     errors='ignore',
                     infer_datetime_format=infer_datetime_format
-                )
+                ).to_numpy()
+
             except ValueError:
                 return tools.to_datetime(
                     parsing.try_parse_dates(strs, dayfirst=dayfirst))

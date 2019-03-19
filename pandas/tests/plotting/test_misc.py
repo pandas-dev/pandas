@@ -2,19 +2,19 @@
 
 """ Test cases for misc plot functions """
 
-import pytest
-
-from pandas import DataFrame
-from pandas.compat import lmap
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
 import numpy as np
 from numpy import random
 from numpy.random import randn
+import pytest
+
+from pandas.compat import lmap
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+import pandas.util.testing as tm
 
 import pandas.plotting as plotting
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 
 @td.skip_if_mpl
@@ -278,14 +278,20 @@ class TestDataFramePlots(TestPlotBase):
         assert [p.get_title() for p in plot] == title
 
         # Case len(title) > len(df)
-        pytest.raises(ValueError, df.plot, subplots=True,
-                      title=title + ["kittens > puppies"])
+        msg = ("The length of `title` must equal the number of columns if"
+               " using `title` of type `list` and `subplots=True`")
+        with pytest.raises(ValueError, match=msg):
+            df.plot(subplots=True, title=title + ["kittens > puppies"])
 
         # Case len(title) < len(df)
-        pytest.raises(ValueError, df.plot, subplots=True, title=title[:2])
+        with pytest.raises(ValueError, match=msg):
+            df.plot(subplots=True, title=title[:2])
 
         # Case subplots=False and title is of type list
-        pytest.raises(ValueError, df.plot, subplots=False, title=title)
+        msg = ("Using `title` of type `list` is not supported unless"
+               " `subplots=True` is passed")
+        with pytest.raises(ValueError, match=msg):
+            df.plot(subplots=False, title=title)
 
         # Case df with 3 numeric columns but layout of (2,2)
         plot = df.drop('SepalWidth', axis=1).plot(subplots=True, layout=(2, 2),

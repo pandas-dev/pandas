@@ -60,7 +60,9 @@ class TestTimestampProperties(object):
         check(ts.hour, 9)
         check(ts.minute, 6)
         check(ts.second, 3)
-        pytest.raises(AttributeError, lambda: ts.millisecond)
+        msg = "'Timestamp' object has no attribute 'millisecond'"
+        with pytest.raises(AttributeError, match=msg):
+            ts.millisecond
         check(ts.microsecond, 100)
         check(ts.nanosecond, 1)
         check(ts.dayofweek, 6)
@@ -78,7 +80,9 @@ class TestTimestampProperties(object):
         check(ts.hour, 23)
         check(ts.minute, 59)
         check(ts.second, 0)
-        pytest.raises(AttributeError, lambda: ts.millisecond)
+        msg = "'Timestamp' object has no attribute 'millisecond'"
+        with pytest.raises(AttributeError, match=msg):
+            ts.millisecond
         check(ts.microsecond, 0)
         check(ts.nanosecond, 0)
         check(ts.dayofweek, 2)
@@ -354,6 +358,14 @@ class TestTimestampConstructors(object):
             # case where user tries to pass tz as an arg, not kwarg, gets
             # interpreted as a `freq`
             Timestamp('2012-01-01', 'US/Pacific')
+
+    def test_constructor_strptime(self):
+        # GH25016
+        # Test support for Timestamp.strptime
+        fmt = '%Y%m%d-%H%M%S-%f%z'
+        ts = '20190129-235348-000001+0000'
+        with pytest.raises(NotImplementedError):
+            Timestamp.strptime(ts, fmt)
 
     def test_constructor_tz_or_tzinfo(self):
         # GH#17943, GH#17690, GH#5168
@@ -780,6 +792,13 @@ class TestTimestamp(object):
         stamp = Timestamp(datetime(2011, 1, 1))
         assert d[stamp] == 5
 
+    def test_tz_conversion_freq(self, tz_naive_fixture):
+        # GH25241
+        t1 = Timestamp('2019-01-01 10:00', freq='H')
+        assert t1.tz_localize(tz=tz_naive_fixture).freq == t1.freq
+        t2 = Timestamp('2019-01-02 12:00', tz='UTC', freq='T')
+        assert t2.tz_convert(tz='UTC').freq == t2.freq
+
 
 class TestTimestampNsOperations(object):
 
@@ -962,3 +981,8 @@ class TestTimestampConversion(object):
         with tm.assert_produces_warning(UserWarning):
             # warning that timezone info will be lost
             ts.to_period('D')
+
+    def test_to_numpy_alias(self):
+        # GH 24653: alias .to_numpy() for scalars
+        ts = Timestamp(datetime.now())
+        assert ts.to_datetime64() == ts.to_numpy()

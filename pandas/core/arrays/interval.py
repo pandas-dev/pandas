@@ -32,6 +32,7 @@ _interval_shared_docs = {}
 
 _shared_docs_kwargs = dict(
     klass='IntervalArray',
+    qualname='arrays.IntervalArray',
     name=''
 )
 
@@ -71,7 +72,6 @@ right
 closed
 mid
 length
-values
 is_non_overlapping_monotonic
 %(extra_attributes)s\
 
@@ -116,7 +116,7 @@ for more.
     A new ``IntervalArray`` can be constructed directly from an array-like of
     ``Interval`` objects:
 
-    >>> pd.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
+    >>> pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
     IntervalArray([(0, 1], (1, 5]],
                   closed='right',
                   dtype='interval[int64]')
@@ -217,6 +217,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _from_factorized(cls, values, original):
+        if len(values) == 0:
+            # An empty array returns object-dtype here. We can't create
+            # a new IA from an (empty) object-dtype array, so turn it into the
+            # correct dtype.
+            values = values.astype(original.dtype.subtype)
         return cls(values, closed=original.closed)
 
     _interval_shared_docs['from_breaks'] = """
@@ -244,8 +249,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     Examples
     --------
-    >>> pd.%(klass)s.from_breaks([0, 1, 2, 3])
-    %(klass)s([(0, 1], (1, 2], (2, 3]]
+    >>> pd.%(qualname)s.from_breaks([0, 1, 2, 3])
+    %(klass)s([(0, 1], (1, 2], (2, 3]],
                   closed='right',
                   dtype='interval[int64]')
     """
@@ -307,7 +312,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Examples
         --------
         >>> %(klass)s.from_arrays([0, 1, 2], [1, 2, 3])
-        %(klass)s([(0, 1], (1, 2], (2, 3]]
+        %(klass)s([(0, 1], (1, 2], (2, 3]],
                      closed='right',
                      dtype='interval[int64]')
         """
@@ -350,16 +355,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     Examples
     --------
-    >>> pd.%(klass)s.from_intervals([pd.Interval(0, 1),
+    >>> pd.%(qualname)s.from_intervals([pd.Interval(0, 1),
     ...                                  pd.Interval(1, 2)])
-    %(klass)s([(0, 1], (1, 2]]
+    %(klass)s([(0, 1], (1, 2]],
                   closed='right', dtype='interval[int64]')
 
     The generic Index constructor work identically when it infers an array
     of all intervals:
 
     >>> pd.Index([pd.Interval(0, 1), pd.Interval(1, 2)])
-    %(klass)s([(0, 1], (1, 2]]
+    %(klass)s([(0, 1], (1, 2]],
                   closed='right', dtype='interval[int64]')
     """
 
@@ -390,7 +395,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     Examples
     --------
-    >>>  pd.%(klass)s.from_tuples([(0, 1), (1, 2)])
+    >>> pd.%(qualname)s.from_tuples([(0, 1), (1, 2)])
     %(klass)s([(0, 1], (1, 2]],
                 closed='right', dtype='interval[int64]')
     """
@@ -887,13 +892,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Examples
         --------
-        >>>  index = pd.interval_range(0, 3)
-        >>>  index
-        %(klass)s([(0, 1], (1, 2], (2, 3]]
+        >>> index = pd.interval_range(0, 3)
+        >>> index
+        IntervalIndex([(0, 1], (1, 2], (2, 3]],
               closed='right',
               dtype='interval[int64]')
-        >>>  index.set_closed('both')
-        %(klass)s([[0, 1], [1, 2], [2, 3]]
+        >>> index.set_closed('both')
+        IntervalIndex([[0, 1], [1, 2], [2, 3]],
               closed='both',
               dtype='interval[int64]')
         """
@@ -931,13 +936,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # datetime safe version
             return self.left + 0.5 * self.length
 
-    @property
-    def is_non_overlapping_monotonic(self):
-        """
-        Return True if the IntervalArray is non-overlapping (no Intervals share
+    _interval_shared_docs['is_non_overlapping_monotonic'] = """
+        Return True if the %(klass)s is non-overlapping (no Intervals share
         points) and is either monotonic increasing or monotonic decreasing,
         else False
         """
+
+    @property
+    @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
+              % _shared_docs_kwargs)
+    def is_non_overlapping_monotonic(self):
         # must be increasing  (e.g., [0, 1), [1, 2), [2, 3), ... )
         # or decreasing (e.g., [-1, 0), [-2, -1), [-3, -2), ...)
         # we already require left <= right
@@ -981,7 +989,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -1032,7 +1040,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Examples
         --------
-        >>> intervals = pd.%(klass)s.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals = pd.%(qualname)s.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals
         %(klass)s([(0, 1], (1, 3], (2, 4]],
               closed='right',

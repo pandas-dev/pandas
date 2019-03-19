@@ -898,8 +898,14 @@ def test_nonexistent_path(all_parsers):
 
     msg = ("does not exist" if parser.engine == "c"
            else r"\[Errno 2\]")
-    with pytest.raises(compat.FileNotFoundError, match=msg):
+    with pytest.raises(compat.FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
+
+        filename = e.value.filename
+        filename = filename.decode() if isinstance(
+            filename, bytes) else filename
+
+        assert path == filename
 
 
 def test_missing_trailing_delimiters(all_parsers):
@@ -1814,13 +1820,16 @@ def test_invalid_file_buffer_class(all_parsers):
         parser.read_csv(InvalidBuffer())
 
 
-def test_invalid_file_buffer_mock(all_parsers, mock):
+def test_invalid_file_buffer_mock(all_parsers):
     # see gh-15337
     parser = all_parsers
     msg = "Invalid file path or buffer object type"
 
+    class Foo():
+        pass
+
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(mock.Mock())
+        parser.read_csv(Foo())
 
 
 def test_valid_file_buffer_seems_invalid(all_parsers):
@@ -1893,6 +1902,36 @@ def test_suppress_error_output(all_parsers, capsys):
 
     captured = capsys.readouterr()
     assert captured.err == ""
+
+
+def test_filename_with_special_chars(all_parsers):
+    # see gh-15086.
+    parser = all_parsers
+    df = DataFrame({"a": [1, 2, 3]})
+
+    with tm.ensure_clean("sé-es-vé.csv") as path:
+        df.to_csv(path, index=False)
+
+        result = parser.read_csv(path)
+        tm.assert_frame_equal(result, df)
+
+
+def test_read_csv_memory_growth_chunksize(all_parsers):
+    # see gh-24805
+    #
+    # Let's just make sure that we don't crash
+    # as we iteratively process all chunks.
+    parser = all_parsers
+
+    with tm.ensure_clean() as path:
+        with open(path, "w") as f:
+            for i in range(1000):
+                f.write(str(i) + "\n")
+
+        result = parser.read_csv(path, chunksize=20)
+
+        for _ in result:
+            pass
 
 
 def test_read_table_deprecated(all_parsers):

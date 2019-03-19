@@ -5,7 +5,8 @@ import warnings
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.tslibs import NaT, iNaT, resolution
+from pandas._libs.tslibs import (
+    NaT, frequencies as libfrequencies, iNaT, resolution)
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -322,13 +323,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 # this quite a bit.
                 values = period_array(values, freq=self.freq)
 
-        # I don't like overloading shallow_copy with freq changes.
-        # See if it's used anywhere outside of test_resample_empty_dataframe
+        # We don't allow changing `freq` in _shallow_copy.
+        validate_dtype_freq(self.dtype, kwargs.get('freq'))
         attributes = self._get_attributes_dict()
-        freq = kwargs.pop("freq", None)
-        if freq:
-            values = values.asfreq(freq)
-            attributes.pop("freq", None)
 
         attributes.update(kwargs)
         if not len(values) and 'dtype' not in kwargs:
@@ -380,7 +377,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 return delta
         elif isinstance(other, DateOffset):
             freqstr = other.rule_code
-            base = frequencies.get_base_alias(freqstr)
+            base = libfrequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 return other.n
 

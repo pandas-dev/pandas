@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
+from collections import OrderedDict
 from datetime import timedelta
 import json
 import os
@@ -7,8 +8,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    OrderedDict, StringIO, is_platform_32bit, lrange, range)
+from pandas.compat import StringIO, is_platform_32bit, lrange, range
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -101,8 +101,12 @@ class TestPandasContainer(object):
         df = DataFrame([['a', 'b'], ['c', 'd']], index=[1, 1],
                        columns=['x', 'y'])
 
-        pytest.raises(ValueError, df.to_json, orient='index')
-        pytest.raises(ValueError, df.to_json, orient='columns')
+        msg = "DataFrame index must be unique for orient='index'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_json(orient='index')
+        msg = "DataFrame index must be unique for orient='columns'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_json(orient='columns')
 
         assert_frame_equal(df, read_json(df.to_json(orient='split'),
                                          orient='split'))
@@ -116,9 +120,15 @@ class TestPandasContainer(object):
         df = DataFrame([['a', 'b'], ['c', 'd']], index=[1, 2],
                        columns=['x', 'x'])
 
-        pytest.raises(ValueError, df.to_json, orient='index')
-        pytest.raises(ValueError, df.to_json, orient='columns')
-        pytest.raises(ValueError, df.to_json, orient='records')
+        msg = "DataFrame columns must be unique for orient='index'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_json(orient='index')
+        msg = "DataFrame columns must be unique for orient='columns'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_json(orient='columns')
+        msg = "DataFrame columns must be unique for orient='records'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_json(orient='records')
 
         assert_frame_equal(df, read_json(df.to_json(orient='split'),
                                          orient='split', dtype=False))
@@ -156,13 +166,16 @@ class TestPandasContainer(object):
             # if we are not unique, then check that we are raising ValueError
             # for the appropriate orients
             if not df.index.is_unique and orient in ['index', 'columns']:
-                pytest.raises(
-                    ValueError, lambda: df.to_json(orient=orient))
+                msg = ("DataFrame index must be unique for orient='{}'"
+                       .format(orient))
+                with pytest.raises(ValueError, match=msg):
+                    df.to_json(orient=orient)
                 return
             if (not df.columns.is_unique and
                     orient in ['index', 'columns', 'records']):
-                pytest.raises(
-                    ValueError, lambda: df.to_json(orient=orient))
+                # TODO: not executed. fix this.
+                with pytest.raises(ValueError, match='ksjkajksfjksjfkjs'):
+                    df.to_json(orient=orient)
                 return
 
             dfjson = df.to_json(orient=orient)
@@ -181,7 +194,7 @@ class TestPandasContainer(object):
             else:
                 unser = unser.sort_index()
 
-            if dtype is False:
+            if not dtype:
                 check_dtype = False
 
             if not convert_axes and df.index.dtype.type == np.datetime64:
@@ -326,21 +339,24 @@ class TestPandasContainer(object):
         _check_orient(df.transpose().transpose(), "index", dtype=False)
 
     def test_frame_from_json_bad_data(self):
-        pytest.raises(ValueError, read_json, StringIO('{"key":b:a:d}'))
+        with pytest.raises(ValueError, match='Expected object or value'):
+            read_json(StringIO('{"key":b:a:d}'))
 
         # too few indices
         json = StringIO('{"columns":["A","B"],'
                         '"index":["2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
-        pytest.raises(ValueError, read_json, json,
-                      orient="split")
+        msg = r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)"
+        with pytest.raises(ValueError, match=msg):
+            read_json(json, orient="split")
 
         # too many columns
         json = StringIO('{"columns":["A","B","C"],'
                         '"index":["1","2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
-        pytest.raises(AssertionError, read_json, json,
-                      orient="split")
+        msg = "3 columns passed, passed data had 2 columns"
+        with pytest.raises(AssertionError, match=msg):
+            read_json(json, orient="split")
 
         # bad key
         json = StringIO('{"badkey":["A","B"],'
@@ -414,7 +430,9 @@ class TestPandasContainer(object):
 
     def test_frame_to_json_except(self):
         df = DataFrame([1, 2, 3])
-        pytest.raises(ValueError, df.to_json, orient="garbage")
+        msg = "Invalid value 'garbage' for option 'orient'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_json(orient="garbage")
 
     def test_frame_empty(self):
         df = DataFrame(columns=['jim', 'joe'])
@@ -540,7 +558,8 @@ class TestPandasContainer(object):
 
         # check if non-printable content throws appropriate Exception
         df_nonprintable = DataFrame({'A': [binthing]})
-        with pytest.raises(OverflowError):
+        msg = "Unsupported UTF-8 sequence length when encoding string"
+        with pytest.raises(OverflowError, match=msg):
             df_nonprintable.to_json()
 
         # the same with multiple columns threw segfaults
@@ -565,7 +584,9 @@ class TestPandasContainer(object):
     def test_series_non_unique_index(self):
         s = Series(['a', 'b'], index=[1, 1])
 
-        pytest.raises(ValueError, s.to_json, orient='index')
+        msg = "Series index must be unique for orient='index'"
+        with pytest.raises(ValueError, match=msg):
+            s.to_json(orient='index')
 
         assert_series_equal(s, read_json(s.to_json(orient='split'),
                                          orient='split', typ='series'))
@@ -637,7 +658,9 @@ class TestPandasContainer(object):
 
     def test_series_to_json_except(self):
         s = Series([1, 2, 3])
-        pytest.raises(ValueError, s.to_json, orient="garbage")
+        msg = "Invalid value 'garbage' for option 'orient'"
+        with pytest.raises(ValueError, match=msg):
+            s.to_json(orient="garbage")
 
     def test_series_from_json_precise_float(self):
         s = Series([4.56, 4.56, 4.56])
@@ -752,8 +775,9 @@ class TestPandasContainer(object):
         test_w_date('20130101 20:43:42.123456', date_unit='us')
         test_w_date('20130101 20:43:42.123456789', date_unit='ns')
 
-        pytest.raises(ValueError, df.to_json, date_format='iso',
-                      date_unit='foo')
+        msg = "Invalid value 'foo' for option 'date_unit'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_json(date_format='iso', date_unit='foo')
 
     def test_date_format_series(self):
         def test_w_date(date, date_unit=None):
@@ -774,8 +798,9 @@ class TestPandasContainer(object):
         test_w_date('20130101 20:43:42.123456789', date_unit='ns')
 
         ts = Series(Timestamp('20130101 20:43:42.123'), index=self.ts.index)
-        pytest.raises(ValueError, ts.to_json, date_format='iso',
-                      date_unit='foo')
+        msg = "Invalid value 'foo' for option 'date_unit'"
+        with pytest.raises(ValueError, match=msg):
+            ts.to_json(date_format='iso', date_unit='foo')
 
     def test_date_unit(self):
         df = self.tsframe.copy()
@@ -940,14 +965,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert df.to_json(default_handler=str, orient="values") == expected
 
     def test_default_handler_raises(self):
+        msg = "raisin"
+
         def my_handler_raises(obj):
-            raise TypeError("raisin")
-        pytest.raises(TypeError,
-                      DataFrame({'a': [1, 2, object()]}).to_json,
-                      default_handler=my_handler_raises)
-        pytest.raises(TypeError,
-                      DataFrame({'a': [1, 2, complex(4, -5)]}).to_json,
-                      default_handler=my_handler_raises)
+            raise TypeError(msg)
+        with pytest.raises(TypeError, match=msg):
+            DataFrame({'a': [1, 2, object()]}).to_json(
+                default_handler=my_handler_raises)
+        with pytest.raises(TypeError, match=msg):
+            DataFrame({'a': [1, 2, complex(4, -5)]}).to_json(
+                default_handler=my_handler_raises)
 
     def test_categorical(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
@@ -1175,6 +1202,40 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert size_before == size_after
 
+    @pytest.mark.parametrize('index', [None, [1, 2], [1., 2.], ['a', 'b'],
+                                       ['1', '2'], ['1.', '2.']])
+    @pytest.mark.parametrize('columns', [['a', 'b'], ['1', '2'], ['1.', '2.']])
+    def test_from_json_to_json_table_index_and_columns(self, index, columns):
+        # GH25433 GH25435
+        expected = DataFrame([[1, 2], [3, 4]], index=index, columns=columns)
+        dfjson = expected.to_json(orient='table')
+        result = pd.read_json(dfjson, orient='table')
+        assert_frame_equal(result, expected)
+
+    def test_from_json_to_json_table_dtypes(self):
+        # GH21345
+        expected = pd.DataFrame({'a': [1, 2], 'b': [3., 4.], 'c': ['5', '6']})
+        dfjson = expected.to_json(orient='table')
+        result = pd.read_json(dfjson, orient='table')
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [True, {'b': int, 'c': int}])
+    def test_read_json_table_dtype_raises(self, dtype):
+        # GH21345
+        df = pd.DataFrame({'a': [1, 2], 'b': [3., 4.], 'c': ['5', '6']})
+        dfjson = df.to_json(orient='table')
+        msg = "cannot pass both dtype and orient='table'"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(dfjson, orient='table', dtype=dtype)
+
+    def test_read_json_table_convert_axes_raises(self):
+        # GH25433 GH25435
+        df = DataFrame([[1, 2], [3, 4]], index=[1., 2.], columns=['1.', '2.'])
+        dfjson = df.to_json(orient='table')
+        msg = "cannot pass both convert_axes and orient='table'"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(dfjson, orient='table', convert_axes=True)
+
     @pytest.mark.parametrize('data, expected', [
         (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']),
             {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
@@ -1235,3 +1296,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
                "'orient' is 'split' or 'table'")
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient, index=False)
+
+    @pytest.mark.parametrize('orient', ['split', 'table'])
+    @pytest.mark.parametrize('index', [True, False])
+    def test_index_false_from_json_to_json(self, orient, index):
+        # GH25170
+        # Test index=False in from_json to_json
+        expected = DataFrame({'a': [1, 2], 'b': [3, 4]})
+        dfjson = expected.to_json(orient=orient, index=index)
+        result = read_json(dfjson, orient=orient)
+        assert_frame_equal(result, expected)

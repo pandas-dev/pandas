@@ -11,7 +11,6 @@ from decimal import Decimal
 from fractions import Fraction
 from numbers import Number
 import re
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
@@ -30,8 +29,8 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Panel,
-    Period, Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna)
+    Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Period,
+    Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna)
 from pandas.util import testing as tm
 
 
@@ -159,13 +158,15 @@ def test_is_nested_list_like_fails(obj):
 
 
 @pytest.mark.parametrize(
-    "ll", [{}, {'A': 1}, Series([1])])
+    "ll", [{}, {'A': 1}, Series([1]), collections.defaultdict()])
 def test_is_dict_like_passes(ll):
     assert inference.is_dict_like(ll)
 
 
-@pytest.mark.parametrize(
-    "ll", ['1', 1, [1, 2], (1, 2), range(2), Index([1])])
+@pytest.mark.parametrize("ll", [
+    '1', 1, [1, 2], (1, 2), range(2), Index([1]),
+    dict, collections.defaultdict, Series
+])
 def test_is_dict_like_fails(ll):
     assert not inference.is_dict_like(ll)
 
@@ -197,7 +198,7 @@ def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
     assert result is expected
 
 
-def test_is_file_like(mock):
+def test_is_file_like():
     class MockFile(object):
         pass
 
@@ -235,7 +236,6 @@ def test_is_file_like(mock):
     # Iterator but no read / write attributes
     data = [1, 2, 3]
     assert not is_file(data)
-    assert not is_file(mock.Mock())
 
 
 @pytest.mark.parametrize(
@@ -334,11 +334,11 @@ class TestInference(object):
 
         # string array of bytes
         arr = np.array(list('abc'), dtype='S1')
-        assert lib.infer_dtype(arr, skipna=False) == compare
+        assert lib.infer_dtype(arr, skipna=True) == compare
 
         # object array of bytes
         arr = arr.astype(object)
-        assert lib.infer_dtype(arr, skipna=False) == compare
+        assert lib.infer_dtype(arr, skipna=True) == compare
 
         # object array of bytes with missing values
         assert lib.infer_dtype([b'a', np.nan, b'c'], skipna=True) == compare
@@ -538,32 +538,40 @@ class TestTypeInference(object):
 
     def test_integers(self):
         arr = np.array([1, 2, 3, np.int64(4), np.int32(5)], dtype='O')
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'integer'
 
         arr = np.array([1, 2, 3, np.int64(4), np.int32(5), 'foo'], dtype='O')
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'mixed-integer'
 
         arr = np.array([1, 2, 3, 4, 5], dtype='i4')
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'integer'
+
+    def test_deprecation(self):
+        # GH 24050
+        arr = np.array([1, 2, 3], dtype=object)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = lib.infer_dtype(arr)  # default: skipna=None -> warn
+            assert result == 'integer'
 
     def test_bools(self):
         arr = np.array([True, False, True, True, True], dtype='O')
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'boolean'
 
         arr = np.array([np.bool_(True), np.bool_(False)], dtype='O')
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'boolean'
 
         arr = np.array([True, False, True, 'foo'], dtype='O')
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'mixed'
 
         arr = np.array([True, False, True], dtype=bool)
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'boolean'
 
         arr = np.array([True, np.nan, False], dtype='O')
@@ -575,39 +583,70 @@ class TestTypeInference(object):
 
     def test_floats(self):
         arr = np.array([1., 2., 3., np.float64(4), np.float32(5)], dtype='O')
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'floating'
 
         arr = np.array([1, 2, 3, np.float64(4), np.float32(5), 'foo'],
                        dtype='O')
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'mixed-integer'
 
         arr = np.array([1, 2, 3, 4, 5], dtype='f4')
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'floating'
 
         arr = np.array([1, 2, 3, 4, 5], dtype='f8')
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'floating'
 
     def test_decimals(self):
         # GH15690
         arr = np.array([Decimal(1), Decimal(2), Decimal(3)])
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'decimal'
 
         arr = np.array([1.0, 2.0, Decimal(3)])
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'mixed'
 
         arr = np.array([Decimal(1), Decimal('NaN'), Decimal(3)])
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'decimal'
 
         arr = np.array([Decimal(1), np.nan, Decimal(3)], dtype='O')
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'decimal'
+
+    # complex is compatible with nan, so skipna has no effect
+    @pytest.mark.parametrize('skipna', [True, False])
+    def test_complex(self, skipna):
+        # gets cast to complex on array construction
+        arr = np.array([1.0, 2.0, 1 + 1j])
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        arr = np.array([1.0, 2.0, 1 + 1j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'mixed'
+
+        # gets cast to complex on array construction
+        arr = np.array([1, np.nan, 1 + 1j])
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        arr = np.array([1.0, np.nan, 1 + 1j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'mixed'
+
+        # complex with nans stays complex
+        arr = np.array([1 + 1j, np.nan, 3 + 3j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        # test smaller complex dtype; will pass through _try_infer_map fastpath
+        arr = np.array([1 + 1j, np.nan, 3 + 3j], dtype=np.complex64)
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
 
     def test_string(self):
         pass
@@ -648,34 +687,34 @@ class TestTypeInference(object):
 
         arr = np.array([Timestamp('2011-01-01'),
                         Timestamp('2011-01-02')])
-        assert lib.infer_dtype(arr, skipna=False) == 'datetime'
+        assert lib.infer_dtype(arr, skipna=True) == 'datetime'
 
         arr = np.array([np.datetime64('2011-01-01'),
                         np.datetime64('2011-01-01')], dtype=object)
-        assert lib.infer_dtype(arr, skipna=False) == 'datetime64'
+        assert lib.infer_dtype(arr, skipna=True) == 'datetime64'
 
         arr = np.array([datetime(2011, 1, 1), datetime(2012, 2, 1)])
-        assert lib.infer_dtype(arr, skipna=False) == 'datetime'
+        assert lib.infer_dtype(arr, skipna=True) == 'datetime'
 
         # starts with nan
         for n in [pd.NaT, np.nan]:
             arr = np.array([n, pd.Timestamp('2011-01-02')])
-            assert lib.infer_dtype(arr, skipna=False) == 'datetime'
+            assert lib.infer_dtype(arr, skipna=True) == 'datetime'
 
             arr = np.array([n, np.datetime64('2011-01-02')])
-            assert lib.infer_dtype(arr, skipna=False) == 'datetime64'
+            assert lib.infer_dtype(arr, skipna=True) == 'datetime64'
 
             arr = np.array([n, datetime(2011, 1, 1)])
-            assert lib.infer_dtype(arr, skipna=False) == 'datetime'
+            assert lib.infer_dtype(arr, skipna=True) == 'datetime'
 
             arr = np.array([n, pd.Timestamp('2011-01-02'), n])
-            assert lib.infer_dtype(arr, skipna=False) == 'datetime'
+            assert lib.infer_dtype(arr, skipna=True) == 'datetime'
 
             arr = np.array([n, np.datetime64('2011-01-02'), n])
-            assert lib.infer_dtype(arr, skipna=False) == 'datetime64'
+            assert lib.infer_dtype(arr, skipna=True) == 'datetime64'
 
             arr = np.array([n, datetime(2011, 1, 1), n])
-            assert lib.infer_dtype(arr, skipna=False) == 'datetime'
+            assert lib.infer_dtype(arr, skipna=True) == 'datetime'
 
         # different type of nat
         arr = np.array([np.timedelta64('nat'),
@@ -689,58 +728,58 @@ class TestTypeInference(object):
         # mixed datetime
         arr = np.array([datetime(2011, 1, 1),
                         pd.Timestamp('2011-01-02')])
-        assert lib.infer_dtype(arr, skipna=False) == 'datetime'
+        assert lib.infer_dtype(arr, skipna=True) == 'datetime'
 
         # should be datetime?
         arr = np.array([np.datetime64('2011-01-01'),
                         pd.Timestamp('2011-01-02')])
-        assert lib.infer_dtype(arr, skipna=False) == 'mixed'
+        assert lib.infer_dtype(arr, skipna=True) == 'mixed'
 
         arr = np.array([pd.Timestamp('2011-01-02'),
                         np.datetime64('2011-01-01')])
-        assert lib.infer_dtype(arr, skipna=False) == 'mixed'
+        assert lib.infer_dtype(arr, skipna=True) == 'mixed'
 
         arr = np.array([np.nan, pd.Timestamp('2011-01-02'), 1])
-        assert lib.infer_dtype(arr, skipna=False) == 'mixed-integer'
+        assert lib.infer_dtype(arr, skipna=True) == 'mixed-integer'
 
         arr = np.array([np.nan, pd.Timestamp('2011-01-02'), 1.1])
-        assert lib.infer_dtype(arr, skipna=False) == 'mixed'
+        assert lib.infer_dtype(arr, skipna=True) == 'mixed'
 
         arr = np.array([np.nan, '2011-01-01', pd.Timestamp('2011-01-02')])
-        assert lib.infer_dtype(arr, skipna=False) == 'mixed'
+        assert lib.infer_dtype(arr, skipna=True) == 'mixed'
 
     def test_infer_dtype_timedelta(self):
 
         arr = np.array([pd.Timedelta('1 days'),
                         pd.Timedelta('2 days')])
-        assert lib.infer_dtype(arr, skipna=False) == 'timedelta'
+        assert lib.infer_dtype(arr, skipna=True) == 'timedelta'
 
         arr = np.array([np.timedelta64(1, 'D'),
                         np.timedelta64(2, 'D')], dtype=object)
-        assert lib.infer_dtype(arr, skipna=False) == 'timedelta'
+        assert lib.infer_dtype(arr, skipna=True) == 'timedelta'
 
         arr = np.array([timedelta(1), timedelta(2)])
-        assert lib.infer_dtype(arr, skipna=False) == 'timedelta'
+        assert lib.infer_dtype(arr, skipna=True) == 'timedelta'
 
         # starts with nan
         for n in [pd.NaT, np.nan]:
             arr = np.array([n, Timedelta('1 days')])
-            assert lib.infer_dtype(arr, skipna=False) == 'timedelta'
+            assert lib.infer_dtype(arr, skipna=True) == 'timedelta'
 
             arr = np.array([n, np.timedelta64(1, 'D')])
-            assert lib.infer_dtype(arr, skipna=False) == 'timedelta'
+            assert lib.infer_dtype(arr, skipna=True) == 'timedelta'
 
             arr = np.array([n, timedelta(1)])
-            assert lib.infer_dtype(arr, skipna=False) == 'timedelta'
+            assert lib.infer_dtype(arr, skipna=True) == 'timedelta'
 
             arr = np.array([n, pd.Timedelta('1 days'), n])
-            assert lib.infer_dtype(arr, skipna=False) == 'timedelta'
+            assert lib.infer_dtype(arr, skipna=True) == 'timedelta'
 
             arr = np.array([n, np.timedelta64(1, 'D'), n])
-            assert lib.infer_dtype(arr, skipna=False) == 'timedelta'
+            assert lib.infer_dtype(arr, skipna=True) == 'timedelta'
 
             arr = np.array([n, timedelta(1), n])
-            assert lib.infer_dtype(arr, skipna=False) == 'timedelta'
+            assert lib.infer_dtype(arr, skipna=True) == 'timedelta'
 
         # different type of nat
         arr = np.array([np.datetime64('nat'), np.timedelta64(1, 'D')],
@@ -755,19 +794,19 @@ class TestTypeInference(object):
         # GH 13664
         arr = np.array([pd.Period('2011-01', freq='D'),
                         pd.Period('2011-02', freq='D')])
-        assert lib.infer_dtype(arr, skipna=False) == 'period'
+        assert lib.infer_dtype(arr, skipna=True) == 'period'
 
         arr = np.array([pd.Period('2011-01', freq='D'),
                         pd.Period('2011-02', freq='M')])
-        assert lib.infer_dtype(arr, skipna=False) == 'period'
+        assert lib.infer_dtype(arr, skipna=True) == 'period'
 
         # starts with nan
         for n in [pd.NaT, np.nan]:
             arr = np.array([n, pd.Period('2011-01', freq='D')])
-            assert lib.infer_dtype(arr, skipna=False) == 'period'
+            assert lib.infer_dtype(arr, skipna=True) == 'period'
 
             arr = np.array([n, pd.Period('2011-01', freq='D'), n])
-            assert lib.infer_dtype(arr, skipna=False) == 'period'
+            assert lib.infer_dtype(arr, skipna=True) == 'period'
 
         # different type of nat
         arr = np.array([np.datetime64('nat'), pd.Period('2011-01', freq='M')],
@@ -846,7 +885,7 @@ class TestTypeInference(object):
 
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])
-        assert lib.infer_dtype(arr, skipna=False) == 'floating'
+        assert lib.infer_dtype(arr, skipna=True) == 'floating'
 
         # nan and None mix are result in mixed
         arr = np.array([np.nan, np.nan, None])
@@ -1043,17 +1082,17 @@ class TestTypeInference(object):
         # GH 8974
         from pandas import Categorical, Series
         arr = Categorical(list('abc'))
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'categorical'
 
-        result = lib.infer_dtype(Series(arr), skipna=False)
+        result = lib.infer_dtype(Series(arr), skipna=True)
         assert result == 'categorical'
 
         arr = Categorical(list('abc'), categories=['cegfab'], ordered=True)
-        result = lib.infer_dtype(arr, skipna=False)
+        result = lib.infer_dtype(arr, skipna=True)
         assert result == 'categorical'
 
-        result = lib.infer_dtype(Series(arr), skipna=False)
+        result = lib.infer_dtype(Series(arr), skipna=True)
         assert result == 'categorical'
 
 
@@ -1265,10 +1304,6 @@ class TestIsScalar(object):
         assert not is_scalar(Series([1]))
         assert not is_scalar(DataFrame())
         assert not is_scalar(DataFrame([[1]]))
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            assert not is_scalar(Panel())
-            assert not is_scalar(Panel([[[1]]]))
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
 

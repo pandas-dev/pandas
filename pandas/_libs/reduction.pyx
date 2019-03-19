@@ -342,7 +342,9 @@ cdef class SeriesGrouper:
             index = None
         else:
             values = dummy.values
-            if dummy.dtype != self.arr.dtype:
+            # GH 23683: datetimetz types are equivalent to datetime types here
+            if (dummy.dtype != self.arr.dtype
+                    and values.dtype != self.arr.dtype):
                 raise ValueError('Dummy array must be same dtype')
             if not values.flags.contiguous:
                 values = values.copy()
@@ -494,7 +496,7 @@ class InvalidApply(Exception):
 
 
 def apply_frame_axis0(object frame, object f, object names,
-                      ndarray[int64_t] starts, ndarray[int64_t] ends):
+                      const int64_t[:] starts, const int64_t[:] ends):
     cdef:
         BlockSlider slider
         Py_ssize_t i, n = len(starts)

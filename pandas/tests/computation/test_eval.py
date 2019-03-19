@@ -1,42 +1,34 @@
-import warnings
-import operator
 from distutils.version import LooseVersion
 from itertools import product
+import operator
+import warnings
 
+import numpy as np
+from numpy.random import rand, randint, randn
 import pytest
 
-from numpy.random import randn, rand, randint
-import numpy as np
+from pandas.compat import PY3, reduce
+from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
-import pandas as pd
-from pandas.errors import PerformanceWarning
-from pandas import DataFrame, Series, Panel, date_range
-from pandas.util.testing import makeCustomDataframe as mkdf
 
+import pandas as pd
+from pandas import DataFrame, Series, date_range
 from pandas.core.computation import pytables
 from pandas.core.computation.check import _NUMEXPR_VERSION
-from pandas.core.computation.engines import _engines, NumExprClobberingError
-from pandas.core.computation.expr import PythonExprVisitor, PandasExprVisitor
-from pandas.core.computation.expressions import (
-    _USE_NUMEXPR, _NUMEXPR_INSTALLED)
-from pandas.core.computation.ops import (
-    _binary_ops_dict,
-    _special_case_arith_ops_syms,
-    _arith_ops_syms, _bool_ops_syms,
-    _unary_math_ops, _binary_math_ops)
-
+from pandas.core.computation.engines import NumExprClobberingError, _engines
 import pandas.core.computation.expr as expr
+from pandas.core.computation.expr import PandasExprVisitor, PythonExprVisitor
+from pandas.core.computation.expressions import (
+    _NUMEXPR_INSTALLED, _USE_NUMEXPR)
+from pandas.core.computation.ops import (
+    _arith_ops_syms, _binary_math_ops, _binary_ops_dict,
+    _special_case_arith_ops_syms, _unary_math_ops)
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.util.testing import (assert_frame_equal, randbool,
-                                 assert_numpy_array_equal, assert_series_equal,
-                                 assert_produces_warning)
-from pandas.compat import PY3, reduce
-
-
-_series_frame_incompatible = _bool_ops_syms
-_scalar_skip = 'in', 'not in'
+from pandas.util.testing import (
+    assert_frame_equal, assert_numpy_array_equal, assert_produces_warning,
+    assert_series_equal, makeCustomDataframe as mkdf, randbool)
 
 
 @pytest.fixture(params=(
@@ -167,13 +159,21 @@ class TestEvalNumexprPandas(object):
         del self.pandas_rhses, self.pandas_lhses, self.current_engines
 
     @pytest.mark.slow
-    def test_complex_cmp_ops(self):
-        cmp_ops = ('!=', '==', '<=', '>=', '<', '>')
-        cmp2_ops = ('>', '<')
-        for lhs, cmp1, rhs, binop, cmp2 in product(self.lhses, cmp_ops,
-                                                   self.rhses, self.bin_ops,
-                                                   cmp2_ops):
-            self.check_complex_cmp_op(lhs, cmp1, rhs, binop, cmp2)
+    @pytest.mark.parametrize('cmp1', ['!=', '==', '<=', '>=', '<', '>'],
+                             ids=['ne', 'eq', 'le', 'ge', 'lt', 'gt'])
+    @pytest.mark.parametrize('cmp2', ['>', '<'], ids=['gt', 'lt'])
+    def test_complex_cmp_ops(self, cmp1, cmp2):
+        for lhs, rhs, binop in product(
+                self.lhses, self.rhses, self.bin_ops):
+            lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
+            rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
+            expected = _eval_single_bin(
+                lhs_new, binop, rhs_new, self.engine)
+
+            ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(
+                cmp1=cmp1, binop=binop, cmp2=cmp2)
+            result = pd.eval(ex, engine=self.engine, parser=self.parser)
+            self.check_equal(result, expected)
 
     def test_simple_cmp_ops(self):
         bool_lhses = (DataFrame(randbool(size=(10, 5))),
@@ -230,44 +230,6 @@ class TestEvalNumexprPandas(object):
         else:
             assert result == expected
 
-    def check_complex_cmp_op(self, lhs, cmp1, rhs, binop, cmp2):
-        skip_these = _scalar_skip
-        ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(cmp1=cmp1,
-                                                                binop=binop,
-                                                                cmp2=cmp2)
-        scalar_with_in_notin = (is_scalar(rhs) and (cmp1 in skip_these or
-                                                    cmp2 in skip_these))
-        if scalar_with_in_notin:
-            with pytest.raises(TypeError):
-                pd.eval(ex, engine=self.engine, parser=self.parser)
-            with pytest.raises(TypeError):
-                pd.eval(ex, engine=self.engine, parser=self.parser,
-                        local_dict={'lhs': lhs, 'rhs': rhs})
-        else:
-            lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
-            rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
-            if (isinstance(lhs_new, Series) and
-                    isinstance(rhs_new, DataFrame) and
-                    binop in _series_frame_incompatible):
-                pass
-                # TODO: the code below should be added back when left and right
-                # hand side bool ops are fixed.
-                #
-                # try:
-                #     pytest.raises(Exception, pd.eval, ex,
-                #                   local_dict={'lhs': lhs, 'rhs': rhs},
-                #                   engine=self.engine, parser=self.parser)
-                # except AssertionError:
-                #     import ipdb
-                #
-                #     ipdb.set_trace()
-                #     raise
-            else:
-                expected = _eval_single_bin(
-                    lhs_new, binop, rhs_new, self.engine)
-                result = pd.eval(ex, engine=self.engine, parser=self.parser)
-                self.check_equal(result, expected)
-
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
 
         def check_operands(left, right, cmp_op):
@@ -290,10 +252,14 @@ class TestEvalNumexprPandas(object):
 
     def check_simple_cmp_op(self, lhs, cmp1, rhs):
         ex = 'lhs {0} rhs'.format(cmp1)
+        msg = (r"only list-like( or dict-like)? objects are allowed to be"
+               r" passed to (DataFrame\.)?isin\(\), you passed a"
+               r" (\[|')bool(\]|')|"
+               "argument of type 'bool' is not iterable")
         if cmp1 in ('in', 'not in') and not is_list_like(rhs):
-            pytest.raises(TypeError, pd.eval, ex, engine=self.engine,
-                          parser=self.parser, local_dict={'lhs': lhs,
-                                                          'rhs': rhs})
+            with pytest.raises(TypeError, match=msg):
+                pd.eval(ex, engine=self.engine, parser=self.parser,
+                        local_dict={'lhs': lhs, 'rhs': rhs})
         else:
             expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
             result = pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -346,9 +312,11 @@ class TestEvalNumexprPandas(object):
             expected = lhs // rhs
             self.check_equal(res, expected)
         else:
-            pytest.raises(TypeError, pd.eval, ex,
-                          local_dict={'lhs': lhs, 'rhs': rhs},
-                          engine=self.engine, parser=self.parser)
+            msg = (r"unsupported operand type\(s\) for //: 'VariableNode' and"
+                   " 'VariableNode'")
+            with pytest.raises(TypeError, match=msg):
+                pd.eval(ex, local_dict={'lhs': lhs, 'rhs': rhs},
+                        engine=self.engine, parser=self.parser)
 
     def get_expected_pow_result(self, lhs, rhs):
         try:
@@ -401,10 +369,14 @@ class TestEvalNumexprPandas(object):
         skip_these = 'in', 'not in'
         ex = '~(lhs {0} rhs)'.format(cmp1)
 
+        msg = (r"only list-like( or dict-like)? objects are allowed to be"
+               r" passed to (DataFrame\.)?isin\(\), you passed a"
+               r" (\[|')float(\]|')|"
+               "argument of type 'float' is not iterable")
         if is_scalar(rhs) and cmp1 in skip_these:
-            pytest.raises(TypeError, pd.eval, ex, engine=self.engine,
-                          parser=self.parser, local_dict={'lhs': lhs,
-                                                          'rhs': rhs})
+            with pytest.raises(TypeError, match=msg):
+                pd.eval(ex, engine=self.engine, parser=self.parser,
+                        local_dict={'lhs': lhs, 'rhs': rhs})
         else:
             # compound
             if is_scalar(lhs) and is_scalar(rhs):
@@ -1106,8 +1078,9 @@ class TestOperationsNumExprPandas(object):
             ex3 = '1 {0} (x + 1)'.format(op)
 
             if op in ('in', 'not in'):
-                pytest.raises(TypeError, pd.eval, ex,
-                              engine=self.engine, parser=self.parser)
+                msg = "argument of type 'int' is not iterable"
+                with pytest.raises(TypeError, match=msg):
+                    pd.eval(ex, engine=self.engine, parser=self.parser)
             else:
                 expec = _eval_single_bin(1, op, 1, self.engine)
                 x = self.eval(ex, engine=self.engine, parser=self.parser)
@@ -1138,14 +1111,6 @@ class TestOperationsNumExprPandas(object):
             res = self.eval(ex)
             exp = eval(ex)
             assert res == exp
-
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_panel_fails(self):
-        x = Panel(randn(3, 4, 5))
-        y = Series(randn(10))
-        with pytest.raises(NotImplementedError):
-            self.eval('x + y',
-                      local_dict={'x': x, 'y': y})
 
     def test_4d_ndarray_fails(self):
         x = randn(3, 4, 5, 6)
@@ -1241,19 +1206,25 @@ class TestOperationsNumExprPandas(object):
         df = DataFrame(np.random.randn(5, 3), columns=list('abc'))
         df2 = DataFrame(np.random.randn(5, 3))
         expr1 = 'df = df2'
-        pytest.raises(ValueError, self.eval, expr1,
-                      local_dict={'df': df, 'df2': df2})
+        msg = "cannot assign without a target object"
+        with pytest.raises(ValueError, match=msg):
+            self.eval(expr1, local_dict={'df': df, 'df2': df2})
 
     def test_assignment_column(self):
         df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
         orig_df = df.copy()
 
         # multiple assignees
-        pytest.raises(SyntaxError, df.eval, 'd c = a + b')
+        with pytest.raises(SyntaxError, match="invalid syntax"):
+            df.eval('d c = a + b')
 
         # invalid assignees
-        pytest.raises(SyntaxError, df.eval, 'd,c = a + b')
-        pytest.raises(SyntaxError, df.eval, 'Timestamp("20131001") = a + b')
+        msg = "left hand side of an assignment must be a single name"
+        with pytest.raises(SyntaxError, match=msg):
+            df.eval('d,c = a + b')
+        msg = "can't assign to function call"
+        with pytest.raises(SyntaxError, match=msg):
+            df.eval('Timestamp("20131001") = a + b')
 
         # single assignment - existing variable
         expected = orig_df.copy()
@@ -1296,7 +1267,9 @@ class TestOperationsNumExprPandas(object):
         # multiple assignment
         df = orig_df.copy()
         df.eval('c = a + b', inplace=True)
-        pytest.raises(SyntaxError, df.eval, 'c = a = b')
+        msg = "can only assign a single expression"
+        with pytest.raises(SyntaxError, match=msg):
+            df.eval('c = a = b')
 
         # explicit targets
         df = orig_df.copy()
@@ -1550,21 +1523,24 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     def test_fails_and(self):
         df = DataFrame(np.random.randn(5, 3))
-        pytest.raises(NotImplementedError, pd.eval, 'df > 2 and df > 3',
-                      local_dict={'df': df}, parser=self.parser,
-                      engine=self.engine)
+        msg = "'BoolOp' nodes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.eval('df > 2 and df > 3', local_dict={'df': df},
+                    parser=self.parser, engine=self.engine)
 
     def test_fails_or(self):
         df = DataFrame(np.random.randn(5, 3))
-        pytest.raises(NotImplementedError, pd.eval, 'df > 2 or df > 3',
-                      local_dict={'df': df}, parser=self.parser,
-                      engine=self.engine)
+        msg = "'BoolOp' nodes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.eval('df > 2 or df > 3', local_dict={'df': df},
+                    parser=self.parser, engine=self.engine)
 
     def test_fails_not(self):
         df = DataFrame(np.random.randn(5, 3))
-        pytest.raises(NotImplementedError, pd.eval, 'not df > 2',
-                      local_dict={'df': df}, parser=self.parser,
-                      engine=self.engine)
+        msg = "'Not' nodes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.eval('not df > 2', local_dict={'df': df}, parser=self.parser,
+                    engine=self.engine)
 
     def test_fails_ampersand(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa

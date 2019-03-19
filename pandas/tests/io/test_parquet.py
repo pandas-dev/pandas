@@ -47,8 +47,6 @@ def engine(request):
 def pa():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
-    if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
-        pytest.skip("pyarrow is < 0.7.0")
     return 'pyarrow'
 
 
@@ -56,15 +54,6 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    return 'fastparquet'
-
-
-@pytest.fixture
-def fp_lt_014():
-    if not _HAVE_FASTPARQUET:
-        pytest.skip("fastparquet is not installed")
-    if LooseVersion(fastparquet.__version__) >= LooseVersion('0.1.4'):
-        pytest.skip("fastparquet is >= 0.1.4")
     return 'fastparquet'
 
 
@@ -298,11 +287,6 @@ class TestBasic(Base):
     def test_write_index(self, engine):
         check_names = engine != 'fastparquet'
 
-        if engine == 'pyarrow':
-            import pyarrow
-            if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
-                pytest.skip("pyarrow is < 0.7.0")
-
         df = pd.DataFrame({'A': [1, 2, 3]})
         check_round_trip(df, engine)
 
@@ -395,10 +379,8 @@ class TestParquetPyArrow(Base):
         df = df_full
 
         # additional supported types for pyarrow
-        import pyarrow
-        if LooseVersion(pyarrow.__version__) >= LooseVersion('0.7.0'):
-            df['datetime_tz'] = pd.date_range('20130101', periods=3,
-                                              tz='Europe/Brussels')
+        df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                          tz='Europe/Brussels')
         df['bool_with_none'] = [True, None, True]
 
         check_round_trip(df, pa)
@@ -509,16 +491,6 @@ class TestParquetFastParquet(Base):
             pytest.skip("CategoricalDtype not supported for older fp")
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         check_round_trip(df, fp)
-
-    def test_datetime_tz(self, fp_lt_014):
-
-        # fastparquet<0.1.4 doesn't preserve tz
-        df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
-                                              tz='US/Eastern')})
-        # warns on the coercion
-        with catch_warnings(record=True):
-            check_round_trip(df, fp_lt_014,
-                             expected=df.astype('datetime64[ns]'))
 
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}
