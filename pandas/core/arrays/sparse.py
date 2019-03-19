@@ -7,12 +7,13 @@ import numbers
 import operator
 import re
 import warnings
+from typing import Any, Callable, Union
 
 import numpy as np
 
 from pandas._libs import index as libindex, lib
 import pandas._libs.sparse as splib
-from pandas._libs.sparse import BlockIndex, IntIndex
+from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -372,7 +373,7 @@ _sparray_doc_kwargs = dict(klass='SparseArray')
 
 
 def _get_fill(arr):
-    # type: (SparseArray) -> ndarray
+    # type: (SparseArray) -> np.ndarray
     """
     Create a 0-dim ndarray containing the fill value
 

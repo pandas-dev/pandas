@@ -1,7 +1,12 @@
+from typing import Optional, Sequence, Union
+
+import numpy as np
+
 from pandas._libs import lib, tslibs
 
 from pandas.core.dtypes.common import (
-    is_datetime64_ns_dtype, is_extension_array_dtype, is_timedelta64_ns_dtype)
+    ExtensionDtype, is_datetime64_ns_dtype, is_extension_array_dtype,
+    is_timedelta64_ns_dtype)
 from pandas.core.dtypes.dtypes import registry
 
 from pandas import compat

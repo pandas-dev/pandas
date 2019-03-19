@@ -2,6 +2,7 @@
 from datetime import datetime, time, timedelta
 import textwrap
 import warnings
+from typing import Union
 
 import numpy as np
 from pytz import utc
