@@ -15,11 +15,11 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype, is_datetime64tz_dtype, is_datetimelike,
     is_extension_array_dtype, is_extension_type, is_list_like, is_object_dtype,
     is_scalar, is_timedelta64_ns_dtype)
-from pandas.core.dtypes.dtypes import ExtensionArray
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
