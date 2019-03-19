@@ -15,7 +15,8 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.dtypes.common import ExtensionDtype, is_list_like
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 

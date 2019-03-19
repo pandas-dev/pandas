@@ -5,9 +5,8 @@ import numpy as np
 from pandas._libs import lib, tslibs
 
 from pandas.core.dtypes.common import (
-    ExtensionDtype, is_datetime64_ns_dtype, is_extension_array_dtype,
-    is_timedelta64_ns_dtype)
-from pandas.core.dtypes.dtypes import registry
+    is_datetime64_ns_dtype, is_extension_array_dtype, is_timedelta64_ns_dtype)
+from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 
 from pandas import compat
 
