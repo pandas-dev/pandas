@@ -28,6 +28,7 @@ Other Enhancements
 - :meth:`DatetimeIndex.union` now supports the ``sort`` argument. The behaviour of the sort parameter matches that of :meth:`Index.union` (:issue:`24994`)
 - :meth:`DataFrame.rename` now supports the ``errors`` argument to raise errors when attempting to rename nonexistent keys (:issue:`13473`)
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
+- :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 
 .. _whatsnew_0250.api_breaking:
 

@@ -1,4 +1,4 @@
-from datetime import date, time, timedelta
+from datetime import date, time, timedelta, timezone
 from decimal import Decimal
 import os
 
@@ -247,13 +247,11 @@ def writable(request):
 
 @pytest.fixture(scope='module')
 def datetime_tz_utc():
-    from datetime import timezone
     return timezone.utc
 
 
 utc_objs = ['utc', 'dateutil/UTC', utc, tzutc()]
 if PY3:
-    from datetime import timezone
     utc_objs.append(timezone.utc)
 
 
@@ -366,7 +364,9 @@ unique_nulls_fixture2 = unique_nulls_fixture
 
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
              'dateutil/Asia/Singapore', tzutc(), tzlocal(), FixedOffset(300),
-             FixedOffset(0), FixedOffset(-300)]
+             FixedOffset(0), FixedOffset(-300), timezone.utc,
+             timezone(timedelta(hours=1)),
+             timezone(timedelta(hours=-1), name='foo')]
 
 
 @td.parametrize_fixture_doc(str(TIMEZONES))

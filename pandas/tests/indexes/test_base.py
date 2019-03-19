@@ -416,9 +416,8 @@ class TestIndex(Base):
         # TODO(GH-24559): Remove the sys.modules and warnings
         # not sure what this is from. It's Py2 only.
         modules = [sys.modules['pandas.core.indexes.base']]
-
         if (tz_naive_fixture and attr == "asi8" and
-                str(tz_naive_fixture) not in ('UTC', 'tzutc()')):
+                str(tz_naive_fixture) not in ('UTC', 'tzutc()', 'UTC+00:00')):
             ex_warn = FutureWarning
         else:
             ex_warn = None
