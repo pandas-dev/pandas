@@ -13,6 +13,7 @@ import datetime
 from functools import partial, wraps
 import types
 import warnings
+from typing import Optional, Type
 
 import numpy as np
 
@@ -1040,7 +1041,7 @@ class GroupBy(_GroupBy):
         """
 
         def objs_to_bool(vals):
-            # type: (np.ndarray) -> (np.ndarray, typing.Type)
+            # type: (np.ndarray) -> (np.ndarray, Type)
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
             else:
@@ -1049,7 +1050,7 @@ class GroupBy(_GroupBy):
             return vals.view(np.uint8), np.bool
 
         def result_to_bool(result, inference):
-            # type: (np.ndarray, typing.Type) -> np.ndarray
+            # type: (np.ndarray, Type) -> np.ndarray
             return result.astype(inference, copy=False)
 
         return self._get_cythonized_result('group_any_all', self.grouper,
@@ -1738,7 +1739,7 @@ class GroupBy(_GroupBy):
         """
 
         def pre_processor(vals):
-            # type: (np.ndarray) -> (np.ndarray, Optional[typing.Type])
+            # type: (np.ndarray) -> (np.ndarray, Optional[Type])
             if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
@@ -1753,7 +1754,7 @@ class GroupBy(_GroupBy):
             return vals, inference
 
         def post_processor(vals, inference):
-            # type: (np.ndarray, Optional[typing.Type]) -> np.ndarray
+            # type: (np.ndarray, Optional[Type]) -> np.ndarray
             if inference:
                 # Check for edge case
                 if not (is_integer_dtype(inference) and
@@ -2016,7 +2017,7 @@ class GroupBy(_GroupBy):
             Function to be applied to result of Cython function. Should accept
             an array of values as the first argument and type inferences as its
             second argument, i.e. the signature should be
-            (ndarray, typing.Type).
+            (ndarray, Type).
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
