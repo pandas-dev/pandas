@@ -40,6 +40,7 @@ from pandas.core.index import CategoricalIndex, Index, MultiIndex
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
+from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting._core import boxplot_frame_groupby
 
@@ -198,9 +199,16 @@ class NDFrameGroupBy(GroupBy):
                     assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
                         [arg], _level=_level, _axis=self.axis)
+
                     result.columns = Index(
                         result.columns.levels[0],
                         name=self._selected_obj.columns.name)
+
+                    if isinstance(self.obj, SparseDataFrame):
+                        # Backwards compat for groupby.agg() with sparse
+                        # values. concat no longer converts DataFrame[Sparse]
+                        # to SparseDataFrame, so we do it here.
+                        result = SparseDataFrame(result._data)
                 except Exception:
                     result = self._aggregate_generic(arg, *args, **kwargs)
 
