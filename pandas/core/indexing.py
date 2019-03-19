@@ -13,7 +13,7 @@ from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     ensure_platform_int, is_float, is_integer, is_integer_dtype, is_iterator,
-    is_list_like, is_scalar, is_sequence, is_sparse)
+    is_list_like, is_scalar, is_sequence, is_sparse, is_numeric_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
@@ -2079,7 +2079,7 @@ class _iLocIndexer(_LocationIndexer):
             len_axis = len(self.obj._get_axis(axis))
 
             # check that the key has a numeric dtype
-            if not np.issubdtype(arr.dtype, np.number):
+            if not is_numeric_dtype(arr.dtype):
                 raise IndexError(".iloc requires numeric indexers, got "
                                  "{arr}".format(arr=arr))
 
