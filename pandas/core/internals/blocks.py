@@ -4,6 +4,7 @@ import functools
 import inspect
 import re
 import warnings
+from typing import Any, List
 
 import numpy as np
 
@@ -1826,8 +1827,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                  limit=limit),
             placement=self.mgr_locs)
 
-    def shift(self, periods, axis=0, fill_value=None):
-        # type: (int, Optional[BlockPlacement], Any) -> List[ExtensionBlock]
+    def shift(self,
+              periods,                  # type: int
+              axis=0,                   # type: libinternals.BlockPlacement
+              fill_value=None):         # type: Any
+        # type: (...) -> List[ExtensionBlock]
         """
         Shift the block by `periods`.
 

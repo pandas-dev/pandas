@@ -4,10 +4,12 @@ from functools import partial
 import itertools
 import operator
 import re
+from typing import List, Optional, Union
 
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
+from pandas.api.extensions import ExtensionDtype
 from pandas.compat import map, range, zip
 from pandas.util._validators import validate_bool_kwarg
 
