@@ -129,7 +129,7 @@ class TestiLoc(Base):
         df = DataFrame(np.random.randn(len(index), len(columns)),
                        index=index,
                        columns=columns)
-        msg = '.iloc requires integer indexers, got'
+        msg = '.iloc requires numeric indexers, got'
         with pytest.raises(IndexError, match=msg):
             df.iloc[index_vals, column_vals]
 
