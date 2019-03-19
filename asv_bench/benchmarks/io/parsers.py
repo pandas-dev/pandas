@@ -1,4 +1,6 @@
 from pandas._libs.tslibs.parsing import _does_string_look_like_datetime
+from pandas.io.parsers import _concat_date_cols
+import numpy as np
 
 
 class DoesStringLookLikeDatetime(object):
@@ -17,4 +19,18 @@ class DoesStringLookLikeDatetime(object):
                 pass
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+class ConcatDateCols(object):
+
+    params = ([1234567890, 'AAAA'], [1, 2])
+    param_names = ['value', 'dim']
+
+    def setup(self, value, dim):
+        count_elem = 1000000
+        if dim == 1:
+            self.object = (np.array([value] * count_elem),)
+        if dim == 2:
+            self.object = (np.array([value] * count_elem),
+                           np.array([value] * count_elem))
+
+    def time_check_concat(self, value, dim):
+        _concat_date_cols(self.object)
