@@ -2468,8 +2468,8 @@ class DataFrame(NDFrame):
         ----------
         index : bool, default True
             Specifies whether to include the memory usage of the DataFrame's
-            index in returned Series. If ``index=True`` the memory usage of the
-            index the first item in the output.
+            index in returned Series. If ``index=True``, the memory usage of
+            the index is the first item in the output.
         deep : bool, default False
             If True, introspect the data deeply by interrogating
             `object` dtypes for system-level memory consumption, and include
@@ -7021,8 +7021,9 @@ class DataFrame(NDFrame):
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
             * callable: callable with input two 1d ndarrays
-                and returning a float
-
+                and returning a float. Note that the returned matrix from corr
+                will have 1 along the diagonals and will be symmetric
+                regardless of the callable's behavior
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional

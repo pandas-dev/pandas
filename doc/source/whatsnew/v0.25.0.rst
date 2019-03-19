@@ -19,6 +19,7 @@ including other versions of pandas.
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Added support for ISO week year format ('%G-%V-%u') when parsing datetimes using :meth: `to_datetime` (:issue:`16607`)
 - Indexing of ``DataFrame`` and ``Series`` now accepts zerodim ``np.ndarray`` (:issue:`24919`)
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
 - :meth:`DataFrame.at_time` and :meth:`Series.at_time` now support :meth:`datetime.time` objects with timezones (:issue:`24043`)
@@ -70,12 +71,27 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`23519`).
+Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions.
+Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`24942`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
 | Package         | Minimum Version | Required |
 +=================+=================+==========+
+| beautifulsoup4  | 4.4.1           |          |
++-----------------+-----------------+----------+
+| openpyxl        | 2.2.6           |          |
++-----------------+-----------------+----------+
+| pymysql         | 0.6.6           |          |
++-----------------+-----------------+----------+
+| pytz            | 2015.4          |          |
++-----------------+-----------------+----------+
+| sqlalchemy      | 1.0.8           |          |
++-----------------+-----------------+----------+
+| xlsxwriter      | 0.7.7           |          |
++-----------------+-----------------+----------+
+| xlwt            | 1.0.0           |          |
++-----------------+-----------------+----------+
 | pytest (dev)    | 4.0.2           |          |
 +-----------------+-----------------+----------+
 
@@ -238,6 +254,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying a aggregation function to timezone aware data (:issue:`23683`)
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
 - Bug in :func:`Series.groupby` where using ``groupby`` with a :class:`MultiIndex` Series with a list of labels equal to the length of the series caused incorrect grouping (:issue:`25704`)
+- Ensured that ordering of outputs in ``groupby`` aggregation functions is consistent across all versions of Python (:issue:`25692`)
 
 
 Reshaping

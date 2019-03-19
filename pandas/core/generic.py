@@ -3008,7 +3008,7 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         read_csv : Load a CSV file into a DataFrame.
-        to_excel : Load an Excel file into a DataFrame.
+        to_excel : Write DataFrame to an Excel file.
 
         Examples
         --------
