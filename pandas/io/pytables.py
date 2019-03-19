@@ -376,7 +376,7 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
                                      'contains multiple datasets.')
             key = candidate_only_group._v_pathname
         return store.select(key, auto_close=auto_close, **kwargs)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, KeyError):
         # if there is an error, close the store
         try:
             store.close()
