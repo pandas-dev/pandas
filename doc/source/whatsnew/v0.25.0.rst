@@ -175,6 +175,7 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in `TextReader()` not properly working with UTF8 on Windows on Python 3.6+ (fix for :issue:`15086` instead of a workaround)
 
 Categorical
 ^^^^^^^^^^^
