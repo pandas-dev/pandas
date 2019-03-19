@@ -137,7 +137,7 @@ def _describe_option(pat='', _print_desc=True):
     if len(keys) == 0:
         raise OptionError('No such keys(s)')
 
-    s = u''
+    s = ''
     for k in keys:  # filter by pat
         s += _build_option_description(k)
 
@@ -631,7 +631,7 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = u'{k} '.format(k=k)
+    s = '{k} '.format(k=k)
 
     if o.doc:
         s += '\n'.join(o.doc.strip().split('\n'))
@@ -639,14 +639,14 @@ def _build_option_description(k):
         s += 'No description available.'
 
     if o:
-        s += (u'\n    [default: {default}] [currently: {current}]'
+        s += ('\n    [default: {default}] [currently: {current}]'
               .format(default=o.defval, current=_get_option(k, True)))
 
     if d:
-        s += u'\n    (Deprecated'
-        s += (u', use `{rkey}` instead.'
+        s += '\n    (Deprecated'
+        s += (', use `{rkey}` instead.'
               .format(rkey=d.rkey if d.rkey else ''))
-        s += u')'
+        s += ')'
 
     return s
 
