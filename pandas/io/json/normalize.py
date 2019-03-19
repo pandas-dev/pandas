@@ -26,7 +26,7 @@ def _convert_to_line_delimits(s):
 
 
 def nested_to_record(ds, prefix="", sep=".", level=0,
-                     max_level=None, ignore_keys=[]):
+                     max_level=None, ignore_keys=None):
     """
 
     A simplified json_normalize
@@ -44,13 +44,13 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
 
         .. versionadded:: 0.20.0
 
-    level: the number of levels in the json string, optional, default: 0
+    level: int, optional, the number of levels in the json string, default: 0
 
-    max_level: int, normalize to a maximum level of, optional, default: None
+    max_level: int, optional, normalize to a maximum level of, default: None
 
         .. versionadded:: 0.24.0
 
-    ignore_keys: list, keys to ignore, default None, optional, default: []
+    ignore_keys: list, optional, keys to ignore, default None
 
          .. versionadded:: 0.24.0
 
@@ -75,7 +75,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
     if isinstance(ds, dict):
         ds = [ds]
         singleton = True
-
+    ignore_keys = ignore_keys if ignore_keys else []
     new_ds = []
     for d in ds:
         new_d = copy.deepcopy(d)
@@ -116,7 +116,7 @@ def json_normalize(data, record_path=None, meta=None,
                    errors='raise',
                    sep='.',
                    max_level=None,
-                   ignore_keys=[]):
+                   ignore_keys=None):
     """
     Normalize semi-structured JSON data into a flat table.
 
@@ -148,15 +148,15 @@ def json_normalize(data, record_path=None, meta=None,
         .. versionadded:: 0.20.0
 
     max_level : integer, default None
-        Max no of levels(depth of dict) to normalize.
+        max number of levels(depth of dict) to normalize.
         if None, normalizes all levels.
 
-        .. versionadded:: 0.24.0
+        .. versionadded:: 0.25.0
 
     ignore_keys : list, keys to ignore, default []
         List of keys that you do not want to normalize.
 
-        .. versionadded:: 0.24.0
+        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -236,6 +236,8 @@ def json_normalize(data, record_path=None, meta=None,
     # A bit of a hackjob
     if isinstance(data, dict):
         data = [data]
+
+    ignore_keys = ignore_keys if ignore_keys else []
 
     if record_path is None:
         if any([isinstance(x, dict)
