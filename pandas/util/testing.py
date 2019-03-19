@@ -2536,7 +2536,8 @@ class _AssertRaisesContextmanager(object):
 
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
-                            clear=None, check_stacklevel=True):
+                            clear=None, check_stacklevel=True,
+                            raise_on_extra_warnings=True):
     """
     Context manager for running code expected to either raise a specific
     warning, or not raise any warnings. Verifies that the code raises the
@@ -2549,7 +2550,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         The type of Exception raised. ``exception.Warning`` is the base
         class for all warnings. To check that no warning is returned,
         specify ``False`` or ``None``.
-    filter_level : str, default "always"
+    filter_level : str or None, default "always"
         Specifies whether warnings are ignored, displayed, or turned
         into errors.
         Valid values are:
@@ -2573,6 +2574,9 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
         line that implements the function is displayed.
+    raise_on_extra_warnings : bool, default True
+        Whether extra warnings not of the type `expected_warning` should
+        cause the test to fail.
 
     Examples
     --------
@@ -2641,8 +2645,10 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             msg = "Did not see expected warning of class {name!r}.".format(
                 name=expected_warning.__name__)
             assert saw_warning, msg
-        assert not extra_warnings, ("Caused unexpected warning(s): {extra!r}."
-                                    ).format(extra=extra_warnings)
+        if raise_on_extra_warnings and extra_warnings:
+            raise AssertionError(
+                "Caused unexpected warning(s): {!r}.".format(extra_warnings)
+            )
 
 
 class RNGContext(object):
