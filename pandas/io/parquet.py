@@ -265,10 +265,6 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
         :class:`pathlib.Path`,
         or :class:`py:py._path.local.LocalPath`),
         URL (including http, ftp, and S3 locations), or any file-like object.
-    columns : list, default=None
-        If not None, only these columns will be read from the file.
-
-        .. versionadded 0.21.1
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
