@@ -10,7 +10,6 @@ jobs:
     name: Linux
     vmImage: ubuntu-16.04
 
-# Windows Python 2.7 needs VC 9.0 installed, handled in the template
 - template: ci/azure/windows.yml
   parameters:
     name: Windows
