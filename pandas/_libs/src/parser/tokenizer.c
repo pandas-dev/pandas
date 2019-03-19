@@ -381,7 +381,7 @@ static int push_char(register parser_t *self, char c) {
     return 0;
 }
 
-int PANDAS_INLINE end_field(regiter parser_t *self) {
+int PANDAS_INLINE end_field(register parser_t *self) {
     // XXX cruft
     if (self->words_len >= self->words_cap) {
         TRACE(
@@ -677,18 +677,16 @@ static int parser_buffer_bytes(register parser_t *self, size_t nbytes) {
 #define IS_WHITESPACE(c) ((c == ' ' || c == '\t'))
 
 #define IS_TERMINATOR(c)                            \
-    ((self->lineterminator == '\0' && c == '\n') || \
-     (self->lineterminator != '\0' && c == self->lineterminator))
+    (c == line_terminator)
 
 #define IS_QUOTE(c) ((c == self->quotechar && self->quoting != QUOTE_NONE))
 
 // don't parse '\r' with a custom line terminator
-#define IS_CARRIAGE(c) ((self->lineterminator == '\0' && c == '\r'))
+#define IS_CARRIAGE(c) (c == carriage_symbol)
 
-#define IS_COMMENT_CHAR(c) \
-    ((self->commentchar != '\0' && c == self->commentchar))
+#define IS_COMMENT_CHAR(c) (c == comment_symbol)
 
-#define IS_ESCAPE_CHAR(c) ((self->escapechar != '\0' && c == self->escapechar))
+#define IS_ESCAPE_CHAR(c) (c == escape_symbol)
 
 #define IS_SKIPPABLE_SPACE(c) \
     ((!self->delim_whitespace && c == ' ' && self->skipinitialspace))
@@ -739,12 +737,24 @@ int skip_this_line(register parser_t *self, int64_t rownum) {
     }
 }
 
-int tokenize_bytes(register parser_t *self, size_t line_limit, int64_t start_lines) {
+int tokenize_bytes(register parser_t *self,
+                   size_t line_limit, int64_t start_lines) {
     int64_t i, slen;
     int should_skip;
     char c;
     char *stream;
     char *buf = self->data + self->datapos;
+
+    const char line_terminator = (self->lineterminator == '\0') ?
+            '\n' : self->lineterminator;
+
+    // 1000 is something that couldn't fit in "char"
+    // thus comparing a char to it would always be "false"
+    const int carriage_symbol = (self->lineterminator == '\0') ? '\r' : 1000;
+    const int comment_symbol = (self->commentchar != '\0') ?
+            self->commentchar : 1000;
+    const int escape_symbol = (self->escapechar != '\0') ?
+            self->escapechar : 1000;
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
         int64_t bufsize = 100;
