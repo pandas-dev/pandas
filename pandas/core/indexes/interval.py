@@ -449,6 +449,16 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic increasing (only equal or
         increasing values), else False
         """
+        values = [self.right, self.left]
+
+        try:
+            sort_order = np.lexsort(values)
+            return Index(sort_order).is_monotonic
+        except TypeError:
+
+            # we have mixed types and np.lexsort is not happy
+            return Index(self.values).is_monotonic
+
         return self._multiindex.is_monotonic_increasing
 
     @cache_readonly
@@ -457,7 +467,7 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic decreasing (only equal or
         decreasing values), else False
         """
-        return self._multiindex.is_monotonic_decreasing
+        return self[::-1].is_monotonic_increasing
 
     @cache_readonly
     def is_unique(self):
