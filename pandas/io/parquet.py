@@ -276,7 +276,12 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
-    kwargs are passed to the engine
+    columns : list, default=None
+        If not None, only these columns will be read from the file.
+
+        .. versionadded 0.21.1
+    **kwargs
+        Any additional kwargs are passed to the engine.
 
     Returns
     -------

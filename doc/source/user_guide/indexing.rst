@@ -435,7 +435,7 @@ Selection By Position
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`.
 
-Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
+Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bound is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
 
 The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 
@@ -545,7 +545,7 @@ Selection By Callable
 .. versionadded:: 0.18.1
 
 ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer.
-The ``callable`` must be a function with one argument (the calling Series, DataFrame or Panel) and that returns valid output for indexing.
+The ``callable`` must be a function with one argument (the calling Series, DataFrame or Panel) that returns valid output for indexing.
 
 .. ipython:: python
 
@@ -569,7 +569,7 @@ You can use callable indexing in ``Series``.
    df1.A.loc[lambda s: s > 0]
 
 Using these methods / indexers, you can chain data selection operations
-without using temporary variable.
+without using a temporary variable.
 
 .. ipython:: python
 
@@ -907,7 +907,7 @@ of the DataFrame):
 
    df[df['A'] > 0]
 
-List comprehensions and ``map`` method of Series can also be used to produce
+List comprehensions and the ``map`` method of Series can also be used to produce
 more complex criteria:
 
 .. ipython:: python
@@ -1556,7 +1556,7 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
   ind
 
 ``set_names``, ``set_levels``, and ``set_codes`` also take an optional
-`level`` argument
+``level`` argument
 
 .. ipython:: python
 

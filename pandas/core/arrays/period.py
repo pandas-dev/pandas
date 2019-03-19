@@ -46,7 +46,7 @@ def _period_array_cmp(cls, op):
     Wrap comparison operations to convert Period-like to PeriodDtype
     """
     opname = '__{name}__'.format(name=op.__name__)
-    nat_result = True if opname == '__ne__' else False
+    nat_result = opname == '__ne__'
 
     def wrapper(self, other):
         op = getattr(self.asi8, opname)
@@ -710,7 +710,7 @@ def _raise_on_incompatible(left, right):
 # Constructor Helpers
 
 def period_array(data, freq=None, copy=False):
-    # type: (Sequence[Optional[Period]], Optional[Tick]) -> PeriodArray
+    # type: (Sequence[Optional[Period]], Optional[Tick], bool) -> PeriodArray
     """
     Construct a new PeriodArray from a sequence of Period scalars.
 

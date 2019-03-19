@@ -19,7 +19,7 @@ by Andi Albrecht.
                 {%- block sidebar1 %}
                 {%- block sidebartoc %}
                 <h3>{{ _('Table Of Contents') }}</h3>
-                {{ toctree() }}
+                {{ toctree(includehidden=True) }}
                 {%- endblock %}
                 {%- block sidebarsearch %}
                 <h3 style="margin-top: 1.5em;">{{ _('Search') }}</h3>

@@ -6,9 +6,10 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
-    Timedelta, algos as libalgos, index as libindex, join as libjoin, lib,
-    tslibs)
+    algos as libalgos, index as libindex, join as libjoin, lib)
 from pandas._libs.lib import is_datetime_array
+from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
+from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
 from pandas.compat import range, set_function_name, u
 from pandas.compat.numpy import function as nv
@@ -447,7 +448,7 @@ class Index(IndexOpsMixin, PandasObject):
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
                                                      name=name, **kwargs)
-                            except tslibs.OutOfBoundsDatetime:
+                            except OutOfBoundsDatetime:
                                 pass
 
                     elif inferred.startswith('timedelta'):
@@ -665,7 +666,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Gets called after a ufunc.
         """
-        if is_bool_dtype(result):
+        result = lib.item_from_zerodim(result)
+        if is_bool_dtype(result) or lib.is_scalar(result):
             return result
 
         attrs = self._get_attributes_dict()
@@ -1441,7 +1443,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        sorted_index : Index
+        Index
         """
         return self.sort_values(return_indexer=True, ascending=ascending)
 
@@ -1459,7 +1461,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        values : Index
+        Index
             Calling object, as there is only one level in the Index.
 
         See Also
@@ -1504,7 +1506,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        index : Index or MultiIndex
+        Index or MultiIndex
         """
         if not isinstance(level, (tuple, list)):
             level = [level]
@@ -1556,11 +1558,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         grouper : Index
-            Index of values to group on
+            Index of values to group on.
         labels : ndarray of int or None
-            Array of locations in level_index
+            Array of locations in level_index.
         uniques : Index or None
-            Index of unique values for level
+            Index of unique values for level.
         """
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
@@ -1828,13 +1830,13 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         numpy.ndarray
-            A boolean array of whether my values are NA
+            A boolean array of whether my values are NA.
 
         See Also
         --------
-        pandas.Index.notna : Boolean inverse of isna.
-        pandas.Index.dropna : Omit entries with missing values.
-        pandas.isna : Top-level isna.
+        Index.notna : Boolean inverse of isna.
+        Index.dropna : Omit entries with missing values.
+        isna : Top-level isna.
         Series.isna : Detect missing values in Series object.
 
         Examples
@@ -1892,7 +1894,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.notnull : Alias of notna.
         Index.isna: Inverse of notna.
-        pandas.notna : Top-level notna.
+        notna : Top-level notna.
 
         Examples
         --------
@@ -2074,9 +2076,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.duplicated : Equivalent method on pandas.Series.
-        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
-        pandas.Index.drop_duplicates : Remove duplicate values from Index.
+        Series.duplicated : Equivalent method on pandas.Series.
+        DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        Index.drop_duplicates : Remove duplicate values from Index.
 
         Examples
         --------
@@ -2970,9 +2972,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        tuple (indexer, keyarr)
-            indexer is an ndarray or None if cannot convert
-            keyarr are tuple-safe keys
+        indexer : numpy.ndarray or None
+            Return an ndarray or None if cannot convert.
+        keyarr : numpy.ndarray
+            Return tuple-safe keys.
         """
         if isinstance(keyarr, Index):
             keyarr = self._convert_index_indexer(keyarr)
@@ -3098,10 +3101,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         new_index : pd.Index
-            Resulting index
+            Resulting index.
         indexer : np.ndarray or None
-            Indices of output values in original index
-
+            Indices of output values in original index.
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
@@ -3156,9 +3158,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         new_index : pd.Index
-            Resulting index
+            Resulting index.
         indexer : np.ndarray or None
-            Indices of output values in original index
+            Indices of output values in original index.
 
         """
 
@@ -4204,8 +4206,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.sort_values : Sort values of a Series.
-        pandas.DataFrame.sort_values : Sort values in a DataFrame.
+        Series.sort_values : Sort values of a Series.
+        DataFrame.sort_values : Sort values in a DataFrame.
 
         Examples
         --------
@@ -4259,7 +4261,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         pandas.Index
-            Shifted index
+            Shifted index.
 
         See Also
         --------
@@ -4422,7 +4424,7 @@ class Index(IndexOpsMixin, PandasObject):
             in the target are marked by -1.
         missing : ndarray of int
             An indexer into the target of the values not found.
-            These correspond to the -1 in the indexer array
+            These correspond to the -1 in the indexer array.
         """
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
@@ -4866,6 +4868,20 @@ class Index(IndexOpsMixin, PandasObject):
             # If it's a reverse slice, temporarily swap bounds.
             start, end = end, start
 
+        # GH 16785: If start and end happen to be date strings with UTC offsets
+        # attempt to parse and check that the offsets are the same
+        if (isinstance(start, (compat.string_types, datetime))
+                and isinstance(end, (compat.string_types, datetime))):
+            try:
+                ts_start = Timestamp(start)
+                ts_end = Timestamp(end)
+            except (ValueError, TypeError):
+                pass
+            else:
+                if not tz_compare(ts_start.tzinfo, ts_end.tzinfo):
+                    raise ValueError("Both dates must have the "
+                                     "same UTC offset")
+
         start_slice = None
         if start is not None:
             start_slice = self.get_slice_bound(start, 'left', kind)
@@ -5177,9 +5193,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.any : Return whether any element in an Index is True.
-        pandas.Series.any : Return whether any element in a Series is True.
-        pandas.Series.all : Return whether all elements in a Series are True.
+        Index.any : Return whether any element in an Index is True.
+        Series.any : Return whether any element in a Series is True.
+        Series.all : Return whether all elements in a Series are True.
 
         Notes
         -----
@@ -5217,8 +5233,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.all : Return whether all elements are True.
-        pandas.Series.all : Return whether all elements are True.
+        Index.all : Return whether all elements are True.
+        Series.all : Return whether all elements are True.
 
         Notes
         -----

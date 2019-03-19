@@ -164,9 +164,9 @@ class _Window(PandasObject, SelectionMixin):
         Provide a nice str repr of our rolling object.
         """
 
-        attrs = ["{k}={v}".format(k=k, v=getattr(self, k))
+        attrs = ("{k}={v}".format(k=k, v=getattr(self, k))
                  for k in self._attributes
-                 if getattr(self, k, None) is not None]
+                 if getattr(self, k, None) is not None)
         return "{klass} [{attrs}]".format(klass=self._window_type,
                                           attrs=','.join(attrs))
 
@@ -900,9 +900,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.%(name)s : Calling object with Series data.
-    pandas.DataFrame.%(name)s : Calling object with DataFrames.
-    pandas.DataFrame.count : Count of the full DataFrame.
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    DataFrame.count : Count of the full DataFrame.
 
     Examples
     --------
@@ -953,7 +953,7 @@ class _Rolling_and_Expanding(_Rolling):
     ----------
     func : function
         Must produce a single value from an ndarray input if ``raw=True``
-        or a Series if ``raw=False``.
+        or a single value from a Series if ``raw=False``.
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
@@ -1271,7 +1271,7 @@ class _Rolling_and_Expanding(_Rolling):
     -------
     Series or DataFrame
         Returned object type is determined by the caller of the %(name)s
-        calculation
+        calculation.
 
     See Also
     --------
@@ -1322,9 +1322,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.quantile : Computes value at the given quantile over all data
+    Series.quantile : Computes value at the given quantile over all data
         in Series.
-    pandas.DataFrame.quantile : Computes values at the given quantile over
+    DataFrame.quantile : Computes values at the given quantile over
         requested axis in DataFrame.
 
     Examples
@@ -1626,8 +1626,8 @@ class Rolling(_Rolling_and_Expanding):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.Series.rolling
-    pandas.DataFrame.rolling
+    Series.rolling
+    DataFrame.rolling
     """)
 
     _agg_examples_doc = dedent("""
@@ -1916,9 +1916,9 @@ class Expanding(_Rolling_and_Expanding):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.DataFrame.expanding.aggregate
-    pandas.DataFrame.rolling.aggregate
-    pandas.DataFrame.aggregate
+    DataFrame.expanding.aggregate
+    DataFrame.rolling.aggregate
+    DataFrame.aggregate
     """)
 
     _agg_examples_doc = dedent("""

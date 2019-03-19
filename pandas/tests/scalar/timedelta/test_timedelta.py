@@ -1,5 +1,6 @@
 """ test the scalar Timedelta """
 from datetime import timedelta
+import re
 
 import numpy as np
 import pytest
@@ -249,9 +250,13 @@ class TestTimedeltas(object):
         assert rng.microseconds == 0
         assert rng.nanoseconds == 0
 
-        pytest.raises(AttributeError, lambda: rng.hours)
-        pytest.raises(AttributeError, lambda: rng.minutes)
-        pytest.raises(AttributeError, lambda: rng.milliseconds)
+        msg = "'Timedelta' object has no attribute '{}'"
+        with pytest.raises(AttributeError, match=msg.format('hours')):
+            rng.hours
+        with pytest.raises(AttributeError, match=msg.format('minutes')):
+            rng.minutes
+        with pytest.raises(AttributeError, match=msg.format('milliseconds')):
+            rng.milliseconds
 
         # GH 10050
         check(rng.days)
@@ -271,9 +276,13 @@ class TestTimedeltas(object):
         assert rng.seconds == 10 * 3600 + 11 * 60 + 12
         assert rng.microseconds == 100 * 1000 + 123
         assert rng.nanoseconds == 456
-        pytest.raises(AttributeError, lambda: rng.hours)
-        pytest.raises(AttributeError, lambda: rng.minutes)
-        pytest.raises(AttributeError, lambda: rng.milliseconds)
+        msg = "'Timedelta' object has no attribute '{}'"
+        with pytest.raises(AttributeError, match=msg.format('hours')):
+            rng.hours
+        with pytest.raises(AttributeError, match=msg.format('minutes')):
+            rng.minutes
+        with pytest.raises(AttributeError, match=msg.format('milliseconds')):
+            rng.milliseconds
 
         # components
         tup = pd.to_timedelta(-1, 'us').components
@@ -309,14 +318,15 @@ class TestTimedeltas(object):
         assert to_timedelta('P0DT0H0M1S') == expected
 
     def test_nat_converters(self):
-        result = to_timedelta('nat', box=False)
-        assert result.dtype.kind == 'm'
+        result = to_timedelta('nat').to_numpy()
+        assert result.dtype.kind == 'M'
         assert result.astype('int64') == iNaT
 
-        result = to_timedelta('nan', box=False)
-        assert result.dtype.kind == 'm'
+        result = to_timedelta('nan').to_numpy()
+        assert result.dtype.kind == 'M'
         assert result.astype('int64') == iNaT
 
+    @pytest.mark.filterwarnings("ignore:M and Y units are deprecated")
     @pytest.mark.parametrize('units, np_unit',
                              [(['Y', 'y'], 'Y'),
                               (['M'], 'M'),
@@ -376,6 +386,24 @@ class TestTimedeltas(object):
             result = Timedelta('2{}'.format(unit))
             assert result == expected
 
+    @pytest.mark.skipif(compat.PY2, reason="requires python3.5 or higher")
+    @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
+    def test_unit_m_y_deprecated(self, unit):
+        with tm.assert_produces_warning(FutureWarning) as w1:
+            Timedelta(10, unit)
+        msg = r'.* units are deprecated .*'
+        assert re.match(msg, str(w1[0].message))
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as w2:
+            to_timedelta(10, unit)
+        msg = r'.* units are deprecated .*'
+        assert re.match(msg, str(w2[0].message))
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as w3:
+            to_timedelta([1, 2], unit)
+        msg = r'.* units are deprecated .*'
+        assert re.match(msg, str(w3[0].message))
+
     def test_numeric_conversions(self):
         assert Timedelta(0) == np.timedelta64(0, 'ns')
         assert Timedelta(10) == np.timedelta64(10, 'ns')
@@ -393,6 +421,11 @@ class TestTimedeltas(object):
                 np.timedelta64(1, 'us').astype('m8[ns]'))
         assert (Timedelta(timedelta(days=1)) ==
                 np.timedelta64(1, 'D').astype('m8[ns]'))
+
+    def test_to_numpy_alias(self):
+        # GH 24653: alias .to_numpy() for scalars
+        td = Timedelta('10m7s')
+        assert td.to_timedelta64() == td.to_numpy()
 
     def test_round(self):
 
@@ -424,8 +457,12 @@ class TestTimedeltas(object):
             assert r2 == s2
 
         # invalid
-        for freq in ['Y', 'M', 'foobar']:
-            pytest.raises(ValueError, lambda: t1.round(freq))
+        for freq, msg in [
+            ('Y', '<YearEnd: month=12> is a non-fixed frequency'),
+            ('M', '<MonthEnd> is a non-fixed frequency'),
+                ('foobar', 'Invalid frequency: foobar')]:
+            with pytest.raises(ValueError, match=msg):
+                t1.round(freq)
 
         t1 = timedelta_range('1 days', periods=3, freq='1 min 2 s 3 us')
         t2 = -1 * t1
@@ -470,11 +507,15 @@ class TestTimedeltas(object):
             r1 = t1.round(freq)
             tm.assert_index_equal(r1, s1)
             r2 = t2.round(freq)
-        tm.assert_index_equal(r2, s2)
+            tm.assert_index_equal(r2, s2)
 
         # invalid
-        for freq in ['Y', 'M', 'foobar']:
-            pytest.raises(ValueError, lambda: t1.round(freq))
+        for freq, msg in [
+            ('Y', '<YearEnd: month=12> is a non-fixed frequency'),
+            ('M', '<MonthEnd> is a non-fixed frequency'),
+                ('foobar', 'Invalid frequency: foobar')]:
+            with pytest.raises(ValueError, match=msg):
+                t1.round(freq)
 
     def test_contains(self):
         # Checking for any NaT-like objects
@@ -584,9 +625,12 @@ class TestTimedeltas(object):
         assert np.allclose(result.value / 1000, expected.value / 1000)
 
         # sum
-        pytest.raises(ValueError, lambda: (s - s.min()).sum())
+        msg = "overflow in timedelta operation"
+        with pytest.raises(ValueError, match=msg):
+            (s - s.min()).sum()
         s1 = s[0:10000]
-        pytest.raises(ValueError, lambda: (s1 - s1.min()).sum())
+        with pytest.raises(ValueError, match=msg):
+            (s1 - s1.min()).sum()
         s2 = s[0:1000]
         result = (s2 - s2.min()).sum()
 

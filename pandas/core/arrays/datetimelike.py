@@ -144,7 +144,7 @@ class DatelikeOps(object):
         Return an Index of formatted strings specified by date_format, which
         supports the same string format as the python standard library. Details
         of the string format can be found in `python string format
-        doc <%(URL)s>`__
+        doc <%(URL)s>`__.
 
         Parameters
         ----------
@@ -154,7 +154,7 @@ class DatelikeOps(object):
         Returns
         -------
         Index
-            Index of formatted strings
+            Index of formatted strings.
 
         See Also
         --------
@@ -748,7 +748,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         mask the result if needed, convert to the provided dtype if its not
         None
 
-        This is an internal routine
+        This is an internal routine.
         """
 
         if self._hasnans:
@@ -1047,7 +1047,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         Returns
         -------
         result : np.ndarray[object]
-            Array of DateOffset objects; nulls represented by NaT
+            Array of DateOffset objects; nulls represented by NaT.
         """
         if not is_period_dtype(self):
             raise TypeError("cannot subtract {dtype}-dtype from {cls}"

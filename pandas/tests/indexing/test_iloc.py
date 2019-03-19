@@ -217,7 +217,6 @@ class TestiLoc(Base):
 
     def test_iloc_getitem_dups(self):
 
-        # no dups in panel (bug?)
         self.check_result('list int (dups)', 'iloc', [0, 1, 1, 3], 'ix',
                           {0: [0, 2, 2, 6], 1: [0, 3, 3, 9]},
                           objs=['series', 'frame'], typs=['ints', 'uints'])
@@ -697,3 +696,16 @@ class TestiLoc(Base):
         # should also be a shallow copy
         original_series[:3] = [7, 8, 9]
         assert all(sliced_series[:3] == [7, 8, 9])
+
+    def test_indexing_zerodim_np_array(self):
+        # GH24919
+        df = DataFrame([[1, 2], [3, 4]])
+        result = df.iloc[np.array(0)]
+        s = pd.Series([1, 2], name=0)
+        tm.assert_series_equal(result, s)
+
+    def test_series_indexing_zerodim_np_array(self):
+        # GH24919
+        s = Series([1, 2])
+        result = s.iloc[np.array(0)]
+        assert result == 1
