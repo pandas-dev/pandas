@@ -5,8 +5,8 @@ Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
 
-import sys
 import codecs
+import ctypes
 from collections import OrderedDict
 import csv
 from datetime import datetime
@@ -1905,15 +1905,14 @@ def test_suppress_error_output(all_parsers, capsys):
     assert captured.err == ""
 
 
-def __should_skip_utf8_test():
+def __windows_ansi_encoding_not_cp1252():
     if compat.is_platform_windows():
-        import ctypes
         ansi_codepage = ctypes.cdll.kernel32.GetACP()
-        return ansi_codepage != 1252 and sys.version_info < (3, 6)
+        return ansi_codepage != 1252 and not compat.PY36
     return False
 
-@pytest.mark.skipif(__should_skip_utf8_test(),
-                    reason="Python < 3.6 won't pass on non-1252 codepage")
+@pytest.mark.skipif(__windows_ansi_encoding_not_cp1252(),
+                    reason="On Python < 3.6 won't pass on non-1252 codepage")
 def test_filename_with_special_chars(all_parsers):
     # see gh-15086.
     parser = all_parsers
