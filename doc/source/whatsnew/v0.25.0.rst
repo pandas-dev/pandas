@@ -204,7 +204,7 @@ Interval
 Indexing
 ^^^^^^^^
 
-- Added an exception message when calling :meth:`DataFrame.iloc` with a list of non-numeric objects (:issue:`25753`).
+- Improved exception message when calling :meth:`DataFrame.iloc` with a list of non-numeric objects (:issue:`25753`).
 -
 -
 
