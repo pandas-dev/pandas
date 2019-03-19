@@ -2444,8 +2444,9 @@ def length_of_indexer(indexer, target=None):
             step = -step
         return (stop - start + step - 1) // step
     elif isinstance(indexer, (ABCSeries, Index, np.ndarray, list)):
-        if indexer.dtype == bool:
-            return len(indexer[indexer])
+        if hasattr('dtype'):
+            if indexer.dtype == bool:
+                return len(indexer[indexer])
         return len(indexer)
     elif not is_list_like_indexer(indexer):
         return 1
