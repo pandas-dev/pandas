@@ -2443,6 +2443,8 @@ def length_of_indexer(indexer, target=None):
         elif step < 0:
             step = -step
         return (stop - start + step - 1) // step
+    elif indexer.dtype == bool:
+        return len(indexer[indexer])
     elif isinstance(indexer, (ABCSeries, Index, np.ndarray, list)):
         return len(indexer)
     elif not is_list_like_indexer(indexer):
