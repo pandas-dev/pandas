@@ -451,7 +451,7 @@ if '--with-cython-coverage' in sys.argv:
 # pinning `ext.cython_directives = directives` to each ext in extensions.
 # github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
 directives = {'linetrace': False,
-              'language_level': 2}
+              'language_level': 3}
 macros = []
 if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py

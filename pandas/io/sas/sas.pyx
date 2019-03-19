@@ -2,7 +2,7 @@
 # cython: boundscheck=False, initializedcheck=False
 
 import numpy as np
-import sas_constants as const
+import pandas.io.sas.sas_constants as const
 
 ctypedef signed long long   int64_t
 ctypedef unsigned char      uint8_t
