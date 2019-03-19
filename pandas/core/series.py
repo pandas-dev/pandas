@@ -1453,6 +1453,29 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def iteritems(self):
         """
         Lazily iterate over (index, value) tuples.
+
+        This method returns an iterable tuple (index, value). This is
+        convienient if you want to create a lazy iterator. Note that the
+        methods Series.items and Series.iteritems are the same methods.
+
+        Returns
+        -------
+        iterable
+            Iterable of tuples containing the (index, value) pairs from a
+            Series.
+
+        See Also
+        --------
+        DataFrame.iteritems : Equivalent to Series.iteritems for DataFrame.
+
+        Examples
+        --------
+        >>> s = pd.Series(['A', 'B', 'C'])
+        >>> for index, value in s.iteritems():
+        ...     print("Index : {}, Value : {}".format(index, value))
+        Index : 0, Value : A
+        Index : 1, Value : B
+        Index : 2, Value : C
         """
         return zip(iter(self.index), iter(self))
 
