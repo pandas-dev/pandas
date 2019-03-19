@@ -1539,9 +1539,14 @@ int main(int argc, char *argv[]) {
 // * Add tsep argument for thousands separator
 //
 
+// pessimistic but quick assessment,
+// assuming that each decimal digit requires 4 bits to store
+const int max_int_decimal_digits = (sizeof(unsigned int) * 8) / 4;
+
 double xstrtod(const char *str, char **endptr, char decimal, char sci,
                char tsep, int skip_trailing) {
     double number;
+    unsigned int i_number = 0;
     int exponent;
     int negative;
     char *p = (char *)str;
@@ -1564,18 +1569,29 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
             p++;
     }
 
-    number = 0.;
     exponent = 0;
     num_digits = 0;
     num_decimals = 0;
 
     // Process string of digits.
-    while (isdigit_ascii(*p)) {
-        number = number * 10. + (*p - '0');
+    while (isdigit_ascii(*p) && num_digits <= max_int_decimal_digits) {
+        i_number = i_number * 10 + (*p - '0');
         p++;
         num_digits++;
 
         p += (tsep != '\0' && *p == tsep);
+    }
+    number = i_number;
+
+    if (num_digits > max_int_decimal_digits) {
+        // process what's left as double
+        while (isdigit_ascii(*p)) {
+            number = number * 10. + (*p - '0');
+            p++;
+            num_digits++;
+
+            p += (tsep != '\0' && *p == tsep);
+        }
     }
 
     // Process decimal part.
