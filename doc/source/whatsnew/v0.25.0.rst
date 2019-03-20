@@ -169,8 +169,7 @@ Performance Improvements
 - Improved performance of :meth:`Series.searchsorted`. The speedup is especially large when the dtype is
   int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
-- Improved performance of `tokenize_bytes` in `tokenizer.c`
-- Improved performance of `xstrtod` on small floats (especially significant when integer part of it fits in int32)
+- Improved performance of :meth:`read_csv` (faster tokenizing and faster parsing of small float numbers)
 
 .. _whatsnew_0250.bug_fixes:
 
