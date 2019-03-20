@@ -54,7 +54,10 @@ cdef dict _parse_code_table = {'y': 0,
                                'W': 16,
                                'Z': 17,
                                'p': 18,  # an additional key, only with I
-                               'z': 19}
+                               'z': 19,
+                               'G': 20,
+                               'V': 21,
+                               'u': 22}
 
 
 def array_strptime(object[:] values, object fmt,
@@ -77,6 +80,7 @@ def array_strptime(object[:] values, object fmt,
         object[:] result_timezone
         int year, month, day, minute, hour, second, weekday, julian
         int week_of_year, week_of_year_start, parse_code, ordinal
+        int iso_week, iso_year
         int64_t us, ns
         object val, group_key, ampm, found, timezone
         dict found_key
@@ -169,13 +173,14 @@ def array_strptime(object[:] values, object fmt,
                 raise ValueError("time data %r does not match format "
                                  "%r (search)" % (values[i], fmt))
 
+        iso_year = -1
         year = 1900
         month = day = 1
         hour = minute = second = ns = us = 0
         timezone = None
         # Default to -1 to signify that values not known; not critical to have,
         # though
-        week_of_year = -1
+        iso_week = week_of_year = -1
         week_of_year_start = -1
         # weekday and julian defaulted to -1 so as to signal need to calculate
         # values
@@ -240,7 +245,7 @@ def array_strptime(object[:] values, object fmt,
                 s += "0" * (9 - len(s))
                 us = long(s)
                 ns = us % 1000
-                us = us / 1000
+                us = us // 1000
             elif parse_code == 11:
                 weekday = locale_time.f_weekday.index(found_dict['A'].lower())
             elif parse_code == 12:
@@ -265,13 +270,44 @@ def array_strptime(object[:] values, object fmt,
                 timezone = pytz.timezone(found_dict['Z'])
             elif parse_code == 19:
                 timezone = parse_timezone_directive(found_dict['z'])
+            elif parse_code == 20:
+                iso_year = int(found_dict['G'])
+            elif parse_code == 21:
+                iso_week = int(found_dict['V'])
+            elif parse_code == 22:
+                weekday = int(found_dict['u'])
+                weekday -= 1
+
+        # don't assume default values for ISO week/year
+        if iso_year != -1:
+            if iso_week == -1 or weekday == -1:
+                raise ValueError("ISO year directive '%G' must be used with "
+                                 "the ISO week directive '%V' and a weekday "
+                                 "directive '%A', '%a', '%w', or '%u'.")
+            if julian != -1:
+                raise ValueError("Day of the year directive '%j' is not "
+                                 "compatible with ISO year directive '%G'. "
+                                 "Use '%Y' instead.")
+        elif year != -1 and week_of_year == -1 and iso_week != -1:
+            if weekday == -1:
+                raise ValueError("ISO week directive '%V' must be used with "
+                                 "the ISO year directive '%G' and a weekday "
+                                 "directive '%A', '%a', '%w', or '%u'.")
+            else:
+                raise ValueError("ISO week directive '%V' is incompatible with"
+                                 " the year directive '%Y'. Use the ISO year "
+                                 "'%G' instead.")
 
         # If we know the wk of the year and what day of that wk, we can figure
         # out the Julian day of the year.
-        if julian == -1 and week_of_year != -1 and weekday != -1:
-            week_starts_Mon = True if week_of_year_start == 0 else False
-            julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
-                                              week_starts_Mon)
+        if julian == -1 and weekday != -1:
+            if week_of_year != -1:
+                week_starts_Mon = week_of_year_start == 0
+                julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
+                                                  week_starts_Mon)
+            elif iso_year != -1 and iso_week != -1:
+                year, julian = _calc_julian_from_V(iso_year, iso_week,
+                                                   weekday + 1)
         # Cannot pre-calculate datetime_date() since can change in Julian
         # calculation and thus could have different value for the day of the wk
         # calculation.
@@ -511,6 +547,7 @@ class TimeRE(dict):
             # The " \d" part of the regex is to make %c from ANSI C work
             'd': r"(?P<d>3[0-1]|[1-2]\d|0[1-9]|[1-9]| [1-9])",
             'f': r"(?P<f>[0-9]{1,9})",
+            'G': r"(?P<G>\d\d\d\d)",
             'H': r"(?P<H>2[0-3]|[0-1]\d|\d)",
             'I': r"(?P<I>1[0-2]|0[1-9]|[1-9])",
             'j': (r"(?P<j>36[0-6]|3[0-5]\d|[1-2]\d\d|0[1-9]\d|00[1-9]|"
@@ -518,7 +555,9 @@ class TimeRE(dict):
             'm': r"(?P<m>1[0-2]|0[1-9]|[1-9])",
             'M': r"(?P<M>[0-5]\d|\d)",
             'S': r"(?P<S>6[0-1]|[0-5]\d|\d)",
+            'u': r"(?P<u>[1-7])",
             'U': r"(?P<U>5[0-3]|[0-4]\d|\d)",
+            'V': r"(?P<V>5[0-3]|0[1-9]|[1-4]\d|\d)",
             'w': r"(?P<w>[0-6])",
             # W is set below by using 'U'
             'y': r"(?P<y>\d\d)",
@@ -593,11 +632,27 @@ _CACHE_MAX_SIZE = 5  # Max number of regexes stored in _regex_cache
 _regex_cache = {}
 
 
-cdef _calc_julian_from_U_or_W(int year, int week_of_year,
-                              int day_of_week, int week_starts_Mon):
+cdef int _calc_julian_from_U_or_W(int year, int week_of_year,
+                                  int day_of_week, int week_starts_Mon):
     """Calculate the Julian day based on the year, week of the year, and day of
     the week, with week_start_day representing whether the week of the year
-    assumes the week starts on Sunday or Monday (6 or 0)."""
+    assumes the week starts on Sunday or Monday (6 or 0).
+
+    Parameters
+    ----------
+    year : int
+        the year
+    week_of_year : int
+        week taken from format U or W
+    week_starts_Mon : int
+        represents whether the week of the year
+        assumes the week starts on Sunday or Monday (6 or 0)
+
+    Returns
+    -------
+    int
+        converted julian day
+    """
 
     cdef:
         int first_weekday, week_0_length, days_to_week
@@ -618,6 +673,40 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
     else:
         days_to_week = week_0_length + (7 * (week_of_year - 1))
         return 1 + days_to_week + day_of_week
+
+
+cdef object _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday):
+    """Calculate the Julian day based on the ISO 8601 year, week, and weekday.
+    ISO weeks start on Mondays, with week 01 being the week containing 4 Jan.
+    ISO week days range from 1 (Monday) to 7 (Sunday).
+
+    Parameters
+    ----------
+    iso_year : int
+        the year taken from format %G
+    iso_week : int
+        the week taken from format %V
+    iso_weekday : int
+        weekday taken from format %u
+
+    Returns
+    -------
+    (int, int)
+        the iso year and the Gregorian ordinal date / julian date
+    """
+
+    cdef:
+        int correction, ordinal
+
+    correction = datetime_date(iso_year, 1, 4).isoweekday() + 3
+    ordinal = (iso_week * 7) + iso_weekday - correction
+    # ordinal may be negative or 0 now, which means the date is in the previous
+    # calendar year
+    if ordinal < 1:
+        ordinal += datetime_date(iso_year, 1, 1).toordinal()
+        iso_year -= 1
+        ordinal -= datetime_date(iso_year, 1, 1).toordinal()
+    return iso_year, ordinal
 
 
 cdef parse_timezone_directive(object z):
@@ -662,7 +751,7 @@ cdef parse_timezone_directive(object z):
     gmtoff_remainder_padding = "0" * pad_number
     microseconds = int(gmtoff_remainder + gmtoff_remainder_padding)
 
-    total_minutes = ((hours * 60) + minutes + (seconds / 60) +
-                     (microseconds / 60000000))
+    total_minutes = ((hours * 60) + minutes + (seconds // 60) +
+                     (microseconds // 60000000))
     total_minutes = -total_minutes if z.startswith("-") else total_minutes
     return pytz.FixedOffset(total_minutes)
