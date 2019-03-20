@@ -8,6 +8,11 @@ What's New in 0.25.0 (April XX, 2019)
    Starting with the 0.25.x series of releases, pandas only supports Python 3.5 and higher.
    See :ref:`install.dropping-27` for more details.
 
+.. warning::
+
+   `Panel` has been fully removed. For N-D labeled data structures, please
+   use `xarray <https://xarray.pydata.org/en/stable/>`_
+
 {{ header }}
 
 These are the changes in pandas 0.25.0. See :ref:`release` for a full changelog
@@ -29,6 +34,7 @@ Other Enhancements
 - :meth:`DataFrame.rename` now supports the ``errors`` argument to raise errors when attempting to rename nonexistent keys (:issue:`13473`)
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
+- :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -176,6 +182,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+
 Categorical
 ^^^^^^^^^^^
 
@@ -211,6 +218,7 @@ Numeric
 - Bug in :meth:`to_numeric` in which large negative numbers were being improperly handled (:issue:`24910`)
 - Bug in :meth:`to_numeric` in which numbers were being coerced to float, even though ``errors`` was not ``coerce`` (:issue:`24910`)
 - Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
+- Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
 - Fixed bug where casting all-boolean array to integer extension array failed (:issue:`25211`)
 -
 -
@@ -271,6 +279,7 @@ I/O
 - Bug in :func:`json_normalize` for ``errors='ignore'`` where missing values in the input data, were filled in resulting ``DataFrame`` with the string "nan" instead of ``numpy.nan`` (:issue:`25468`)
 - :meth:`DataFrame.to_html` now raises ``TypeError`` when using an invalid type for the ``classes`` parameter instead of ``AsseertionError`` (:issue:`25608`)
 - Bug in :meth:`DataFrame.to_string` and :meth:`DataFrame.to_latex` that would lead to incorrect output when the ``header`` keyword is used (:issue:`16718`)
+- Bug in :func:`read_csv` not properly interpreting the UTF8 encoded filenames on Windows on Python 3.6+ (:issue:`15086`)
 -
 
 
