@@ -19,6 +19,7 @@ import itertools
 import sys
 import warnings
 from textwrap import dedent
+from typing import List, Union
 
 import numpy as np
 import numpy.ma as ma

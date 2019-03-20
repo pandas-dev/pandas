@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 import operator
+from typing import Any, Callable, Optional, Sequence, Union
 
 import numpy as np
 
 from pandas._libs.tslibs import (
-    NaT, frequencies as libfrequencies, iNaT, period as libperiod)
+    NaT, NaTType, frequencies as libfrequencies, iNaT, period as libperiod)
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period, get_period_field_arr,
@@ -23,7 +24,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays import ExtensionArray, datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
@@ -536,11 +537,14 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     @Appender(dtl.DatetimeLikeArrayMixin._addsub_int_array.__doc__)
     def _addsub_int_array(
             self,
-            other,   # type: Union[Index, ExtensionArray, np.ndarray[int]]
-            op      # type: Callable[Any, Any]
+            other,      # type: Union[ExtensionArray, np.ndarray[int]]
+            op          # type: Callable[Any, Any]
     ):
         # type: (...) -> PeriodArray
 
+        # TODO: ABCIndexClass is a valid type for other but had to be excluded
+        # due to length of Py2 compatability comment; add back in once migrated
+        # to Py3 syntax
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
