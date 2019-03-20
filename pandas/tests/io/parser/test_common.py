@@ -6,7 +6,6 @@ specific classification into the other test modules.
 """
 
 import codecs
-import ctypes
 from collections import OrderedDict
 import csv
 from datetime import datetime
@@ -1905,20 +1904,15 @@ def test_suppress_error_output(all_parsers, capsys):
     assert captured.err == ""
 
 
-def __windows_ansi_encoding_not_cp1252():
-    if compat.is_platform_windows():
-        ansi_codepage = ctypes.cdll.kernel32.GetACP()
-        return ansi_codepage != 1252 and not compat.PY36
-    return False
-
-@pytest.mark.skipif(__windows_ansi_encoding_not_cp1252(),
-                    reason="On Python < 3.6 won't pass on non-1252 codepage")
-def test_filename_with_special_chars(all_parsers):
+@pytest.mark.skipif(compat.is_platform_windows() and not compat.PY36,
+                    reason="On Python < 3.6 won't pass on Windows")
+@pytest.mark.parametrize("filename", ["sé-es-vé.csv", "ru-sй.csv"])
+def test_filename_with_special_chars(all_parsers, filename):
     # see gh-15086.
     parser = all_parsers
     df = DataFrame({"a": [1, 2, 3]})
 
-    with tm.ensure_clean("sé-es-vé-sй.csv") as path:
+    with tm.ensure_clean(filename) as path:
         df.to_csv(path, index=False)
 
         result = parser.read_csv(path)
