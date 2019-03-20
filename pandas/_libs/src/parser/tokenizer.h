@@ -212,35 +212,35 @@ typedef struct coliter_t {
 } coliter_t;
 
 void coliter_setup(coliter_t *self, parser_t *parser, int i, int start);
-coliter_t *coliter_new(parser_t *self, int i);
+coliter_t *coliter_new(register parser_t *self, int i);
 
-#define COLITER_NEXT(iter, word)                          \
-    do {                                                  \
-        const int64_t i = *iter.line_start++ + iter.col;      \
-        word = i < *iter.line_start ? iter.words[i] : ""; \
+#define COLITER_NEXT(iter, word)                           \
+    do {                                                   \
+        const int64_t i = *iter.line_start++ + iter.col;   \
+        word = i >= *iter.line_start ? "" : iter.words[i]; \
     } while (0)
 
 parser_t *parser_new(void);
 
-int parser_init(parser_t *self);
+int parser_init(register parser_t *self);
 
-int parser_consume_rows(parser_t *self, size_t nrows);
+int parser_consume_rows(register parser_t *self, size_t nrows);
 
-int parser_trim_buffers(parser_t *self);
+int parser_trim_buffers(register parser_t *self);
 
-int parser_add_skiprow(parser_t *self, int64_t row);
+int parser_add_skiprow(register parser_t *self, int64_t row);
 
-int parser_set_skipfirstnrows(parser_t *self, int64_t nrows);
+int parser_set_skipfirstnrows(register parser_t *self, int64_t nrows);
 
-void parser_free(parser_t *self);
+void parser_free(register parser_t *self);
 
-void parser_del(parser_t *self);
+void parser_del(register parser_t *self);
 
-void parser_set_default_options(parser_t *self);
+void parser_set_default_options(register parser_t *self);
 
-int tokenize_nrows(parser_t *self, size_t nrows);
+int tokenize_nrows(register parser_t *self, size_t nrows);
 
-int tokenize_all_rows(parser_t *self);
+int tokenize_all_rows(register parser_t *self);
 
 // Have parsed / type-converted a chunk of data
 // and want to free memory from the token stream
