@@ -616,7 +616,7 @@ def test_to_integer_array_float():
 
 
 @pytest.mark.parametrize(
-    'bool_values, int_values',
+    'bool_values, int_values, result_dtype',
     [([False, True], [0, 1], Int64Dtype),
      ([False, True, np.nan], [0, 1, np.nan], Int64Dtype)])
 def test_to_integer_array_bool(bool_values, int_values, result_dtype):
