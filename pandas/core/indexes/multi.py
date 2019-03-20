@@ -6,6 +6,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
+
 from pandas._libs import (
     Timestamp, algos as libalgos, index as libindex, lib, tslibs)
 import pandas.compat as compat
@@ -24,7 +26,6 @@ from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-from pandas._config.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs, ensure_index)

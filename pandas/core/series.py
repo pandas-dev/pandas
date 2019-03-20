@@ -9,6 +9,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
+
 from pandas._libs import iNaT, index as libindex, lib, tslibs
 import pandas.compat as compat
 from pandas.compat import PY36, StringIO, u, zip
@@ -33,7 +35,6 @@ from pandas.core.arrays import ExtensionArray, SparseArray
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
-from pandas._config.config import get_option
 from pandas.core.index import (
     Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index)
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties

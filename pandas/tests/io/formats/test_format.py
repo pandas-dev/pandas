@@ -20,6 +20,9 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._config.config import (
+    get_option, option_context, reset_option, set_option)
+
 import pandas.compat as compat
 from pandas.compat import (
     PY3, StringIO, is_platform_32bit, is_platform_windows, lrange, lzip, range,
@@ -28,8 +31,6 @@ from pandas.compat import (
 import pandas as pd
 from pandas import (
     DataFrame, Index, MultiIndex, NaT, Series, Timestamp, date_range, read_csv)
-from pandas._config.config import (
-    get_option, option_context, reset_option, set_option)
 import pandas.util.testing as tm
 
 import pandas.io.formats.format as fmt

@@ -4,12 +4,13 @@ printing tools
 
 import sys
 
+from pandas._config.config import get_option
+
 from pandas.compat import u
 
 from pandas.core.dtypes.inference import is_sequence
 
 from pandas import compat
-from pandas._config.config import get_option
 
 
 def adjoin(space, *lists, **kwargs):

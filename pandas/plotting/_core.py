@@ -9,6 +9,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
+
 import pandas.compat as compat
 from pandas.compat import lrange, map, range, string_types, zip
 from pandas.errors import AbstractMethodError
@@ -22,7 +24,6 @@ from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas._config.config import get_option
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing

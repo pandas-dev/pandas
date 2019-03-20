@@ -3,10 +3,11 @@ import warnings
 
 import pytest
 
+from pandas._config.config import OptionError
+
 from pandas.compat import PY2
 
 import pandas as pd
-from pandas._config.config import OptionError
 
 
 class TestConfig(object):
