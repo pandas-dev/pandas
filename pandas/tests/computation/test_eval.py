@@ -1903,3 +1903,15 @@ class TestValidate(object):
         for value in invalid_values:
             with pytest.raises(ValueError):
                 pd.eval("2+2", inplace=value)
+
+
+def test_query_str_contains():
+    df = pd.DataFrame([["I", "XYZ"], ["IJ", None]], columns=['A', 'B'])
+
+    expected = df[df["A"].str.contains("J")]
+    result = df.query("A.str.contains('J')", engine="python")
+    tm.assert_frame_equal(result, expected)
+
+    expected = df[df["B"].str.contains("Z", na=False)]
+    result = df.query("B.str.contains('Z', na=False)", engine="python")
+    tm.assert_frame_equal(result, expected)
