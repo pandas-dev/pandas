@@ -587,11 +587,15 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         if len({str(x.dtype) for x in to_concat}) != 1:
             raise ValueError('to_concat must have the same tz')
 
-        if not is_period_dtype(self):
+        new_data = type(self._values)._concat_same_type(to_concat).asi8
+
+        # GH 3232: If the concat result is evenly spaced, we can retain the
+        # original frequency
+        is_diff_evenly_spaced = len(np.unique(np.diff(new_data))) == 1
+        if not is_period_dtype(self) and not is_diff_evenly_spaced:
             # reset freq
             attribs['freq'] = None
 
-        new_data = type(self._values)._concat_same_type(to_concat).asi8
         return self._simple_new(new_data, **attribs)
 
     @Appender(_index_shared_docs['astype'])

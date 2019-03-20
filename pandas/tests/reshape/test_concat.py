@@ -2539,3 +2539,20 @@ def test_concat_categorical_tz():
         'a', 'b'
     ])
     tm.assert_series_equal(result, expected)
+
+
+def test_concat_datetimeindex_freq():
+    # GH 3232
+    # Monotonic index result
+    dr = pd.date_range('01-Jan-2013', periods=100, freq='50L', tz='UTC')
+    data = list(range(100))
+    expected = pd.DataFrame(data, index=dr)
+    result = pd.concat([expected[:50], expected[50:]])
+    tm.assert_frame_equal(result, expected)
+
+    # Non-monotonic index result
+    result = pd.concat([expected[50:], expected[:50]])
+    expected = pd.DataFrame(data[50:] + data[:50],
+                            index=dr[50:].append(dr[:50]))
+    expected.index.freq = None
+    tm.assert_frame_equal(result, expected)
