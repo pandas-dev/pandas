@@ -16,7 +16,6 @@ import os
 import inspect
 import importlib
 import logging
-import warnings
 import jinja2
 from sphinx.ext.autosummary import _import_by_name
 from numpydoc.docscrape import NumpyDocString
@@ -410,12 +409,6 @@ extlinks = {'issue': ('https://github.com/pandas-dev/pandas/issues/%s',
                       'GH'),
             'wiki': ('https://github.com/pandas-dev/pandas/wiki/%s',
                      'wiki ')}
-
-
-# ignore all deprecation warnings from Panel during doc build
-# (to avoid the need to add :okwarning: in many places)
-warnings.filterwarnings("ignore", message="\nPanel is deprecated",
-                        category=FutureWarning)
 
 
 ipython_warning_is_error = False
