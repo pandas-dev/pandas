@@ -12,7 +12,7 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import Optional, Type, Tuple
+from typing import Optional, Tuple, Type
 import warnings
 
 import numpy as np
