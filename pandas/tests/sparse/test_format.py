@@ -3,10 +3,11 @@ from __future__ import print_function
 
 import numpy as np
 
+from pandas._config.config import option_context
+
 from pandas.compat import is_platform_32bit, is_platform_windows
 
 import pandas as pd
-from pandas.core.config import option_context
 import pandas.util.testing as tm
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
