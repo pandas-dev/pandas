@@ -510,7 +510,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return Series(array, index=index)
 
     def _values_for_argsort(self):
-        # type: () -> ndarray
+        # type: () -> np.ndarray
         """Return values for sorting.
 
         Returns
