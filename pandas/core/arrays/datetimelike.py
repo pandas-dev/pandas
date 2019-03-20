@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 import operator
+from typing import Any, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, algos, iNaT, lib
+from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
@@ -350,7 +351,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     @property
     def asi8(self):
-        # type: () -> ndarray
+        # type: () -> np.ndarray
         """
         Integer representation of the values.
 
@@ -461,10 +462,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
     def __setitem__(
             self,
             key,    # type: Union[int, Sequence[int], Sequence[bool], slice]
-            value,  # type: Union[NaTType, Scalar, Sequence[Scalar]]
+            value,  # type: Union[NaTType, Any, Sequence[Any]]
     ):
         # type: (...) -> None
-        # I'm fudging the types a bit here. The "Scalar" above really depends
+        # I'm fudging the types a bit here. "Any" above really depends
         # on type(self). For PeriodArray, it's Period (or stuff coercible
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...
         # I don't know if mypy can do that, possibly with Generics.
