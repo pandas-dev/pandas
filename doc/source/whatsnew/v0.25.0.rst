@@ -280,7 +280,7 @@ I/O
 - :meth:`DataFrame.to_html` now raises ``TypeError`` when using an invalid type for the ``classes`` parameter instead of ``AsseertionError`` (:issue:`25608`)
 - Bug in :meth:`DataFrame.to_string` and :meth:`DataFrame.to_latex` that would lead to incorrect output when the ``header`` keyword is used (:issue:`16718`)
 - Bug in :func:`read_csv` not properly interpreting the UTF8 encoded filenames on Windows on Python 3.6+ (:issue:`15086`)
--
+- Improved performance in :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` when converting columns that have missing values (:issue:`25772`)
 
 
 Plotting

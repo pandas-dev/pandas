@@ -1311,7 +1311,7 @@ class TestStata(object):
     def test_repeated_column_labels(self):
         # GH 13923
         msg = (r"Value labels for column ethnicsn are not unique\. The"
-               r" repeated labels are:\n\n-+wolof")
+               r" repeated labels are:\n-+\nwolof")
         with pytest.raises(ValueError, match=msg):
             read_stata(self.dta23, convert_categoricals=True)
 

@@ -12,12 +12,12 @@ class Stata(BaseIO):
 
     def setup(self, convert_dates):
         self.fname = '__test__.dta'
-        N = 100000
-        C = 5
+        N = self.N = 100000
+        C = self.C = 5
         self.df = DataFrame(np.random.randn(N, C),
                             columns=['float{}'.format(i) for i in range(C)],
                             index=date_range('20000101', periods=N, freq='H'))
-        self.df['object'] = tm.makeStringIndex(N)
+        self.df['object'] = tm.makeStringIndex(self.N)
         self.df['int8_'] = np.random.randint(np.iinfo(np.int8).min,
                                              np.iinfo(np.int8).max - 27, N)
         self.df['int16_'] = np.random.randint(np.iinfo(np.int16).min,
@@ -33,6 +33,16 @@ class Stata(BaseIO):
         read_stata(self.fname)
 
     def time_write_stata(self, convert_dates):
+        self.df.to_stata(self.fname, self.convert_dates)
+
+
+class StataMissing(Stata):
+    def setup(self, convert_dates):
+        super(StataMissing, self).setup(convert_dates)
+        for i in range(10):
+            missing_data = np.random.randn(self.N)
+            missing_data[missing_data < 0] = np.nan
+            self.df['missing_{0}'.format(i)] = missing_data
         self.df.to_stata(self.fname, self.convert_dates)
 
 
