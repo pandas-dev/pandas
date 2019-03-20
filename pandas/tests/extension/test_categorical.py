@@ -214,6 +214,11 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         with pytest.raises(TypeError, match="cannot perform"):
             ser + data
 
+    def test_divmod_series_array(self):
+        # GH 23287
+        # skipping because it is not implemented
+        pass
+
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
         return super(TestArithmeticOps, self)._check_divmod_op(
             s, op, other, exc=TypeError
