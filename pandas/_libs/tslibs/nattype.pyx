@@ -353,7 +353,7 @@ class NaTType(_NaT):
 
         .. versionadded:: 0.23.0
         """)
-    day_name = _make_nan_func('day_name', # noqa:E128
+    day_name = _make_nan_func('day_name',  # noqa:E128
         """
         Return the day name of the Timestamp with specified locale.
 

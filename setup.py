@@ -34,7 +34,7 @@ min_numpy_ver = '1.12.0'
 setuptools_kwargs = {
     'install_requires': [
         'python-dateutil >= 2.5.0',
-        'pytz >= 2011k',
+        'pytz >= 2015.4',
         'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
     ],
     'setup_requires': ['numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver)],
@@ -451,7 +451,7 @@ if '--with-cython-coverage' in sys.argv:
 # pinning `ext.cython_directives = directives` to each ext in extensions.
 # github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
 directives = {'linetrace': False,
-              'language_level': 2}
+              'language_level': 3}
 macros = []
 if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py

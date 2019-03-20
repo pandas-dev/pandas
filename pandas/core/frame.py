@@ -19,6 +19,7 @@ import itertools
 import sys
 import warnings
 from textwrap import dedent
+from typing import List, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -2184,7 +2185,6 @@ class DataFrame(NDFrame):
             Convert URLs to HTML links.
 
             .. versionadded:: 0.24.0
-
         %(returns)s
         See Also
         --------
@@ -2469,8 +2469,8 @@ class DataFrame(NDFrame):
         ----------
         index : bool, default True
             Specifies whether to include the memory usage of the DataFrame's
-            index in returned Series. If ``index=True`` the memory usage of the
-            index the first item in the output.
+            index in returned Series. If ``index=True``, the memory usage of
+            the index is the first item in the output.
         deep : bool, default False
             If True, introspect the data deeply by interrogating
             `object` dtypes for system-level memory consumption, and include
@@ -6052,7 +6052,6 @@ class DataFrame(NDFrame):
     columns, considered measured variables (`value_vars`), are "unpivoted" to
     the row axis, leaving just two non-identifier columns, 'variable' and
     'value'.
-
     %(versionadded)s
     Parameters
     ----------
@@ -7048,8 +7047,9 @@ class DataFrame(NDFrame):
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
             * callable: callable with input two 1d ndarrays
-                and returning a float
-
+                and returning a float. Note that the returned matrix from corr
+                will have 1 along the diagonals and will be symmetric
+                regardless of the callable's behavior
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional
@@ -7115,8 +7115,8 @@ class DataFrame(NDFrame):
                     correl[j, i] = c
         else:
             raise ValueError("method must be either 'pearson', "
-                             "'spearman', or 'kendall', '{method}' "
-                             "was supplied".format(method=method))
+                             "'spearman', 'kendall', or a callable, "
+                             "'{method}' was supplied".format(method=method))
 
         return self._constructor(correl, index=idx, columns=cols)
 
