@@ -4,6 +4,7 @@ from functools import partial
 import itertools
 import operator
 import re
+from typing import List, Optional, Union
 
 import numpy as np
 
@@ -18,6 +19,7 @@ from pandas.core.dtypes.common import (
     _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
     is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 

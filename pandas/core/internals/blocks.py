@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 import functools
 import inspect
 import re
+from typing import Any, List
 import warnings
 
 import numpy as np
@@ -1079,7 +1080,7 @@ class Block(PandasObject):
 
         try:
             return self.astype(dtype)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, OverflowError):
             pass
 
         return self.astype(object)
@@ -1826,14 +1827,17 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                  limit=limit),
             placement=self.mgr_locs)
 
-    def shift(self, periods, axis=0, fill_value=None):
+    def shift(self,
+              periods,                  # type: int
+              axis=0,                   # type: libinternals.BlockPlacement
+              fill_value=None):         # type: Any
+        # type: (...) -> List[ExtensionBlock]
         """
         Shift the block by `periods`.
 
         Dispatches to underlying ExtensionArray and re-boxes in an
         ExtensionBlock.
         """
-        # type: (int, Optional[BlockPlacement]) -> List[ExtensionBlock]
         return [
             self.make_block_same_class(
                 self.values.shift(periods=periods, fill_value=fill_value),
@@ -3210,7 +3214,7 @@ def _putmask_smart(v, m, n):
                 nv = v.copy()
                 nv[m] = nn_at
                 return nv
-    except (ValueError, IndexError, TypeError):
+    except (ValueError, IndexError, TypeError, OverflowError):
         pass
 
     n = np.asarray(n)
