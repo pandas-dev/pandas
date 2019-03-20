@@ -1660,7 +1660,7 @@ def _construct_result(left, result, index, name, dtype=None):
     not be enough; we still need to override the name attribute.
     """
     out = left._constructor(result, index=index, dtype=dtype)
-
+    out = out.__finalize__(left)
     out.name = name
     return out
 
@@ -1668,10 +1668,11 @@ def _construct_result(left, result, index, name, dtype=None):
 def _construct_divmod_result(left, result, index, name, dtype=None):
     """divmod returns a tuple of like indexed series instead of a single series.
     """
-    constructor = left._constructor
     return (
-        constructor(result[0], index=index, name=name, dtype=dtype),
-        constructor(result[1], index=index, name=name, dtype=dtype),
+        _construct_result(left, result[0], index=index, name=name,
+                          dtype=dtype),
+        _construct_result(left, result[1], index=index, name=name,
+                          dtype=dtype),
     )
 
 
