@@ -233,7 +233,8 @@ class TestDataFrameIndexing(TestData):
         expected = pd.DataFrame([[-1, inc], [inc, -1]])
         tm.assert_frame_equal(df, expected)
 
-    def test_getitem_boolean_from_datetime(self, datetime_frame):
+    def test_getitem_boolean(self, float_string_frame, mixed_float_frame,
+                             mixed_int_frame, datetime_frame):
         # boolean indexing
         d = datetime_frame.index[10]
         indexer = datetime_frame.index > d
@@ -268,65 +269,27 @@ class TestDataFrameIndexing(TestData):
             assert_frame_equal(subframe_obj, subframe)
 
         # test df[df > 0]
-        df = datetime_frame
-        data = df._get_numeric_data()
-        bif = df[df > 0]
-        bifw = DataFrame({c: np.where(data[c] > 0, data[c], np.nan)
-                          for c in data.columns},
-                         index=data.index, columns=data.columns)
+        for df in [datetime_frame, float_string_frame,
+                   mixed_float_frame, mixed_int_frame]:
+            if compat.PY3 and df is float_string_frame:
+                continue
 
-        # add back other columns to compare
-        for c in df.columns:
-            if c not in bifw:
-                bifw[c] = df[c]
-        bifw = bifw.reindex(columns=df.columns)
+            data = df._get_numeric_data()
+            bif = df[df > 0]
+            bifw = DataFrame({c: np.where(data[c] > 0, data[c], np.nan)
+                              for c in data.columns},
+                             index=data.index, columns=data.columns)
 
-        assert_frame_equal(bif, bifw, check_dtype=False)
-        for c in df.columns:
-            if bif[c].dtype != bifw[c].dtype:
-                assert bif[c].dtype == df[c].dtype
+            # add back other columns to compare
+            for c in df.columns:
+                if c not in bifw:
+                    bifw[c] = df[c]
+            bifw = bifw.reindex(columns=df.columns)
 
-    def test_getitem_boolean_from_mixed_float(self, mixed_float_frame):
-        df = mixed_float_frame
-
-        # test df[df > 0]
-        data = df._get_numeric_data()
-        bif = df[df > 0]
-        bifw = DataFrame({c: np.where(data[c] > 0, data[c], np.nan)
-                          for c in data.columns},
-                         index=data.index, columns=data.columns)
-
-        # add back other columns to compare
-        for c in df.columns:
-            if c not in bifw:
-                bifw[c] = df[c]
-        bifw = bifw.reindex(columns=df.columns)
-
-        assert_frame_equal(bif, bifw, check_dtype=False)
-        for c in df.columns:
-            if bif[c].dtype != bifw[c].dtype:
-                assert bif[c].dtype == df[c].dtype
-
-    def test_getitem_boolean_from_mixed_int(self, mixed_int_frame):
-        df = mixed_int_frame
-
-        # test df[df > 0]
-        data = df._get_numeric_data()
-        bif = df[df > 0]
-        bifw = DataFrame({c: np.where(data[c] > 0, data[c], np.nan)
-                          for c in data.columns},
-                         index=data.index, columns=data.columns)
-
-        # add back other columns to compare
-        for c in df.columns:
-            if c not in bifw:
-                bifw[c] = df[c]
-        bifw = bifw.reindex(columns=df.columns)
-
-        assert_frame_equal(bif, bifw, check_dtype=False)
-        for c in df.columns:
-            if bif[c].dtype != bifw[c].dtype:
-                assert bif[c].dtype == df[c].dtype
+            assert_frame_equal(bif, bifw, check_dtype=False)
+            for c in df.columns:
+                if bif[c].dtype != bifw[c].dtype:
+                    assert bif[c].dtype == df[c].dtype
 
     def test_getitem_boolean_casting(self, datetime_frame):
 
