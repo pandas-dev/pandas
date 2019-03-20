@@ -1660,7 +1660,7 @@ def _construct_result(left, result, index, name, dtype=None):
     not be enough; we still need to override the name attribute.
     """
     out = left._constructor(result, index=index, dtype=dtype)
-    out.__finalize__(left)
+    out = out.__finalize__(left)
     out.name = name
     return out
 
