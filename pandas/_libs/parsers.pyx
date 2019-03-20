@@ -1798,7 +1798,8 @@ cdef inline int _try_double_nogil(parser_t *parser,
                 data[0] = NA
             else:
                 data[0] = double_converter(word, &p_end, parser.decimal,
-                                           parser.sci, parser.thousands, 1, &error)
+                                           parser.sci, parser.thousands,
+                                           1, &error)
                 if error != 0 or p_end == word or p_end[0]:
                     error = 0
                     if (strcasecmp(word, cinf) == 0 or
@@ -2078,7 +2079,6 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
         object val
 
     table = kh_init_str_starts()
-
 
     for i in range(len(values)):
         val = values[i]
