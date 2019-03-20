@@ -16,7 +16,6 @@ from numpy cimport ndarray, uint8_t
 
 ctypedef fused pandas_string:
     str
-    unicode
     bytes
 
 
