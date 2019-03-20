@@ -64,7 +64,7 @@ of multi-axis indexing.
       index! See :ref:`Slicing with labels
       <indexing.slicing_with_labels>`.).
     * A boolean array
-    * A ``callable`` function with one argument (the calling Series, DataFrame or Panel) and
+    * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
 
       .. versionadded:: 0.18.1
@@ -82,7 +82,7 @@ of multi-axis indexing.
     * A list or array of integers ``[4, 3, 0]``.
     * A slice object with ints ``1:7``.
     * A boolean array.
-    * A ``callable`` function with one argument (the calling Series, DataFrame or Panel) and
+    * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
 
       .. versionadded:: 0.18.1
@@ -106,7 +106,6 @@ the specification are assumed to be ``:``, e.g. ``p.loc['a']`` is equivalent to
 
     Series; ``s.loc[indexer]``
     DataFrame; ``df.loc[row_indexer,column_indexer]``
-    Panel; ``p.loc[item_indexer,major_indexer,minor_indexer]``
 
 .. _indexing.basics:
 
@@ -126,7 +125,6 @@ indexing pandas objects with ``[]``:
 
     Series; ``series[label]``; scalar value
     DataFrame; ``frame[colname]``; ``Series`` corresponding to colname
-    Panel; ``panel[itemname]``; ``DataFrame`` corresponding to the itemname
 
 Here we construct a simple time series data set to use for illustrating the
 indexing functionality:
@@ -137,8 +135,6 @@ indexing functionality:
    df = pd.DataFrame(np.random.randn(8, 4),
                      index=dates, columns=['A', 'B', 'C', 'D'])
    df
-   panel = pd.Panel({'one': df, 'two': df - df.mean()})
-   panel
 
 .. note::
 
@@ -151,7 +147,6 @@ Thus, as per above, we have the most basic indexing using ``[]``:
 
    s = df['A']
    s[dates[5]]
-   panel['two']
 
 You can pass a list of columns to ``[]`` to select columns in that order.
 If a column is not contained in the DataFrame, an exception will be
@@ -195,7 +190,7 @@ Attribute Access
 
 .. _indexing.attribute_access:
 
-You may access an index on a ``Series``, column on a ``DataFrame``, and an item on a ``Panel`` directly
+You may access an index on a ``Series`` or  column on a ``DataFrame`` directly
 as an attribute:
 
 .. ipython:: python
@@ -207,7 +202,6 @@ as an attribute:
 
    sa.b
    dfa.A
-   panel.one
 
 .. ipython:: python
 
@@ -545,7 +539,7 @@ Selection By Callable
 .. versionadded:: 0.18.1
 
 ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer.
-The ``callable`` must be a function with one argument (the calling Series, DataFrame or Panel) that returns valid output for indexing.
+The ``callable`` must be a function with one argument (the calling Series or DataFrame) that returns valid output for indexing.
 
 .. ipython:: python
 
@@ -741,7 +735,7 @@ However, this would *still* raise if your resulting index is duplicated.
 Selecting Random Samples
 ------------------------
 
-A random selection of rows or columns from a Series, DataFrame, or Panel with the :meth:`~DataFrame.sample` method. The method will sample rows by default, and accepts a specific number of rows/columns to return, or a fraction of rows.
+A random selection of rows or columns from a Series or DataFrame with the :meth:`~DataFrame.sample` method. The method will sample rows by default, and accepts a specific number of rows/columns to return, or a fraction of rows.
 
 .. ipython:: python
 
@@ -1471,7 +1465,7 @@ The same set of options are available for the ``keep`` parameter.
 Dictionary-like :meth:`~pandas.DataFrame.get` method
 ----------------------------------------------------
 
-Each of Series, DataFrame, and Panel have a ``get`` method which can return a
+Each of Series or DataFrame have a ``get`` method which can return a
 default value.
 
 .. ipython:: python

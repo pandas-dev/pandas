@@ -8,6 +8,11 @@ What's New in 0.25.0 (April XX, 2019)
    Starting with the 0.25.x series of releases, pandas only supports Python 3.5 and higher.
    See :ref:`install.dropping-27` for more details.
 
+.. warning::
+
+   `Panel` has been fully removed. For N-D labeled data structures, please
+   use `xarray <https://xarray.pydata.org/en/stable/>`_
+
 {{ header }}
 
 These are the changes in pandas 0.25.0. See :ref:`release` for a full changelog

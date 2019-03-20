@@ -245,30 +245,6 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 
    df[~((df.AAA <= 6) & (df.index.isin([0, 2, 4])))]
 
-Panels
-******
-
-`Extend a panel frame by transposing, adding a new dimension, and transposing back to the original dimensions
-<http://stackoverflow.com/questions/15364050/extending-a-pandas-panel-frame-along-the-minor-axis>`__
-
-.. ipython:: python
-
-   rng = pd.date_range('1/1/2013', periods=100, freq='D')
-   data = np.random.randn(100, 4)
-   cols = ['A', 'B', 'C', 'D']
-   df1 = pd.DataFrame(data, rng, cols)
-   df2 = pd.DataFrame(data, rng, cols)
-   df3 = pd.DataFrame(data, rng, cols)
-
-   pf = pd.Panel({'df1': df1, 'df2': df2, 'df3': df3})
-   pf
-
-   pf.loc[:, :, 'F'] = pd.DataFrame(data, rng, cols)
-   pf
-
-`Mask a panel by using np.where and then reconstructing the panel with the new masked values
-<https://stackoverflow.com/questions/14650341/boolean-mask-in-pandas-panel>`__
-
 New Columns
 ***********
 

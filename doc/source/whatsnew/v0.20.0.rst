@@ -1356,7 +1356,7 @@ Deprecate Panel
 
 ``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
 with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
-provides a :meth:`~Panel.to_xarray` method to automate this conversion. For more details see :ref:`Deprecate Panel <dsintro.deprecate_panel>` documentation. (:issue:`13563`).
+provides a :meth:`~Panel.to_xarray` method to automate this conversion (:issue:`13563`).
 
 .. code-block:: ipython
 

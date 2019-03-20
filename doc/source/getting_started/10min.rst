@@ -449,8 +449,8 @@ Merge
 Concat
 ~~~~~~
 
-pandas provides various facilities for easily combining together Series,
-DataFrame, and Panel objects with various kinds of set logic for the indexes
+pandas provides various facilities for easily combining together Series and
+DataFrame objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
 

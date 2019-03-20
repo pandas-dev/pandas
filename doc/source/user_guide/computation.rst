@@ -13,7 +13,7 @@ Statistical Functions
 Percent Change
 ~~~~~~~~~~~~~~
 
-``Series``, ``DataFrame``, and ``Panel`` all have a method
+``Series`` and ``DataFrame`` have a method
 :meth:`~DataFrame.pct_change` to compute the percent change over a given number
 of periods (using ``fill_method`` to fill NA/null values *before* computing
 the percent change).
@@ -573,11 +573,6 @@ For example:
 
 Computing rolling pairwise covariances and correlations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. warning::
-
-   Prior to version 0.20.0 if ``pairwise=True`` was passed, a ``Panel`` would be returned.
-   This will now return a 2-level MultiIndexed DataFrame, see the whatsnew :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`.
 
 In financial data analysis and other fields it's common to compute covariance
 and correlation matrices for a collection of time series. Often one is also
