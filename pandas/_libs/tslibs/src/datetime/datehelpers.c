@@ -237,7 +237,7 @@ static PyObject* concat_date_cols(PyObject *self, PyObject *args,
                     Py_XDECREF(fast_array);
                     return free_arrays(arrays, sequence_size);
                 }
-                Py_DECREF(array);
+                Py_DECREF(*parray);
                 arrays[i] = fast_array;
 
                 if (array_size < min_array_size || min_array_size == 0) {
