@@ -6,7 +6,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-import validate_docstrings
+from scripts import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
 
@@ -1051,6 +1051,21 @@ class TestDocstringClass(object):
         msg = "'{}' has no attribute '{}'".format(obj_name, invalid_attr_name)
         with pytest.raises(AttributeError, match=msg):
             validate_docstrings.Docstring(invalid_name)
+
+    def missing_encoding_write_to_file(self):
+        """
+        Examples
+        --------
+        >>> try:
+        ...   docstr = validate_docstrings.Docstring('pandas.Series.str.isdecimal')
+        ...   result = docstr.validate_pep8()
+        ...   next(result)
+        ...   print(1)
+        ... except:
+        ...   0
+        1
+        """
+        pass
 
 
 class TestMainFunction(object):
