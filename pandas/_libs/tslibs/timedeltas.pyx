@@ -246,9 +246,11 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     return iresult.base  # .base to access underlying np.ndarray
 
 
-cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
-    """ return a casting of the unit represented to nanoseconds
-        round the fractional part of a float to our precision, p """
+cpdef inline object precision_from_unit(object unit):
+    """
+    Return a casting of the unit represented to nanoseconds + the precision
+    to round the fractional part.
+    """
     cdef:
         int64_t m
         int p
@@ -285,6 +287,17 @@ cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
         p = 0
     else:
         raise ValueError("cannot cast unit {unit}".format(unit=unit))
+    return m, p
+
+
+cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
+    """ return a casting of the unit represented to nanoseconds
+        round the fractional part of a float to our precision, p """
+    cdef:
+        int64_t m
+        int p
+
+    m, p = precision_from_unit(unit)
 
     # just give me the unit back
     if ts is None:
@@ -574,7 +587,7 @@ def _binary_op_method_timedeltalike(op, name):
             # the PyDateTime_CheckExact case is for a datetime object that
             # is specifically *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
-            from timestamps import Timestamp
+            from pandas._libs.tslibs.timestamps import Timestamp
             return op(self, Timestamp(other))
             # We are implicitly requiring the canonical behavior to be
             # defined by Timestamp methods.
@@ -1156,7 +1169,6 @@ class Timedelta(_Timedelta):
     Notes
     -----
     The ``.value`` attribute is always in ns.
-
     """
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base

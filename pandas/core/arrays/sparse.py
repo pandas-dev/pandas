@@ -6,13 +6,14 @@ from __future__ import division
 import numbers
 import operator
 import re
+from typing import Any, Callable, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import index as libindex, lib
 import pandas._libs.sparse as splib
-from pandas._libs.sparse import BlockIndex, IntIndex
+from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -372,7 +373,7 @@ _sparray_doc_kwargs = dict(klass='SparseArray')
 
 
 def _get_fill(arr):
-    # type: (SparseArray) -> ndarray
+    # type: (SparseArray) -> np.ndarray
     """
     Create a 0-dim ndarray containing the fill value
 
@@ -540,7 +541,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
            a ``SparseDtype``
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
-
 
     kind : {'integer', 'block'}, default 'integer'
         The type of storage for sparse locations.

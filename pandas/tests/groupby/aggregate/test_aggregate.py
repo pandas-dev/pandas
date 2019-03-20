@@ -303,3 +303,15 @@ def test_groupby_agg_coercing_bools():
     result = gp['c'].aggregate(lambda x: x.isnull().all())
     expected = Series([True, False], index=index, name='c')
     tm.assert_series_equal(result, expected)
+
+
+def test_order_aggregate_multiple_funcs():
+    # GH 25692
+    df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, 2, 3, 4]})
+
+    res = df.groupby('A').agg(['sum', 'max', 'mean', 'ohlc', 'min'])
+    result = res.columns.levels[1]
+
+    expected = pd.Index(['sum', 'max', 'mean', 'ohlc', 'min'])
+
+    tm.assert_index_equal(result, expected)
