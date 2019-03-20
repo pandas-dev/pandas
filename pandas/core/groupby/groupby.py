@@ -12,7 +12,7 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import Optional, Type
+from typing import Optional, Type, Tuple
 import warnings
 
 import numpy as np
@@ -1040,7 +1040,7 @@ class GroupBy(_GroupBy):
         Shared func to call any / all Cython GroupBy implementations.
         """
 
-        def objs_to_bool(vals: np.ndarray) -> types.Tuple[np.ndarray, Type]:
+        def objs_to_bool(vals: np.ndarray) -> Tuple[np.ndarray, Type]:
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
             else:
@@ -1737,7 +1737,7 @@ class GroupBy(_GroupBy):
         """
 
         def pre_processor(vals: np.ndarray) -> \
-                types.Tuple[np.ndarray, Optional[Type]]:
+                Tuple[np.ndarray, Optional[Type]]:
             if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
