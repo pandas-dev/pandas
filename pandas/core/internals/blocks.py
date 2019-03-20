@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 import functools
 import inspect
 import re
-from typing import Any, List
+from typing import Any, List, Optional, TypeVar
 import warnings
 
 import numpy as np
@@ -1646,6 +1646,9 @@ class NonConsolidatableMixIn(object):
         return new_placement, new_values, mask
 
 
+EB = TypeVar('EB', bound='ExtensionBlock')
+
+
 class ExtensionBlock(NonConsolidatableMixIn, Block):
     """Block for holding extension types.
 
@@ -1828,10 +1831,9 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             placement=self.mgr_locs)
 
     def shift(self,
-              periods,                  # type: int
-              axis=0,                   # type: libinternals.BlockPlacement
-              fill_value=None):         # type: Any
-        # type: (...) -> List[ExtensionBlock]
+              periods: int,
+              axis: libinternals.BlockPlacement = 0,
+              fill_value: Optional[Any] = None) -> List[EB]:
         """
         Shift the block by `periods`.
 

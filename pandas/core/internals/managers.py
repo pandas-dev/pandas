@@ -1863,8 +1863,8 @@ def _stack_arrays(tuples, dtype):
     return stacked, placement
 
 
-def _interleaved_dtype(blocks):
-    # type: (List[Block]) -> Optional[Union[np.dtype, ExtensionDtype]]
+def _interleaved_dtype(blocks: List[Block]) \
+        -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 
     Parameters

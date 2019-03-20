@@ -170,7 +170,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
-    _data = None  # type: PeriodArray
+    _data: PeriodArray = None
 
     _engine_type = libindex.PeriodEngine
 
