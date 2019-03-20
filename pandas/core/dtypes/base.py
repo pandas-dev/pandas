@@ -1,5 +1,5 @@
 """Extend pandas with custom array types"""
-from typing import List, Optional, Type
+from typing import List, Optional
 
 import numpy as np
 
@@ -65,8 +65,7 @@ class _DtypeOpsMixin(object):
         return not self.__eq__(other)
 
     @property
-    def names(self):
-        # type: () -> Optional[List[str]]
+    def names(self) -> Optional[List[str]]:
         """Ordered list of field names, or None if there are no fields.
 
         This is for compatibility with NumPy arrays, and may be removed in the
@@ -116,8 +115,7 @@ class _DtypeOpsMixin(object):
             return False
 
     @property
-    def _is_numeric(self):
-        # type: () -> bool
+    def _is_numeric(self) -> bool:
         """
         Whether columns with this dtype should be considered numeric.
 
@@ -128,8 +126,7 @@ class _DtypeOpsMixin(object):
         return False
 
     @property
-    def _is_boolean(self):
-        # type: () -> bool
+    def _is_boolean(self) -> bool:
         """
         Whether this dtype should be considered boolean.
 
@@ -212,8 +209,7 @@ class ExtensionDtype(_DtypeOpsMixin):
         return self.name
 
     @property
-    def type(self):
-        # type: () -> Type
+    def type(self) -> bool:
         """
         The scalar type for the array, e.g. ``int``
 
@@ -242,8 +238,7 @@ class ExtensionDtype(_DtypeOpsMixin):
         return 'O'
 
     @property
-    def name(self):
-        # type: () -> str
+    def name(self) -> str:
         """
         A string identifying the data type.
 

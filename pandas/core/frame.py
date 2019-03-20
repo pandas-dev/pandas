@@ -19,7 +19,7 @@ import itertools
 import sys
 import warnings
 from textwrap import dedent
-from typing import List, Union
+from typing import List, TypeVar, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -283,6 +283,10 @@ Traceback (most recent call last):
 ValueError: columns overlap but no suffix specified:
     Index(['value'], dtype='object')
 """
+
+
+DF = TypeVar('DF', bound='DataFrame')
+
 
 # -----------------------------------------------------------------------
 # DataFrame class
@@ -6243,11 +6247,9 @@ class DataFrame(NDFrame):
     # Function application
 
     def _gotitem(self,
-                 key,           # type: Union[str, List[str]]
-                 ndim,          # type: int
-                 subset=None    # type: Union[Series, DataFrame, None]
-                 ):
-        # type: (...) -> Union[Series, DataFrame]
+                 key: Union[str, List[str]],
+                 ndim: int,
+                 subset: Union[Series, DF, None] = None) -> Union[Series, DF]:
         """
         Sub-classes to define. Return a sliced object.
 
