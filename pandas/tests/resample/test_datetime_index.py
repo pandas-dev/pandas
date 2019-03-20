@@ -101,6 +101,18 @@ def test_resample_basic(series, closed, expected):
     assert_series_equal(result, expected)
 
 
+def test_resample_integerarray():
+    # GH 25580, resample on IntegerArray
+    ts = pd.Series(range(9),
+                   index=pd.date_range('1/1/2000', periods=9, freq='T'),
+                   dtype='Int64')
+    result = ts.resample('3T').sum()
+    expected = Series([3, 12, 21],
+                      index=pd.date_range('1/1/2000', periods=3, freq='3T'),
+                      dtype="Int64")
+    assert_series_equal(result, expected)
+
+
 def test_resample_basic_grouper(series):
     s = series
     result = s.resample('5Min').last()
@@ -1133,6 +1145,15 @@ def test_resample_nunique():
 
     result = df.ID.groupby(pd.Grouper(freq='D')).nunique()
     assert_series_equal(result, expected)
+
+
+def test_resample_nunique_preserves_column_level_names():
+    # see gh-23222
+    df = tm.makeTimeDataFrame(freq="1D").abs()
+    df.columns = pd.MultiIndex.from_arrays([df.columns.tolist()] * 2,
+                                           names=["lev0", "lev1"])
+    result = df.resample("1h").nunique()
+    tm.assert_index_equal(df.columns, result.columns)
 
 
 def test_resample_nunique_with_date_gap():

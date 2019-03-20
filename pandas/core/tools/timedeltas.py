@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs.tslibs import NaT
 from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -15,6 +16,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
+@deprecate_kwarg(old_arg_name='box', new_arg_name=None)
 def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     """
     Convert argument to timedelta.
@@ -40,6 +42,12 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
         - If True returns a Timedelta/TimedeltaIndex of the results.
         - If False returns a numpy.timedelta64 or numpy.darray of
           values of dtype timedelta64[ns].
+
+        .. deprecated:: 0.25.0
+            Use :meth:`.to_numpy` or :meth:`Timedelta.to_timedelta64`
+            instead to get an ndarray of values or numpy.timedelta64,
+            respectively.
+
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.

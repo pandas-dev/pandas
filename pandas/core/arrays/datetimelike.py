@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 import operator
+from typing import Any, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, algos, iNaT, lib
+from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
@@ -144,7 +145,7 @@ class DatelikeOps(object):
         Return an Index of formatted strings specified by date_format, which
         supports the same string format as the python standard library. Details
         of the string format can be found in `python string format
-        doc <%(URL)s>`__
+        doc <%(URL)s>`__.
 
         Parameters
         ----------
@@ -350,7 +351,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     @property
     def asi8(self):
-        # type: () -> ndarray
+        # type: () -> np.ndarray
         """
         Integer representation of the values.
 
@@ -461,10 +462,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
     def __setitem__(
             self,
             key,    # type: Union[int, Sequence[int], Sequence[bool], slice]
-            value,  # type: Union[NaTType, Scalar, Sequence[Scalar]]
+            value,  # type: Union[NaTType, Any, Sequence[Any]]
     ):
         # type: (...) -> None
-        # I'm fudging the types a bit here. The "Scalar" above really depends
+        # I'm fudging the types a bit here. "Any" above really depends
         # on type(self). For PeriodArray, it's Period (or stuff coercible
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...
         # I don't know if mypy can do that, possibly with Generics.
@@ -748,7 +749,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         mask the result if needed, convert to the provided dtype if its not
         None
 
-        This is an internal routine
+        This is an internal routine.
         """
 
         if self._hasnans:
@@ -1047,7 +1048,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         Returns
         -------
         result : np.ndarray[object]
-            Array of DateOffset objects; nulls represented by NaT
+            Array of DateOffset objects; nulls represented by NaT.
         """
         if not is_period_dtype(self):
             raise TypeError("cannot subtract {dtype}-dtype from {cls}"

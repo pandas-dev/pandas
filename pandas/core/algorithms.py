@@ -288,10 +288,15 @@ def unique(values):
 
     Returns
     -------
-    unique values.
-      If the input is an Index, the return is an Index
-      If the input is a Categorical dtype, the return is a Categorical
-      If the input is a Series/ndarray, the return will be an ndarray.
+    numpy.ndarray or ExtensionArray
+
+        The return can be:
+
+        * Index : when the input is an Index
+        * Categorical : when the input is a Categorical dtype
+        * ndarray : when the input is a Series/ndarray
+
+        Return numpy.ndarray or ExtensionArray.
 
     See Also
     --------
@@ -614,13 +619,19 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort
-        try:
-            order = uniques.argsort()
-            order2 = order.argsort()
-            labels = take_1d(order2, labels, fill_value=na_sentinel)
-            uniques = uniques.take(order)
-        except TypeError:
-            # Mixed types, where uniques.argsort fails.
+        if na_sentinel == -1:
+            # GH-25409 take_1d only works for na_sentinels of -1
+            try:
+                order = uniques.argsort()
+                order2 = order.argsort()
+                labels = take_1d(order2, labels, fill_value=na_sentinel)
+                uniques = uniques.take(order)
+            except TypeError:
+                # Mixed types, where uniques.argsort fails.
+                uniques, labels = safe_sort(uniques, labels,
+                                            na_sentinel=na_sentinel,
+                                            assume_unique=True)
+        else:
             uniques, labels = safe_sort(uniques, labels,
                                         na_sentinel=na_sentinel,
                                         assume_unique=True)

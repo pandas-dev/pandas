@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import operator
 from textwrap import dedent
+from typing import Union
 import warnings
 
 import numpy as np
@@ -1443,7 +1444,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        sorted_index : Index
+        Index
         """
         return self.sort_values(return_indexer=True, ascending=ascending)
 
@@ -1461,7 +1462,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        values : Index
+        Index
             Calling object, as there is only one level in the Index.
 
         See Also
@@ -1506,7 +1507,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        index : Index or MultiIndex
+        Index or MultiIndex
         """
         if not isinstance(level, (tuple, list)):
             level = [level]
@@ -1558,11 +1559,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         grouper : Index
-            Index of values to group on
+            Index of values to group on.
         labels : ndarray of int or None
-            Array of locations in level_index
+            Array of locations in level_index.
         uniques : Index or None
-            Index of unique values for level
+            Index of unique values for level.
         """
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
@@ -2972,9 +2973,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        tuple (indexer, keyarr)
-            indexer is an ndarray or None if cannot convert
-            keyarr are tuple-safe keys
+        indexer : numpy.ndarray or None
+            Return an ndarray or None if cannot convert.
+        keyarr : numpy.ndarray
+            Return tuple-safe keys.
         """
         if isinstance(keyarr, Index):
             keyarr = self._convert_index_indexer(keyarr)
@@ -3103,7 +3105,6 @@ class Index(IndexOpsMixin, PandasObject):
             Resulting index.
         indexer : np.ndarray or None
             Indices of output values in original index.
-
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
@@ -3158,9 +3159,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         new_index : pd.Index
-            Resulting index
+            Resulting index.
         indexer : np.ndarray or None
-            Indices of output values in original index
+            Indices of output values in original index.
 
         """
 
