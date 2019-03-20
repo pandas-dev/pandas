@@ -616,6 +616,17 @@ def test_to_integer_array_float():
 
 
 @pytest.mark.parametrize(
+    'bool_values, int_values',
+    [([False, True], [0, 1], Int64Dtype),
+     ([False, True, np.nan], [0, 1, np.nan], Int64Dtype)])
+def test_to_integer_array_bool(bool_values, int_values, result_dtype):
+    result = integer_array(bool_values)
+    assert result.dtype == result_dtype()
+    expected = integer_array(int_values)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     'values, to_dtype, result_dtype',
     [
         (np.array([1], dtype='int64'), None, Int64Dtype),
