@@ -22,6 +22,12 @@ def data():
 
 
 @pytest.fixture
+def data_for_twos():
+    """Length-100 array in which all the elements are two."""
+    raise NotImplementedError
+
+
+@pytest.fixture
 def data_missing():
     """Length-2 array with [NA, Valid]"""
     raise NotImplementedError

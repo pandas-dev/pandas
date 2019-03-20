@@ -24,6 +24,11 @@ def data():
 
 
 @pytest.fixture
+def data_for_twos():
+    return DecimalArray([decimal.Decimal(2) for _ in range(100)])
+
+
+@pytest.fixture
 def data_missing():
     return DecimalArray([decimal.Decimal('NaN'), decimal.Decimal(1)])
 

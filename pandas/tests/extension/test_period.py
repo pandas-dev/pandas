@@ -21,6 +21,11 @@ def data(dtype):
 
 
 @pytest.fixture
+def data_for_twos(dtype):
+    return PeriodArray(np.ones(100) * 2, freq=dtype.freq)
+
+
+@pytest.fixture
 def data_for_sorting(dtype):
     return PeriodArray([2018, 2019, 2017], freq=dtype.freq)
 

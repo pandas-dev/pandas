@@ -147,6 +147,11 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):
         pass
 
+    def test_divmod_series_array(self):
+        # GH 23287
+        # skipping because it is not implemented
+        pass
+
     @pytest.mark.xfail(reason="different implementation", strict=False)
     def test_direct_arith_with_series_returns_not_implemented(self, data):
         # Right now, we have trouble with this. Returning NotImplemented
