@@ -620,9 +620,9 @@ def test_to_integer_array_float():
     [([False, True], [0, 1], Int64Dtype),
      ([False, True, np.nan], [0, 1, np.nan], Int64Dtype)])
 def test_to_integer_array_bool(bool_values, int_values, result_dtype):
-    result = integer_array(bool_values)
+    result = integer_array(bool_values, dtype=result_dtype())
     assert result.dtype == result_dtype()
-    expected = integer_array(int_values)
+    expected = integer_array(int_values, dtype=result_dtype())
     tm.assert_extension_array_equal(result, expected)
 
 
