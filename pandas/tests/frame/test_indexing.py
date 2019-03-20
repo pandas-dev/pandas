@@ -1661,13 +1661,14 @@ class TestDataFrameIndexing(TestData):
         df.loc[[4, 5], ['a', 'b']] = A
         assert_frame_equal(df, expected)
 
-    def test_setitem_frame(self, float_frame, float_string_frame):
+    def test_setitem_frame_float(self, float_frame):
         piece = float_frame.loc[float_frame.index[:2], ['A', 'B']]
         float_frame.loc[float_frame.index[-2]:, ['A', 'B']] = piece.values
         result = float_frame.loc[float_frame.index[-2:], ['A', 'B']].values
         expected = piece.values
         assert_almost_equal(result, expected)
 
+    def test_setitem_frame_mixed(self, float_string_frame):
         # GH 3216
 
         # already aligned
@@ -1707,6 +1708,7 @@ class TestDataFrameIndexing(TestData):
         assert_almost_equal(f.loc[f.index[-2:], ['A', 'B']].values,
                             piece.values)
 
+    def test_setitem_frame_upcast(self):
         # needs upcasting
         df = DataFrame([[1, 2, 'foo'], [3, 4, 'bar']], columns=['A', 'B', 'C'])
         df2 = df.copy()
@@ -1794,32 +1796,39 @@ class TestDataFrameIndexing(TestData):
                 expected = float_frame[col][idx]
                 assert result == expected
 
-    def test_lookup(self, float_frame, float_string_frame):
-        def alt(df, rows, cols, dtype):
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = [df.get_value(r, c) for r, c in zip(rows, cols)]
-            return np.array(result, dtype=dtype)
+    def test_lookup_float(self, float_frame):
+        df = float_frame
+        rows = list(df.index) * len(df.columns)
+        cols = list(df.columns) * len(df.index)
+        result = df.lookup(rows, cols)
 
-        def testit(df):
-            rows = list(df.index) * len(df.columns)
-            cols = list(df.columns) * len(df.index)
-            result = df.lookup(rows, cols)
-            expected = alt(df, rows, cols, dtype=np.object_)
-            tm.assert_almost_equal(result, expected, check_dtype=False)
+        expected = np.array([df.loc[r, c] for r, c in zip(rows, cols)])
+        tm.assert_numpy_array_equal(result, expected)
 
-        testit(float_string_frame)
-        testit(float_frame)
+    def test_lookup_mixed(self, float_string_frame):
+        df = float_string_frame
+        rows = list(df.index) * len(df.columns)
+        cols = list(df.columns) * len(df.index)
+        result = df.lookup(rows, cols)
 
+        expected = np.array([df.loc[r, c] for r, c in zip(rows, cols)],
+                            dtype=np.object_)
+        tm.assert_almost_equal(result, expected)
+
+    def test_lookup_bool(self):
         df = DataFrame({'label': ['a', 'b', 'a', 'c'],
                         'mask_a': [True, True, False, True],
                         'mask_b': [True, False, False, False],
                         'mask_c': [False, True, False, True]})
         df['mask'] = df.lookup(df.index, 'mask_' + df['label'])
-        exp_mask = alt(df, df.index, 'mask_' + df['label'], dtype=np.bool_)
+
+        exp_mask = np.array([
+            df.loc[r, c] for r, c in zip(df.index, 'mask_' + df['label'])])
+
         tm.assert_series_equal(df['mask'], pd.Series(exp_mask, name='mask'))
         assert df['mask'].dtype == np.bool_
 
+    def test_lookup_raises(self, float_frame):
         with pytest.raises(KeyError):
             float_frame.lookup(['xyz'], ['A'])
 
