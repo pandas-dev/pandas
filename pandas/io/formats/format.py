@@ -1063,7 +1063,10 @@ class FloatArrayFormatter(GenericArrayFormatter):
         """
 
         if self.formatter is not None:
-            return np.array([self.formatter(x) for x in self.values])
+            out = np.array([self.formatter(x) for x in self.values])
+            mask = isna(self.values)
+            out[mask] = self.na_rep
+            return out
 
         if self.fixed_width:
             threshold = get_option("display.chop_threshold")
@@ -1142,7 +1145,8 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def _format_strings(self):
         # shortcut
         if self.formatter is not None:
-            return [self.formatter(x) for x in self.values]
+            return [self.formatter(x) if not isna(x) else self.na_rep
+                    for x in self.values]
 
         return list(self.get_result_as_array())
 

@@ -743,3 +743,20 @@ a & b &    &    \\
 \end{tabular}
 """
         assert observed == expected
+
+    def test_to_latex_na_rep_formatters(self):
+        # GH 9046
+        df = pd.DataFrame({'a': [0, 1, 2], 'b': [0.1, None, 0.2]})
+        observed = df.to_latex(
+            formatters={'b': '{:0.4f}'.format}, na_rep='-')
+        expected = r"""\begin{tabular}{lrr}
+\toprule
+{} &  a &      b \\
+\midrule
+0 &  0 & 0.1000 \\
+1 &  1 &      - \\
+2 &  2 & 0.2000 \\
+\bottomrule
+\end{tabular}
+"""
+        assert observed == expected
