@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 import functools
 import inspect
 import re
-from typing import Any, List, Optional
+from typing import Any, List
 import warnings
 
 import numpy as np
@@ -1827,10 +1827,12 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                  limit=limit),
             placement=self.mgr_locs)
 
-    def shift(self,
-              periods: int,
-              axis: libinternals.BlockPlacement = 0,
-              fill_value: Optional[Any] = None) -> List['ExtensionBlock']:
+    def shift(
+            self,
+            periods: int,
+            axis: libinternals.BlockPlacement = 0,
+            fill_value: Any = None
+    ) -> List['ExtensionBlock']:
         """
         Shift the block by `periods`.
 

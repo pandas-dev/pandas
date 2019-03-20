@@ -1751,8 +1751,10 @@ class GroupBy(_GroupBy):
 
             return vals, inference
 
-        def post_processor(vals: np.ndarray, inference: Optional[Type]) -> \
-                np.ndarray:
+        def post_processor(
+                vals: np.ndarray,
+                inference: Optional[Type]
+        ) -> np.ndarray:
             if inference:
                 # Check for edge case
                 if not (is_integer_dtype(inference) and
