@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype, is_extension_array_dtype, is_timedelta64_ns_dtype)
 from pandas.core.dtypes.dtypes import ExtensionDtype, registry
@@ -11,11 +12,10 @@ from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 from pandas import compat
 
 
-def array(data,         # type: Sequence[object]
-          dtype=None,   # type: Optional[Union[str, np.dtype, ExtensionDtype]]
-          copy=True,    # type: bool
-          ):
-    # type: (...) -> ExtensionArray
+def array(data: Sequence[object],
+          dtype: Optional[Union[str, np.dtype, ExtensionDtype]] = None,
+          copy: bool = True,
+          ) -> ExtensionArray:
     """
     Create an array.
 
