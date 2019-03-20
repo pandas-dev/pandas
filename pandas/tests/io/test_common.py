@@ -251,7 +251,7 @@ bar2,12,13,14,15
         ('to_latex', {}, 'os'),
         ('to_msgpack', {}, 'os'),
         ('to_pickle', {}, 'os'),
-        ('to_stata', {}, 'os'),
+        ('to_stata', {'time_stamp': pd.to_datetime('2019-01-01 00:00')}, 'os'),
     ])
     def test_write_fspath_all(self, writer_name, writer_kwargs, module):
         p1 = tm.ensure_clean('string')

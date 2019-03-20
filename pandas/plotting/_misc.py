@@ -178,7 +178,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
     Returns
     -------
-    axes : :class:`matplotlib.axes.Axes`
+    class:`matplotlib.axes.Axes`
 
     See Also
     --------
@@ -302,8 +302,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
 
     Returns
     -------
-    ax : Matplotlib axis object
-
+    class:`matplotlip.axis.Axes`
     """
     from math import sqrt, pi
     import matplotlib.pyplot as plt
@@ -389,8 +388,8 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Matplotlib figure
+    matplotlib.figure.Figure
+        Matplotlib figure.
 
     See Also
     --------
@@ -490,7 +489,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
     Returns
     -------
-    ax: matplotlib axis object
+    class:`matplotlib.axis.Axes`
 
     Examples
     --------
@@ -579,7 +578,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
     Returns
     -------
-    ax: Matplotlib axis object
+    class:`matplotlib.axis.Axes`
     """
     import matplotlib.pyplot as plt
 
@@ -610,7 +609,7 @@ def autocorrelation_plot(series, ax=None, **kwds):
 
     Returns:
     -----------
-    ax: Matplotlib axis object
+    class:`matplotlib.axis.Axes`
     """
     import matplotlib.pyplot as plt
     n = len(series)

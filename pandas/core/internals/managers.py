@@ -4,6 +4,7 @@ from functools import partial
 import itertools
 import operator
 import re
+from typing import List, Optional, Union
 
 import numpy as np
 
@@ -18,6 +19,7 @@ from pandas.core.dtypes.common import (
     _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
     is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -552,9 +554,9 @@ class BlockManager(PandasObject):
             if isna(s):
                 return isna(values)
             if hasattr(s, 'asm8'):
-                return _compare_or_regex_match(maybe_convert_objects(values),
-                                               getattr(s, 'asm8'), regex)
-            return _compare_or_regex_match(values, s, regex)
+                return _compare_or_regex_search(maybe_convert_objects(values),
+                                                getattr(s, 'asm8'), regex)
+            return _compare_or_regex_search(values, s, regex)
 
         masks = [comp(s, regex) for i, s in enumerate(src_list)]
 
@@ -1897,11 +1899,11 @@ def _consolidate(blocks):
     return new_blocks
 
 
-def _compare_or_regex_match(a, b, regex=False):
+def _compare_or_regex_search(a, b, regex=False):
     """
     Compare two array_like inputs of the same shape or two scalar values
 
-    Calls operator.eq or re.match, depending on regex argument. If regex is
+    Calls operator.eq or re.search, depending on regex argument. If regex is
     True, perform an element-wise regex matching.
 
     Parameters
@@ -1917,7 +1919,7 @@ def _compare_or_regex_match(a, b, regex=False):
     if not regex:
         op = lambda x: operator.eq(x, b)
     else:
-        op = np.vectorize(lambda x: bool(re.match(b, x)) if isinstance(x, str)
+        op = np.vectorize(lambda x: bool(re.search(b, x)) if isinstance(x, str)
                           else False)
 
     is_a_array = isinstance(a, np.ndarray)

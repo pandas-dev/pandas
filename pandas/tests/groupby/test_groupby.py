@@ -208,7 +208,7 @@ def test_pass_args_kwargs(ts, tsframe):
     trans_expected = ts_grouped.transform(g)
 
     assert_series_equal(apply_result, agg_expected)
-    assert_series_equal(agg_result, agg_expected, check_names=False)
+    assert_series_equal(agg_result, agg_expected)
     assert_series_equal(trans_result, trans_expected)
 
     agg_result = ts_grouped.agg(f, q=80)
@@ -223,13 +223,13 @@ def test_pass_args_kwargs(ts, tsframe):
     agg_result = df_grouped.agg(np.percentile, 80, axis=0)
     apply_result = df_grouped.apply(DataFrame.quantile, .8)
     expected = df_grouped.quantile(.8)
-    assert_frame_equal(apply_result, expected)
-    assert_frame_equal(agg_result, expected, check_names=False)
+    assert_frame_equal(apply_result, expected, check_names=False)
+    assert_frame_equal(agg_result, expected)
 
     agg_result = df_grouped.agg(f, q=80)
     apply_result = df_grouped.apply(DataFrame.quantile, q=.8)
-    assert_frame_equal(agg_result, expected, check_names=False)
-    assert_frame_equal(apply_result, expected)
+    assert_frame_equal(agg_result, expected)
+    assert_frame_equal(apply_result, expected, check_names=False)
 
 
 def test_len():
@@ -1690,11 +1690,36 @@ def test_groupby_agg_ohlc_non_first():
         [1, 1, 1, 1, 1],
         [1, 1, 1, 1, 1]
     ], columns=pd.MultiIndex.from_tuples((
-        ('foo', 'ohlc', 'open'), ('foo', 'ohlc', 'high'),
-        ('foo', 'ohlc', 'low'), ('foo', 'ohlc', 'close'),
-        ('foo', 'sum', 'foo'))), index=pd.date_range(
+        ('foo', 'sum', 'foo'), ('foo', 'ohlc', 'open'),
+        ('foo', 'ohlc', 'high'), ('foo', 'ohlc', 'low'),
+        ('foo', 'ohlc', 'close'))), index=pd.date_range(
             '2018-01-01', periods=2, freq='D'))
 
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_multiindex_nat():
+    # GH 9236
+    values = [
+        (pd.NaT, 'a'),
+        (datetime(2012, 1, 2), 'a'),
+        (datetime(2012, 1, 2), 'b'),
+        (datetime(2012, 1, 3), 'a')
+    ]
+    mi = pd.MultiIndex.from_tuples(values, names=['date', None])
+    ser = pd.Series([3, 2, 2.5, 4], index=mi)
+
+    result = ser.groupby(level=1).mean()
+    expected = pd.Series([3., 2.5], index=["a", "b"])
+    assert_series_equal(result, expected)
+
+
+def test_groupby_empty_list_raises():
+    # GH 5289
+    values = zip(range(10), range(10))
+    df = DataFrame(values, columns=['apple', 'b'])
+    msg = "Grouper and axis must be same length"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby([[]])

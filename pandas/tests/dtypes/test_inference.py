@@ -11,7 +11,6 @@ from decimal import Decimal
 from fractions import Fraction
 from numbers import Number
 import re
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
@@ -30,8 +29,8 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Panel,
-    Period, Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna)
+    Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Period,
+    Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna)
 from pandas.util import testing as tm
 
 
@@ -617,6 +616,37 @@ class TestTypeInference(object):
         arr = np.array([Decimal(1), np.nan, Decimal(3)], dtype='O')
         result = lib.infer_dtype(arr, skipna=True)
         assert result == 'decimal'
+
+    # complex is compatible with nan, so skipna has no effect
+    @pytest.mark.parametrize('skipna', [True, False])
+    def test_complex(self, skipna):
+        # gets cast to complex on array construction
+        arr = np.array([1.0, 2.0, 1 + 1j])
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        arr = np.array([1.0, 2.0, 1 + 1j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'mixed'
+
+        # gets cast to complex on array construction
+        arr = np.array([1, np.nan, 1 + 1j])
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        arr = np.array([1.0, np.nan, 1 + 1j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'mixed'
+
+        # complex with nans stays complex
+        arr = np.array([1 + 1j, np.nan, 3 + 3j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        # test smaller complex dtype; will pass through _try_infer_map fastpath
+        arr = np.array([1 + 1j, np.nan, 3 + 3j], dtype=np.complex64)
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
 
     def test_string(self):
         pass
@@ -1274,10 +1304,6 @@ class TestIsScalar(object):
         assert not is_scalar(Series([1]))
         assert not is_scalar(DataFrame())
         assert not is_scalar(DataFrame([[1]]))
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            assert not is_scalar(Panel())
-            assert not is_scalar(Panel([[[1]]]))
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
 

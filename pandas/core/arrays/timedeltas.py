@@ -11,7 +11,7 @@ from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
-    array_to_timedelta64, parse_timedelta_unit)
+    array_to_timedelta64, parse_timedelta_unit, precision_from_unit)
 import pandas.compat as compat
 from pandas.util._decorators import Appender
 
@@ -190,6 +190,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 "ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg.format(type(values).__name__))
+        if values.ndim != 1:
+            raise ValueError("Only 1-dimensional input arrays are supported.")
 
         if values.dtype == 'i8':
             # for compat with datetime/timedelta/period shared methods,
@@ -916,12 +918,15 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         copy = copy and not copy_made
 
     elif is_float_dtype(data.dtype):
-        # treat as multiples of the given unit.  If after converting to nanos,
-        #  there are fractional components left, these are truncated
-        #  (i.e. NOT rounded)
+        # cast the unit, multiply base/frace separately
+        # to avoid precision issues from float -> int
         mask = np.isnan(data)
-        coeff = np.timedelta64(1, unit) / np.timedelta64(1, 'ns')
-        data = (coeff * data).astype(np.int64).view('timedelta64[ns]')
+        m, p = precision_from_unit(unit)
+        base = data.astype(np.int64)
+        frac = data - base
+        if p:
+            frac = np.round(frac, p)
+        data = (base * m + (frac * m).astype(np.int64)).view('timedelta64[ns]')
         data[mask] = iNaT
         copy = False
 
@@ -945,6 +950,9 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
                         .format(dtype=data.dtype))
 
     data = np.array(data, copy=copy)
+    if data.ndim != 1:
+        raise ValueError("Only 1-dimensional input arrays are supported.")
+
     assert data.dtype == 'm8[ns]', data
     return data, inferred_freq
 

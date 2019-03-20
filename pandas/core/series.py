@@ -1215,7 +1215,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         Series
             If label is contained, will be reference to calling Series,
-            otherwise a new object
+            otherwise a new object.
         """
         warnings.warn("set_value is deprecated and will be removed "
                       "in a future release. Please use "
@@ -1229,7 +1229,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self._values[label] = value
             else:
                 self.index._engine.set_value(self._values, label, value)
-        except KeyError:
+        except (KeyError, TypeError):
 
             # set using a non-recursive method
             self.loc[label] = value
@@ -1453,6 +1453,29 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def iteritems(self):
         """
         Lazily iterate over (index, value) tuples.
+
+        This method returns an iterable tuple (index, value). This is
+        convienient if you want to create a lazy iterator. Note that the
+        methods Series.items and Series.iteritems are the same methods.
+
+        Returns
+        -------
+        iterable
+            Iterable of tuples containing the (index, value) pairs from a
+            Series.
+
+        See Also
+        --------
+        DataFrame.iteritems : Equivalent to Series.iteritems for DataFrame.
+
+        Examples
+        --------
+        >>> s = pd.Series(['A', 'B', 'C'])
+        >>> for index, value in s.iteritems():
+        ...     print("Index : {}, Value : {}".format(index, value))
+        Index : 0, Value : A
+        Index : 1, Value : B
+        Index : 2, Value : C
         """
         return zip(iter(self.index), iter(self))
 
@@ -1648,10 +1671,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         ndarray or ExtensionArray
-            The unique values returned as a NumPy array. In case of an
-            extension-array backed Series, a new
-            :class:`~api.extensions.ExtensionArray` of that type with just
-            the unique values is returned. This includes
+            The unique values returned as a NumPy array. See Notes.
+
+        See Also
+        --------
+        unique : Top-level unique method for any 1-d array-like object.
+        Index.unique : Return Index with unique values from an Index object.
+
+        Notes
+        -----
+        Returns the unique values as a NumPy array. In case of an
+        extension-array backed Series, a new
+        :class:`~api.extensions.ExtensionArray` of that type with just
+        the unique values is returned. This includes
 
             * Categorical
             * Period
@@ -1660,10 +1692,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             * Sparse
             * IntegerNA
 
-        See Also
-        --------
-        unique : Top-level unique method for any 1-d array-like object.
-        Index.unique : Return Index with unique values from an Index object.
+        See Examples section.
 
         Examples
         --------
@@ -2122,8 +2151,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
-            * callable: callable with input two 1d ndarray
-                and returning a float
+            * callable: callable with input two 1d ndarrays
+                and returning a float. Note that the returned matrix from corr
+                will have 1 along the diagonals and will be symmetric
+                regardless of the callable's behavior
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional
@@ -2153,8 +2184,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                   min_periods=min_periods)
 
         raise ValueError("method must be either 'pearson', "
-                         "'spearman', or 'kendall', '{method}' "
-                         "was supplied".format(method=method))
+                         "'spearman', 'kendall', or a callable, "
+                         "'{method}' was supplied".format(method=method))
 
     def cov(self, other, min_periods=None):
         """
@@ -2388,12 +2419,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
     def searchsorted(self, value, side='left', sorter=None):
-        if sorter is not None:
-            sorter = ensure_platform_int(sorter)
-        result = self._values.searchsorted(Series(value)._values,
-                                           side=side, sorter=sorter)
-
-        return result[0] if is_scalar(value) else result
+        return algorithms.searchsorted(self._values, value,
+                                       side=side, sorter=sorter)
 
     # -------------------------------------------------------------------
     # Combination
@@ -3096,8 +3123,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : take the first occurrences based on the index order
-            - ``last`` : take the last occurrences based on the index order
+            - ``first`` : return the first `n` occurrences in order
+                of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+                order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
@@ -3192,8 +3221,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : take the first occurrences based on the index order
-            - ``last`` : take the last occurrences based on the index order
+            - ``first`` : return the first `n` occurrences in order
+                of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+                order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
@@ -3234,7 +3265,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Monserat        5200
         dtype: int64
 
-        The `n` largest elements where ``n=5`` by default.
+        The `n` smallest elements where ``n=5`` by default.
 
         >>> s.nsmallest()
         Monserat      5200
@@ -3674,8 +3705,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if axis is not None:
             self._get_axis_number(axis)
 
-        # dispatch to ExtensionArray interface
-        if isinstance(delegate, ExtensionArray):
+        if isinstance(delegate, Categorical):
+            # TODO deprecate numeric_only argument for Categorical and use
+            # skipna as well, see GH25303
+            return delegate._reduce(name, numeric_only=numeric_only, **kwds)
+        elif isinstance(delegate, ExtensionArray):
+            # dispatch to ExtensionArray interface
             return delegate._reduce(name, skipna=skipna, **kwds)
         elif is_datetime64_dtype(delegate):
             # use DatetimeIndex implementation to handle skipna correctly

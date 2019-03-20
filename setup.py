@@ -34,7 +34,7 @@ min_numpy_ver = '1.12.0'
 setuptools_kwargs = {
     'install_requires': [
         'python-dateutil >= 2.5.0',
-        'pytz >= 2011k',
+        'pytz >= 2015.4',
         'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
     ],
     'setup_requires': ['numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver)],
@@ -451,7 +451,7 @@ if '--with-cython-coverage' in sys.argv:
 # pinning `ext.cython_directives = directives` to each ext in extensions.
 # github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
 directives = {'linetrace': False,
-              'language_level': 2}
+              'language_level': 3}
 macros = []
 if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py
@@ -477,6 +477,11 @@ def maybe_cythonize(extensions, *args, **kwargs):
         # Avoid running cythonize on `python setup.py clean`
         # See https://github.com/cython/cython/issues/1495
         return extensions
+    if not cython:
+        # Avoid trying to look up numpy when installing from sdist
+        # https://github.com/pandas-dev/pandas/issues/25193
+        # TODO: See if this can be removed after pyproject.toml added.
+        return extensions
 
     numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
     # TODO: Is this really necessary here?
@@ -485,11 +490,8 @@ def maybe_cythonize(extensions, *args, **kwargs):
                 numpy_incl not in ext.include_dirs):
             ext.include_dirs.append(numpy_incl)
 
-    if cython:
-        build_ext.render_templates(_pxifiles)
-        return cythonize(extensions, *args, **kwargs)
-    else:
-        return extensions
+    build_ext.render_templates(_pxifiles)
+    return cythonize(extensions, *args, **kwargs)
 
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):

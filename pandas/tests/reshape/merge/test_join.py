@@ -17,7 +17,6 @@ from pandas.util.testing import assert_frame_equal
 a_ = np.array
 
 
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestJoin(object):
 
     def setup_method(self, method):
@@ -681,6 +680,28 @@ class TestJoin(object):
 
         with pytest.raises(ValueError, match=msg):
             right.join(left, on=['abc', 'xy'], how=join_type)
+
+    def test_join_on_tz_aware_datetimeindex(self):
+        # GH 23931
+        df1 = pd.DataFrame(
+            {
+                'date': pd.date_range(start='2018-01-01', periods=5,
+                                      tz='America/Chicago'),
+                'vals': list('abcde')
+            }
+        )
+
+        df2 = pd.DataFrame(
+            {
+                'date': pd.date_range(start='2018-01-03', periods=5,
+                                      tz='America/Chicago'),
+                'vals_2': list('tuvwx')
+            }
+        )
+        result = df1.join(df2.set_index('date'), on='date')
+        expected = df1.copy()
+        expected['vals_2'] = pd.Series([np.nan] * len(expected), dtype=object)
+        assert_frame_equal(result, expected)
 
 
 def _check_join(left, right, result, join_col, how='left',
