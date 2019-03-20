@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import operator
 from textwrap import dedent
-from typing import TypeVar, Union
+from typing import Union
 import warnings
 
 import numpy as np
@@ -162,9 +162,6 @@ def _new_Index(cls, d):
         from pandas.core.indexes.period import _new_PeriodIndex
         return _new_PeriodIndex(cls, **d)
     return cls.__new__(cls, **d)
-
-
-INDEXTYPE = TypeVar('INDEXTYPE', bound='Index')
 
 
 class Index(IndexOpsMixin, PandasObject):
@@ -3635,7 +3632,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @property
-    def _values(self) -> Union[ExtensionArray, INDEXTYPE, np.ndarray]:
+    def _values(self) -> Union[ExtensionArray, 'Index', np.ndarray]:
         # TODO(EA): remove index types as they become extension arrays
         """
         The best array representation.
