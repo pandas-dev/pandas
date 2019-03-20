@@ -451,11 +451,11 @@ def _justify(head, tail):
     >>> _justify([['a', 'b']], [['abc', 'abcd']])
     ([('  a', '   b')], [('abc', 'abcd')])
     """
-    combined = head + tail  # type: Sequence[Sequence[str]]
+    combined = head + tail
 
     # For each position for the sequences in ``combined``,
     # find the length of the largest string.
-    max_length = [0] * len(combined[0])  # type: List[int]
+    max_length = [0] * len(combined[0])
     for inner_seq in combined:
         length = [len(item) for item in inner_seq]
         max_length = [max(x, y) for x, y in zip(max_length, length)]

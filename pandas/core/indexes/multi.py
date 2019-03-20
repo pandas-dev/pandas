@@ -802,8 +802,10 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
-                                            (2, 'one'), (2, 'two')],
+        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'),
+                                             (1, 'two'),
+                                             (2, 'one'),
+                                             (2, 'two')],
                                             names=['foo', 'bar'])
         >>> idx.set_codes([[1, 0, 1, 0], [0, 0, 1, 1]])
         MultiIndex([(2, 'one'),
