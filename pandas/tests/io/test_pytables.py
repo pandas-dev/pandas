@@ -38,7 +38,8 @@ tables = pytest.importorskip('tables')
 # remove when gh-24839 is fixed; this affects numpy 1.16
 # and pytables 3.4.4
 xfail_non_writeable = pytest.mark.xfail(
-    LooseVersion(np.__version__) >= LooseVersion('1.16'),
+    LooseVersion(np.__version__) >= LooseVersion('1.16') and
+    LooseVersion(tables.__version__) < LooseVersion('3.5.1'),
     reason=('gh-25511, gh-24839. pytables needs a '
             'release beyong 3.4.4 to support numpy 1.16x'))
 
@@ -2386,8 +2387,8 @@ class TestHDFStore(Base):
     @pytest.mark.parametrize(
         'dtype', [np.int64, np.float64, np.object, 'm8[ns]', 'M8[ns]'])
     def test_empty_series(self, dtype):
-            s = Series(dtype=dtype)
-            self._check_roundtrip(s, tm.assert_series_equal)
+        s = Series(dtype=dtype)
+        self._check_roundtrip(s, tm.assert_series_equal)
 
     def test_can_serialize_dates(self):
 
