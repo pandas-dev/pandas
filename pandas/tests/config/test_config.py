@@ -6,7 +6,7 @@ import pytest
 from pandas.compat import PY2
 
 import pandas as pd
-from pandas.core.config import OptionError
+from pandas._config.config import OptionError
 
 
 class TestConfig(object):
@@ -15,7 +15,7 @@ class TestConfig(object):
     def setup_class(cls):
         from copy import deepcopy
 
-        cls.cf = pd.core.config
+        cls.cf = pd._config.config
         cls.gc = deepcopy(getattr(cls.cf, '_global_config'))
         cls.do = deepcopy(getattr(cls.cf, '_deprecated_options'))
         cls.ro = deepcopy(getattr(cls.cf, '_registered_options'))

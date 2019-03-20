@@ -33,7 +33,7 @@ from pandas.core.arrays import ExtensionArray, SparseArray
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
-from pandas.core.config import get_option
+from pandas._config.config import get_option
 from pandas.core.index import (
     Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index)
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties

@@ -32,7 +32,7 @@ import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import factorize, take, take_1d, unique1d
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
-from pandas.core.config import get_option
+from pandas._config.config import get_option
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 

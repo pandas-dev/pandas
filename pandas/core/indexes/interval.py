@@ -21,7 +21,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
-from pandas.core.config import get_option
+from pandas._config.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, _index_shared_docs, default_pprint, ensure_index)

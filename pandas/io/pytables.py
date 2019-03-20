@@ -29,13 +29,13 @@ from pandas import (
     DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, PeriodIndex,
     Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat, concat,
     isna, to_datetime)
-from pandas.core import config
+from pandas._config import config
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.core.computation.pytables import Expr, maybe_expression
-from pandas.core.config import get_option
+from pandas._config.config import get_option
 from pandas.core.index import ensure_index
 from pandas.core.internals import BlockManager, _block_shape, make_block
 

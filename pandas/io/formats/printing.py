@@ -9,7 +9,7 @@ from pandas.compat import u
 from pandas.core.dtypes.inference import is_sequence
 
 from pandas import compat
-from pandas.core.config import get_option
+from pandas._config.config import get_option
 
 
 def adjoin(space, *lists, **kwargs):

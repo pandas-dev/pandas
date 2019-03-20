@@ -22,7 +22,7 @@ from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.config import get_option
+from pandas._config.config import get_option
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing

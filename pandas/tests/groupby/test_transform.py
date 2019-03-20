@@ -10,7 +10,7 @@ from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, concat, date_range
-from pandas.core.config import option_context
+from pandas._config.config import option_context
 from pandas.core.groupby.groupby import DataError
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal

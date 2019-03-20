@@ -28,7 +28,7 @@ from pandas.compat import (
 import pandas as pd
 from pandas import (
     DataFrame, Index, MultiIndex, NaT, Series, Timestamp, date_range, read_csv)
-from pandas.core.config import (
+from pandas._config.config import (
     get_option, option_context, reset_option, set_option)
 import pandas.util.testing as tm
 

@@ -4,7 +4,7 @@ import pytest
 
 import pandas as pd
 from pandas import compat
-import pandas.core.config as cf
+import pandas._config.config as cf
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing

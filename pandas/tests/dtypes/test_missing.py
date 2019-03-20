@@ -7,6 +7,8 @@ from warnings import catch_warnings, filterwarnings
 import numpy as np
 import pytest
 
+from pandas._config import config as cf
+
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT, is_null_datetimelike
 from pandas.compat import u
@@ -20,7 +22,6 @@ from pandas.core.dtypes.missing import (
 import pandas as pd
 from pandas import (
     DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range)
-from pandas.core import config as cf
 from pandas.util import testing as tm
 
 

@@ -7,7 +7,7 @@ from pandas.compat import PY3, u
 from pandas import (
     Categorical, CategoricalIndex, Series, date_range, period_range,
     timedelta_range)
-from pandas.core.config import option_context
+from pandas._config.config import option_context
 from pandas.tests.arrays.categorical.common import TestCategorical
 
 

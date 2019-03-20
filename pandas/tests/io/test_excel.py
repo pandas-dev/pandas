@@ -15,7 +15,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.core.config import get_option, set_option
+from pandas._config.config import get_option, set_option
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 

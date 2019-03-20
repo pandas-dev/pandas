@@ -19,7 +19,7 @@ from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, contains
 import pandas.core.common as com
-from pandas.core.config import get_option
+from pandas._config.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 import pandas.core.missing as missing

@@ -19,7 +19,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.common as com
-from pandas.core.config import get_option
+from pandas._config.config import get_option
 
 _BOTTLENECK_INSTALLED = False
 _MIN_BOTTLENECK_VERSION = '1.0.0'

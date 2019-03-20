@@ -10,6 +10,8 @@ import sys
 import numpy as np
 import pytest
 
+import pandas._config.config as cf
+
 from pandas._libs.tslib import Timestamp
 from pandas.compat import (
     PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip)
@@ -23,7 +25,6 @@ from pandas import (
     CategoricalIndex, DataFrame, DatetimeIndex, Float64Index, Int64Index,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index, date_range,
     isna, period_range)
-import pandas.core.config as cf
 from pandas.core.index import _get_combined_index, ensure_index_from_sequences
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.sorting import safe_sort

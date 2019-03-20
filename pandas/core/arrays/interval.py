@@ -24,7 +24,7 @@ from pandas.core.arrays.base import (
     ExtensionArray, _extension_array_shared_docs)
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
-from pandas.core.config import get_option
+from pandas._config.config import get_option
 from pandas.core.indexes.base import Index, ensure_index
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
