@@ -440,7 +440,6 @@ class DataFrameFormatter(TableFormatter):
         max_rows = self.max_rows
 
         if max_cols == 0 or max_rows == 0:  # assume we are in the terminal
-                                            # (why else = 0)
             (w, h) = get_terminal_size()
             self.w = w
             self.h = h

@@ -22,6 +22,7 @@ def test_namespace():
                   'timezones']
 
     api = ['NaT',
+           'NaTType',
            'iNaT',
            'is_null_datetimelike',
            'OutOfBoundsDatetime',

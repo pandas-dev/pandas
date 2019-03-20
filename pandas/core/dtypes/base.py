@@ -1,4 +1,6 @@
 """Extend pandas with custom array types"""
+from typing import List, Optional, Type
+
 import numpy as np
 
 from pandas.errors import AbstractMethodError
@@ -211,7 +213,7 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     @property
     def type(self):
-        # type: () -> type
+        # type: () -> Type
         """
         The scalar type for the array, e.g. ``int``
 

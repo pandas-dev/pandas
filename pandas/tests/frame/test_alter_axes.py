@@ -201,7 +201,8 @@ class TestDataFrameAlterAxes():
         # need to adapt first drop for case that both keys are 'A' --
         # cannot drop the same column twice;
         # use "is" because == would give ambiguous Boolean error for containers
-        first_drop = False if (keys[0] is 'A' and keys[1] is 'A') else drop
+        first_drop = False if (
+            keys[0] is 'A' and keys[1] is 'A') else drop  # noqa: F632
 
         # to test against already-tested behaviour, we add sequentially,
         # hence second append always True; must wrap keys in list, otherwise
@@ -1272,7 +1273,7 @@ class TestDataFrameAlterAxes():
             df.rename(id, mapper=id)
 
     def test_reindex_api_equivalence(self):
-            # equivalence of the labels/axis and index/columns API's
+        # equivalence of the labels/axis and index/columns API's
         df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],
                        index=['a', 'b', 'c'],
                        columns=['d', 'e', 'f'])

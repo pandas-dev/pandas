@@ -10,7 +10,7 @@ gitpython
 hypothesis>=3.82
 isort
 moto
-pycodestyle==2.4
+pycodestyle
 pytest>=4.0.2
 pytest-mock
 sphinx
