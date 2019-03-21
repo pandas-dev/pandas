@@ -5,7 +5,7 @@ not an ndarray.
 
 Note:
 
-We currently store lists of UserDicts (Py3 only). Pandas has a few places
+We currently store lists of UserDicts. Pandas has a few places
 internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
 hack around pandas by using UserDicts.

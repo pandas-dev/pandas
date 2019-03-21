@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY3, u
+from pandas.compat import u
 from pandas.errors import PerformanceWarning
 
 import pandas
@@ -71,7 +71,7 @@ def check_arbitrary(a, b):
         # Temp,
         # Categorical.categories is changed from str to bytes in PY3
         # maybe the same as GH 13591
-        if PY3 and b.categories.inferred_type == 'string':
+        if b.categories.inferred_type == 'string':
             pass
         else:
             tm.assert_categorical_equal(a, b)
@@ -930,7 +930,7 @@ TestPackers
         version = os.path.basename(os.path.dirname(legacy_packer))
 
         # GH12142 0.17 files packed in P2 can't be read in P3
-        if (compat.PY3 and version.startswith('0.17.') and
+        if (version.startswith('0.17.') and
                 legacy_packer.split('.')[-4][-1] == '2'):
             msg = "Files packed in Py2 can't be read in Py3 ({})"
             pytest.skip(msg.format(version))

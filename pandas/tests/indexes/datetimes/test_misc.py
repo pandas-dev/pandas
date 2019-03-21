@@ -7,7 +7,7 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    DatetimeIndex, Index, Timestamp, compat, date_range, datetime, offsets)
+    DatetimeIndex, Index, Timestamp, date_range, datetime, offsets)
 import pandas.util.testing as tm
 
 
@@ -289,9 +289,8 @@ class TestDatetime64(object):
 
         # work around different normalization schemes
         # https://github.com/pandas-dev/pandas/issues/22342
-        if not compat.PY2:
-            result = result.str.normalize("NFD")
-            expected = expected.str.normalize("NFD")
+        result = result.str.normalize("NFD")
+        expected = expected.str.normalize("NFD")
 
         tm.assert_index_equal(result, expected)
 
@@ -299,9 +298,8 @@ class TestDatetime64(object):
             result = date.month_name(locale=time_locale)
             expected = expected.capitalize()
 
-            if not compat.PY2:
-                result = unicodedata.normalize("NFD", result)
-                expected = unicodedata.normalize("NFD", result)
+            result = unicodedata.normalize("NFD", result)
+            expected = unicodedata.normalize("NFD", result)
 
             assert result == expected
         dti = dti.append(DatetimeIndex([pd.NaT]))

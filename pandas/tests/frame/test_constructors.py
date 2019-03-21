@@ -12,8 +12,7 @@ import numpy.ma as ma
 import pytest
 
 from pandas.compat import (
-    PY2, PY3, PY36, is_platform_little_endian, lmap, long, lrange, lzip, range,
-    zip)
+    PY36, is_platform_little_endian, lmap, long, lrange, lzip, range, zip)
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
@@ -21,7 +20,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, MultiIndex, Series, Timedelta, Timestamp,
-    _np_version_under1p13, compat, date_range, isna)
+    compat, date_range, isna)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -163,9 +162,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
-        if PY3:
-            # unicode error under PY2
-            rec.dtype.names = list(rec.dtype.names)[::-1]
+        rec.dtype.names = list(rec.dtype.names)[::-1]
 
         index = self.frame.index
 
@@ -684,8 +681,6 @@ class TestDataFrameConstructors(TestData):
         frame = DataFrame(['foo', 'bar'], index=[0, 1], columns=['A'])
         assert len(frame) == 2
 
-    @pytest.mark.skipif(PY2 and _np_version_under1p13,
-                        reason="old numpy & py2")
     def test_constructor_maskedarray(self):
         self._check_basic_constructor(ma.masked_all)
 
@@ -702,8 +697,6 @@ class TestDataFrameConstructors(TestData):
         frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
         assert np.all(~np.asarray(frame == frame))
 
-    @pytest.mark.skipif(PY2 and _np_version_under1p13,
-                        reason="old numpy & py2")
     def test_constructor_maskedarray_nonfloat(self):
         # masked int promoted to float
         mat = ma.masked_all((2, 3), dtype=int)
@@ -771,8 +764,6 @@ class TestDataFrameConstructors(TestData):
         assert frame['A'][1] is True
         assert frame['C'][2] is False
 
-    @pytest.mark.skipif(PY2 and _np_version_under1p13,
-                        reason="old numpy & py2")
     def test_constructor_maskedarray_hardened(self):
         # Check numpy masked arrays with hard masks -- from GH24574
         mat_hard = ma.masked_all((2, 2), dtype=float).harden_mask()
@@ -795,8 +786,6 @@ class TestDataFrameConstructors(TestData):
             dtype=float)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(PY2 and _np_version_under1p13,
-                        reason="old numpy & py2")
     def test_constructor_maskedrecarray_dtype(self):
         # Ensure constructor honors dtype
         data = np.ma.array(
@@ -808,8 +797,6 @@ class TestDataFrameConstructors(TestData):
                                 columns=['date', 'price'])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(PY2 and _np_version_under1p13,
-                        reason="old numpy & py2")
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479
@@ -1711,7 +1698,6 @@ class TestDataFrameConstructors(TestData):
 
         assert not (series['A'] == 5).all()
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_constructor_with_nas(self):
         # GH 5016
         # na's in indices

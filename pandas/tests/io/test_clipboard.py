@@ -5,8 +5,6 @@ import numpy as np
 from numpy.random import randint
 import pytest
 
-from pandas.compat import PY2
-
 import pandas as pd
 from pandas import DataFrame, get_option, read_clipboard
 from pandas.util import testing as tm
@@ -166,14 +164,7 @@ class TestClipboard(object):
                                          mock_clipboard):
         kwargs = build_kwargs(sep, excel)
         df.to_clipboard(**kwargs)
-        if PY2:
-            # to_clipboard copies unicode, to_csv produces bytes. This is
-            # expected behavior
-            result = mock_clipboard[request.node.name].encode('utf-8')
-            expected = df.to_csv(sep='\t')
-            assert result == expected
-        else:
-            assert mock_clipboard[request.node.name] == df.to_csv(sep='\t')
+        assert mock_clipboard[request.node.name] == df.to_csv(sep='\t')
 
     # Tests reading of white space separated tables
     @pytest.mark.parametrize('sep', [None, 'default'])

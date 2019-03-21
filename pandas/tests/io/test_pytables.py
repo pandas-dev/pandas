@@ -1036,18 +1036,8 @@ class TestHDFStore(Base):
 
             # unicode
             index = tm.makeUnicodeIndex
-            if compat.PY3:
-                check('table', index)
-                check('fixed', index)
-            else:
-
-                # only support for fixed types (and they have a perf warning)
-                pytest.raises(TypeError, check, 'table', index)
-
-                # PerformanceWarning
-                with catch_warnings(record=True):
-                    simplefilter("ignore", pd.errors.PerformanceWarning)
-                    check('fixed', index)
+            check('table', index)
+            check('fixed', index)
 
     @pytest.mark.skipif(not is_platform_little_endian(),
                         reason="reason platform is not little endian")
@@ -1066,9 +1056,6 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(result, expected)
 
     def test_latin_encoding(self):
-
-        if compat.PY2:
-            pytest.skip("[unicode] is not implemented as a table column")
 
         values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
                   [b'E\xc9, 17', b'a', b'b', b'c'],
@@ -1998,10 +1985,6 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             dtypes = [('date', datetime.date(2001, 1, 2))]
-
-            # py3 ok for unicode
-            if not compat.PY3:
-                dtypes.append(('unicode', u('\\u03c3')))
 
             # currently not supported dtypes ####
             for n, f in dtypes:
@@ -4405,14 +4388,8 @@ class TestHDFStore(Base):
         types_should_fail = [tm.makeIntIndex, tm.makeFloatIndex,
                              tm.makeDateIndex, tm.makeTimedeltaIndex,
                              tm.makePeriodIndex]
-        types_should_run = [tm.makeStringIndex, tm.makeCategoricalIndex]
-
-        if compat.PY3:
-            types_should_run.append(tm.makeUnicodeIndex)
-        else:
-            # TODO: Add back to types_should_fail
-            # https://github.com/pandas-dev/pandas/issues/20907
-            pass
+        types_should_run = [tm.makeStringIndex, tm.makeCategoricalIndex,
+                            tm.makeUnicodeIndex]
 
         for index in types_should_fail:
             df = DataFrame(np.random.randn(10, 2), columns=index(2))

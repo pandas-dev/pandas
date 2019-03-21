@@ -8,7 +8,7 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series, compat, date_range
+from pandas import DataFrame, Index, MultiIndex, Series, date_range
 from pandas.util import testing as tm
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
@@ -126,12 +126,11 @@ def check_whitelist(obj, df, m):
     assert n == m
 
     # qualname
-    if compat.PY3:
-        try:
-            n = f.__qualname__
-        except AttributeError:
-            return
-        assert n.endswith(m)
+    try:
+        n = f.__qualname__
+    except AttributeError:
+        return
+    assert n.endswith(m)
 
 
 def test_groupby_series_whitelist(df_letters, s_whitelist_fixture):

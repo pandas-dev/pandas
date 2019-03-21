@@ -8,7 +8,7 @@ import inspect
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_interval_dtype, is_object_dtype)
@@ -1342,14 +1342,12 @@ class TestDataFrameAlterAxes():
         with tm.assert_produces_warning(FutureWarning):
             df.rename({0: 10}, {"A": "B"})
 
-    @pytest.mark.skipif(PY2, reason="inspect.signature")
     def test_rename_signature(self):
         sig = inspect.signature(DataFrame.rename)
         parameters = set(sig.parameters)
         assert parameters == {"self", "mapper", "index", "columns", "axis",
                               "inplace", "copy", "level", "errors"}
 
-    @pytest.mark.skipif(PY2, reason="inspect.signature")
     def test_reindex_signature(self):
         sig = inspect.signature(DataFrame.reindex)
         parameters = set(sig.parameters)

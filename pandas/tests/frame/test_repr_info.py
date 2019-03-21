@@ -142,18 +142,11 @@ class TestDataFrameReprInfoEtc(TestData):
 
     def test_unicode_string_with_unicode(self):
         df = DataFrame({'A': [u("\u05d0")]})
-
-        if compat.PY3:
-            str(df)
-        else:
-            compat.text_type(df)
+        str(df)
 
     def test_bytestring_with_unicode(self):
         df = DataFrame({'A': [u("\u05d0")]})
-        if compat.PY3:
-            bytes(df)
-        else:
-            str(df)
+        bytes(df)
 
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),

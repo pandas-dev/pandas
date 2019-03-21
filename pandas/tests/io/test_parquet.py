@@ -7,7 +7,6 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -253,10 +252,9 @@ class TestBasic(Base):
         df.columns = [0, 1]
         self.check_error_on_write(df, engine, ValueError)
 
-        if PY3:
-            # bytes on PY3, on PY2 these are str
-            df.columns = [b'foo', b'bar']
-            self.check_error_on_write(df, engine, ValueError)
+        # bytes
+        df.columns = [b'foo', b'bar']
+        self.check_error_on_write(df, engine, ValueError)
 
         # python object
         df.columns = [datetime.datetime(2011, 1, 1, 0, 0),

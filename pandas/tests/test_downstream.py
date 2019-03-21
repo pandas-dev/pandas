@@ -9,7 +9,7 @@ import sys
 import numpy as np  # noqa
 import pytest
 
-from pandas.compat import PY2, PY36, is_platform_windows
+from pandas.compat import PY36
 
 from pandas import DataFrame
 from pandas.util import testing as tm
@@ -58,8 +58,6 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
-@pytest.mark.skipif(is_platform_windows() and PY2,
-                    reason="Broken on Windows / Py2")
 def test_oo_optimizable():
     # GH 21071
     subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])

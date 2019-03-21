@@ -75,9 +75,6 @@ def test_override_set_noconvert_columns():
 
 
 def test_bytes_io_input(all_parsers):
-    if compat.PY2:
-        pytest.skip("Bytes-related test does not need to work on Python 2.x")
-
     encoding = "cp1255"
     parser = all_parsers
 
@@ -111,9 +108,7 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
     codec = codecs.lookup("utf-8")
     utf8 = codecs.lookup('utf-8')
     parser = all_parsers
-
-    msg = ("'utf-8' codec can't decode byte" if compat.PY3
-           else "'utf8' codec can't decode byte")
+    msg = "'utf-8' codec can't decode byte"
 
     # Stream must be binary UTF8.
     with open(path, "rb") as handle, codecs.StreamRecoder(
@@ -124,7 +119,6 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
             parser.read_csv(stream)
 
 
-@pytest.mark.skipif(compat.PY2, reason="PY3-only test")
 def test_read_csv_local(all_parsers, csv1):
     prefix = u("file:///") if compat.is_platform_windows() else u("file://")
     parser = all_parsers
@@ -957,16 +951,14 @@ A,B,C
     utf8 = "utf-8"
 
     with tm.ensure_clean(path) as path:
+        from io import TextIOWrapper
         bytes_data = data.encode(encoding)
 
         with open(path, "wb") as f:
             f.write(bytes_data)
 
         bytes_buffer = BytesIO(data.encode(utf8))
-
-        if compat.PY3:
-            from io import TextIOWrapper
-            bytes_buffer = TextIOWrapper(bytes_buffer, encoding=utf8)
+        bytes_buffer = TextIOWrapper(bytes_buffer, encoding=utf8)
 
         result = parser.read_csv(path, encoding=encoding, **kwargs)
         expected = parser.read_csv(bytes_buffer, encoding=utf8, **kwargs)
@@ -975,16 +967,10 @@ A,B,C
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("buffer", [
-    False,
-    pytest.param(True, marks=pytest.mark.skipif(
-        compat.PY3, reason="Not supported on PY3"))])
-def test_utf16_example(all_parsers, csv_dir_path, buffer):
+def test_utf16_example(all_parsers, csv_dir_path):
     path = os.path.join(csv_dir_path, "utf16_ex.txt")
     parser = all_parsers
-
-    src = BytesIO(open(path, "rb").read()) if buffer else path
-    result = parser.read_csv(src, encoding="utf-16", sep="\t")
+    result = parser.read_csv(path, encoding="utf-16", sep="\t")
     assert len(result) == 50
 
 
@@ -1565,22 +1551,17 @@ def test_iteration_open_handle(all_parsers):
     kwargs = dict(squeeze=True, header=None)
 
     with tm.ensure_clean() as path:
-        with open(path, "wb" if compat.PY2 else "w") as f:
+        with open(path, "w") as f:
             f.write("AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG")
 
-        with open(path, "rb" if compat.PY2 else "r") as f:
+        with open(path, "r") as f:
             for line in f:
                 if "CCC" in line:
                     break
 
-            if parser.engine == "c" and compat.PY2:
-                msg = "Mixing iteration and read methods would lose data"
-                with pytest.raises(ValueError, match=msg):
-                    parser.read_csv(f, **kwargs)
-            else:
-                result = parser.read_csv(f, **kwargs)
-                expected = Series(["DDD", "EEE", "FFF", "GGG"], name=0)
-                tm.assert_series_equal(result, expected)
+            result = parser.read_csv(f, **kwargs)
+            expected = Series(["DDD", "EEE", "FFF", "GGG"], name=0)
+            tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("data,thousands,decimal", [

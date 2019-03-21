@@ -726,7 +726,7 @@ class TestDataFrameOperators(object):
                                     'xor'])
     def test_inplace_ops_identity2(self, op):
 
-        if compat.PY3 and op == 'div':
+        if op == 'div':
             return
 
         df = DataFrame({'a': [1., 2., 3.],

@@ -5,7 +5,7 @@ from warnings import catch_warnings, filterwarnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, StringIO, lrange
+from pandas.compat import StringIO, lrange
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
@@ -146,8 +146,6 @@ class TestLoc(Base):
                           [Timestamp('20130102'), Timestamp('20130103')],
                           typs=['ts'], axes=0)
 
-    @pytest.mark.skipif(PY2, reason=("Catching warnings unreliable with "
-                                     "Python 2 (GH #20770)"))
     def test_loc_getitem_label_list_with_missing(self):
         self.check_result('list lbl', 'loc', [0, 1, 2], 'indexer', [0, 1, 2],
                           typs=['empty'], fails=KeyError)

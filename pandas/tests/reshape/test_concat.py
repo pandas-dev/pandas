@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import PY2, Iterable, StringIO, iteritems
+from pandas.compat import Iterable, StringIO, iteritems
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -2303,13 +2303,7 @@ bar2,12,13,14,15
                 for i in range(100)]
 
         result = pd.concat(dfs, sort=True).columns
-
-        if PY2:
-            # Different sort order between incomparable objects between
-            # python 2 and python3 via Index.union.
-            expected = dfs[1].columns
-        else:
-            expected = dfs[0].columns
+        expected = dfs[0].columns
         tm.assert_index_equal(result, expected)
 
     def test_concat_datetime_timezone(self):
@@ -2359,7 +2353,6 @@ bar2,12,13,14,15
                                 index=idx1.append(idx1))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(PY2, reason="Unhashable Decimal dtype")
     def test_concat_different_extension_dtypes_upcasts(self):
         a = pd.Series(pd.core.arrays.integer_array([1, 2]))
         b = pd.Series(to_decimal([1, 2]))

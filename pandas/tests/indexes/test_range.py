@@ -5,7 +5,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, range, u
+from pandas.compat import range, u
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex, Series
@@ -180,10 +180,7 @@ class TestRangeIndex(Numeric):
     def test_repr(self):
         i = RangeIndex(5, name='Foo')
         result = repr(i)
-        if PY3:
-            expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
-        else:
-            expected = "RangeIndex(start=0, stop=5, step=1, name=u'Foo')"
+        expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
         assert result == expected
 
         result = eval(result)

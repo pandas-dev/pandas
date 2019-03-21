@@ -3,8 +3,6 @@ import warnings
 
 import pytest
 
-from pandas.compat import PY2
-
 import pandas as pd
 from pandas.core.config import OptionError
 
@@ -209,7 +207,6 @@ class TestConfig(object):
         assert self.cf.get_option('b.c') is None
         assert self.cf.get_option('b.b') == 10.0
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_validation(self):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
         self.cf.register_option('b.c', 'hullo', 'doc2',

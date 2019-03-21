@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import PY2, product
+from pandas.compat import product
 
 import pandas as pd
 from pandas import (
@@ -836,7 +836,6 @@ class TestDataFrameTimeSeriesMethods(TestData):
                                  'new': [1e9, None]}, dtype='datetime64[ns]')
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_frame_to_period(self):
         K = 5
 

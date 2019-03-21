@@ -10,7 +10,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY2, range
+from pandas.compat import range
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -654,7 +654,6 @@ class TestSeriesMissingData():
         #     expected = (datetime_series >= -0.5) & (datetime_series <= 0.5)
         #     assert_series_equal(selector, expected)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_dropna_empty(self):
         s = Series([])
         assert len(s.dropna()) == 0

@@ -7,7 +7,7 @@ import pytest
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, NaT, Period, PeriodIndex,
-    RangeIndex, Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna,
+    RangeIndex, Series, Timedelta, TimedeltaIndex, Timestamp, isna,
     timedelta_range, to_timedelta)
 from pandas.core import nanops
 import pandas.util.testing as tm
@@ -1146,7 +1146,6 @@ class TestSeriesMode(object):
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)
 
-    @pytest.mark.skipif(not compat.PY3, reason="only PY3")
     def test_mode_sortwarning(self):
         # Check for the warning that is raised when the mode
         # results cannot be sorted

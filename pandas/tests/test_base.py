@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-import pandas.compat as compat
 from pandas.compat import PYPY, StringIO, long
 from pandas.compat.numpy import np_array_datetime64_compat
 
@@ -35,8 +34,6 @@ class CheckStringMixin(object):
         repr(self.container)
         str(self.container)
         bytes(self.container)
-        if not compat.PY3:
-            unicode(self.container)  # noqa
 
     def test_tricky_container(self):
         if not hasattr(self, 'unicode_container'):
@@ -44,8 +41,6 @@ class CheckStringMixin(object):
         repr(self.unicode_container)
         str(self.unicode_container)
         bytes(self.unicode_container)
-        if not compat.PY3:
-            unicode(self.unicode_container)  # noqa
 
 
 class CheckImmutable(object):

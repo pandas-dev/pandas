@@ -540,10 +540,7 @@ class TestPandasContainer(object):
 
             def __init__(self, hexed):
                 self.hexed = hexed
-                if compat.PY2:
-                    self.binary = hexed.decode('hex')
-                else:
-                    self.binary = bytes.fromhex(hexed)
+                self.binary = bytes.fromhex(hexed)
 
             def __str__(self):
                 return self.hexed
@@ -1152,9 +1149,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert_frame_equal(pd.read_json(result, lines=True), df)
 
     def test_latin_encoding(self):
-        if compat.PY2:
-            pytest.skip("[unicode] is not implemented as a table column")
-
         # GH 13774
         pytest.skip("encoding not implemented in .to_json(), "
                     "xref #13774")

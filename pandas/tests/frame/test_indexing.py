@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY2, long, lrange, lzip, map, range, zip
+from pandas.compat import long, lrange, lzip, map, range, zip
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -270,7 +270,7 @@ class TestDataFrameIndexing(TestData):
         # test df[df > 0]
         for df in [self.tsframe, self.mixed_frame,
                    self.mixed_float, self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 continue
 
             data = df._get_numeric_data()
@@ -869,7 +869,6 @@ class TestDataFrameIndexing(TestData):
         df.iloc[:8:2] = np.nan
         assert isna(df.iloc[:8:2]).values.all()
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_getitem_setitem_integer_slice_keyerrors(self):
         df = DataFrame(np.random.randn(10, 5), index=lrange(0, 20, 2))
 
@@ -1084,7 +1083,6 @@ class TestDataFrameIndexing(TestData):
             expected = df[3]
         assert_series_equal(result, expected)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_fancy_index_int_labels_exceptions(self):
         df = DataFrame(np.random.randn(10, 5), index=np.arange(0, 20, 2))
 
@@ -1516,7 +1514,6 @@ class TestDataFrameIndexing(TestData):
         expected.loc[[0, 2], [1]] = 5
         assert_frame_equal(df, expected)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_getitem_setitem_float_labels(self):
         index = Index([1.5, 2, 3, 4, 5])
         df = DataFrame(np.random.randn(5, 5), index=index)
@@ -1835,7 +1832,6 @@ class TestDataFrameIndexing(TestData):
                     self.frame.set_value(idx, col, 1)
                 assert self.frame[col][idx] == 1
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_set_value_resize(self):
 
         with tm.assert_produces_warning(FutureWarning,
@@ -2627,7 +2623,7 @@ class TestDataFrameIndexing(TestData):
         # check getting
         for df in [default_frame, self.mixed_frame,
                    self.mixed_float, self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 with pytest.raises(TypeError):
                     df > 0
                 continue
@@ -2678,7 +2674,7 @@ class TestDataFrameIndexing(TestData):
                 assert (rs.dtypes == df.dtypes).all()
 
         for df in [self.mixed_frame, self.mixed_float, self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 with pytest.raises(TypeError):
                     df > 0
                 continue
@@ -2733,7 +2729,7 @@ class TestDataFrameIndexing(TestData):
 
         for df in [default_frame, self.mixed_frame, self.mixed_float,
                    self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 with pytest.raises(TypeError):
                     df > 0
                 continue

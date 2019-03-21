@@ -11,7 +11,6 @@ import csv
 
 import pytest
 
-import pandas.compat as compat
 from pandas.compat import BytesIO, StringIO, u
 from pandas.errors import ParserError
 
@@ -82,12 +81,10 @@ baz|7|8|9
 """
 
     if encoding is not None:
+        from io import TextIOWrapper
         data = u(data).encode(encoding)
         data = BytesIO(data)
-
-        if compat.PY3:
-            from io import TextIOWrapper
-            data = TextIOWrapper(data, encoding=encoding)
+        data = TextIOWrapper(data, encoding=encoding)
     else:
         data = StringIO(data)
 

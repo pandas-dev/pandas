@@ -11,8 +11,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import (
-    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip)
+from pandas.compat import PY36, StringIO, lrange, lzip, range, u, zip
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
@@ -1480,13 +1479,8 @@ class TestIndex(Base):
             # Messages vary across versions
             if PY36:
                 msg = 'not supported between'
-            elif PY35:
-                msg = 'unorderable types'
             else:
-                if method == 'nearest':
-                    msg = 'unsupported operand'
-                else:
-                    msg = 'requires scalar valued input'
+                msg = 'unorderable types'
         else:
             msg = 'invalid key'
 
@@ -2067,7 +2061,6 @@ class TestIndex(Base):
         index = pd.Index(['01:02:03', '01:02:04'], name='label')
         assert index.name == dt_conv(index).name
 
-    @pytest.mark.skipif(not PY3, reason="compat test")
     @pytest.mark.parametrize("index,expected", [
         # ASCII
         # short
@@ -2113,53 +2106,6 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         result = repr(index)
         assert result == expected
 
-    @pytest.mark.skipif(PY3, reason="compat test")
-    @pytest.mark.parametrize("index,expected", [
-        # ASCII
-        # short
-        (pd.Index(['a', 'bb', 'ccc']),
-         u"""Index([u'a', u'bb', u'ccc'], dtype='object')"""),
-        # multiple lines
-        (pd.Index(['a', 'bb', 'ccc'] * 10),
-         u"""\
-Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
-       u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',
-       u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
-      dtype='object')"""),
-        # truncated
-        (pd.Index(['a', 'bb', 'ccc'] * 100),
-         u"""\
-Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
-       ...
-       u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
-      dtype='object', length=300)"""),
-
-        # Non-ASCII
-        # short
-        (pd.Index([u'あ', u'いい', u'ううう']),
-         u"""Index([u'あ', u'いい', u'ううう'], dtype='object')"""),
-        # multiple lines
-        (pd.Index([u'あ', u'いい', u'ううう'] * 10),
-         (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
-          u"u'ううう', u'あ', u'いい', u'ううう', u'あ',\n"
-          u"       u'いい', u'ううう', u'あ', u'いい', u'ううう', "
-          u"u'あ', u'いい', u'ううう', u'あ', u'いい',\n"
-          u"       u'ううう', u'あ', u'いい', u'ううう', u'あ', "
-          u"u'いい', u'ううう', u'あ', u'いい', u'ううう'],\n"
-          u"      dtype='object')")),
-        # truncated
-        (pd.Index([u'あ', u'いい', u'ううう'] * 100),
-         (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
-          u"u'ううう', u'あ', u'いい', u'ううう', u'あ',\n"
-          u"       ...\n"
-          u"       u'ううう', u'あ', u'いい', u'ううう', u'あ', "
-          u"u'いい', u'ううう', u'あ', u'いい', u'ううう'],\n"
-          u"      dtype='object', length=300)"))])
-    def test_string_index_repr_compat(self, index, expected):
-        result = unicode(index)  # noqa
-        assert result == expected
-
-    @pytest.mark.skipif(not PY3, reason="compat test")
     @pytest.mark.parametrize("index,expected", [
         # short
         (pd.Index([u'あ', u'いい', u'ううう']),
@@ -2189,40 +2135,6 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
         # Enable Unicode option -----------------------------------------
         with cf.option_context('display.unicode.east_asian_width', True):
             result = repr(index)
-            assert result == expected
-
-    @pytest.mark.skipif(PY3, reason="compat test")
-    @pytest.mark.parametrize("index,expected", [
-        # short
-        (pd.Index([u'あ', u'いい', u'ううう']),
-         (u"Index([u'あ', u'いい', u'ううう'], "
-          u"dtype='object')")),
-        # multiple lines
-        (pd.Index([u'あ', u'いい', u'ううう'] * 10),
-         (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
-          u"u'ううう', u'あ', u'いい',\n"
-          u"       u'ううう', u'あ', u'いい', u'ううう', "
-          u"u'あ', u'いい', u'ううう', u'あ',\n"
-          u"       u'いい', u'ううう', u'あ', u'いい', "
-          u"u'ううう', u'あ', u'いい',\n"
-          u"       u'ううう', u'あ', u'いい', u'ううう', "
-          u"u'あ', u'いい', u'ううう'],\n"
-          u"      dtype='object')")),
-        # truncated
-        (pd.Index([u'あ', u'いい', u'ううう'] * 100),
-         (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
-          u"u'ううう', u'あ', u'いい',\n"
-          u"       u'ううう', u'あ',\n"
-          u"       ...\n"
-          u"       u'ううう', u'あ', u'いい', u'ううう', "
-          u"u'あ', u'いい', u'ううう', u'あ',\n"
-          u"       u'いい', u'ううう'],\n"
-          u"      dtype='object', length=300)"))])
-    def test_string_index_repr_with_unicode_option_compat(self, index,
-                                                          expected):
-        # Enable Unicode option -----------------------------------------
-        with cf.option_context('display.unicode.east_asian_width', True):
-            result = unicode(index)  # noqa
             assert result == expected
 
     def test_cached_properties_not_settable(self):
@@ -2265,27 +2177,19 @@ class TestMixedIntIndex(Base):
         index = self.create_index()
         if PY36:
             with pytest.raises(TypeError, match="'>|<' not supported"):
-                result = index.argsort()
-        elif PY3:
-            with pytest.raises(TypeError, match="unorderable types"):
-                result = index.argsort()
+                index.argsort()
         else:
-            result = index.argsort()
-            expected = np.array(index).argsort()
-            tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+            with pytest.raises(TypeError, match="unorderable types"):
+                index.argsort()
 
     def test_numpy_argsort(self):
         index = self.create_index()
         if PY36:
             with pytest.raises(TypeError, match="'>|<' not supported"):
-                result = np.argsort(index)
-        elif PY3:
-            with pytest.raises(TypeError, match="unorderable types"):
-                result = np.argsort(index)
+                np.argsort(index)
         else:
-            result = np.argsort(index)
-            expected = index.argsort()
-            tm.assert_numpy_array_equal(result, expected)
+            with pytest.raises(TypeError, match="unorderable types"):
+                np.argsort(index)
 
     def test_copy_name(self):
         # Check that "name" argument passed at initialization is honoured
@@ -2489,17 +2393,10 @@ class TestMixedIntIndex(Base):
                            "c": [7, 8, 9]})
         repr(df.columns)  # should not raise UnicodeDecodeError
 
-    @pytest.mark.parametrize("func,compat_func", [
-        (str, text_type),  # unicode string
-        (bytes, str)  # byte string
-    ])
-    def test_with_unicode(self, func, compat_func):
+    @pytest.mark.parametrize("func", [str, bytes])
+    def test_with_unicode(self, func):
         index = Index(lrange(1000))
-
-        if PY3:
-            func(index)
-        else:
-            compat_func(index)
+        func(index)
 
     def test_intersect_str_dates(self):
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]

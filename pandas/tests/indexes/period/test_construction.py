@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.compat import PY3, lmap, lrange, text_type
+from pandas.compat import lmap, lrange, text_type
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -513,11 +513,7 @@ class TestPeriodIndex(object):
     def test_map_with_string_constructor(self):
         raw = [2005, 2007, 2009]
         index = PeriodIndex(raw, freq='A')
-        types = str,
-
-        if PY3:
-            # unicode
-            types += text_type,
+        types = [str, text_type]
 
         for t in types:
             expected = Index(lmap(t, raw))
