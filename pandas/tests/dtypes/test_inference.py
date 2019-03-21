@@ -25,7 +25,7 @@ from pandas.core.dtypes.common import (
     ensure_categorical, ensure_int32, is_bool, is_datetime64_any_dtype,
     is_datetime64_dtype, is_datetime64_ns_dtype, is_datetime64tz_dtype,
     is_float, is_integer, is_number, is_scalar, is_scipy_sparse,
-    is_timedelta64_dtype, is_timedelta64_ns_dtype)
+    is_set_like, is_timedelta64_dtype, is_timedelta64_ns_dtype)
 
 import pandas as pd
 from pandas import (
@@ -101,6 +101,23 @@ def test_is_list_like_disallow_sets(maybe_list_like):
     obj, expected = maybe_list_like
     expected = False if expected == 'set' else expected
     assert inference.is_list_like(obj, allow_sets=False) == expected
+
+
+@pytest.mark.parametrize('obj,expected', [
+    ({1, 2}, True),
+    (set([1, 2]), True),
+    (set(), True),
+    (set, False),
+    ([1, 2], False),
+    ({1: 2}, False),
+    (frozenset([1, 2]), True),
+    (frozenset(), True),
+    (frozenset, False),
+    ((1, 2), False),
+    ([], False),
+])
+def test_is_set_like(obj, expected):
+    assert is_set_like(obj) == expected
 
 
 def test_is_sequence():

@@ -21,9 +21,9 @@ from pandas.core.dtypes.common import (
     is_complex_dtype, is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_datetimelike, is_extension_array_dtype, is_float_dtype, is_integer,
     is_integer_dtype, is_interval_dtype, is_list_like, is_numeric_dtype,
-    is_object_dtype, is_period_dtype, is_scalar, is_signed_integer_dtype,
-    is_sparse, is_timedelta64_dtype, is_unsigned_integer_dtype,
-    needs_i8_conversion)
+    is_object_dtype, is_period_dtype, is_scalar, is_set_like,
+    is_signed_integer_dtype, is_sparse, is_timedelta64_dtype,
+    is_unsigned_integer_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
@@ -397,7 +397,7 @@ def isin(comps, values):
 
     # GH 25507
     # if `values` is a set, directly use it instead of hashing a list
-    if isinstance(values, set):
+    if is_set_like(values):
         result = np.empty_like(comps, dtype=np.bool)
         for i, comp in enumerate(comps):
             result[i] = comp in values

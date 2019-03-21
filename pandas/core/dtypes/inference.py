@@ -301,6 +301,36 @@ def is_list_like(obj, allow_sets=True):
             and not (allow_sets is False and isinstance(obj, Set)))
 
 
+def is_set_like(obj):
+    """
+    Check if the object is set-like.
+
+    Parameters
+    ----------
+    obj : The object to check
+
+    Returns
+    -------
+    is_set_like : bool
+        Whether `obj` has set-like properties.
+
+    Examples
+    --------
+    >>> is_set_like({1, 2})
+    True
+    >>> is_set_like(frozenset([1, 2]))
+    True
+    >>> is_set_like(set())
+    True
+    >>> is_set_like(set)
+    False
+    >>> is_set_like({1: 2, 3: 4})
+    False
+    """
+
+    return isinstance(obj, (set, frozenset))
+
+
 def is_array_like(obj):
     """
     Check if the object is array-like.
