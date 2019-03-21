@@ -29,9 +29,13 @@ class IsIn(object):
     def setup(self, dtype):
         self.s = Series(np.random.randint(1, 10, 100000)).astype(dtype)
         self.values = [1, 2]
+        self.values_set = set(self.values)
 
     def time_isin(self, dtypes):
         self.s.isin(self.values)
+
+    def time_isin_set(self, dtypes):
+        self.s.isin(self.values_set)
 
 
 class IsInFloat64(object):

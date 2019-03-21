@@ -395,6 +395,14 @@ def isin(comps, values):
                         " to isin(), you passed a [{values_type}]"
                         .format(values_type=type(values).__name__))
 
+    # GH 25507
+    # if `values` is a set, directly use it instead of hashing a list
+    if isinstance(values, set):
+        result = np.empty_like(comps, dtype=np.bool)
+        for i, comp in enumerate(comps):
+            result[i] = comp in values
+        return result
+
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
 
