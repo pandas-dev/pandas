@@ -6,7 +6,7 @@ from copy import copy, deepcopy
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, PY3, range, zip
+from pandas.compat import range, zip
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -482,8 +482,7 @@ class Generic(object):
         for func in ['sum', 'cumsum', 'any', 'var']:
             f = getattr(obj, func)
             assert f.__name__ == func
-            if PY3:
-                assert f.__qualname__.endswith(func)
+            assert f.__qualname__.endswith(func)
 
     def test_stat_non_defaults_args(self):
         obj = self._construct(5)
@@ -693,7 +692,6 @@ class TestNDFrame(object):
         with pytest.raises(ValueError):
             df.sample(1, weights=s4)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_squeeze(self):
         # noop
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
