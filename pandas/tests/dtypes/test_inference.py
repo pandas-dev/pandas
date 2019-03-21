@@ -30,7 +30,7 @@ from pandas.core.dtypes.common import (
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Period,
-    Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna)
+    Series, Timedelta, TimedeltaIndex, Timestamp, isna)
 from pandas.util import testing as tm
 
 

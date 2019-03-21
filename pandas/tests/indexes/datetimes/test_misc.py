@@ -7,7 +7,7 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    DatetimeIndex, Index, Timestamp, compat, date_range, datetime, offsets)
+    DatetimeIndex, Index, Timestamp, date_range, datetime, offsets)
 import pandas.util.testing as tm
 
 

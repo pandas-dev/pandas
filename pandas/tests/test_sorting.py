@@ -1,7 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
 from itertools import product
-import warnings
 
 import numpy as np
 from numpy import nan

@@ -8,8 +8,8 @@ import re
 import pytest
 
 from pandas.compat import (
-    builtins, filter, get_range_parameters, iteritems, iterkeys,
-    itervalues, lfilter, lmap, lrange, lzip, map, next, range, re_type, zip)
+    builtins, filter, get_range_parameters, iteritems, iterkeys, itervalues,
+    lfilter, lmap, lrange, lzip, map, next, range, re_type, zip)
 
 
 class TestBuiltinIterators(object):
