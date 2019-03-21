@@ -678,11 +678,7 @@ cdef class TextReader:
 
         if isinstance(source, basestring):
             if not isinstance(source, bytes):
-                if compat.PY36 and compat.is_platform_windows():
-                    # see gh-15086.
-                    encoding = "mbcs"
-                else:
-                    encoding = sys.getfilesystemencoding() or "utf-8"
+                encoding = sys.getfilesystemencoding() or "utf-8"
 
                 source = source.encode(encoding)
 
@@ -948,7 +944,7 @@ cdef class TextReader:
             status = tokenize_nrows(self.parser, nrows)
 
         if self.parser.warn_msg != NULL:
-            print >> sys.stderr, self.parser.warn_msg
+            print(self.parser.warn_msg, file=sys.stderr)
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
 
@@ -976,7 +972,7 @@ cdef class TextReader:
                 status = tokenize_all_rows(self.parser)
 
             if self.parser.warn_msg != NULL:
-                print >> sys.stderr, self.parser.warn_msg
+                print(self.parser.warn_msg, file=sys.stderr)
                 free(self.parser.warn_msg)
                 self.parser.warn_msg = NULL
 

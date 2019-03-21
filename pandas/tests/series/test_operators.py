@@ -741,6 +741,21 @@ class TestSeriesOperators(TestData):
         expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
         assert_series_equal(result, expected)
 
+    def test_divmod(self):
+        # GH25557
+        a = Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+        b = Series([2, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+
+        result = a.divmod(b)
+        expected = divmod(a, b)
+        assert_series_equal(result[0], expected[0])
+        assert_series_equal(result[1], expected[1])
+
+        result = a.rdivmod(b)
+        expected = divmod(b, a)
+        assert_series_equal(result[0], expected[0])
+        assert_series_equal(result[1], expected[1])
+
 
 class TestSeriesUnaryOps(object):
     # __neg__, __pos__, __inv__

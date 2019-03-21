@@ -9,7 +9,7 @@ from pandas.util import testing as tm
 
 
 def test_apply_issues():
-        # GH 5788
+    # GH 5788
 
     s = """2011.05.16,00:00,1.40893
 2011.05.16,01:00,1.40760
