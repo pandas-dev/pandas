@@ -2318,13 +2318,15 @@ cdef inline void convert_and_set_item(object item, Py_ssize_t index,
                                       bint keep_trivial_numbers):
     cdef:
         bint do_convert = 1
+        double double_item
 
     if keep_trivial_numbers:
         if isinstance(item, int) and Py_SIZE(item) < 2:
             if <int>item == 0:
                 do_convert = 0
         elif isinstance(item, float):
-            if <double>item == 0.0:
+            double_item = item
+            if double_item == 0.0 or double_item != double_item:
                 do_convert = 0
 
     if do_convert and not isinstance(item, (str, bytes)):
