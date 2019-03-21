@@ -8,7 +8,7 @@ import re
 import pytest
 
 from pandas.compat import (
-    PY2, builtins, filter, get_range_parameters, iteritems, iterkeys,
+    builtins, filter, get_range_parameters, iteritems, iterkeys,
     itervalues, lfilter, lmap, lrange, lzip, map, next, range, re_type, zip)
 
 
@@ -81,12 +81,7 @@ class TestCompatFunctions(object):
         'start,stop,step', [(0, 10, 2), (11, -2, -1), (0, -5, 1), (2, 4, 8)])
     def test_get_range_parameters(self, start, stop, step):
         rng = range(start, stop, step)
-        if PY2 and len(rng) == 0:
-            start_expected, stop_expected, step_expected = 0, 0, 1
-        elif PY2 and len(rng) == 1:
-            start_expected, stop_expected, step_expected = start, start + 1, 1
-        else:
-            start_expected, stop_expected, step_expected = start, stop, step
+        start_expected, stop_expected, step_expected = start, stop, step
 
         start_result, stop_result, step_result = get_range_parameters(rng)
         assert start_result == start_expected

@@ -9,7 +9,7 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, long, lrange, range
+from pandas.compat import long, lrange, range
 
 import pandas as pd
 from pandas import (
@@ -360,7 +360,6 @@ class SharedWithSparse(object):
         for col, s in compat.iteritems(mixed_T):
             assert s.dtype == np.object_
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_swapaxes(self):
         df = self.klass(np.random.randn(10, 5))
         self._assert_frame_equal(df.T, df.swapaxes(0, 1))

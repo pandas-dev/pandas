@@ -5,7 +5,6 @@ import pytest
 
 from pandas._libs.tslib import iNaT
 import pandas.compat as compat
-from pandas.compat import PY3
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -133,8 +132,7 @@ class Base(object):
         with pytest.raises(TypeError, match="cannot perform __rmul__"):
             1 * idx
 
-        div_err = ("cannot perform __truediv__" if PY3
-                   else "cannot perform __div__")
+        div_err = "cannot perform __truediv__"
         with pytest.raises(TypeError, match=div_err):
             idx / 1
 

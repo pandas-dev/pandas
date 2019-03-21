@@ -542,10 +542,7 @@ class TestFloatIndexers(object):
                       slice(2.0, 4),
                       slice(2.0, 4.0)]:
 
-                if compat.PY2:
-                    klass = Int64Index
-                else:
-                    klass = RangeIndex
+                klass = RangeIndex
                 msg = ("cannot do slice indexing"
                        r" on {klass} with these indexers \[(2|4)\.0\] of"
                        " {kind}"

@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import rand, randn
 import pytest
 
-from pandas.compat import PY3, lmap, lrange, lzip, range, u, zip
+from pandas.compat import lmap, lrange, lzip, range, u, zip
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -1432,17 +1432,6 @@ class TestDataFramePlots(TestPlotBase):
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(),
                                     np.arange(1, len(numeric_cols) + 1))
         assert len(ax.lines) == self.bp_n_objects * len(numeric_cols)
-
-        # different warning on py3
-        if not PY3:
-            with tm.assert_produces_warning(UserWarning):
-                axes = _check_plot_works(df.plot.box, subplots=True, logy=True)
-
-            self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
-            self._check_ax_scales(axes, yaxis='log')
-            for ax, label in zip(axes, labels):
-                self._check_text_labels(ax.get_xticklabels(), [label])
-                assert len(ax.lines) == self.bp_n_objects
 
         axes = series.plot.box(rot=40)
         self._check_ticks_props(axes, xrot=40, yrot=0)

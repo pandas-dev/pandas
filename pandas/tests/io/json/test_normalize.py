@@ -3,7 +3,7 @@ import json
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, compat
+from pandas import DataFrame, Index
 import pandas.util.testing as tm
 
 from pandas.io.json import json_normalize
@@ -261,14 +261,10 @@ class TestJSONNormalize(object):
         tm.assert_frame_equal(result, expected)
 
     def test_non_ascii_key(self):
-        if compat.PY3:
-            testjson = (
-                b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' +
-                b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
-            ).decode('utf8')
-        else:
-            testjson = ('[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},'
-                        '{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]')
+        testjson = (
+            b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' +
+            b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
+        ).decode('utf8')
 
         testdata = {
             u'sub.A': [1, 3],
