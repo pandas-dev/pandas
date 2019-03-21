@@ -9,13 +9,17 @@ from pandas import Series
 from pandas.util import testing as tm
 
 
-def test_upcast_error():
+@pytest.mark.parametrize("result", [
+    Series([10, 11, 12]),
+    [10, 11, 12],
+    (10, 11, 12)
+])
+def test_upcast_error(result):
     # GH23823
-    ser = Series([10, 11, 12])
     mask = np.array([False, True, False])
     other = np.array([61, 62, 63])
     with pytest.raises(ValueError):
-        result, _ = maybe_upcast_putmask(ser, mask, other)
+        result, _ = maybe_upcast_putmask(result, mask, other)
 
 
 @pytest.mark.parametrize("arr, other, exp_changed, expected", [
