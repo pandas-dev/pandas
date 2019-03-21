@@ -22,6 +22,9 @@ COMPATIBLE_INCONSISTENT_PAIRS = {
 @pytest.fixture(params=list(it.combinations(indices_list, 2)),
                 ids=lambda x: type(x[0]).__name__ + type(x[1]).__name__)
 def index_pair(request):
+    '''
+    Create all combinations of 2 index types.
+    '''
     return request.param
 
 
