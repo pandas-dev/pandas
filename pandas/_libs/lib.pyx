@@ -19,7 +19,7 @@ PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_GETITEM,
+from numpy cimport (ndarray, PyArray_GETITEM, PyArray_Check,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
                     int64_t, float32_t, float64_t,
@@ -2335,26 +2335,29 @@ cdef inline void convert_and_set_item(object item, Py_ssize_t index,
     result[index] = item
 
 
-cdef inline void put_object_as_unicode(object[:] lst, Py_ssize_t idx,
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline void put_object_as_unicode(list lst, Py_ssize_t idx,
                                        object item):
     if not isinstance(item, str):
         item = PyObject_Str(item)
     lst[idx] = item
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef object _concat_date_cols(object date_cols,
                                object keep_trivial_numbers=False):
     cdef:
         bint keep_numbers
         Py_ssize_t sequence_size, i, j
         Py_ssize_t array_size, min_size
-        object result
-        object separator = " "
-        object list_to_join, result_string
-        object[:] list_view
         object[:] result_view
-        object[:] iterator
-        object[::] arrays
+        object[:,:] arrays_view
+
+        object[:] obj_iter
+        int64_t[:] int_iter
+        float64_t[:] double_iter
 
     keep_numbers = keep_trivial_numbers
     sequence_size = len(date_cols)
@@ -2362,26 +2365,54 @@ cpdef object _concat_date_cols(object date_cols,
     if sequence_size == 0:
         result = np.zeros(0, dtype=object)
     elif sequence_size == 1:
-        iterator = date_cols[0]
-        array_size = len(iterator)
+        array = date_cols[0]
+        array_size = len(array)
         result = np.zeros(array_size, dtype=object)
         result_view = result
-        for i in range(array_size):
-            convert_and_set_item(iterator[i], i, result_view, keep_numbers)
+        if PyArray_Check(array):
+            if array.dtype == np.int64:
+                int_iter = array
+                for i in range(array_size):
+                    convert_and_set_item(int_iter[i], i,
+                                         result_view, keep_numbers)
+            elif array.dtype == np.float64:
+                double_iter = array
+                for i in range(array_size):
+                    convert_and_set_item(double_iter[i], i,
+                                         result_view, keep_numbers)
+            else:
+                if array.dtype == object:
+                    obj_iter = array
+                else:
+                    obj_array = np.astype(object)
+                    obj_iter = obj_array
+                for i in range(array_size):
+                    convert_and_set_item(obj_iter[i], i, result_view, keep_numbers)
+        else:
+            for i, item in enumerate(array):
+                convert_and_set_item(item, i, result_view, keep_numbers)
     else:
-        arrays = date_cols
-
         min_size = min([len(arr) for arr in date_cols])
+
+        arrays = np.zeros((len(date_cols), min_size), dtype=object)
+        for idx, array in enumerate(date_cols):
+            if PyArray_Check(array):
+                if array.dtype == object:
+                    arrays[idx] = array
+                else:
+                    arrays[idx] = array.astype(object)
+            else:
+                arrays[idx] = np.array(array, dtype=object)
+        arrays_view = arrays
+
         result = np.zeros(min_size, dtype=object)
         result_view = result
 
-        list_to_join = PyList_New(sequence_size)
-        list_view = list_to_join
+        list_to_join = [None] * sequence_size
 
         for i in range(min_size):
             for j in range(sequence_size):
-                put_object_as_unicode(list_view, j, arrays[j][i])
-            result_string = PyUnicode_Join(separator, list_to_join)
-            result_view[i] = result_string
+                put_object_as_unicode(list_to_join, j, arrays_view[j, i])
+            result_view[i] = PyUnicode_Join(' ', list_to_join)
 
     return result
