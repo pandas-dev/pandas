@@ -1,7 +1,7 @@
 import numpy as np
 import pandas.util.testing as tm
 from pandas import (Series, date_range, DatetimeIndex, Index, RangeIndex,
-                    Float64Index)
+                    Float64Index, IntervalIndex)
 
 
 class SetOperations(object):
@@ -179,6 +179,18 @@ class Float64IndexMethod(object):
 
     def time_get_loc(self):
         self.ind.get_loc(0)
+
+
+class IntervalIndexMethod(object):
+    # GH 24813
+    def setup(self):
+        N = 10**5
+        left = np.append(np.arange(N), np.array(0))
+        right = np.append(np.arange(1, N + 1), np.array(1))
+        self.intv = IntervalIndex.from_arrays(left, right)
+
+    def time_is_unique(self):
+        self.intv.is_unique
 
 
 from .pandas_vb_common import setup  # noqa: F401
