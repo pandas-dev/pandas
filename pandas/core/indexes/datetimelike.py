@@ -56,7 +56,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
-    _data: DatetimeLikeArrayMixin = None
+    _data = None  # type: DatetimeLikeArrayMixin
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
