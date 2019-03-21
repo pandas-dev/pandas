@@ -357,6 +357,13 @@ class TestDataFrameConcatCommon():
 
         assert_frame_equal(df, expected)
 
+    def test_update_datetime_tz(self):
+        # GH 25807
+        result = DataFrame([pd.Timestamp('2019', tz='UTC')])
+        result.update(result)
+        expected = DataFrame([pd.Timestamp('2019', tz='UTC')])
+        assert_frame_equal(result, expected)
+
     def test_join_str_datetime(self):
         str_dates = ['20120209', '20120222']
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
