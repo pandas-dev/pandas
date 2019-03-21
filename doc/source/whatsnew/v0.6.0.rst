@@ -24,7 +24,7 @@ New Features
 - :ref:`Added <basics.stats>` ``Series.mad``, mean absolute deviation
 - :ref:`Added <timeseries.offsets>` ``QuarterEnd`` DateOffset (:issue:`321`)
 - :ref:`Added <dsintro.numpy_interop>` ``dot`` to DataFrame (:issue:`65`)
-- :ref:`Added <basics.panel>` ``orient`` option to ``Panel.from_dict`` (:issue:`359`, :issue:`301`)
+- Added ``orient`` option to ``Panel.from_dict`` (:issue:`359`, :issue:`301`)
 - :ref:`Added <basics.dataframe.from_dict>` ``orient`` option to ``DataFrame.from_dict``
 - :ref:`Added <basics.dataframe.from_records>` passing list of tuples or list of lists to ``DataFrame.from_records`` (:issue:`357`)
 - :ref:`Added <groupby.multiindex>` multiple levels to groupby (:issue:`103`)
