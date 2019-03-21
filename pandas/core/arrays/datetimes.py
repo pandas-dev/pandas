@@ -275,7 +275,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     # Constructors
 
     _attributes = ["freq", "tz"]
-    _dtype: Union[np.dtype, DatetimeTZDtype] = None
+    _dtype = None  # type: Union[np.dtype, DatetimeTZDtype]
     _freq = None
 
     def __init__(self, values, dtype=_NS_DTYPE, freq=None, copy=False):
