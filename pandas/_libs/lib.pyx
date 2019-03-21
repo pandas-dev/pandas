@@ -2384,7 +2384,7 @@ cpdef object _concat_date_cols(object date_cols,
                 if array.dtype == object:
                     obj_iter = array
                 else:
-                    obj_array = np.astype(object)
+                    obj_array = array.astype(object)
                     obj_iter = obj_array
                 for i in range(array_size):
                     convert_and_set_item(obj_iter[i], i, result_view, keep_numbers)
