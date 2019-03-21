@@ -322,7 +322,7 @@ Sparse
 Other
 ^^^^^
 
--
+- Bug in :class:`BaseExprVisitor` for using named kwargs in :func:`eval` expressions.  
 -
 -
 
