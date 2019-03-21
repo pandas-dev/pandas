@@ -8,10 +8,8 @@ import warnings
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (PyErr_SetString, Py_INCREF, PyTuple_SET_ITEM,
-                      PyTuple_New, PyObject_Str, PyList_SetItem,
-                      Py_EQ,
-                      PyObject_RichCompareBool,
+from cpython cimport (Py_INCREF, PyTuple_SET_ITEM, PyTuple_New, PyObject_Str,
+                      Py_EQ, Py_SIZE, PyObject_RichCompareBool,
                       PyUnicode_Join, PyList_New)
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
@@ -21,13 +19,11 @@ PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_GETITEM, PyArray_CheckExact,
+from numpy cimport (ndarray, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
-                    flatiter, NPY_OBJECT, PyArray_SETITEM,
-                    int64_t, PyArray_GETPTR1,
-                    float32_t, float64_t, npy_intp, PyArray_NDIM,
-                    uint8_t, uint64_t, PyArray_ZEROS,
-                    complex128_t)
+                    flatiter, NPY_OBJECT,
+                    int64_t, float32_t, float64_t,
+                    uint8_t, uint64_t, complex128_t)
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
@@ -46,9 +42,6 @@ cdef extern from "numpy/arrayobject.h":
             char byteorder
             object fields
             tuple names
-
-cdef extern from "Python.h":
-    object PyUnicode_FromFormat(const char *format, ...)
 
 
 cdef extern from "src/parse_helper.h":
@@ -2320,126 +2313,73 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     return maybe_convert_objects(output)
 
 
-cdef inline int convert_and_set_item(object item, Py_ssize_t index,
-                                     object result,
-                                     int keep_trivial_numbers):
+cdef inline void convert_and_set_item(object item, Py_ssize_t index,
+                                      object[:] result,
+                                      bint keep_trivial_numbers):
     cdef:
-        int do_convert = 1
-        object str_item
-        int int_item
-        double double_item
+        bint do_convert = 1
 
     if keep_trivial_numbers:
-        if isinstance(item, int):
-            int_item = item
-            if int_item == 0:
+        if isinstance(item, int) and Py_SIZE(item) < 2:
+            if <int>item == 0:
                 do_convert = 0
         elif isinstance(item, float):
-            double_item = item
-            if double_item == 0.0:
+            if <double>item == 0.0:
                 do_convert = 0
 
-    if do_convert:
-        if not isinstance(item, (str, bytes)):
-            str_item = PyObject_Str(item)
-            item = str_item
+    if do_convert and not isinstance(item, (str, bytes)):
+        item = PyObject_Str(item)
 
-    if PyArray_SETITEM(result, PyArray_GETPTR1(result, index), item):
-        PyErr_SetString(RuntimeError, "Cannot set resulting item")
-        return 0
-
-    return 1
+    result[index] = item
 
 
-cpdef int put_object_as_unicode(object list, Py_ssize_t idx, object item):
+cdef inline void put_object_as_unicode(object[:] lst, Py_ssize_t idx,
+                                       object item):
     if not isinstance(item, str):
         item = PyObject_Str(item)
-    Py_INCREF(item)
-    return 1 if PyList_SetItem(list, idx, item) == 0 else 0
+    lst[idx] = item
+
 
 cpdef object _concat_date_cols(object date_cols,
                                object keep_trivial_numbers=False):
     cdef:
-        object sequence
-        int keep_numbers, all_numpy = 1
-        Py_ssize_t sequence_size
-        Py_ssize_t array_size, min_array_size = 0
-        Py_ssize_t i, j
-        object result, arrays
-        object array, fast_array, item
-        npy_intp dims[1]
-        object separator
+        bint keep_numbers
+        Py_ssize_t sequence_size, i, j
+        Py_ssize_t array_size, min_size
+        object result
+        object separator = " "
         object list_to_join, result_string
+        object[:] list_view
+        object[:] result_view
+        object[:] iterator
+        object[::] arrays
 
-    sequence = date_cols
     keep_numbers = keep_trivial_numbers
     sequence_size = len(date_cols)
 
-    if sequence_size == -1:
-        return None
-    elif sequence_size == 0:
-        return np.zeros(0, dtype=object)
+    if sequence_size == 0:
+        result = np.zeros(0, dtype=object)
     elif sequence_size == 1:
-        array = sequence[0]
-        array_size = len(array)
-        dims[0] = array_size
-        result = PyArray_ZEROS(1, dims, NPY_OBJECT, 0)
-        if PyArray_CheckExact(array):
-            for i in range(array_size):
-                item = PyArray_GETITEM(array,
-                                       PyArray_GETPTR1(array, i))
-                if not convert_and_set_item(item, i, result, keep_numbers):
-                    raise RuntimeError
-        else:
-            if not isinstance(array, (tuple, list)):
-                fast_array = tuple(array)
-            else:
-                fast_array = array
-            for i in range(array_size):
-                item = fast_array[i]
-                if not convert_and_set_item(item, i, result, keep_numbers):
-                    raise RuntimeError
-
-        return result
+        iterator = date_cols[0]
+        array_size = len(iterator)
+        result = np.zeros(array_size, dtype=object)
+        result_view = result
+        for i in range(array_size):
+            convert_and_set_item(iterator[i], i, result_view, keep_numbers)
     else:
-        arrays = list(sequence)
-        for i in range(sequence_size):
-            array = arrays[i]
-            if PyArray_CheckExact(array):
-                if PyArray_NDIM(array) != 1:
-                    raise RuntimeError("ndarrays must be 1-dimentional")
-            elif not isinstance(array, (tuple, list)):
-                all_numpy = 0
-                fast_array = tuple(array)
-                array = fast_array
-            else:
-                all_numpy = 0
-            if len(array) < min_array_size or min_array_size == 0:
-                min_array_size = len(array)
-        dims[0] = min_array_size
-        result = PyArray_ZEROS(1, dims, NPY_OBJECT, 0)
+        arrays = date_cols
 
-        separator = PyUnicode_FromFormat(" ")
+        min_size = min([len(arr) for arr in date_cols])
+        result = np.zeros(min_size, dtype=object)
+        result_view = result
+
         list_to_join = PyList_New(sequence_size)
+        list_view = list_to_join
 
-        for i in range(min_array_size):
-            if all_numpy:
-                for j in range(sequence_size):
-                    array = arrays[j]
-                    item = PyArray_GETITEM(array, PyArray_GETPTR1(array, i))
-                    if not put_object_as_unicode(list_to_join, j, item):
-                        raise RuntimeError
-            else:
-                for j in range(sequence_size):
-                    array = arrays[j]
-                    item = array[i]
-                    if not put_object_as_unicode(list_to_join, j, item):
-                        raise RuntimeError
-
+        for i in range(min_size):
+            for j in range(sequence_size):
+                put_object_as_unicode(list_view, j, arrays[j][i])
             result_string = PyUnicode_Join(separator, list_to_join)
+            result_view[i] = result_string
 
-            if (PyArray_SETITEM(result, PyArray_GETPTR1(result, i),
-                                result_string) != 0):
-                raise RuntimeError("Cannot set resulting item")
-
-        return result
+    return result

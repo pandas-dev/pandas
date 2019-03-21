@@ -21,32 +21,16 @@ class DoesStringLookLikeDatetime(object):
 
 class ConcatDateCols(object):
 
-    params = ([1234567890, 'AAAA'], [1, 2])
-    param_names = ['value', 'dim']
+    params = ([1234567890, 'AAAA'], [1, 2], [np.array, list])
+    param_names = ['value', 'dim', 'container']
 
-    def setup(self, value, dim):
-        count_elem = 1000000
+    def setup(self, value, dim, container):
+        count_elem = 10000
         if dim == 1:
-            self.object = (np.array([value] * count_elem),)
+            self.object = (container([value] * count_elem),)
         if dim == 2:
-            self.object = (np.array([value] * count_elem),
-                           np.array([value] * count_elem))
+            self.object = (container([value] * count_elem),
+                           container([value] * count_elem))
 
-    def time_check_concat(self, value, dim):
-        _concat_date_cols(self.object)
-
-class ConcatDateColsList(object):
-
-    params = ([1234567890, 'AAAA'], [1, 2])
-    param_names = ['value', 'dim']
-
-    def setup(self, value, dim):
-        count_elem = 1000000
-        if dim == 1:
-            self.object = ([value] * count_elem,)
-        if dim == 2:
-            self.object = ([value] * count_elem,
-                           [value] * count_elem)
-
-    def time_check_concat(self, value, dim):
+    def time_check_concat(self, value, dim, container):
         _concat_date_cols(self.object)
