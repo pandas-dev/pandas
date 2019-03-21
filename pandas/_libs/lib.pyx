@@ -2346,18 +2346,22 @@ cdef inline void put_object_as_unicode(list lst, Py_ssize_t idx,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef object _concat_date_cols(object date_cols,
+cpdef object _concat_date_cols(tuple date_cols,
                                object keep_trivial_numbers=False):
     cdef:
         bint keep_numbers
         Py_ssize_t sequence_size, i, j
-        Py_ssize_t array_size, min_size
+        Py_ssize_t array_size, min_size = 0
         object[:] result_view
         object[:,:] arrays_view
 
-        object[:] obj_iter
-        int64_t[:] int_iter
-        float64_t[:] double_iter
+        flatiter it
+        int all_numpy = 1
+        cnp.ndarray[object] iters
+        object[::1] iters_view
+        object array
+        list list_to_join
+
 
     keep_numbers = keep_trivial_numbers
     sequence_size = len(date_cols)
@@ -2370,40 +2374,28 @@ cpdef object _concat_date_cols(object date_cols,
         result = np.zeros(array_size, dtype=object)
         result_view = result
         if PyArray_Check(array):
-            if array.dtype == np.int64:
-                int_iter = array
-                for i in range(array_size):
-                    convert_and_set_item(int_iter[i], i,
-                                         result_view, keep_numbers)
-            elif array.dtype == np.float64:
-                double_iter = array
-                for i in range(array_size):
-                    convert_and_set_item(double_iter[i], i,
-                                         result_view, keep_numbers)
-            else:
-                if array.dtype == object:
-                    obj_iter = array
-                else:
-                    obj_array = array.astype(object)
-                    obj_iter = obj_array
-                for i in range(array_size):
-                    convert_and_set_item(obj_iter[i], i, result_view, keep_numbers)
-        else:
-            for i, item in enumerate(array):
+            it = <flatiter>PyArray_IterNew(array)
+            for i in range(array_size):
+                item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
                 convert_and_set_item(item, i, result_view, keep_numbers)
+                PyArray_ITER_NEXT(it)
+        else:
+            for i in range(array_size):
+                convert_and_set_item(array[i], i, result_view, keep_numbers)
     else:
-        min_size = min([len(arr) for arr in date_cols])
+        for i in range(sequence_size):
+            array = date_cols[i]
+            if not PyArray_Check(array):
+                all_numpy = 0
+            if len(array) < min_size or min_size == 0:
+                min_size = len(array)
 
-        arrays = np.zeros((len(date_cols), min_size), dtype=object)
-        for idx, array in enumerate(date_cols):
-            if PyArray_Check(array):
-                if array.dtype == object:
-                    arrays[idx] = array
-                else:
-                    arrays[idx] = array.astype(object)
-            else:
-                arrays[idx] = np.array(array, dtype=object)
-        arrays_view = arrays
+        if all_numpy:
+            iters = np.zeros(sequence_size, dtype=object)
+            iters_view = iters
+            for i in range(sequence_size):
+                iters_view[i] = PyArray_IterNew(date_cols[i])
+
 
         result = np.zeros(min_size, dtype=object)
         result_view = result
@@ -2411,8 +2403,15 @@ cpdef object _concat_date_cols(object date_cols,
         list_to_join = [None] * sequence_size
 
         for i in range(min_size):
-            for j in range(sequence_size):
-                put_object_as_unicode(list_to_join, j, arrays_view[j, i])
+            if all_numpy:
+                for j in range(sequence_size):
+                    it = <flatiter>iters_view[j]
+                    item = PyArray_GETITEM(date_cols[j], PyArray_ITER_DATA(it))
+                    put_object_as_unicode(list_to_join, j, item)
+                    PyArray_ITER_NEXT(it)
+            else:
+                for j in range(sequence_size):
+                    put_object_as_unicode(list_to_join, j, date_cols[j][i])
             result_view[i] = PyUnicode_Join(' ', list_to_join)
 
     return result
