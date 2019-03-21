@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 import functools
 import inspect
 import re
+from typing import Any, List
 import warnings
 
 import numpy as np
@@ -738,7 +739,7 @@ class Block(PandasObject):
         values = self.values
         if deep:
             values = values.copy()
-        return self.make_block_same_class(values)
+        return self.make_block_same_class(values, ndim=self.ndim)
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True):
@@ -1826,8 +1827,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                  limit=limit),
             placement=self.mgr_locs)
 
-    def shift(self, periods, axis=0, fill_value=None):
-        # type: (int, Optional[BlockPlacement], Any) -> List[ExtensionBlock]
+    def shift(self,
+              periods,                  # type: int
+              axis=0,                   # type: libinternals.BlockPlacement
+              fill_value=None):         # type: Any
+        # type: (...) -> List[ExtensionBlock]
         """
         Shift the block by `periods`.
 
