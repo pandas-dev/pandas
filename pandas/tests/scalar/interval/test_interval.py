@@ -101,11 +101,11 @@ class TestInterval(object):
         (('a', 'b'), ('c', 'd')),
         (list('AB'), list('ab')),
         (Interval(0, 1), Interval(1, 2)),
-        (Period(f'2018Q1', freq='Q'), Period(f'2018Q1', freq='Q'))
+        (Period('2018Q1', freq='Q'), Period('2018Q1', freq='Q'))
     ])
     def test_construct_errors(self, left, right):
         # GH 23013
-        msg = "Only numeric, Timestamp and Timdelta are valid"
+        msg = "Only numeric, Timestamp and Timedelta endpoints are allowed"
         with pytest.raises(ValueError, match=msg):
             Interval(left, right)
 

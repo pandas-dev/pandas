@@ -276,11 +276,9 @@ cdef class Interval(IntervalMixin):
         # GH 23013
         if not (is_integer_object(endpoint) or is_float_object(endpoint) or
                 isinstance(endpoint, (Timestamp, Timedelta))):
-            msg = ("Only numeric, Timestamp and Timdelta are valid "
-                   "to construct Interval.")
+            msg = ("Only numeric, Timestamp and Timedelta endpoints "
+                   "are allowed when constructing an Interval.")
             raise ValueError(msg)
-
-        return endpoint
 
     def __hash__(self):
         return hash((self.left, self.right, self.closed))
