@@ -29,15 +29,20 @@ class TestDatetimeIndexSetOps(object):
         union = first.union(second, sort=sort)
         tm.assert_index_equal(union, everything)
 
+    @pytest.mark.parametrize("klass", [np.array, Series, list])
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_union3(self, sort, klass):
+        everything = tm.makeDateIndex(10)
+        first = everything[:5]
+        second = everything[5:]
+
         # GH 10149
         expected = first.astype('O').union(
             pd.Index(second.values, dtype='O')
         ).astype('O')
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            print('hi')
-            result = first.union(case, sort=sort)
-            tm.assert_index_equal(result, expected)
+        case = klass(second.values)
+        result = first.union(case, sort=sort)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("tz", tz)
     @pytest.mark.parametrize("sort", [None, False])
