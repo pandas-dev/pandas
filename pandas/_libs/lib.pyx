@@ -2382,8 +2382,7 @@ cpdef object _concat_date_cols(tuple date_cols,
             for i, item in enumerate(array):
                 convert_and_set_item(item, i, result_view, keep_numbers)
     else:
-        for i in range(sequence_size):
-            array = date_cols[i]
+        for i, array in enumerate(date_cols):
             if not PyArray_Check(array):
                 all_numpy = 0
             if len(array) < min_size or min_size == 0:
@@ -2392,24 +2391,26 @@ cpdef object _concat_date_cols(tuple date_cols,
         if all_numpy:
             iters = np.zeros(sequence_size, dtype=object)
             iters_view = iters
-            for i in range(sequence_size):
-                iters_view[i] = PyArray_IterNew(date_cols[i])
+            for i, array in enumerate(date_cols):
+                iters_view[i] = PyArray_IterNew(array)
 
         result = np.zeros(min_size, dtype=object)
         result_view = result
 
         list_to_join = [None] * sequence_size
 
-        for i in range(min_size):
-            if all_numpy:
-                for j in range(sequence_size):
+        if all_numpy:
+            for i in range(min_size):
+                for j, array in enumerate(date_cols):
                     it = <flatiter>iters_view[j]
-                    item = PyArray_GETITEM(date_cols[j], PyArray_ITER_DATA(it))
+                    item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
                     put_object_as_unicode(list_to_join, j, item)
                     PyArray_ITER_NEXT(it)
-            else:
-                for j in range(sequence_size):
-                    put_object_as_unicode(list_to_join, j, date_cols[j][i])
-            result_view[i] = PyUnicode_Join(' ', list_to_join)
+                result_view[i] = PyUnicode_Join(' ', list_to_join)
+        else:
+            for i in range(min_size):
+                for j, array in enumerate(date_cols):
+                    put_object_as_unicode(list_to_join, j, array[i])
+                result_view[i] = PyUnicode_Join(' ', list_to_join)
 
     return result
