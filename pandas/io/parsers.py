@@ -13,7 +13,6 @@ import warnings
 
 import numpy as np
 
-#from pandas._libs.datehelpers import concat_date_cols as _concat_date_cols
 from pandas._libs.lib import _concat_date_cols
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
