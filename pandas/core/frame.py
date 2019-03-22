@@ -6246,7 +6246,7 @@ class DataFrame(NDFrame):
     def _gotitem(self,
                  key: Union[str, List[str]],
                  ndim: int,
-                 subset: Optional[Series, 'DataFrame'] = None,
+                 subset: Optional[Union[Series, 'DataFrame']] = None,
                  ) -> Union[Series, 'DataFrame']:
         """
         Sub-classes to define. Return a sliced object.
