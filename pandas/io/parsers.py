@@ -13,8 +13,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs.lib import _concat_date_cols
 import pandas._libs.lib as lib
+from pandas._libs.lib import _concat_date_cols
 import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
@@ -3217,11 +3217,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
             except Exception:
                 try:
                     return tools.to_datetime(
-                        parsing.try_parse_dates(
-                            _concat_date_cols(
-                                date_cols,
-                                keep_trivial_numbers=True
-                            ),
+                        parsing.try_parse_dates(_concat_date_cols(date_cols),
                                                 parser=date_parser,
                                                 dayfirst=dayfirst),
                         cache=cache_dates,

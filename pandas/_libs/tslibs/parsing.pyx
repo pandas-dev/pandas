@@ -333,6 +333,8 @@ cpdef bint _does_string_look_like_datetime(object date_string):
     if length >= 1:
         first = buf[0]
         if first == b'0':
+            # Strings starting with 0 are more consistent with a
+            # date-like string than a number
             return True
         elif date_string in _not_datelike_strings:
             return False
