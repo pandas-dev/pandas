@@ -7,18 +7,14 @@ from dateutil.easter import easter
 import numpy as np
 
 from pandas._libs.tslibs import (
-    NaT, OutOfBoundsDatetime, Timedelta, Timestamp, ccalendar, conversion,
-    delta_to_nanoseconds, frequencies as libfrequencies, normalize_date,
-    offsets as liboffsets, timezones)
+    NaT, OutOfBoundsDatetime, Period, Timedelta, Timestamp, ccalendar,
+    conversion, delta_to_nanoseconds, frequencies as libfrequencies,
+    normalize_date, offsets as liboffsets, timezones)
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError, BaseOffset, _get_calendar, _is_normalized, _to_dt64,
     apply_index_wraps, as_datetime, roll_yearday, shift_month)
-import pandas.compat as compat
-from pandas.compat import range
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
-
-from pandas.core.dtypes.generic import ABCPeriod
 
 from pandas.core.tools.datetimes import to_datetime
 
@@ -2258,7 +2254,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 return type(self)(self.n + other.n)
             else:
                 return _delta_to_tick(self.delta + other.delta)
-        elif isinstance(other, ABCPeriod):
+        elif isinstance(other, Period):
             return other + self
         try:
             return self.apply(other)
@@ -2269,7 +2265,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                                 "will overflow".format(self=self, other=other))
 
     def __eq__(self, other):
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
@@ -2290,7 +2286,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         return hash(self._params)
 
     def __ne__(self, other):
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
