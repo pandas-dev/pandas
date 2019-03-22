@@ -7,7 +7,7 @@ from numpy import nan
 import pytest
 
 from pandas import (
-    _np_version_under1p14, DataFrame, MultiIndex, Series, compat, concat,
+    DataFrame, MultiIndex, Series, _np_version_under1p14, compat, concat,
     merge, to_datetime)
 from pandas.core import common as com
 from pandas.core.sorting import (

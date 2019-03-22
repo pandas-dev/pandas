@@ -19,8 +19,8 @@ from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 
 import pandas as pd
 from pandas import (
-    _np_version_under1p14, Categorical, CategoricalIndex, DatetimeIndex, Index,
-    IntervalIndex, Series, Timestamp, compat)
+    Categorical, CategoricalIndex, DatetimeIndex, Index, IntervalIndex, Series,
+    Timestamp, _np_version_under1p14, compat)
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
