@@ -332,12 +332,12 @@ cpdef bint _does_string_look_like_datetime(object date_string):
         return False
     if length >= 1:
         first = buf[0]
-        if first == '0':
+        if first == b'0':
             return True
-        elif length == 1 and date_string in _not_datelike_strings:
+        elif date_string in _not_datelike_strings:
             return False
         else:
-            converted_date = xstrtod(buf, &endptr, '.', 'e', '\0', 1)
+            converted_date = xstrtod(buf, &endptr, b'.', b'e', b'\0', 1)
             if errno == 0 and endptr == buf + length:
                 return converted_date >= 1000
 
