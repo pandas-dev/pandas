@@ -12,16 +12,15 @@ import pytest
 from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
 from pandas.compat import lrange, range
-from pandas.compat.numpy import (
-    _np_version_under1p14, np_array_datetime64_compat)
+from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 
 import pandas as pd
 from pandas import (
-    Categorical, CategoricalIndex, DatetimeIndex, Index, IntervalIndex, Series,
-    Timestamp, compat)
+    _np_version_under1p14, Categorical, CategoricalIndex, DatetimeIndex, Index,
+    IntervalIndex, Series, Timestamp, compat)
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com

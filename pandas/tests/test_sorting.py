@@ -1,16 +1,14 @@
 from collections import defaultdict
 from datetime import datetime
 from itertools import product
-import warnings
 
 import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p14
-
 from pandas import (
-    DataFrame, MultiIndex, Series, compat, concat, merge, to_datetime)
+    _np_version_under1p14, DataFrame, MultiIndex, Series, compat, concat,
+    merge, to_datetime)
 from pandas.core import common as com
 from pandas.core.sorting import (
     decons_group_index, get_group_index, is_int64_overflow_possible,
@@ -423,14 +421,8 @@ class TestSafeSort(object):
                 r"({0} and {1}|{1} and {0})").format(
                     "'int'", r"'datetime\.datetime'")
                )
-        if compat.PY2:
-            # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
-            with warnings.catch_warnings():
-                with pytest.raises(TypeError, match=msg):
-                    safe_sort(arr)
-        else:
-            with pytest.raises(TypeError, match=msg):
-                safe_sort(arr)
+        with pytest.raises(TypeError, match=msg):
+            safe_sort(arr)
 
     def test_exceptions(self):
         with pytest.raises(TypeError,
