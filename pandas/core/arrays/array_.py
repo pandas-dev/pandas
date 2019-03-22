@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, TYPE_CHECKING, Union
 
 import numpy as np
 
@@ -11,11 +11,14 @@ from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 from pandas import compat
 
 
-def array(data,         # type: Sequence[object]
-          dtype=None,   # type: Optional[Union[str, np.dtype, ExtensionDtype]]
-          copy=True,    # type: bool
-          ):
-    # type: (...) -> ExtensionArray
+if TYPE_CHECKING:
+    from pandas.core.arrays.base import ExtensionArray
+
+
+def array(data: Sequence[object],
+          dtype: Optional[Union[str, np.dtype, ExtensionDtype]] = None,
+          copy: bool = True,
+          ) -> 'ExtensionArray':
     """
     Create an array.
 

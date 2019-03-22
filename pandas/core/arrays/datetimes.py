@@ -514,8 +514,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         return lambda x: Timestamp(x, freq=self.freq, tz=self.tz)
 
     @property
-    def dtype(self):
-        # type: () -> Union[np.dtype, DatetimeTZDtype]
+    def dtype(self) -> Union[np.dtype, DatetimeTZDtype]:
         """
         The dtype for the DatetimeArray.
 

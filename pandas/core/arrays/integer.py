@@ -452,8 +452,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return astype_nansafe(data, dtype, copy=None)
 
     @property
-    def _ndarray_values(self):
-        # type: () -> np.ndarray
+    def _ndarray_values(self) -> np.ndarray:
         """Internal pandas method for lossy conversion to a NumPy ndarray.
 
         This method is not part of the pandas interface.
@@ -509,8 +508,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return Series(array, index=index)
 
-    def _values_for_argsort(self):
-        # type: () -> np.ndarray
+    def _values_for_argsort(self) -> np.ndarray:
         """Return values for sorting.
 
         Returns

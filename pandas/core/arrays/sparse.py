@@ -79,8 +79,11 @@ class SparseDtype(ExtensionDtype):
     # hash(nan) is (sometimes?) 0.
     _metadata = ('_dtype', '_fill_value', '_is_na_fill_value')
 
-    def __init__(self, dtype=np.float64, fill_value=None):
-        # type: (Union[str, np.dtype, 'ExtensionDtype', type], Any) -> None
+    def __init__(
+            self,
+            dtype: Union[str, np.dtype, 'ExtensionDtype', type] = np.float64,
+            fill_value: Any = None
+    ) -> None:
         from pandas.core.dtypes.missing import na_value_for_dtype
         from pandas.core.dtypes.common import (
             pandas_dtype, is_string_dtype, is_scalar
@@ -372,8 +375,7 @@ class SparseDtype(ExtensionDtype):
 _sparray_doc_kwargs = dict(klass='SparseArray')
 
 
-def _get_fill(arr):
-    # type: (SparseArray) -> np.ndarray
+def _get_fill(arr: 'SparseArray') -> np.ndarray:
     """
     Create a 0-dim ndarray containing the fill value
 
@@ -397,8 +399,12 @@ def _get_fill(arr):
         return np.asarray(arr.fill_value)
 
 
-def _sparse_array_op(left, right, op, name):
-    # type: (SparseArray, SparseArray, Callable, str) -> Any
+def _sparse_array_op(
+        left: 'SparseArray',
+        right: 'SparseArray',
+        op: Callable,
+        name: str
+) -> Any:
     """
     Perform a binary operation between two arrays.
 
@@ -671,8 +677,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         self._dtype = SparseDtype(sparse_values.dtype, fill_value)
 
     @classmethod
-    def _simple_new(cls, sparse_array, sparse_index, dtype):
-        # type: (np.ndarray, SparseIndex, SparseDtype) -> 'SparseArray'
+    def _simple_new(
+            cls,
+            sparse_array: np.ndarray,
+            sparse_index: SparseIndex,
+            dtype: SparseDtype
+    ) -> 'SparseArray':
         new = cls([])
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
