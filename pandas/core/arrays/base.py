@@ -726,7 +726,7 @@ class ExtensionArray(object):
             self,
             indices: Sequence[int],
             allow_fill: bool = False,
-            fill_value: Optional[Any] = None
+            fill_value: Any = None
     ) -> 'ExtensionArray':
         """
         Take elements from an array.

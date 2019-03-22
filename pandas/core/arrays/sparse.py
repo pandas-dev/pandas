@@ -402,7 +402,8 @@ def _get_fill(arr: 'SparseArray') -> np.ndarray:
 def _sparse_array_op(
         left: 'SparseArray',
         right: 'SparseArray',
-        op: Callable, name: str
+        op: Callable,
+        name: str
 ) -> Any:
     """
     Perform a binary operation between two arrays.

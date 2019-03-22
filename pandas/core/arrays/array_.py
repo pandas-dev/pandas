@@ -13,7 +13,7 @@ from pandas import compat
 
 
 def array(data: Sequence[object],
-          dtype: Optional[Union[str, np.dtype, ExtensionDtype]] = None,
+          dtype: Optional[str, np.dtype, ExtensionDtype] = None,
           copy: bool = True,
           ) -> ExtensionArray:
     """
