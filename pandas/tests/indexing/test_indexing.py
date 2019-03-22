@@ -21,6 +21,8 @@ from pandas.core.indexing import (
 from pandas.tests.indexing.common import Base, _mklbl
 import pandas.util.testing as tm
 
+ignore_ix = pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+
 # ------------------------------------------------------------------------
 # Indexing test cases
 
@@ -57,6 +59,93 @@ class TestFancy(Base):
 
         with pytest.raises(ValueError):
             df[2:5] = np.arange(1, 4) * 1j
+
+    @pytest.mark.parametrize('index', tm.all_index_generator(5),
+                             ids=lambda x: type(x).__name__)
+    @pytest.mark.parametrize('obj', [
+        lambda i: Series(np.arange(len(i)), index=i),
+        lambda i: DataFrame(
+            np.random.randn(len(i), len(i)), index=i, columns=i)
+    ], ids=['Series', 'DataFrame'])
+    @pytest.mark.parametrize('idxr, idxr_id', [
+        (lambda x: x, 'getitem'),
+        (lambda x: x.loc, 'loc'),
+        (lambda x: x.iloc, 'iloc'),
+        pytest.param(lambda x: x.ix, 'ix', marks=ignore_ix)
+    ])
+    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):
+        # GH 25567
+        obj = obj(index)
+        idxr = idxr(obj)
+        nd3 = np.random.randint(5, size=(2, 2, 2))
+
+        msg = (r"Buffer has wrong number of dimensions \(expected 1,"
+               r" got 3\)|"
+               "The truth value of an array with more than one element is"
+               " ambiguous|"
+               "Cannot index with multidimensional key|"
+               r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]|"
+               "unhashable type: 'numpy.ndarray'"  # TypeError
+               )
+
+        if (isinstance(obj, Series) and idxr_id == 'getitem'
+                and index.inferred_type in [
+                    'string', 'datetime64', 'period', 'timedelta64',
+                    'boolean', 'categorical']):
+            idxr[nd3]
+        else:
+            if (isinstance(obj, DataFrame) and idxr_id == 'getitem'
+                    and index.inferred_type == 'boolean'):
+                error = TypeError
+            else:
+                error = ValueError
+
+            with pytest.raises(error, match=msg):
+                idxr[nd3]
+
+    @pytest.mark.parametrize('index', tm.all_index_generator(5),
+                             ids=lambda x: type(x).__name__)
+    @pytest.mark.parametrize('obj', [
+        lambda i: Series(np.arange(len(i)), index=i),
+        lambda i: DataFrame(
+            np.random.randn(len(i), len(i)), index=i, columns=i)
+    ], ids=['Series', 'DataFrame'])
+    @pytest.mark.parametrize('idxr, idxr_id', [
+        (lambda x: x, 'setitem'),
+        (lambda x: x.loc, 'loc'),
+        (lambda x: x.iloc, 'iloc'),
+        pytest.param(lambda x: x.ix, 'ix', marks=ignore_ix)
+    ])
+    def test_setitem_ndarray_3d(self, index, obj, idxr, idxr_id):
+        # GH 25567
+        obj = obj(index)
+        idxr = idxr(obj)
+        nd3 = np.random.randint(5, size=(2, 2, 2))
+
+        msg = (r"Buffer has wrong number of dimensions \(expected 1,"
+               r" got 3\)|"
+               "The truth value of an array with more than one element is"
+               " ambiguous|"
+               "Only 1-dimensional input arrays are supported|"
+               "'pandas._libs.interval.IntervalTree' object has no attribute"
+               " 'set_value'|"  # AttributeError
+               "unhashable type: 'numpy.ndarray'|"  # TypeError
+               r"^\[\[\["  # pandas.core.indexing.IndexingError
+               )
+
+        if ((idxr_id == 'iloc')
+            or ((isinstance(obj, Series) and idxr_id == 'setitem'
+                 and index.inferred_type in [
+                'floating', 'string', 'datetime64', 'period', 'timedelta64',
+                'boolean', 'categorical']))
+                or (idxr_id == 'ix' and index.inferred_type in [
+                'string', 'datetime64', 'period', 'boolean'])):
+            idxr[nd3] = 0
+        else:
+            with pytest.raises(
+                    (ValueError, AttributeError, TypeError,
+                     pd.core.indexing.IndexingError), match=msg):
+                idxr[nd3] = 0
 
     def test_inf_upcast(self):
         # GH 16957
