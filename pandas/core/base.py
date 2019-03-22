@@ -66,7 +66,7 @@ class StringMixin(object):
         Invoked by bytes(obj) in py3 only.
         Yields a bytestring in both py2/py3.
         """
-        from pandas._config.config import get_option
+        from pandas._config import get_option
 
         encoding = get_option("display.encoding")
         return self.__unicode__().encode(encoding, 'replace')

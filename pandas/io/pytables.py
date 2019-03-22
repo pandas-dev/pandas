@@ -15,8 +15,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import config
-from pandas._config.config import get_option
+from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones

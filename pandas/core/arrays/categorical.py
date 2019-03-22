@@ -5,7 +5,7 @@ from warnings import warn
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
 import pandas.compat as compat

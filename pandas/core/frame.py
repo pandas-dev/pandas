@@ -24,7 +24,7 @@ from typing import List, Union
 import numpy as np
 import numpy.ma as ma
 
-from pandas._config.config import get_option
+from pandas._config import get_option
 
 from pandas._libs import lib, algos as libalgos
 

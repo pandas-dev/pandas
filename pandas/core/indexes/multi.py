@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config import get_option
 
 from pandas._libs import (
     Timestamp, algos as libalgos, index as libindex, lib, tslibs)

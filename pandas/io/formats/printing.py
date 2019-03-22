@@ -4,7 +4,7 @@ printing tools
 
 import sys
 
-from pandas._config.config import get_option
+from pandas._config import get_option
 
 from pandas.compat import u
 

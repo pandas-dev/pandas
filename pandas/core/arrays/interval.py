@@ -3,7 +3,7 @@ import textwrap
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config import get_option
 
 from pandas._libs.interval import (
     Interval, IntervalMixin, intervals_to_interval_bounds)

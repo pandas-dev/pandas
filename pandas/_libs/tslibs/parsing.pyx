@@ -30,7 +30,7 @@ from dateutil.relativedelta import relativedelta
 from dateutil.parser import DEFAULTPARSER
 from dateutil.parser import parse as du_parse
 
-from pandas._config.config import get_option
+from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 from pandas._libs.tslibs.nattype import nat_strings, NaT

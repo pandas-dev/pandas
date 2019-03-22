@@ -10,7 +10,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config import get_option
 
 from pandas.core.dtypes.generic import ABCDataFrame
 

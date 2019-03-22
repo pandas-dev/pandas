@@ -12,7 +12,7 @@ from uuid import uuid1
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config import get_option
 
 from pandas.compat import range
 from pandas.util._decorators import Appender

@@ -8,7 +8,7 @@ from __future__ import print_function
 from collections import OrderedDict
 from textwrap import dedent
 
-from pandas._config.config import get_option
+from pandas._config import get_option
 
 from pandas.compat import lzip, map, range, u, unichr, zip
 
