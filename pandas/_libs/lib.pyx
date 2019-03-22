@@ -2353,7 +2353,7 @@ cpdef object _concat_date_cols(tuple date_cols,
         Py_ssize_t sequence_size, i, j
         Py_ssize_t array_size, min_size = 0
         object[:] result_view
-        object[:,:] arrays_view
+        object[:, :] arrays_view
 
         flatiter it
         int all_numpy = 1
@@ -2361,7 +2361,6 @@ cpdef object _concat_date_cols(tuple date_cols,
         object[::1] iters_view
         object array
         list list_to_join
-
 
     keep_numbers = keep_trivial_numbers
     sequence_size = len(date_cols)
@@ -2395,7 +2394,6 @@ cpdef object _concat_date_cols(tuple date_cols,
             iters_view = iters
             for i in range(sequence_size):
                 iters_view[i] = PyArray_IterNew(date_cols[i])
-
 
         result = np.zeros(min_size, dtype=object)
         result_view = result
