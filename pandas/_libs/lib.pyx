@@ -2313,6 +2313,8 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     return maybe_convert_objects(output)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef inline void convert_and_set_item(object item, Py_ssize_t index,
                                       object[:] result,
                                       bint keep_trivial_numbers):
@@ -2353,13 +2355,11 @@ cpdef object _concat_date_cols(tuple date_cols,
         Py_ssize_t sequence_size, i, j
         Py_ssize_t array_size, min_size = 0
         object[:] result_view
-        object[:, :] arrays_view
 
         flatiter it
         int all_numpy = 1
         cnp.ndarray[object] iters
         object[::1] iters_view
-        object array
         list list_to_join
 
     keep_numbers = keep_trivial_numbers
@@ -2379,8 +2379,8 @@ cpdef object _concat_date_cols(tuple date_cols,
                 convert_and_set_item(item, i, result_view, keep_numbers)
                 PyArray_ITER_NEXT(it)
         else:
-            for i in range(array_size):
-                convert_and_set_item(array[i], i, result_view, keep_numbers)
+            for i, item in enumerate(array):
+                convert_and_set_item(item, i, result_view, keep_numbers)
     else:
         for i in range(sequence_size):
             array = date_cols[i]
