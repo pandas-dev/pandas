@@ -381,7 +381,7 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_field(ndarray[int64_t] dtindex, object field):
+def get_date_field(int64_t[:] dtindex, object field):
     """
     Given a int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.
@@ -478,7 +478,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                out[i] = dts.ps / 1000
+                out[i] = dts.ps // 1000
         return out
     elif field == 'doy':
         with nogil:
@@ -522,7 +522,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = dts.month
-                out[i] = ((out[i] - 1) / 3) + 1
+                out[i] = ((out[i] - 1) // 3) + 1
         return out
 
     elif field == 'dim':

@@ -5,10 +5,10 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, range, u
+from pandas.compat import range, u
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, isna
+from pandas import Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas.util.testing as tm
 
 from .test_numeric import Numeric
@@ -35,47 +35,25 @@ class TestRangeIndex(Numeric):
         with pytest.raises(ValueError, match="^Length"):
             self.index.names = ["roger", "harold"]
 
-    def test_constructor(self):
-        index = RangeIndex(5)
-        expected = np.arange(5, dtype=np.int64)
-        assert isinstance(index, RangeIndex)
-        assert index._start == 0
-        assert index._stop == 5
-        assert index._step == 1
-        assert index.name is None
-        tm.assert_index_equal(Index(expected), index)
-
-        index = RangeIndex(1, 5)
-        expected = np.arange(1, 5, dtype=np.int64)
-        assert isinstance(index, RangeIndex)
-        assert index._start == 1
-        tm.assert_index_equal(Index(expected), index)
-
-        index = RangeIndex(1, 5, 2)
-        expected = np.arange(1, 5, 2, dtype=np.int64)
-        assert isinstance(index, RangeIndex)
-        assert index._step == 2
-        tm.assert_index_equal(Index(expected), index)
-
-        for index in [RangeIndex(0), RangeIndex(start=0), RangeIndex(stop=0),
-                      RangeIndex(0, 0)]:
-            expected = np.empty(0, dtype=np.int64)
-            assert isinstance(index, RangeIndex)
-            assert index._start == 0
-            assert index._stop == 0
-            assert index._step == 1
-            tm.assert_index_equal(Index(expected), index)
-
-        for index in [RangeIndex(0, name='Foo'),
-                      RangeIndex(start=0, name='Foo'),
-                      RangeIndex(stop=0, name='Foo'),
-                      RangeIndex(0, 0, name='Foo')]:
-            assert isinstance(index, RangeIndex)
-            assert index.name == 'Foo'
-
-        # we don't allow on a bare Index
-        with pytest.raises(TypeError):
-            Index(0, 1000)
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('args, kwargs, start, stop, step', [
+        ((5,), dict(), 0, 5, 1),
+        ((1, 5), dict(), 1, 5, 1),
+        ((1, 5, 2), dict(), 1, 5, 2),
+        ((0,), dict(), 0, 0, 1),
+        ((0, 0), dict(), 0, 0, 1),
+        (tuple(), dict(start=0), 0, 0, 1),
+        (tuple(), dict(stop=0), 0, 0, 1)])
+    def test_constructor(self, args, kwargs, start, stop, step, name):
+        result = RangeIndex(*args, name=name, **kwargs)
+        expected = Index(np.arange(start, stop, step, dtype=np.int64),
+                         name=name)
+        assert isinstance(result, RangeIndex)
+        assert result._start == start
+        assert result._stop == stop
+        assert result._step == step
+        assert result.name is name
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_invalid_args(self):
         msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
@@ -91,6 +69,12 @@ class TestRangeIndex(Numeric):
                   np.array([1]), [1]]:
             with pytest.raises(TypeError):
                 RangeIndex(i)
+
+        # we don't allow on a bare Index
+        msg = (r'Index\(\.\.\.\) must be called with a collection of some '
+               r'kind, 0 was passed')
+        with pytest.raises(TypeError, match=msg):
+            Index(0, 1000)
 
     def test_constructor_same(self):
 
@@ -172,6 +156,17 @@ class TestRangeIndex(Numeric):
         with pytest.raises(TypeError):
             RangeIndex(1, 5, dtype='float64')
 
+    @pytest.mark.parametrize('index, start, stop, step', [
+        (RangeIndex(5), 0, 5, 1),
+        (RangeIndex(0, 5), 0, 5, 1),
+        (RangeIndex(5, step=2), 0, 5, 2),
+        (RangeIndex(1, 5, 2), 1, 5, 2)])
+    def test_start_stop_step_attrs(self, index, start, stop, step):
+        # GH 25710
+        assert index.start == start
+        assert index.stop == stop
+        assert index.step == step
+
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
         i_copy = i.copy()
@@ -185,10 +180,7 @@ class TestRangeIndex(Numeric):
     def test_repr(self):
         i = RangeIndex(5, name='Foo')
         result = repr(i)
-        if PY3:
-            expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
-        else:
-            expected = "RangeIndex(start=0, stop=5, step=1, name=u'Foo')"
+        expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
         assert result == expected
 
         result = eval(result)
@@ -503,74 +495,75 @@ class TestRangeIndex(Numeric):
             joined = self.index.join(self.index, how=kind)
             assert self.index is joined
 
-    def test_intersection(self):
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_intersection(self, sort):
         # intersect with Int64Index
         other = Index(np.arange(1, 6))
-        result = self.index.intersection(other)
+        result = self.index.intersection(other, sort=sort)
         expected = Index(np.sort(np.intersect1d(self.index.values,
                                                 other.values)))
         tm.assert_index_equal(result, expected)
 
-        result = other.intersection(self.index)
+        result = other.intersection(self.index, sort=sort)
         expected = Index(np.sort(np.asarray(np.intersect1d(self.index.values,
                                                            other.values))))
         tm.assert_index_equal(result, expected)
 
         # intersect with increasing RangeIndex
         other = RangeIndex(1, 6)
-        result = self.index.intersection(other)
+        result = self.index.intersection(other, sort=sort)
         expected = Index(np.sort(np.intersect1d(self.index.values,
                                                 other.values)))
         tm.assert_index_equal(result, expected)
 
         # intersect with decreasing RangeIndex
         other = RangeIndex(5, 0, -1)
-        result = self.index.intersection(other)
+        result = self.index.intersection(other, sort=sort)
         expected = Index(np.sort(np.intersect1d(self.index.values,
                                                 other.values)))
         tm.assert_index_equal(result, expected)
 
         # reversed (GH 17296)
-        result = other.intersection(self.index)
+        result = other.intersection(self.index, sort=sort)
         tm.assert_index_equal(result, expected)
 
         # GH 17296: intersect two decreasing RangeIndexes
         first = RangeIndex(10, -2, -2)
         other = RangeIndex(5, -4, -1)
-        expected = first.astype(int).intersection(other.astype(int))
-        result = first.intersection(other).astype(int)
+        expected = first.astype(int).intersection(other.astype(int), sort=sort)
+        result = first.intersection(other, sort=sort).astype(int)
         tm.assert_index_equal(result, expected)
 
         # reversed
-        result = other.intersection(first).astype(int)
+        result = other.intersection(first, sort=sort).astype(int)
         tm.assert_index_equal(result, expected)
 
         index = RangeIndex(5)
 
         # intersect of non-overlapping indices
         other = RangeIndex(5, 10, 1)
-        result = index.intersection(other)
+        result = index.intersection(other, sort=sort)
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
         other = RangeIndex(-1, -5, -1)
-        result = index.intersection(other)
+        result = index.intersection(other, sort=sort)
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
         # intersection of empty indices
         other = RangeIndex(0, 0, 1)
-        result = index.intersection(other)
+        result = index.intersection(other, sort=sort)
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
-        result = other.intersection(index)
+        result = other.intersection(index, sort=sort)
         tm.assert_index_equal(result, expected)
 
         # intersection of non-overlapping values based on start value and gcd
         index = RangeIndex(1, 10, 2)
         other = RangeIndex(0, 10, 4)
-        result = index.intersection(other)
+        result = index.intersection(other, sort=sort)
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
@@ -884,30 +877,3 @@ class TestRangeIndex(Numeric):
                 # Append single item rather than list
                 result2 = indices[0].append(indices[1])
                 tm.assert_index_equal(result2, expected, exact=True)
-
-    @pytest.mark.parametrize('start,stop,step',
-                             [(0, 400, 3), (500, 0, -6), (-10**6, 10**6, 4),
-                              (10**6, -10**6, -4), (0, 10, 20)])
-    def test_max_min(self, start, stop, step):
-        # GH17607
-        idx = RangeIndex(start, stop, step)
-        expected = idx._int64index.max()
-        result = idx.max()
-        assert result == expected
-
-        # skipna should be irrelevant since RangeIndex should never have NAs
-        result2 = idx.max(skipna=False)
-        assert result2 == expected
-
-        expected = idx._int64index.min()
-        result = idx.min()
-        assert result == expected
-
-        # skipna should be irrelevant since RangeIndex should never have NAs
-        result2 = idx.min(skipna=False)
-        assert result2 == expected
-
-        # empty
-        idx = RangeIndex(start, stop, -step)
-        assert isna(idx.max())
-        assert isna(idx.min())

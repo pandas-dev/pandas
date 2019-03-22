@@ -182,26 +182,29 @@ def execute(sql, con, cur=None, params=None):
 def read_sql_table(table_name, con, schema=None, index_col=None,
                    coerce_float=True, parse_dates=None, columns=None,
                    chunksize=None):
-    """Read SQL database table into a DataFrame.
+    """
+    Read SQL database table into a DataFrame.
 
     Given a table name and a SQLAlchemy connectable, returns a DataFrame.
     This function does not support DBAPI connections.
 
     Parameters
     ----------
-    table_name : string
+    table_name : str
         Name of SQL table in database.
-    con : SQLAlchemy connectable (or database string URI)
+    con : SQLAlchemy connectable or str
+        A database URI could be provided as as str.
         SQLite DBAPI connection mode not supported.
-    schema : string, default None
+    schema : str, default None
         Name of SQL schema in database to query (if database flavor
         supports this). Uses default schema if None (default).
-    index_col : string or list of strings, optional, default: None
+    index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
-    coerce_float : boolean, default True
+    coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Can result in loss of Precision.
-    parse_dates : list or dict, default: None
+    parse_dates : list or dict, default None
+        The behavior is as follows:
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
           strftime compatible in case of parsing string times or is one of
@@ -210,8 +213,8 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
           to the keyword arguments of :func:`pandas.to_datetime`
           Especially useful with databases without native Datetime support,
           such as SQLite.
-    columns : list, default: None
-        List of column names to select from SQL table
+    columns : list, default None
+        List of column names to select from SQL table.
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
@@ -219,15 +222,21 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     Returns
     -------
     DataFrame
+        A SQL table is returned as two-dimensional data structure with labeled
+        axes.
 
     See Also
     --------
     read_sql_query : Read SQL query into a DataFrame.
-    read_sql
+    read_sql : Read SQL query or database table into a DataFrame.
 
     Notes
     -----
     Any datetime values with time zone information will be converted to UTC.
+
+    Examples
+    --------
+    >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
 
     con = _engine_builder(con)
@@ -240,7 +249,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     try:
         meta.reflect(only=[table_name], views=True)
     except sqlalchemy.exc.InvalidRequestError:
-        raise ValueError("Table %s not found" % table_name)
+        raise ValueError("Table {name} not found".format(name=table_name))
 
     pandas_sql = SQLDatabase(con, meta=meta)
     table = pandas_sql.read_table(
@@ -250,7 +259,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     if table is not None:
         return table
     else:
-        raise ValueError("Table %s not found" % table_name, con)
+        raise ValueError("Table {name} not found".format(name=table_name), con)
 
 
 def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
@@ -381,7 +390,8 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
     try:
         _is_table_name = pandas_sql.has_table(sql)
-    except (ImportError, AttributeError):
+    except Exception:
+        # using generic exception to catch errors from sql drivers (GH24988)
         _is_table_name = False
 
     if _is_table_name:
@@ -552,7 +562,8 @@ class SQLTable(PandasObject):
             self.table = self.pd_sql.get_table(self.name, self.schema)
 
         if self.table is None:
-            raise ValueError("Could not init table '%s'" % name)
+            raise ValueError(
+                "Could not init table '{name}'".format(name=name))
 
     def exists(self):
         return self.pd_sql.has_table(self.name, self.schema)
@@ -569,7 +580,8 @@ class SQLTable(PandasObject):
     def create(self):
         if self.exists():
             if self.if_exists == 'fail':
-                raise ValueError("Table '%s' already exists." % self.name)
+                raise ValueError(
+                    "Table '{name}' already exists.".format(name=self.name))
             elif self.if_exists == 'replace':
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
@@ -1161,8 +1173,8 @@ class SQLDatabase(PandasSQL):
             from sqlalchemy.types import to_instance, TypeEngine
             for col, my_type in dtype.items():
                 if not isinstance(to_instance(my_type), TypeEngine):
-                    raise ValueError('The type of %s is not a SQLAlchemy '
-                                     'type ' % col)
+                    raise ValueError('The type of {column} is not a '
+                                     'SQLAlchemy type '.format(column=col))
 
         table = SQLTable(name, self, frame=frame, index=index,
                          if_exists=if_exists, index_label=index_label,
@@ -1244,7 +1256,8 @@ def _get_unicode_name(name):
     try:
         uname = text_type(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError:
-        raise ValueError("Cannot convert identifier to UTF-8: '%s'" % name)
+        raise ValueError(
+            "Cannot convert identifier to UTF-8: '{name}'".format(name=name))
     return uname
 
 
@@ -1305,8 +1318,9 @@ class SQLiteTable(SQLTable):
         bracketed_names = [escape(column) for column in names]
         col_names = ','.join(bracketed_names)
         wildcards = ','.join([wld] * len(names))
-        insert_statement = 'INSERT INTO %s (%s) VALUES (%s)' % (
-            escape(self.name), col_names, wildcards)
+        insert_statement = \
+            u'INSERT INTO {table} ({columns}) VALUES ({wld})'.format(
+                table=escape(self.name), columns=col_names, wld=wildcards)
         return insert_statement
 
     def _execute_insert(self, conn, keys, data_iter):
@@ -1429,12 +1443,14 @@ class SQLiteDatabase(PandasSQL):
             try:
                 self.con.rollback()
             except Exception:  # pragma: no cover
-                ex = DatabaseError("Execution failed on sql: %s\n%s\nunable"
-                                   " to rollback" % (args[0], exc))
+                ex = DatabaseError(
+                    "Execution failed on sql: {sql}\n{exc}\nunable "
+                    "to rollback".format(sql=args[0], exc=exc))
                 raise_with_traceback(ex)
 
             ex = DatabaseError(
-                "Execution failed on sql '%s': %s" % (args[0], exc))
+                "Execution failed on sql '{sql}': {exc}".format(
+                    sql=args[0], exc=exc))
             raise_with_traceback(ex)
 
     @staticmethod
@@ -1530,8 +1546,8 @@ class SQLiteDatabase(PandasSQL):
         if dtype is not None:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
-                    raise ValueError('%s (%s) not a string' % (
-                        col, str(my_type)))
+                    raise ValueError('{column} ({type!s}) not a string'.format(
+                        column=col, type=my_type))
 
         table = SQLiteTable(name, self, frame=frame, index=index,
                             if_exists=if_exists, index_label=index_label,
@@ -1546,7 +1562,7 @@ class SQLiteDatabase(PandasSQL):
 
         wld = '?'
         query = ("SELECT name FROM sqlite_master "
-                 "WHERE type='table' AND name=%s;") % wld
+                 "WHERE type='table' AND name={wld};").format(wld=wld)
 
         return len(self.execute(query, [name, ]).fetchall()) > 0
 
@@ -1554,7 +1570,8 @@ class SQLiteDatabase(PandasSQL):
         return None  # not supported in fallback mode
 
     def drop_table(self, name, schema=None):
-        drop_sql = "DROP TABLE %s" % _get_valid_sqlite_name(name)
+        drop_sql = "DROP TABLE {name}".format(
+            name=_get_valid_sqlite_name(name))
         self.execute(drop_sql)
 
     def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):

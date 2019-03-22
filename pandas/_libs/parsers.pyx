@@ -64,10 +64,11 @@ from pandas.errors import (ParserError, DtypeWarning,
 CParserError = ParserError
 
 
-cdef bint PY3 = (sys.version_info[0] >= 3)
+cdef:
+    bint PY3 = (sys.version_info[0] >= 3)
 
-cdef float64_t INF = <float64_t>np.inf
-cdef float64_t NEGINF = -INF
+    float64_t INF = <float64_t>np.inf
+    float64_t NEGINF = -INF
 
 
 cdef extern from "errno.h":
@@ -677,7 +678,9 @@ cdef class TextReader:
 
         if isinstance(source, basestring):
             if not isinstance(source, bytes):
-                source = source.encode(sys.getfilesystemencoding() or 'utf-8')
+                encoding = sys.getfilesystemencoding() or "utf-8"
+
+                source = source.encode(encoding)
 
             if self.memory_map:
                 ptr = new_mmap(source)
@@ -729,7 +732,7 @@ cdef class TextReader:
             int status
             int64_t hr, data_line
             char *errors = "strict"
-            cdef StringPath path = _string_path(self.c_encoding)
+            StringPath path = _string_path(self.c_encoding)
 
         header = []
         unnamed_cols = set()
@@ -941,7 +944,7 @@ cdef class TextReader:
             status = tokenize_nrows(self.parser, nrows)
 
         if self.parser.warn_msg != NULL:
-            print >> sys.stderr, self.parser.warn_msg
+            print(self.parser.warn_msg, file=sys.stderr)
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
 
@@ -969,7 +972,7 @@ cdef class TextReader:
                 status = tokenize_all_rows(self.parser)
 
             if self.parser.warn_msg != NULL:
-                print >> sys.stderr, self.parser.warn_msg
+                print(self.parser.warn_msg, file=sys.stderr)
                 free(self.parser.warn_msg)
                 self.parser.warn_msg = NULL
 
@@ -1383,8 +1386,9 @@ cdef class TextReader:
                 return None
 
 
-cdef object _true_values = [b'True', b'TRUE', b'true']
-cdef object _false_values = [b'False', b'FALSE', b'false']
+cdef:
+    object _true_values = [b'True', b'TRUE', b'true']
+    object _false_values = [b'False', b'FALSE', b'false']
 
 
 def _ensure_encoded(list lst):
@@ -1631,7 +1635,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         int64_t current_category = 0
 
         char *errors = "strict"
-        cdef StringPath path = _string_path(encoding)
+        StringPath path = _string_path(encoding)
 
         int ret = 0
         kh_str_t *table
@@ -1721,9 +1725,10 @@ cdef inline void _to_fw_string_nogil(parser_t *parser, int64_t col,
         data += width
 
 
-cdef char* cinf = b'inf'
-cdef char* cposinf = b'+inf'
-cdef char* cneginf = b'-inf'
+cdef:
+    char* cinf = b'inf'
+    char* cposinf = b'+inf'
+    char* cneginf = b'-inf'
 
 
 cdef _try_double(parser_t *parser, int64_t col,

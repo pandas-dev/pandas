@@ -4,7 +4,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, long
+from pandas.compat import long
 
 from pandas import MultiIndex
 import pandas.util.testing as tm
@@ -17,8 +17,7 @@ def test_numeric_compat(idx):
     with pytest.raises(TypeError, match="cannot perform __rmul__"):
         1 * idx
 
-    div_err = ("cannot perform __truediv__" if PY3
-               else "cannot perform __div__")
+    div_err = "cannot perform __truediv__"
     with pytest.raises(TypeError, match=div_err):
         idx / 1
 
@@ -124,8 +123,6 @@ def test_compat(indices):
 
 def test_pickle_compat_construction(holder):
     # this is testing for pickle compat
-    if holder is None:
-        return
-
     # need an object to create with
-    pytest.raises(TypeError, holder)
+    with pytest.raises(TypeError, match="Must pass both levels and codes"):
+        holder()

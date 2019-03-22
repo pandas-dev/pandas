@@ -116,6 +116,7 @@ def test_pandas_datareader():
 @pytest.mark.filterwarnings("ignore:The 'warn':DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:pandas.util:DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
+@pytest.mark.skip(reason="gh-25778: geopandas stack issue")
 def test_geopandas():
 
     geopandas = import_module('geopandas')  # noqa

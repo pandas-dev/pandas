@@ -11,14 +11,13 @@ from decimal import Decimal
 from fractions import Fraction
 from numbers import Number
 import re
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
 import pytz
 
 from pandas._libs import iNaT, lib, missing as libmissing
-from pandas.compat import PY2, StringIO, lrange, u
+from pandas.compat import StringIO, lrange, u
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
@@ -30,8 +29,8 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Panel,
-    Period, Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna)
+    Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Period,
+    Series, Timedelta, TimedeltaIndex, Timestamp, isna)
 from pandas.util import testing as tm
 
 
@@ -159,13 +158,15 @@ def test_is_nested_list_like_fails(obj):
 
 
 @pytest.mark.parametrize(
-    "ll", [{}, {'A': 1}, Series([1])])
+    "ll", [{}, {'A': 1}, Series([1]), collections.defaultdict()])
 def test_is_dict_like_passes(ll):
     assert inference.is_dict_like(ll)
 
 
-@pytest.mark.parametrize(
-    "ll", ['1', 1, [1, 2], (1, 2), range(2), Index([1])])
+@pytest.mark.parametrize("ll", [
+    '1', 1, [1, 2], (1, 2), range(2), Index([1]),
+    dict, collections.defaultdict, Series
+])
 def test_is_dict_like_fails(ll):
     assert not inference.is_dict_like(ll)
 
@@ -285,18 +286,6 @@ def test_is_hashable():
     # is_hashable()
     assert not inference.is_hashable(np.array([]))
 
-    # old-style classes in Python 2 don't appear hashable to
-    # collections.Hashable but also seem to support hash() by default
-    if PY2:
-
-        class OldStyleClass():
-            pass
-
-        c = OldStyleClass()
-        assert not isinstance(c, compat.Hashable)
-        assert inference.is_hashable(c)
-        hash(c)  # this will not raise
-
 
 @pytest.mark.parametrize(
     "ll", [re.compile('ad')])
@@ -329,7 +318,7 @@ def test_is_recompilable_fails(ll):
 class TestInference(object):
 
     def test_infer_dtype_bytes(self):
-        compare = 'string' if PY2 else 'bytes'
+        compare = 'bytes'
 
         # string array of bytes
         arr = np.array(list('abc'), dtype='S1')
@@ -616,6 +605,37 @@ class TestTypeInference(object):
         result = lib.infer_dtype(arr, skipna=True)
         assert result == 'decimal'
 
+    # complex is compatible with nan, so skipna has no effect
+    @pytest.mark.parametrize('skipna', [True, False])
+    def test_complex(self, skipna):
+        # gets cast to complex on array construction
+        arr = np.array([1.0, 2.0, 1 + 1j])
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        arr = np.array([1.0, 2.0, 1 + 1j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'mixed'
+
+        # gets cast to complex on array construction
+        arr = np.array([1, np.nan, 1 + 1j])
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        arr = np.array([1.0, np.nan, 1 + 1j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'mixed'
+
+        # complex with nans stays complex
+        arr = np.array([1 + 1j, np.nan, 3 + 3j], dtype='O')
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
+        # test smaller complex dtype; will pass through _try_infer_map fastpath
+        arr = np.array([1 + 1j, np.nan, 3 + 3j], dtype=np.complex64)
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == 'complex'
+
     def test_string(self):
         pass
 
@@ -626,7 +646,7 @@ class TestTypeInference(object):
 
         arr = [u'a', np.nan, u'c']
         result = lib.infer_dtype(arr, skipna=True)
-        expected = 'unicode' if PY2 else 'string'
+        expected = 'string'
         assert result == expected
 
     @pytest.mark.parametrize('dtype, missing, skipna, expected', [
@@ -1272,10 +1292,6 @@ class TestIsScalar(object):
         assert not is_scalar(Series([1]))
         assert not is_scalar(DataFrame())
         assert not is_scalar(DataFrame([[1]]))
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            assert not is_scalar(Panel())
-            assert not is_scalar(Panel([[[1]]]))
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
 

@@ -5,7 +5,6 @@ import pytest
 
 from pandas._libs.tslib import iNaT
 import pandas.compat as compat
-from pandas.compat import PY3
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -30,7 +29,12 @@ class Base(object):
 
     def test_pickle_compat_construction(self):
         # need an object to create with
-        pytest.raises(TypeError, self._holder)
+        msg = (r"Index\(\.\.\.\) must be called with a collection of some"
+               r" kind, None was passed|"
+               r"__new__\(\) missing 1 required positional argument: 'data'|"
+               r"__new__\(\) takes at least 2 arguments \(1 given\)")
+        with pytest.raises(TypeError, match=msg):
+            self._holder()
 
     def test_to_series(self):
         # assert that we are creating a copy of the index
@@ -80,12 +84,23 @@ class Base(object):
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
 
+    def test_to_frame_datetime_tz(self):
+        # GH 25809
+        idx = pd.date_range(start='2019-01-01', end='2019-01-30', freq='D')
+        idx = idx.tz_localize('UTC')
+        result = idx.to_frame()
+        expected = pd.DataFrame(idx, index=idx)
+        tm.assert_frame_equal(result, expected)
+
     def test_shift(self):
 
         # GH8083 test the base class for shift
         idx = self.create_index()
-        pytest.raises(NotImplementedError, idx.shift, 1)
-        pytest.raises(NotImplementedError, idx.shift, 1, 2)
+        msg = "Not supported for type {}".format(type(idx).__name__)
+        with pytest.raises(NotImplementedError, match=msg):
+            idx.shift(1)
+        with pytest.raises(NotImplementedError, match=msg):
+            idx.shift(1, 2)
 
     def test_create_index_existing_name(self):
 
@@ -125,8 +140,7 @@ class Base(object):
         with pytest.raises(TypeError, match="cannot perform __rmul__"):
             1 * idx
 
-        div_err = ("cannot perform __truediv__" if PY3
-                   else "cannot perform __div__")
+        div_err = "cannot perform __truediv__"
         with pytest.raises(TypeError, match=div_err):
             idx / 1
 
@@ -478,7 +492,7 @@ class Base(object):
                 with pytest.raises(TypeError, match=msg):
                     first.union([1, 2, 3])
 
-    @pytest.mark.parametrize("sort", [True, False])
+    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_base(self, sort):
         for name, idx in compat.iteritems(self.indices):
             first = idx[2:]
@@ -905,3 +919,24 @@ class Base(object):
             result = index.astype('category', copy=copy)
             expected = CategoricalIndex(index.values, name=name)
             tm.assert_index_equal(result, expected)
+
+    def test_is_unique(self):
+        # initialize a unique index
+        index = self.create_index().drop_duplicates()
+        assert index.is_unique is True
+
+        # empty index should be unique
+        index_empty = index[:0]
+        assert index_empty.is_unique is True
+
+        # test basic dupes
+        index_dup = index.insert(0, index[0])
+        assert index_dup.is_unique is False
+
+        # single NA should be unique
+        index_na = index.insert(0, np.nan)
+        assert index_na.is_unique is True
+
+        # multiple NA should not be unique
+        index_na_dup = index_na.insert(0, np.nan)
+        assert index_na_dup.is_unique is False

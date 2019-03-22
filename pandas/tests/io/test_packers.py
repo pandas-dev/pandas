@@ -8,14 +8,13 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY3, u
+from pandas.compat import u
 from pandas.errors import PerformanceWarning
 
 import pandas
 from pandas import (
-    Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Panel, Period,
-    Series, Timestamp, bdate_range, compat, date_range, period_range)
-from pandas.tests.test_panel import assert_panel_equal
+    Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Period, Series,
+    Timestamp, bdate_range, compat, date_range, period_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_categorical_equal, assert_frame_equal, assert_index_equal,
@@ -62,8 +61,6 @@ def check_arbitrary(a, b):
         assert(len(a) == len(b))
         for a_, b_ in zip(a, b):
             check_arbitrary(a_, b_)
-    elif isinstance(a, Panel):
-        assert_panel_equal(a, b)
     elif isinstance(a, DataFrame):
         assert_frame_equal(a, b)
     elif isinstance(a, Series):
@@ -74,7 +71,7 @@ def check_arbitrary(a, b):
         # Temp,
         # Categorical.categories is changed from str to bytes in PY3
         # maybe the same as GH 13591
-        if PY3 and b.categories.inferred_type == 'string':
+        if b.categories.inferred_type == 'string':
             pass
         else:
             tm.assert_categorical_equal(a, b)
@@ -156,9 +153,14 @@ class TestAPI(TestPackers):
             def __init__(self):
                 self.read = 0
 
-        pytest.raises(ValueError, read_msgpack, path_or_buf=None)
-        pytest.raises(ValueError, read_msgpack, path_or_buf={})
-        pytest.raises(ValueError, read_msgpack, path_or_buf=A())
+        msg = (r"Invalid file path or buffer object type: <(class|type)"
+               r" '{}'>")
+        with pytest.raises(ValueError, match=msg.format('NoneType')):
+            read_msgpack(path_or_buf=None)
+        with pytest.raises(ValueError, match=msg.format('dict')):
+            read_msgpack(path_or_buf={})
+        with pytest.raises(ValueError, match=msg.format(r'.*\.A')):
+            read_msgpack(path_or_buf=A())
 
 
 class TestNumpy(TestPackers):
@@ -485,22 +487,11 @@ class TestNDFrame(TestPackers):
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
             'mixed': DataFrame(data)}
 
-        self.panel = {
-            'float': Panel(dict(ItemA=self.frame['float'],
-                                ItemB=self.frame['float'] + 1))}
-
     def test_basic_frame(self):
 
         for s, i in self.frame.items():
             i_rec = self.encode_decode(i)
             assert_frame_equal(i, i_rec)
-
-    def test_basic_panel(self):
-
-        with catch_warnings(record=True):
-            for s, i in self.panel.items():
-                i_rec = self.encode_decode(i)
-                assert_panel_equal(i, i_rec)
 
     def test_multi(self):
 
@@ -567,7 +558,9 @@ class TestSparse(TestPackers):
         # currently these are not implemetned
         # i_rec = self.encode_decode(obj)
         # comparator(obj, i_rec, **kwargs)
-        pytest.raises(NotImplementedError, self.encode_decode, obj)
+        msg = r"msgpack sparse (series|frame) is not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            self.encode_decode(obj)
 
     def test_sparse_series(self):
 
@@ -869,6 +862,10 @@ TestPackers
 
     def check_min_structure(self, data, version):
         for typ, v in self.minimum_structure.items():
+            if typ == "panel":
+                # FIXME: kludge; get this key out of the legacy file
+                continue
+
             assert typ in data, '"{0}" not found in unpacked data'.format(typ)
             for kind in v:
                 msg = '"{0}" not found in data["{1}"]'.format(kind, typ)
@@ -880,6 +877,11 @@ TestPackers
             data = read_msgpack(vf, encoding='latin-1')
         else:
             data = read_msgpack(vf)
+
+        if "panel" in data:
+            # FIXME: kludge; get the key out of the stored file
+            del data["panel"]
+
         self.check_min_structure(data, version)
         for typ, dv in data.items():
             assert typ in all_data, ('unpacked data contains '
@@ -928,7 +930,7 @@ TestPackers
         version = os.path.basename(os.path.dirname(legacy_packer))
 
         # GH12142 0.17 files packed in P2 can't be read in P3
-        if (compat.PY3 and version.startswith('0.17.') and
+        if (version.startswith('0.17.') and
                 legacy_packer.split('.')[-4][-1] == '2'):
             msg = "Files packed in Py2 can't be read in Py3 ({})"
             pytest.skip(msg.format(version))

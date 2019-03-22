@@ -6,7 +6,7 @@ import pytest
 from pandas.compat import u
 
 import pandas as pd
-from pandas import DataFrame, Series, compat
+from pandas import DataFrame, Series
 from pandas.util import testing as tm
 
 
@@ -32,16 +32,10 @@ class TestToLatex(object):
                 assert df.to_latex() == f.read()
 
         # test with utf-8 without encoding option
-        if compat.PY3:  # python3: pandas default encoding is utf-8
-            with tm.ensure_clean('test.tex') as path:
-                df.to_latex(path)
-                with codecs.open(path, 'r', encoding='utf-8') as f:
-                    assert df.to_latex() == f.read()
-        else:
-            # python2 default encoding is ascii, so an error should be raised
-            with tm.ensure_clean('test.tex') as path:
-                with pytest.raises(UnicodeEncodeError):
-                    df.to_latex(path)
+        with tm.ensure_clean('test.tex') as path:
+            df.to_latex(path)
+            with codecs.open(path, 'r', encoding='utf-8') as f:
+                assert df.to_latex() == f.read()
 
     def test_to_latex(self, frame):
         # it works!
@@ -898,3 +892,19 @@ NaN & 2 &  4 \\
 \end{tabular}
 """
         assert df.to_latex(float_format='%.0f') == expected
+
+    def test_to_latex_multindex_header(self):
+        # GH 16718
+        df = (pd.DataFrame({'a': [0], 'b': [1], 'c': [2], 'd': [3]})
+              .set_index(['a', 'b']))
+        observed = df.to_latex(header=['r1', 'r2'])
+        expected = r"""\begin{tabular}{llrr}
+\toprule
+  &   & r1 & r2 \\
+a & b &    &    \\
+\midrule
+0 & 1 &  2 &  3 \\
+\bottomrule
+\end{tabular}
+"""
+        assert observed == expected

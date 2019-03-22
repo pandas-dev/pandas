@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from functools import partial
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
@@ -10,7 +9,7 @@ from pandas.compat import StringIO, range
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import DataFrame, Panel, Series, Timedelta, Timestamp, isna, notna
+from pandas import DataFrame, Series, Timedelta, Timestamp, isna, notna
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.resample import (
@@ -102,6 +101,18 @@ def test_resample_basic(series, closed, expected):
     assert_series_equal(result, expected)
 
 
+def test_resample_integerarray():
+    # GH 25580, resample on IntegerArray
+    ts = pd.Series(range(9),
+                   index=pd.date_range('1/1/2000', periods=9, freq='T'),
+                   dtype='Int64')
+    result = ts.resample('3T').sum()
+    expected = Series([3, 12, 21],
+                      index=pd.date_range('1/1/2000', periods=3, freq='3T'),
+                      dtype="Int64")
+    assert_series_equal(result, expected)
+
+
 def test_resample_basic_grouper(series):
     s = series
     result = s.resample('5Min').last()
@@ -113,16 +124,18 @@ def test_resample_basic_grouper(series):
 @pytest.mark.parametrize(
     '_index_start,_index_end,_index_name',
     [('1/1/2000 00:00:00', '1/1/2000 00:13:00', 'index')])
-@pytest.mark.parametrize('kwargs', [
-    dict(label='righttt'),
-    dict(closed='righttt'),
-    dict(convention='starttt')
+@pytest.mark.parametrize('keyword,value', [
+    ('label', 'righttt'),
+    ('closed', 'righttt'),
+    ('convention', 'starttt')
 ])
-def test_resample_string_kwargs(series, kwargs):
+def test_resample_string_kwargs(series, keyword, value):
     # see gh-19303
     # Check that wrong keyword argument strings raise an error
-    with pytest.raises(ValueError, match='Unsupported value'):
-        series.resample('5min', **kwargs)
+    msg = "Unsupported value {value} for `{keyword}`".format(
+        value=value, keyword=keyword)
+    with pytest.raises(ValueError, match=msg):
+        series.resample('5min', **({keyword: value}))
 
 
 @pytest.mark.parametrize(
@@ -676,7 +689,7 @@ def test_asfreq_non_unique():
     ts = Series(np.random.randn(len(rng2)), index=rng2)
 
     msg = 'cannot reindex from a duplicate axis'
-    with pytest.raises(Exception, match=msg):
+    with pytest.raises(ValueError, match=msg):
         ts.asfreq('B')
 
 
@@ -688,56 +701,6 @@ def test_resample_axis1():
     result = df.resample('M', axis=1).mean()
     expected = df.T.resample('M').mean().T
     tm.assert_frame_equal(result, expected)
-
-
-def test_resample_panel():
-    rng = date_range('1/1/2000', '6/30/2000')
-    n = len(rng)
-
-    with catch_warnings(record=True):
-        simplefilter("ignore", FutureWarning)
-        panel = Panel(np.random.randn(3, n, 5),
-                      items=['one', 'two', 'three'],
-                      major_axis=rng,
-                      minor_axis=['a', 'b', 'c', 'd', 'e'])
-
-        result = panel.resample('M', axis=1).mean()
-
-        def p_apply(panel, f):
-            result = {}
-            for item in panel.items:
-                result[item] = f(panel[item])
-            return Panel(result, items=panel.items)
-
-        expected = p_apply(panel, lambda x: x.resample('M').mean())
-        tm.assert_panel_equal(result, expected)
-
-        panel2 = panel.swapaxes(1, 2)
-        result = panel2.resample('M', axis=2).mean()
-        expected = p_apply(panel2,
-                           lambda x: x.resample('M', axis=1).mean())
-        tm.assert_panel_equal(result, expected)
-
-
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-def test_resample_panel_numpy():
-    rng = date_range('1/1/2000', '6/30/2000')
-    n = len(rng)
-
-    with catch_warnings(record=True):
-        panel = Panel(np.random.randn(3, n, 5),
-                      items=['one', 'two', 'three'],
-                      major_axis=rng,
-                      minor_axis=['a', 'b', 'c', 'd', 'e'])
-
-        result = panel.resample('M', axis=1).apply(lambda x: x.mean(1))
-        expected = panel.resample('M', axis=1).mean()
-        tm.assert_panel_equal(result, expected)
-
-        panel = panel.swapaxes(1, 2)
-        result = panel.resample('M', axis=2).apply(lambda x: x.mean(2))
-        expected = panel.resample('M', axis=2).mean()
-        tm.assert_panel_equal(result, expected)
 
 
 def test_resample_anchored_ticks():
@@ -1184,6 +1147,15 @@ def test_resample_nunique():
     assert_series_equal(result, expected)
 
 
+def test_resample_nunique_preserves_column_level_names():
+    # see gh-23222
+    df = tm.makeTimeDataFrame(freq="1D").abs()
+    df.columns = pd.MultiIndex.from_arrays([df.columns.tolist()] * 2,
+                                           names=["lev0", "lev1"])
+    result = df.resample("1h").nunique()
+    tm.assert_index_equal(df.columns, result.columns)
+
+
 def test_resample_nunique_with_date_gap():
     # GH 13453
     index = pd.date_range('1-1-2000', '2-15-2000', freq='h')
@@ -1209,9 +1181,13 @@ def test_resample_nunique_with_date_gap():
 @pytest.mark.parametrize('k', [10, 100, 1000])
 def test_resample_group_info(n, k):
     # GH10914
+
+    # use a fixed seed to always have the same uniques
+    prng = np.random.RandomState(1234)
+
     dr = date_range(start='2015-08-27', periods=n // 10, freq='T')
-    ts = Series(np.random.randint(0, n // k, n).astype('int64'),
-                index=np.random.choice(dr, n))
+    ts = Series(prng.randint(0, n // k, n).astype('int64'),
+                index=prng.choice(dr, n))
 
     left = ts.resample('30T').nunique()
     ix = date_range(start=ts.index.min(), end=ts.index.max(),
@@ -1273,6 +1249,21 @@ def test_resample_across_dst():
     result = df.resample(rule='H').sum()
     expected = DataFrame([5, 5], index=dti2)
 
+    assert_frame_equal(result, expected)
+
+
+def test_groupby_with_dst_time_change():
+    # GH 24972
+    index = pd.DatetimeIndex([1478064900001000000, 1480037118776792000],
+                             tz='UTC').tz_convert('America/Chicago')
+
+    df = pd.DataFrame([1, 2], index=index)
+    result = df.groupby(pd.Grouper(freq='1d')).last()
+    expected_index_values = pd.date_range('2016-11-02', '2016-11-24',
+                                          freq='d', tz='America/Chicago')
+
+    index = pd.DatetimeIndex(expected_index_values)
+    expected = pd.DataFrame([1.0] + ([np.nan] * 21) + [2.0], index=index)
     assert_frame_equal(result, expected)
 
 

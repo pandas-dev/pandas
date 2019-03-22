@@ -16,11 +16,16 @@ class TestSeriesAlterAxes(object):
 
     def test_setindex(self, string_series):
         # wrong type
-        pytest.raises(TypeError, setattr, string_series, 'index', None)
+        msg = (r"Index\(\.\.\.\) must be called with a collection of some"
+               r" kind, None was passed")
+        with pytest.raises(TypeError, match=msg):
+            string_series.index = None
 
         # wrong length
-        pytest.raises(Exception, setattr, string_series, 'index',
-                      np.arange(len(string_series) - 1))
+        msg = ("Length mismatch: Expected axis has 30 elements, new"
+               " values have 29 elements")
+        with pytest.raises(ValueError, match=msg):
+            string_series.index = np.arange(len(string_series) - 1)
 
         # works
         string_series.index = np.arange(len(string_series))
@@ -251,6 +256,17 @@ class TestSeriesAlterAxes(object):
         no_return = result.rename_axis('foo', inplace=True)
 
         assert no_return is None
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('kwargs', [{'mapper': None}, {'index': None}, {}])
+    def test_rename_axis_none(self, kwargs):
+        # GH 25034
+        index = Index(list('abc'), name='foo')
+        df = Series([1, 2, 3], index=index)
+
+        result = df.rename_axis(**kwargs)
+        expected_index = index.rename(None) if kwargs else index
+        expected = Series([1, 2, 3], index=expected_index)
         tm.assert_series_equal(result, expected)
 
     def test_set_axis_inplace_axes(self, axis_series):

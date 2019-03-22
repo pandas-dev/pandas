@@ -1,9 +1,9 @@
 from __future__ import division
 
+from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-import locale
 import os
 import re
 from shutil import rmtree
@@ -17,11 +17,14 @@ import warnings
 import numpy as np
 from numpy.random import rand, randn
 
+from pandas._config.localization import (  # noqa:F401
+    _valid_locales, can_set_locale, set_locale)
+
 from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
-    PY2, PY3, Counter, callable, filter, httplib, lmap, lrange, lzip, map,
-    raise_with_traceback, range, string_types, u, unichr, zip)
+    PY2, PY3, httplib, lmap, lrange, lzip, map, raise_with_traceback, range,
+    string_types, u, unichr, zip)
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -33,12 +36,11 @@ from pandas.core.dtypes.missing import array_equivalent
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
-    IntervalIndex, MultiIndex, Panel, RangeIndex, Series, bdate_range)
+    IntervalIndex, MultiIndex, RangeIndex, Series, bdate_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
     period_array)
-import pandas.core.common as com
 
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
@@ -426,44 +428,9 @@ def close(fignum=None):
 # locale utilities
 
 
-def check_output(*popenargs, **kwargs):
-    # shamelessly taken from Python 2.7 source
-    r"""Run command with arguments and return its output as a byte string.
-
-    If the exit code was non-zero it raises a CalledProcessError.  The
-    CalledProcessError object will have the return code in the returncode
-    attribute and output in the output attribute.
-
-    The arguments are the same as for the Popen constructor.  Example:
-
-    >>> check_output(["ls", "-l", "/dev/null"])
-    'crw-rw-rw- 1 root root 1, 3 Oct 18  2007 /dev/null\n'
-
-    The stdout argument is not allowed as it is used internally.
-    To capture standard error in the result, use stderr=STDOUT.
-
-    >>> check_output(["/bin/sh", "-c",
-    ...               "ls -l non_existent_file ; exit 0"],
-    ...              stderr=STDOUT)
-    'ls: non_existent_file: No such file or directory\n'
-    """
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = subprocess.Popen(stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                               *popenargs, **kwargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        raise subprocess.CalledProcessError(retcode, cmd, output=output)
-    return output
-
-
 def _default_locale_getter():
     try:
-        raw_locales = check_output(['locale -a'], shell=True)
+        raw_locales = subprocess.check_output(['locale -a'], shell=True)
     except subprocess.CalledProcessError as e:
         raise type(e)("{exception}, the 'locale -a' command cannot be found "
                       "on your system".format(exception=e))
@@ -528,89 +495,6 @@ def get_locales(prefix=None, normalize=True,
     return _valid_locales(found, normalize)
 
 
-@contextmanager
-def set_locale(new_locale, lc_var=locale.LC_ALL):
-    """Context manager for temporarily setting a locale.
-
-    Parameters
-    ----------
-    new_locale : str or tuple
-        A string of the form <language_country>.<encoding>. For example to set
-        the current locale to US English with a UTF8 encoding, you would pass
-        "en_US.UTF-8".
-    lc_var : int, default `locale.LC_ALL`
-        The category of the locale being set.
-
-    Notes
-    -----
-    This is useful when you want to run a particular block of code under a
-    particular locale, without globally setting the locale. This probably isn't
-    thread-safe.
-    """
-    current_locale = locale.getlocale()
-
-    try:
-        locale.setlocale(lc_var, new_locale)
-        normalized_locale = locale.getlocale()
-        if com._all_not_none(*normalized_locale):
-            yield '.'.join(normalized_locale)
-        else:
-            yield new_locale
-    finally:
-        locale.setlocale(lc_var, current_locale)
-
-
-def can_set_locale(lc, lc_var=locale.LC_ALL):
-    """
-    Check to see if we can set a locale, and subsequently get the locale,
-    without raising an Exception.
-
-    Parameters
-    ----------
-    lc : str
-        The locale to attempt to set.
-    lc_var : int, default `locale.LC_ALL`
-        The category of the locale being set.
-
-    Returns
-    -------
-    is_valid : bool
-        Whether the passed locale can be set
-    """
-
-    try:
-        with set_locale(lc, lc_var=lc_var):
-            pass
-    except (ValueError,
-            locale.Error):  # horrible name for a Exception subclass
-        return False
-    else:
-        return True
-
-
-def _valid_locales(locales, normalize):
-    """Return a list of normalized locales that do not throw an ``Exception``
-    when set.
-
-    Parameters
-    ----------
-    locales : str
-        A string where each locale is separated by a newline.
-    normalize : bool
-        Whether to call ``locale.normalize`` on each locale.
-
-    Returns
-    -------
-    valid_locales : list
-        A list of valid locales.
-    """
-    if normalize:
-        normalizer = lambda x: locale.normalize(x.strip())
-    else:
-        normalizer = lambda x: x.strip()
-
-    return list(filter(can_set_locale, map(normalizer, locales)))
-
 # -----------------------------------------------------------------------------
 # Stdout / stderr decorators
 
@@ -636,35 +520,6 @@ def set_defaultencoding(encoding):
     finally:
         sys.setdefaultencoding(orig)
 
-
-# -----------------------------------------------------------------------------
-# Console debugging tools
-
-
-def debug(f, *args, **kwargs):
-    from pdb import Pdb as OldPdb
-    try:
-        from IPython.core.debugger import Pdb
-        kw = dict(color_scheme='Linux')
-    except ImportError:
-        Pdb = OldPdb
-        kw = {}
-    pdb = Pdb(**kw)
-    return pdb.runcall(f, *args, **kwargs)
-
-
-def pudebug(f, *args, **kwargs):
-    import pudb
-    return pudb.runcall(f, *args, **kwargs)
-
-
-def set_trace():
-    from IPython.core.debugger import Pdb
-    try:
-        Pdb(color_scheme='Linux').set_trace(sys._getframe().f_back)
-    except Exception:
-        from pdb import Pdb as OldPdb
-        OldPdb().set_trace(sys._getframe().f_back)
 
 # -----------------------------------------------------------------------------
 # contextmanager to ensure the file cleanup
@@ -1199,6 +1054,11 @@ def assert_extension_array_equal(left, right, check_dtype=True,
     if check_dtype:
         assert_attr_equal('dtype', left, right, obj='ExtensionArray')
 
+    if hasattr(left, "asi8") and type(right) == type(left):
+        # Avoid slow object-dtype comparisons
+        assert_numpy_array_equal(left.asi8, right.asi8)
+        return
+
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
     assert_numpy_array_equal(left_na, right_na, obj='ExtensionArray NA mask')
@@ -1495,69 +1355,6 @@ def assert_frame_equal(left, right, check_dtype=True,
                 check_datetimelike_compat=check_datetimelike_compat,
                 check_categorical=check_categorical,
                 obj='DataFrame.iloc[:, {idx}]'.format(idx=i))
-
-
-def assert_panel_equal(left, right,
-                       check_dtype=True,
-                       check_panel_type=False,
-                       check_less_precise=False,
-                       check_names=False,
-                       by_blocks=False,
-                       obj='Panel'):
-    """Check that left and right Panels are equal.
-
-    Parameters
-    ----------
-    left : Panel (or nd)
-    right : Panel (or nd)
-    check_dtype : bool, default True
-        Whether to check the Panel dtype is identical.
-    check_panel_type : bool, default False
-        Whether to check the Panel class is identical.
-    check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when check_exact is False.
-        5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
-    check_names : bool, default True
-        Whether to check the Index names attribute.
-    by_blocks : bool, default False
-        Specify how to compare internal data. If False, compare by columns.
-        If True, compare by blocks.
-    obj : str, default 'Panel'
-        Specify the object name being compared, internally used to show
-        the appropriate assertion message.
-    """
-
-    if check_panel_type:
-        assert_class_equal(left, right, obj=obj)
-
-    for axis in left._AXIS_ORDERS:
-        left_ind = getattr(left, axis)
-        right_ind = getattr(right, axis)
-        assert_index_equal(left_ind, right_ind, check_names=check_names)
-
-    if by_blocks:
-        rblocks = right._to_dict_of_blocks()
-        lblocks = left._to_dict_of_blocks()
-        for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
-            assert dtype in lblocks
-            assert dtype in rblocks
-            array_equivalent(lblocks[dtype].values, rblocks[dtype].values)
-    else:
-
-        # can potentially be slow
-        for i, item in enumerate(left._get_axis(0)):
-            msg = "non-matching item (right) '{item}'".format(item=item)
-            assert item in right, msg
-            litem = left.iloc[i]
-            ritem = right.iloc[i]
-            assert_frame_equal(litem, ritem,
-                               check_less_precise=check_less_precise,
-                               check_names=check_names)
-
-        for i, item in enumerate(right._get_axis(0)):
-            msg = "non-matching item (left) '{item}'".format(item=item)
-            assert item in left, msg
 
 
 def assert_equal(left, right, **kwargs):
@@ -2046,22 +1843,6 @@ def makePeriodFrame(nper=None):
     return DataFrame(data)
 
 
-def makePanel(nper=None):
-    with warnings.catch_warnings(record=True):
-        warnings.filterwarnings("ignore", "\\nPanel", FutureWarning)
-        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-        data = {c: makeTimeDataFrame(nper) for c in cols}
-        return Panel.fromDict(data)
-
-
-def makePeriodPanel(nper=None):
-    with warnings.catch_warnings(record=True):
-        warnings.filterwarnings("ignore", "\\nPanel", FutureWarning)
-        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-        data = {c: makePeriodFrame(nper) for c in cols}
-        return Panel.fromDict(data)
-
-
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
                     idx_type=None):
     """Create an index/multindex with given dimensions, levels, names, etc'
@@ -2307,15 +2088,6 @@ def makeMissingDataframe(density=.9, random_state=None):
                                random_state=random_state)
     df.values[i, j] = np.nan
     return df
-
-
-def add_nans(panel):
-    I, J, N = panel.shape
-    for i, item in enumerate(panel.items):
-        dm = panel[item]
-        for j, col in enumerate(dm.columns):
-            dm[col][:i + j] = np.NaN
-    return panel
 
 
 class TestSubDict(dict):
@@ -2682,7 +2454,8 @@ class _AssertRaisesContextmanager(object):
 
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
-                            clear=None, check_stacklevel=True):
+                            clear=None, check_stacklevel=True,
+                            raise_on_extra_warnings=True):
     """
     Context manager for running code expected to either raise a specific
     warning, or not raise any warnings. Verifies that the code raises the
@@ -2695,7 +2468,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         The type of Exception raised. ``exception.Warning`` is the base
         class for all warnings. To check that no warning is returned,
         specify ``False`` or ``None``.
-    filter_level : str, default "always"
+    filter_level : str or None, default "always"
         Specifies whether warnings are ignored, displayed, or turned
         into errors.
         Valid values are:
@@ -2719,6 +2492,9 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
         line that implements the function is displayed.
+    raise_on_extra_warnings : bool, default True
+        Whether extra warnings not of the type `expected_warning` should
+        cause the test to fail.
 
     Examples
     --------
@@ -2787,8 +2563,10 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             msg = "Did not see expected warning of class {name!r}.".format(
                 name=expected_warning.__name__)
             assert saw_warning, msg
-        assert not extra_warnings, ("Caused unexpected warning(s): {extra!r}."
-                                    ).format(extra=extra_warnings)
+        if raise_on_extra_warnings and extra_warnings:
+            raise AssertionError(
+                "Caused unexpected warning(s): {!r}.".format(extra_warnings)
+            )
 
 
 class RNGContext(object):

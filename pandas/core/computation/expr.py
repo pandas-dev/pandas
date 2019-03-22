@@ -3,22 +3,25 @@
 
 import ast
 from functools import partial
+import itertools as it
+import operator
 import tokenize
 
 import numpy as np
 
-from pandas.compat import StringIO, lmap, reduce, string_types, zip
+from pandas.compat import StringIO, lmap, map, reduce, string_types, zip
 
 import pandas as pd
 from pandas import compat
 from pandas.core import common as com
 from pandas.core.base import StringMixin
+from pandas.core.computation.common import (
+    _BACKTICK_QUOTED_STRING, _remove_spaces_column_name)
 from pandas.core.computation.ops import (
     _LOCAL_TAG, BinOp, Constant, Div, FuncNode, Op, Term, UnaryOp,
     UndefinedVariableError, _arith_ops_syms, _bool_ops_syms, _cmp_ops_syms,
     _mathops, _reductions, _unary_ops_syms, is_term)
 from pandas.core.computation.scope import Scope
-from pandas.core.reshape.util import compose
 
 import pandas.io.formats.printing as printing
 
@@ -32,7 +35,17 @@ def tokenize_string(source):
         A Python source code string
     """
     line_reader = StringIO(source).readline
-    for toknum, tokval, _, _, _ in tokenize.generate_tokens(line_reader):
+    token_generator = tokenize.generate_tokens(line_reader)
+
+    # Loop over all tokens till a backtick (`) is found.
+    # Then, take all tokens till the next backtick to form a backtick quoted
+    # string.
+    for toknum, tokval, _, _, _ in token_generator:
+        if tokval == '`':
+            tokval = " ".join(it.takewhile(
+                lambda tokval: tokval != '`',
+                map(operator.itemgetter(1), token_generator)))
+            toknum = _BACKTICK_QUOTED_STRING
         yield toknum, tokval
 
 
@@ -103,8 +116,45 @@ def _replace_locals(tok):
     return toknum, tokval
 
 
-def _preparse(source, f=compose(_replace_locals, _replace_booleans,
-                                _rewrite_assign)):
+def _clean_spaces_backtick_quoted_names(tok):
+    """Clean up a column name if surrounded by backticks.
+
+    Backtick quoted string are indicated by a certain tokval value. If a string
+    is a backtick quoted token it will processed by
+    :func:`_remove_spaces_column_name` so that the parser can find this
+    string when the query is executed.
+    See also :meth:`NDFrame._get_space_character_free_column_resolver`.
+
+    Parameters
+    ----------
+    tok : tuple of int, str
+        ints correspond to the all caps constants in the tokenize module
+
+    Returns
+    -------
+    t : tuple of int, str
+        Either the input or token or the replacement values
+    """
+    toknum, tokval = tok
+    if toknum == _BACKTICK_QUOTED_STRING:
+        return tokenize.NAME, _remove_spaces_column_name(tokval)
+    return toknum, tokval
+
+
+def _compose2(f, g):
+    """Compose 2 callables"""
+    return lambda *args, **kwargs: f(g(*args, **kwargs))
+
+
+def _compose(*funcs):
+    """Compose 2 or more callables"""
+    assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
+    return reduce(_compose2, funcs)
+
+
+def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
+                                 _rewrite_assign,
+                                 _clean_spaces_backtick_quoted_names)):
     """Compose a collection of tokenization functions
 
     Parameters
@@ -701,8 +751,9 @@ _numexpr_supported_calls = frozenset(_reductions + _mathops)
 class PandasExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser,
-                 preparser=partial(_preparse, f=compose(_replace_locals,
-                                                        _replace_booleans))):
+                 preparser=partial(_preparse, f=_compose(
+                     _replace_locals, _replace_booleans,
+                     _clean_spaces_backtick_quoted_names))):
         super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
 
 

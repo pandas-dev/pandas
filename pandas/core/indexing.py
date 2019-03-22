@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.indexing import _NDFrameIndexerBase
+from pandas._libs.lib import item_from_zerodim
 import pandas.compat as compat
 from pandas.compat import range, zip
 from pandas.errors import AbstractMethodError
@@ -347,10 +348,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         # must have all defined axes if we have a scalar
                         # or a list-like on the non-info axes if we have a
                         # list-like
-                        len_non_info_axes = [
+                        len_non_info_axes = (
                             len(_ax) for _i, _ax in enumerate(self.obj.axes)
                             if _i != i
-                        ]
+                        )
                         if any(not l for l in len_non_info_axes):
                             if not is_list_like_indexer(value):
                                 raise ValueError("cannot set a frame with no "
@@ -1405,17 +1406,16 @@ class _IXIndexer(_NDFrameIndexer):
     See more at :ref:`Advanced Indexing <advanced>`.
     """
 
+    _ix_deprecation_warning = textwrap.dedent("""
+        .ix is deprecated. Please use
+        .loc for label based indexing or
+        .iloc for positional indexing
+
+        See the documentation here:
+        http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated""")  # noqa
+
     def __init__(self, name, obj):
-
-        _ix_deprecation_warning = textwrap.dedent("""
-            .ix is deprecated. Please use
-            .loc for label based indexing or
-            .iloc for positional indexing
-
-            See the documentation here:
-            http://pandas.pydata.org/pandas-docs/stable/indexing.html#ix-indexer-is-deprecated""")  # noqa
-
-        warnings.warn(_ix_deprecation_warning,
+        warnings.warn(self._ix_deprecation_warning,
                       DeprecationWarning, stacklevel=2)
         super(_IXIndexer, self).__init__(name, obj)
 
@@ -1857,6 +1857,7 @@ class _LocIndexer(_LocationIndexer):
         if axis is None:
             axis = self.axis or 0
 
+        key = item_from_zerodim(key)
         if is_iterator(key):
             key = list(key)
 
@@ -2223,6 +2224,7 @@ class _iLocIndexer(_LocationIndexer):
 
         # a single integer
         else:
+            key = item_from_zerodim(key)
             if not is_integer(key):
                 raise TypeError("Cannot index by location index with a "
                                 "non-integer key")

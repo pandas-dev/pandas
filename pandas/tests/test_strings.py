@@ -10,7 +10,7 @@ from numpy.random import randint
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import PY3, range, u
+from pandas.compat import range, u
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
@@ -76,7 +76,7 @@ _any_string_method = [
     'len', 'lower', 'lstrip', 'partition',
     'rpartition', 'rsplit', 'rstrip',
     'slice', 'slice_replace', 'split',
-    'strip', 'swapcase', 'title', 'upper'
+    'strip', 'swapcase', 'title', 'upper', 'casefold'
 ], [()] * 100, [{}] * 100))
 ids, _, _ = zip(*_any_string_method)  # use method name as fixture-id
 
@@ -120,8 +120,8 @@ def any_string_method(request):
 # subset of the full set from pandas/conftest.py
 _any_allowed_skipna_inferred_dtype = [
     ('string', ['a', np.nan, 'c']),
-    ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
-    ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
+    ('string', [u('a'), np.nan, u('c')]),
+    ('bytes', [b'a', np.nan, b'c']),
     ('empty', [np.nan, np.nan, np.nan]),
     ('empty', []),
     ('mixed-integer', ['a', np.nan, 2])
@@ -136,9 +136,8 @@ def any_allowed_skipna_inferred_dtype(request):
 
     The covered (inferred) types are:
     * 'string'
-    * 'unicode' (if PY2)
     * 'empty'
-    * 'bytes' (if PY3)
+    * 'bytes'
     * 'mixed'
     * 'mixed-integer'
 
@@ -1002,11 +1001,13 @@ class TestStringMethods(object):
         tm.assert_series_equal(result, exp)
 
         # GH 13438
+        msg = "repl must be a string or callable"
         for klass in (Series, Index):
             for repl in (None, 3, {'a': 'b'}):
                 for data in (['a', 'b', None], ['a', 'b', 'c', 'ad']):
                     values = klass(data)
-                    pytest.raises(TypeError, values.str.replace, 'a', repl)
+                    with pytest.raises(TypeError, match=msg):
+                        values.str.replace('a', repl)
 
     def test_replace_callable(self):
         # GH 15055
@@ -1019,11 +1020,8 @@ class TestStringMethods(object):
         tm.assert_series_equal(result, exp)
 
         # test with wrong number of arguments, raising an error
-        if compat.PY2:
-            p_err = r'takes (no|(exactly|at (least|most)) ?\d+) arguments?'
-        else:
-            p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
-                     r'(?(3)required )positional arguments?')
+        p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
+                 r'(?(3)required )positional arguments?')
 
         repl = lambda: None
         with pytest.raises(TypeError, match=p_err):
@@ -1123,10 +1121,14 @@ class TestStringMethods(object):
         callable_repl = lambda m: m.group(0).swapcase()
         compiled_pat = re.compile('[a-z][A-Z]{2}')
 
-        pytest.raises(ValueError, values.str.replace, 'abc', callable_repl,
-                      regex=False)
-        pytest.raises(ValueError, values.str.replace, compiled_pat, '',
-                      regex=False)
+        msg = "Cannot use a callable replacement when regex=False"
+        with pytest.raises(ValueError, match=msg):
+            values.str.replace('abc', callable_repl, regex=False)
+
+        msg = ("Cannot use a compiled regex as replacement pattern with"
+               " regex=False")
+        with pytest.raises(ValueError, match=msg):
+            values.str.replace(compiled_pat, '', regex=False)
 
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
@@ -1242,12 +1244,13 @@ class TestStringMethods(object):
         for klass in [Series, Index]:
             # no groups
             s_or_idx = klass(['A1', 'B2', 'C3'])
-            f = lambda: s_or_idx.str.extract('[ABC][123]', expand=False)
-            pytest.raises(ValueError, f)
+            msg = "pattern contains no capture groups"
+            with pytest.raises(ValueError, match=msg):
+                s_or_idx.str.extract('[ABC][123]', expand=False)
 
             # only non-capturing groups
-            f = lambda: s_or_idx.str.extract('(?:[AB]).*', expand=False)
-            pytest.raises(ValueError, f)
+            with pytest.raises(ValueError, match=msg):
+                s_or_idx.str.extract('(?:[AB]).*', expand=False)
 
             # single group renames series/index properly
             s_or_idx = klass(['A1', 'A2'])
@@ -1387,12 +1390,13 @@ class TestStringMethods(object):
         for klass in [Series, Index]:
             # no groups
             s_or_idx = klass(['A1', 'B2', 'C3'])
-            f = lambda: s_or_idx.str.extract('[ABC][123]', expand=True)
-            pytest.raises(ValueError, f)
+            msg = "pattern contains no capture groups"
+            with pytest.raises(ValueError, match=msg):
+                s_or_idx.str.extract('[ABC][123]', expand=True)
 
             # only non-capturing groups
-            f = lambda: s_or_idx.str.extract('(?:[AB]).*', expand=True)
-            pytest.raises(ValueError, f)
+            with pytest.raises(ValueError, match=msg):
+                s_or_idx.str.extract('(?:[AB]).*', expand=True)
 
             # single group renames series/index properly
             s_or_idx = klass(['A1', 'A2'])
@@ -1884,11 +1888,8 @@ class TestStringMethods(object):
         tm.assert_series_equal(empty_str, empty.str.capitalize())
         tm.assert_series_equal(empty_str, empty.str.swapcase())
         tm.assert_series_equal(empty_str, empty.str.normalize('NFC'))
-        if compat.PY3:
-            table = str.maketrans('a', 'b')
-        else:
-            import string
-            table = string.maketrans('a', 'b')
+
+        table = str.maketrans('a', 'b')
         tm.assert_series_equal(empty_str, empty.str.translate(table))
 
     def test_empty_str_methods_to_frame(self):
@@ -2294,28 +2295,14 @@ class TestStringMethods(object):
 
         for klass in [Series, Index]:
             s = klass(['abcdefg', 'abcc', 'cdddfg', 'cdefggg'])
-            if not compat.PY3:
-                import string
-                table = string.maketrans('abc', 'cde')
-            else:
-                table = str.maketrans('abc', 'cde')
+            table = str.maketrans('abc', 'cde')
             result = s.str.translate(table)
             expected = klass(['cdedefg', 'cdee', 'edddfg', 'edefggg'])
             _check(result, expected)
 
-            # use of deletechars is python 2 only
-            if not compat.PY3:
+            msg = "deletechars is not a valid argument"
+            with pytest.raises(ValueError, match=msg):
                 result = s.str.translate(table, deletechars='fg')
-                expected = klass(['cdede', 'cdee', 'eddd', 'ede'])
-                _check(result, expected)
-
-                result = s.str.translate(None, deletechars='fg')
-                expected = klass(['abcde', 'abcc', 'cddd', 'cde'])
-                _check(result, expected)
-            else:
-                msg = "deletechars is not a valid argument"
-                with pytest.raises(ValueError, match=msg):
-                    result = s.str.translate(table, deletechars='fg')
 
         # Series with non-string values
         s = Series(['a', 'b', 'c', 1.2])
@@ -3318,7 +3305,10 @@ class TestStringMethods(object):
     def test_encode_decode_errors(self):
         encodeBase = Series([u('a'), u('b'), u('a\x9d')])
 
-        pytest.raises(UnicodeEncodeError, encodeBase.str.encode, 'cp1252')
+        msg = (r"'charmap' codec can't encode character '\\x9d' in position 1:"
+               " character maps to <undefined>")
+        with pytest.raises(UnicodeEncodeError, match=msg):
+            encodeBase.str.encode('cp1252')
 
         f = lambda x: x.encode('cp1252', 'ignore')
         result = encodeBase.str.encode('cp1252', 'ignore')
@@ -3327,7 +3317,10 @@ class TestStringMethods(object):
 
         decodeBase = Series([b'a', b'b', b'a\x9d'])
 
-        pytest.raises(UnicodeDecodeError, decodeBase.str.decode, 'cp1252')
+        msg = ("'charmap' codec can't decode byte 0x9d in position 1:"
+               " character maps to <undefined>")
+        with pytest.raises(UnicodeDecodeError, match=msg):
+            decodeBase.str.decode('cp1252')
 
         f = lambda x: x.decode('cp1252', 'ignore')
         result = decodeBase.str.decode('cp1252', 'ignore')
@@ -3362,20 +3355,12 @@ class TestStringMethods(object):
     def test_index_str_accessor_visibility(self):
         from pandas.core.strings import StringMethods
 
-        if not compat.PY3:
-            cases = [(['a', 'b'], 'string'), (['a', u('b')], 'mixed'),
-                     ([u('a'), u('b')], 'unicode'),
-                     (['a', 'b', 1], 'mixed-integer'),
-                     (['a', 'b', 1.3], 'mixed'),
-                     (['a', 'b', 1.3, 1], 'mixed-integer'),
-                     (['aa', datetime(2011, 1, 1)], 'mixed')]
-        else:
-            cases = [(['a', 'b'], 'string'), (['a', u('b')], 'string'),
-                     ([u('a'), u('b')], 'string'),
-                     (['a', 'b', 1], 'mixed-integer'),
-                     (['a', 'b', 1.3], 'mixed'),
-                     (['a', 'b', 1.3, 1], 'mixed-integer'),
-                     (['aa', datetime(2011, 1, 1)], 'mixed')]
+        cases = [(['a', 'b'], 'string'), (['a', u('b')], 'string'),
+                 ([u('a'), u('b')], 'string'),
+                 (['a', 'b', 1], 'mixed-integer'),
+                 (['a', 'b', 1.3], 'mixed'),
+                 (['a', 'b', 1.3, 1], 'mixed-integer'),
+                 (['aa', datetime(2011, 1, 1)], 'mixed')]
         for values, tp in cases:
             idx = Index(values)
             assert isinstance(Series(values).str, StringMethods)
@@ -3417,10 +3402,13 @@ class TestStringMethods(object):
     def test_method_on_bytes(self):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))
         rhs = Series(np.array(list('def'), 'S1').astype(object))
-        if compat.PY3:
-            pytest.raises(TypeError, lhs.str.cat, rhs)
-        else:
-            result = lhs.str.cat(rhs)
-            expected = Series(np.array(
-                ['ad', 'be', 'cf'], 'S2').astype(object))
-            tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="can't concat str to bytes"):
+            lhs.str.cat(rhs)
+
+    def test_casefold(self):
+        # GH25405
+        expected = Series(['ss', NA, 'case', 'ssd'])
+        s = Series(['ß', NA, 'case', 'ßd'])
+        result = s.str.casefold()
+
+        tm.assert_series_equal(result, expected)

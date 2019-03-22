@@ -1,14 +1,16 @@
 from datetime import datetime, timedelta
 import operator
 from textwrap import dedent
+from typing import Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import (
-    Timedelta, algos as libalgos, index as libindex, join as libjoin, lib,
-    tslibs)
+    algos as libalgos, index as libindex, join as libjoin, lib)
 from pandas._libs.lib import is_datetime_array
+from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
+from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
 from pandas.compat import range, set_function_name, u
 from pandas.compat.numpy import function as nv
@@ -22,7 +24,8 @@ from pandas.core.dtypes.common import (
     is_dtype_union_equal, is_extension_array_dtype, is_float, is_float_dtype,
     is_hashable, is_integer, is_integer_dtype, is_interval_dtype, is_iterator,
     is_list_like, is_object_dtype, is_period_dtype, is_scalar,
-    is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype)
+    is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype,
+    pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDateOffset, ABCDatetimeArray, ABCIndexClass,
@@ -310,10 +313,14 @@ class Index(IndexOpsMixin, PandasObject):
         elif (is_timedelta64_dtype(data) or
               (dtype is not None and is_timedelta64_dtype(dtype))):
             from pandas import TimedeltaIndex
-            result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
-            if dtype is not None and _o_dtype == dtype:
-                return Index(result.to_pytimedelta(), dtype=_o_dtype)
+            if dtype is not None and is_dtype_equal(_o_dtype, dtype):
+                # Note we can pass copy=False because the .astype below
+                #  will always make a copy
+                result = TimedeltaIndex(data, copy=False, name=name, **kwargs)
+                return result.astype(object)
             else:
+                result = TimedeltaIndex(data, copy=copy, name=name,
+                                        dtype=dtype, **kwargs)
                 return result
 
         elif is_period_dtype(data) and not is_object_dtype(dtype):
@@ -442,7 +449,7 @@ class Index(IndexOpsMixin, PandasObject):
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
                                                      name=name, **kwargs)
-                            except tslibs.OutOfBoundsDatetime:
+                            except OutOfBoundsDatetime:
                                 pass
 
                     elif inferred.startswith('timedelta'):
@@ -660,7 +667,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Gets called after a ufunc.
         """
-        if is_bool_dtype(result):
+        result = lib.item_from_zerodim(result)
+        if is_bool_dtype(result) or lib.is_scalar(result):
             return result
 
         attrs = self._get_attributes_dict()
@@ -732,6 +740,13 @@ class Index(IndexOpsMixin, PandasObject):
             from .category import CategoricalIndex
             return CategoricalIndex(self.values, name=self.name, dtype=dtype,
                                     copy=copy)
+        elif is_datetime64tz_dtype(dtype):
+            # TODO(GH-24559): Remove this block, use the following elif.
+            # avoid FutureWarning from DatetimeIndex constructor.
+            from pandas import DatetimeIndex
+            tz = pandas_dtype(dtype).tz
+            return (DatetimeIndex(np.asarray(self))
+                    .tz_localize("UTC").tz_convert(tz))
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), dtype=dtype, copy=copy)
@@ -1193,7 +1208,7 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas import DataFrame
         if name is None:
             name = self.name or 0
-        result = DataFrame({name: self.values.copy()})
+        result = DataFrame({name: self._values.copy()})
 
         if index:
             result.index = self
@@ -1294,15 +1309,15 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                   [2018, 2019]])
         >>> idx
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]])
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]])
         >>> idx.set_names(['kind', 'year'], inplace=True)
         >>> idx
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['kind', 'year'])
         >>> idx.set_names('species', level=0)
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['species', 'year'])
         """
 
@@ -1365,11 +1380,11 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                   names=['kind', 'year'])
         >>> idx
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['kind', 'year'])
         >>> idx.rename(['species', 'year'])
         MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
-                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   codes=[[1, 1, 0, 0], [0, 1, 0, 1]],
                    names=['species', 'year'])
         >>> idx.rename('species')
         Traceback (most recent call last):
@@ -1429,7 +1444,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        sorted_index : Index
+        Index
         """
         return self.sort_values(return_indexer=True, ascending=ascending)
 
@@ -1447,7 +1462,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        values : Index
+        Index
             Calling object, as there is only one level in the Index.
 
         See Also
@@ -1492,7 +1507,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        index : Index or MultiIndex
+        Index or MultiIndex
         """
         if not isinstance(level, (tuple, list)):
             level = [level]
@@ -1544,11 +1559,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         grouper : Index
-            Index of values to group on
+            Index of values to group on.
         labels : ndarray of int or None
-            Array of locations in level_index
+            Array of locations in level_index.
         uniques : Index or None
-            Index of unique values for level
+            Index of unique values for level.
         """
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
@@ -1816,13 +1831,13 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         numpy.ndarray
-            A boolean array of whether my values are NA
+            A boolean array of whether my values are NA.
 
         See Also
         --------
-        pandas.Index.notna : Boolean inverse of isna.
-        pandas.Index.dropna : Omit entries with missing values.
-        pandas.isna : Top-level isna.
+        Index.notna : Boolean inverse of isna.
+        Index.dropna : Omit entries with missing values.
+        isna : Top-level isna.
         Series.isna : Detect missing values in Series object.
 
         Examples
@@ -1880,7 +1895,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.notnull : Alias of notna.
         Index.isna: Inverse of notna.
-        pandas.notna : Top-level notna.
+        notna : Top-level notna.
 
         Examples
         --------
@@ -2062,9 +2077,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.duplicated : Equivalent method on pandas.Series.
-        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
-        pandas.Index.drop_duplicates : Remove duplicate values from Index.
+        Series.duplicated : Equivalent method on pandas.Series.
+        DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        Index.drop_duplicates : Remove duplicate values from Index.
 
         Examples
         --------
@@ -2233,13 +2248,36 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
-    def union(self, other):
+    def _validate_sort_keyword(self, sort):
+        if sort not in [None, False]:
+            raise ValueError("The 'sort' keyword only takes the values of "
+                             "None or False; {0} was passed.".format(sort))
+
+    def union(self, other, sort=None):
         """
-        Form the union of two Index objects and sorts if possible.
+        Form the union of two Index objects.
 
         Parameters
         ----------
         other : Index or array-like
+        sort : bool or None, default None
+            Whether to sort the resulting Index.
+
+            * None : Sort the result, except when
+
+              1. `self` and `other` are equal.
+              2. `self` or `other` has length 0.
+              3. Some values in `self` or `other` cannot be compared.
+                 A RuntimeWarning is issued in this case.
+
+            * False : do not sort the result.
+
+            .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2253,6 +2291,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.union(idx2)
         Int64Index([1, 2, 3, 4, 5, 6], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
@@ -2269,7 +2308,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_dtype_union_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
-            return this.union(other)
+            return this.union(other, sort=sort)
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self) or is_datetime64tz_dtype(self):
@@ -2303,12 +2342,13 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 result = lvals
 
-            try:
-                result = sorting.safe_sort(result)
-            except TypeError as e:
-                warnings.warn("%s, sort order is undefined for "
-                              "incomparable objects" % e, RuntimeWarning,
-                              stacklevel=3)
+            if sort is None:
+                try:
+                    result = sorting.safe_sort(result)
+                except TypeError as e:
+                    warnings.warn("{}, sort order is undefined for "
+                                  "incomparable objects".format(e),
+                                  RuntimeWarning, stacklevel=3)
 
         # for subclasses
         return self._wrap_setop_result(other, result)
@@ -2316,16 +2356,28 @@ class Index(IndexOpsMixin, PandasObject):
     def _wrap_setop_result(self, other, result):
         return self._constructor(result, name=get_op_result_name(self, other))
 
-    def intersection(self, other):
+    def intersection(self, other, sort=False):
         """
         Form the intersection of two Index objects.
 
-        This returns a new Index with elements common to the index and `other`,
-        preserving the order of the calling index.
+        This returns a new Index with elements common to the index and `other`.
 
         Parameters
         ----------
         other : Index or array-like
+        sort : False or None, default False
+            Whether to sort the resulting index.
+
+            * False : do not sort the result.
+            * None : sort the result, except when `self` and `other` are equal
+              or when the values cannot be compared.
+
+            .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default from ``True`` to ``False``, to match
+               the behaviour of 0.23.4 and earlier.
 
         Returns
         -------
@@ -2339,6 +2391,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.intersection(idx2)
         Int64Index([3, 4], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
@@ -2348,7 +2401,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
-            return this.intersection(other)
+            return this.intersection(other, sort=sort)
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self):
@@ -2377,11 +2430,21 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[indexer != -1]
 
         taken = other.take(indexer)
+
+        if sort is None:
+            taken = sorting.safe_sort(taken.values)
+            if self.name != other.name:
+                name = None
+            else:
+                name = self.name
+            return self._shallow_copy(taken, name=name)
+
         if self.name != other.name:
             taken.name = None
+
         return taken
 
-    def difference(self, other, sort=True):
+    def difference(self, other, sort=None):
         """
         Return a new Index with elements from the index that are not in
         `other`.
@@ -2391,10 +2454,21 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-        sort : bool, default True
-            Sort the resulting index if possible
+        sort : False or None, default None
+            Whether to sort the resulting index. By default, the
+            values are attempted to be sorted, but any TypeError from
+            incomparable elements is caught by pandas.
+
+            * None : Attempt to sort the result, but catch any TypeErrors
+              from comparing incomparable elements.
+            * False : Do not sort the result.
 
             .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2410,6 +2484,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.difference(idx2, sort=False)
         Int64Index([2, 1], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
 
         if self.equals(other):
@@ -2426,7 +2501,7 @@ class Index(IndexOpsMixin, PandasObject):
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
                                   assume_unique=True)
         the_diff = this.values.take(label_diff)
-        if sort:
+        if sort is None:
             try:
                 the_diff = sorting.safe_sort(the_diff)
             except TypeError:
@@ -2434,16 +2509,29 @@ class Index(IndexOpsMixin, PandasObject):
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
-    def symmetric_difference(self, other, result_name=None):
+    def symmetric_difference(self, other, result_name=None, sort=None):
         """
         Compute the symmetric difference of two Index objects.
-
-        It's sorted if sorting is possible.
 
         Parameters
         ----------
         other : Index or array-like
         result_name : str
+        sort : False or None, default None
+            Whether to sort the resulting index. By default, the
+            values are attempted to be sorted, but any TypeError from
+            incomparable elements is caught by pandas.
+
+            * None : Attempt to sort the result, but catch any TypeErrors
+              from comparing incomparable elements.
+            * False : Do not sort the result.
+
+            .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default value from ``True`` to ``None``
+               (without change in behaviour).
 
         Returns
         -------
@@ -2468,6 +2556,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1 ^ idx2
         Int64Index([1, 5], dtype='int64')
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_name_update = self._convert_can_do_setop(other)
         if result_name is None:
@@ -2488,10 +2577,11 @@ class Index(IndexOpsMixin, PandasObject):
         right_diff = other.values.take(right_indexer)
 
         the_diff = _concat._concat_compat([left_diff, right_diff])
-        try:
-            the_diff = sorting.safe_sort(the_diff)
-        except TypeError:
-            pass
+        if sort is None:
+            try:
+                the_diff = sorting.safe_sort(the_diff)
+            except TypeError:
+                pass
 
         attribs = self._get_attributes_dict()
         attribs['name'] = result_name
@@ -2883,9 +2973,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        tuple (indexer, keyarr)
-            indexer is an ndarray or None if cannot convert
-            keyarr are tuple-safe keys
+        indexer : numpy.ndarray or None
+            Return an ndarray or None if cannot convert.
+        keyarr : numpy.ndarray
+            Return tuple-safe keys.
         """
         if isinstance(keyarr, Index):
             keyarr = self._convert_index_indexer(keyarr)
@@ -3011,10 +3102,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         new_index : pd.Index
-            Resulting index
+            Resulting index.
         indexer : np.ndarray or None
-            Indices of output values in original index
-
+            Indices of output values in original index.
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
@@ -3069,9 +3159,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         new_index : pd.Index
-            Resulting index
+            Resulting index.
         indexer : np.ndarray or None
-            Indices of output values in original index
+            Indices of output values in original index.
 
         """
 
@@ -3218,8 +3308,12 @@ class Index(IndexOpsMixin, PandasObject):
         elif how == 'right':
             join_index = other
         elif how == 'inner':
-            join_index = self.intersection(other)
+            # TODO: sort=False here for backwards compat. It may
+            # be better to use the sort parameter passed into join
+            join_index = self.intersection(other, sort=False)
         elif how == 'outer':
+            # TODO: sort=True here for backwards compat. It may
+            # be better to use the sort parameter passed into join
             join_index = self.union(other)
 
         if sort:
@@ -3958,7 +4052,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def equals(self, other):
         """
-        Determines if two Index objects contain the same elements.
+        Determine if two Index objects contain the same elements.
         """
         if self.is_(other):
             return True
@@ -4053,7 +4147,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof_locs(self, where, mask):
         """
-        Finds the locations (indices) of the labels from the index for
+        Find the locations (indices) of the labels from the index for
         every entry in the `where` argument.
 
         As in the `asof` function, if the label (a particular entry in
@@ -4113,8 +4207,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.sort_values : Sort values of a Series.
-        pandas.DataFrame.sort_values : Sort values in a DataFrame.
+        Series.sort_values : Sort values of a Series.
+        DataFrame.sort_values : Sort values in a DataFrame.
 
         Examples
         --------
@@ -4168,7 +4262,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         pandas.Index
-            shifted index
+            Shifted index.
 
         See Also
         --------
@@ -4331,7 +4425,7 @@ class Index(IndexOpsMixin, PandasObject):
             in the target are marked by -1.
         missing : ndarray of int
             An indexer into the target of the values not found.
-            These correspond to the -1 in the indexer array
+            These correspond to the -1 in the indexer array.
         """
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
@@ -4503,7 +4597,7 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                  names=('number', 'color'))
         >>> midx
         MultiIndex(levels=[[1, 2, 3], ['blue', 'green', 'red']],
-                   labels=[[0, 1, 2], [2, 0, 1]],
+                   codes=[[0, 1, 2], [2, 0, 1]],
                    names=['number', 'color'])
 
         Check whether the strings in the 'color' level of the MultiIndex
@@ -4774,6 +4868,20 @@ class Index(IndexOpsMixin, PandasObject):
         if not inc:
             # If it's a reverse slice, temporarily swap bounds.
             start, end = end, start
+
+        # GH 16785: If start and end happen to be date strings with UTC offsets
+        # attempt to parse and check that the offsets are the same
+        if (isinstance(start, (compat.string_types, datetime))
+                and isinstance(end, (compat.string_types, datetime))):
+            try:
+                ts_start = Timestamp(start)
+                ts_end = Timestamp(end)
+            except (ValueError, TypeError):
+                pass
+            else:
+                if not tz_compare(ts_start.tzinfo, ts_end.tzinfo):
+                    raise ValueError("Both dates must have the "
+                                     "same UTC offset")
 
         start_slice = None
         if start is not None:
@@ -5086,9 +5194,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.any : Return whether any element in an Index is True.
-        pandas.Series.any : Return whether any element in a Series is True.
-        pandas.Series.all : Return whether all elements in a Series are True.
+        Index.any : Return whether any element in an Index is True.
+        Series.any : Return whether any element in a Series is True.
+        Series.all : Return whether all elements in a Series are True.
 
         Notes
         -----
@@ -5126,8 +5234,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.all : Return whether all elements are True.
-        pandas.Series.all : Return whether all elements are True.
+        Index.all : Return whether all elements are True.
+        Series.all : Return whether all elements are True.
 
         Notes
         -----
@@ -5206,7 +5314,7 @@ def ensure_index_from_sequences(sequences, names=None):
     >>> ensure_index_from_sequences([['a', 'a'], ['a', 'b']],
                                     names=['L1', 'L2'])
     MultiIndex(levels=[['a'], ['a', 'b']],
-               labels=[[0, 0], [0, 1]],
+               codes=[[0, 0], [0, 1]],
                names=['L1', 'L2'])
 
     See Also
@@ -5247,7 +5355,7 @@ def ensure_index(index_like, copy=False):
 
     >>> ensure_index([['a', 'a'], ['b', 'c']])
     MultiIndex(levels=[['a'], ['b', 'c']],
-               labels=[[0, 0], [0, 1]])
+               codes=[[0, 0], [0, 1]])
 
     See Also
     --------

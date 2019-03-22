@@ -7,7 +7,7 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    DatetimeIndex, Index, Timestamp, compat, date_range, datetime, offsets)
+    DatetimeIndex, Index, Timestamp, date_range, datetime, offsets)
 import pandas.util.testing as tm
 
 
@@ -190,7 +190,9 @@ class TestDatetime64(object):
         # Ensure is_start/end accessors throw ValueError for CustomBusinessDay,
         bday_egypt = offsets.CustomBusinessDay(weekmask='Sun Mon Tue Wed Thu')
         dti = date_range(datetime(2013, 4, 30), periods=5, freq=bday_egypt)
-        pytest.raises(ValueError, lambda: dti.is_month_start)
+        msg = "Custom business days is not supported by is_month_start"
+        with pytest.raises(ValueError, match=msg):
+            dti.is_month_start
 
         dti = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'])
 
@@ -287,9 +289,8 @@ class TestDatetime64(object):
 
         # work around different normalization schemes
         # https://github.com/pandas-dev/pandas/issues/22342
-        if not compat.PY2:
-            result = result.str.normalize("NFD")
-            expected = expected.str.normalize("NFD")
+        result = result.str.normalize("NFD")
+        expected = expected.str.normalize("NFD")
 
         tm.assert_index_equal(result, expected)
 
@@ -297,9 +298,8 @@ class TestDatetime64(object):
             result = date.month_name(locale=time_locale)
             expected = expected.capitalize()
 
-            if not compat.PY2:
-                result = unicodedata.normalize("NFD", result)
-                expected = unicodedata.normalize("NFD", result)
+            result = unicodedata.normalize("NFD", result)
+            expected = unicodedata.normalize("NFD", result)
 
             assert result == expected
         dti = dti.append(DatetimeIndex([pd.NaT]))

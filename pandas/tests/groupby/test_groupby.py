@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    OrderedDict, StringIO, lmap, lrange, lzip, map, range, zip)
+from pandas.compat import StringIO, lmap, lrange, lzip, map, range, zip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -71,7 +70,10 @@ def test_basic(dtype):
     assert agged[1] == 21
 
     # corner cases
-    pytest.raises(Exception, grouped.aggregate, lambda x: x * 2)
+    msg = "Must produce aggregated value"
+    # exception raised is type Exception
+    with pytest.raises(Exception, match=msg):
+        grouped.aggregate(lambda x: x * 2)
 
 
 def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
@@ -206,7 +208,7 @@ def test_pass_args_kwargs(ts, tsframe):
     trans_expected = ts_grouped.transform(g)
 
     assert_series_equal(apply_result, agg_expected)
-    assert_series_equal(agg_result, agg_expected, check_names=False)
+    assert_series_equal(agg_result, agg_expected)
     assert_series_equal(trans_result, trans_expected)
 
     agg_result = ts_grouped.agg(f, q=80)
@@ -221,13 +223,13 @@ def test_pass_args_kwargs(ts, tsframe):
     agg_result = df_grouped.agg(np.percentile, 80, axis=0)
     apply_result = df_grouped.apply(DataFrame.quantile, .8)
     expected = df_grouped.quantile(.8)
-    assert_frame_equal(apply_result, expected)
-    assert_frame_equal(agg_result, expected, check_names=False)
+    assert_frame_equal(apply_result, expected, check_names=False)
+    assert_frame_equal(agg_result, expected)
 
     agg_result = df_grouped.agg(f, q=80)
     apply_result = df_grouped.apply(DataFrame.quantile, q=.8)
-    assert_frame_equal(agg_result, expected, check_names=False)
-    assert_frame_equal(apply_result, expected)
+    assert_frame_equal(agg_result, expected)
+    assert_frame_equal(apply_result, expected, check_names=False)
 
 
 def test_len():
@@ -330,12 +332,17 @@ def test_indices_concatenation_order():
     assert_frame_equal(result1, result2)
 
     # should fail (not the same number of levels)
-    pytest.raises(AssertionError, df.groupby('a').apply, f2)
-    pytest.raises(AssertionError, df2.groupby('a').apply, f2)
+    msg = "Cannot concat indices that do not have the same number of levels"
+    with pytest.raises(AssertionError, match=msg):
+        df.groupby('a').apply(f2)
+    with pytest.raises(AssertionError, match=msg):
+        df2.groupby('a').apply(f2)
 
     # should fail (incorrect shape)
-    pytest.raises(AssertionError, df.groupby('a').apply, f3)
-    pytest.raises(AssertionError, df2.groupby('a').apply, f3)
+    with pytest.raises(AssertionError, match=msg):
+        df.groupby('a').apply(f3)
+    with pytest.raises(AssertionError, match=msg):
+        df2.groupby('a').apply(f3)
 
 
 def test_attr_wrapper(ts):
@@ -356,7 +363,9 @@ def test_attr_wrapper(ts):
     expected = grouped.agg(lambda x: x.dtype)
 
     # make sure raises error
-    pytest.raises(AttributeError, getattr, grouped, 'foo')
+    msg = "'SeriesGroupBy' object has no attribute 'foo'"
+    with pytest.raises(AttributeError, match=msg):
+        getattr(grouped, 'foo')
 
 
 def test_frame_groupby(tsframe):
@@ -664,11 +673,13 @@ def test_groupby_as_index_series_scalar(df):
 
 
 def test_groupby_as_index_corner(df, ts):
-    pytest.raises(TypeError, ts.groupby, lambda x: x.weekday(),
-                  as_index=False)
+    msg = "as_index=False only valid with DataFrame"
+    with pytest.raises(TypeError, match=msg):
+        ts.groupby(lambda x: x.weekday(), as_index=False)
 
-    pytest.raises(ValueError, df.groupby, lambda x: x.lower(),
-                  as_index=False, axis=1)
+    msg = "as_index=False only valid for axis=0"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby(lambda x: x.lower(), as_index=False, axis=1)
 
 
 def test_groupby_multiple_key(df):
@@ -722,8 +733,11 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({'A': 0, 'C': 0, 'D': 1, 'E': 1}, axis=1)
-    result = pytest.raises(TypeError, grouped.agg,
-                           lambda x: x.sum(0, numeric_only=False))
+    msg = (r'\("unsupported operand type\(s\) for \+: '
+           "'Timestamp' and 'float'\""
+           r", u?'occurred at index 0'\)")
+    with pytest.raises(TypeError, match=msg):
+        grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
 
 def test_omit_nuisance_python_multiple(three_group):
@@ -756,7 +770,9 @@ def test_empty_groups_corner(mframe):
 
 def test_nonsense_func():
     df = DataFrame([0])
-    pytest.raises(Exception, df.groupby, lambda x: x + 'foo')
+    msg = r"unsupported operand type\(s\) for \+: '(int|long)' and 'str'"
+    with pytest.raises(TypeError, match=msg):
+        df.groupby(lambda x: x + 'foo')
 
 
 def test_wrap_aggregated_output_multindex(mframe):
@@ -823,12 +839,22 @@ def test_groupby_level_nonmulti():
     result = s.groupby(level=[-1]).sum()
     tm.assert_series_equal(result, expected)
 
-    pytest.raises(ValueError, s.groupby, level=1)
-    pytest.raises(ValueError, s.groupby, level=-2)
-    pytest.raises(ValueError, s.groupby, level=[])
-    pytest.raises(ValueError, s.groupby, level=[0, 0])
-    pytest.raises(ValueError, s.groupby, level=[0, 1])
-    pytest.raises(ValueError, s.groupby, level=[1])
+    msg = "level > 0 or level < -1 only valid with MultiIndex"
+    with pytest.raises(ValueError, match=msg):
+        s.groupby(level=1)
+    with pytest.raises(ValueError, match=msg):
+        s.groupby(level=-2)
+    msg = "No group keys passed!"
+    with pytest.raises(ValueError, match=msg):
+        s.groupby(level=[])
+    msg = "multiple levels only valid with MultiIndex"
+    with pytest.raises(ValueError, match=msg):
+        s.groupby(level=[0, 0])
+    with pytest.raises(ValueError, match=msg):
+        s.groupby(level=[0, 1])
+    msg = "level > 0 or level < -1 only valid with MultiIndex"
+    with pytest.raises(ValueError, match=msg):
+        s.groupby(level=[1])
 
 
 def test_groupby_complex():
@@ -1101,7 +1127,8 @@ def test_groupby_list_infer_array_like(df):
     expected = df.groupby(df['A']).mean()
     assert_frame_equal(result, expected, check_names=False)
 
-    pytest.raises(Exception, df.groupby, list(df['A'][:-1]))
+    with pytest.raises(KeyError, match=r"^'foo'$"):
+        df.groupby(list(df['A'][:-1]))
 
     # pathological case of ambiguity
     df = DataFrame({'foo': [0, 1],
@@ -1128,10 +1155,13 @@ def test_groupby_keys_same_size_as_index():
 
 def test_groupby_one_row():
     # GH 11741
+    msg = r"^'Z'$"
     df1 = pd.DataFrame(np.random.randn(1, 4), columns=list('ABCD'))
-    pytest.raises(KeyError, df1.groupby, 'Z')
+    with pytest.raises(KeyError, match=msg):
+        df1.groupby('Z')
     df2 = pd.DataFrame(np.random.randn(2, 4), columns=list('ABCD'))
-    pytest.raises(KeyError, df2.groupby, 'Z')
+    with pytest.raises(KeyError, match=msg):
+        df2.groupby('Z')
 
 
 def test_groupby_nat_exclude():
@@ -1169,7 +1199,8 @@ def test_groupby_nat_exclude():
     tm.assert_frame_equal(
         grouped.get_group(Timestamp('2013-02-01')), df.iloc[[3, 5]])
 
-    pytest.raises(KeyError, grouped.get_group, pd.NaT)
+    with pytest.raises(KeyError, match=r"^NaT$"):
+        grouped.get_group(pd.NaT)
 
     nan_df = DataFrame({'nan': [np.nan, np.nan, np.nan],
                         'nat': [pd.NaT, pd.NaT, pd.NaT]})
@@ -1181,53 +1212,10 @@ def test_groupby_nat_exclude():
         assert grouped.groups == {}
         assert grouped.ngroups == 0
         assert grouped.indices == {}
-        pytest.raises(KeyError, grouped.get_group, np.nan)
-        pytest.raises(KeyError, grouped.get_group, pd.NaT)
-
-
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-def test_sparse_friendly(df):
-    sdf = df[['C', 'D']].to_sparse()
-    panel = tm.makePanel()
-    tm.add_nans(panel)
-
-    def _check_work(gp):
-        gp.mean()
-        gp.agg(np.mean)
-        dict(iter(gp))
-
-    # it works!
-    _check_work(sdf.groupby(lambda x: x // 2))
-    _check_work(sdf['C'].groupby(lambda x: x // 2))
-    _check_work(sdf.groupby(df['A']))
-
-    # do this someday
-    # _check_work(panel.groupby(lambda x: x.month, axis=1))
-
-
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-def test_panel_groupby():
-    panel = tm.makePanel()
-    tm.add_nans(panel)
-    grouped = panel.groupby({'ItemA': 0, 'ItemB': 0, 'ItemC': 1},
-                            axis='items')
-    agged = grouped.mean()
-    agged2 = grouped.agg(lambda x: x.mean('items'))
-
-    tm.assert_panel_equal(agged, agged2)
-
-    tm.assert_index_equal(agged.items, Index([0, 1]))
-
-    grouped = panel.groupby(lambda x: x.month, axis='major')
-    agged = grouped.mean()
-
-    exp = Index(sorted(list(set(panel.major_axis.month))))
-    tm.assert_index_equal(agged.major_axis, exp)
-
-    grouped = panel.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
-                            axis='minor')
-    agged = grouped.mean()
-    tm.assert_index_equal(agged.minor_axis, Index([0, 1]))
+        with pytest.raises(KeyError, match=r"^nan$"):
+            grouped.get_group(np.nan)
+        with pytest.raises(KeyError, match=r"^NaT$"):
+            grouped.get_group(pd.NaT)
 
 
 def test_groupby_2d_malformed():
@@ -1643,7 +1631,7 @@ def test_pivot_table_values_key_error():
     df['year'] = df.set_index('eventDate').index.year
     df['month'] = df.set_index('eventDate').index.month
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="'badname'"):
         df.reset_index().pivot_table(index='year', columns='month',
                                      values='badname', aggfunc='count')
 
@@ -1689,7 +1677,7 @@ def test_tuple_correct_keyerror():
     df = pd.DataFrame(1, index=range(3),
                       columns=pd.MultiIndex.from_product([[1, 2],
                                                           [3, 4]]))
-    with pytest.raises(KeyError, match="(7, 8)"):
+    with pytest.raises(KeyError, match=r"^\(7, 8\)$"):
         df.groupby((7, 8)).mean()
 
 
@@ -1702,11 +1690,36 @@ def test_groupby_agg_ohlc_non_first():
         [1, 1, 1, 1, 1],
         [1, 1, 1, 1, 1]
     ], columns=pd.MultiIndex.from_tuples((
-        ('foo', 'ohlc', 'open'), ('foo', 'ohlc', 'high'),
-        ('foo', 'ohlc', 'low'), ('foo', 'ohlc', 'close'),
-        ('foo', 'sum', 'foo'))), index=pd.date_range(
+        ('foo', 'sum', 'foo'), ('foo', 'ohlc', 'open'),
+        ('foo', 'ohlc', 'high'), ('foo', 'ohlc', 'low'),
+        ('foo', 'ohlc', 'close'))), index=pd.date_range(
             '2018-01-01', periods=2, freq='D'))
 
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_multiindex_nat():
+    # GH 9236
+    values = [
+        (pd.NaT, 'a'),
+        (datetime(2012, 1, 2), 'a'),
+        (datetime(2012, 1, 2), 'b'),
+        (datetime(2012, 1, 3), 'a')
+    ]
+    mi = pd.MultiIndex.from_tuples(values, names=['date', None])
+    ser = pd.Series([3, 2, 2.5, 4], index=mi)
+
+    result = ser.groupby(level=1).mean()
+    expected = pd.Series([3., 2.5], index=["a", "b"])
+    assert_series_equal(result, expected)
+
+
+def test_groupby_empty_list_raises():
+    # GH 5289
+    values = zip(range(10), range(10))
+    df = DataFrame(values, columns=['apple', 'b'])
+    msg = "Grouper and axis must be same length"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby([[]])

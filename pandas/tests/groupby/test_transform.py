@@ -637,8 +637,11 @@ def test_cython_transform_frame(op, args, targop):
             for c in df:
                 if c not in ['float', 'int', 'float_missing'
                              ] and op != 'shift':
-                    pytest.raises(DataError, gb[c].transform, op)
-                    pytest.raises(DataError, getattr(gb[c], op))
+                    msg = "No numeric types to aggregate"
+                    with pytest.raises(DataError, match=msg):
+                        gb[c].transform(op)
+                    with pytest.raises(DataError, match=msg):
+                        getattr(gb[c], op)()
                 else:
                     expected = gb[c].apply(targop)
                     expected.name = c
@@ -831,3 +834,14 @@ def test_groupby_transform_rename():
     tm.assert_frame_equal(result, expected)
     result_single = df.groupby('group').value.transform(demean_rename)
     tm.assert_series_equal(result_single, expected['value'])
+
+
+@pytest.mark.parametrize('func', [min, max, np.min, np.max, 'first', 'last'])
+def test_groupby_transform_timezone_column(func):
+    # GH 24198
+    ts = pd.to_datetime('now', utc=True).tz_convert('Asia/Singapore')
+    result = pd.DataFrame({'end_time': [ts], 'id': [1]})
+    result['max_end_time'] = result.groupby('id').end_time.transform(func)
+    expected = pd.DataFrame([[ts, 1, ts]], columns=['end_time', 'id',
+                                                    'max_end_time'])
+    tm.assert_frame_equal(result, expected)

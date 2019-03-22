@@ -7,7 +7,6 @@ except ImportError:
 import calendar
 import datetime
 import decimal
-from functools import partial
 import locale
 import math
 import re
@@ -25,9 +24,6 @@ from pandas.compat import StringIO, range, u
 
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
 import pandas.util.testing as tm
-
-json_unicode = (json.dumps if compat.PY3
-                else partial(json.dumps, encoding="utf-8"))
 
 
 def _clean_dict(d):
@@ -174,8 +170,6 @@ class TestUltraJSONTests(object):
         decoded = ujson.decode(encoded, precise_float=True)
         assert sut == decoded
 
-    @pytest.mark.skipif(compat.is_platform_windows() and not compat.PY3,
-                        reason="buggy on win-64 for py2")
     def test_encode_double_tiny_exponential(self):
         num = 1e-40
         assert num == ujson.decode(ujson.encode(num))
@@ -272,7 +266,7 @@ class TestUltraJSONTests(object):
         enc = ujson.encode(unicode_input)
         dec = ujson.decode(enc)
 
-        assert enc == json_unicode(unicode_input)
+        assert enc == json.dumps(unicode_input)
         assert dec == json.loads(enc)
 
     def test_encode_control_escaping(self):
@@ -281,14 +275,14 @@ class TestUltraJSONTests(object):
         dec = ujson.decode(enc)
 
         assert escaped_input == dec
-        assert enc == json_unicode(escaped_input)
+        assert enc == json.dumps(escaped_input)
 
     def test_encode_unicode_surrogate_pair(self):
         surrogate_input = "\xf0\x90\x8d\x86"
         enc = ujson.encode(surrogate_input)
         dec = ujson.decode(enc)
 
-        assert enc == json_unicode(surrogate_input)
+        assert enc == json.dumps(surrogate_input)
         assert dec == json.loads(enc)
 
     def test_encode_unicode_4bytes_utf8(self):
@@ -296,7 +290,7 @@ class TestUltraJSONTests(object):
         enc = ujson.encode(four_bytes_input)
         dec = ujson.decode(enc)
 
-        assert enc == json_unicode(four_bytes_input)
+        assert enc == json.dumps(four_bytes_input)
         assert dec == json.loads(enc)
 
     def test_encode_unicode_4bytes_utf8highest(self):
@@ -305,7 +299,7 @@ class TestUltraJSONTests(object):
 
         dec = ujson.decode(enc)
 
-        assert enc == json_unicode(four_bytes_input)
+        assert enc == json.dumps(four_bytes_input)
         assert dec == json.loads(enc)
 
     def test_encode_array_in_array(self):
@@ -422,7 +416,9 @@ class TestUltraJSONTests(object):
         roundtrip = ujson.decode(ujson.encode(val, date_unit='ns'))
         assert roundtrip == stamp.value
 
-        pytest.raises(ValueError, ujson.encode, val, date_unit='foo')
+        msg = "Invalid value 'foo' for option 'date_unit'"
+        with pytest.raises(ValueError, match=msg):
+            ujson.encode(val, date_unit='foo')
 
     def test_encode_to_utf8(self):
         unencoded = "\xe6\x97\xa5\xd1\x88"
@@ -430,7 +426,7 @@ class TestUltraJSONTests(object):
         enc = ujson.encode(unencoded, ensure_ascii=False)
         dec = ujson.decode(enc)
 
-        assert enc == json_unicode(unencoded, ensure_ascii=False)
+        assert enc == json.dumps(unencoded, ensure_ascii=False)
         assert dec == json.loads(enc)
 
     def test_decode_from_unicode(self):
@@ -518,11 +514,6 @@ class TestUltraJSONTests(object):
     ])
     def test_decode_numeric_int(self, numeric_int_as_str):
         assert int(numeric_int_as_str) == ujson.decode(numeric_int_as_str)
-
-    @pytest.mark.skipif(compat.PY3, reason="only PY2")
-    def test_encode_unicode_4bytes_utf8_fail(self):
-        with pytest.raises(OverflowError):
-            ujson.encode("\xfd\xbf\xbf\xbf\xbf\xbf")
 
     def test_encode_null_character(self):
         wrapped_input = "31337 \x00 1337"
@@ -655,14 +646,14 @@ class TestUltraJSONTests(object):
     def test_encode_big_escape(self):
         # Make sure no Exception is raised.
         for _ in range(10):
-            base = '\u00e5'.encode("utf-8") if compat.PY3 else "\xc3\xa5"
+            base = '\u00e5'.encode("utf-8")
             escape_input = base * 1024 * 1024 * 2
             ujson.encode(escape_input)
 
     def test_decode_big_escape(self):
         # Make sure no Exception is raised.
         for _ in range(10):
-            base = '\u00e5'.encode("utf-8") if compat.PY3 else "\xc3\xa5"
+            base = '\u00e5'.encode("utf-8")
             quote = compat.str_to_bytes("\"")
 
             escape_input = quote + (base * 1024 * 1024 * 2) + quote
@@ -695,7 +686,9 @@ class TestUltraJSONTests(object):
             def __str__(self):
                 return str(self.val)
 
-        pytest.raises(OverflowError, ujson.encode, _TestObject("foo"))
+        msg = "Maximum recursion level reached"
+        with pytest.raises(OverflowError, match=msg):
+            ujson.encode(_TestObject("foo"))
         assert '"foo"' == ujson.encode(_TestObject("foo"),
                                        default_handler=str)
 

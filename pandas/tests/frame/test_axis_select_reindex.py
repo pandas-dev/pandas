@@ -5,7 +5,6 @@ from __future__ import print_function
 from datetime import datetime
 
 import numpy as np
-from numpy import random
 import pytest
 
 from pandas.compat import lrange, lzip, u
@@ -39,8 +38,11 @@ class TestDataFrameSelectReindex(TestData):
             assert obj.columns.name == 'second'
         assert list(df.columns) == ['d', 'e', 'f']
 
-        pytest.raises(KeyError, df.drop, ['g'])
-        pytest.raises(KeyError, df.drop, ['g'], 1)
+        msg = r"\['g'\] not found in axis"
+        with pytest.raises(KeyError, match=msg):
+            df.drop(['g'])
+        with pytest.raises(KeyError, match=msg):
+            df.drop(['g'], 1)
 
         # errors = 'ignore'
         dropped = df.drop(['g'], errors='ignore')
@@ -85,10 +87,14 @@ class TestDataFrameSelectReindex(TestData):
         assert_frame_equal(simple.drop(
             [0, 3], axis='index'), simple.loc[[1, 2], :])
 
-        pytest.raises(KeyError, simple.drop, 5)
-        pytest.raises(KeyError, simple.drop, 'C', 1)
-        pytest.raises(KeyError, simple.drop, [1, 5])
-        pytest.raises(KeyError, simple.drop, ['A', 'C'], 1)
+        with pytest.raises(KeyError, match=r"\[5\] not found in axis"):
+            simple.drop(5)
+        with pytest.raises(KeyError, match=r"\['C'\] not found in axis"):
+            simple.drop('C', 1)
+        with pytest.raises(KeyError, match=r"\[5\] not found in axis"):
+            simple.drop([1, 5])
+        with pytest.raises(KeyError, match=r"\['C'\] not found in axis"):
+            simple.drop(['A', 'C'], 1)
 
         # errors = 'ignore'
         assert_frame_equal(simple.drop(5, errors='ignore'), simple)
@@ -289,7 +295,7 @@ class TestDataFrameSelectReindex(TestData):
         assert_frame_equal(left, right)
 
     def test_reindex_name_remains(self):
-        s = Series(random.rand(10))
+        s = Series(np.random.rand(10))
         df = DataFrame(s, index=np.arange(len(s)))
         i = Series(np.arange(10), name='iname')
 
@@ -299,7 +305,7 @@ class TestDataFrameSelectReindex(TestData):
         df = df.reindex(Index(np.arange(10), name='tmpname'))
         assert df.index.name == 'tmpname'
 
-        s = Series(random.rand(10))
+        s = Series(np.random.rand(10))
         df = DataFrame(s.T, index=np.arange(len(s)))
         i = Series(np.arange(10), name='iname')
         df = df.reindex(columns=i)
@@ -445,7 +451,9 @@ class TestDataFrameSelectReindex(TestData):
         assert_frame_equal(result, expected)
 
         # reindex fails
-        pytest.raises(ValueError, df.reindex, index=list(range(len(df))))
+        msg = "cannot reindex from a duplicate axis"
+        with pytest.raises(ValueError, match=msg):
+            df.reindex(index=list(range(len(df))))
 
     def test_reindex_axis_style(self):
         # https://github.com/pandas-dev/pandas/issues/12392
@@ -717,7 +725,7 @@ class TestDataFrameSelectReindex(TestData):
 
         result = df1 - df1.mean()
         expected = df2 - df2.mean()
-        assert_frame_equal(result.astype('f8'), expected)
+        assert_frame_equal(result, expected)
 
     def test_align_multiindex(self):
         # GH 10665
@@ -964,10 +972,15 @@ class TestDataFrameSelectReindex(TestData):
             assert_frame_equal(result, expected, check_names=False)
 
         # illegal indices
-        pytest.raises(IndexError, df.take, [3, 1, 2, 30], axis=0)
-        pytest.raises(IndexError, df.take, [3, 1, 2, -31], axis=0)
-        pytest.raises(IndexError, df.take, [3, 1, 2, 5], axis=1)
-        pytest.raises(IndexError, df.take, [3, 1, 2, -5], axis=1)
+        msg = "indices are out-of-bounds"
+        with pytest.raises(IndexError, match=msg):
+            df.take([3, 1, 2, 30], axis=0)
+        with pytest.raises(IndexError, match=msg):
+            df.take([3, 1, 2, -31], axis=0)
+        with pytest.raises(IndexError, match=msg):
+            df.take([3, 1, 2, 5], axis=1)
+        with pytest.raises(IndexError, match=msg):
+            df.take([3, 1, 2, -5], axis=1)
 
         # mixed-dtype
         order = [4, 1, 2, 0, 3]
@@ -1053,7 +1066,10 @@ class TestDataFrameSelectReindex(TestData):
         reindexed2 = self.intframe.reindex(index=rows)
         assert_frame_equal(reindexed1, reindexed2)
 
-        pytest.raises(ValueError, self.intframe.reindex_axis, rows, axis=2)
+        msg = ("No axis named 2 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            self.intframe.reindex_axis(rows, axis=2)
 
         # no-op case
         cols = self.frame.columns.copy()

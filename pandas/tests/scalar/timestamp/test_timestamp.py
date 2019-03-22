@@ -14,7 +14,7 @@ from pytz import timezone, utc
 
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
-from pandas.compat import PY2, PY3, long
+from pandas.compat import long
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
@@ -60,7 +60,9 @@ class TestTimestampProperties(object):
         check(ts.hour, 9)
         check(ts.minute, 6)
         check(ts.second, 3)
-        pytest.raises(AttributeError, lambda: ts.millisecond)
+        msg = "'Timestamp' object has no attribute 'millisecond'"
+        with pytest.raises(AttributeError, match=msg):
+            ts.millisecond
         check(ts.microsecond, 100)
         check(ts.nanosecond, 1)
         check(ts.dayofweek, 6)
@@ -78,7 +80,9 @@ class TestTimestampProperties(object):
         check(ts.hour, 23)
         check(ts.minute, 59)
         check(ts.second, 0)
-        pytest.raises(AttributeError, lambda: ts.millisecond)
+        msg = "'Timestamp' object has no attribute 'millisecond'"
+        with pytest.raises(AttributeError, match=msg):
+            ts.millisecond
         check(ts.microsecond, 0)
         check(ts.nanosecond, 0)
         check(ts.dayofweek, 2)
@@ -121,13 +125,11 @@ class TestTimestampProperties(object):
 
         # Work around https://github.com/pandas-dev/pandas/issues/22342
         # different normalizations
+        expected_day = unicodedata.normalize("NFD", expected_day)
+        expected_month = unicodedata.normalize("NFD", expected_month)
 
-        if not PY2:
-            expected_day = unicodedata.normalize("NFD", expected_day)
-            expected_month = unicodedata.normalize("NFD", expected_month)
-
-            result_day = unicodedata.normalize("NFD", result_day,)
-            result_month = unicodedata.normalize("NFD", result_month)
+        result_day = unicodedata.normalize("NFD", result_day,)
+        result_month = unicodedata.normalize("NFD", result_month)
 
         assert result_day == expected_day
         assert result_month == expected_month
@@ -354,6 +356,14 @@ class TestTimestampConstructors(object):
             # case where user tries to pass tz as an arg, not kwarg, gets
             # interpreted as a `freq`
             Timestamp('2012-01-01', 'US/Pacific')
+
+    def test_constructor_strptime(self):
+        # GH25016
+        # Test support for Timestamp.strptime
+        fmt = '%Y%m%d-%H%M%S-%f%z'
+        ts = '20190129-235348-000001+0000'
+        with pytest.raises(NotImplementedError):
+            Timestamp.strptime(ts, fmt)
 
     def test_constructor_tz_or_tzinfo(self):
         # GH#17943, GH#17690, GH#5168
@@ -693,33 +703,12 @@ class TestTimestamp(object):
         [946688461000000000 / long(1000000), dict(unit='ms')],
         [946688461000000000 / long(1000000000), dict(unit='s')],
         [10957, dict(unit='D', h=0)],
-        pytest.param((946688461000000000 + 500000) / long(1000000000),
-                     dict(unit='s', us=499, ns=964),
-                     marks=pytest.mark.skipif(not PY3,
-                                              reason='using truediv, so these'
-                                                     ' are like floats')),
-        pytest.param((946688461000000000 + 500000000) / long(1000000000),
-                     dict(unit='s', us=500000),
-                     marks=pytest.mark.skipif(not PY3,
-                                              reason='using truediv, so these'
-                                                     ' are like floats')),
-        pytest.param((946688461000000000 + 500000) / long(1000000),
-                     dict(unit='ms', us=500),
-                     marks=pytest.mark.skipif(not PY3,
-                                              reason='using truediv, so these'
-                                                     ' are like floats')),
-        pytest.param((946688461000000000 + 500000) / long(1000000000),
-                     dict(unit='s'),
-                     marks=pytest.mark.skipif(PY3,
-                                              reason='get chopped in py2')),
-        pytest.param((946688461000000000 + 500000000) / long(1000000000),
-                     dict(unit='s'),
-                     marks=pytest.mark.skipif(PY3,
-                                              reason='get chopped in py2')),
-        pytest.param((946688461000000000 + 500000) / long(1000000),
-                     dict(unit='ms'),
-                     marks=pytest.mark.skipif(PY3,
-                                              reason='get chopped in py2')),
+        [(946688461000000000 + 500000) / long(1000000000),
+         dict(unit='s', us=499, ns=964)],
+        [(946688461000000000 + 500000000) / long(1000000000),
+         dict(unit='s', us=500000)],
+        [(946688461000000000 + 500000) / long(1000000),
+         dict(unit='ms', us=500)],
         [(946688461000000000 + 500000) / long(1000), dict(unit='us', us=500)],
         [(946688461000000000 + 500000000) / long(1000000),
          dict(unit='ms', us=500000)],
@@ -779,6 +768,13 @@ class TestTimestamp(object):
         d = {datetime(2011, 1, 1): 5}
         stamp = Timestamp(datetime(2011, 1, 1))
         assert d[stamp] == 5
+
+    def test_tz_conversion_freq(self, tz_naive_fixture):
+        # GH25241
+        t1 = Timestamp('2019-01-01 10:00', freq='H')
+        assert t1.tz_localize(tz=tz_naive_fixture).freq == t1.freq
+        t2 = Timestamp('2019-01-02 12:00', tz='UTC', freq='T')
+        assert t2.tz_convert(tz='UTC').freq == t2.freq
 
 
 class TestTimestampNsOperations(object):
@@ -962,3 +958,8 @@ class TestTimestampConversion(object):
         with tm.assert_produces_warning(UserWarning):
             # warning that timezone info will be lost
             ts.to_period('D')
+
+    def test_to_numpy_alias(self):
+        # GH 24653: alias .to_numpy() for scalars
+        ts = Timestamp(datetime.now())
+        assert ts.to_datetime64() == ts.to_numpy()

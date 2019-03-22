@@ -26,7 +26,6 @@ from pandas.core.indexes.datetimelike import (
     wrap_arithmetic_op)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
 
 from pandas.tseries.frequencies import to_offset
 
@@ -208,6 +207,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
                             'collection of some kind, {data} was passed'
                             .format(cls=cls.__name__, data=repr(data)))
 
+        if unit in {'Y', 'y', 'M'}:
+            warnings.warn("M and Y units are deprecated and "
+                          "will be removed in a future version.",
+                          FutureWarning, stacklevel=2)
+
         if isinstance(data, TimedeltaArray):
             if copy:
                 data = data.copy()
@@ -233,12 +237,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if not isinstance(values, TimedeltaArray):
             values = TimedeltaArray._simple_new(values, dtype=dtype,
                                                 freq=freq)
+        else:
+            if freq is None:
+                freq = values.freq
         assert isinstance(values, TimedeltaArray), type(values)
         assert dtype == _TD_DTYPE, dtype
         assert values.dtype == 'm8[ns]', values.dtype
 
-        freq = to_offset(freq)
-        tdarr = TimedeltaArray._simple_new(values, freq=freq)
+        tdarr = TimedeltaArray._simple_new(values._data, freq=freq)
         result = object.__new__(cls)
         result._data = tdarr
         result.name = name
@@ -580,7 +586,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         assert kind in ['ix', 'loc', 'getitem', None]
 
         if isinstance(label, compat.string_types):
-            parsed = _coerce_scalar_to_timedelta_type(label, box=True)
+            parsed = Timedelta(label)
             lbound = parsed.round(parsed.resolution)
             if side == 'left':
                 return lbound

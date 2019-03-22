@@ -577,26 +577,41 @@ class TestGetDummies(object):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_get_dummies_all_sparse(self):
+        df = pd.DataFrame({"A": [1, 2]})
+        result = pd.get_dummies(df, columns=['A'], sparse=True)
+        dtype = SparseDtype('uint8', 0)
+        expected = pd.DataFrame({
+            'A_1': SparseArray([1, 0], dtype=dtype),
+            'A_2': SparseArray([0, 1], dtype=dtype),
+        })
+        tm.assert_frame_equal(result, expected)
+
 
 class TestCategoricalReshape(object):
 
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_reshaping_panel_categorical(self):
+    def test_reshaping_multi_index_categorical(self):
 
-        p = tm.makePanel()
-        p['str'] = 'foo'
-        df = p.to_frame()
+        # construct a MultiIndexed DataFrame formerly created
+        #  via `tm.makePanel().to_frame()`
+        cols = ['ItemA', 'ItemB', 'ItemC']
+        data = {c: tm.makeTimeDataFrame() for c in cols}
+        df = pd.concat({c: data[c].stack() for c in data}, axis='columns')
+        df.index.names = ['major', 'minor']
+        df['str'] = 'foo'
+
+        dti = df.index.levels[0]
 
         df['category'] = df['str'].astype('category')
         result = df['category'].unstack()
 
-        c = Categorical(['foo'] * len(p.major_axis))
+        c = Categorical(['foo'] * len(dti))
         expected = DataFrame({'A': c.copy(),
                               'B': c.copy(),
                               'C': c.copy(),
                               'D': c.copy()},
                              columns=Index(list('ABCD'), name='minor'),
-                             index=p.major_axis.set_names('major'))
+                             index=dti)
         tm.assert_frame_equal(result, expected)
 
 

@@ -8,7 +8,7 @@ from pytz import utc
 
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
-from pandas.compat import PY3
+from pandas.compat import PY36
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Timestamp
@@ -171,7 +171,7 @@ class TestTimestampUnaryOps(object):
         assert result is NaT
 
         with pytest.raises(pytz.NonExistentTimeError,
-                           message='2018-03-11 02:00:00'):
+                           match='2018-03-11 02:00:00'):
             getattr(ts, method)(freq, nonexistent='raise')
 
     @pytest.mark.parametrize('timestamp', [
@@ -281,10 +281,9 @@ class TestTimestampUnaryOps(object):
         result_dt = dt.replace(tzinfo=tzinfo)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
 
-        if PY3:
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-                assert result_dt.timestamp() == result_pd.timestamp()
+        # datetime.timestamp() converts in the local timezone
+        with tm.set_timezone('UTC'):
+            assert result_dt.timestamp() == result_pd.timestamp()
 
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
@@ -292,10 +291,9 @@ class TestTimestampUnaryOps(object):
         result_dt = dt.replace(tzinfo=tzinfo).replace(tzinfo=None)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
 
-        if PY3:
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-                assert result_dt.timestamp() == result_pd.timestamp()
+        # datetime.timestamp() converts in the local timezone
+        with tm.set_timezone('UTC'):
+            assert result_dt.timestamp() == result_pd.timestamp()
 
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
@@ -329,6 +327,19 @@ class TestTimestampUnaryOps(object):
         expected = Timestamp('2013-11-3 03:00:00', tz='America/Chicago')
         assert result == expected
 
+    @pytest.mark.skipif(not PY36, reason='Fold not available until PY3.6')
+    @pytest.mark.parametrize('fold', [0, 1])
+    @pytest.mark.parametrize('tz', ['dateutil/Europe/London', 'Europe/London'])
+    def test_replace_dst_fold(self, fold, tz):
+        # GH 25017
+        d = datetime(2019, 10, 27, 2, 30)
+        ts = Timestamp(d, tz=tz)
+        result = ts.replace(hour=1, fold=fold)
+        expected = Timestamp(datetime(2019, 10, 27, 1, 30)).tz_localize(
+            tz, ambiguous=not fold
+        )
+        assert result == expected
+
     # --------------------------------------------------------------
     # Timestamp.normalize
 
@@ -356,9 +367,8 @@ class TestTimestampUnaryOps(object):
         # utsc is a different representation of the same time
         assert tsc.timestamp() == utsc.timestamp()
 
-        if PY3:
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-                # should agree with datetime.timestamp method
-                dt = ts.to_pydatetime()
-                assert dt.timestamp() == ts.timestamp()
+        # datetime.timestamp() converts in the local timezone
+        with tm.set_timezone('UTC'):
+            # should agree with datetime.timestamp method
+            dt = ts.to_pydatetime()
+            assert dt.timestamp() == ts.timestamp()

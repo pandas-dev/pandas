@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 import operator
+from typing import Any, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, algos, iNaT, lib
+from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
@@ -144,7 +145,7 @@ class DatelikeOps(object):
         Return an Index of formatted strings specified by date_format, which
         supports the same string format as the python standard library. Details
         of the string format can be found in `python string format
-        doc <%(URL)s>`__
+        doc <%(URL)s>`__.
 
         Parameters
         ----------
@@ -154,7 +155,7 @@ class DatelikeOps(object):
         Returns
         -------
         Index
-            Index of formatted strings
+            Index of formatted strings.
 
         See Also
         --------
@@ -296,12 +297,11 @@ class TimelikeOps(object):
         result = round_nsint64(values, mode, freq)
         result = self._maybe_mask_results(result, fill_value=NaT)
 
-        attribs = self._get_attributes_dict()
-        attribs['freq'] = None
-        if 'tz' in attribs:
-            attribs['tz'] = None
+        dtype = self.dtype
+        if is_datetime64tz_dtype(self):
+            dtype = None
         return self._ensure_localized(
-            self._simple_new(result, **attribs), ambiguous, nonexistent
+            self._simple_new(result, dtype=dtype), ambiguous, nonexistent
         )
 
     @Appender((_round_doc + _round_example).format(op="round"))
@@ -351,7 +351,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     @property
     def asi8(self):
-        # type: () -> ndarray
+        # type: () -> np.ndarray
         """
         Integer representation of the values.
 
@@ -434,8 +434,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             else:
                 key = lib.maybe_booleans_to_slice(key.view(np.uint8))
 
-        attribs = self._get_attributes_dict()
-
         is_period = is_period_dtype(self)
         if is_period:
             freq = self.freq
@@ -451,25 +449,23 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
                 #  should preserve `freq` attribute
                 freq = self.freq
 
-        attribs['freq'] = freq
-
         result = getitem(key)
         if result.ndim > 1:
             # To support MPL which performs slicing with 2 dim
             # even though it only has 1 dim by definition
             if is_period:
-                return self._simple_new(result, **attribs)
+                return self._simple_new(result, dtype=self.dtype, freq=freq)
             return result
 
-        return self._simple_new(result, **attribs)
+        return self._simple_new(result, dtype=self.dtype, freq=freq)
 
     def __setitem__(
             self,
             key,    # type: Union[int, Sequence[int], Sequence[bool], slice]
-            value,  # type: Union[NaTType, Scalar, Sequence[Scalar]]
+            value,  # type: Union[NaTType, Any, Sequence[Any]]
     ):
         # type: (...) -> None
-        # I'm fudging the types a bit here. The "Scalar" above really depends
+        # I'm fudging the types a bit here. "Any" above really depends
         # on type(self). For PeriodArray, it's Period (or stuff coercible
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...
         # I don't know if mypy can do that, possibly with Generics.
@@ -611,7 +607,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     def copy(self, deep=False):
         values = self.asi8.copy()
-        return type(self)(values, dtype=self.dtype, freq=self.freq)
+        return type(self)._simple_new(values, dtype=self.dtype, freq=self.freq)
 
     def _values_for_factorize(self):
         return self.asi8, iNaT
@@ -753,7 +749,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         mask the result if needed, convert to the provided dtype if its not
         None
 
-        This is an internal routine
+        This is an internal routine.
         """
 
         if self._hasnans:
@@ -1052,7 +1048,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         Returns
         -------
         result : np.ndarray[object]
-            Array of DateOffset objects; nulls represented by NaT
+            Array of DateOffset objects; nulls represented by NaT.
         """
         if not is_period_dtype(self):
             raise TypeError("cannot subtract {dtype}-dtype from {cls}"
