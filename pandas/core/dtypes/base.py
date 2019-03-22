@@ -209,7 +209,7 @@ class ExtensionDtype(_DtypeOpsMixin):
         return self.name
 
     @property
-    def type(self) -> bool:
+    def type(self) -> type:
         """
         The scalar type for the array, e.g. ``int``
 

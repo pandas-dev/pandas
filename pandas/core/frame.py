@@ -19,7 +19,7 @@ import itertools
 import sys
 import warnings
 from textwrap import dedent
-from typing import List, Union
+from typing import List, Optional, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -6246,7 +6246,7 @@ class DataFrame(NDFrame):
     def _gotitem(self,
                  key: Union[str, List[str]],
                  ndim: int,
-                 subset: Union[Series, 'DataFrame', None] = None,
+                 subset: Optional[Series, 'DataFrame'] = None,
                  ) -> Union[Series, 'DataFrame']:
         """
         Sub-classes to define. Return a sliced object.
