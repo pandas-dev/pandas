@@ -1,10 +1,9 @@
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, TYPE_CHECKING, Union
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
 
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype, is_extension_array_dtype, is_timedelta64_ns_dtype)
 from pandas.core.dtypes.dtypes import ExtensionDtype, registry
@@ -12,10 +11,14 @@ from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 from pandas import compat
 
 
+if TYPE_CHECKING:
+    from pandas.core.arrays.base import ExtensionArray
+
+
 def array(data: Sequence[object],
-          dtype: Optional[str, np.dtype, ExtensionDtype] = None,
+          dtype: Optional[Union[str, np.dtype, ExtensionDtype]] = None,
           copy: bool = True,
-          ) -> ExtensionArray:
+          ) -> 'ExtensionArray':
     """
     Create an array.
 
