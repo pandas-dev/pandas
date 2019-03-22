@@ -391,9 +391,7 @@ b &       b &     b \\
 """
         assert escaped_result == escaped_expected
 
-    def test_to_latex_longtable(self, frame):
-        frame.to_latex(longtable=True)
-
+    def test_to_latex_longtable(self):
         df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
         withindex_result = df.to_latex(longtable=True)
         withindex_expected = r"""\begin{longtable}{lrl}
@@ -442,15 +440,10 @@ b &       b &     b \\
         with3columns_result = df.to_latex(index=False, longtable=True)
         assert r"\multicolumn{3}" in with3columns_result
 
-    def test_to_latex_caption_label(self, frame):
+    def test_to_latex_caption_label(self):
         # GH 25436
         the_caption = 'a table in a \\texttt{table/tabular} environment'
         the_label = 'tab:table_tabular'
-
-        frame.to_latex(
-            caption=the_caption,
-            label=the_label
-        )
 
         df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
 
@@ -516,16 +509,10 @@ b &       b &     b \\
 """
         assert result_cl == expected_cl
 
-    def test_to_latex_longtable_caption_label(self, frame):
+    def test_to_latex_longtable_caption_label(self):
         # GH 25436
         the_caption = 'a table in a \\texttt{longtable} environment'
         the_label = 'tab:longtable'
-
-        frame.to_latex(
-            longtable=True,
-            caption=the_caption,
-            label=the_label
-        )
 
         df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
 
