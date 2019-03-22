@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas.compat import PY3, u
+from pandas.compat import u
 
 from pandas import (
     Categorical, CategoricalIndex, Series, date_range, period_range,
@@ -61,18 +61,13 @@ class TestCategoricalRepr(object):
             assert exp == repr(a)
 
     def test_unicode_print(self):
-        if PY3:
-            _rep = repr
-        else:
-            _rep = unicode  # noqa
-
         c = Categorical(['aaaaa', 'bb', 'cccc'] * 20)
         expected = u"""\
 [aaaaa, bb, cccc, aaaaa, bb, ..., bb, cccc, aaaaa, bb, cccc]
 Length: 60
 Categories (3, object): [aaaaa, bb, cccc]"""
 
-        assert _rep(c) == expected
+        assert repr(c) == expected
 
         c = Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
         expected = u"""\
@@ -80,7 +75,7 @@ Categories (3, object): [aaaaa, bb, cccc]"""
 Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
-        assert _rep(c) == expected
+        assert repr(c) == expected
 
         # unicode option should not affect to Categorical, as it doesn't care
         # the repr width
@@ -91,7 +86,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
-            assert _rep(c) == expected
+            assert repr(c) == expected
 
     def test_categorical_repr(self):
         c = Categorical([1, 2, 3])

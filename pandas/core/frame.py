@@ -5547,8 +5547,8 @@ class DataFrame(NDFrame):
         other = other.reindex_like(self)
 
         for col in self.columns:
-            this = self[col].values
-            that = other[col].values
+            this = self[col]._values
+            that = other[col]._values
             if filter_func is not None:
                 with np.errstate(all='ignore'):
                     mask = ~filter_func(this) | isna(that)

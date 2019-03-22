@@ -14,7 +14,7 @@ import pytz
 
 from pandas._libs import tslib
 from pandas._libs.tslibs import iNaT, parsing
-from pandas.compat import PY3, lmap
+from pandas.compat import lmap
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -386,9 +386,6 @@ class TestToDatetime(object):
     def test_to_datetime_today_now_unicode_bytes(self):
         to_datetime([u'now'])
         to_datetime([u'today'])
-        if not PY3:
-            to_datetime(['now'])
-            to_datetime(['today'])
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_dt64s(self, cache):

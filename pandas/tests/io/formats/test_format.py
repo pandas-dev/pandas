@@ -25,8 +25,8 @@ from pandas._config.config import (
 
 import pandas.compat as compat
 from pandas.compat import (
-    PY3, StringIO, is_platform_32bit, is_platform_windows, lrange, lzip, range,
-    u, zip)
+    StringIO, is_platform_32bit, is_platform_windows, lrange, lzip, range, u,
+    zip)
 
 import pandas as pd
 from pandas import (
@@ -555,11 +555,6 @@ class TestDataFrameFormatting(object):
         assert result == u('  c/\u03c3\n') + '0   1\n1   2\n2   3'
 
     def test_east_asian_unicode_false(self):
-        if PY3:
-            _rep = repr
-        else:
-            _rep = unicode  # noqa
-
         # not alighned properly because of east asian width
 
         # mid col
@@ -569,7 +564,7 @@ class TestDataFrameFormatting(object):
         expected = (u"          a      b\na         あ      1\n"
                     u"bb      いいい    222\nc         う  33333\n"
                     u"ddd  ええええええ      4")
-        assert _rep(df) == expected
+        assert repr(df) == expected
 
         # last col
         df = DataFrame({'a': [1, 222, 33333, 4],
@@ -578,7 +573,7 @@ class TestDataFrameFormatting(object):
         expected = (u"         a       b\na        1       あ\n"
                     u"bb     222     いいい\nc    33333       う\n"
                     u"ddd      4  ええええええ")
-        assert _rep(df) == expected
+        assert repr(df) == expected
 
         # all col
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -587,7 +582,7 @@ class TestDataFrameFormatting(object):
         expected = (u"         a       b\na    あああああ       あ\n"
                     u"bb       い     いいい\nc        う       う\n"
                     u"ddd    えええ  ええええええ")
-        assert _rep(df) == expected
+        assert repr(df) == expected
 
         # column name
         df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
@@ -596,7 +591,7 @@ class TestDataFrameFormatting(object):
         expected = (u"          b  あああああ\na         あ      1\n"
                     u"bb      いいい    222\nc         う  33333\n"
                     u"ddd  ええええええ      4")
-        assert _rep(df) == expected
+        assert repr(df) == expected
 
         # index
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -605,7 +600,7 @@ class TestDataFrameFormatting(object):
         expected = (u"            a       b\nあああ     あああああ       あ\n"
                     u"いいいいいい      い     いいい\nうう          う       う\n"
                     u"え         えええ  ええええええ")
-        assert _rep(df) == expected
+        assert repr(df) == expected
 
         # index name
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -618,7 +613,7 @@ class TestDataFrameFormatting(object):
                     u"い         い     いいい\n"
                     u"うう        う       う\n"
                     u"え       えええ  ええええええ")
-        assert _rep(df) == expected
+        assert repr(df) == expected
 
         # all
         df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
@@ -631,7 +626,7 @@ class TestDataFrameFormatting(object):
                     u"いいい      い   いいい\n"
                     u"うう       う     う\n"
                     u"え    えええええ    ええ")
-        assert _rep(df) == expected
+        assert repr(df) == expected
 
         # MultiIndex
         idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
@@ -644,7 +639,7 @@ class TestDataFrameFormatting(object):
                     u"う   え         い     いいい\n"
                     u"おおお かかかか      う       う\n"
                     u"き   くく      えええ  ええええええ")
-        assert _rep(df) == expected
+        assert repr(df) == expected
 
         # truncate
         with option_context('display.max_rows', 3, 'display.max_columns', 3):
@@ -657,21 +652,16 @@ class TestDataFrameFormatting(object):
             expected = (u"        a  ... ああああ\n0   あああああ  ...    さ\n"
                         u"..    ...  ...  ...\n3     えええ  ...    せ\n"
                         u"\n[4 rows x 4 columns]")
-            assert _rep(df) == expected
+            assert repr(df) == expected
 
             df.index = [u'あああ', u'いいいい', u'う', 'aaa']
             expected = (u"         a  ... ああああ\nあああ  あああああ  ...    さ\n"
                         u"..     ...  ...  ...\naaa    えええ  ...    せ\n"
                         u"\n[4 rows x 4 columns]")
-            assert _rep(df) == expected
+            assert repr(df) == expected
 
     def test_east_asian_unicode_true(self):
-        if PY3:
-            _rep = repr
-        else:
-            _rep = unicode  # noqa
-
-        # Emable Unicode option -----------------------------------------
+        # Enable Unicode option -----------------------------------------
         with option_context('display.unicode.east_asian_width', True):
 
             # mid col
@@ -681,7 +671,7 @@ class TestDataFrameFormatting(object):
             expected = (u"                a      b\na              あ      1\n"
                         u"bb         いいい    222\nc              う  33333\n"
                         u"ddd  ええええええ      4")
-            assert _rep(df) == expected
+            assert repr(df) == expected
 
             # last col
             df = DataFrame({'a': [1, 222, 33333, 4],
@@ -690,7 +680,7 @@ class TestDataFrameFormatting(object):
             expected = (u"         a             b\na        1            あ\n"
                         u"bb     222        いいい\nc    33333            う\n"
                         u"ddd      4  ええええええ")
-            assert _rep(df) == expected
+            assert repr(df) == expected
 
             # all col
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -701,7 +691,7 @@ class TestDataFrameFormatting(object):
                         u"bb           い        いいい\n"
                         u"c            う            う\n"
                         u"ddd      えええ  ええええええ")
-            assert _rep(df) == expected
+            assert repr(df) == expected
 
             # column name
             df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
@@ -712,7 +702,7 @@ class TestDataFrameFormatting(object):
                         u"bb         いいい         222\n"
                         u"c              う       33333\n"
                         u"ddd  ええええええ           4")
-            assert _rep(df) == expected
+            assert repr(df) == expected
 
             # index
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -723,7 +713,7 @@ class TestDataFrameFormatting(object):
                         u"いいいいいい          い        いいい\n"
                         u"うう                  う            う\n"
                         u"え                えええ  ええええええ")
-            assert _rep(df) == expected
+            assert repr(df) == expected
 
             # index name
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -736,7 +726,7 @@ class TestDataFrameFormatting(object):
                         u"い                い        いいい\n"
                         u"うう              う            う\n"
                         u"え            えええ  ええええええ")
-            assert _rep(df) == expected
+            assert repr(df) == expected
 
             # all
             df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
@@ -749,7 +739,7 @@ class TestDataFrameFormatting(object):
                         u"いいい          い     いいい\n"
                         u"うう            う         う\n"
                         u"え      えええええ       ええ")
-            assert _rep(df) == expected
+            assert repr(df) == expected
 
             # MultiIndex
             idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
@@ -762,7 +752,7 @@ class TestDataFrameFormatting(object):
                         u"う     え                い        いいい\n"
                         u"おおお かかかか          う            う\n"
                         u"き     くく          えええ  ええええええ")
-            assert _rep(df) == expected
+            assert repr(df) == expected
 
             # truncate
             with option_context('display.max_rows', 3, 'display.max_columns',
@@ -779,7 +769,7 @@ class TestDataFrameFormatting(object):
                             u"..         ...  ...      ...\n"
                             u"3       えええ  ...       せ\n"
                             u"\n[4 rows x 4 columns]")
-                assert _rep(df) == expected
+                assert repr(df) == expected
 
                 df.index = [u'あああ', u'いいいい', u'う', 'aaa']
                 expected = (u"                 a  ... ああああ\n"
@@ -787,7 +777,7 @@ class TestDataFrameFormatting(object):
                             u"...            ...  ...      ...\n"
                             u"aaa         えええ  ...       せ\n"
                             u"\n[4 rows x 4 columns]")
-                assert _rep(df) == expected
+                assert repr(df) == expected
 
             # ambiguous unicode
             df = DataFrame({'b': [u'あ', u'いいい', u'¡¡', u'ええええええ'],
@@ -798,7 +788,7 @@ class TestDataFrameFormatting(object):
                         u"bb         いいい         222\n"
                         u"c              ¡¡       33333\n"
                         u"¡¡¡  ええええええ           4")
-            assert _rep(df) == expected
+            assert repr(df) == expected
 
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
@@ -992,29 +982,6 @@ class TestDataFrameFormatting(object):
         repr(df)
         repr(df.T)
         fmt.set_option('display.max_rows', 200)
-
-    def test_pprint_thing(self):
-        from pandas.io.formats.printing import pprint_thing as pp_t
-
-        if PY3:
-            pytest.skip("doesn't work on Python 3")
-
-        assert pp_t('a') == u('a')
-        assert pp_t(u('a')) == u('a')
-        assert pp_t(None) == 'None'
-        assert pp_t(u('\u05d0'), quote_strings=True) == u("u'\u05d0'")
-        assert pp_t(u('\u05d0'), quote_strings=False) == u('\u05d0')
-        assert (pp_t((u('\u05d0'), u('\u05d1')), quote_strings=True) ==
-                u("(u'\u05d0', u'\u05d1')"))
-        assert (pp_t((u('\u05d0'), (u('\u05d1'), u('\u05d2'))),
-                     quote_strings=True) == u("(u'\u05d0', "
-                                              "(u'\u05d1', u'\u05d2'))"))
-        assert (pp_t(('foo', u('\u05d0'), (u('\u05d0'), u('\u05d0'))),
-                     quote_strings=True) == u("(u'foo', u'\u05d0', "
-                                              "(u'\u05d0', u'\u05d0'))"))
-
-        # gh-2038: escape embedded tabs in string
-        assert "\t" not in pp_t("a\tb", escape_chars=("\t", ))
 
     def test_wide_repr(self):
         with option_context('mode.sim_interactive', True,
@@ -1898,10 +1865,6 @@ class TestSeriesFormatting(object):
         sf._get_footer()  # should not raise exception
 
     def test_east_asian_unicode_series(self):
-        if PY3:
-            _rep = repr
-        else:
-            _rep = unicode  # noqa
         # not aligned properly because of east asian width
 
         # unicode index
@@ -1909,21 +1872,21 @@ class TestSeriesFormatting(object):
                    index=[u'あ', u'いい', u'ううう', u'ええええ'])
         expected = (u"あ         a\nいい       bb\nううう     CCC\n"
                     u"ええええ      D\ndtype: object")
-        assert _rep(s) == expected
+        assert repr(s) == expected
 
         # unicode values
         s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                    index=['a', 'bb', 'c', 'ddd'])
         expected = (u"a         あ\nbb       いい\nc       ううう\n"
                     u"ddd    ええええ\ndtype: object")
-        assert _rep(s) == expected
+        assert repr(s) == expected
 
         # both
         s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                    index=[u'ああ', u'いいいい', u'う', u'えええ'])
         expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
                     u"えええ     ええええ\ndtype: object")
-        assert _rep(s) == expected
+        assert repr(s) == expected
 
         # unicode footer
         s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
@@ -1931,7 +1894,7 @@ class TestSeriesFormatting(object):
                    name=u'おおおおおおお')
         expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
                     u"えええ     ええええ\nName: おおおおおおお, dtype: object")
-        assert _rep(s) == expected
+        assert repr(s) == expected
 
         # MultiIndex
         idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
@@ -1941,13 +1904,13 @@ class TestSeriesFormatting(object):
                     u"う    え          22\n"
                     u"おおお  かかかか     3333\n"
                     u"き    くく      44444\ndtype: int64")
-        assert _rep(s) == expected
+        assert repr(s) == expected
 
         # object dtype, shorter than unicode repr
         s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
         expected = (u"1          1\nAB        22\nNaN     3333\n"
                     u"あああ    44444\ndtype: int64")
-        assert _rep(s) == expected
+        assert repr(s) == expected
 
         # object dtype, longer than unicode repr
         s = Series([1, 22, 3333, 44444],
@@ -1956,7 +1919,7 @@ class TestSeriesFormatting(object):
                     u"AB                        22\n"
                     u"2011-01-01 00:00:00     3333\n"
                     u"あああ                    44444\ndtype: int64")
-        assert _rep(s) == expected
+        assert repr(s) == expected
 
         # truncate
         with option_context('display.max_rows', 3):
@@ -1966,13 +1929,13 @@ class TestSeriesFormatting(object):
             expected = (u"0       あ\n     ... \n"
                         u"3    ええええ\n"
                         u"Name: おおおおおおお, Length: 4, dtype: object")
-            assert _rep(s) == expected
+            assert repr(s) == expected
 
             s.index = [u'ああ', u'いいいい', u'う', u'えええ']
             expected = (u"ああ        あ\n       ... \n"
                         u"えええ    ええええ\n"
                         u"Name: おおおおおおお, Length: 4, dtype: object")
-            assert _rep(s) == expected
+            assert repr(s) == expected
 
         # Emable Unicode option -----------------------------------------
         with option_context('display.unicode.east_asian_width', True):
@@ -1982,14 +1945,14 @@ class TestSeriesFormatting(object):
                        index=[u'あ', u'いい', u'ううう', u'ええええ'])
             expected = (u"あ            a\nいい         bb\nううう      CCC\n"
                         u"ええええ      D\ndtype: object")
-            assert _rep(s) == expected
+            assert repr(s) == expected
 
             # unicode values
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                        index=['a', 'bb', 'c', 'ddd'])
             expected = (u"a            あ\nbb         いい\nc        ううう\n"
                         u"ddd    ええええ\ndtype: object")
-            assert _rep(s) == expected
+            assert repr(s) == expected
 
             # both
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
@@ -1998,7 +1961,7 @@ class TestSeriesFormatting(object):
                         u"いいいい        いい\n"
                         u"う            ううう\n"
                         u"えええ      ええええ\ndtype: object")
-            assert _rep(s) == expected
+            assert repr(s) == expected
 
             # unicode footer
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
@@ -2009,7 +1972,7 @@ class TestSeriesFormatting(object):
                         u"う            ううう\n"
                         u"えええ      ええええ\n"
                         u"Name: おおおおおおお, dtype: object")
-            assert _rep(s) == expected
+            assert repr(s) == expected
 
             # MultiIndex
             idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
@@ -2020,13 +1983,13 @@ class TestSeriesFormatting(object):
                         u"おおお  かかかか     3333\n"
                         u"き      くく        44444\n"
                         u"dtype: int64")
-            assert _rep(s) == expected
+            assert repr(s) == expected
 
             # object dtype, shorter than unicode repr
             s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
             expected = (u"1             1\nAB           22\nNaN        3333\n"
                         u"あああ    44444\ndtype: int64")
-            assert _rep(s) == expected
+            assert repr(s) == expected
 
             # object dtype, longer than unicode repr
             s = Series([1, 22, 3333, 44444],
@@ -2035,7 +1998,7 @@ class TestSeriesFormatting(object):
                         u"AB                        22\n"
                         u"2011-01-01 00:00:00     3333\n"
                         u"あああ                 44444\ndtype: int64")
-            assert _rep(s) == expected
+            assert repr(s) == expected
 
             # truncate
             with option_context('display.max_rows', 3):
@@ -2044,14 +2007,14 @@ class TestSeriesFormatting(object):
                 expected = (u"0          あ\n       ...   \n"
                             u"3    ええええ\n"
                             u"Name: おおおおおおお, Length: 4, dtype: object")
-                assert _rep(s) == expected
+                assert repr(s) == expected
 
                 s.index = [u'ああ', u'いいいい', u'う', u'えええ']
                 expected = (u"ああ            あ\n"
                             u"            ...   \n"
                             u"えええ    ええええ\n"
                             u"Name: おおおおおおお, Length: 4, dtype: object")
-                assert _rep(s) == expected
+                assert repr(s) == expected
 
             # ambiguous unicode
             s = Series([u'¡¡', u'い¡¡', u'ううう', u'ええええ'],
@@ -2060,7 +2023,7 @@ class TestSeriesFormatting(object):
                         u"¡¡¡¡いい        い¡¡\n"
                         u"¡¡            ううう\n"
                         u"えええ      ええええ\ndtype: object")
-            assert _rep(s) == expected
+            assert repr(s) == expected
 
     def test_float_trim_zeros(self):
         vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,

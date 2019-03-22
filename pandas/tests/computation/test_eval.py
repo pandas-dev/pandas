@@ -7,7 +7,7 @@ import numpy as np
 from numpy.random import rand, randint, randn
 import pytest
 
-from pandas.compat import PY3, reduce
+from pandas.compat import reduce
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -102,7 +102,7 @@ def _bool_and_frame(lhs, rhs):
 
 
 def _is_py3_complex_incompat(result, expected):
-    return (PY3 and isinstance(expected, (complex, np.complexfloating)) and
+    return (isinstance(expected, (complex, np.complexfloating)) and
             np.isnan(result))
 
 
@@ -1133,50 +1133,27 @@ class TestOperationsNumExprPandas(object):
         ex = 's / 1'
         d = {'s': s}  # noqa
 
-        if PY3:
-            res = self.eval(ex, truediv=False)
-            tm.assert_numpy_array_equal(res, np.array([1.0]))
+        res = self.eval(ex, truediv=False)
+        tm.assert_numpy_array_equal(res, np.array([1.0]))
 
-            res = self.eval(ex, truediv=True)
-            tm.assert_numpy_array_equal(res, np.array([1.0]))
+        res = self.eval(ex, truediv=True)
+        tm.assert_numpy_array_equal(res, np.array([1.0]))
 
-            res = self.eval('1 / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('1 / 2', truediv=True)
+        expec = 0.5
+        assert res == expec
 
-            res = self.eval('1 / 2', truediv=False)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('1 / 2', truediv=False)
+        expec = 0.5
+        assert res == expec
 
-            res = self.eval('s / 2', truediv=False)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('s / 2', truediv=False)
+        expec = 0.5
+        assert res == expec
 
-            res = self.eval('s / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
-        else:
-            res = self.eval(ex, truediv=False)
-            tm.assert_numpy_array_equal(res, np.array([1]))
-
-            res = self.eval(ex, truediv=True)
-            tm.assert_numpy_array_equal(res, np.array([1.0]))
-
-            res = self.eval('1 / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
-
-            res = self.eval('1 / 2', truediv=False)
-            expec = 0
-            assert res == expec
-
-            res = self.eval('s / 2', truediv=False)
-            expec = 0
-            assert res == expec
-
-            res = self.eval('s / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('s / 2', truediv=True)
+        expec = 0.5
+        assert res == expec
 
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
