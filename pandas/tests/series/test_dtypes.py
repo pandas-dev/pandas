@@ -177,12 +177,6 @@ class TestSeriesDtypes(object):
 
         former_encoding = None
 
-        if not compat.PY3:
-            # In Python, we can force the default encoding for this test
-            former_encoding = sys.getdefaultencoding()
-            reload(sys)  # noqa
-
-            sys.setdefaultencoding("utf-8")
         if sys.getdefaultencoding() == "utf-8":
             test_series.append(Series([u('野菜食べないとやばい')
                                        .encode("utf-8")]))

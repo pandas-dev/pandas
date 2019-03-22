@@ -4,7 +4,6 @@ from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-import locale
 import os
 import re
 from shutil import rmtree
@@ -18,11 +17,14 @@ import warnings
 import numpy as np
 from numpy.random import rand, randn
 
+from pandas._config.localization import (  # noqa:F401
+    _valid_locales, can_set_locale, set_locale)
+
 from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
-    PY2, PY3, filter, httplib, lmap, lrange, lzip, map, raise_with_traceback,
-    range, string_types, u, unichr, zip)
+    PY2, PY3, httplib, lmap, lrange, lzip, map, raise_with_traceback, range,
+    string_types, u, unichr, zip)
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -39,7 +41,6 @@ from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
     period_array)
-import pandas.core.common as com
 
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
@@ -493,89 +494,6 @@ def get_locales(prefix=None, normalize=True,
     found = pattern.findall('\n'.join(out_locales))
     return _valid_locales(found, normalize)
 
-
-@contextmanager
-def set_locale(new_locale, lc_var=locale.LC_ALL):
-    """Context manager for temporarily setting a locale.
-
-    Parameters
-    ----------
-    new_locale : str or tuple
-        A string of the form <language_country>.<encoding>. For example to set
-        the current locale to US English with a UTF8 encoding, you would pass
-        "en_US.UTF-8".
-    lc_var : int, default `locale.LC_ALL`
-        The category of the locale being set.
-
-    Notes
-    -----
-    This is useful when you want to run a particular block of code under a
-    particular locale, without globally setting the locale. This probably isn't
-    thread-safe.
-    """
-    current_locale = locale.getlocale()
-
-    try:
-        locale.setlocale(lc_var, new_locale)
-        normalized_locale = locale.getlocale()
-        if com._all_not_none(*normalized_locale):
-            yield '.'.join(normalized_locale)
-        else:
-            yield new_locale
-    finally:
-        locale.setlocale(lc_var, current_locale)
-
-
-def can_set_locale(lc, lc_var=locale.LC_ALL):
-    """
-    Check to see if we can set a locale, and subsequently get the locale,
-    without raising an Exception.
-
-    Parameters
-    ----------
-    lc : str
-        The locale to attempt to set.
-    lc_var : int, default `locale.LC_ALL`
-        The category of the locale being set.
-
-    Returns
-    -------
-    is_valid : bool
-        Whether the passed locale can be set
-    """
-
-    try:
-        with set_locale(lc, lc_var=lc_var):
-            pass
-    except (ValueError,
-            locale.Error):  # horrible name for a Exception subclass
-        return False
-    else:
-        return True
-
-
-def _valid_locales(locales, normalize):
-    """Return a list of normalized locales that do not throw an ``Exception``
-    when set.
-
-    Parameters
-    ----------
-    locales : str
-        A string where each locale is separated by a newline.
-    normalize : bool
-        Whether to call ``locale.normalize`` on each locale.
-
-    Returns
-    -------
-    valid_locales : list
-        A list of valid locales.
-    """
-    if normalize:
-        normalizer = lambda x: locale.normalize(x.strip())
-    else:
-        normalizer = lambda x: x.strip()
-
-    return list(filter(can_set_locale, map(normalizer, locales)))
 
 # -----------------------------------------------------------------------------
 # Stdout / stderr decorators
@@ -2536,7 +2454,8 @@ class _AssertRaisesContextmanager(object):
 
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
-                            clear=None, check_stacklevel=True):
+                            clear=None, check_stacklevel=True,
+                            raise_on_extra_warnings=True):
     """
     Context manager for running code expected to either raise a specific
     warning, or not raise any warnings. Verifies that the code raises the
@@ -2549,7 +2468,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         The type of Exception raised. ``exception.Warning`` is the base
         class for all warnings. To check that no warning is returned,
         specify ``False`` or ``None``.
-    filter_level : str, default "always"
+    filter_level : str or None, default "always"
         Specifies whether warnings are ignored, displayed, or turned
         into errors.
         Valid values are:
@@ -2573,6 +2492,9 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
         line that implements the function is displayed.
+    raise_on_extra_warnings : bool, default True
+        Whether extra warnings not of the type `expected_warning` should
+        cause the test to fail.
 
     Examples
     --------
@@ -2641,8 +2563,10 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             msg = "Did not see expected warning of class {name!r}.".format(
                 name=expected_warning.__name__)
             assert saw_warning, msg
-        assert not extra_warnings, ("Caused unexpected warning(s): {extra!r}."
-                                    ).format(extra=extra_warnings)
+        if raise_on_extra_warnings and extra_warnings:
+            raise AssertionError(
+                "Caused unexpected warning(s): {!r}.".format(extra_warnings)
+            )
 
 
 class RNGContext(object):
