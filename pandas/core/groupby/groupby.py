@@ -12,7 +12,7 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import Optional, Tuple, Type
+from typing import Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -1736,8 +1736,9 @@ class GroupBy(_GroupBy):
         b    3.0
         """
 
-        def pre_processor(vals: np.ndarray) -> \
-                Tuple[np.ndarray, Optional[Type]]:
+        def pre_processor(
+                vals: np.ndarray
+        ) -> Tuple[np.ndarray, Optional[Union[str, Type]]]:
             if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
