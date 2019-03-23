@@ -184,7 +184,6 @@ Bug Fixes
 ~~~~~~~~~
 - Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
 - Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
-- Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
 
 Categorical
 ^^^^^^^^^^^
@@ -286,7 +285,7 @@ I/O
 - Bug in :meth:`DataFrame.to_string` and :meth:`DataFrame.to_latex` that would lead to incorrect output when the ``header`` keyword is used (:issue:`16718`)
 - Bug in :func:`read_csv` not properly interpreting the UTF8 encoded filenames on Windows on Python 3.6+ (:issue:`15086`)
 - Improved performance in :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` when converting columns that have missing values (:issue:`25772`)
-
+- Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
 
 Plotting
 ^^^^^^^^

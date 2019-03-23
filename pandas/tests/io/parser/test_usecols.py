@@ -30,7 +30,7 @@ _msg_validate_usecols_names = ("Usecols do not match columns, columns "
 def test_usecols_out_of_bounds(all_parsers, names, usecols, missing):
     data = "a,b,c\n1,2,3\n4,5,6"
     parser = all_parsers
-    
+
     mssg = _msg_validate_usecols_names.format(missing)
     with pytest.raises(ValueError, match=mssg):
         parser.read_csv(StringIO(data), usecols=usecols, names=names)
