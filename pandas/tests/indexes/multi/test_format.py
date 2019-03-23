@@ -5,7 +5,7 @@ import warnings
 
 import pytest
 
-from pandas.compat import range, u
+from pandas.compat import u
 
 import pandas as pd
 from pandas import MultiIndex, compat

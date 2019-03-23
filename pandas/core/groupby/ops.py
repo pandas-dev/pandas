@@ -11,7 +11,7 @@ import collections
 import numpy as np
 
 from pandas._libs import NaT, groupby as libgroupby, iNaT, lib, reduction
-from pandas.compat import lzip, range, zip
+from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 

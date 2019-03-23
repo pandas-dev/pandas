@@ -8,7 +8,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, lzip, map, range, zip
+from pandas.compat import StringIO, lmap, lrange, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd

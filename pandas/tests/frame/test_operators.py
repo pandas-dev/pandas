@@ -8,8 +8,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import range
-
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, compat
 import pandas.core.common as com

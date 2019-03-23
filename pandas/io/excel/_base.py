@@ -8,7 +8,7 @@ import warnings
 from pandas._config import config
 
 import pandas.compat as compat
-from pandas.compat import add_metaclass, range, string_types, u
+from pandas.compat import add_metaclass, string_types, u
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 

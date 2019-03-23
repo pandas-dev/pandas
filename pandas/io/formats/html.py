@@ -10,7 +10,7 @@ from textwrap import dedent
 
 from pandas._config import get_option
 
-from pandas.compat import lzip, map, range, u, unichr, zip
+from pandas.compat import lzip, u, unichr
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 

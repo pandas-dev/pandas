@@ -6,7 +6,6 @@ import pytest
 import pandas._config.config as cf
 
 from pandas._libs import index as libindex
-from pandas.compat import range
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 

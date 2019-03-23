@@ -12,7 +12,7 @@ import pytest
 
 from pandas._config.config import get_option, set_option
 
-from pandas.compat import PY36, BytesIO, iteritems, map, range, u
+from pandas.compat import PY36, BytesIO, iteritems, u
 import pandas.util._test_decorators as td
 
 import pandas as pd

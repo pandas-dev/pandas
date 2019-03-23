@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd

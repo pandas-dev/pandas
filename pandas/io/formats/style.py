@@ -14,7 +14,6 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas.compat import range
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_float, is_string_like

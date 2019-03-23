@@ -25,8 +25,7 @@ from pandas._config.config import (
 
 import pandas.compat as compat
 from pandas.compat import (
-    StringIO, is_platform_32bit, is_platform_windows, lrange, lzip, range, u,
-    zip)
+    StringIO, is_platform_32bit, is_platform_windows, lrange, lzip, u)
 
 import pandas as pd
 from pandas import (

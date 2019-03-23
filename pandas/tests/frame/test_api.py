@@ -9,7 +9,7 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas.compat import long, lrange, range
+from pandas.compat import long, lrange
 
 import pandas as pd
 from pandas import (

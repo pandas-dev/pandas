@@ -12,7 +12,7 @@ import numpy as np
 from pandas._config import get_option
 
 import pandas.compat as compat
-from pandas.compat import lrange, map, range, string_types, zip
+from pandas.compat import lrange, string_types
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
