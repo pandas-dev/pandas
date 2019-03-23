@@ -7,8 +7,6 @@ import warnings
 
 import numpy as np
 
-from pandas.compat import range
-
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 

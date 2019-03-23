@@ -20,7 +20,7 @@ import pytz
 import pandas._libs.json as ujson
 from pandas._libs.tslib import Timestamp
 import pandas.compat as compat
-from pandas.compat import StringIO, range, u
+from pandas.compat import StringIO, u
 
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
 import pandas.util.testing as tm
