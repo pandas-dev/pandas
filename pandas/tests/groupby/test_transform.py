@@ -3,8 +3,6 @@
 import numpy as np
 import pytest
 
-from pandas._config.config import option_context
-
 from pandas._libs import groupby
 from pandas.compat import StringIO
 
@@ -446,7 +444,7 @@ def test_transform_mixed_type():
     assert result['d'].dtype == np.float64
 
     # this is by definition a mutating operation!
-    with option_context('mode.chained_assignment', None):
+    with pd.option_context('mode.chained_assignment', None):
         for key, group in grouped:
             res = f(group)
             assert_frame_equal(res, result.loc[key])

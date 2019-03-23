@@ -10,13 +10,11 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas._config.config import get_option, set_option
-
 from pandas.compat import PY36, BytesIO, iteritems, u
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import DataFrame, Index, MultiIndex, Series, get_option, set_option
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 
