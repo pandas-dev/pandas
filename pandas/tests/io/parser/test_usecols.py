@@ -21,17 +21,18 @@ _msg_validate_usecols_names = ("Usecols do not match columns, columns "
                                "expected but not found: {0}")
 
 
-@pytest.mark.parametrize("names,usecols", [
-    (None, [0, 3]),
-    (["a", "b", "c"], [0, -1, 2]),
-    (None, [3]),
-    (["a"], [3])
+@pytest.mark.parametrize("names,usecols,missing", [
+    (None, [0, 3], r"\[3\]"),
+    (["a", "b", "c"], [0, -1, 2], r"\[-1\]"),
+    (None, [3], r"\[3\]"),
+    (["a"], [3], r"\[3\]")
 ])
-def test_usecols_out_of_bounds(all_parsers, names, usecols):
+def test_usecols_out_of_bounds(all_parsers, names, usecols, missing):
     data = "a,b,c\n1,2,3\n4,5,6"
     parser = all_parsers
-
-    with pytest.raises(ValueError, match=_msg_validate_usecols_names):
+    
+    mssg = _msg_validate_usecols_names.format(missing)
+    with pytest.raises(ValueError, match=mssg):
         parser.read_csv(StringIO(data), usecols=usecols, names=names)
 
 
