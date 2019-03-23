@@ -1,7 +1,4 @@
-try:
-    from collections import ChainMap
-except ImportError:
-    from pandas.compat.chainmap_impl import ChainMap
+from collections import ChainMap
 
 
 class DeepChainMap(ChainMap):
