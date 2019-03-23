@@ -7,6 +7,8 @@ import pytest
 
 from pandas._libs import tslibs
 
+from pandas import Timestamp
+
 
 @pytest.mark.parametrize("value,expected", [
     (date(2012, 9, 7), datetime(2012, 9, 7)),
@@ -15,4 +17,21 @@ from pandas._libs import tslibs
 ])
 def test_normalize_date(value, expected):
     result = tslibs.normalize_date(value)
+    assert result == expected
+
+
+class SubDatetime(datetime):
+    pass
+
+
+@pytest.mark.parametrize("dt, expected", [
+    pytest.param(Timestamp(2000, 1, 1, 1),
+                 Timestamp(2000, 1, 1, 0)),
+    pytest.param(datetime(2000, 1, 1, 1),
+                 datetime(2000, 1, 1, 0)),
+    pytest.param(SubDatetime(2000, 1, 1, 1),
+                 SubDatetime(2000, 1, 1, 0))])
+def test_normalize_date_sub_types(dt, expected):
+    # GH 25851
+    result = tslibs.normalize_date(dt)
     assert result == expected

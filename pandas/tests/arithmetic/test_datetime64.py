@@ -2351,3 +2351,14 @@ def test_shift_months(years, months):
            for x in dti]
     expected = DatetimeIndex(raw)
     tm.assert_index_equal(actual, expected)
+
+
+def test_dt_subclass_add_timedelta():
+    # GH 25851
+    class SubDatetime(datetime):
+        pass
+    dt = SubDatetime(2000, 1, 1)
+    td = Timedelta(hours=1)
+    result = dt + td
+    expected = SubDatetime(2000, 1, 1, 1)
+    assert result == expected

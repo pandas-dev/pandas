@@ -325,7 +325,7 @@ Sparse
 Other
 ^^^^^
 
--
+- Improved :class:`Timestamp` type checking in various datetime functions to prevent exceptions when using a subclassed `datetime` (:issue:`25851`)
 -
 -
 

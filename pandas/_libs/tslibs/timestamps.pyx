@@ -22,8 +22,6 @@ from pandas._libs.tslibs.util cimport (
 
 cimport pandas._libs.tslibs.ccalendar as ccalendar
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
-from pandas._libs.tslibs.conversion import (
-    tz_localize_to_utc, normalize_i8_timestamps)
 from pandas._libs.tslibs.conversion cimport (
     tz_convert_single, _TSObject, convert_to_tsobject,
     convert_datetime_to_tsobject)
@@ -202,11 +200,6 @@ def round_nsint64(values, mode, freq):
 # (see Timestamp class below). This will serve as a C extension type that
 # shadows the python class, where we do any heavy lifting.
 cdef class _Timestamp(datetime):
-
-    cdef readonly:
-        int64_t value, nanosecond
-        object freq       # frequency reference
-        list _date_attributes
 
     def __hash__(_Timestamp self):
         if self.nanosecond:
@@ -1215,6 +1208,7 @@ class Timestamp(_Timestamp):
             tz = maybe_get_tz(tz)
             if not is_string_object(ambiguous):
                 ambiguous = [ambiguous]
+            from pandas._libs.tslibs.conversion import tz_localize_to_utc
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous,
                                        nonexistent=nonexistent)[0]
@@ -1409,6 +1403,7 @@ class Timestamp(_Timestamp):
             DAY_NS = DAY_SECONDS * 1000000000
             normalized_value = self.value - (self.value % DAY_NS)
             return Timestamp(normalized_value).tz_localize(self.tz)
+        from pandas._libs.tslibs.conversion import normalize_i8_timestamps
         normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)

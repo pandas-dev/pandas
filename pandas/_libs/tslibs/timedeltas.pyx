@@ -16,7 +16,6 @@ from numpy cimport int64_t
 cnp.import_array()
 
 from cpython.datetime cimport (datetime, timedelta,
-                               PyDateTime_CheckExact,
                                PyDateTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
@@ -37,6 +36,7 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, NPY_NAT, c_NaT as NaT)
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.offsets import _Tick as Tick
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 
 # ----------------------------------------------------------------------
 # Constants
@@ -583,9 +583,10 @@ def _binary_op_method_timedeltalike(op, name):
             # has-dtype check before then
             pass
 
-        elif is_datetime64_object(other) or PyDateTime_CheckExact(other):
-            # the PyDateTime_CheckExact case is for a datetime object that
-            # is specifically *not* a Timestamp, as the Timestamp case will be
+        elif is_datetime64_object(other) or (
+             PyDateTime_Check(other) and not isinstance(other, _Timestamp)):
+            # this case is for a datetime object that is specifically 
+            # *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
             from pandas._libs.tslibs.timestamps import Timestamp
             return op(self, Timestamp(other))

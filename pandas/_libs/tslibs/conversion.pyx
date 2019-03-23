@@ -13,8 +13,7 @@ from dateutil.tz import tzutc
 from datetime import time as datetime_time
 from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_Check, PyDate_Check,
-                               PyDateTime_CheckExact, PyDateTime_IMPORT,
-                               PyDelta_Check)
+                               PyDateTime_IMPORT, PyDelta_Check)
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
@@ -31,6 +30,7 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.timedeltas cimport (cast_from_unit,
                                              delta_to_nanoseconds)
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
     get_timezone, maybe_get_tz, tz_compare)
@@ -379,8 +379,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         offset = get_utcoffset(obj.tzinfo, ts)
         obj.value -= int(offset.total_seconds() * 1e9)
 
-    if not PyDateTime_CheckExact(ts):
-        # datetime instance but not datetime type --> Timestamp
+    if isinstance(ts, _Timestamp):
         obj.value += ts.nanosecond
         obj.dts.ps = ts.nanosecond * 1000
 
@@ -607,8 +606,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
     """
     if tz is None:
         return dt
-    elif not PyDateTime_CheckExact(dt):
-        # i.e. is a Timestamp
+    elif isinstance(dt, _Timestamp):
         return dt.tz_localize(tz)
     elif is_utc(tz):
         return _localize_pydatetime(dt, tz)
@@ -1155,8 +1153,7 @@ def normalize_date(dt: object) -> datetime:
     TypeError : if input is not datetime.date, datetime.datetime, or Timestamp
     """
     if PyDateTime_Check(dt):
-        if not PyDateTime_CheckExact(dt):
-            # i.e. a Timestamp object
+        if isinstance(dt, _Timestamp):
             return dt.replace(hour=0, minute=0, second=0, microsecond=0,
                               nanosecond=0)
         else:

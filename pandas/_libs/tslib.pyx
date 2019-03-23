@@ -2,7 +2,6 @@
 import cython
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
-                               PyDateTime_CheckExact,
                                PyDateTime_IMPORT,
                                timedelta, datetime, date, time)
 # import datetime C API
@@ -41,7 +40,8 @@ from pandas._libs.tslibs.nattype cimport (
 
 from pandas._libs.tslibs.offsets cimport to_offset
 
-from pandas._libs.tslibs.timestamps cimport create_timestamp_from_ts
+from pandas._libs.tslibs.timestamps cimport (
+    create_timestamp_from_ts, _Timestamp)
 from pandas._libs.tslibs.timestamps import Timestamp
 
 
@@ -539,8 +539,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                                              'datetime64 unless utc=True')
                     else:
                         iresult[i] = pydatetime_to_dt64(val, &dts)
-                        if not PyDateTime_CheckExact(val):
-                            # i.e. a Timestamp object
+                        if isinstance(val, _Timestamp):
                             iresult[i] += val.nanosecond
                         check_dts_bounds(&dts)
 
