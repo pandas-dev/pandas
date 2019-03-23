@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
-from pandas.compat import lrange, u, zip
+from pandas.compat import lrange, u
 
 import pandas as pd
 from pandas import (

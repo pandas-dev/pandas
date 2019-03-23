@@ -10,7 +10,7 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 import pandas.compat as compat
-from pandas.compat import lrange, range, u
+from pandas.compat import lrange, u
 
 import pandas as pd
 from pandas import (

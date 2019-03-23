@@ -4,8 +4,6 @@ Engine classes for :func:`~pandas.eval`
 
 import abc
 
-from pandas.compat import map
-
 from pandas import compat
 from pandas.core.computation.align import _align, _reconstruct_object
 from pandas.core.computation.ops import (

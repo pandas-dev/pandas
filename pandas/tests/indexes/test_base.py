@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import PY36, StringIO, lrange, lzip, range, u, zip
+from pandas.compat import PY36, StringIO, lrange, lzip, u
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype

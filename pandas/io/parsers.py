@@ -19,8 +19,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
 import pandas.compat as compat
-from pandas.compat import (
-    PY3, StringIO, lrange, lzip, map, range, string_types, u, zip)
+from pandas.compat import PY3, StringIO, lrange, lzip, string_types, u
 from pandas.errors import (
     AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender
@@ -1147,7 +1146,7 @@ class TextFileReader(BaseIterator):
         if index is None:
             if col_dict:
                 # Any column is actually fine:
-                new_rows = len(compat.next(compat.itervalues(col_dict)))
+                new_rows = len(next(compat.itervalues(col_dict)))
                 index = RangeIndex(self._currow, self._currow + new_rows)
             else:
                 new_rows = 0

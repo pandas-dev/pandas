@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import hashtable
-from pandas.compat import range, u
+from pandas.compat import u
 
 from pandas import DatetimeIndex, MultiIndex
 import pandas.util.testing as tm

@@ -107,18 +107,10 @@ if PY3:
         return data.start, data.stop, data.step
 
     # have to explicitly put builtins into the namespace
-    range = range
-    map = map
-    zip = zip
-    filter = filter
     intern = sys.intern
     reduce = functools.reduce
     long = int
     unichr = chr
-
-    # This was introduced in Python 3.3, but we don't support
-    # Python 3.x < 3.5, so checking PY3 is safe.
-    FileNotFoundError = FileNotFoundError
 
     # list-producing versions of the major Python iterating functions
     def lrange(*args, **kwargs):
@@ -147,8 +139,6 @@ if PY3:
 else:
     # Python 2
     _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
-
-    FileNotFoundError = IOError
 
     def isidentifier(s, dotted=False):
         return bool(_name_re.match(s))
@@ -181,11 +171,7 @@ else:
         return start, stop, step
 
     # import iterator versions of these functions
-    range = xrange
     intern = intern
-    zip = itertools.izip
-    filter = itertools.ifilter
-    map = itertools.imap
     reduce = reduce
     long = long
     unichr = unichr
@@ -217,7 +203,6 @@ if PY2:
     def itervalues(obj, **kw):
         return obj.itervalues(**kw)
 
-    next = lambda it: it.next()
 else:
     def iteritems(obj, **kw):
         return iter(obj.items(**kw))
@@ -227,8 +212,6 @@ else:
 
     def itervalues(obj, **kw):
         return iter(obj.values(**kw))
-
-    next = next
 
 
 def bind_method(cls, name, func):

@@ -10,7 +10,6 @@ import pytest
 import pytz
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import range
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 

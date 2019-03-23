@@ -24,8 +24,7 @@ from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
 from pandas.compat import (
-    BytesIO, ResourceWarning, lmap, lrange, lzip, range, string_types,
-    text_type, zip)
+    BytesIO, ResourceWarning, lmap, lrange, lzip, string_types, text_type)
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
