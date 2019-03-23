@@ -579,101 +579,61 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(result, expected)
 
     @pytest.fixture
-    def union_inputs(self):
-        """Inputs for RangeIndex.union tests"""
+    def union_fixture(self):
+        """Inputs and expected outputs for RangeIndex.union tests"""
         RI = RangeIndex
         I64 = Int64Index
 
-        inputs = [(RI(0, 10, 1), RI(0, 10, 1)),
-                  (RI(0, 10, 1), RI(5, 20, 1)),
-                  (RI(0, 10, 1), RI(10, 20, 1)),
-                  (RI(0, -10, -1), RI(0, -10, -1)),
-                  (RI(0, -10, -1), RI(-10, -20, -1)),
-                  (RI(0, 10, 2), RI(1, 10, 2)),
-                  (RI(0, 11, 2), RI(1, 12, 2)),
-                  (RI(0, 21, 4), RI(-2, 24, 4)),
-                  (RI(0, -20, -2), RI(-1, -21, -2)),
-                  (RI(0, 100, 5), RI(0, 100, 20)),
-                  (RI(0, -100, -5), RI(5, -100, -20)),
-                  (RI(0, -11, -1), RI(1, -12, -4)),
-                  (RI(0), RI(0)),
-                  (RI(0, -10, -2), RI(0)),
-                  (RI(0, 100, 2), RI(100, 150, 200)),
-                  (RI(0, -100, -2), RI(-100, 50, 102)),
-                  (RI(0, -100, -1), RI(0, -50, -3)),
-                  (RI(0, 1, 1), RI(5, 6, 10)),
-                  (RI(0, 10, 5), RI(-5, -6, -20)),
-                  (RI(0, 3, 1), RI(4, 5, 1)),
-                  (RI(0, 10, 1), I64([])),
-                  (RI(0), I64([1, 5, 6]))]
+        return [(RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1)),
+                (RI(0, 10, 1), RI(5, 20, 1), RI(0, 20, 1), I64(range(20))),
+                (RI(0, 10, 1), RI(10, 20, 1), RI(0, 20, 1), I64(range(20))),
+                (RI(0, -10, -1), RI(0, -10, -1), RI(0, -10, -1),
+                 RI(0, -10, -1)),
+                (RI(0, -10, -1), RI(-10, -20, -1), RI(-19, 1, 1),
+                 I64(range(0, -20, -1))),
+                (RI(0, 10, 2), RI(1, 10, 2), RI(0, 10, 1),
+                 I64(list(range(0, 10, 2)) + list(range(1, 10, 2)))),
+                (RI(0, 11, 2), RI(1, 12, 2), RI(0, 12, 1),
+                 I64(list(range(0, 11, 2)) + list(range(1, 12, 2)))),
+                (RI(0, 21, 4), RI(-2, 24, 4), RI(-2, 24, 2),
+                 I64(list(range(0, 21, 4)) + list(range(-2, 24, 4)))),
+                (RI(0, -20, -2), RI(-1, -21, -2), RI(-19, 1, 1),
+                 I64(list(range(0, -20, -2)) + list(range(-1, -21, -2)))),
+                (RI(0, 100, 5), RI(0, 100, 20), RI(0, 100, 5),
+                 I64(range(0, 100, 5))),
+                (RI(0, -100, -5), RI(5, -100, -20), RI(-95, 10, 5),
+                 I64(list(range(0, -100, -5)) + [5])),
+                (RI(0, -11, -1), RI(1, -12, -4), RI(-11, 2, 1),
+                 I64(list(range(0, -11, -1)) + [1, -11])),
+                (RI(0), RI(0), RI(0), RI(0)),
+                (RI(0, -10, -2), RI(0), RI(0, -10, -2), RI(0, -10, -2)),
+                (RI(0, 100, 2), RI(100, 150, 200), RI(0, 102, 2),
+                 I64(range(0, 102, 2))),
+                (RI(0, -100, -2), RI(-100, 50, 102), RI(-100, 4, 2),
+                 I64(list(range(0, -100, -2)) + [-100, 2])),
+                (RI(0, -100, -1), RI(0, -50, -3), RI(-99, 1, 1),
+                 I64(list(range(0, -100, -1)))),
+                (RI(0, 1, 1), RI(5, 6, 10), RI(0, 6, 5), I64([0, 5])),
+                (RI(0, 10, 5), RI(-5, -6, -20), RI(-5, 10, 5),
+                 I64([0, 5, -5])),
+                (RI(0, 3, 1), RI(4, 5, 1), I64([0, 1, 2, 4]),
+                 I64([0, 1, 2, 4])),
+                (RI(0, 10, 1), I64([]), RI(0, 10, 1), RI(0, 10, 1)),
+                (RI(0), I64([1, 5, 6]), I64([1, 5, 6]), I64([1, 5, 6]))]
 
-        return inputs
+    def test_union_sorted(self, union_fixture):
 
-    def test_union_sorted(self, union_inputs):
-        RI = RangeIndex
-        I64 = Int64Index
-
-        expected = [RI(0, 10, 1),
-                    RI(0, 20, 1),
-                    RI(0, 20, 1),
-                    RI(0, -10, -1),
-                    RI(-19, 1, 1),
-                    RI(0, 10, 1),
-                    RI(0, 12, 1),
-                    RI(-2, 24, 2),
-                    RI(-19, 1, 1),
-                    RI(0, 100, 5),
-                    RI(-95, 10, 5),
-                    RI(-11, 2, 1),
-                    RI(0),
-                    RI(0, -10, -2),
-                    RI(0, 102, 2),
-                    RI(-100, 4, 2),
-                    RI(-99, 1, 1),
-                    RI(0, 6, 5),
-                    RI(-5, 10, 5),
-                    I64([0, 1, 2, 4]),
-                    RI(0, 10, 1),
-                    I64([1, 5, 6])]
-
-        for ((idx1, idx2), expected_sorted) in zip(union_inputs, expected):
-            res1 = idx1.union(idx2)
+        for (idx1, idx2, expected_sorted, expected_notsorted) in union_fixture:
+            res1 = idx1.union(idx2, sort=None)
             tm.assert_index_equal(res1, expected_sorted, exact=True)
-            res2 = idx2.union(idx1)
-            res3 = idx1._int64index.union(idx2)
-            tm.assert_index_equal(res2, expected_sorted, exact=True)
-            tm.assert_index_equal(res3, expected_sorted)
 
-    def test_union_notsorted(self, union_inputs):
-        RI = RangeIndex
-        I64 = Int64Index
-
-        expected = [RI(0, 10, 1),
-                    I64(range(20)),
-                    I64(range(20)),
-                    RI(0, -10, -1),
-                    I64(range(0, -20, -1)),
-                    I64(list(range(0, 10, 2)) + list(range(1, 10, 2))),
-                    I64(list(range(0, 11, 2)) + list(range(1, 12, 2))),
-                    I64(list(range(0, 21, 4)) + list(range(-2, 24, 4))),
-                    I64(list(range(0, -20, -2)) + list(range(-1, -21, -2))),
-                    I64(range(0, 100, 5)),
-                    I64(list(range(0, -100, -5)) + [5]),
-                    I64(list(range(0, -11, -1)) + [1, -11]),
-                    RI(0),
-                    RI(0, -10, -2),
-                    I64(range(0, 102, 2)),
-                    I64(list(range(0, -100, -2)) + [-100, 2]),
-                    I64(list(range(0, -100, -1))),
-                    I64([0, 5]),
-                    I64([0, 5, -5]),
-                    I64([0, 1, 2, 4]),
-                    RI(0, 10, 1),
-                    I64([1, 5, 6])]
-
-        for ((idx1, idx2), expected_notsorted) in zip(union_inputs, expected):
             res1 = idx1.union(idx2, sort=False)
             tm.assert_index_equal(res1, expected_notsorted, exact=True)
+
+            res2 = idx2.union(idx1, sort=None)
+            res3 = idx1._int64index.union(idx2, sort=None)
+            tm.assert_index_equal(res2, expected_sorted, exact=True)
+            tm.assert_index_equal(res3, expected_sorted)
 
     def test_nbytes(self):
 
