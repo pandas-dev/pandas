@@ -587,7 +587,7 @@ def _binary_op_method_timedeltalike(op, name):
             # the PyDateTime_CheckExact case is for a datetime object that
             # is specifically *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
-            from timestamps import Timestamp
+            from pandas._libs.tslibs.timestamps import Timestamp
             return op(self, Timestamp(other))
             # We are implicitly requiring the canonical behavior to be
             # defined by Timestamp methods.
@@ -1181,7 +1181,7 @@ class Timedelta(_Timedelta):
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
 
-            nano = kwargs.pop('nanoseconds', 0)
+            nano = np.timedelta64(kwargs.pop('nanoseconds', 0), 'ns')
             try:
                 value = nano + convert_to_timedelta64(timedelta(**kwargs),
                                                       'ns')

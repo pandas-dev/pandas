@@ -34,6 +34,11 @@ def data(request):
     return res
 
 
+@pytest.fixture
+def data_for_twos(request):
+    return SparseArray(np.ones(100) * 2)
+
+
 @pytest.fixture(params=[0, np.nan])
 def data_missing(request):
     """Length 2 array with [NA, Valid]"""
