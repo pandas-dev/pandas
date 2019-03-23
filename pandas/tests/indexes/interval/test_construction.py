@@ -315,6 +315,12 @@ class TestClassConstructors(Base):
         """
         pass
 
+    def test_constructor_string(self):
+        # GH23013
+        # When forming the interval from breaks,
+        # the interval of strings is already forbidden.
+        pass
+
     def test_constructor_errors(self, constructor):
         # mismatched closed within intervals with no constructor override
         ivs = [Interval(0, 1, closed='right'), Interval(2, 3, closed='left')]
