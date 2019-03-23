@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 

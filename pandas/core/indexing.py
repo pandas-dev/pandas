@@ -7,7 +7,6 @@ import numpy as np
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 import pandas.compat as compat
-from pandas.compat import range, zip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 

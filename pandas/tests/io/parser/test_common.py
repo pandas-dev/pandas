@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import BytesIO, StringIO, lrange, range, u
+from pandas.compat import BytesIO, StringIO, lrange, u
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
@@ -892,7 +892,7 @@ def test_nonexistent_path(all_parsers):
 
     msg = ("does not exist" if parser.engine == "c"
            else r"\[Errno 2\]")
-    with pytest.raises(compat.FileNotFoundError, match=msg) as e:
+    with pytest.raises(FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
 
         filename = e.value.filename

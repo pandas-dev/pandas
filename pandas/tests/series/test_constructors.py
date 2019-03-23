@@ -11,7 +11,7 @@ import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY36, long, lrange, range, zip
+from pandas.compat import PY36, long, lrange
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64tz_dtype)

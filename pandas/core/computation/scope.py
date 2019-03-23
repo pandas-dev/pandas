@@ -12,7 +12,7 @@ import sys
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import DeepChainMap, StringIO, map
+from pandas.compat import DeepChainMap, StringIO
 
 from pandas.core.base import StringMixin
 import pandas.core.computation as compu

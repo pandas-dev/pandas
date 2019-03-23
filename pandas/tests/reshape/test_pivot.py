@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import product, range
+from pandas.compat import product
 
 import pandas as pd
 from pandas import (

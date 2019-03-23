@@ -8,7 +8,6 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import range, zip
 from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 

@@ -11,7 +11,7 @@ import pytest
 
 from pandas.compat import (
     PY35, PY36, BytesIO, is_platform_little_endian, is_platform_windows,
-    lrange, range, text_type, u)
+    lrange, text_type, u)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -19,8 +19,8 @@ from pandas.core.dtypes.common import is_categorical_dtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex,
-    RangeIndex, Series, Timestamp, bdate_range, compat, concat, date_range,
-    isna, timedelta_range)
+    RangeIndex, Series, Timestamp, bdate_range, concat, date_range, isna,
+    timedelta_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, set_timezone)
@@ -301,8 +301,7 @@ class TestHDFStore(Base):
 
         # File path doesn't exist
         path = ""
-        pytest.raises(compat.FileNotFoundError,
-                      read_hdf, path, 'df')
+        pytest.raises(FileNotFoundError, read_hdf, path, 'df')
 
     def test_api_default_format(self):
 

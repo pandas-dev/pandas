@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 
 import pandas.compat as compat
-from pandas.compat import map, range, u, zip
+from pandas.compat import u
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_axis_style_args

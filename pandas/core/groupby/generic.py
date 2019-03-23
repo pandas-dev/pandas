@@ -16,7 +16,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 import pandas.compat as compat
-from pandas.compat import lzip, map
+from pandas.compat import lzip
 from pandas.compat.numpy import _np_version_under1p13
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution

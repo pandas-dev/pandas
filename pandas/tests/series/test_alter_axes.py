@@ -6,7 +6,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range, zip
+from pandas.compat import lrange
 
 from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
 import pandas.util.testing as tm

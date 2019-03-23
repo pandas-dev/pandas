@@ -9,8 +9,7 @@ from numpy.random import randn
 import pytest
 import pytz
 
-from pandas.compat import (
-    StringIO, lrange, lzip, product as cart_product, range, u, zip)
+from pandas.compat import StringIO, lrange, lzip, product as cart_product, u
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 

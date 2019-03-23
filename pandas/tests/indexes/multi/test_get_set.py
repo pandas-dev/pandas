@@ -4,8 +4,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import range
-
 import pandas as pd
 from pandas import CategoricalIndex, Index, MultiIndex
 import pandas.util.testing as tm

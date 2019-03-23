@@ -8,7 +8,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, is_platform_32bit, lrange, range
+from pandas.compat import StringIO, is_platform_32bit, lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd

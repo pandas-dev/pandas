@@ -5,7 +5,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 

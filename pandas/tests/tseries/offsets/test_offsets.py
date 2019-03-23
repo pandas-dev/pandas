@@ -11,7 +11,6 @@ from pandas._libs.tslibs.frequencies import (
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import ApplyTypeError
 import pandas.compat as compat
-from pandas.compat import range
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range

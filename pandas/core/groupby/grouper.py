@@ -8,7 +8,6 @@ import warnings
 import numpy as np
 
 import pandas.compat as compat
-from pandas.compat import zip
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (

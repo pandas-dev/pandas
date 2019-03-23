@@ -698,7 +698,7 @@ cdef class TextReader:
 
             if ptr == NULL:
                 if not os.path.exists(source):
-                    raise compat.FileNotFoundError(
+                    raise FileNotFoundError(
                         ENOENT,
                         'File {source} does not exist'.format(source=source),
                         source)

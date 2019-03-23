@@ -10,7 +10,7 @@ from numpy.random import randint
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import range, u
+from pandas.compat import u
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings

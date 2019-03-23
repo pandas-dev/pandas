@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, lzip, range
+from pandas.compat import lrange, lzip
 
 from pandas import DataFrame, MultiIndex, Series
 from pandas.core import common as com

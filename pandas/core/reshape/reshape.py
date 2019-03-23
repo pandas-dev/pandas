@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import algos as _algos, reshape as _reshape
 from pandas._libs.sparse import IntIndex
-from pandas.compat import PY2, range, text_type, u, zip
+from pandas.compat import PY2, text_type, u
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (

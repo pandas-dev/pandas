@@ -8,7 +8,6 @@ from pandas._libs.tslibs import Timestamp, conversion, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError, _format_is_iso, _guess_datetime_format, parse_time_string)
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas.compat import zip
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (

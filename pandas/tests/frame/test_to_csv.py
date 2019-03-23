@@ -8,7 +8,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, range, u
+from pandas.compat import StringIO, lmap, lrange, u
 from pandas.errors import ParserError
 
 import pandas as pd

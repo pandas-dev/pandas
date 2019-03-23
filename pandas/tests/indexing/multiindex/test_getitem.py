@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import u, zip
+from pandas.compat import u
 
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.indexing import IndexingError

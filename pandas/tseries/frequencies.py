@@ -16,7 +16,6 @@ import pandas._libs.tslibs.resolution as libresolution
 from pandas._libs.tslibs.resolution import Resolution
 from pandas._libs.tslibs.timezones import UTC
 import pandas.compat as compat
-from pandas.compat import zip
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from pandas.compat import lrange, range, u
+from pandas.compat import lrange, u
 
 import pandas as pd
 from pandas import (

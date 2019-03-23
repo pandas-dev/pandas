@@ -11,7 +11,6 @@ import numpy as np
 from pandas._libs import internals as libinternals, lib, tslib, tslibs
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
 import pandas.compat as compat
-from pandas.compat import range, zip
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (

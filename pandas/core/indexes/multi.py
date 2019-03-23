@@ -9,7 +9,7 @@ import numpy as np
 from pandas._libs import (
     Timestamp, algos as libalgos, index as libindex, lib, tslibs)
 import pandas.compat as compat
-from pandas.compat import lrange, lzip, map, range, zip
+from pandas.compat import lrange, lzip
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg

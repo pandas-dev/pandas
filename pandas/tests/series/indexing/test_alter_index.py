@@ -8,7 +8,7 @@ from numpy import nan
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import Categorical, Series, date_range, isna

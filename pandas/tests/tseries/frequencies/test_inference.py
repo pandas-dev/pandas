@@ -6,7 +6,7 @@ import pytest
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 import pandas.compat as compat
-from pandas.compat import is_platform_windows, range
+from pandas.compat import is_platform_windows
 
 from pandas import (
     DatetimeIndex, Index, Series, Timestamp, date_range, period_range)

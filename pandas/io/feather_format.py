@@ -2,7 +2,6 @@
 
 from distutils.version import LooseVersion
 
-from pandas.compat import range
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas import DataFrame, Int64Index, RangeIndex

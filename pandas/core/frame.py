@@ -33,9 +33,9 @@ from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
 from pandas import compat
-from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
-                           PY36, raise_with_traceback, Iterator,
-                           string_and_binary_types)
+from pandas.compat import (
+    PY36, Iterator, StringIO, lmap, lzip, raise_with_traceback,
+    string_and_binary_types, u)
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
     maybe_upcast,

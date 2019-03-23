@@ -1,7 +1,7 @@
 import warnings
 
 import pandas.compat as compat
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 

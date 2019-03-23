@@ -5,7 +5,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import range, u
+from pandas.compat import u
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex, Series

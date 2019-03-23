@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import rand, randn
 import pytest
 
-from pandas.compat import lmap, lrange, lzip, range, u, zip
+from pandas.compat import lmap, lrange, lzip, u
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like

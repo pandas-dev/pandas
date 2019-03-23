@@ -13,7 +13,7 @@ from zipfile import ZipFile
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas.compat import StringIO, range, zip
+from pandas.compat import StringIO
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex)

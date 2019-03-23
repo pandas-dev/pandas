@@ -9,8 +9,7 @@ import numpy as np
 from numpy.random import rand
 import pytest
 
-from pandas.compat import (
-    BytesIO, StringIO, is_platform_windows, map, reload, zip)
+from pandas.compat import BytesIO, StringIO, is_platform_windows, reload
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 

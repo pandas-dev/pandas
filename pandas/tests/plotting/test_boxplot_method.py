@@ -7,7 +7,7 @@ import numpy as np
 from numpy import random
 import pytest
 
-from pandas.compat import lzip, range
+from pandas.compat import lzip
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, MultiIndex, Series

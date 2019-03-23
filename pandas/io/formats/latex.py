@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from pandas.compat import map, range, u, zip
+from pandas.compat import u
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 

@@ -1,7 +1,7 @@
 # pylint: disable=E1103
 import numpy as np
 
-from pandas.compat import lrange, range, zip
+from pandas.compat import lrange
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype

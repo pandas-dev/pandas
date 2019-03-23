@@ -290,7 +290,7 @@ def write_legacy_pickles(output_dir):
 
     # make sure we are < 0.13 compat (in py3)
     try:
-        from pandas.compat import zip, cPickle as pickle  # noqa
+        from pandas.compat import cPickle as pickle  # noqa
     except ImportError:
         import pickle
 

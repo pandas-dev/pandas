@@ -9,7 +9,6 @@ from typing import List, Optional, Union
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas.compat import map, range, zip
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (

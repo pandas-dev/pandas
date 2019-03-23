@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, builtins, map, range
+from pandas.compat import PYPY, builtins
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly

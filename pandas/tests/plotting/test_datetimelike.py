@@ -6,7 +6,7 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, zip
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, NaT, Series, isna

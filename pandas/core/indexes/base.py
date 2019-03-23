@@ -12,7 +12,7 @@ from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
-from pandas.compat import range, set_function_name, u
+from pandas.compat import set_function_name, u
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 

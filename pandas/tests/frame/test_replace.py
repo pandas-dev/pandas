@@ -8,7 +8,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange, range, zip
+from pandas.compat import StringIO, lrange
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, compat, date_range
