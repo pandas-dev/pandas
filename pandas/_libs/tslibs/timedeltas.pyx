@@ -584,8 +584,8 @@ def _binary_op_method_timedeltalike(op, name):
             pass
 
         elif is_datetime64_object(other) or (
-             PyDateTime_Check(other) and not isinstance(other, _Timestamp)):
-            # this case is for a datetime object that is specifically 
+           PyDateTime_Check(other) and not isinstance(other, _Timestamp)):
+            # this case is for a datetime object that is specifically
             # *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
             from pandas._libs.tslibs.timestamps import Timestamp
