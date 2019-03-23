@@ -85,29 +85,6 @@ class TestPivotTable(object):
 
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_table_categorical_observed_speed(self):
-        # issue #24923
-        df = pd.DataFrame({'col1': list('abcde'),
-                           'col2': list('fghij'),
-                           'col3': [1, 2, 3, 4, 5]})
-
-        df.col1 = df.col1.astype('category')
-        df.col2 = df.col1.astype('category')
-
-        start_time_observed_false = time.time()
-        df.pivot_table(index='col1', values='col3',
-                       columns='col2', aggfunc=np.sum,
-                       fill_value=0, observed=False)
-        total_time_observed_false = time.time() - start_time_observed_false
-
-        start_time_observed_true = time.time()
-        df.pivot_table(index='col1', values='col3',
-                       columns='col2', aggfunc=np.sum,
-                       fill_value=0, observed=True)
-        total_time_observed_true = time.time() - start_time_observed_true
-
-        assert total_time_observed_true < total_time_observed_false
-
     def test_pivot_table_nocols(self):
         df = DataFrame({'rows': ['a', 'b', 'c'],
                         'cols': ['x', 'y', 'z'],
