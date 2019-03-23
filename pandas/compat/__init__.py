@@ -5,7 +5,7 @@ compat
 Cross-compatible functions for Python 2 and 3.
 
 Key items to import for 2/3 compatible code:
-* iterators: range(), map(), zip(), filter(), reduce()
+* iterators: reduce()
 * lists: lrange(), lmap(), lzip(), lfilter()
 * unicode: u() [no unicode builtin in Python 3]
 * longs: long (int in Python 3)
@@ -298,9 +298,6 @@ if PY3:
             name=name)
         f.__module__ = cls.__module__
         return f
-
-    ResourceWarning = ResourceWarning
-
 else:
     string_types = basestring,
     integer_types = (int, long)
@@ -355,9 +352,6 @@ else:
         """ Bind the name attributes of the function """
         f.__name__ = name
         return f
-
-    class ResourceWarning(Warning):
-        pass
 
 string_and_binary_types = string_types + (binary_type,)
 

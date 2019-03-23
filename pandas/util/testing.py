@@ -50,7 +50,7 @@ K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
 # set testing_mode
-_testing_mode_warnings = (DeprecationWarning, compat.ResourceWarning)
+_testing_mode_warnings = (DeprecationWarning, ResourceWarning)
 
 
 def set_testing_mode():
