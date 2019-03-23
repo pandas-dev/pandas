@@ -1830,7 +1830,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def shift(self,
               periods,                  # type: int
               axis=0,                   # type: libinternals.BlockPlacement
-              fill_value=None):         # type: Any
+              fill_value=None           # type: Any
+    ):         
         # type: (...) -> List[ExtensionBlock]
         """
         Shift the block by `periods`.
