@@ -2,7 +2,6 @@
 
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
-import time
 
 import numpy as np
 import pytest
