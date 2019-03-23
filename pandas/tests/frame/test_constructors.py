@@ -12,7 +12,7 @@ import numpy.ma as ma
 import pytest
 
 from pandas.compat import (
-    PY36, is_platform_little_endian, lmap, long, lrange, lzip, range, zip)
+    PY36, is_platform_little_endian, lmap, long, lrange, lzip)
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype

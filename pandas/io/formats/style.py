@@ -12,7 +12,6 @@ from uuid import uuid1
 
 import numpy as np
 
-from pandas.compat import range
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_float, is_string_like
