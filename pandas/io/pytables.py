@@ -17,7 +17,7 @@ import numpy as np
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas.compat import PY3, filter, lrange, range, string_types
+from pandas.compat import PY3, lrange, string_types
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -351,7 +351,7 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
             exists = False
 
         if not exists:
-            raise compat.FileNotFoundError(
+            raise FileNotFoundError(
                 'File {path} does not exist'.format(path=path_or_buf))
 
         store = HDFStore(path_or_buf, mode=mode, **kwargs)

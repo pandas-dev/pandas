@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import ResourceWarning, iterkeys
+from pandas.compat import iterkeys
 
 from pandas.core.dtypes.common import is_categorical_dtype
 

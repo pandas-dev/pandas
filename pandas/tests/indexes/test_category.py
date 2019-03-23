@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
-from pandas.compat import range
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 

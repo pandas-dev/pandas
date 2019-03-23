@@ -8,7 +8,7 @@ import numpy as np
 from numpy import random
 import pytest
 
-from pandas.compat import iteritems, zip
+from pandas.compat import iteritems
 from pandas.util._decorators import cache_readonly
 import pandas.util._test_decorators as td
 
