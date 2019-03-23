@@ -28,7 +28,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import PY2, PY36, lrange, range, string_types
+from pandas.compat import PY36, lrange, range, string_types
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype, is_datetime64tz_dtype)
@@ -2113,7 +2113,6 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
                 return ctype
         raise ValueError('Table %s, column %s not found' % (table, column))
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_dtype(self):
         if self.flavor == 'mysql':
             pytest.skip('Not applicable to MySQL legacy')
