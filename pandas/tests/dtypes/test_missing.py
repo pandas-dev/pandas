@@ -9,7 +9,6 @@ import pytest
 
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT, is_null_datetimelike
-from pandas.compat import u
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import (
@@ -108,7 +107,7 @@ class TestIsNA(object):
         exp = np.array([False, False])
         tm.assert_numpy_array_equal(result, exp)
 
-        result = isna([u('foo'), u('bar')])
+        result = isna(['foo', 'bar'])
         exp = np.array([False, False])
         tm.assert_numpy_array_equal(result, exp)
 
