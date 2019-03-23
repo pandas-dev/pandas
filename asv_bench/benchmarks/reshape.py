@@ -151,6 +151,7 @@ class PivotTable(object):
         self.df2.pivot_table(index='col1', values='col3', columns='col2',
                              aggfunc=np.sum, fill_value=0, observed=True)
 
+
 class Crosstab(object):
 
     def setup(self):
