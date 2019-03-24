@@ -288,8 +288,10 @@ class MPLPlot(object):
             if not self._has_plotted_object(orig_ax):  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
 
-            if self.logy or self.loglog:
+            if self.logy is True or self.loglog is True:
                 new_ax.set_yscale('log')
+            elif self.logy == 'sym' or self.loglog == 'sym':
+                new_ax.set_yscale('symlog')
             return new_ax
 
     def _setup_subplots(self):
