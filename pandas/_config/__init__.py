@@ -8,6 +8,5 @@ from pandas._config import config
 from pandas._config.config import (
     describe_option, get_option, option_context, options, reset_option,
     set_option)
-
-# importing .display causes display.encoding and other keys to be initialized
 from pandas._config.display import detect_console_encoding
+# importing .display causes display.encoding and other keys to be initialized
