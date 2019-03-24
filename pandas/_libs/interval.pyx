@@ -106,12 +106,7 @@ cdef class IntervalMixin(object):
     @property
     def length(self):
         """Return the length of the Interval"""
-        try:
-            return self.right - self.left
-        except TypeError:
-            # length not defined for some types, e.g. string
-            msg = 'cannot compute length between {left!r} and {right!r}'
-            raise TypeError(msg.format(left=self.left, right=self.right))
+        return self.right - self.left
 
     def _check_closed_matches(self, other, name='other'):
         """Check if the closed attribute of `other` matches.
