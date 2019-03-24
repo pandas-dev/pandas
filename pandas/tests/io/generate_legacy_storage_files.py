@@ -44,8 +44,6 @@ import sys
 
 import numpy as np
 
-from pandas.compat import u
-
 import pandas
 from pandas import (
     Categorical, DataFrame, Index, MultiIndex, NaT, Period, Series,
@@ -254,7 +252,7 @@ def create_pickle_data():
 
 
 def _u(x):
-    return {u(k): _u(x[k]) for k in x} if isinstance(x, dict) else x
+    return {k: _u(x[k]) for k in x} if isinstance(x, dict) else x
 
 
 def create_msgpack_data():

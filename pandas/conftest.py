@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
-from pandas.compat import PY3, u
+from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -561,7 +561,7 @@ def any_numpy_dtype(request):
 # categoricals are handled separately
 _any_skipna_inferred_dtype = [
     ('string', ['a', np.nan, 'c']),
-    ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
+    ('unicode' if not PY3 else 'string', ['a', np.nan, 'c']),
     ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
     ('empty', [np.nan, np.nan, np.nan]),
     ('empty', []),

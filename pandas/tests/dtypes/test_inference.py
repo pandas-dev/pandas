@@ -17,7 +17,7 @@ import pytest
 import pytz
 
 from pandas._libs import iNaT, lib, missing as libmissing
-from pandas.compat import StringIO, lrange, u
+from pandas.compat import StringIO, lrange
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
@@ -108,7 +108,6 @@ def test_is_sequence():
     assert (is_seq((1, 2)))
     assert (is_seq([1, 2]))
     assert (not is_seq("abcd"))
-    assert (not is_seq(u("abcd")))
     assert (not is_seq(np.int64))
 
     class A(object):
@@ -300,10 +299,10 @@ def test_is_re_fails(ll):
 
 
 @pytest.mark.parametrize(
-    "ll", [r'a', u('x'),
+    "ll", [r'a', 'x',
            r'asdf',
            re.compile('adsf'),
-           u(r'\u2233\s*'),
+           r'\u2233\s*',
            re.compile(r'')])
 def test_is_recompilable_passes(ll):
     assert inference.is_re_compilable(ll)
@@ -369,7 +368,7 @@ class TestInference(object):
                 tm.assert_numpy_array_equal(out, neg)
 
                 out = lib.maybe_convert_numeric(
-                    np.array([u(infinity)], dtype=object),
+                    np.array([infinity], dtype=object),
                     na_values, maybe_int)
                 tm.assert_numpy_array_equal(out, pos)
 
@@ -1239,7 +1238,6 @@ class TestIsScalar(object):
         assert is_scalar(np.nan)
         assert is_scalar('foobar')
         assert is_scalar(b'foobar')
-        assert is_scalar(u('efoobar'))
         assert is_scalar(datetime(2014, 1, 1))
         assert is_scalar(date(2014, 1, 1))
         assert is_scalar(time(12, 0))
@@ -1261,7 +1259,7 @@ class TestIsScalar(object):
         assert is_scalar(np.int32(1))
         assert is_scalar(np.object_('foobar'))
         assert is_scalar(np.str_('foobar'))
-        assert is_scalar(np.unicode_(u('foobar')))
+        assert is_scalar(np.unicode_('foobar'))
         assert is_scalar(np.bytes_(b'foobar'))
         assert is_scalar(np.datetime64('2014-01-01'))
         assert is_scalar(np.timedelta64(1, 'h'))

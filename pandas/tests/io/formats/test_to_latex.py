@@ -3,8 +3,6 @@ from datetime import datetime
 
 import pytest
 
-from pandas.compat import u
-
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.util import testing as tm
@@ -343,9 +341,9 @@ c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
         a = 'a'
         b = 'b'
 
-        test_dict = {u('co$e^x$'): {a: "a",
+        test_dict = {'co$e^x$': {a: "a",
                                     b: "b"},
-                     u('co^l1'): {a: "a",
+                     'co^l1': {a: "a",
                                   b: "b"}}
 
         unescaped_result = DataFrame(test_dict).to_latex(escape=False)
