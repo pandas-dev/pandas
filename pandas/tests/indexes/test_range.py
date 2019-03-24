@@ -17,6 +17,7 @@ I64 = Int64Index
 F64 = Float64Index
 OI = Index
 
+
 class TestRangeIndex(Numeric):
     _holder = RangeIndex
     _compat_props = ['shape', 'ndim', 'size']
