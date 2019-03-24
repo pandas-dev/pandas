@@ -1,5 +1,5 @@
 """Extend pandas with custom array types"""
-from typing import List, Optional, Type
+from typing import List, Optional
 
 import numpy as np
 
@@ -209,7 +209,7 @@ class ExtensionDtype(_DtypeOpsMixin):
         return self.name
 
     @property
-    def type(self) -> Type:
+    def type(self) -> type:
         """
         The scalar type for the array, e.g. ``int``
 
