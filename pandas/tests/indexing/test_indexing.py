@@ -855,6 +855,14 @@ class TestMisc(Base):
         del df
         assert wr() is None
 
+    def test_no_error_for_zero_index(self):
+        # GH-21946
+        df = DataFrame([[1, 2], [3, 4]], columns=['a', 'b'])
+        ar = np.array(0)
+        try:
+            tm.assert_frame_equal(df.iloc[ar], df.iloc[0])
+        except TypeError:
+            pytest.fail("Unexpected TypeError, should be first element of array.")
 
 class TestSeriesNoneCoercion(object):
     EXPECTED_RESULTS = [
