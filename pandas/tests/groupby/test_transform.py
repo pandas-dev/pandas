@@ -860,7 +860,7 @@ def test_groupby_transform_with_datetimes(func, values):
 
     result = stocks.groupby(stocks['week_id'])['price'].transform(func)
 
-    expected = pd.Series(data=map(pd.to_datetime, values),
+    expected = pd.Series(data=pd.to_datetime(values),
                          index=dates, name="price")
 
     tm.assert_series_equal(result, expected)
