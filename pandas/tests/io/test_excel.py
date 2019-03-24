@@ -10,7 +10,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY36, BytesIO, iteritems, map, range, u
+from pandas.compat import PY36, BytesIO, iteritems, u
 import pandas.util._test_decorators as td
 
 import pandas as pd

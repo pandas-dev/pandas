@@ -10,7 +10,7 @@ from numpy.random import randint
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import PY2, PY3, range, u
+from pandas.compat import u
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
@@ -120,8 +120,8 @@ def any_string_method(request):
 # subset of the full set from pandas/conftest.py
 _any_allowed_skipna_inferred_dtype = [
     ('string', ['a', np.nan, 'c']),
-    ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
-    ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
+    ('string', [u('a'), np.nan, u('c')]),
+    ('bytes', [b'a', np.nan, b'c']),
     ('empty', [np.nan, np.nan, np.nan]),
     ('empty', []),
     ('mixed-integer', ['a', np.nan, 2])
@@ -136,9 +136,8 @@ def any_allowed_skipna_inferred_dtype(request):
 
     The covered (inferred) types are:
     * 'string'
-    * 'unicode' (if PY2)
     * 'empty'
-    * 'bytes' (if PY3)
+    * 'bytes'
     * 'mixed'
     * 'mixed-integer'
 
@@ -1021,11 +1020,8 @@ class TestStringMethods(object):
         tm.assert_series_equal(result, exp)
 
         # test with wrong number of arguments, raising an error
-        if compat.PY2:
-            p_err = r'takes (no|(exactly|at (least|most)) ?\d+) arguments?'
-        else:
-            p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
-                     r'(?(3)required )positional arguments?')
+        p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
+                 r'(?(3)required )positional arguments?')
 
         repl = lambda: None
         with pytest.raises(TypeError, match=p_err):
@@ -1892,11 +1888,8 @@ class TestStringMethods(object):
         tm.assert_series_equal(empty_str, empty.str.capitalize())
         tm.assert_series_equal(empty_str, empty.str.swapcase())
         tm.assert_series_equal(empty_str, empty.str.normalize('NFC'))
-        if compat.PY3:
-            table = str.maketrans('a', 'b')
-        else:
-            import string
-            table = string.maketrans('a', 'b')
+
+        table = str.maketrans('a', 'b')
         tm.assert_series_equal(empty_str, empty.str.translate(table))
 
     def test_empty_str_methods_to_frame(self):
@@ -2302,28 +2295,14 @@ class TestStringMethods(object):
 
         for klass in [Series, Index]:
             s = klass(['abcdefg', 'abcc', 'cdddfg', 'cdefggg'])
-            if not compat.PY3:
-                import string
-                table = string.maketrans('abc', 'cde')
-            else:
-                table = str.maketrans('abc', 'cde')
+            table = str.maketrans('abc', 'cde')
             result = s.str.translate(table)
             expected = klass(['cdedefg', 'cdee', 'edddfg', 'edefggg'])
             _check(result, expected)
 
-            # use of deletechars is python 2 only
-            if not compat.PY3:
+            msg = "deletechars is not a valid argument"
+            with pytest.raises(ValueError, match=msg):
                 result = s.str.translate(table, deletechars='fg')
-                expected = klass(['cdede', 'cdee', 'eddd', 'ede'])
-                _check(result, expected)
-
-                result = s.str.translate(None, deletechars='fg')
-                expected = klass(['abcde', 'abcc', 'cddd', 'cde'])
-                _check(result, expected)
-            else:
-                msg = "deletechars is not a valid argument"
-                with pytest.raises(ValueError, match=msg):
-                    result = s.str.translate(table, deletechars='fg')
 
         # Series with non-string values
         s = Series(['a', 'b', 'c', 1.2])
@@ -3323,7 +3302,6 @@ class TestStringMethods(object):
 
         tm.assert_series_equal(result, exp)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_encode_decode_errors(self):
         encodeBase = Series([u('a'), u('b'), u('a\x9d')])
 
@@ -3377,20 +3355,12 @@ class TestStringMethods(object):
     def test_index_str_accessor_visibility(self):
         from pandas.core.strings import StringMethods
 
-        if not compat.PY3:
-            cases = [(['a', 'b'], 'string'), (['a', u('b')], 'mixed'),
-                     ([u('a'), u('b')], 'unicode'),
-                     (['a', 'b', 1], 'mixed-integer'),
-                     (['a', 'b', 1.3], 'mixed'),
-                     (['a', 'b', 1.3, 1], 'mixed-integer'),
-                     (['aa', datetime(2011, 1, 1)], 'mixed')]
-        else:
-            cases = [(['a', 'b'], 'string'), (['a', u('b')], 'string'),
-                     ([u('a'), u('b')], 'string'),
-                     (['a', 'b', 1], 'mixed-integer'),
-                     (['a', 'b', 1.3], 'mixed'),
-                     (['a', 'b', 1.3, 1], 'mixed-integer'),
-                     (['aa', datetime(2011, 1, 1)], 'mixed')]
+        cases = [(['a', 'b'], 'string'), (['a', u('b')], 'string'),
+                 ([u('a'), u('b')], 'string'),
+                 (['a', 'b', 1], 'mixed-integer'),
+                 (['a', 'b', 1.3], 'mixed'),
+                 (['a', 'b', 1.3, 1], 'mixed-integer'),
+                 (['aa', datetime(2011, 1, 1)], 'mixed')]
         for values, tp in cases:
             idx = Index(values)
             assert isinstance(Series(values).str, StringMethods)
@@ -3432,16 +3402,9 @@ class TestStringMethods(object):
     def test_method_on_bytes(self):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))
         rhs = Series(np.array(list('def'), 'S1').astype(object))
-        if compat.PY3:
-            with pytest.raises(TypeError, match="can't concat str to bytes"):
-                lhs.str.cat(rhs)
-        else:
-            result = lhs.str.cat(rhs)
-            expected = Series(np.array(
-                ['ad', 'be', 'cf'], 'S2').astype(object))
-            tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="can't concat str to bytes"):
+            lhs.str.cat(rhs)
 
-    @pytest.mark.skipif(compat.PY2, reason='not in python2')
     def test_casefold(self):
         # GH25405
         expected = Series(['ss', NA, 'case', 'ssd'])

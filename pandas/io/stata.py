@@ -23,15 +23,14 @@ import numpy as np
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import (
-    BytesIO, ResourceWarning, lmap, lrange, lzip, range, string_types,
-    text_type, zip)
+from pandas.compat import BytesIO, lmap, lrange, lzip, string_types, text_type
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype)
 
-from pandas import DatetimeIndex, compat, isna, to_datetime, to_timedelta
+from pandas import (
+    DatetimeIndex, compat, concat, isna, to_datetime, to_timedelta)
 from pandas.core.arrays import Categorical
 from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
@@ -1572,7 +1571,7 @@ class StataReader(StataParser, BaseIterator):
             data = DataFrame.from_dict(OrderedDict(data_formatted))
         del data_formatted
 
-        self._do_convert_missing(data, convert_missing)
+        data = self._do_convert_missing(data, convert_missing)
 
         if convert_dates:
             cols = np.where(lmap(lambda x: any(x.startswith(fmt)
@@ -1616,7 +1615,7 @@ class StataReader(StataParser, BaseIterator):
 
     def _do_convert_missing(self, data, convert_missing):
         # Check for missing values, and replace if found
-
+        replacements = {}
         for i, colname in enumerate(data):
             fmt = self.typlist[i]
             if fmt not in self.VALID_RANGE:
@@ -1646,8 +1645,14 @@ class StataReader(StataParser, BaseIterator):
                     dtype = np.float64
                 replacement = Series(series, dtype=dtype)
                 replacement[missing] = np.nan
-
-            data[colname] = replacement
+            replacements[colname] = replacement
+        if replacements:
+            columns = data.columns
+            replacements = DataFrame(replacements)
+            data = concat([data.drop(replacements.columns, 1),
+                           replacements], 1)
+            data = data[columns]
+        return data
 
     def _insert_strls(self, data):
         if not hasattr(self, 'GSO') or len(self.GSO) == 0:
@@ -1712,7 +1717,7 @@ class StataReader(StataParser, BaseIterator):
                 except ValueError:
                     vc = Series(categories).value_counts()
                     repeats = list(vc.index[vc > 1])
-                    repeats = '\n' + '-' * 80 + '\n'.join(repeats)
+                    repeats = '-' * 80 + '\n' + '\n'.join(repeats)
                     raise ValueError('Value labels for column {col} are not '
                                      'unique. The repeated labels are:\n'
                                      '{repeats}'

@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import index as libindex, lib
 import pandas.compat as compat
-from pandas.compat import get_range_parameters, lrange, range
+from pandas.compat import get_range_parameters, lrange
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -48,7 +48,9 @@ class RangeIndex(Int64Index):
 
     Attributes
     ----------
-    None
+    start
+    stop
+    step
 
     Methods
     -------
@@ -209,6 +211,29 @@ class RangeIndex(Int64Index):
         return None
 
     # --------------------------------------------------------------------
+    @property
+    def start(self):
+        """
+        The value of the `start` parameter (or ``0`` if this was not supplied)
+        """
+        # GH 25710
+        return self._start
+
+    @property
+    def stop(self):
+        """
+        The value of the `stop` parameter
+        """
+        # GH 25710
+        return self._stop
+
+    @property
+    def step(self):
+        """
+        The value of the `step` parameter (or ``1`` if this was not supplied)
+        """
+        # GH 25710
+        return self._step
 
     @cache_readonly
     def nbytes(self):

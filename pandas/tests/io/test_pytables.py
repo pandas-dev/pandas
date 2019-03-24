@@ -11,7 +11,7 @@ import pytest
 
 from pandas.compat import (
     PY35, PY36, BytesIO, is_platform_little_endian, is_platform_windows,
-    lrange, range, text_type, u)
+    lrange, text_type, u)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -19,8 +19,8 @@ from pandas.core.dtypes.common import is_categorical_dtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex,
-    RangeIndex, Series, Timestamp, bdate_range, compat, concat, date_range,
-    isna, timedelta_range)
+    RangeIndex, Series, Timestamp, bdate_range, concat, date_range, isna,
+    timedelta_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, set_timezone)
@@ -38,7 +38,8 @@ tables = pytest.importorskip('tables')
 # remove when gh-24839 is fixed; this affects numpy 1.16
 # and pytables 3.4.4
 xfail_non_writeable = pytest.mark.xfail(
-    LooseVersion(np.__version__) >= LooseVersion('1.16'),
+    LooseVersion(np.__version__) >= LooseVersion('1.16') and
+    LooseVersion(tables.__version__) < LooseVersion('3.5.1'),
     reason=('gh-25511, gh-24839. pytables needs a '
             'release beyong 3.4.4 to support numpy 1.16x'))
 
@@ -300,8 +301,7 @@ class TestHDFStore(Base):
 
         # File path doesn't exist
         path = ""
-        pytest.raises(compat.FileNotFoundError,
-                      read_hdf, path, 'df')
+        pytest.raises(FileNotFoundError, read_hdf, path, 'df')
 
     def test_api_default_format(self):
 
@@ -1035,18 +1035,8 @@ class TestHDFStore(Base):
 
             # unicode
             index = tm.makeUnicodeIndex
-            if compat.PY3:
-                check('table', index)
-                check('fixed', index)
-            else:
-
-                # only support for fixed types (and they have a perf warning)
-                pytest.raises(TypeError, check, 'table', index)
-
-                # PerformanceWarning
-                with catch_warnings(record=True):
-                    simplefilter("ignore", pd.errors.PerformanceWarning)
-                    check('fixed', index)
+            check('table', index)
+            check('fixed', index)
 
     @pytest.mark.skipif(not is_platform_little_endian(),
                         reason="reason platform is not little endian")
@@ -1065,9 +1055,6 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(result, expected)
 
     def test_latin_encoding(self):
-
-        if compat.PY2:
-            pytest.skip("[unicode] is not implemented as a table column")
 
         values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
                   [b'E\xc9, 17', b'a', b'b', b'c'],
@@ -1998,10 +1985,6 @@ class TestHDFStore(Base):
 
             dtypes = [('date', datetime.date(2001, 1, 2))]
 
-            # py3 ok for unicode
-            if not compat.PY3:
-                dtypes.append(('unicode', u('\\u03c3')))
-
             # currently not supported dtypes ####
             for n, f in dtypes:
                 df = tm.makeDataFrame()
@@ -2386,8 +2369,8 @@ class TestHDFStore(Base):
     @pytest.mark.parametrize(
         'dtype', [np.int64, np.float64, np.object, 'm8[ns]', 'M8[ns]'])
     def test_empty_series(self, dtype):
-            s = Series(dtype=dtype)
-            self._check_roundtrip(s, tm.assert_series_equal)
+        s = Series(dtype=dtype)
+        self._check_roundtrip(s, tm.assert_series_equal)
 
     def test_can_serialize_dates(self):
 
@@ -4404,14 +4387,8 @@ class TestHDFStore(Base):
         types_should_fail = [tm.makeIntIndex, tm.makeFloatIndex,
                              tm.makeDateIndex, tm.makeTimedeltaIndex,
                              tm.makePeriodIndex]
-        types_should_run = [tm.makeStringIndex, tm.makeCategoricalIndex]
-
-        if compat.PY3:
-            types_should_run.append(tm.makeUnicodeIndex)
-        else:
-            # TODO: Add back to types_should_fail
-            # https://github.com/pandas-dev/pandas/issues/20907
-            pass
+        types_should_run = [tm.makeStringIndex, tm.makeCategoricalIndex,
+                            tm.makeUnicodeIndex]
 
         for index in types_should_fail:
             df = DataFrame(np.random.randn(10, 2), columns=index(2))

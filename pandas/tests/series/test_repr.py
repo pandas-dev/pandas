@@ -5,8 +5,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-import pandas.compat as compat
-from pandas.compat import lrange, range, u
+from pandas.compat import lrange, u
 
 import pandas as pd
 from pandas import (
@@ -156,17 +155,11 @@ class TestSeriesRepr(TestData):
 
     def test_unicode_string_with_unicode(self):
         df = Series([u("\u05d0")], name=u("\u05d1"))
-        if compat.PY3:
-            str(df)
-        else:
-            compat.text_type(df)
+        str(df)
 
     def test_bytestring_with_unicode(self):
         df = Series([u("\u05d0")], name=u("\u05d1"))
-        if compat.PY3:
-            bytes(df)
-        else:
-            str(df)
+        bytes(df)
 
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
@@ -225,18 +218,8 @@ class TestCategoricalRepr(object):
         idx = pd.Index(cat)
         ser = idx.to_series()
 
-        if compat.PY3:
-            # no reloading of sys, just check that the default (utf8) works
-            # as expected
-            repr(ser)
-            str(ser)
-
-        else:
-            # set sys.defaultencoding to ascii, then change it back after
-            # the test
-            with tm.set_defaultencoding('ascii'):
-                repr(ser)
-                str(ser)
+        repr(ser)
+        str(ser)
 
     def test_categorical_repr(self):
         a = Series(Categorical([1, 2, 3, 4]))

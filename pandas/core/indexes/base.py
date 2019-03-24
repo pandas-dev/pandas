@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import operator
 from textwrap import dedent
+from typing import Union
 import warnings
 
 import numpy as np
@@ -11,7 +12,7 @@ from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
-from pandas.compat import range, set_function_name, u
+from pandas.compat import set_function_name, u
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -1207,7 +1208,7 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas import DataFrame
         if name is None:
             name = self.name or 0
-        result = DataFrame({name: self.values.copy()})
+        result = DataFrame({name: self._values.copy()})
 
         if index:
             result.index = self
@@ -3104,7 +3105,6 @@ class Index(IndexOpsMixin, PandasObject):
             Resulting index.
         indexer : np.ndarray or None
             Indices of output values in original index.
-
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).

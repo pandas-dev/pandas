@@ -6,7 +6,7 @@ from textwrap import fill
 import warnings
 
 import pandas.compat as compat
-from pandas.compat import add_metaclass, range, string_types, u
+from pandas.compat import add_metaclass, string_types, u
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -70,11 +70,12 @@ parse_cols : int or list, default None
 
 usecols : int, str, list-like, or callable default None
     Return a subset of the columns.
+
     * If None, then parse all columns.
     * If int, then indicates last column to be parsed.
 
-    .. deprecated:: 0.24.0
-       Pass in a list of int instead from 0 to `usecols` inclusive.
+      .. deprecated:: 0.24.0
+         Pass in a list of int instead from 0 to `usecols` inclusive.
 
     * If str, then indicates comma separated list of Excel column letters
       and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
@@ -82,12 +83,12 @@ usecols : int, str, list-like, or callable default None
     * If list of int, then indicates list of column numbers to be parsed.
     * If list of string, then indicates list of column names to be parsed.
 
-    .. versionadded:: 0.24.0
+      .. versionadded:: 0.24.0
 
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
 
-    .. versionadded:: 0.24.0
+      .. versionadded:: 0.24.0
 
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.

@@ -8,7 +8,7 @@ from __future__ import print_function
 from collections import OrderedDict
 from textwrap import dedent
 
-from pandas.compat import lzip, map, range, u, unichr, zip
+from pandas.compat import lzip, u, unichr
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
@@ -163,8 +163,8 @@ class HTMLFormatter(TableFormatter):
             if isinstance(self.classes, str):
                 self.classes = self.classes.split()
             if not isinstance(self.classes, (list, tuple)):
-                raise AssertionError('classes must be list or tuple, not {typ}'
-                                     .format(typ=type(self.classes)))
+                raise TypeError('classes must be a string, list, or tuple, '
+                                'not {typ}'.format(typ=type(self.classes)))
             _classes.extend(self.classes)
 
         if self.table_id is None:

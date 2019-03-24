@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, builtins, map, range
+from pandas.compat import PYPY, builtins
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -24,6 +24,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
+from pandas.core.arrays import ExtensionArray
 import pandas.core.nanops as nanops
 
 _shared_docs = dict()
@@ -762,7 +763,7 @@ class IndexOpsMixin(object):
         """
         Return the number of elements in the underlying data.
         """
-        return self._values.size
+        return len(self._values)
 
     @property
     def flags(self):
@@ -869,7 +870,6 @@ class IndexOpsMixin(object):
         A NumPy ndarray representing the values in this Series or Index.
 
         .. versionadded:: 0.24.0
-
 
         Parameters
         ----------

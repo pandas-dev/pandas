@@ -13,7 +13,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
-from pandas.compat import StringIO, lzip, map, u, zip
+from pandas.compat import StringIO, lzip, u
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -440,7 +440,6 @@ class DataFrameFormatter(TableFormatter):
         max_rows = self.max_rows
 
         if max_cols == 0 or max_rows == 0:  # assume we are in the terminal
-                                            # (why else = 0)
             (w, h) = get_terminal_size()
             self.w = w
             self.h = h
@@ -527,6 +526,10 @@ class DataFrameFormatter(TableFormatter):
                 str_columns = [[label] for label in self.header]
             else:
                 str_columns = self._get_formatted_column_labels(frame)
+
+            if self.show_row_idx_names:
+                for x in str_columns:
+                    x.append('')
 
             stringified = []
             for i, c in enumerate(frame):
@@ -770,11 +773,6 @@ class DataFrameFormatter(TableFormatter):
                             need_leadsp[x] else x]
                            for i, (col, x) in enumerate(zip(columns,
                                                             fmt_columns))]
-
-        if self.show_row_idx_names:
-            for x in str_columns:
-                x.append('')
-
         # self.str_columns = str_columns
         return str_columns
 

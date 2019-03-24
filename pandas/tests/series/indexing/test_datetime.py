@@ -8,7 +8,7 @@ import pytest
 
 from pandas._libs import iNaT
 import pandas._libs.index as _index
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
@@ -52,20 +52,28 @@ def test_fancy_setitem():
     assert (s[48:54] == -3).all()
 
 
-def test_dti_snap():
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.parametrize('tz', [None, 'Asia/Shanghai', 'Europe/Berlin'])
+@pytest.mark.parametrize('name', [None, 'my_dti'])
+def test_dti_snap(name, tz):
     dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
-                         '1/5/2002', '1/6/2002', '1/7/2002'], freq='D')
+                         '1/5/2002', '1/6/2002', '1/7/2002'],
+                        name=name, tz=tz, freq='D')
 
-    res = dti.snap(freq='W-MON')
-    exp = date_range('12/31/2001', '1/7/2002', freq='w-mon')
-    exp = exp.repeat([3, 4])
-    assert (res == exp).all()
+    result = dti.snap(freq='W-MON')
+    expected = date_range('12/31/2001', '1/7/2002',
+                          name=name, tz=tz, freq='w-mon')
+    expected = expected.repeat([3, 4])
+    tm.assert_index_equal(result, expected)
+    assert result.tz == expected.tz
 
-    res = dti.snap(freq='B')
+    result = dti.snap(freq='B')
 
-    exp = date_range('1/1/2002', '1/7/2002', freq='b')
-    exp = exp.repeat([1, 1, 1, 2, 2])
-    assert (res == exp).all()
+    expected = date_range('1/1/2002', '1/7/2002',
+                          name=name, tz=tz, freq='b')
+    expected = expected.repeat([1, 1, 1, 2, 2])
+    tm.assert_index_equal(result, expected)
+    assert result.tz == expected.tz
 
 
 def test_dti_reset_index_round_trip():

@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -571,6 +571,18 @@ class TestSeriesPlots(TestPlotBase):
         tm.close()
 
     @pytest.mark.slow
+    def test_secondary_logy(self):
+        # GH 25545
+        s1 = Series(np.random.randn(30))
+        s2 = Series(np.random.randn(30))
+
+        ax1 = s1.plot(logy=True)
+        ax2 = s2.plot(secondary_y=True, logy=True)
+
+        assert ax1.get_yscale() == 'log'
+        assert ax2.get_yscale() == 'log'
+
+    @pytest.mark.slow
     def test_plot_fails_with_dupe_color_and_style(self):
         x = Series(randn(2))
         with pytest.raises(ValueError):
@@ -694,7 +706,9 @@ class TestSeriesPlots(TestPlotBase):
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            with pytest.raises(TypeError):
+
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
                 s.plot(kind=kind, ax=ax)
 
     @pytest.mark.slow
@@ -711,7 +725,9 @@ class TestSeriesPlots(TestPlotBase):
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            with pytest.raises(TypeError):
+
+            msg = "no numeric data to plot"
+            with pytest.raises(TypeError, match=msg):
                 s.plot(kind=kind, ax=ax)
 
     def test_invalid_kind(self):

@@ -175,9 +175,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     set -o pipefail
     if [[ "$AZURE" == "true" ]]; then
         # we exclude all c/cpp files as the c/cpp files of pandas code base are tested when Linting .c and .h files
-        ! grep -n '--exclude=*.'{svg,c,cpp,html} -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
+        ! grep -n '--exclude=*.'{svg,c,cpp,html} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
     else
-        ! grep -n '--exclude=*.'{svg,c,cpp,html}  -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
+        ! grep -n '--exclude=*.'{svg,c,cpp,html} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
@@ -241,8 +241,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL06, GL07, GL09, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT04, RT05, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL06,GL07,GL09,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT04,RT05,SA05
+    MSG='Validate docstrings (GL03, GL06, GL07, GL09, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT04, RT05, SA05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL06,GL07,GL09,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT04,RT05,SA05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

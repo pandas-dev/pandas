@@ -8,7 +8,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, lzip, map, range, zip
+from pandas.compat import StringIO, lmap, lrange, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -1690,9 +1690,9 @@ def test_groupby_agg_ohlc_non_first():
         [1, 1, 1, 1, 1],
         [1, 1, 1, 1, 1]
     ], columns=pd.MultiIndex.from_tuples((
-        ('foo', 'ohlc', 'open'), ('foo', 'ohlc', 'high'),
-        ('foo', 'ohlc', 'low'), ('foo', 'ohlc', 'close'),
-        ('foo', 'sum', 'foo'))), index=pd.date_range(
+        ('foo', 'sum', 'foo'), ('foo', 'ohlc', 'open'),
+        ('foo', 'ohlc', 'high'), ('foo', 'ohlc', 'low'),
+        ('foo', 'ohlc', 'close'))), index=pd.date_range(
             '2018-01-01', periods=2, freq='D'))
 
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
@@ -1714,3 +1714,12 @@ def test_groupby_multiindex_nat():
     result = ser.groupby(level=1).mean()
     expected = pd.Series([3., 2.5], index=["a", "b"])
     assert_series_equal(result, expected)
+
+
+def test_groupby_empty_list_raises():
+    # GH 5289
+    values = zip(range(10), range(10))
+    df = DataFrame(values, columns=['apple', 'b'])
+    msg = "Grouper and axis must be same length"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby([[]])

@@ -11,14 +11,13 @@ from decimal import Decimal
 from fractions import Fraction
 from numbers import Number
 import re
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
 import pytz
 
 from pandas._libs import iNaT, lib, missing as libmissing
-from pandas.compat import PY2, StringIO, lrange, u
+from pandas.compat import StringIO, lrange, u
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
@@ -30,8 +29,8 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Panel,
-    Period, Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna)
+    Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Period,
+    Series, Timedelta, TimedeltaIndex, Timestamp, isna)
 from pandas.util import testing as tm
 
 
@@ -287,18 +286,6 @@ def test_is_hashable():
     # is_hashable()
     assert not inference.is_hashable(np.array([]))
 
-    # old-style classes in Python 2 don't appear hashable to
-    # collections.Hashable but also seem to support hash() by default
-    if PY2:
-
-        class OldStyleClass():
-            pass
-
-        c = OldStyleClass()
-        assert not isinstance(c, compat.Hashable)
-        assert inference.is_hashable(c)
-        hash(c)  # this will not raise
-
 
 @pytest.mark.parametrize(
     "ll", [re.compile('ad')])
@@ -331,7 +318,7 @@ def test_is_recompilable_fails(ll):
 class TestInference(object):
 
     def test_infer_dtype_bytes(self):
-        compare = 'string' if PY2 else 'bytes'
+        compare = 'bytes'
 
         # string array of bytes
         arr = np.array(list('abc'), dtype='S1')
@@ -659,7 +646,7 @@ class TestTypeInference(object):
 
         arr = [u'a', np.nan, u'c']
         result = lib.infer_dtype(arr, skipna=True)
-        expected = 'unicode' if PY2 else 'string'
+        expected = 'string'
         assert result == expected
 
     @pytest.mark.parametrize('dtype, missing, skipna, expected', [
@@ -1305,10 +1292,6 @@ class TestIsScalar(object):
         assert not is_scalar(Series([1]))
         assert not is_scalar(DataFrame())
         assert not is_scalar(DataFrame([[1]]))
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            assert not is_scalar(Panel())
-            assert not is_scalar(Panel([[[1]]]))
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
 
