@@ -5,9 +5,8 @@ compat
 Cross-compatible functions for Python 2 and 3.
 
 Key items to import for 2/3 compatible code:
-* iterators: range(), map(), zip(), filter(), reduce()
+* iterators: reduce()
 * lists: lrange(), lmap(), lzip(), lfilter()
-* unicode: u() [no unicode builtin in Python 3]
 * longs: long (int in Python 3)
 * iterable method compatibility: iteritems, iterkeys, itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
@@ -107,18 +106,10 @@ if PY3:
         return data.start, data.stop, data.step
 
     # have to explicitly put builtins into the namespace
-    range = range
-    map = map
-    zip = zip
-    filter = filter
     intern = sys.intern
     reduce = functools.reduce
     long = int
     unichr = chr
-
-    # This was introduced in Python 3.3, but we don't support
-    # Python 3.x < 3.5, so checking PY3 is safe.
-    FileNotFoundError = FileNotFoundError
 
     # list-producing versions of the major Python iterating functions
     def lrange(*args, **kwargs):
@@ -147,8 +138,6 @@ if PY3:
 else:
     # Python 2
     _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
-
-    FileNotFoundError = IOError
 
     def isidentifier(s, dotted=False):
         return bool(_name_re.match(s))
@@ -181,11 +170,7 @@ else:
         return start, stop, step
 
     # import iterator versions of these functions
-    range = xrange
     intern = intern
-    zip = itertools.izip
-    filter = itertools.ifilter
-    map = itertools.imap
     reduce = reduce
     long = long
     unichr = unichr
@@ -217,7 +202,6 @@ if PY2:
     def itervalues(obj, **kw):
         return obj.itervalues(**kw)
 
-    next = lambda it: it.next()
 else:
     def iteritems(obj, **kw):
         return iter(obj.items(**kw))
@@ -227,8 +211,6 @@ else:
 
     def itervalues(obj, **kw):
         return iter(obj.values(**kw))
-
-    next = next
 
 
 def bind_method(cls, name, func):
@@ -273,12 +255,6 @@ if PY3:
     text_type = str
     binary_type = bytes
 
-    def u(s):
-        return s
-
-    def u_safe(s):
-        return s
-
     def to_str(s):
         """
         Convert bytes and non-string into Python 3 str
@@ -315,24 +291,12 @@ if PY3:
             name=name)
         f.__module__ = cls.__module__
         return f
-
-    ResourceWarning = ResourceWarning
-
 else:
     string_types = basestring,
     integer_types = (int, long)
     class_types = (type, types.ClassType)
     text_type = unicode
     binary_type = str
-
-    def u(s):
-        return unicode(s, "unicode_escape")
-
-    def u_safe(s):
-        try:
-            return unicode(s, "unicode_escape")
-        except:
-            return s
 
     def to_str(s):
         """
@@ -372,9 +336,6 @@ else:
         """ Bind the name attributes of the function """
         f.__name__ = name
         return f
-
-    class ResourceWarning(Warning):
-        pass
 
 string_and_binary_types = string_types + (binary_type,)
 

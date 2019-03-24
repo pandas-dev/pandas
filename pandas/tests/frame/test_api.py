@@ -9,7 +9,7 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas.compat import long, lrange, range
+from pandas.compat import long, lrange
 
 import pandas as pd
 from pandas import (
@@ -142,10 +142,16 @@ class SharedWithSparse(object):
             assert key not in dir(df)
         assert isinstance(df.__getitem__('A'), pd.DataFrame)
 
-    def test_not_hashable(self, empty_frame):
+    def test_not_hashable(self):
+        empty_frame = DataFrame()
+
         df = self.klass([1])
-        pytest.raises(TypeError, hash, df)
-        pytest.raises(TypeError, hash, empty_frame)
+        msg = ("'(Sparse)?DataFrame' objects are mutable, thus they cannot be"
+               " hashed")
+        with pytest.raises(TypeError, match=msg):
+            hash(df)
+        with pytest.raises(TypeError, match=msg):
+            hash(empty_frame)
 
     def test_new_empty_index(self):
         df1 = self.klass(np.random.randn(0, 3))
@@ -169,9 +175,12 @@ class SharedWithSparse(object):
         idx = float_frame._get_agg_axis(1)
         assert idx is float_frame.index
 
-        pytest.raises(ValueError, float_frame._get_agg_axis, 2)
+        msg = r"Axis must be 0 or 1 \(got 2\)"
+        with pytest.raises(ValueError, match=msg):
+            float_frame._get_agg_axis(2)
 
-    def test_nonzero(self, float_frame, float_string_frame, empty_frame):
+    def test_nonzero(self, float_frame, float_string_frame):
+        empty_frame = DataFrame()
         assert empty_frame.empty
 
         assert not float_frame.empty
@@ -356,7 +365,10 @@ class SharedWithSparse(object):
         self._assert_frame_equal(df.T, df.swapaxes(0, 1))
         self._assert_frame_equal(df.T, df.swapaxes(1, 0))
         self._assert_frame_equal(df, df.swapaxes(0, 0))
-        pytest.raises(ValueError, df.swapaxes, 2, 5)
+        msg = ("No axis named 2 for object type"
+               r" <class 'pandas.core(.sparse)?.frame.(Sparse)?DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            df.swapaxes(2, 5)
 
     def test_axis_aliases(self, float_frame):
         f = float_frame

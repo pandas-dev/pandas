@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas._libs import iNaT, index as libindex, lib, tslibs
 import pandas.compat as compat
-from pandas.compat import PY36, StringIO, u, zip
+from pandas.compat import PY36, StringIO
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg
@@ -1229,7 +1229,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self._values[label] = value
             else:
                 self.index._engine.set_value(self._values, label, value)
-        except KeyError:
+        except (KeyError, TypeError):
 
             # set using a non-recursive method
             self.loc[label] = value
@@ -1379,7 +1379,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        buf = StringIO(u(""))
+        buf = StringIO("")
         width, height = get_terminal_size()
         max_rows = (height if get_option("display.max_rows") == 0 else
                     get_option("display.max_rows"))
@@ -1453,6 +1453,29 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def iteritems(self):
         """
         Lazily iterate over (index, value) tuples.
+
+        This method returns an iterable tuple (index, value). This is
+        convienient if you want to create a lazy iterator. Note that the
+        methods Series.items and Series.iteritems are the same methods.
+
+        Returns
+        -------
+        iterable
+            Iterable of tuples containing the (index, value) pairs from a
+            Series.
+
+        See Also
+        --------
+        DataFrame.iteritems : Equivalent to Series.iteritems for DataFrame.
+
+        Examples
+        --------
+        >>> s = pd.Series(['A', 'B', 'C'])
+        >>> for index, value in s.iteritems():
+        ...     print("Index : {}, Value : {}".format(index, value))
+        Index : 0, Value : A
+        Index : 1, Value : B
+        Index : 2, Value : C
         """
         return zip(iter(self.index), iter(self))
 
@@ -2128,8 +2151,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
-            * callable: callable with input two 1d ndarray
-                and returning a float
+            * callable: callable with input two 1d ndarrays
+                and returning a float. Note that the returned matrix from corr
+                will have 1 along the diagonals and will be symmetric
+                regardless of the callable's behavior
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional
@@ -2159,8 +2184,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                   min_periods=min_periods)
 
         raise ValueError("method must be either 'pearson', "
-                         "'spearman', or 'kendall', '{method}' "
-                         "was supplied".format(method=method))
+                         "'spearman', 'kendall', or a callable, "
+                         "'{method}' was supplied".format(method=method))
 
     def cov(self, other, min_periods=None):
         """
@@ -2502,6 +2527,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         Series
         """
+
         if not isinstance(other, Series):
             raise AssertionError('Other operand must be Series')
 
@@ -2518,13 +2544,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         with np.errstate(all='ignore'):
             result = func(this_vals, other_vals)
+
         name = ops.get_op_result_name(self, other)
-        result = self._constructor(result, index=new_index, name=name)
-        result = result.__finalize__(self)
-        if name is None:
-            # When name is None, __finalize__ overwrites current name
-            result.name = None
-        return result
+        if func.__name__ in ['divmod', 'rdivmod']:
+            ret = ops._construct_divmod_result(self, result, new_index, name)
+        else:
+            ret = ops._construct_result(self, result, new_index, name)
+        return ret
 
     def combine(self, other, func, fill_value=None):
         """
@@ -3098,8 +3124,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : take the first occurrences based on the index order
-            - ``last`` : take the last occurrences based on the index order
+            - ``first`` : return the first `n` occurrences in order
+                of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+                order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
@@ -3194,8 +3222,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : take the first occurrences based on the index order
-            - ``last`` : take the last occurrences based on the index order
+            - ``first`` : return the first `n` occurrences in order
+                of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+                order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
@@ -3236,7 +3266,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Monserat        5200
         dtype: int64
 
-        The `n` largest elements where ``n=5`` by default.
+        The `n` smallest elements where ``n=5`` by default.
 
         >>> s.nsmallest()
         Monserat      5200

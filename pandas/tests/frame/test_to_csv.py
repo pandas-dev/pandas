@@ -8,7 +8,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, range, u
+from pandas.compat import StringIO, lmap, lrange
 from pandas.errors import ParserError
 
 import pandas as pd
@@ -109,8 +109,9 @@ class TestDataFrameToCSV(TestData):
             xp.columns = col_aliases
             assert_frame_equal(xp, rs)
 
-            pytest.raises(ValueError, self.frame2.to_csv, path,
-                          header=['AA', 'X'])
+            msg = "Writing 4 cols but got 2 aliases"
+            with pytest.raises(ValueError, match=msg):
+                self.frame2.to_csv(path, header=['AA', 'X'])
 
     def test_to_csv_from_csv3(self):
 
@@ -782,7 +783,7 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_unicode(self):
 
-        df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
+        df = DataFrame({'c/\u03c3': [1, 2, 3]})
         with ensure_clean() as path:
 
             df.to_csv(path, encoding='UTF-8')
@@ -796,10 +797,10 @@ class TestDataFrameToCSV(TestData):
     def test_to_csv_unicode_index_col(self):
         buf = StringIO('')
         df = DataFrame(
-            [[u("\u05d0"), "d2", "d3", "d4"], ["a1", "a2", "a3", "a4"]],
-            columns=[u("\u05d0"),
-                     u("\u05d1"), u("\u05d2"), u("\u05d3")],
-            index=[u("\u05d0"), u("\u05d1")])
+            [["\u05d0", "d2", "d3", "d4"], ["a1", "a2", "a3", "a4"]],
+            columns=["\u05d0",
+                     "\u05d1", "\u05d2", "\u05d3"],
+            index=["\u05d0", "\u05d1"])
 
         df.to_csv(buf, encoding='UTF-8')
         buf.seek(0)
@@ -1219,4 +1220,16 @@ class TestDataFrameToCSV(TestData):
                          '0,1,2,3,4',
                          '1,5,6,7,8']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected
+
+    def test_gz_lineend(self):
+        # GH 25311
+        df = pd.DataFrame({'a': [1, 2]})
+        expected_rows = ['a', '1', '2']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        with ensure_clean('__test_gz_lineend.csv.gz') as path:
+            df.to_csv(path, index=False)
+            with tm.decompress_file(path, compression='gzip') as f:
+                result = f.read().decode('utf-8')
+
         assert result == expected

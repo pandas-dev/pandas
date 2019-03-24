@@ -13,7 +13,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
-from pandas.compat import StringIO, lzip, map, u, zip
+from pandas.compat import StringIO, lzip
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -111,7 +111,7 @@ class CategoricalFormatter(object):
     def __init__(self, categorical, buf=None, length=True, na_rep='NaN',
                  footer=True):
         self.categorical = categorical
-        self.buf = buf if buf is not None else StringIO(u(""))
+        self.buf = buf if buf is not None else StringIO("")
         self.na_rep = na_rep
         self.length = length
         self.footer = footer
@@ -144,20 +144,20 @@ class CategoricalFormatter(object):
             if self.footer:
                 return self._get_footer()
             else:
-                return u('')
+                return ''
 
         fmt_values = self._get_formatted_values()
 
-        result = [u('{i}').format(i=i) for i in fmt_values]
+        result = ['{i}'.format(i=i) for i in fmt_values]
         result = [i.strip() for i in result]
-        result = u(', ').join(result)
-        result = [u('[') + result + u(']')]
+        result = ', '.join(result)
+        result = ['[' + result + ']']
         if self.footer:
             footer = self._get_footer()
             if footer:
                 result.append(footer)
 
-        return compat.text_type(u('\n').join(result))
+        return compat.text_type('\n'.join(result))
 
 
 class SeriesFormatter(object):
@@ -201,7 +201,7 @@ class SeriesFormatter(object):
 
     def _get_footer(self):
         name = self.series.name
-        footer = u('')
+        footer = ''
 
         if getattr(self.series.index, 'freq', None) is not None:
             footer += 'Freq: {freq}'.format(freq=self.series.index.freqstr)
@@ -290,7 +290,7 @@ class SeriesFormatter(object):
         if footer:
             result += '\n' + footer
 
-        return compat.text_type(u('').join(result))
+        return compat.text_type(''.join(result))
 
 
 class TextAdjustment(object):
@@ -440,7 +440,6 @@ class DataFrameFormatter(TableFormatter):
         max_rows = self.max_rows
 
         if max_cols == 0 or max_rows == 0:  # assume we are in the terminal
-                                            # (why else = 0)
             (w, h) = get_terminal_size()
             self.w = w
             self.h = h
@@ -528,6 +527,10 @@ class DataFrameFormatter(TableFormatter):
             else:
                 str_columns = self._get_formatted_column_labels(frame)
 
+            if self.show_row_idx_names:
+                for x in str_columns:
+                    x.append('')
+
             stringified = []
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
@@ -588,10 +591,10 @@ class DataFrameFormatter(TableFormatter):
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = (u('Empty {name}\nColumns: {col}\nIndex: {idx}')
+            info_line = ('Empty {name}\nColumns: {col}\nIndex: {idx}'
                          .format(name=type(self.frame).__name__,
-                         col=pprint_thing(frame.columns),
-                         idx=pprint_thing(frame.index)))
+                                 col=pprint_thing(frame.columns),
+                                 idx=pprint_thing(frame.index)))
             text = info_line
         else:
 
@@ -770,11 +773,6 @@ class DataFrameFormatter(TableFormatter):
                             need_leadsp[x] else x]
                            for i, (col, x) in enumerate(zip(columns,
                                                             fmt_columns))]
-
-        if self.show_row_idx_names:
-            for x in str_columns:
-                x.append('')
-
         # self.str_columns = str_columns
         return str_columns
 
@@ -1527,9 +1525,9 @@ class EngFormatter(object):
         mant = sign * dnum / (10**pow10)
 
         if self.accuracy is None:  # pragma: no cover
-            format_str = u("{mant: g}{prefix}")
+            format_str = "{mant: g}{prefix}"
         else:
-            format_str = (u("{{mant: .{acc:d}f}}{{prefix}}")
+            format_str = ("{{mant: .{acc:d}f}}{{prefix}}"
                           .format(acc=self.accuracy))
 
         formatted = format_str.format(mant=mant, prefix=prefix)

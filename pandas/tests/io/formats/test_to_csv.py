@@ -51,13 +51,8 @@ class TestToCSV(object):
         with tm.ensure_clean('test.csv') as path:
             # the default to_csv encoding in Python 2 is ascii, and that in
             # Python 3 is uft-8.
-            if pd.compat.PY2:
-                # the encoding argument parameter should be utf-8
-                with pytest.raises(UnicodeEncodeError, match='ascii'):
-                    df.to_csv(path)
-            else:
-                df.to_csv(path)
-                tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
+            df.to_csv(path)
+            tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
 
     def test_to_csv_quotechar(self):
         df = DataFrame({'col': [1, 2]})
@@ -494,7 +489,6 @@ z
             with open(path, 'r') as f:
                 assert f.read() == expected
 
-    @pytest.mark.skipif(compat.PY2, reason="Test case for python3")
     def test_to_csv_write_to_open_file_with_newline_py3(self):
         # see gh-21696
         # see gh-20353
@@ -511,24 +505,6 @@ z
 
             with open(path, 'rb') as f:
                 assert f.read() == bytes(expected, 'utf-8')
-
-    @pytest.mark.skipif(compat.PY3, reason="Test case for python2")
-    def test_to_csv_write_to_open_file_with_newline_py2(self):
-        # see gh-21696
-        # see gh-20353
-        df = pd.DataFrame({'a': ['x', 'y', 'z']})
-        expected_rows = ["x",
-                         "y",
-                         "z"]
-        expected = ("manual header\n" +
-                    tm.convert_rows_list_to_csv_str(expected_rows))
-        with tm.ensure_clean('test.txt') as path:
-            with open(path, 'wb') as f:
-                f.write('manual header\n')
-                df.to_csv(f, header=None, index=None)
-
-            with open(path, 'rb') as f:
-                assert f.read() == expected
 
     @pytest.mark.parametrize("to_infer", [True, False])
     @pytest.mark.parametrize("read_infer", [True, False])

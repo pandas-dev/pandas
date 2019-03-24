@@ -10,7 +10,6 @@ import pytest
 import pytz
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import range
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -661,7 +660,8 @@ class TestSeriesMissingData():
         assert len(s) == 0
 
         # invalid axis
-        msg = r"No axis named 1 for object type <(class|type) 'type'>"
+        msg = ("No axis named 1 for object type"
+               " <class 'pandas.core.series.Series'>")
         with pytest.raises(ValueError, match=msg):
             s.dropna(axis=1)
 
