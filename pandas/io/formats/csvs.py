@@ -50,6 +50,7 @@ class CSVFormatter(object):
 
         self.header = header
         self.index = index
+
         # if index label is not explicitly called, index label is True if
         # header or index is not False; otherwise, index label is set to False
         if index_label is None:
@@ -216,11 +217,9 @@ class CSVFormatter(object):
             index_label = []
             # append index label based on index type
             if isinstance(obj.index, ABCMultiIndex):
-                for name in obj.index.names:
-                    # add empty string is name is None
-                    if name is None:
-                        name = ''
-                    index_label.append(name)
+                # add empty string is name is None
+                index_label = list(map(lambda name: name or '',
+                                       obj.index.names))
             else:
                 # if no name, use empty string
                 if obj.index.name is None:

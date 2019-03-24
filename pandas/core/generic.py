@@ -2962,6 +2962,11 @@ class NDFrame(PandasObject, SelectionMixin):
             explicitly called by allowed types of input, then input will be
             given to index_label. If False, do not print fields
             for index names. Use index_label=False for easier importing in R.
+
+            .. versionchanged:: 0.25.0
+
+               Previously True option is not allowed.
+
         mode : str
             Python write mode, default 'w'.
         encoding : str, optional
