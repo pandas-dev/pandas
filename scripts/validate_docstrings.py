@@ -473,7 +473,8 @@ class Docstring(object):
 
     def parameter_desc_list(self, param):
         i = list(self.doc_parameters).index(param)
-        desc_list = [line for line in self.doc._parsed_data['Parameters'][i][-1]
+        desc_list = [line
+                     for line in self.doc._parsed_data['Parameters'][i][-1]
                      if line]
         # Find and strip out any sphinx directives
         for directive in DIRECTIVES:
