@@ -550,7 +550,7 @@ z
     ])
     def test_to_csv_header_single_index(self, header, index_label,
                                         expected_rows):
-        # issue 24546
+        # GH 24546
         df = pd.DataFrame(np.zeros((2, 2), dtype=int))
         df.index.name = 'index.name'
         df.columns.name = 'columns.name'
@@ -573,7 +573,7 @@ z
     ])
     def test_to_csv_header_multi_index(self, header, index_label,
                                        expected_rows):
-        # issue 24546
+        # GH 24546
         df = pd.DataFrame(np.zeros((2, 2), dtype=int))
         df.index = pd.MultiIndex.from_product([['a'], ['b', 'c']], names=[
             'index.name.0', 'index.name.1'])
