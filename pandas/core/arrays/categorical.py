@@ -5,6 +5,8 @@ from warnings import warn
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import algos as libalgos, lib
 import pandas.compat as compat
 from pandas.compat import lzip
@@ -32,7 +34,6 @@ import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import factorize, take, take_1d, unique1d
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 

@@ -8,12 +8,13 @@ from __future__ import print_function
 from collections import OrderedDict
 from textwrap import dedent
 
+from pandas._config import get_option
+
 from pandas.compat import lzip, unichr
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import compat, option_context
-from pandas.core.config import get_option
 
 from pandas.io.common import _is_url
 from pandas.io.formats.format import TableFormatter, get_level_lengths
