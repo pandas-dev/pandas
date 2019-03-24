@@ -803,6 +803,21 @@ class TestIsin(object):
         expected = np.array([True, True])
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("comps,values,expected", [
+        (np.array([1, 2, 3]), {1, np.int(2)}, np.array([True, True, False])),
+        (np.array(['a', 'b']), {1, 'b'}, np.array([False, True])),
+        (np.array([1.0, 2.0]), {1, 2}, np.array([True, True])),
+        (pd.date_range("2019-01-01", "2019-01-03"),
+         {datetime(2019, 1, 2)}, np.array([False, True, False])),
+        (pd.Categorical(['a', 'b']), {0, 'b'}, np.array([False, True])),
+        (np.array([np.nan, float('nan')]), {float('nan')},
+         np.array([False, False]))
+    ])
+    def test_set(self, comps, values, expected):
+        # GH 25507
+        actual = algos.isin(comps, values)
+        assert tm.assert_numpy_array_equal(actual, expected)
+
 
 class TestValueCounts(object):
 
