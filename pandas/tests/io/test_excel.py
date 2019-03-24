@@ -14,8 +14,7 @@ from pandas.compat import PY36, BytesIO, iteritems
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.core.config import get_option, set_option
+from pandas import DataFrame, Index, MultiIndex, Series, get_option, set_option
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 

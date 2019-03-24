@@ -10,6 +10,8 @@ from functools import partial
 
 import numpy as np
 
+from pandas._config.config import get_option, set_option
+
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
@@ -27,7 +29,6 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas import compat
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.config import get_option, set_option
 from pandas.core.index import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 

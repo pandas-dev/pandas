@@ -48,9 +48,6 @@ from pandas.tseries.offsets import DateOffset
 from pandas.core.tools.datetimes import to_datetime
 from pandas.core.tools.timedeltas import to_timedelta
 
-from pandas.core.config import (get_option, set_option, reset_option,
-                                describe_option, option_context, options)
-
 
 # Deprecation: xref gh-16747
 class TimeGrouper(object):

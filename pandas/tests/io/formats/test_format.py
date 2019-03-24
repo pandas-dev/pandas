@@ -26,9 +26,8 @@ from pandas.compat import (
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, NaT, Series, Timestamp, date_range, read_csv)
-from pandas.core.config import (
-    get_option, option_context, reset_option, set_option)
+    DataFrame, Index, MultiIndex, NaT, Series, Timestamp, date_range,
+    get_option, option_context, read_csv, reset_option, set_option)
 import pandas.util.testing as tm
 
 import pandas.io.formats.format as fmt

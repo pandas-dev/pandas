@@ -24,6 +24,8 @@ from typing import List, Union
 import numpy as np
 import numpy.ma as ma
 
+from pandas._config import get_option
+
 from pandas._libs import lib, algos as libalgos
 
 from pandas.util._decorators import (Appender, Substitution,
@@ -84,7 +86,6 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin as DatetimeLikeArray
 )
-from pandas.core.config import get_option
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
                                ensure_index_from_sequences)

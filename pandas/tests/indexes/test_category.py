@@ -3,13 +3,14 @@
 import numpy as np
 import pytest
 
+import pandas._config.config as cf
+
 from pandas._libs import index as libindex
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import Categorical, IntervalIndex
-import pandas.core.config as cf
 from pandas.core.indexes.api import CategoricalIndex, Index
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal

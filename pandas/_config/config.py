@@ -695,7 +695,7 @@ def config_prefix(prefix):
 
     Example:
 
-    import pandas.core.config as cf
+    import pandas._config.config as cf
     with cf.config_prefix("display.font"):
         cf.register_option("color", "red")
         cf.register_option("size", " 5 pt")
