@@ -2,7 +2,8 @@ import subprocess  # noqa: F401
 
 import pytest
 
-from pandas.io.formats.console import detect_console_encoding
+from pandas._config.display import detect_console_encoding
+
 from pandas.io.formats.terminal import _get_terminal_size_tput
 
 
