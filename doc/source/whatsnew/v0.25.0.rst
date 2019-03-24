@@ -177,6 +177,7 @@ Performance Improvements
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
 - Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
+- Improved performance of :meth:`IntervalIndex.is_unique` by removing conversion to `MultiIndex` (:issue:`24813`)
 
 .. _whatsnew_0250.bug_fixes:
 
