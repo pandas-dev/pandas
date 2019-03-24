@@ -11,6 +11,11 @@ import pandas.util.testing as tm
 
 from .test_numeric import Numeric
 
+# aliases to make some tests easier to read
+RI = RangeIndex
+I64 = Int64Index
+F64 = Float64Index
+OI = Index
 
 class TestRangeIndex(Numeric):
     _holder = RangeIndex
@@ -565,21 +570,19 @@ class TestRangeIndex(Numeric):
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
-    def test_union_noncomparable(self):
+    @pytest.mark.parametrize('sort', [False, None])
+    def test_union_noncomparable(self, sort):
         from datetime import datetime, timedelta
         # corner case, non-Int64Index
         now = datetime.now()
         other = Index([now + timedelta(i) for i in range(4)], dtype=object)
-        result = self.index.union(other)
+        result = self.index.union(other, sort=sort)
         expected = Index(np.concatenate((self.index, other)))
         tm.assert_index_equal(result, expected)
 
-        result = other.union(self.index)
+        result = other.union(self.index, sort=sort)
         expected = Index(np.concatenate((other, self.index)))
         tm.assert_index_equal(result, expected)
-
-    RI = RangeIndex
-    I64 = Int64Index
 
     @pytest.fixture(params=[
         (RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1)),
@@ -866,10 +869,6 @@ class TestRangeIndex(Numeric):
 
     def test_append(self):
         # GH16212
-        RI = RangeIndex
-        I64 = Int64Index
-        F64 = Float64Index
-        OI = Index
         cases = [([RI(1, 12, 5)], RI(1, 12, 5)),
                  ([RI(0, 6, 4)], RI(0, 6, 4)),
                  ([RI(1, 3), RI(3, 7)], RI(1, 7)),
