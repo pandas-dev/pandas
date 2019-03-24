@@ -208,11 +208,11 @@ class TestCategoricalRepr(object):
         # UnicodeDecodeError by trying to decode when it shouldn't
 
         class County(StringMixin):
-            name = u'San Sebastián'
-            state = u'PR'
+            name = 'San Sebastián'
+            state = 'PR'
 
             def __unicode__(self):
-                return self.name + u', ' + self.state
+                return self.name + ', ' + self.state
 
         cat = pd.Categorical([County() for n in range(61)])
         idx = pd.Index(cat)

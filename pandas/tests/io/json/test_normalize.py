@@ -132,8 +132,8 @@ class TestJSONNormalize(object):
         expected = DataFrame([[1, 2]], columns=['A_A', 'A_B'])
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
-        result = json_normalize({'A': {'A': 1, 'B': 2}}, sep=u'\u03c3')
-        expected = DataFrame([[1, 2]], columns=[u'A\u03c3A', u'A\u03c3B'])
+        result = json_normalize({'A': {'A': 1, 'B': 2}}, sep='\u03c3')
+        expected = DataFrame([[1, 2]], columns=['A\u03c3A', 'A\u03c3B'])
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         result = json_normalize(deep_nested, ['states', 'cities'],
@@ -267,8 +267,8 @@ class TestJSONNormalize(object):
         ).decode('utf8')
 
         testdata = {
-            u'sub.A': [1, 3],
-            u'sub.B': [2, 4],
+            'sub.A': [1, 3],
+            'sub.B': [2, 4],
             b"\xc3\x9cnic\xc3\xb8de".decode('utf8'): [0, 1]
         }
         expected = DataFrame(testdata)

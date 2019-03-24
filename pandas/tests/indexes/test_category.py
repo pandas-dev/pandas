@@ -833,12 +833,12 @@ class TestCategoricalIndex(Base):
     def test_string_categorical_index_repr(self):
         # short
         idx = pd.CategoricalIndex(['a', 'bb', 'ccc'])
-        expected = u"""CategoricalIndex(['a', 'bb', 'ccc'], categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""  # noqa
+        expected = """CategoricalIndex(['a', 'bb', 'ccc'], categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""  # noqa
         assert repr(idx) == expected
 
         # multiple lines
         idx = pd.CategoricalIndex(['a', 'bb', 'ccc'] * 10)
-        expected = u"""CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
+        expected = """CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
                   'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb',
                   'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
                  categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""  # noqa
@@ -847,7 +847,7 @@ class TestCategoricalIndex(Base):
 
         # truncated
         idx = pd.CategoricalIndex(['a', 'bb', 'ccc'] * 100)
-        expected = u"""CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
+        expected = """CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
                   ...
                   'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
                  categories=['a', 'bb', 'ccc'], ordered=False, dtype='category', length=300)"""  # noqa
@@ -856,20 +856,20 @@ class TestCategoricalIndex(Base):
 
         # larger categories
         idx = pd.CategoricalIndex(list('abcdefghijklmmo'))
-        expected = u"""CategoricalIndex(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+        expected = """CategoricalIndex(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
                   'm', 'm', 'o'],
                  categories=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', ...], ordered=False, dtype='category')"""  # noqa
 
         assert repr(idx) == expected
 
         # short
-        idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'])
-        expected = u"""CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
+        idx = pd.CategoricalIndex(['あ', 'いい', 'ううう'])
+        expected = """CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
         assert repr(idx) == expected
 
         # multiple lines
-        idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 10)
-        expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
+        idx = pd.CategoricalIndex(['あ', 'いい', 'ううう'] * 10)
+        expected = """CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
                   'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
                  categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
@@ -877,8 +877,8 @@ class TestCategoricalIndex(Base):
         assert repr(idx) == expected
 
         # truncated
-        idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 100)
-        expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
+        idx = pd.CategoricalIndex(['あ', 'いい', 'ううう'] * 100)
+        expected = """CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
                   ...
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
                  categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category', length=300)"""  # noqa
@@ -886,8 +886,8 @@ class TestCategoricalIndex(Base):
         assert repr(idx) == expected
 
         # larger categories
-        idx = pd.CategoricalIndex(list(u'あいうえおかきくけこさしすせそ'))
-        expected = u"""CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ', 'さ', 'し',
+        idx = pd.CategoricalIndex(list('あいうえおかきくけこさしすせそ'))
+        expected = """CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ', 'さ', 'し',
                   'す', 'せ', 'そ'],
                  categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""  # noqa
 
@@ -897,13 +897,13 @@ class TestCategoricalIndex(Base):
         with cf.option_context('display.unicode.east_asian_width', True):
 
             # short
-            idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'])
-            expected = u"""CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
+            idx = pd.CategoricalIndex(['あ', 'いい', 'ううう'])
+            expected = """CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
             assert repr(idx) == expected
 
             # multiple lines
-            idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 10)
-            expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
+            idx = pd.CategoricalIndex(['あ', 'いい', 'ううう'] * 10)
+            expected = """CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
                   'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
@@ -912,8 +912,8 @@ class TestCategoricalIndex(Base):
             assert repr(idx) == expected
 
             # truncated
-            idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 100)
-            expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
+            idx = pd.CategoricalIndex(['あ', 'いい', 'ううう'] * 100)
+            expected = """CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
                   'ううう', 'あ',
                   ...
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
@@ -923,8 +923,8 @@ class TestCategoricalIndex(Base):
             assert repr(idx) == expected
 
             # larger categories
-            idx = pd.CategoricalIndex(list(u'あいうえおかきくけこさしすせそ'))
-            expected = u"""CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ',
+            idx = pd.CategoricalIndex(list('あいうえおかきくけこさしすせそ'))
+            expected = """CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ',
                   'さ', 'し', 'す', 'せ', 'そ'],
                  categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""  # noqa
 

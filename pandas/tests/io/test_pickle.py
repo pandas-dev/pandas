@@ -313,7 +313,7 @@ def test_pickle_path_localpath():
 
 @pytest.fixture
 def get_random_path():
-    return u'__%s__.pickle' % tm.rands(10)
+    return '__%s__.pickle' % tm.rands(10)
 
 
 class TestCompression(object):

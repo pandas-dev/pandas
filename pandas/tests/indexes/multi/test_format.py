@@ -55,7 +55,7 @@ def test_repr_with_unicode_data():
     with pd.option_context("display.encoding", 'UTF-8'):
         d = {"a": ["\u05d0", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
         index = pd.DataFrame(d).set_index(["a", "b"]).index
-        assert "\\u" not in repr(index)  # we don't want unicode-escaped
+        assert "\\" not in repr(index)  # we don't want unicode-escaped
 
 
 @pytest.mark.skip(reason="#22511 will remove this test")
@@ -68,7 +68,7 @@ def test_repr_roundtrip():
     tm.assert_index_equal(eval(repr(mi)), mi, exact=True)
 
     mi_u = MultiIndex.from_product(
-        [list(u'ab'), range(3)], names=['first', 'second'])
+        [list('ab'), range(3)], names=['first', 'second'])
     result = eval(repr(mi_u))
     tm.assert_index_equal(result, mi_u, exact=True)
 
