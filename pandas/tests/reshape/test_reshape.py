@@ -7,8 +7,6 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import u
-
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
@@ -170,7 +168,7 @@ class TestGetDummies(object):
         s = [e, eacute, eacute]
         res = get_dummies(s, prefix='letter', sparse=sparse)
         exp = DataFrame({'letter_e': [1, 0, 0],
-                         u('letter_%s') % eacute: [0, 1, 1]},
+                         'letter_%s' % eacute: [0, 1, 1]},
                         dtype=np.uint8)
         if sparse:
             exp = exp.apply(pd.SparseArray, fill_value=0)

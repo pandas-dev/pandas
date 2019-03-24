@@ -22,7 +22,7 @@ import pytz
 
 import pandas.compat as compat
 from pandas.compat import (
-    StringIO, is_platform_32bit, is_platform_windows, lrange, lzip, u)
+    StringIO, is_platform_32bit, is_platform_windows, lrange, lzip)
 
 import pandas as pd
 from pandas import (
@@ -259,8 +259,8 @@ class TestDataFrameFormatting(object):
         # (str on py2.x, str (unicode) on py3)
 
         data = [8, 5, 3, 5]
-        index1 = [u("\u03c3"), u("\u03c4"), u("\u03c5"), u("\u03c6")]
-        cols = [u("\u03c8")]
+        index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
+        cols = ["\u03c8"]
         df = DataFrame(data, columns=cols, index=index1)
         assert type(df.__repr__()) == str  # both py2 / 3
 
@@ -447,7 +447,7 @@ class TestDataFrameFormatting(object):
     def test_to_string_repr_unicode(self):
         buf = StringIO()
 
-        unicode_values = [u('\u03c3')] * 10
+        unicode_values = ['\u03c3'] * 10
         unicode_values = np.array(unicode_values, dtype=object)
         df = DataFrame({'unicode': unicode_values})
         df.to_string(col_space=10, buf=buf)
@@ -455,7 +455,7 @@ class TestDataFrameFormatting(object):
         # it works!
         repr(df)
 
-        idx = Index(['abc', u('\u03c3a'), 'aegdvg'])
+        idx = Index(['abc', '\u03c3a', 'aegdvg'])
         ser = Series(np.random.randn(len(idx)), idx)
         rs = repr(ser).split('\n')
         line_len = len(rs[0])
@@ -476,7 +476,7 @@ class TestDataFrameFormatting(object):
             sys.stdin = _stdin
 
     def test_to_string_unicode_columns(self):
-        df = DataFrame({u('\u03c3'): np.arange(10.)})
+        df = DataFrame({'\u03c3': np.arange(10.)})
 
         buf = StringIO()
         df.to_string(buf=buf)
@@ -490,14 +490,14 @@ class TestDataFrameFormatting(object):
         assert isinstance(result, compat.text_type)
 
     def test_to_string_utf8_columns(self):
-        n = u("\u05d0").encode('utf-8')
+        n = "\u05d0".encode('utf-8')
 
         with option_context('display.max_rows', 1):
             df = DataFrame([1, 2], columns=[n])
             repr(df)
 
     def test_to_string_unicode_two(self):
-        dm = DataFrame({u('c/\u03c3'): []})
+        dm = DataFrame({'c/\u03c3': []})
         buf = StringIO()
         dm.to_string(buf)
 
@@ -546,10 +546,10 @@ class TestDataFrameFormatting(object):
         assert result.strip() == expected
 
     def test_to_string_with_formatters_unicode(self):
-        df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
+        df = DataFrame({'c/\u03c3': [1, 2, 3]})
         result = df.to_string(
-            formatters={u('c/\u03c3'): lambda x: '{x}'.format(x=x)})
-        assert result == u('  c/\u03c3\n') + '0   1\n1   2\n2   3'
+            formatters={'c/\u03c3': lambda x: '{x}'.format(x=x)})
+        assert result == '  c/\u03c3\n' + '0   1\n1   2\n2   3'
 
     def test_east_asian_unicode_false(self):
         # not alighned properly because of east asian width
@@ -790,8 +790,8 @@ class TestDataFrameFormatting(object):
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
 
-        empty = DataFrame({u('c/\u03c3'): Series()})
-        nonempty = DataFrame({u('c/\u03c3'): Series([1, 2, 3])})
+        empty = DataFrame({'c/\u03c3': Series()})
+        nonempty = DataFrame({'c/\u03c3': Series([1, 2, 3])})
 
         print(empty, file=buf)
         print(nonempty, file=buf)
@@ -957,7 +957,7 @@ class TestDataFrameFormatting(object):
         assert len(lines[1]) == len(lines[2])
 
     def test_unicode_problem_decoding_as_ascii(self):
-        dm = DataFrame({u('c/\u03c3'): Series({'test': np.nan})})
+        dm = DataFrame({'c/\u03c3': Series({'test': np.nan})})
         compat.text_type(dm.to_string())
 
     def test_string_repr_encoding(self, datapath):
@@ -1127,25 +1127,22 @@ class TestDataFrameFormatting(object):
         # multi-index
         y = df.set_index(['id1', 'id2', 'id3'])
         result = y.to_string()
-        expected = u(
-            '             value\nid1 id2 id3       \n'
-            '1a3 NaN 78d    123\n9h4 d67 79d     64')
+        expected = ('             value\nid1 id2 id3       \n'
+                    '1a3 NaN 78d    123\n9h4 d67 79d     64')
         assert result == expected
 
         # index
         y = df.set_index('id2')
         result = y.to_string()
-        expected = u(
-            '     id1  id3  value\nid2                 \n'
-            'NaN  1a3  78d    123\nd67  9h4  79d     64')
+        expected = ('     id1  id3  value\nid2                 \n'
+                    'NaN  1a3  78d    123\nd67  9h4  79d     64')
         assert result == expected
 
         # with append (this failed in 0.12)
         y = df.set_index(['id1', 'id2']).set_index('id3', append=True)
         result = y.to_string()
-        expected = u(
-            '             value\nid1 id2 id3       \n'
-            '1a3 NaN 78d    123\n9h4 d67 79d     64')
+        expected = ('             value\nid1 id2 id3       \n'
+                    '1a3 NaN 78d    123\n9h4 d67 79d     64')
         assert result == expected
 
         # all-nan in mi
@@ -1153,9 +1150,8 @@ class TestDataFrameFormatting(object):
         df2.loc[:, 'id2'] = np.nan
         y = df2.set_index('id2')
         result = y.to_string()
-        expected = u(
-            '     id1  id3  value\nid2                 \n'
-            'NaN  1a3  78d    123\nNaN  9h4  79d     64')
+        expected = ('     id1  id3  value\nid2                 \n'
+                    'NaN  1a3  78d    123\nNaN  9h4  79d     64')
         assert result == expected
 
         # partial nan in mi
@@ -1163,9 +1159,8 @@ class TestDataFrameFormatting(object):
         df2.loc[:, 'id2'] = np.nan
         y = df2.set_index(['id2', 'id3'])
         result = y.to_string()
-        expected = u(
-            '         id1  value\nid2 id3            \n'
-            'NaN 78d  1a3    123\n    79d  9h4     64')
+        expected = ('         id1  value\nid2 id3            \n'
+                    'NaN 78d  1a3    123\n    79d  9h4     64')
         assert result == expected
 
         df = DataFrame({'id1': {0: np.nan,
@@ -1179,9 +1174,8 @@ class TestDataFrameFormatting(object):
 
         y = df.set_index(['id1', 'id2', 'id3'])
         result = y.to_string()
-        expected = u(
-            '             value\nid1 id2 id3       \n'
-            'NaN NaN NaN    123\n9h4 d67 79d     64')
+        expected = ('             value\nid1 id2 id3       \n'
+                    'NaN NaN NaN    123\n9h4 d67 79d     64')
         assert result == expected
 
     def test_to_string(self):
@@ -1383,7 +1377,7 @@ class TestDataFrameFormatting(object):
         assert result == expected
 
     def test_to_string_ascii_error(self):
-        data = [('0  ', u('                        .gitignore '), u('     5 '),
+        data = [('0  ', '                        .gitignore ', '     5 ',
                  ' \xe2\x80\xa2\xe2\x80\xa2\xe2\x80'
                  '\xa2\xe2\x80\xa2\xe2\x80\xa2')]
         df = DataFrame(data)
@@ -1585,8 +1579,8 @@ c  10  11  12  13  14\
             long_repr = df._repr_html_()
             assert '..' in long_repr
             assert str(41 + max_rows // 2) not in long_repr
-            assert u('{h} rows ').format(h=h) in long_repr
-            assert u('2 columns') in long_repr
+            assert '{h} rows '.format(h=h) in long_repr
+            assert '2 columns' in long_repr
 
     def test_repr_html_float(self):
         with option_context('display.max_rows', 60):
@@ -1607,8 +1601,8 @@ c  10  11  12  13  14\
             long_repr = df._repr_html_()
             assert '..' in long_repr
             assert '<td>{val}</td>'.format(val='31') not in long_repr
-            assert u('{h} rows ').format(h=h) in long_repr
-            assert u('2 columns') in long_repr
+            assert '{h} rows '.format(h=h) in long_repr
+            assert '2 columns' in long_repr
 
     def test_repr_html_long_multiindex(self):
         max_rows = 60
@@ -1777,10 +1771,10 @@ class TestSeriesFormatting(object):
         self.ts = tm.makeTimeSeries()
 
     def test_repr_unicode(self):
-        s = Series([u('\u03c3')] * 10)
+        s = Series(['\u03c3'] * 10)
         repr(s)
 
-        a = Series([u("\u05d0")] * 1000)
+        a = Series(["\u05d0"] * 1000)
         a.name = 'title1'
         repr(a)
 
@@ -1825,19 +1819,19 @@ class TestSeriesFormatting(object):
     def test_to_string_mixed(self):
         s = Series(['foo', np.nan, -1.23, 4.56])
         result = s.to_string()
-        expected = (u('0     foo\n') + u('1     NaN\n') + u('2   -1.23\n') +
-                    u('3    4.56'))
+        expected = ('0     foo\n' + '1     NaN\n' + '2   -1.23\n' +
+                    '3    4.56')
         assert result == expected
 
         # but don't count NAs as floats
         s = Series(['foo', np.nan, 'bar', 'baz'])
         result = s.to_string()
-        expected = (u('0    foo\n') + '1    NaN\n' + '2    bar\n' + '3    baz')
+        expected = ('0    foo\n' + '1    NaN\n' + '2    bar\n' + '3    baz')
         assert result == expected
 
         s = Series(['foo', 5, 'bar', 'baz'])
         result = s.to_string()
-        expected = (u('0    foo\n') + '1      5\n' + '2    bar\n' + '3    baz')
+        expected = ('0    foo\n' + '1      5\n' + '2    bar\n' + '3    baz')
         assert result == expected
 
     def test_to_string_float_na_spacing(self):
@@ -1845,7 +1839,7 @@ class TestSeriesFormatting(object):
         s[::2] = np.nan
 
         result = s.to_string()
-        expected = (u('0       NaN\n') + '1    1.5678\n' + '2       NaN\n' +
+        expected = ('0       NaN\n' + '1    1.5678\n' + '2       NaN\n' +
                     '3   -3.0000\n' + '4       NaN')
         assert result == expected
 
@@ -1853,12 +1847,12 @@ class TestSeriesFormatting(object):
         # GH 11729 Test index=False option
         s = Series([1, 2, 3, 4])
         result = s.to_string(index=False)
-        expected = (u(' 1\n') + ' 2\n' + ' 3\n' + ' 4')
+        expected = (' 1\n' + ' 2\n' + ' 3\n' + ' 4')
         assert result == expected
 
     def test_unicode_name_in_footer(self):
-        s = Series([1, 2], name=u('\u05e2\u05d1\u05e8\u05d9\u05ea'))
-        sf = fmt.SeriesFormatter(s, name=u('\u05e2\u05d1\u05e8\u05d9\u05ea'))
+        s = Series([1, 2], name='\u05e2\u05d1\u05e8\u05d9\u05ea')
+        sf = fmt.SeriesFormatter(s, name='\u05e2\u05d1\u05e8\u05d9\u05ea')
         sf._get_footer()  # should not raise exception
 
     def test_east_asian_unicode_series(self):
@@ -2129,7 +2123,7 @@ class TestSeriesFormatting(object):
         # no boxing of the actual elements
         td = Series(pd.timedelta_range('1 days', periods=3))
         result = td.to_string()
-        assert result == u("0   1 days\n1   2 days\n2   3 days")
+        assert result == "0   1 days\n1   2 days\n2   3 days"
 
     def test_mixed_datetime64(self):
         df = DataFrame({'A': [1, 2], 'B': ['2012-01-01', '2012-01-02']})

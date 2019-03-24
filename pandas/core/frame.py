@@ -37,7 +37,7 @@ from pandas.util._validators import (validate_bool_kwarg,
 from pandas import compat
 from pandas.compat import (
     PY36, Iterator, StringIO, lmap, lzip, raise_with_traceback,
-    string_and_binary_types, u)
+    string_and_binary_types)
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
     maybe_upcast,
@@ -621,7 +621,7 @@ class DataFrame(NDFrame):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        buf = StringIO(u(""))
+        buf = StringIO("")
         if self._info_repr():
             self.info(buf=buf)
             return buf.getvalue()
@@ -645,7 +645,7 @@ class DataFrame(NDFrame):
         Mainly for IPython notebook.
         """
         if self._info_repr():
-            buf = StringIO(u(""))
+            buf = StringIO("")
             self.info(buf=buf)
             # need to escape the <class>, should be the first line.
             val = buf.getvalue().replace('<', r'&lt;', 1)

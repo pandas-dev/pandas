@@ -8,8 +8,6 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.compat import u
-
 import pandas as pd
 from pandas import (
     DataFrame, Index, MultiIndex, Period, Series, Timedelta, date_range)
@@ -452,10 +450,10 @@ class TestDataFrameReshape(TestData):
     def test_unstack_level_binding(self):
         # GH9856
         mi = pd.MultiIndex(
-            levels=[[u('foo'), u('bar')], [u('one'), u('two')],
-                    [u('a'), u('b')]],
+            levels=[['foo', 'bar'], ['one', 'two'],
+                    ['a', 'b']],
             codes=[[0, 0, 1, 1], [0, 1, 0, 1], [1, 0, 1, 0]],
-            names=[u('first'), u('second'), u('third')])
+            names=['first', 'second', 'third'])
         s = pd.Series(0, index=mi)
         result = s.unstack([1, 2]).stack(0)
 

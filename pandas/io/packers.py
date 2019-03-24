@@ -47,7 +47,6 @@ from dateutil.parser import parse
 import numpy as np
 
 import pandas.compat as compat
-from pandas.compat import u, u_safe
 from pandas.errors import PerformanceWarning
 from pandas.util._move import (
     BadMove as _BadMove, move_into_mutable_buffer as _move_into_mutable_buffer)
@@ -136,8 +135,6 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     """
     global compressor
     compressor = kwargs.pop('compress', None)
-    if compressor:
-        compressor = u(compressor)
     append = kwargs.pop('append', None)
     if append:
         mode = 'a+b'
@@ -227,11 +224,11 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
 
 
 dtype_dict = {21: np.dtype('M8[ns]'),
-              u('datetime64[ns]'): np.dtype('M8[ns]'),
-              u('datetime64[us]'): np.dtype('M8[us]'),
+              'datetime64[ns]': np.dtype('M8[ns]'),
+              'datetime64[us]': np.dtype('M8[us]'),
               22: np.dtype('m8[ns]'),
-              u('timedelta64[ns]'): np.dtype('m8[ns]'),
-              u('timedelta64[us]'): np.dtype('m8[us]'),
+              'timedelta64[ns]': np.dtype('m8[ns]'),
+              'timedelta64[us]': np.dtype('m8[us]'),
 
               # this is platform int, which we need to remap to np.int64
               # for compat on windows platforms
@@ -372,17 +369,17 @@ def encode(obj):
     if isinstance(obj, Index):
         if isinstance(obj, RangeIndex):
             return {u'typ': u'range_index',
-                    u'klass': u(obj.__class__.__name__),
+                    u'klass': obj.__class__.__name__,
                     u'name': getattr(obj, 'name', None),
                     u'start': getattr(obj, '_start', None),
                     u'stop': getattr(obj, '_stop', None),
                     u'step': getattr(obj, '_step', None)}
         elif isinstance(obj, PeriodIndex):
             return {u'typ': u'period_index',
-                    u'klass': u(obj.__class__.__name__),
+                    u'klass': obj.__class__.__name__,
                     u'name': getattr(obj, 'name', None),
-                    u'freq': u_safe(getattr(obj, 'freqstr', None)),
-                    u'dtype': u(obj.dtype.name),
+                    u'freq': getattr(obj, 'freqstr', None),
+                    u'dtype': obj.dtype.name,
                     u'data': convert(obj.asi8),
                     u'compress': compressor}
         elif isinstance(obj, DatetimeIndex):
@@ -390,14 +387,14 @@ def encode(obj):
 
             # store tz info and data as UTC
             if tz is not None:
-                tz = u(tz.zone)
+                tz = tz.zone
                 obj = obj.tz_convert('UTC')
             return {u'typ': u'datetime_index',
-                    u'klass': u(obj.__class__.__name__),
+                    u'klass': obj.__class__.__name__,
                     u'name': getattr(obj, 'name', None),
-                    u'dtype': u(obj.dtype.name),
+                    u'dtype': obj.dtype.name,
                     u'data': convert(obj.asi8),
-                    u'freq': u_safe(getattr(obj, 'freqstr', None)),
+                    u'freq': getattr(obj, 'freqstr', None),
                     u'tz': tz,
                     u'compress': compressor}
         elif isinstance(obj, (IntervalIndex, IntervalArray)):
@@ -406,29 +403,29 @@ def encode(obj):
             else:
                 typ = u'interval_array'
             return {u'typ': typ,
-                    u'klass': u(obj.__class__.__name__),
+                    u'klass': obj.__class__.__name__,
                     u'name': getattr(obj, 'name', None),
                     u'left': getattr(obj, 'left', None),
                     u'right': getattr(obj, 'right', None),
                     u'closed': getattr(obj, 'closed', None)}
         elif isinstance(obj, MultiIndex):
             return {u'typ': u'multi_index',
-                    u'klass': u(obj.__class__.__name__),
+                    u'klass': obj.__class__.__name__,
                     u'names': getattr(obj, 'names', None),
-                    u'dtype': u(obj.dtype.name),
+                    u'dtype': obj.dtype.name,
                     u'data': convert(obj.values),
                     u'compress': compressor}
         else:
             return {u'typ': u'index',
-                    u'klass': u(obj.__class__.__name__),
+                    u'klass': obj.__class__.__name__,
                     u'name': getattr(obj, 'name', None),
-                    u'dtype': u(obj.dtype.name),
+                    u'dtype': obj.dtype.name,
                     u'data': convert(obj.values),
                     u'compress': compressor}
 
     elif isinstance(obj, Categorical):
         return {u'typ': u'category',
-                u'klass': u(obj.__class__.__name__),
+                u'klass': obj.__class__.__name__,
                 u'name': getattr(obj, 'name', None),
                 u'codes': obj.codes,
                 u'categories': obj.categories,
@@ -452,10 +449,10 @@ def encode(obj):
             # return d
         else:
             return {u'typ': u'series',
-                    u'klass': u(obj.__class__.__name__),
+                    u'klass': obj.__class__.__name__,
                     u'name': getattr(obj, 'name', None),
                     u'index': obj.index,
-                    u'dtype': u(obj.dtype.name),
+                    u'dtype': obj.dtype.name,
                     u'data': convert(obj.values),
                     u'compress': compressor}
     elif issubclass(tobj, NDFrame):
@@ -479,13 +476,13 @@ def encode(obj):
 
             # the block manager
             return {u'typ': u'block_manager',
-                    u'klass': u(obj.__class__.__name__),
+                    u'klass': obj.__class__.__name__,
                     u'axes': data.axes,
                     u'blocks': [{u'locs': b.mgr_locs.as_array,
                                  u'values': convert(b.values),
                                  u'shape': b.values.shape,
-                                 u'dtype': u(b.dtype.name),
-                                 u'klass': u(b.__class__.__name__),
+                                 u'dtype': b.dtype.name,
+                                 u'klass': b.__class__.__name__,
                                  u'compress': compressor} for b in data.blocks]
                     }
 
@@ -494,10 +491,10 @@ def encode(obj):
         if isinstance(obj, Timestamp):
             tz = obj.tzinfo
             if tz is not None:
-                tz = u(tz.zone)
+                tz = tz.zone
             freq = obj.freq
             if freq is not None:
-                freq = u(freq.freqstr)
+                freq = freq.freqstr
             return {u'typ': u'timestamp',
                     u'value': obj.value,
                     u'freq': freq,
@@ -512,19 +509,19 @@ def encode(obj):
                     u'data': (obj.days, obj.seconds, obj.microseconds)}
         elif isinstance(obj, np.datetime64):
             return {u'typ': u'datetime64',
-                    u'data': u(str(obj))}
+                    u'data': str(obj)}
         elif isinstance(obj, datetime):
             return {u'typ': u'datetime',
-                    u'data': u(obj.isoformat())}
+                    u'data': obj.isoformat()}
         elif isinstance(obj, date):
             return {u'typ': u'date',
-                    u'data': u(obj.isoformat())}
+                    u'data': obj.isoformat()}
         raise Exception(
             "cannot encode this datetimelike object: {obj}".format(obj=obj))
     elif isinstance(obj, Period):
         return {u'typ': u'period',
                 u'ordinal': obj.ordinal,
-                u'freq': u_safe(obj.freqstr)}
+                u'freq': obj.freqstr}
     elif isinstance(obj, Interval):
         return {u'typ': u'interval',
                 u'left': obj.left,
@@ -532,37 +529,37 @@ def encode(obj):
                 u'closed': obj.closed}
     elif isinstance(obj, BlockIndex):
         return {u'typ': u'block_index',
-                u'klass': u(obj.__class__.__name__),
+                u'klass': obj.__class__.__name__,
                 u'blocs': obj.blocs,
                 u'blengths': obj.blengths,
                 u'length': obj.length}
     elif isinstance(obj, IntIndex):
         return {u'typ': u'int_index',
-                u'klass': u(obj.__class__.__name__),
+                u'klass': obj.__class__.__name__,
                 u'indices': obj.indices,
                 u'length': obj.length}
     elif isinstance(obj, np.ndarray):
         return {u'typ': u'ndarray',
                 u'shape': obj.shape,
                 u'ndim': obj.ndim,
-                u'dtype': u(obj.dtype.name),
+                u'dtype': obj.dtype.name,
                 u'data': convert(obj),
                 u'compress': compressor}
     elif isinstance(obj, np.number):
         if np.iscomplexobj(obj):
             return {u'typ': u'np_scalar',
                     u'sub_typ': u'np_complex',
-                    u'dtype': u(obj.dtype.name),
-                    u'real': u(obj.real.__repr__()),
-                    u'imag': u(obj.imag.__repr__())}
+                    u'dtype': obj.dtype.name,
+                    u'real': obj.real.__repr__(),
+                    u'imag': obj.imag.__repr__()}
         else:
             return {u'typ': u'np_scalar',
-                    u'dtype': u(obj.dtype.name),
-                    u'data': u(obj.__repr__())}
+                    u'dtype': obj.dtype.name,
+                    u'data': obj.__repr__()}
     elif isinstance(obj, complex):
         return {u'typ': u'np_complex',
-                u'real': u(obj.real.__repr__()),
-                u'imag': u(obj.imag.__repr__())}
+                u'real': obj.real.__repr__(),
+                u'imag': obj.imag.__repr__()}
 
     return obj
 

@@ -7,7 +7,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, lzip, u
+from pandas.compat import lrange, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -848,7 +848,7 @@ class TestDataFrameSelectReindex(TestData):
         assert 'foo' in filtered
 
         # unicode columns, won't ascii-encode
-        df = self.frame.rename(columns={'B': u('\u2202')})
+        df = self.frame.rename(columns={'B': '\u2202'})
         filtered = df.filter(like='C')
         assert 'C' in filtered
 

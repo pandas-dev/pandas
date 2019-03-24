@@ -11,7 +11,7 @@ import pytest
 
 from pandas.compat import (
     PY35, PY36, BytesIO, is_platform_little_endian, is_platform_windows,
-    lrange, text_type, u)
+    lrange, text_type)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -2424,10 +2424,10 @@ class TestHDFStore(Base):
         # GH #13492
         idx = pd.Index(pd.to_datetime([datetime.date(2000, 1, 1),
                                        datetime.date(2000, 1, 2)]),
-                       name=u('cols\u05d2'))
+                       name='cols\u05d2')
         idx1 = pd.Index(pd.to_datetime([datetime.date(2010, 1, 1),
                                         datetime.date(2010, 1, 2)]),
-                        name=u('rows\u05d0'))
+                        name='rows\u05d0')
         df = pd.DataFrame(np.arange(4).reshape(2, 2), columns=idx, index=idx1)
 
         # This used to fail, returning numpy strings instead of python strings.
@@ -4100,7 +4100,7 @@ class TestHDFStore(Base):
 
     def test_unicode_index(self):
 
-        unicode_values = [u('\u03c3'), u('\u03c3\u03c3')]
+        unicode_values = ['\u03c3', '\u03c3\u03c3']
 
         # PerformanceWarning
         with catch_warnings(record=True):
