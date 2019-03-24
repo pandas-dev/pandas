@@ -15,7 +15,7 @@ dependencies:
   - numpy
   - openpyxl
   - psycopg2
-  - pymysql=0.6.6
+  - pymysql
   - pytables
   - python-dateutil
   - python=3.6*
