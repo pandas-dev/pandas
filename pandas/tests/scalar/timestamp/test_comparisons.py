@@ -5,8 +5,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import long
-
 from pandas import Timestamp
 
 
@@ -38,7 +36,7 @@ class TestTimestampComparison(object):
 
     def test_comparison(self):
         # 5-18-2012 00:00:00.000
-        stamp = long(1337299200000000000)
+        stamp = 1337299200000000000
 
         val = Timestamp(stamp)
 
@@ -72,7 +70,6 @@ class TestTimestampComparison(object):
         assert not val == 'foo'
         assert not val == 10.0
         assert not val == 1
-        assert not val == long(1)
         assert not val == []
         assert not val == {'foo': 1}
         assert not val == np.float64(1)
@@ -81,7 +78,6 @@ class TestTimestampComparison(object):
         assert val != 'foo'
         assert val != 10.0
         assert val != 1
-        assert val != long(1)
         assert val != []
         assert val != {'foo': 1}
         assert val != np.float64(1)

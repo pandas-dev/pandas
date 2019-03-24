@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import long
 
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
@@ -353,8 +352,7 @@ class TestTake(object):
 
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
-        arr = np.random.randint(
-            long(11045376), long(11360736), (5, 3)) * 100000000000
+        arr = np.random.randint(11045376, 11360736, (5, 3)) * 100000000000
         arr = arr.view(dtype='datetime64[ns]')
         indexer = [0, 2, -1, 1, -1]
 

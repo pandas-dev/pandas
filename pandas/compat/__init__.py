@@ -7,7 +7,6 @@ Cross-compatible functions for Python 2 and 3.
 Key items to import for 2/3 compatible code:
 * iterators: reduce()
 * lists: lrange(), lmap(), lzip(), lfilter()
-* longs: long (int in Python 3)
 * iterable method compatibility: iteritems, iterkeys, itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
 * types:
@@ -108,7 +107,6 @@ if PY3:
     # have to explicitly put builtins into the namespace
     intern = sys.intern
     reduce = functools.reduce
-    long = int
     unichr = chr
 
     # list-producing versions of the major Python iterating functions
@@ -172,7 +170,6 @@ else:
     # import iterator versions of these functions
     intern = intern
     reduce = reduce
-    long = long
     unichr = unichr
 
     # Python 2-builtin ranges produce lists
@@ -250,7 +247,6 @@ _EAW_MAP = {'Na': 1, 'N': 1, 'W': 2, 'F': 2, 'H': 1}
 
 if PY3:
     string_types = str,
-    integer_types = int,
     class_types = type,
     text_type = str
     binary_type = bytes
@@ -293,7 +289,6 @@ if PY3:
         return f
 else:
     string_types = basestring,
-    integer_types = (int, long)
     class_types = (type, types.ClassType)
     text_type = unicode
     binary_type = str

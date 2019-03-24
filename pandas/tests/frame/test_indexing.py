@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import long, lrange, lzip
+from pandas.compat import lrange, lzip
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -2560,19 +2560,14 @@ class TestDataFrameIndexing(TestData):
 
     def test_boolean_indexing_mixed(self):
         df = DataFrame({
-            long(0): {35: np.nan, 40: np.nan, 43: np.nan,
-                      49: np.nan, 50: np.nan},
-            long(1): {35: np.nan,
-                      40: 0.32632316859446198,
-                      43: np.nan,
-                      49: 0.32632316859446198,
-                      50: 0.39114724480578139},
-            long(2): {35: np.nan, 40: np.nan, 43: 0.29012581014105987,
-                      49: np.nan, 50: np.nan},
-            long(3): {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan,
-                      50: np.nan},
-            long(4): {35: 0.34215328467153283, 40: np.nan, 43: np.nan,
-                      49: np.nan, 50: np.nan},
+            0: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+            1: {35: np.nan, 40: 0.32632316859446198, 43: np.nan,
+                49: 0.32632316859446198, 50: 0.39114724480578139},
+            2: {35: np.nan, 40: np.nan, 43: 0.29012581014105987, 49: np.nan,
+                50: np.nan},
+            3: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+            4: {35: 0.34215328467153283, 40: np.nan, 43: np.nan, 49: np.nan,
+                50: np.nan},
             'y': {35: 0, 40: 0, 43: 0, 49: 0, 50: 1}})
 
         # mixed int/float ok

@@ -8,8 +8,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import long
-
 from pandas import (
     CategoricalDtype, DataFrame, MultiIndex, Series, Timestamp, compat,
     date_range)
@@ -472,7 +470,7 @@ class TestDataFrameConvertTo(TestData):
         # make sure that we are boxing properly
         df = DataFrame({'a': [1, 2], 'b': [.1, .2]})
         result = df.to_dict(orient=orient)
-        assert isinstance(item_getter(result, 'a', 0), (int, long))
+        assert isinstance(item_getter(result, 'a', 0), int)
         assert isinstance(item_getter(result, 'b', 0), float)
 
     def test_frame_to_dict_tz(self):

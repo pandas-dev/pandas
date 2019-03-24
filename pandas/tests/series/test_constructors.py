@@ -11,7 +11,7 @@ import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY36, long, lrange
+from pandas.compat import PY36, lrange
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64tz_dtype)
@@ -45,7 +45,6 @@ class TestSeriesConstructors():
         # Coercion
         assert float(Series([1.])) == 1.0
         assert int(Series([1.])) == 1
-        assert long(Series([1.])) == 1
 
     def test_constructor(self, datetime_series):
         empty_series = Series()

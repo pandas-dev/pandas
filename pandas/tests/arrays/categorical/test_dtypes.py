@@ -2,8 +2,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import long
-
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import Categorical, CategoricalIndex, Index, Series, Timestamp
@@ -165,10 +163,9 @@ class TestCategoricalDtypes(object):
 
     def test_iter_python_types(self):
         # GH-19909
-        # TODO(Py2): Remove long
         cat = Categorical([1, 2])
-        assert isinstance(list(cat)[0], (int, long))
-        assert isinstance(cat.tolist()[0], (int, long))
+        assert isinstance(list(cat)[0], int)
+        assert isinstance(cat.tolist()[0], int)
 
     def test_iter_python_types_datetime(self):
         cat = Categorical([Timestamp('2017-01-01'),

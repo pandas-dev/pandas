@@ -6,7 +6,7 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas.compat import StringIO, long, to_str
+from pandas.compat import StringIO, to_str
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_period_dtype
@@ -619,10 +619,10 @@ class Parser(object):
 
     _STAMP_UNITS = ('s', 'ms', 'us', 'ns')
     _MIN_STAMPS = {
-        's': long(31536000),
-        'ms': long(31536000000),
-        'us': long(31536000000000),
-        'ns': long(31536000000000000)}
+        's': 31536000,
+        'ms': 31536000000,
+        'us': 31536000000000,
+        'ns': 31536000000000000}
 
     def __init__(self, json, orient, dtype=None, convert_axes=True,
                  convert_dates=True, keep_default_dates=False, numpy=False,
