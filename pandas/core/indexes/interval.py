@@ -451,13 +451,8 @@ class IntervalIndex(IntervalMixin, Index):
         """
         values = [self.right, self.left]
 
-        try:
-            sort_order = np.lexsort(values)
-            return Index(sort_order).is_monotonic
-        except TypeError:
-
-            # we have mixed types and np.lexsort is not happy
-            return Index(self.values).is_monotonic
+        sort_order = np.lexsort(values)
+        return Index(sort_order).is_monotonic
 
     @cache_readonly
     def is_monotonic_decreasing(self):
