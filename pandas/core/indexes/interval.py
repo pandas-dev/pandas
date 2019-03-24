@@ -463,7 +463,13 @@ class IntervalIndex(IntervalMixin, Index):
         """
         Return True if the IntervalIndex contains unique elements, else False
         """
-        return len(self) == len(self.unique())
+        left = self.values.left
+        right = self.values.right
+        for i in range(len(self)):
+            mask = (left[i] == left) & (right[i] == right)
+            if mask.sum() > 1:
+                return False
+        return True
 
     @cache_readonly
     @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
