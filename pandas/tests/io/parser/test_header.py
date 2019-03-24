@@ -10,7 +10,7 @@ from collections import namedtuple
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, u
+from pandas.compat import StringIO
 from pandas.errors import ParserError
 
 from pandas import DataFrame, Index, MultiIndex
@@ -233,11 +233,11 @@ def test_header_multi_index_common_format_malformed1(all_parsers):
     expected = DataFrame(np.array(
         [[2, 3, 4, 5, 6], [8, 9, 10, 11, 12]], dtype="int64"),
         index=Index([1, 7]),
-        columns=MultiIndex(levels=[[u("a"), u("b"), u("c")],
-                                   [u("r"), u("s"), u("t"),
-                                    u("u"), u("v")]],
+        columns=MultiIndex(levels=[["a", "b", "c"],
+                                   ["r", "s", "t",
+                                    "u", "v"]],
                            codes=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
-                           names=[u("a"), u("q")]))
+                           names=["a", "q"]))
     data = """a,a,a,b,c,c
 q,r,s,t,u,v
 1,2,3,4,5,6
@@ -252,11 +252,11 @@ def test_header_multi_index_common_format_malformed2(all_parsers):
     expected = DataFrame(np.array(
         [[2, 3, 4, 5, 6], [8, 9, 10, 11, 12]], dtype="int64"),
         index=Index([1, 7]),
-        columns=MultiIndex(levels=[[u("a"), u("b"), u("c")],
-                                   [u("r"), u("s"), u("t"),
-                                    u("u"), u("v")]],
+        columns=MultiIndex(levels=[["a", "b", "c"],
+                                   ["r", "s", "t",
+                                    "u", "v"]],
                            codes=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
-                           names=[None, u("q")]))
+                           names=[None, "q"]))
 
     data = """,a,a,b,c,c
 q,r,s,t,u,v
@@ -273,10 +273,10 @@ def test_header_multi_index_common_format_malformed3(all_parsers):
         [[3, 4, 5, 6], [9, 10, 11, 12]], dtype="int64"),
         index=MultiIndex(levels=[[1, 7], [2, 8]],
                          codes=[[0, 1], [0, 1]]),
-        columns=MultiIndex(levels=[[u("a"), u("b"), u("c")],
-                                   [u("s"), u("t"), u("u"), u("v")]],
+        columns=MultiIndex(levels=[["a", "b", "c"],
+                                   ["s", "t", "u", "v"]],
                            codes=[[0, 1, 2, 2], [0, 1, 2, 3]],
-                           names=[None, u("q")]))
+                           names=[None, "q"]))
     data = """,a,a,b,c,c
 q,r,s,t,u,v
 1,2,3,4,5,6

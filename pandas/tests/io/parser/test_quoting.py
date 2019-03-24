@@ -9,7 +9,7 @@ import csv
 
 import pytest
 
-from pandas.compat import StringIO, u
+from pandas.compat import StringIO
 from pandas.errors import ParserError
 
 from pandas import DataFrame
@@ -125,7 +125,7 @@ def test_double_quote(all_parsers, doublequote, exp_data):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("quotechar", [u('"'), u('\u0001')])
+@pytest.mark.parametrize("quotechar", ['"', '\u0001'])
 def test_quotechar_unicode(all_parsers, quotechar):
     # see gh-14477
     data = "a\n1"

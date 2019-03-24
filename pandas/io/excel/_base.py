@@ -6,7 +6,7 @@ from textwrap import fill
 import warnings
 
 import pandas.compat as compat
-from pandas.compat import add_metaclass, string_types, u
+from pandas.compat import add_metaclass, string_types
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -715,7 +715,7 @@ class ExcelWriter(object):
         if ext.startswith('.'):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = (u("Invalid extension for engine '{engine}': '{ext}'")
+            msg = ("Invalid extension for engine '{engine}': '{ext}'"
                    .format(engine=pprint_thing(cls.engine),
                            ext=pprint_thing(ext)))
             raise ValueError(msg)

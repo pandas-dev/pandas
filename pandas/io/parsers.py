@@ -19,7 +19,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
 import pandas.compat as compat
-from pandas.compat import PY3, StringIO, lrange, lzip, string_types, u
+from pandas.compat import PY3, StringIO, lrange, lzip, string_types
 from pandas.errors import (
     AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender
@@ -50,7 +50,7 @@ from pandas.io.date_converters import generic_parser
 # This exists at the beginning of a file to indicate endianness
 # of a file (stream). Unfortunately, this marker screws up parsing,
 # so we need to remove it if we see it.
-_BOM = u('\ufeff')
+_BOM = '\ufeff'
 
 _doc_read_csv_and_table = r"""
 {summary}
@@ -2724,15 +2724,6 @@ class PythonParser(ParserBase):
         # Since the string is non-empty, check that it does
         # in fact begin with a BOM.
         first_elt = first_row[0][0]
-
-        # This is to avoid warnings we get in Python 2.x if
-        # we find ourselves comparing with non-Unicode
-        if compat.PY2 and not isinstance(first_elt, unicode):  # noqa
-            try:
-                first_elt = u(first_elt)
-            except UnicodeDecodeError:
-                return first_row
-
         if first_elt != _BOM:
             return first_row
 

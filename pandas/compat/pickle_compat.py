@@ -6,7 +6,7 @@ import copy
 import pickle as pkl
 import sys
 
-from pandas.compat import string_types, u  # noqa
+from pandas.compat import string_types  # noqa
 
 import pandas  # noqa
 from pandas import Index, compat

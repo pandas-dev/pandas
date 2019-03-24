@@ -8,7 +8,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, u
+from pandas.compat import StringIO, lmap, lrange
 from pandas.errors import ParserError
 
 import pandas as pd
@@ -783,7 +783,7 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_unicode(self):
 
-        df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
+        df = DataFrame({'c/\u03c3': [1, 2, 3]})
         with ensure_clean() as path:
 
             df.to_csv(path, encoding='UTF-8')
@@ -797,10 +797,10 @@ class TestDataFrameToCSV(TestData):
     def test_to_csv_unicode_index_col(self):
         buf = StringIO('')
         df = DataFrame(
-            [[u("\u05d0"), "d2", "d3", "d4"], ["a1", "a2", "a3", "a4"]],
-            columns=[u("\u05d0"),
-                     u("\u05d1"), u("\u05d2"), u("\u05d3")],
-            index=[u("\u05d0"), u("\u05d1")])
+            [["\u05d0", "d2", "d3", "d4"], ["a1", "a2", "a3", "a4"]],
+            columns=["\u05d0",
+                     "\u05d1", "\u05d2", "\u05d3"],
+            index=["\u05d0", "\u05d1"])
 
         df.to_csv(buf, encoding='UTF-8')
         buf.seek(0)

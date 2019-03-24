@@ -7,7 +7,6 @@ Cross-compatible functions for Python 2 and 3.
 Key items to import for 2/3 compatible code:
 * iterators: reduce()
 * lists: lrange(), lmap(), lzip(), lfilter()
-* unicode: u() [no unicode builtin in Python 3]
 * longs: long (int in Python 3)
 * iterable method compatibility: iteritems, iterkeys, itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
@@ -256,12 +255,6 @@ if PY3:
     text_type = str
     binary_type = bytes
 
-    def u(s):
-        return s
-
-    def u_safe(s):
-        return s
-
     def to_str(s):
         """
         Convert bytes and non-string into Python 3 str
@@ -304,15 +297,6 @@ else:
     class_types = (type, types.ClassType)
     text_type = unicode
     binary_type = str
-
-    def u(s):
-        return unicode(s, "unicode_escape")
-
-    def u_safe(s):
-        try:
-            return unicode(s, "unicode_escape")
-        except:
-            return s
 
     def to_str(s):
         """

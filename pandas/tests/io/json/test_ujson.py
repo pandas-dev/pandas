@@ -20,7 +20,7 @@ import pytz
 import pandas._libs.json as ujson
 from pandas._libs.tslib import Timestamp
 import pandas.compat as compat
-from pandas.compat import StringIO, u
+from pandas.compat import StringIO
 
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
 import pandas.util.testing as tm
@@ -147,7 +147,7 @@ class TestUltraJSONTests(object):
         -4342969734183514, -12345678901234.56789012, -528656961.4399388
     ])
     def test_double_long_numbers(self, long_number):
-        sut = {u("a"): long_number}
+        sut = {"a": long_number}
         encoded = ujson.encode(sut, double_precision=15)
 
         decoded = ujson.decode(encoded)
@@ -165,7 +165,7 @@ class TestUltraJSONTests(object):
                 break
 
     def test_decimal_decode_test_precise(self):
-        sut = {u("a"): 4.56}
+        sut = {"a": 4.56}
         encoded = ujson.encode(sut)
         decoded = ujson.decode(encoded, precise_float=True)
         assert sut == decoded
@@ -181,10 +181,10 @@ class TestUltraJSONTests(object):
         assert np.allclose(num, ujson.decode(ujson.encode(num)))
 
     @pytest.mark.parametrize("unicode_key", [
-        u("key1"), u("بن")
+        "key1", "بن"
     ])
     def test_encode_dict_with_unicode_keys(self, unicode_key):
-        unicode_dict = {unicode_key: u("value1")}
+        unicode_dict = {unicode_key: "value1"}
         assert unicode_dict == ujson.decode(ujson.encode(unicode_dict))
 
     @pytest.mark.parametrize("double_input", [
@@ -430,7 +430,7 @@ class TestUltraJSONTests(object):
         assert dec == json.loads(enc)
 
     def test_decode_from_unicode(self):
-        unicode_input = u("{\"obj\": 31337}")
+        unicode_input = "{\"obj\": 31337}"
 
         dec1 = ujson.decode(unicode_input)
         dec2 = ujson.decode(str(unicode_input))
@@ -529,7 +529,7 @@ class TestUltraJSONTests(object):
         assert alone_input == json.loads(output)
         assert output == json.dumps(alone_input)
         assert alone_input == ujson.decode(output)
-        assert '"  \\u0000\\r\\n "' == ujson.dumps(u("  \u0000\r\n "))
+        assert '"  \\u0000\\r\\n "' == ujson.dumps("  \u0000\r\n ")
 
     def test_decode_null_character(self):
         wrapped_input = "\"31337 \\u0000 31337\""
@@ -660,7 +660,7 @@ class TestUltraJSONTests(object):
             ujson.decode(escape_input)
 
     def test_to_dict(self):
-        d = {u("key"): 31337}
+        d = {"key": 31337}
 
         class DictTest(object):
             def toDict(self):
@@ -860,7 +860,7 @@ class TestNumpyJSONTests(object):
         labelled_input = [{"a": 42}]
         output = ujson.loads(ujson.dumps(labelled_input),
                              numpy=True, labelled=True)
-        assert (np.array([u("a")]) == output[2]).all()
+        assert (np.array(["a"]) == output[2]).all()
         assert (np.array([42]) == output[0]).all()
         assert output[1] is None
 
@@ -873,7 +873,7 @@ class TestNumpyJSONTests(object):
             [42, 31, 24, 99, 2.4, 78], dtype=int).reshape((3, 2))
         assert (expected_vals == output[0]).all()
         assert output[1] is None
-        assert (np.array([u("a"), "b"]) == output[2]).all()
+        assert (np.array(["a", "b"]) == output[2]).all()
 
         input_dumps = ('{"1": {"a": 42, "b":31}, "2": {"a": 24, "c": 99}, '
                        '"3": {"a": 2.4, "b": 78}}')
