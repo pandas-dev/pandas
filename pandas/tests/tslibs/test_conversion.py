@@ -9,7 +9,7 @@ from pytz import UTC
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs import conversion, timezones
 
-from pandas import date_range, Timestamp
+from pandas import Timestamp, date_range
 import pandas.util.testing as tm
 
 
