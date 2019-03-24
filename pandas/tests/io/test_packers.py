@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import u
 from pandas.errors import PerformanceWarning
 
 import pandas
@@ -272,7 +271,7 @@ class TestNumpy(TestPackers):
                 x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
-        x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo'), np.bool_(1)]
+        x = [1.0, np.float32(3.5), np.complex128(4.25), 'foo', np.bool_(1)]
         x_rec = self.encode_decode(x)
         # current msgpack cannot distinguish list/tuple
         tm.assert_almost_equal(tuple(x), x_rec)
@@ -801,7 +800,7 @@ class TestEncoding(TestPackers):
     def setup_method(self, method):
         super(TestEncoding, self).setup_method(method)
         data = {
-            'A': [compat.u('\u2019')] * 1000,
+            'A': ['\u2019'] * 1000,
             'B': np.arange(1000, dtype=np.int32),
             'C': list(100 * 'abcdefghij'),
             'D': date_range(datetime.datetime(2015, 4, 1), periods=1000),

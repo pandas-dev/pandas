@@ -10,7 +10,7 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 import pandas.compat as compat
-from pandas.compat import lrange, u
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -172,13 +172,13 @@ class TestSeriesDtypes(object):
         digits = string.digits
         test_series = [
             Series([digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
-            Series([u('データーサイエンス、お前はもう死んでいる')]),
+            Series(['データーサイエンス、お前はもう死んでいる']),
         ]
 
         former_encoding = None
 
         if sys.getdefaultencoding() == "utf-8":
-            test_series.append(Series([u('野菜食べないとやばい')
+            test_series.append(Series(['野菜食べないとやばい'
                                        .encode("utf-8")]))
 
         for s in test_series:

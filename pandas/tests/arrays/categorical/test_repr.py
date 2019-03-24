@@ -2,12 +2,9 @@
 
 import numpy as np
 
-from pandas.compat import u
-
 from pandas import (
-    Categorical, CategoricalIndex, Series, date_range, period_range,
-    timedelta_range)
-from pandas.core.config import option_context
+    Categorical, CategoricalIndex, Series, date_range, option_context,
+    period_range, timedelta_range)
 from pandas.tests.arrays.categorical.common import TestCategorical
 
 
@@ -53,8 +50,8 @@ class TestCategoricalRepr(object):
     def test_print_none_width(self):
         # GH10087
         a = Series(Categorical([1, 2, 3, 4]))
-        exp = u("0    1\n1    2\n2    3\n3    4\n" +
-                "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
+        exp = ("0    1\n1    2\n2    3\n3    4\n"
+               "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
 
         with option_context("display.width", None):
             assert exp == repr(a)
