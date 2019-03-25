@@ -5,15 +5,11 @@ import os
 
 import pytest
 
-from pandas._config.localization import can_set_locale, set_locale
+from pandas._config.localization import can_set_locale, get_locales, set_locale
 
 from pandas.compat import is_platform_windows
 
-# TODO: move get_locales into localization, making `tm` import unnecessary.
-#  This is blocked by the need for core.config to be moved to _config.
-import pandas.util.testing as tm
-
-_all_locales = tm.get_locales() or []
+_all_locales = get_locales() or []
 _current_locale = locale.getlocale()
 
 # Don't run any of these tests if we are on Windows or have no locales.
@@ -55,7 +51,7 @@ def test_get_locales_at_least_one():
 @_skip_if_only_one_locale
 def test_get_locales_prefix():
     first_locale = _all_locales[0]
-    assert len(tm.get_locales(prefix=first_locale[:2])) > 0
+    assert len(get_locales(prefix=first_locale[:2])) > 0
 
 
 @_skip_if_only_one_locale
