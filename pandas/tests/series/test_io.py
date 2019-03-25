@@ -7,7 +7,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, u
+from pandas.compat import StringIO
 
 import pandas as pd
 from pandas import DataFrame, Series
@@ -121,7 +121,7 @@ class TestSeriesToCSV():
 
     def test_to_csv_unicode_index(self):
         buf = StringIO()
-        s = Series([u("\u05d0"), "d2"], index=[u("\u05d0"), u("\u05d1")])
+        s = Series(["\u05d0", "d2"], index=["\u05d0", "\u05d1"])
 
         s.to_csv(buf, encoding="UTF-8", header=False)
         buf.seek(0)

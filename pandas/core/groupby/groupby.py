@@ -17,6 +17,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import option_context
+
 from pandas._libs import Timestamp, groupby as libgroupby
 import pandas.compat as compat
 from pandas.compat import set_function_name
@@ -37,7 +39,6 @@ import pandas.core.algorithms as algorithms
 from pandas.core.base import (
     DataError, GroupByError, PandasObject, SelectionMixin, SpecificationError)
 import pandas.core.common as com
-from pandas.core.config import option_context
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base

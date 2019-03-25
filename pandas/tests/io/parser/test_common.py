@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import BytesIO, StringIO, lrange, u
+from pandas.compat import BytesIO, StringIO, lrange
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
@@ -120,7 +120,7 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
 
 
 def test_read_csv_local(all_parsers, csv1):
-    prefix = u("file:///") if compat.is_platform_windows() else u("file://")
+    prefix = "file:///" if compat.is_platform_windows() else "file://"
     parser = all_parsers
 
     fname = prefix + compat.text_type(os.path.abspath(csv1))
@@ -310,10 +310,10 @@ def test_read_csv_no_index_name(all_parsers, csv_dir_path):
 
 def test_read_csv_unicode(all_parsers):
     parser = all_parsers
-    data = BytesIO(u("\u0141aski, Jan;1").encode("utf-8"))
+    data = BytesIO("\u0141aski, Jan;1".encode("utf-8"))
 
     result = parser.read_csv(data, sep=";", encoding="utf-8", header=None)
-    expected = DataFrame([[u("\u0141aski, Jan"), 1]])
+    expected = DataFrame([["\u0141aski, Jan", 1]])
     tm.assert_frame_equal(result, expected)
 
 
@@ -941,11 +941,11 @@ def test_skip_initial_space(all_parsers):
 def test_utf16_bom_skiprows(all_parsers, sep, encoding):
     # see gh-2298
     parser = all_parsers
-    data = u("""skip this
+    data = """skip this
 skip this too
 A,B,C
 1,2,3
-4,5,6""").replace(",", sep)
+4,5,6""".replace(",", sep)
     path = "__%s__.csv" % tm.rands(10)
     kwargs = dict(sep=sep, skiprows=2)
     utf8 = "utf-8"
@@ -982,7 +982,7 @@ def test_unicode_encoding(all_parsers, csv_dir_path):
     result = result.set_index(0)
     got = result[1][1632]
 
-    expected = u('\xc1 k\xf6ldum klaka (Cold Fever) (1994)')
+    expected = '\xc1 k\xf6ldum klaka (Cold Fever) (1994)'
     assert got == expected
 
 
@@ -1686,7 +1686,7 @@ def test_null_byte_char(all_parsers):
 def test_utf8_bom(all_parsers, data, kwargs, expected):
     # see gh-4793
     parser = all_parsers
-    bom = u("\ufeff")
+    bom = "\ufeff"
     utf8 = "utf-8"
 
     def _encode_data_with_bom(_data):
