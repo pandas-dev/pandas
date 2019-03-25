@@ -336,17 +336,17 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         else:
             return 0
 
-    close = u', '
+    close = ', '
 
     if n == 0:
-        summary = u'[]{}'.format(close)
+        summary = '[]{}'.format(close)
     elif n == 1:
         first = formatter(obj[0])
-        summary = u'[{}]{}'.format(first, close)
+        summary = '[{}]{}'.format(first, close)
     elif n == 2:
         first = formatter(obj[0])
         last = formatter(obj[-1])
-        summary = u'[{}, {}]{}'.format(first, last, close)
+        summary = '[{}, {}]{}'.format(first, last, close)
     else:
 
         if n > max_seq_items:

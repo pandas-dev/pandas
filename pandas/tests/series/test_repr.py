@@ -206,11 +206,11 @@ class TestCategoricalRepr(object):
         # see gh-21002
 
         class County(StringMixin):
-            name = u'San Sebastián'
-            state = u'PR'
+            name = 'San Sebastián'
+            state = 'PR'
 
             def __unicode__(self):
-                return self.name + u', ' + self.state
+                return self.name + ', ' + self.state
 
         cat = pd.Categorical([County() for _ in range(61)])
         idx = pd.Index(cat)

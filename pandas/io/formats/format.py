@@ -213,7 +213,7 @@ class SeriesFormatter(object):
 
             series_name = pprint_thing(name,
                                        escape_chars=('\t', '\r', '\n'))
-            footer += ((u"Name: {sname}".format(sname=series_name))
+            footer += (("Name: {sname}".format(sname=series_name))
                        if name is not None else "")
 
         if (self.length is True or
@@ -227,7 +227,7 @@ class SeriesFormatter(object):
             if name:
                 if footer:
                     footer += ', '
-                footer += u'dtype: {typ}'.format(typ=pprint_thing(name))
+                footer += 'dtype: {typ}'.format(typ=pprint_thing(name))
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
@@ -949,10 +949,10 @@ class GenericArrayFormatter(object):
                     return 'NaT'
                 return self.na_rep
             elif isinstance(x, PandasObject):
-                return u'{x}'.format(x=x)
+                return '{x}'.format(x=x)
             else:
                 # object dtype
-                return u'{x}'.format(x=formatter(x))
+                return '{x}'.format(x=formatter(x))
 
         vals = self.values
         if isinstance(vals, Index):
@@ -968,16 +968,16 @@ class GenericArrayFormatter(object):
         fmt_values = []
         for i, v in enumerate(vals):
             if not is_float_type[i] and leading_space:
-                fmt_values.append(u' {v}'.format(v=_format(v)))
+                fmt_values.append(' {v}'.format(v=_format(v)))
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
                 if leading_space is False:
                     # False specifically, so that the default is
                     # to include a space if we get here.
-                    tpl = u'{v}'
+                    tpl = '{v}'
                 else:
-                    tpl = u' {v}'
+                    tpl = ' {v}'
                 fmt_values.append(tpl.format(v=_format(v)))
 
         return fmt_values
