@@ -1242,7 +1242,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if missing:
             if missing == len(indexer):
                 raise KeyError(
-                    u"None of [{key}] are in the [{axis}]".format(
+                    "None of [{key}] are in the [{axis}]".format(
                         key=key, axis=self.obj._get_axis_name(axis)))
 
             # We (temporarily) allow for some missing keys with .loc, except in
