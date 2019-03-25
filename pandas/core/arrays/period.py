@@ -476,7 +476,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
+    def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         """
         actually format my specific types
         """
@@ -485,7 +485,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if date_format:
             formatter = lambda dt: dt.strftime(date_format)
         else:
-            formatter = lambda dt: u'%s' % dt
+            formatter = lambda dt: '%s' % dt
 
         if self._hasnans:
             mask = self._isnan

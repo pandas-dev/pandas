@@ -2066,17 +2066,17 @@ class TestIndex(Base):
         # ASCII
         # short
         (pd.Index(['a', 'bb', 'ccc']),
-         u"""Index(['a', 'bb', 'ccc'], dtype='object')"""),
+         """Index(['a', 'bb', 'ccc'], dtype='object')"""),
         # multiple lines
         (pd.Index(['a', 'bb', 'ccc'] * 10),
-         u"""\
+         """\
 Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc',
        'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc',
        'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
       dtype='object')"""),
         # truncated
         (pd.Index(['a', 'bb', 'ccc'] * 100),
-         u"""\
+         """\
 Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
        ...
        'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
@@ -2084,54 +2084,54 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
 
         # Non-ASCII
         # short
-        (pd.Index([u'あ', u'いい', u'ううう']),
-         u"""Index(['あ', 'いい', 'ううう'], dtype='object')"""),
+        (pd.Index(['あ', 'いい', 'ううう']),
+         """Index(['あ', 'いい', 'ううう'], dtype='object')"""),
         # multiple lines
-        (pd.Index([u'あ', u'いい', u'ううう'] * 10),
-         (u"Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
-          u"'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',\n"
-          u"       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
-          u"'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',\n"
-          u"       'あ', 'いい', 'ううう', 'あ', 'いい', "
-          u"'ううう'],\n"
-          u"      dtype='object')")),
+        (pd.Index(['あ', 'いい', 'ううう'] * 10),
+         ("Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
+          "'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',\n"
+          "       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
+          "'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',\n"
+          "       'あ', 'いい', 'ううう', 'あ', 'いい', "
+          "'ううう'],\n"
+          "      dtype='object')")),
         # truncated
-        (pd.Index([u'あ', u'いい', u'ううう'] * 100),
-         (u"Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
-          u"'あ', 'いい', 'ううう', 'あ',\n"
-          u"       ...\n"
-          u"       'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', "
-          u"'ううう', 'あ', 'いい', 'ううう'],\n"
-          u"      dtype='object', length=300)"))])
+        (pd.Index(['あ', 'いい', 'ううう'] * 100),
+         ("Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
+          "'あ', 'いい', 'ううう', 'あ',\n"
+          "       ...\n"
+          "       'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', "
+          "'ううう', 'あ', 'いい', 'ううう'],\n"
+          "      dtype='object', length=300)"))])
     def test_string_index_repr(self, index, expected):
         result = repr(index)
         assert result == expected
 
     @pytest.mark.parametrize("index,expected", [
         # short
-        (pd.Index([u'あ', u'いい', u'ううう']),
-         (u"Index(['あ', 'いい', 'ううう'], "
-          u"dtype='object')")),
+        (pd.Index(['あ', 'いい', 'ううう']),
+         ("Index(['あ', 'いい', 'ううう'], "
+          "dtype='object')")),
         # multiple lines
-        (pd.Index([u'あ', u'いい', u'ううう'] * 10),
-         (u"Index(['あ', 'いい', 'ううう', 'あ', 'いい', "
-          u"'ううう', 'あ', 'いい', 'ううう',\n"
-          u"       'あ', 'いい', 'ううう', 'あ', 'いい', "
-          u"'ううう', 'あ', 'いい', 'ううう',\n"
-          u"       'あ', 'いい', 'ううう', 'あ', 'いい', "
-          u"'ううう', 'あ', 'いい', 'ううう',\n"
-          u"       'あ', 'いい', 'ううう'],\n"
-          u"      dtype='object')""")),
+        (pd.Index(['あ', 'いい', 'ううう'] * 10),
+         ("Index(['あ', 'いい', 'ううう', 'あ', 'いい', "
+          "'ううう', 'あ', 'いい', 'ううう',\n"
+          "       'あ', 'いい', 'ううう', 'あ', 'いい', "
+          "'ううう', 'あ', 'いい', 'ううう',\n"
+          "       'あ', 'いい', 'ううう', 'あ', 'いい', "
+          "'ううう', 'あ', 'いい', 'ううう',\n"
+          "       'あ', 'いい', 'ううう'],\n"
+          "      dtype='object')""")),
         # truncated
-        (pd.Index([u'あ', u'いい', u'ううう'] * 100),
-         (u"Index(['あ', 'いい', 'ううう', 'あ', 'いい', "
-          u"'ううう', 'あ', 'いい', 'ううう',\n"
-          u"       'あ',\n"
-          u"       ...\n"
-          u"       'ううう', 'あ', 'いい', 'ううう', 'あ', "
-          u"'いい', 'ううう', 'あ', 'いい',\n"
-          u"       'ううう'],\n"
-          u"      dtype='object', length=300)"))])
+        (pd.Index(['あ', 'いい', 'ううう'] * 100),
+         ("Index(['あ', 'いい', 'ううう', 'あ', 'いい', "
+          "'ううう', 'あ', 'いい', 'ううう',\n"
+          "       'あ',\n"
+          "       ...\n"
+          "       'ううう', 'あ', 'いい', 'ううう', 'あ', "
+          "'いい', 'ううう', 'あ', 'いい',\n"
+          "       'ううう'],\n"
+          "      dtype='object', length=300)"))])
     def test_string_index_repr_with_unicode_option(self, index, expected):
         # Enable Unicode option -----------------------------------------
         with cf.option_context('display.unicode.east_asian_width', True):

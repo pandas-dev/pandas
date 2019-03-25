@@ -379,8 +379,8 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> tuples = [(1, u'red'), (1, u'blue'),
-        ...           (2, u'red'), (2, u'blue')]
+        >>> tuples = [(1, 'red'), (1, 'blue'),
+        ...           (2, 'red'), (2, 'blue')]
         >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
         MultiIndex(levels=[[1, 2], ['blue', 'red']],
                    codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
@@ -621,25 +621,25 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                            (2, u'one'), (2, u'two')],
+        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
+                                            (2, 'one'), (2, 'two')],
                                             names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]])
-        MultiIndex(levels=[[u'a', u'b'], [1, 2]],
+        MultiIndex(levels=[['a', 'b'], [1, 2]],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_levels(['a','b'], level=0)
-        MultiIndex(levels=[[u'a', u'b'], [u'one', u'two']],
+        MultiIndex(levels=[['a', 'b'], ['one', 'two']],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_levels(['a','b'], level='bar')
-        MultiIndex(levels=[[1, 2], [u'a', u'b']],
+        MultiIndex(levels=[[1, 2], ['a', 'b']],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]], level=[0,1])
-        MultiIndex(levels=[[u'a', u'b'], [1, 2]],
+        MultiIndex(levels=[['a', 'b'], [1, 2]],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         """
         if is_list_like(levels) and not isinstance(levels, Index):
             levels = list(levels)
@@ -740,25 +740,25 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                            (2, u'one'), (2, u'two')],
+        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
+                                            (2, 'one'), (2, 'two')],
                                             names=['foo', 'bar'])
         >>> idx.set_codes([[1,0,1,0], [0,0,1,1]])
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_codes([1,0,1,0], level=0)
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[1, 0, 1, 0], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_codes([0,0,1,1], level='bar')
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[0, 0, 1, 1], [0, 0, 1, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_codes([[1,0,1,0], [0,0,1,1]], level=[0,1])
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         """
         if level is not None and not is_list_like(level):
             if not is_list_like(codes):
@@ -1512,10 +1512,10 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                            (2, u'one'), (2, u'two')])
+        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
+                                            (2, 'one'), (2, 'two')])
         >>> idx.to_hierarchical(3)
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
                           [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
         """

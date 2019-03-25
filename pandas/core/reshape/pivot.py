@@ -154,7 +154,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     if not isinstance(margins_name, compat.string_types):
         raise ValueError('margins_name argument must be a string')
 
-    msg = u'Conflicting name "{name}" in margins'.format(name=margins_name)
+    msg = 'Conflicting name "{name}" in margins'.format(name=margins_name)
     for level in table.index.names:
         if margins_name in table.index.get_level_values(level):
             raise ValueError(msg)

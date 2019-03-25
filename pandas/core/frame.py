@@ -8063,4 +8063,4 @@ def _from_nested_dict(data):
 
 
 def _put_str(s, space):
-    return u'{s}'.format(s=s)[:space].ljust(space)
+    return '{s}'.format(s=s)[:space].ljust(space)

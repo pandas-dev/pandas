@@ -639,11 +639,11 @@ class TestTypeInference(object):
         pass
 
     def test_unicode(self):
-        arr = [u'a', np.nan, u'c']
+        arr = ['a', np.nan, 'c']
         result = lib.infer_dtype(arr, skipna=False)
         assert result == 'mixed'
 
-        arr = [u'a', np.nan, u'c']
+        arr = ['a', np.nan, 'c']
         result = lib.infer_dtype(arr, skipna=True)
         expected = 'string'
         assert result == expected

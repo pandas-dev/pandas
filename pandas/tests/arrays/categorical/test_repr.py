@@ -58,15 +58,15 @@ class TestCategoricalRepr(object):
 
     def test_unicode_print(self):
         c = Categorical(['aaaaa', 'bb', 'cccc'] * 20)
-        expected = u"""\
+        expected = """\
 [aaaaa, bb, cccc, aaaaa, bb, ..., bb, cccc, aaaaa, bb, cccc]
 Length: 60
 Categories (3, object): [aaaaa, bb, cccc]"""
 
         assert repr(c) == expected
 
-        c = Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
-        expected = u"""\
+        c = Categorical(['ああああ', 'いいいいい', 'ううううううう'] * 20)
+        expected = """\
 [ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
 Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
@@ -77,8 +77,8 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # the repr width
         with option_context('display.unicode.east_asian_width', True):
 
-            c = Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
-            expected = u"""[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
+            c = Categorical(['ああああ', 'いいいいい', 'ううううううう'] * 20)
+            expected = """[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
 Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 

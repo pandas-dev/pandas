@@ -947,9 +947,9 @@ class TestDataFrameToCSV(TestData):
                    index=['A', 'B'], columns=['X', 'Y', 'Z']), None),
         # GH 21241, 21118
         (DataFrame([['abc', 'def', 'ghi']], columns=['X', 'Y', 'Z']), 'ascii'),
-        (DataFrame(5 * [[123, u"你好", u"世界"]],
+        (DataFrame(5 * [[123, "你好", "世界"]],
                    columns=['X', 'Y', 'Z']), 'gb2312'),
-        (DataFrame(5 * [[123, u"Γειά σου", u"Κόσμε"]],
+        (DataFrame(5 * [[123, "Γειά σου", "Κόσμε"]],
                    columns=['X', 'Y', 'Z']), 'cp737')
     ])
     def test_to_csv_compression(self, df, encoding, compression):

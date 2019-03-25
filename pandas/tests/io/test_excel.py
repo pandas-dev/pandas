@@ -1694,10 +1694,10 @@ class TestExcelWriter(_WriterBase):
 
     def test_to_excel_output_encoding(self, merge_cells, engine, ext):
         # Avoid mixed inferred_type.
-        df = DataFrame([[u"\u0192", u"\u0193", u"\u0194"],
-                        [u"\u0195", u"\u0196", u"\u0197"]],
-                       index=[u"A\u0192", u"B"],
-                       columns=[u"X\u0193", u"Y", u"Z"])
+        df = DataFrame([["\u0192", "\u0193", "\u0194"],
+                        ["\u0195", "\u0196", "\u0197"]],
+                       index=["A\u0192", "B"],
+                       columns=["X\u0193", "Y", "Z"])
 
         with ensure_clean("__tmp_to_excel_float_format__." + ext) as filename:
             df.to_excel(filename, sheet_name="TestSheet", encoding="utf8")

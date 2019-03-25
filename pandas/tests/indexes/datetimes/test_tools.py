@@ -384,8 +384,8 @@ class TestToDatetime(object):
             assert pdtoday2.tzinfo is None
 
     def test_to_datetime_today_now_unicode_bytes(self):
-        to_datetime([u'now'])
-        to_datetime([u'today'])
+        to_datetime(['now'])
+        to_datetime(['today'])
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_dt64s(self, cache):

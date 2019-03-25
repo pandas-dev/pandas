@@ -136,8 +136,8 @@ numpy array values are different \\(33\\.33333 %\\)
 \\[right\\]: \\[á, à, å\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(np.array([u"á", u"à", u"ä"]),
-                                 np.array([u"á", u"à", u"å"]))
+        assert_numpy_array_equal(np.array(["á", "à", "ä"]),
+                                 np.array(["á", "à", "å"]))
 
 
 def test_numpy_array_equal_object():

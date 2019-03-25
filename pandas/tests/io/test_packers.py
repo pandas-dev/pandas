@@ -731,10 +731,10 @@ class TestCompression(TestPackers):
         # bad state where b'a' points to 98 == ord(b'b').
         char_unpacked[0] = ord(b'b')
 
-        # we compare the ord of bytes b'a' with unicode u'a' because the should
+        # we compare the ord of bytes b'a' with unicode 'a' because the should
         # always be the same (unless we were able to mutate the shared
         # character singleton in which case ord(b'a') == ord(b'b').
-        assert ord(b'a') == ord(u'a')
+        assert ord(b'a') == ord('a')
         tm.assert_numpy_array_equal(
             char_unpacked,
             np.array([ord(b'b')], dtype='uint8'),
