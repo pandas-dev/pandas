@@ -868,34 +868,41 @@ class TestRangeIndex(Numeric):
             i = RangeIndex(0, 5, step)
             assert len(i) == 0
 
-    def test_append(self):
+    @pytest.fixture(params=[
+        ([RI(1, 12, 5)], RI(1, 12, 5)),
+        ([RI(0, 6, 4)], RI(0, 6, 4)),
+        ([RI(1, 3), RI(3, 7)], RI(1, 7)),
+        ([RI(1, 5, 2), RI(5, 6)], RI(1, 6, 2)),
+        ([RI(1, 3, 2), RI(4, 7, 3)], RI(1, 7, 3)),
+        ([RI(-4, 3, 2), RI(4, 7, 2)], RI(-4, 7, 2)),
+        ([RI(-4, -8), RI(-8, -12)], RI(0, 0)),
+        ([RI(-4, -8), RI(3, -4)], RI(0, 0)),
+        ([RI(-4, -8), RI(3, 5)], RI(3, 5)),
+        ([RI(-4, -2), RI(3, 5)], I64([-4, -3, 3, 4])),
+        ([RI(-2,), RI(3, 5)], RI(3, 5)),
+        ([RI(2,), RI(2)], I64([0, 1, 0, 1])),
+        ([RI(2,), RI(2, 5), RI(5, 8, 4)], RI(0, 6)),
+        ([RI(2,), RI(3, 5), RI(5, 8, 4)], I64([0, 1, 3, 4, 5])),
+        ([RI(-2, 2), RI(2, 5), RI(5, 8, 4)], RI(-2, 6)),
+        ([RI(3,), I64([-1, 3, 15])], I64([0, 1, 2, -1, 3, 15])),
+        ([RI(3,), F64([-1, 3.1, 15.])], F64([0, 1, 2, -1, 3.1, 15.])),
+        ([RI(3,), OI(['a', None, 14])], OI([0, 1, 2, 'a', None, 14])),
+        ([RI(3, 1), OI(['a', None, 14])], OI(['a', None, 14]))
+    ])
+    def appends(self, request):
+        """Inputs and expected outputs for RangeIndex.append test"""
+
+        return request.param
+
+    def test_append(self, appends):
         # GH16212
-        cases = [([RI(1, 12, 5)], RI(1, 12, 5)),
-                 ([RI(0, 6, 4)], RI(0, 6, 4)),
-                 ([RI(1, 3), RI(3, 7)], RI(1, 7)),
-                 ([RI(1, 5, 2), RI(5, 6)], RI(1, 6, 2)),
-                 ([RI(1, 3, 2), RI(4, 7, 3)], RI(1, 7, 3)),
-                 ([RI(-4, 3, 2), RI(4, 7, 2)], RI(-4, 7, 2)),
-                 ([RI(-4, -8), RI(-8, -12)], RI(0, 0)),
-                 ([RI(-4, -8), RI(3, -4)], RI(0, 0)),
-                 ([RI(-4, -8), RI(3, 5)], RI(3, 5)),
-                 ([RI(-4, -2), RI(3, 5)], I64([-4, -3, 3, 4])),
-                 ([RI(-2,), RI(3, 5)], RI(3, 5)),
-                 ([RI(2,), RI(2)], I64([0, 1, 0, 1])),
-                 ([RI(2,), RI(2, 5), RI(5, 8, 4)], RI(0, 6)),
-                 ([RI(2,), RI(3, 5), RI(5, 8, 4)], I64([0, 1, 3, 4, 5])),
-                 ([RI(-2, 2), RI(2, 5), RI(5, 8, 4)], RI(-2, 6)),
-                 ([RI(3,), I64([-1, 3, 15])], I64([0, 1, 2, -1, 3, 15])),
-                 ([RI(3,), F64([-1, 3.1, 15.])], F64([0, 1, 2, -1, 3.1, 15.])),
-                 ([RI(3,), OI(['a', None, 14])], OI([0, 1, 2, 'a', None, 14])),
-                 ([RI(3, 1), OI(['a', None, 14])], OI(['a', None, 14]))
-                 ]
 
-        for indices, expected in cases:
-            result = indices[0].append(indices[1:])
-            tm.assert_index_equal(result, expected, exact=True)
+        indices, expected = appends
 
-            if len(indices) == 2:
-                # Append single item rather than list
-                result2 = indices[0].append(indices[1])
-                tm.assert_index_equal(result2, expected, exact=True)
+        result = indices[0].append(indices[1:])
+        tm.assert_index_equal(result, expected, exact=True)
+
+        if len(indices) == 2:
+            # Append single item rather than list
+            result2 = indices[0].append(indices[1])
+            tm.assert_index_equal(result2, expected, exact=True)
