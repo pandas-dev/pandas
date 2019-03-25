@@ -1927,13 +1927,16 @@ _shared_docs['plot'] = """
         matplotlib line style per column
     logx : bool or 'sym', default False
         Use log scaling or symlog scaling on x axis
-        .. versionadded:: 0.25.0
+        .. versionchanged:: 0.25.0
+
     logy : bool or 'sym' default False
         Use log scaling or symlog scaling on y axis
-        .. versionadded:: 0.25.0
+        .. versionchanged:: 0.25.0
+
     loglog : bool or 'sym', default False
         Use log scaling or symlog scaling on both x and y axes
-        .. versionadded:: 0.25.0
+        .. versionchanged:: 0.25.0
+
     xticks : sequence
         Values to use for the xticks
     yticks : sequence
