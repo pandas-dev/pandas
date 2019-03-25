@@ -3632,7 +3632,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @property
-    def _values(self) -> Union[ExtensionArray, 'Index', np.ndarray]:
+    def _values(self) -> Union[ExtensionArray, ABCIndexClass, np.ndarray]:
         # TODO(EA): remove index types as they become extension arrays
         """
         The best array representation.

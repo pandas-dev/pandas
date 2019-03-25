@@ -72,7 +72,8 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCDataFrame, ABCIndexClass, ABCMultiIndex)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms
@@ -6246,8 +6247,8 @@ class DataFrame(NDFrame):
     def _gotitem(self,
                  key: Union[str, List[str]],
                  ndim: int,
-                 subset: Optional[Union[Series, 'DataFrame']] = None,
-                 ) -> Union[Series, 'DataFrame']:
+                 subset: Optional[Union[Series, ABCDataFrame]] = None,
+                 ) -> Union[Series, ABCDataFrame]:
         """
         Sub-classes to define. Return a sliced object.
 
