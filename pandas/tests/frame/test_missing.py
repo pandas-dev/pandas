@@ -3,7 +3,6 @@
 from __future__ import print_function
 
 import datetime
-from distutils.version import LooseVersion
 
 import dateutil
 import numpy as np
@@ -17,13 +16,6 @@ from pandas import Categorical, DataFrame, Series, Timestamp, date_range
 from pandas.tests.frame.common import _check_mixed_float
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-
-try:
-    import scipy
-    _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
-                         LooseVersion('0.19.0'))
-except ImportError:
-    _is_scipy_ge_0190 = False
 
 
 def _skip_if_no_pchip():
@@ -718,14 +710,8 @@ class TestDataFrameInterpolate():
 
         result = df.interpolate(method='cubic')
         # GH #15662.
-        # new cubic and quadratic interpolation algorithms from scipy 0.19.0.
-        # previously `splmake` was used. See scipy/scipy#6710
-        if _is_scipy_ge_0190:
-            expected.A.loc[3] = 2.81547781
-            expected.A.loc[13] = 5.52964175
-        else:
-            expected.A.loc[3] = 2.81621174
-            expected.A.loc[13] = 5.64146581
+        expected.A.loc[3] = 2.81547781
+        expected.A.loc[13] = 5.52964175
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='nearest')
@@ -734,12 +720,8 @@ class TestDataFrameInterpolate():
         assert_frame_equal(result, expected, check_dtype=False)
 
         result = df.interpolate(method='quadratic')
-        if _is_scipy_ge_0190:
-            expected.A.loc[3] = 2.82150771
-            expected.A.loc[13] = 6.12648668
-        else:
-            expected.A.loc[3] = 2.82533638
-            expected.A.loc[13] = 6.02817974
+        expected.A.loc[3] = 2.82150771
+        expected.A.loc[13] = 6.12648668
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='slinear')
@@ -771,14 +753,10 @@ class TestDataFrameInterpolate():
         assert_frame_equal(result, expectedk)
 
         _skip_if_no_pchip()
-        import scipy
+
         result = df.interpolate(method='pchip')
         expected.loc[2, 'A'] = 3
-
-        if LooseVersion(scipy.__version__) >= LooseVersion('0.17.0'):
-            expected.loc[5, 'A'] = 6.0
-        else:
-            expected.loc[5, 'A'] = 6.125
+        expected.loc[5, 'A'] = 6.0
 
         assert_frame_equal(result, expected)
 

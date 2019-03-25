@@ -14,8 +14,7 @@ from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex
-from pandas.tests.plotting.common import (
-    TestPlotBase, _skip_if_no_scipy_gaussian_kde)
+from pandas.tests.plotting.common import TestPlotBase
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal, ensure_clean
 
@@ -679,7 +678,6 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_secondary_kde(self):
-        _skip_if_no_scipy_gaussian_kde()
 
         ser = Series(np.random.randn(10))
         fig, ax = self.plt.subplots()

@@ -346,7 +346,7 @@ class TestnanopsDataFrame(object):
                         allow_str=False, allow_date=False,
                         allow_tdelta=True, allow_obj='convert', ddof=ddof)
 
-    @td.skip_if_no('scipy', min_version='0.17.0')
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize('ddof', range(3))
     def test_nansem(self, ddof):
         from scipy.stats import sem
@@ -415,7 +415,7 @@ class TestnanopsDataFrame(object):
             return 0.
         return result
 
-    @td.skip_if_no('scipy', min_version='0.17.0')
+    @td.skip_if_no_scipy
     def test_nanskew(self):
         from scipy.stats import skew
         func = partial(self._skew_kurt_wrap, func=skew)
@@ -424,7 +424,7 @@ class TestnanopsDataFrame(object):
                             allow_str=False, allow_date=False,
                             allow_tdelta=False)
 
-    @td.skip_if_no('scipy', min_version='0.17.0')
+    @td.skip_if_no_scipy
     def test_nankurt(self):
         from scipy.stats import kurtosis
         func1 = partial(kurtosis, fisher=True)
