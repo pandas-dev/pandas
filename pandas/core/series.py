@@ -22,7 +22,8 @@ from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
     is_categorical_dtype, is_datetime64_dtype, is_datetimelike, is_dict_like,
     is_extension_array_dtype, is_extension_type, is_hashable, is_integer,
-    is_iterator, is_list_like, is_scalar, is_sparse, is_string_like, is_timedelta64_dtype)
+    is_iterator, is_list_like, is_scalar, is_sparse, is_string_like,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeArray, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries)
