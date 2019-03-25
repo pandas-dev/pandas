@@ -2349,21 +2349,16 @@ cdef inline void put_object_as_unicode(list lst, Py_ssize_t idx,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef object _concat_date_cols(tuple date_cols,
-                               object keep_trivial_numbers=False):
+                               bint keep_trivial_numbers=False):
     cdef:
-        bint keep_numbers
-        Py_ssize_t sequence_size, i, j
+        Py_ssize_t i, j, sequence_size = len(date_cols)
         Py_ssize_t array_size, min_size = 0
         object[:] result_view
-
         flatiter it
         int all_numpy = 1
         cnp.ndarray[object] iters
         object[::1] iters_view
         list list_to_join
-
-    keep_numbers = keep_trivial_numbers
-    sequence_size = len(date_cols)
 
     if sequence_size == 0:
         result = np.zeros(0, dtype=object)
@@ -2373,33 +2368,35 @@ cpdef object _concat_date_cols(tuple date_cols,
         result = np.zeros(array_size, dtype=object)
         result_view = result
         if PyArray_Check(array):
+            # for numpy array case use special api for performance
             it = <flatiter>PyArray_IterNew(array)
             for i in range(array_size):
                 item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-                convert_and_set_item(item, i, result_view, keep_numbers)
+                convert_and_set_item(item, i, result_view, keep_trivial_numbers)
                 PyArray_ITER_NEXT(it)
         else:
             for i, item in enumerate(array):
-                convert_and_set_item(item, i, result_view, keep_numbers)
+                convert_and_set_item(item, i, result_view, keep_trivial_numbers)
     else:
         for i, array in enumerate(date_cols):
             if not PyArray_Check(array):
                 all_numpy = 0
+            # find min length for arrays in date_cols
+            # imitation python zip behavior
             if len(array) < min_size or min_size == 0:
                 min_size = len(array)
 
+        result = np.zeros(min_size, dtype=object)
+        result_view = result
+        list_to_join = [None] * sequence_size
+
         if all_numpy:
+            # setup iterators
             iters = np.zeros(sequence_size, dtype=object)
             iters_view = iters
             for i, array in enumerate(date_cols):
                 iters_view[i] = PyArray_IterNew(array)
-
-        result = np.zeros(min_size, dtype=object)
-        result_view = result
-
-        list_to_join = [None] * sequence_size
-
-        if all_numpy:
+            # for numpy array case use special api for performance
             for i in range(min_size):
                 for j, array in enumerate(date_cols):
                     it = <flatiter>iters_view[j]
