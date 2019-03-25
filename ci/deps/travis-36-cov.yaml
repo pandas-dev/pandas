@@ -11,7 +11,7 @@ dependencies:
   - gcsfs
   - geopandas
   - html5lib
-  - matplotlib=3.0.0
+  - matplotlib
   - nomkl
   - numexpr
   - numpy=1.15.*
