@@ -3,7 +3,6 @@ config for datetime formatting
 """
 from pandas._config import config as cf
 
-
 pc_date_dayfirst_doc = """
 : boolean
     When True, prints and parses dates with the day first, eg 20/01/2005
