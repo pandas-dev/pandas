@@ -1232,6 +1232,8 @@ class TestHDFStore(Base):
             with pytest.raises(KeyError):
                 pd.read_hdf(path, 'k2')
 
+            # smoke test to test that file is properly closed after
+            # read with KeyError before another write
             df.to_hdf(path, 'k2')
 
     def test_append_frame_column_oriented(self):
