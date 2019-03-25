@@ -115,13 +115,21 @@ Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions.
-Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`24942`).
+Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`24942`, :issue:`25554`, :issue:`25752`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
 | Package         | Minimum Version | Required |
 +=================+=================+==========+
+| numpy           | 1.13.3          |    X     |
++-----------------+-----------------+----------+
 | beautifulsoup4  | 4.4.1           |          |
++-----------------+-----------------+----------+
+| bottleneck      | 1.2.1           |          |
++-----------------+-----------------+----------+
+| matplotlib      | 2.2.2           |          |
++-----------------+-----------------+----------+
+| numexpr         | 2.6.2           |          |
 +-----------------+-----------------+----------+
 | openpyxl        | 2.4.0           |          |
 +-----------------+-----------------+----------+
@@ -129,13 +137,15 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | pytz            | 2015.4          |          |
 +-----------------+-----------------+----------+
+| scipy           | 0.19.0          |          |
++-----------------+-----------------+----------+
 | sqlalchemy      | 1.1.4           |          |
 +-----------------+-----------------+----------+
 | xlsxwriter      | 0.7.7           |          |
 +-----------------+-----------------+----------+
 | xlwt            | 1.0.0           |          |
 +-----------------+-----------------+----------+
-| pytest (dev)    | 4.0.2           |          |
+| pytest          | 4.0.2           |  (dev)   |
 +-----------------+-----------------+----------+
 
 .. _whatsnew_0250.api.other:

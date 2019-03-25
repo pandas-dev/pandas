@@ -9,7 +9,7 @@ dependencies:
   - fastparquet>=0.2.1
   - matplotlib
   - numexpr
-  - numpy=1.14*
+  - numpy=1.15.*
   - openpyxl
   - parquet-cpp
   - pyarrow

@@ -9,7 +9,7 @@ dependencies:
   - ipython
   - jinja2
   - lxml
-  - matplotlib
+  - matplotlib=3.0.1
   - nomkl
   - numexpr
   - numpy
@@ -18,7 +18,7 @@ dependencies:
   - pymysql=0.7.9
   - pytables
   - python-dateutil
-  - python=3.6*
+  - python=3.6.*
   - pytz
   - s3fs
   - scipy

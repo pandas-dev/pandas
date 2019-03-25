@@ -783,12 +783,9 @@ class TestSeriesPlots(TestPlotBase):
             s.plot(yerr=np.arange(11))
 
         s_err = ['zzz'] * 10
-        # MPL > 2.0.0 will most likely use TypeError here
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError):
             s.plot(yerr=s_err)
 
-    # This XPASSES when tested with mpl == 3.0.1
-    @td.xfail_if_mpl_2_2
     def test_table(self):
         _check_plot_works(self.series.plot, table=True)
         _check_plot_works(self.series.plot, table=self.series)

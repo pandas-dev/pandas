@@ -23,7 +23,6 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
-from distutils.version import LooseVersion
 import locale
 
 import pytest
@@ -78,17 +77,6 @@ def _skip_if_no_mpl():
         mod.use("Agg", warn=False)
     else:
         return True
-
-
-def _skip_if_mpl_2_2():
-    mod = safe_import("matplotlib")
-
-    if mod:
-        v = mod.__version__
-        if LooseVersion(v) > LooseVersion('2.1.2'):
-            return True
-        else:
-            mod.use("Agg", warn=False)
 
 
 def _skip_if_has_locale():
@@ -157,9 +145,6 @@ skip_if_np_lt_115 = pytest.mark.skipif(_np_version_under1p15,
                                        reason="NumPy 1.15 or greater required")
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(),
                                  reason="matplotlib is present")
-xfail_if_mpl_2_2 = pytest.mark.xfail(_skip_if_mpl_2_2(),
-                                     reason="matplotlib 2.2",
-                                     strict=False)
 skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
                                    reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(),

@@ -1563,11 +1563,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(axes, xrot=40, yrot=0)
         tm.close()
 
-        if plotting._compat._mpl_ge_2_2_0():
-            kwargs = {"density": True}
-        else:
-            kwargs = {"normed": True}
-        ax = series.plot.hist(cumulative=True, bins=4, **kwargs)
+        ax = series.plot.hist(cumulative=True, bins=4, density=True)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
@@ -2569,8 +2565,6 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
 
-    # This XPASSES when tested with mpl == 3.0.1
-    @td.xfail_if_mpl_2_2
     def test_table(self):
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))

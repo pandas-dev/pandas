@@ -7,7 +7,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p13
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -1019,26 +1018,13 @@ def test_use_bottleneck():
     (np.nanmedian, 2.5),
     (np.min, 1),
     (np.max, 4),
+    (np.nanmin, 1),
+    (np.nanmax, 4)
 ])
 def test_numpy_ops(numpy_op, expected):
     # GH8383
     result = numpy_op(pd.Series([1, 2, 3, 4]))
     assert result == expected
-
-
-@pytest.mark.parametrize("numpy_op, expected", [
-    (np.nanmin, 1),
-    (np.nanmax, 4),
-])
-def test_numpy_ops_np_version_under1p13(numpy_op, expected):
-    # GH8383
-    result = numpy_op(pd.Series([1, 2, 3, 4]))
-    if _np_version_under1p13:
-        # bug for numpy < 1.13, where result is a series, should be a scalar
-        with pytest.raises(ValueError):
-            assert result == expected
-    else:
-        assert result == expected
 
 
 @pytest.mark.parametrize("operation", [
