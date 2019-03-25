@@ -8,6 +8,11 @@ What's New in 0.25.0 (April XX, 2019)
    Starting with the 0.25.x series of releases, pandas only supports Python 3.5 and higher.
    See :ref:`install.dropping-27` for more details.
 
+.. warning::
+
+   `Panel` has been fully removed. For N-D labeled data structures, please
+   use `xarray <https://xarray.pydata.org/en/stable/>`_
+
 {{ header }}
 
 These are the changes in pandas 0.25.0. See :ref:`release` for a full changelog
@@ -19,6 +24,7 @@ including other versions of pandas.
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Added support for ISO week year format ('%G-%V-%u') when parsing datetimes using :meth: `to_datetime` (:issue:`16607`)
 - Indexing of ``DataFrame`` and ``Series`` now accepts zerodim ``np.ndarray`` (:issue:`24919`)
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
 - :meth:`DataFrame.at_time` and :meth:`Series.at_time` now support :meth:`datetime.time` objects with timezones (:issue:`24043`)
@@ -27,6 +33,8 @@ Other Enhancements
 - :meth:`DatetimeIndex.union` now supports the ``sort`` argument. The behaviour of the sort parameter matches that of :meth:`Index.union` (:issue:`24994`)
 - :meth:`DataFrame.rename` now supports the ``errors`` argument to raise errors when attempting to rename nonexistent keys (:issue:`13473`)
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
+- :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
+- :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -65,17 +73,68 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
     df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
     df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
+Concatenating Sparse Values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When passed DataFrames whose values are sparse, :func:`concat` will now return a
+Series or DataFrame with sparse values, rather than a ``SparseDataFrame`` (:issue:`25702`).
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
+
+*Previous Behavior:*
+
+.. code-block:: ipython
+
+   In [2]: type(pd.concat([df, df]))
+   pandas.core.sparse.frame.SparseDataFrame
+
+*New Behavior:*
+
+.. ipython:: python
+
+   type(pd.concat([df, df]))
+
+
+This now matches the existing behavior of :class:`concat` on ``Series`` with sparse values.
+:func:`concat` will continue to return a ``SparseDataFrame`` when all the values
+are instances of ``SparseDataFrame``.
+
+This change also affects routines using :func:`concat` internally, like :func:`get_dummies`,
+which now returns a :class:`DataFrame` in all cases (previously a ``SparseDataFrame`` was
+returned if all the columns were dummy encoded, and a :class:`DataFrame` otherwise).
+
+Providing any ``SparseSeries`` or ``SparseDataFrame`` to :func:`concat` will
+cause a ``SparseSeries`` or ``SparseDataFrame`` to be returned, as before.
+
+
 .. _whatsnew_0250.api_breaking.deps:
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`23519`).
+Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions.
+Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`24942`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
 | Package         | Minimum Version | Required |
 +=================+=================+==========+
+| beautifulsoup4  | 4.4.1           |          |
++-----------------+-----------------+----------+
+| openpyxl        | 2.4.0           |          |
++-----------------+-----------------+----------+
+| pymysql         | 0.7.9           |          |
++-----------------+-----------------+----------+
+| pytz            | 2015.4          |          |
++-----------------+-----------------+----------+
+| sqlalchemy      | 1.1.4           |          |
++-----------------+-----------------+----------+
+| xlsxwriter      | 0.7.7           |          |
++-----------------+-----------------+----------+
+| xlwt            | 1.0.0           |          |
++-----------------+-----------------+----------+
 | pytest (dev)    | 4.0.2           |          |
 +-----------------+-----------------+----------+
 
@@ -116,15 +175,14 @@ Performance Improvements
 - Improved performance of :meth:`Series.searchsorted`. The speedup is especially large when the dtype is
   int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
-
+- Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
+- Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
 
 .. _whatsnew_0250.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
-- Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
-- Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
-- Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
+
 
 Categorical
 ^^^^^^^^^^^
@@ -136,6 +194,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 
+- Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
 -
 -
 -
@@ -150,16 +209,20 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
+- Bug in :func:`DatetimeIndex.to_frame` where timezone aware data would be converted to timezone naive data (:issue:`25809`)
 - Bug in :func:`to_datetime` with ``utc=True`` and datetime strings that would apply previously parsed UTC offsets to subsequent arguments (:issue:`24992`)
 - Bug in :func:`Timestamp.tz_localize` and :func:`Timestamp.tz_convert` does not propagate ``freq`` (:issue:`25241`)
 - Bug in :func:`Series.at` where setting :class:`Timestamp` with timezone raises ``TypeError`` (:issue:`25506`)
+- Bug in :func:`DataFrame.update` when updating with timezone aware data would return timezone naive data (:issue:`25807`)
 
 Numeric
 ^^^^^^^
 
 - Bug in :meth:`to_numeric` in which large negative numbers were being improperly handled (:issue:`24910`)
 - Bug in :meth:`to_numeric` in which numbers were being coerced to float, even though ``errors`` was not ``coerce`` (:issue:`24910`)
--
+- Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
+- Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
+- Raises a helpful exception when a non-numeric index is sent to :meth:`interpolate` with methods which require numeric index. (:issue:`21662`)
 -
 -
 
@@ -182,7 +245,7 @@ Strings
 Interval
 ^^^^^^^^
 
--
+- Construction of :class:`Interval` is restricted to numeric, :class:`Timestamp` and :class:`Timedelta` endpoints (:issue:`23013`)
 -
 -
 
@@ -219,13 +282,15 @@ I/O
 - Bug in :func:`json_normalize` for ``errors='ignore'`` where missing values in the input data, were filled in resulting ``DataFrame`` with the string "nan" instead of ``numpy.nan`` (:issue:`25468`)
 - :meth:`DataFrame.to_html` now raises ``TypeError`` when using an invalid type for the ``classes`` parameter instead of ``AsseertionError`` (:issue:`25608`)
 - Bug in :meth:`DataFrame.to_string` and :meth:`DataFrame.to_latex` that would lead to incorrect output when the ``header`` keyword is used (:issue:`16718`)
--
+- Bug in :func:`read_csv` not properly interpreting the UTF8 encoded filenames on Windows on Python 3.6+ (:issue:`15086`)
+- Improved performance in :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` when converting columns that have missing values (:issue:`25772`)
 
 
 Plotting
 ^^^^^^^^
 
 - Fixed bug where :class:`api.extensions.ExtensionArray` could not be used in matplotlib plotting (:issue:`25587`)
+- Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
 -
 -
 -
@@ -237,6 +302,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.nunique` in which the names of column levels were lost (:issue:`23222`)
 - Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying a aggregation function to timezone aware data (:issue:`23683`)
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
+- Ensured that ordering of outputs in ``groupby`` aggregation functions is consistent across all versions of Python (:issue:`25692`)
 
 
 Reshaping

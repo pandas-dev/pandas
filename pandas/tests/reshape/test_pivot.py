@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import product, range
+from pandas.compat import product
 
 import pandas as pd
 from pandas import (
@@ -1224,7 +1224,7 @@ class TestPivotTable(object):
 
     def test_pivot_margins_name_unicode(self):
         # issue #13292
-        greek = u'\u0394\u03bf\u03ba\u03b9\u03bc\u03ae'
+        greek = '\u0394\u03bf\u03ba\u03b9\u03bc\u03ae'
         frame = pd.DataFrame({'foo': [1, 2, 3]})
         table = pd.pivot_table(frame, index=['foo'], aggfunc=len, margins=True,
                                margins_name=greek)

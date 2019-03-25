@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import is_integer_dtype, is_list_like
 import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, PeriodIndex, Series, TimedeltaIndex,
-    bdate_range, compat, date_range, period_range, timedelta_range)
+    bdate_range, date_range, period_range, timedelta_range)
 from pandas.core.arrays import PeriodArray
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -353,9 +353,8 @@ class TestSeriesDatetimeValues():
         expected = Series([month.capitalize() for month in expected_months])
 
         # work around https://github.com/pandas-dev/pandas/issues/22342
-        if not compat.PY2:
-            result = result.str.normalize("NFD")
-            expected = expected.str.normalize("NFD")
+        result = result.str.normalize("NFD")
+        expected = expected.str.normalize("NFD")
 
         tm.assert_series_equal(result, expected)
 
@@ -363,9 +362,8 @@ class TestSeriesDatetimeValues():
             result = s_date.month_name(locale=time_locale)
             expected = expected.capitalize()
 
-            if not compat.PY2:
-                result = unicodedata.normalize("NFD", result)
-                expected = unicodedata.normalize("NFD", expected)
+            result = unicodedata.normalize("NFD", result)
+            expected = unicodedata.normalize("NFD", expected)
 
             assert result == expected
 

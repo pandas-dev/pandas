@@ -11,7 +11,7 @@ from multiprocessing.pool import ThreadPool
 
 import numpy as np
 
-from pandas.compat import BytesIO, range
+from pandas.compat import BytesIO
 
 import pandas as pd
 from pandas import DataFrame

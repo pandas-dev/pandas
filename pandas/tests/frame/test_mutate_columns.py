@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 import pytest
 
-from pandas.compat import PY36, lrange, range
+from pandas.compat import PY36, lrange
 
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas.util.testing as tm

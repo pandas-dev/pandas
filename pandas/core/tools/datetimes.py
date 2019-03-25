@@ -8,7 +8,6 @@ from pandas._libs.tslibs import Timestamp, conversion, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError, _format_is_iso, _guess_datetime_format, parse_time_string)
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas.compat import zip
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -455,6 +454,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
         all the way up to nanoseconds.
+        See strftime documentation for more information on choices:
+        https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
     exact : boolean, True by default
 
         - If True, require an exact format match.

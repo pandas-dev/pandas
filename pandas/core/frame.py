@@ -19,9 +19,12 @@ import itertools
 import sys
 import warnings
 from textwrap import dedent
+from typing import List, Union
 
 import numpy as np
 import numpy.ma as ma
+
+from pandas._config import get_option
 
 from pandas._libs import lib, algos as libalgos
 
@@ -32,9 +35,9 @@ from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
 from pandas import compat
-from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
-                           PY36, raise_with_traceback, Iterator,
-                           string_and_binary_types)
+from pandas.compat import (
+    PY36, Iterator, StringIO, lmap, lzip, raise_with_traceback,
+    string_and_binary_types)
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
     maybe_upcast,
@@ -83,7 +86,6 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin as DatetimeLikeArray
 )
-from pandas.core.config import get_option
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
                                ensure_index_from_sequences)
@@ -369,6 +371,7 @@ class DataFrame(NDFrame):
 
     @property
     def _constructor_expanddim(self):
+        # TODO: Raise NotImplementedError or change note in extending.rst
         from pandas.core.panel import Panel
         return Panel
 
@@ -618,7 +621,7 @@ class DataFrame(NDFrame):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        buf = StringIO(u(""))
+        buf = StringIO("")
         if self._info_repr():
             self.info(buf=buf)
             return buf.getvalue()
@@ -642,7 +645,7 @@ class DataFrame(NDFrame):
         Mainly for IPython notebook.
         """
         if self._info_repr():
-            buf = StringIO(u(""))
+            buf = StringIO("")
             self.info(buf=buf)
             # need to escape the <class>, should be the first line.
             val = buf.getvalue().replace('<', r'&lt;', 1)
@@ -2468,8 +2471,8 @@ class DataFrame(NDFrame):
         ----------
         index : bool, default True
             Specifies whether to include the memory usage of the DataFrame's
-            index in returned Series. If ``index=True`` the memory usage of the
-            index the first item in the output.
+            index in returned Series. If ``index=True``, the memory usage of
+            the index is the first item in the output.
         deep : bool, default False
             If True, introspect the data deeply by interrogating
             `object` dtypes for system-level memory consumption, and include
@@ -2966,6 +2969,15 @@ class DataFrame(NDFrame):
             The query string to evaluate.  You can refer to variables
             in the environment by prefixing them with an '@' character like
             ``@a + b``.
+
+            .. versionadded:: 0.25.0
+
+            You can refer to column names that contain spaces by surrounding
+            them in backticks.
+
+            For example, if one of your columns is called ``a a`` and you want
+            to sum it with ``b``, your query should be ```a a` + b``.
+
         inplace : bool
             Whether the query should modify the data in place or return
             a modified copy.
@@ -3024,23 +3036,37 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': range(1, 6), 'B': range(10, 0, -2)})
+        >>> df = pd.DataFrame({'A': range(1, 6),
+        ...                    'B': range(10, 0, -2),
+        ...                    'C C': range(10, 5, -1)})
         >>> df
-           A   B
-        0  1  10
-        1  2   8
-        2  3   6
-        3  4   4
-        4  5   2
+           A   B  C C
+        0  1  10   10
+        1  2   8    9
+        2  3   6    8
+        3  4   4    7
+        4  5   2    6
         >>> df.query('A > B')
-           A  B
-        4  5  2
+           A  B  C C
+        4  5  2    6
 
         The previous expression is equivalent to
 
         >>> df[df.A > df.B]
-           A  B
-        4  5  2
+           A  B  C C
+        4  5  2    6
+
+        For columns with spaces in their name, you can use backtick quoting.
+
+        >>> df.query('B == `C C`')
+           A   B  C C
+        0  1  10   10
+
+        The previous expression is equivalent to
+
+        >>> df[df.B == df['C C']]
+           A   B  C C
+        0  1  10   10
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(expr, compat.string_types):
@@ -3159,7 +3185,9 @@ class DataFrame(NDFrame):
         kwargs['level'] = kwargs.pop('level', 0) + 1
         if resolvers is None:
             index_resolvers = self._get_index_resolvers()
-            resolvers = dict(self.iteritems()), index_resolvers
+            column_resolvers = \
+                self._get_space_character_free_column_resolvers()
+            resolvers = column_resolvers, index_resolvers
         if 'target' not in kwargs:
             kwargs['target'] = self
         kwargs['resolvers'] = kwargs.get('resolvers', ()) + tuple(resolvers)
@@ -5519,8 +5547,8 @@ class DataFrame(NDFrame):
         other = other.reindex_like(self)
 
         for col in self.columns:
-            this = self[col].values
-            that = other[col].values
+            this = self[col]._values
+            that = other[col]._values
             if filter_func is not None:
                 with np.errstate(all='ignore'):
                     mask = ~filter_func(this) | isna(that)
@@ -7021,8 +7049,9 @@ class DataFrame(NDFrame):
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
             * callable: callable with input two 1d ndarrays
-                and returning a float
-
+                and returning a float. Note that the returned matrix from corr
+                will have 1 along the diagonals and will be symmetric
+                regardless of the callable's behavior
                 .. versionadded:: 0.24.0
 
         min_periods : int, optional
@@ -8034,4 +8063,4 @@ def _from_nested_dict(data):
 
 
 def _put_str(s, space):
-    return u'{s}'.format(s=s)[:space].ljust(space)
+    return '{s}'.format(s=s)[:space].ljust(space)

@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import NaT, iNaT
-import pandas.compat as compat
 
 import pandas as pd
 from pandas import (
@@ -240,8 +239,8 @@ class TestTimedeltas(object):
 
     def test_fields(self):
         def check(value):
-            # that we are int/long like
-            assert isinstance(value, (int, compat.long))
+            # that we are int
+            assert isinstance(value, int)
 
         # compat to datetime.timedelta
         rng = to_timedelta('1 days, 10:11:12')
@@ -386,7 +385,6 @@ class TestTimedeltas(object):
             result = Timedelta('2{}'.format(unit))
             assert result == expected
 
-    @pytest.mark.skipif(compat.PY2, reason="requires python3.5 or higher")
     @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
     def test_unit_m_y_deprecated(self, unit):
         with tm.assert_produces_warning(FutureWarning) as w1:

@@ -7,7 +7,6 @@ import numpy as np
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 import pandas.compat as compat
-from pandas.compat import range, zip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
@@ -1243,7 +1242,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if missing:
             if missing == len(indexer):
                 raise KeyError(
-                    u"None of [{key}] are in the [{axis}]".format(
+                    "None of [{key}] are in the [{axis}]".format(
                         key=key, axis=self.obj._get_axis_name(axis)))
 
             # We (temporarily) allow for some missing keys with .loc, except in
