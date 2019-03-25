@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, iNaT, lib
+from pandas._libs.algos import unique_deltas
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
@@ -591,7 +592,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         # GH 3232: If the concat result is evenly spaced, we can retain the
         # original frequency
-        is_diff_evenly_spaced = len(np.unique(np.diff(new_data))) == 1
+        is_diff_evenly_spaced = len(unique_deltas(new_data)) == 1
         if not is_period_dtype(self) and not is_diff_evenly_spaced:
             # reset freq
             attribs['freq'] = None
