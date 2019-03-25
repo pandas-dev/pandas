@@ -22,7 +22,7 @@ from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
     is_categorical_dtype, is_datetime64_dtype, is_datetimelike, is_dict_like,
     is_extension_array_dtype, is_extension_type, is_hashable, is_integer,
-    is_iterator, is_list_like, is_scalar, is_string_like, is_timedelta64_dtype)
+    is_iterator, is_list_like, is_scalar, is_sparse, is_string_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeArray, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries)
@@ -2643,6 +2643,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             new_name = self.name
 
         if is_categorical_dtype(self.values):
+            pass
+        elif is_bool(new_values[0]) and not is_sparse(self.values):
             pass
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
