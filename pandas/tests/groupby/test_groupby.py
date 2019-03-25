@@ -8,7 +8,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, lzip, map, range, zip
+from pandas.compat import StringIO, lmap, lrange, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -770,7 +770,7 @@ def test_empty_groups_corner(mframe):
 
 def test_nonsense_func():
     df = DataFrame([0])
-    msg = r"unsupported operand type\(s\) for \+: '(int|long)' and 'str'"
+    msg = r"unsupported operand type\(s\) for \+: 'int' and 'str'"
     with pytest.raises(TypeError, match=msg):
         df.groupby(lambda x: x + 'foo')
 

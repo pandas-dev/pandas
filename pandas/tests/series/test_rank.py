@@ -9,7 +9,7 @@ import pytest
 from pandas._libs.algos import Infinity, NegInfinity
 from pandas._libs.tslib import iNaT
 import pandas.compat as compat
-from pandas.compat import PY2, product
+from pandas.compat import product
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Series, Timestamp, date_range
@@ -203,7 +203,6 @@ class TestSeriesRank(TestData):
         assert_series_equal(na_ser.rank(na_option='bottom', pct=True), exp_bot)
         assert_series_equal(na_ser.rank(na_option='keep', pct=True), exp_keep)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method='average')

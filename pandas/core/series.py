@@ -9,9 +9,11 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import iNaT, index as libindex, lib, tslibs
 import pandas.compat as compat
-from pandas.compat import PY36, StringIO, u, zip
+from pandas.compat import PY36, StringIO
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg
@@ -33,7 +35,6 @@ from pandas.core.arrays import ExtensionArray, SparseArray
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.index import (
     Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index)
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
@@ -1379,7 +1380,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        buf = StringIO(u(""))
+        buf = StringIO("")
         width, height = get_terminal_size()
         max_rows = (height if get_option("display.max_rows") == 0 else
                     get_option("display.max_rows"))
@@ -2527,6 +2528,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         Series
         """
+
         if not isinstance(other, Series):
             raise AssertionError('Other operand must be Series')
 
@@ -2543,13 +2545,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         with np.errstate(all='ignore'):
             result = func(this_vals, other_vals)
+
         name = ops.get_op_result_name(self, other)
-        result = self._constructor(result, index=new_index, name=name)
-        result = result.__finalize__(self)
-        if name is None:
-            # When name is None, __finalize__ overwrites current name
-            result.name = None
-        return result
+        if func.__name__ in ['divmod', 'rdivmod']:
+            ret = ops._construct_divmod_result(self, result, new_index, name)
+        else:
+            ret = ops._construct_result(self, result, new_index, name)
+        return ret
 
     def combine(self, other, func, fill_value=None):
         """
