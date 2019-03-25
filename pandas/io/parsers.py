@@ -1902,6 +1902,7 @@ class CParserWrapper(ParserBase):
                 _validate_usecols_names(usecols, self.orig_names)
 
             # GH 25623
+            # validate that column indices in usecols are not out of bounds
             elif self.usecols_dtype == 'integer':
                 indices = lrange(self._reader.table_width)
                 _validate_usecols_names(usecols, indices)
@@ -2604,6 +2605,7 @@ class PythonParser(ParserBase):
                 self._clear_buffer()
 
             # GH 25623
+            # validate that column indices in usecols are not out of bounds
             if self.usecols_dtype == 'integer':
                 for col in columns:
                     indices = lrange(len(col))
@@ -2644,7 +2646,8 @@ class PythonParser(ParserBase):
             ncols = len(line)
             num_original_columns = ncols
 
-            # GH25623
+            # GH 25623
+            # validate that column indices in usecols are not out of bounds
             if self.usecols_dtype == 'integer':
                 _validate_usecols_names(self.usecols, lrange(ncols))
 

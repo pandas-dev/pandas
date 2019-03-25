@@ -28,6 +28,7 @@ _msg_validate_usecols_names = ("Usecols do not match columns, columns "
     (["a"], [3], r"\[3\]")
 ])
 def test_usecols_out_of_bounds(all_parsers, names, usecols, missing):
+    # See gh-25623
     data = "a,b,c\n1,2,3\n4,5,6"
     parser = all_parsers
 
