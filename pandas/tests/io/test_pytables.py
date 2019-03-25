@@ -1229,7 +1229,8 @@ class TestHDFStore(Base):
             df = pd.DataFrame({'a': range(2), 'b': range(2)})
             df.to_hdf(path, 'k1')
 
-            pytest.raises(KeyError, pd.read_hdf, path, 'k2')
+            with pytest.raises(KeyError):
+                pd.read_hdf(path, 'k2')
 
             df.to_hdf(path, 'k2')
 
