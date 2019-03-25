@@ -44,8 +44,6 @@ import sys
 
 import numpy as np
 
-from pandas.compat import u
-
 import pandas
 from pandas import (
     Categorical, DataFrame, Index, MultiIndex, NaT, Period, Series,
@@ -254,7 +252,7 @@ def create_pickle_data():
 
 
 def _u(x):
-    return {u(k): _u(x[k]) for k in x} if isinstance(x, dict) else x
+    return {k: _u(x[k]) for k in x} if isinstance(x, dict) else x
 
 
 def create_msgpack_data():
@@ -290,7 +288,7 @@ def write_legacy_pickles(output_dir):
 
     # make sure we are < 0.13 compat (in py3)
     try:
-        from pandas.compat import zip, cPickle as pickle  # noqa
+        from pandas.compat import cPickle as pickle  # noqa
     except ImportError:
         import pickle
 

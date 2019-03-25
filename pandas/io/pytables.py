@@ -15,9 +15,11 @@ import warnings
 
 import numpy as np
 
+from pandas._config import config, get_option
+
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas.compat import PY3, filter, lrange, range, string_types
+from pandas.compat import PY3, lrange, string_types
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -29,13 +31,11 @@ from pandas import (
     DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, PeriodIndex,
     Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat, concat,
     isna, to_datetime)
-from pandas.core import config
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.core.computation.pytables import Expr, maybe_expression
-from pandas.core.config import get_option
 from pandas.core.index import ensure_index
 from pandas.core.internals import BlockManager, _block_shape, make_block
 
@@ -351,7 +351,7 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
             exists = False
 
         if not exists:
-            raise compat.FileNotFoundError(
+            raise FileNotFoundError(
                 'File {path} does not exist'.format(path=path_or_buf))
 
         store = HDFStore(path_or_buf, mode=mode, **kwargs)

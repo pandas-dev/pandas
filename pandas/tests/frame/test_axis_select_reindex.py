@@ -7,7 +7,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange, lzip, u
+from pandas.compat import lrange, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -848,7 +848,7 @@ class TestDataFrameSelectReindex(TestData):
         assert 'foo' in filtered
 
         # unicode columns, won't ascii-encode
-        df = self.frame.rename(columns={'B': u('\u2202')})
+        df = self.frame.rename(columns={'B': '\u2202'})
         filtered = df.filter(like='C')
         assert 'C' in filtered
 
@@ -1051,7 +1051,6 @@ class TestDataFrameSelectReindex(TestData):
         smaller = self.intframe.reindex(columns=['A', 'B', 'E'])
         assert smaller['E'].dtype == np.float64
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_reindex_axis(self):
         cols = ['A', 'B', 'E']
         with tm.assert_produces_warning(FutureWarning) as m:

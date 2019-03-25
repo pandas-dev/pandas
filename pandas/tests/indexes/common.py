@@ -5,7 +5,6 @@ import pytest
 
 from pandas._libs.tslib import iNaT
 import pandas.compat as compat
-from pandas.compat import PY3
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -85,6 +84,14 @@ class Base(object):
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
 
+    def test_to_frame_datetime_tz(self):
+        # GH 25809
+        idx = pd.date_range(start='2019-01-01', end='2019-01-30', freq='D')
+        idx = idx.tz_localize('UTC')
+        result = idx.to_frame()
+        expected = pd.DataFrame(idx, index=idx)
+        tm.assert_frame_equal(result, expected)
+
     def test_shift(self):
 
         # GH8083 test the base class for shift
@@ -133,8 +140,7 @@ class Base(object):
         with pytest.raises(TypeError, match="cannot perform __rmul__"):
             1 * idx
 
-        div_err = ("cannot perform __truediv__" if PY3
-                   else "cannot perform __div__")
+        div_err = "cannot perform __truediv__"
         with pytest.raises(TypeError, match=div_err):
             idx / 1
 

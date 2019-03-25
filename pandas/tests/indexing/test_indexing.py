@@ -10,7 +10,7 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
@@ -214,8 +214,6 @@ class TestFancy(Base):
             result = df.loc[['A', 'A', 'E']]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(PY2,
-                        reason="GH-20770. Py2 unreliable warnings catching.")
     def test_dups_fancy_indexing2(self):
         # GH 5835
         # dups on index and missing values

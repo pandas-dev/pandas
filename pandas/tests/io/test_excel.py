@@ -10,12 +10,11 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY36, BytesIO, iteritems, map, range, u
+from pandas.compat import PY36, BytesIO, iteritems
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.core.config import get_option, set_option
+from pandas import DataFrame, Index, MultiIndex, Series, get_option, set_option
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 
@@ -1707,7 +1706,7 @@ class TestExcelWriter(_WriterBase):
             tm.assert_frame_equal(result, df)
 
     def test_to_excel_unicode_filename(self, merge_cells, engine, ext):
-        with ensure_clean(u("\u0192u.") + ext) as filename:
+        with ensure_clean("\u0192u." + ext) as filename:
             try:
                 f = open(filename, "wb")
             except UnicodeEncodeError:

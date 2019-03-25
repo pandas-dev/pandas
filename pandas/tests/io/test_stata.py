@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import PY3, ResourceWarning, iterkeys
+from pandas.compat import iterkeys
 
 from pandas.core.dtypes.common import is_categorical_dtype
 
@@ -383,7 +383,7 @@ class TestStata(object):
 
     def test_read_write_dta11(self):
         original = DataFrame([(1, 2, 3, 4)],
-                             columns=['good', compat.u('b\u00E4d'), '8number',
+                             columns=['good', 'b\u00E4d', '8number',
                                       'astringwithmorethan32characters______'])
         formatted = DataFrame([(1, 2, 3, 4)],
                               columns=['good', 'b_d', '_8number',
@@ -1311,7 +1311,7 @@ class TestStata(object):
     def test_repeated_column_labels(self):
         # GH 13923
         msg = (r"Value labels for column ethnicsn are not unique\. The"
-               r" repeated labels are:\n\n-+wolof")
+               r" repeated labels are:\n-+\nwolof")
         with pytest.raises(ValueError, match=msg):
             read_stata(self.dta23, convert_categoricals=True)
 
@@ -1581,13 +1581,12 @@ class TestStata(object):
     def test_invalid_file_not_written(self, version):
         content = 'Here is one __�__ Another one __·__ Another one __½__'
         df = DataFrame([content], columns=['invalid'])
-        expected_exc = UnicodeEncodeError if PY3 else UnicodeDecodeError
         with tm.ensure_clean() as path:
             msg1 = (r"'latin-1' codec can't encode character '\\ufffd'"
                     r" in position 14: ordinal not in range\(256\)")
             msg2 = ("'ascii' codec can't decode byte 0xef in position 14:"
                     r" ordinal not in range\(128\)")
-            with pytest.raises(expected_exc, match=r'{}|{}'.format(
+            with pytest.raises(UnicodeEncodeError, match=r'{}|{}'.format(
                     msg1, msg2)):
                 with tm.assert_produces_warning(ResourceWarning):
                     df.to_stata(path)
@@ -1608,6 +1607,4 @@ class TestStata(object):
                 for gso in gsos.split(b'GSO')[1:]:
                     val = gso.split(b'\x00')[-2]
                     size = gso[gso.find(b'\x82') + 1]
-                    if not PY3:
-                        size = ord(size)
                     assert len(val) == size - 1

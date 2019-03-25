@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
-from pandas.compat import range
 import pandas.util._test_decorators as td
 
 import pandas as pd
