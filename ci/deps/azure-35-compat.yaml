@@ -14,7 +14,7 @@ dependencies:
   - pytables=3.4.2
   - python-dateutil=2.5.0
   - python=3.5.*
-  - pytz=2013b
+  - pytz=2015.4
   - scipy=0.19.0
   - xlrd=1.0.0
   - xlsxwriter=0.7.7
