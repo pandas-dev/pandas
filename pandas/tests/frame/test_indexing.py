@@ -2581,11 +2581,9 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(df2, expected)
 
         df['foo'] = 'test'
-        msg = ("boolean setting on mixed-type|"
-               "not supported between|"
-               "unorderable types")
+        msg = "not supported between instances|unorderable types"
+
         with pytest.raises(TypeError, match=msg):
-            # TODO: This message should be the same in PY2/PY3
             df[df > 0.3] = 1
 
     def test_where(self):
