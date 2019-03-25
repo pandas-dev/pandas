@@ -4,8 +4,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import long
-
 from pandas import Timedelta, Timestamp
 import pandas.util.testing as tm
 
@@ -63,7 +61,7 @@ class TestTimestampArithmetic(object):
             stamp - offset_overflow
 
     def test_delta_preserve_nanos(self):
-        val = Timestamp(long(1337299200000000123))
+        val = Timestamp(1337299200000000123)
         result = val + timedelta(1)
         assert result.nanosecond == val.nanosecond
 

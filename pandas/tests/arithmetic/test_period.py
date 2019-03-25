@@ -674,7 +674,7 @@ class TestPeriodIndexArithmetic(object):
     def test_pi_sub_isub_int(self, one):
         """
         PeriodIndex.__sub__ and __isub__ with several representations of
-        the integer 1, e.g. int, long, np.int64, np.uint8, ...
+        the integer 1, e.g. int, np.int64, np.uint8, ...
         """
         rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
         result = rng - one
