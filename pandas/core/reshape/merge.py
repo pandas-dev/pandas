@@ -28,7 +28,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
 from pandas.core.frame import _merge_doc
-from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.internals import (
     concatenate_block_managers, items_overlap_with_suffix)
 import pandas.core.sorting as sorting
@@ -809,28 +808,16 @@ class _MergeOperation(object):
                 not isinstance(other_index, MultiIndex)):
             # if final index requires values in other_index but not target
             # index, indexer may hold missing (-1) values, causing Index.take
-            # to take the final value in target index
+            # to take the final value in target index. So, we set the last
+            # element to be the desired fill value. We do not use allow_fill
+            # and fill_value because it throws a ValueError on integer indices
             mask = indexer == -1
             if np.any(mask):
-                # if values missing (-1) from target index, replace missing
-                # values by their column position or NA if not applicable
-                if is_numeric_dtype(index.dtype):
-                    join_index = index.take(indexer)
-                    join_list = join_index.to_numpy()
-                    naive_index = np.arange(len(other_index))
-                    other_list = naive_index.take(other_indexer)
-                    join_list[mask] = other_list[mask]
-                    join_index = Index(join_list, name=other_index.name)
-                elif is_categorical_dtype(index.dtype):
-                    join_index = index.take(indexer)
-                    codes = np.array(join_index.codes) + 1
-                    codes[mask] = -1
-                    join_index = CategoricalIndex(codes, index.categories)
+                if is_integer_dtype(index.dtype):
+                    fill_value = np.nan
                 else:
                     fill_value = na_value_for_dtype(index.dtype)
-                    join_index = index.take(indexer, allow_fill=True,
-                                            fill_value=fill_value)
-                return join_index
+                index = index.append(Index([fill_value]))
         return index.take(indexer)
 
     def _get_merge_keys(self):
