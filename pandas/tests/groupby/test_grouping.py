@@ -5,7 +5,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import long, lrange
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -14,8 +14,7 @@ from pandas import (
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_panel_equal,
-    assert_series_equal)
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 # selection
 # --------------------------------
@@ -397,7 +396,7 @@ class TestGrouping():
         lst = [['count', 'values'], ['to filter', '']]
         midx = MultiIndex.from_tuples(lst)
 
-        df = DataFrame([[long(1), 'A']], columns=midx)
+        df = DataFrame([[1, 'A']], columns=midx)
 
         grouped = df.groupby('to filter').groups
         assert grouped['A'] == [0]
@@ -405,13 +404,13 @@ class TestGrouping():
         grouped = df.groupby([('to filter', '')]).groups
         assert grouped['A'] == [0]
 
-        df = DataFrame([[long(1), 'A'], [long(2), 'B']], columns=midx)
+        df = DataFrame([[1, 'A'], [2, 'B']], columns=midx)
 
         expected = df.groupby('to filter').groups
         result = df.groupby([('to filter', '')]).groups
         assert result == expected
 
-        df = DataFrame([[long(1), 'A'], [long(2), 'A']], columns=midx)
+        df = DataFrame([[1, 'A'], [2, 'A']], columns=midx)
 
         expected = df.groupby('to filter').groups
         result = df.groupby([('to filter', '')]).groups
@@ -563,17 +562,7 @@ class TestGrouping():
 # --------------------------------
 
 class TestGetGroup():
-
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_get_group(self):
-        wp = tm.makePanel()
-        grouped = wp.groupby(lambda x: x.month, axis='major')
-
-        gp = grouped.get_group(1)
-        expected = wp.reindex(
-            major=[x for x in wp.major_axis if x.month == 1])
-        assert_panel_equal(gp, expected)
-
         # GH 5267
         # be datelike friendly
         df = DataFrame({'DATE': pd.to_datetime(
@@ -660,17 +649,17 @@ class TestGetGroup():
         tm.assert_frame_equal(df.groupby('a').nth(1), exp)
 
     def test_gb_key_len_equal_axis_len(self):
-            # GH16843
-            # test ensures that index and column keys are recognized correctly
-            # when number of keys equals axis length of groupby
-            df = pd.DataFrame([['foo', 'bar', 'B', 1],
-                               ['foo', 'bar', 'B', 2],
-                               ['foo', 'baz', 'C', 3]],
-                              columns=['first', 'second', 'third', 'one'])
-            df = df.set_index(['first', 'second'])
-            df = df.groupby(['first', 'second', 'third']).size()
-            assert df.loc[('foo', 'bar', 'B')] == 2
-            assert df.loc[('foo', 'baz', 'C')] == 1
+        # GH16843
+        # test ensures that index and column keys are recognized correctly
+        # when number of keys equals axis length of groupby
+        df = pd.DataFrame([['foo', 'bar', 'B', 1],
+                           ['foo', 'bar', 'B', 2],
+                           ['foo', 'baz', 'C', 3]],
+                          columns=['first', 'second', 'third', 'one'])
+        df = df.set_index(['first', 'second'])
+        df = df.groupby(['first', 'second', 'third']).size()
+        assert df.loc[('foo', 'bar', 'B')] == 2
+        assert df.loc[('foo', 'baz', 'C')] == 1
 
 
 # groups & iteration
@@ -754,19 +743,6 @@ class TestIteration():
         grouped = three_levels.T.groupby(axis=1, level=(1, 2))
         for key, group in grouped:
             pass
-
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_multi_iter_panel(self):
-        wp = tm.makePanel()
-        grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
-                             axis=1)
-
-        for (month, wd), group in grouped:
-            exp_axis = [x
-                        for x in wp.major_axis
-                        if x.month == month and x.weekday() == wd]
-            expected = wp.reindex(major=exp_axis)
-            assert_panel_equal(group, expected)
 
     def test_dictify(self, df):
         dict(iter(df.groupby('A')))

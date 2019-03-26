@@ -743,7 +743,9 @@ class TestEnsureNumeric(object):
 
         # Test non-convertible string ndarray
         s_values = np.array(['foo', 'bar', 'baz'], dtype=object)
-        pytest.raises(ValueError, lambda: nanops._ensure_numeric(s_values))
+        msg = r"could not convert string to float: '(foo|baz)'"
+        with pytest.raises(ValueError, match=msg):
+            nanops._ensure_numeric(s_values)
 
     def test_convertable_values(self):
         assert np.allclose(nanops._ensure_numeric('1'), 1.0)
@@ -751,9 +753,15 @@ class TestEnsureNumeric(object):
         assert np.allclose(nanops._ensure_numeric('1+1j'), 1 + 1j)
 
     def test_non_convertable_values(self):
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric('foo'))
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric({}))
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric([]))
+        msg = "Could not convert foo to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric('foo')
+        msg = "Could not convert {} to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric({})
+        msg = r"Could not convert \[\] to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric([])
 
 
 class TestNanvarFixedValues(object):

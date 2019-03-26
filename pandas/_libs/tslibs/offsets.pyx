@@ -18,6 +18,7 @@ from numpy cimport int64_t
 cnp.import_array()
 
 
+from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport is_string_object, is_integer_object
 
 from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
@@ -408,6 +409,10 @@ class _BaseOffset(object):
         return self.apply(other)
 
     def __mul__(self, other):
+        if hasattr(other, "_typ"):
+            return NotImplemented
+        if util.is_array(other):
+            return np.array([self * x for x in other])
         return type(self)(n=other * self.n, normalize=self.normalize,
                           **self.kwds)
 
@@ -458,6 +463,9 @@ class _BaseOffset(object):
         TypeError if `int(n)` raises
         ValueError if n != int(n)
         """
+        if util.is_timedelta64_object(n):
+            raise TypeError('`n` argument must be an integer, '
+                            'got {ntype}'.format(ntype=type(n)))
         try:
             nint = int(n)
         except (ValueError, TypeError):
@@ -533,12 +541,20 @@ class _Tick(object):
     can do isinstance checks on _Tick and avoid importing tseries.offsets
     """
 
+    # ensure that reversed-ops with numpy scalars return NotImplemented
+    __array_priority__ = 1000
+
     def __truediv__(self, other):
         result = self.delta.__truediv__(other)
         return _wrap_timedelta_result(result)
 
+    def __rtruediv__(self, other):
+        result = self.delta.__rtruediv__(other)
+        return _wrap_timedelta_result(result)
+
     if PY2:
         __div__ = __truediv__
+        __rdiv__ = __rtruediv__
 
 
 # ----------------------------------------------------------------------
@@ -571,7 +587,7 @@ def shift_day(other: datetime, days: int) -> datetime:
 
 cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
     """new year number after shifting npy_datetimestruct number of months"""
-    return dts.year + (dts.month + months - 1) / 12
+    return dts.year + (dts.month + months - 1) // 12
 
 
 cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:

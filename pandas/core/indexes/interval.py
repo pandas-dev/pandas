@@ -4,6 +4,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import Timedelta, Timestamp
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas.compat import add_metaclass
@@ -21,7 +23,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
-from pandas.core.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, _index_shared_docs, default_pprint, ensure_index)
@@ -1093,8 +1094,8 @@ class IntervalIndex(IntervalMixin, Index):
     def overlaps(self, other):
         return self._data.overlaps(other)
 
-    def _setop(op_name):
-        def func(self, other, sort=True):
+    def _setop(op_name, sort=None):
+        def func(self, other, sort=sort):
             other = self._as_like_interval_index(other)
 
             # GH 19016: ensure set op will not return a prohibited dtype
@@ -1128,7 +1129,7 @@ class IntervalIndex(IntervalMixin, Index):
         return False
 
     union = _setop('union')
-    intersection = _setop('intersection')
+    intersection = _setop('intersection', sort=False)
     difference = _setop('difference')
     symmetric_difference = _setop('symmetric_difference')
 

@@ -11,7 +11,7 @@ import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY36, long, lrange, range, zip
+from pandas.compat import PY36, lrange
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64tz_dtype)
@@ -45,9 +45,10 @@ class TestSeriesConstructors():
         # Coercion
         assert float(Series([1.])) == 1.0
         assert int(Series([1.])) == 1
-        assert long(Series([1.])) == 1
 
-    def test_constructor(self, datetime_series, empty_series):
+    def test_constructor(self, datetime_series):
+        empty_series = Series()
+
         assert datetime_series.index.is_all_dates
 
         # Pass in Series
@@ -681,17 +682,44 @@ class TestSeriesConstructors():
         assert s.dtype == 'M8[ns]'
 
         # GH3414 related
-        # msg = (r"cannot astype a datetimelike from \[datetime64\[ns\]\] to"
-        #        r" \[int32\]")
-        # with pytest.raises(TypeError, match=msg):
-        #     Series(Series(dates).astype('int') / 1000000, dtype='M8[ms]')
-        pytest.raises(TypeError, lambda x: Series(
-            Series(dates).astype('int') / 1000000, dtype='M8[ms]'))
+        expected = Series([
+            datetime(2013, 1, 1),
+            datetime(2013, 1, 2),
+            datetime(2013, 1, 3),
+        ], dtype='datetime64[ns]')
 
-        msg = (r"The 'datetime64' dtype has no unit\. Please pass in"
-               r" 'datetime64\[ns\]' instead\.")
-        with pytest.raises(ValueError, match=msg):
-            Series(dates, dtype='datetime64')
+        result = Series(
+            Series(dates).astype(np.int64) / 1000000, dtype='M8[ms]')
+        tm.assert_series_equal(result, expected)
+
+        result = Series(dates, dtype='datetime64[ns]')
+        tm.assert_series_equal(result, expected)
+
+        expected = Series([
+            pd.NaT,
+            datetime(2013, 1, 2),
+            datetime(2013, 1, 3),
+        ], dtype='datetime64[ns]')
+        result = Series([np.nan] + dates[1:], dtype='datetime64[ns]')
+        tm.assert_series_equal(result, expected)
+
+        dts = Series(dates, dtype='datetime64[ns]')
+
+        # valid astype
+        dts.astype('int64')
+
+        # invalid casting
+        msg = (r"cannot astype a datetimelike from \[datetime64\[ns\]\] to"
+               r" \[int32\]")
+        with pytest.raises(TypeError, match=msg):
+            dts.astype('int32')
+
+        # ints are ok
+        # we test with np.int64 to get similar results on
+        # windows / 32-bit platforms
+        result = Series(dts, dtype=np.int64)
+        expected = Series(dts.astype(np.int64))
+        tm.assert_series_equal(result, expected)
 
         # invalid dates can be help as object
         result = Series([datetime(2, 1, 1)])
@@ -1145,7 +1173,7 @@ class TestSeriesConstructors():
         assert_series_equal(result, expected)
 
     def test_constructor_name_hashable(self):
-        for n in [777, 777., 'name', datetime(2001, 11, 11), (1, ), u"\u05D0"]:
+        for n in [777, 777., 'name', datetime(2001, 11, 11), (1, ), "\u05D0"]:
             for data in [[1, 2, 3], np.ones(3), {'a': 0, 'b': 1}]:
                 s = Series(data, name=n)
                 assert s.name == n

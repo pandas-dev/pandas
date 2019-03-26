@@ -6,7 +6,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range, zip
+from pandas.compat import lrange
 
 from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
 import pandas.util.testing as tm
@@ -91,7 +91,7 @@ class TestSeriesAlterAxes(object):
     def test_set_name_attribute(self):
         s = Series([1, 2, 3])
         s2 = Series([1, 2, 3], name='bar')
-        for name in [7, 7., 'name', datetime(2001, 1, 1), (1,), u"\u05D0"]:
+        for name in [7, 7., 'name', datetime(2001, 1, 1), (1,), "\u05D0"]:
             s.name = name
             assert s.name == name
             s2.name = name
@@ -256,6 +256,17 @@ class TestSeriesAlterAxes(object):
         no_return = result.rename_axis('foo', inplace=True)
 
         assert no_return is None
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('kwargs', [{'mapper': None}, {'index': None}, {}])
+    def test_rename_axis_none(self, kwargs):
+        # GH 25034
+        index = Index(list('abc'), name='foo')
+        df = Series([1, 2, 3], index=index)
+
+        result = df.rename_axis(**kwargs)
+        expected_index = index.rename(None) if kwargs else index
+        expected = Series([1, 2, 3], index=expected_index)
         tm.assert_series_equal(result, expected)
 
     def test_set_axis_inplace_axes(self, axis_series):

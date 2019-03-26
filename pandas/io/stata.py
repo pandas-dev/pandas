@@ -23,15 +23,14 @@ import numpy as np
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import (
-    BytesIO, ResourceWarning, lmap, lrange, lzip, range, string_types,
-    text_type, zip)
+from pandas.compat import BytesIO, lmap, lrange, lzip, string_types, text_type
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype)
 
-from pandas import DatetimeIndex, compat, isna, to_datetime, to_timedelta
+from pandas import (
+    DatetimeIndex, compat, concat, isna, to_datetime, to_timedelta)
 from pandas.core.arrays import Categorical
 from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
@@ -100,8 +99,8 @@ DataFrame or StataReader
 
 See Also
 --------
-pandas.io.stata.StataReader : Low-level reader for Stata data files.
-pandas.DataFrame.to_stata: Export Stata data files.
+io.stata.StataReader : Low-level reader for Stata data files.
+DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------
@@ -119,7 +118,7 @@ Read a Stata dta file in 10,000 line chunks:
        _iterator_params)
 
 _data_method_doc = """\
-Reads observations from Stata file, converting them into a dataframe
+Read observations from Stata file, converting them into a dataframe
 
 .. deprecated::
     This is a legacy method.  Use `read` in new code.
@@ -766,9 +765,9 @@ class StataMissingValue(StringMixin):
     bases = (101, 32741, 2147483621)
     for b in bases:
         # Conversion to long to avoid hash issues on 32 bit platforms #8968
-        MISSING_VALUES[compat.long(b)] = '.'
+        MISSING_VALUES[b] = '.'
         for i in range(1, 27):
-            MISSING_VALUES[compat.long(i + b)] = '.' + chr(96 + i)
+            MISSING_VALUES[i + b] = '.' + chr(96 + i)
 
     float32_base = b'\x00\x00\x00\x7f'
     increment = struct.unpack('<i', b'\x00\x08\x00\x00')[0]
@@ -799,8 +798,8 @@ class StataMissingValue(StringMixin):
 
     def __init__(self, value):
         self._value = value
-        # Conversion to long to avoid hash issues on 32 bit platforms #8968
-        value = compat.long(value) if value < 2147483648 else float(value)
+        # Conversion to int to avoid hash issues on 32 bit platforms #8968
+        value = int(value) if value < 2147483648 else float(value)
         self._str = self.MISSING_VALUES[value]
 
     string = property(lambda self: self._str,
@@ -1572,7 +1571,7 @@ class StataReader(StataParser, BaseIterator):
             data = DataFrame.from_dict(OrderedDict(data_formatted))
         del data_formatted
 
-        self._do_convert_missing(data, convert_missing)
+        data = self._do_convert_missing(data, convert_missing)
 
         if convert_dates:
             cols = np.where(lmap(lambda x: any(x.startswith(fmt)
@@ -1616,7 +1615,7 @@ class StataReader(StataParser, BaseIterator):
 
     def _do_convert_missing(self, data, convert_missing):
         # Check for missing values, and replace if found
-
+        replacements = {}
         for i, colname in enumerate(data):
             fmt = self.typlist[i]
             if fmt not in self.VALID_RANGE:
@@ -1646,8 +1645,14 @@ class StataReader(StataParser, BaseIterator):
                     dtype = np.float64
                 replacement = Series(series, dtype=dtype)
                 replacement[missing] = np.nan
-
-            data[colname] = replacement
+            replacements[colname] = replacement
+        if replacements:
+            columns = data.columns
+            replacements = DataFrame(replacements)
+            data = concat([data.drop(replacements.columns, 1),
+                           replacements], 1)
+            data = data[columns]
+        return data
 
     def _insert_strls(self, data):
         if not hasattr(self, 'GSO') or len(self.GSO) == 0:
@@ -1712,7 +1717,7 @@ class StataReader(StataParser, BaseIterator):
                 except ValueError:
                     vc = Series(categories).value_counts()
                     repeats = list(vc.index[vc > 1])
-                    repeats = '\n' + '-' * 80 + '\n'.join(repeats)
+                    repeats = '-' * 80 + '\n' + '\n'.join(repeats)
                     raise ValueError('Value labels for column {col} are not '
                                      'unique. The repeated labels are:\n'
                                      '{repeats}'
@@ -1726,18 +1731,22 @@ class StataReader(StataParser, BaseIterator):
         return data
 
     def data_label(self):
-        """Returns data label of Stata file"""
+        """
+        Return data label of Stata file.
+        """
         return self.data_label
 
     def variable_labels(self):
-        """Returns variable labels as a dict, associating each variable name
-        with corresponding label
+        """
+        Return variable labels as a dict, associating each variable name
+        with corresponding label.
         """
         return dict(zip(self.varlist, self._variable_labels))
 
     def value_labels(self):
-        """Returns a dict, associating each variable name a dict, associating
-        each value its corresponding label
+        """
+        Return a dict, associating each variable name a dict, associating
+        each value its corresponding label.
         """
         if not self._value_labels_read:
             self._read_value_labels()
@@ -1747,7 +1756,7 @@ class StataReader(StataParser, BaseIterator):
 
 def _open_file_binary_write(fname):
     """
-    Open a binary file or no-op if file-like
+    Open a binary file or no-op if file-like.
 
     Parameters
     ----------
@@ -1778,14 +1787,14 @@ def _set_endianness(endianness):
 
 def _pad_bytes(name, length):
     """
-    Takes a char string and pads it with null bytes until it's length chars
+    Take a char string and pads it with null bytes until it's length chars.
     """
     return name + "\x00" * (length - len(name))
 
 
 def _convert_datetime_to_stata_type(fmt):
     """
-    Converts from one of the stata date formats to a type in TYPE_MAP
+    Convert from one of the stata date formats to a type in TYPE_MAP.
     """
     if fmt in ["tc", "%tc", "td", "%td", "tw", "%tw", "tm", "%tm", "tq",
                "%tq", "th", "%th", "ty", "%ty"]:
@@ -1812,7 +1821,7 @@ def _maybe_convert_to_int_keys(convert_dates, varlist):
 
 def _dtype_to_stata_type(dtype, column):
     """
-    Converts dtype types to stata types. Returns the byte of the given ordinal.
+    Convert dtype types to stata types. Returns the byte of the given ordinal.
     See TYPE_MAP and comments for an explanation. This is also explained in
     the dta spec.
     1 - 244 are strings of this length
@@ -1850,7 +1859,7 @@ def _dtype_to_stata_type(dtype, column):
 def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
                                 force_strl=False):
     """
-    Maps numpy dtype to stata's default format for this type. Not terribly
+    Map numpy dtype to stata's default format for this type. Not terribly
     important since users can change this in Stata. Semantics are
 
     object  -> "%DDs" where DD is the length of the string.  If not a string,
@@ -2385,32 +2394,22 @@ class StataWriter(StataParser):
         data = self._convert_strls(data)
 
         # 3. Convert bad string data to '' and pad to correct length
-        dtypes = []
-        data_cols = []
-        has_strings = False
+        dtypes = {}
         native_byteorder = self._byteorder == _set_endianness(sys.byteorder)
         for i, col in enumerate(data):
             typ = typlist[i]
             if typ <= self._max_string_length:
-                has_strings = True
                 data[col] = data[col].fillna('').apply(_pad_bytes, args=(typ,))
                 stype = 'S{type}'.format(type=typ)
-                dtypes.append(('c' + str(i), stype))
-                string = data[col].str.encode(self._encoding)
-                data_cols.append(string.values.astype(stype))
+                dtypes[col] = stype
+                data[col] = data[col].str.encode(self._encoding).astype(stype)
             else:
-                values = data[col].values
                 dtype = data[col].dtype
                 if not native_byteorder:
                     dtype = dtype.newbyteorder(self._byteorder)
-                dtypes.append(('c' + str(i), dtype))
-                data_cols.append(values)
-        dtypes = np.dtype(dtypes)
+                dtypes[col] = dtype
 
-        if has_strings or not native_byteorder:
-            self.data = np.fromiter(zip(*data_cols), dtype=dtypes)
-        else:
-            self.data = data.to_records(index=False)
+        self.data = data.to_records(index=False, column_dtypes=dtypes)
 
     def _write_data(self):
         data = self.data

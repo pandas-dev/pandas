@@ -9,13 +9,12 @@ from numpy.random import randn
 import pytest
 import pytz
 
-from pandas.compat import (
-    StringIO, lrange, lzip, product as cart_product, range, u, zip)
+from pandas.compat import StringIO, lrange, lzip, product as cart_product
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Panel, Series, Timestamp, isna
+from pandas import DataFrame, Series, Timestamp, isna
 from pandas.core.index import Index, MultiIndex
 import pandas.util.testing as tm
 
@@ -818,18 +817,6 @@ Thur,Lunch,Yes,51.51,17"""
         exp = self.frame.swaplevel('first', 'second').T
         tm.assert_frame_equal(swapped, exp)
 
-    def test_swaplevel_panel(self):
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
-            expected = panel.copy()
-            expected.major_axis = expected.major_axis.swaplevel(0, 1)
-
-            for result in (panel.swaplevel(axis='major'),
-                           panel.swaplevel(0, axis='major'),
-                           panel.swaplevel(0, 1, axis='major')):
-                tm.assert_panel_equal(result, expected)
-
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(['month', 'day', 'year'])
         expected = self.ymd.swaplevel(0, 1).swaplevel(1, 2)
@@ -898,8 +885,11 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expect, check_names=False)
         assert result.index.name == 'a'
 
-        pytest.raises(KeyError, series.count, 'x')
-        pytest.raises(KeyError, frame.count, level='x')
+        msg = "Level x not found"
+        with pytest.raises(KeyError, match=msg):
+            series.count('x')
+        with pytest.raises(KeyError, match=msg):
+            frame.count(level='x')
 
     @pytest.mark.parametrize('op', AGG_FUNCTIONS)
     @pytest.mark.parametrize('level', [0, 1])
@@ -1131,7 +1121,8 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
 
-        pytest.raises(KeyError, series.__getitem__, (('foo', 'bar', 0), 2))
+        with pytest.raises(KeyError, match=r"^\(\('foo', 'bar', 0\), 2\)$"):
+            series[('foo', 'bar', 0), 2]
 
         result = frame.loc[('foo', 'bar', 0)]
         result2 = frame.xs(('foo', 'bar', 0))
@@ -1312,7 +1303,7 @@ Thur,Lunch,Yes,51.51,17"""
         assert result.index.names == ('one', 'two')
 
     def test_unicode_repr_issues(self):
-        levels = [Index([u('a/\u03c3'), u('b/\u03c3'), u('c/\u03c3')]),
+        levels = [Index(['a/\u03c3', 'b/\u03c3', 'c/\u03c3']),
                   Index([0, 1])]
         codes = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
         index = MultiIndex(levels=levels, codes=codes)
@@ -1324,7 +1315,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_unicode_repr_level_names(self):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)],
-                                       names=[u('\u0394'), 'i1'])
+                                       names=['\u0394', 'i1'])
 
         s = Series(lrange(2), index=index)
         df = DataFrame(np.random.randn(2, 4), index=index)

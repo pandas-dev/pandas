@@ -275,7 +275,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
                                                    dts.sec)
 
             if show_ns:
-                ns = dts.ps / 1000
+                ns = dts.ps // 1000
                 res += '.%.9d' % (ns + 1000 * dts.us)
             elif show_us:
                 res += '.%.6d' % dts.us
@@ -645,6 +645,8 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                             out_tzoffset_vals.add(out_tzoffset * 60.)
                             tz = pytz.FixedOffset(out_tzoffset)
                             value = tz_convert_single(value, tz, UTC)
+                            out_local = 0
+                            out_tzoffset = 0
                         else:
                             # Add a marker for naive string, to track if we are
                             # parsing mixed naive and aware strings
@@ -668,9 +670,11 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                     # dateutil parser will return incorrect result because
                     # it will ignore nanoseconds
                     if is_raise:
-                        raise ValueError("time data {val} doesn't "
-                                         "match format specified"
-                                         .format(val=val))
+
+                        # Still raise OutOfBoundsDatetime,
+                        # as error message is informative.
+                        raise
+
                     assert is_ignore
                     return values, tz_out
                 raise

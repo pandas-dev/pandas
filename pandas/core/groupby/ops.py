@@ -11,7 +11,7 @@ import collections
 import numpy as np
 
 from pandas._libs import NaT, groupby as libgroupby, iNaT, lib, reduction
-from pandas.compat import lzip, range, zip
+from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -380,7 +380,7 @@ class BaseGrouper(object):
             # otherwise find dtype-specific version, falling back to object
             for dt in [dtype_str, 'object']:
                 f = getattr(libgroupby, "{fname}_{dtype_str}".format(
-                    fname=fname, dtype_str=dtype_str), None)
+                    fname=fname, dtype_str=dt), None)
                 if f is not None:
                     return f
 

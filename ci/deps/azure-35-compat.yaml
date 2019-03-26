@@ -3,24 +3,27 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - beautifulsoup4==4.4.1
   - bottleneck=1.2.0
   - cython=0.28.2
+  - hypothesis>=3.58.0
   - jinja2=2.8
   - numexpr=2.6.1
   - numpy=1.12.0
-  - openpyxl=2.5.5
+  - openpyxl=2.4.0
   - pytables=3.4.2
   - python-dateutil=2.5.0
-  - python=2.7*
-  - pytz=2013b
+  - python=3.5*
+  - pytz=2015.4
   - scipy=0.18.1
   - xlrd=1.0.0
-  - xlsxwriter=0.5.2
-  - xlwt=0.7.5
+  - xlsxwriter=0.7.7
+  - xlwt=1.0.0
   # universal
-  - pytest
   - pytest-xdist
+  - pytest-mock
+  - isort
   - pip:
+    # for python 3.5, pytest>=4.0.2 is not available in conda
+    - pytest>=4.0.2
     - html5lib==1.0b2
-    - beautifulsoup4==4.2.1
-    - hypothesis>=3.58.0

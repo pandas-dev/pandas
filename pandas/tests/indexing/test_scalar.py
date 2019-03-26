@@ -185,6 +185,14 @@ class TestScalar(Base):
         result = df.at[0, 'date']
         assert result == expected
 
+    def test_series_set_tz_timestamp(self, tz_naive_fixture):
+        # GH 25506
+        ts = Timestamp('2017-08-05 00:00:00+0100', tz=tz_naive_fixture)
+        result = Series(ts)
+        result.at[1] = ts
+        expected = Series([ts, ts])
+        tm.assert_series_equal(result, expected)
+
     def test_mixed_index_at_iat_loc_iloc_series(self):
         # GH 19860
         s = Series([1, 2, 3, 4, 5], index=['a', 'b', 'c', 1, 2])
@@ -221,3 +229,16 @@ class TestScalar(Base):
         result.iat[0, 0] = None
         expected = DataFrame({"a": [None, 1], "b": [4, 5]})
         tm.assert_frame_equal(result, expected)
+
+    def test_getitem_zerodim_np_array(self):
+        # GH24924
+        # dataframe __getitem__
+        df = DataFrame([[1, 2], [3, 4]])
+        result = df[np.array(0)]
+        expected = Series([1, 3], name=0)
+        tm.assert_series_equal(result, expected)
+
+        # series __getitem__
+        s = Series([1, 2])
+        result = s[np.array(0)]
+        assert result == 1

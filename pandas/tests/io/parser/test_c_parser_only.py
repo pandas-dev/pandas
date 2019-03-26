@@ -15,7 +15,7 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, BytesIO, StringIO, lrange, range
+from pandas.compat import BytesIO, StringIO, lrange
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -500,17 +500,11 @@ def test_file_like_no_next(c_parser_only):
 
 def test_buffer_rd_bytes_bad_unicode(c_parser_only):
     # see gh-22748
-    parser = c_parser_only
     t = BytesIO(b"\xB0")
-
-    if PY3:
-        msg = "'utf-8' codec can't encode character"
-        t = TextIOWrapper(t, encoding="ascii", errors="surrogateescape")
-    else:
-        msg = "'utf8' codec can't decode byte"
-
+    t = TextIOWrapper(t, encoding="ascii", errors="surrogateescape")
+    msg = "'utf-8' codec can't encode character"
     with pytest.raises(UnicodeError, match=msg):
-        parser.read_csv(t, encoding="UTF-8")
+        c_parser_only.read_csv(t, encoding="UTF-8")
 
 
 @pytest.mark.parametrize("tar_suffix", [".tar", ".tar.gz"])
@@ -572,8 +566,7 @@ def test_file_handles_mmap(c_parser_only, csv1):
         m = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
         parser.read_csv(m)
 
-        if PY3:
-            assert not m.closed
+        assert not m.closed
         m.close()
 
 
