@@ -2245,7 +2245,7 @@ def map_infer(ndarray arr, object f, bint convert=1):
     return result
 
 
-def to_object_array(rows: list, int min_width=0):
+def to_object_array(rows: object, int min_width=0):
     """
     Convert a list of lists into an object array.
 
@@ -2266,20 +2266,22 @@ def to_object_array(rows: list, int min_width=0):
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
+        list input_rows
         list row
 
-    n = len(rows)
+    input_rows = list(rows)
+    n = len(input_rows)
 
     k = min_width
     for i in range(n):
-        tmp = len(rows[i])
+        tmp = len(input_rows[i])
         if tmp > k:
             k = tmp
 
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = list(rows[i])
+        row = list(input_rows[i])
 
         for j in range(len(row)):
             result[i, j] = row[j]
@@ -2304,7 +2306,7 @@ def tuples_to_object_array(ndarray[object] tuples):
     return result
 
 
-def to_object_array_tuples(rows: list):
+def to_object_array_tuples(rows: object):
     """
     Convert a list of tuples into an object array. Any subclass of
     tuple in `rows` will be casted to tuple.
@@ -2326,13 +2328,15 @@ def to_object_array_tuples(rows: list):
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
+        list input_rows
         tuple row
 
-    n = len(rows)
+    input_rows = list(rows)
+    n = len(input_rows)
 
     k = 0
     for i in range(n):
-        tmp = 1 if checknull(rows[i]) else len(rows[i])
+        tmp = 1 if checknull(input_rows[i]) else len(input_rows[i])
         if tmp > k:
             k = tmp
 
@@ -2340,13 +2344,16 @@ def to_object_array_tuples(rows: list):
 
     try:
         for i in range(n):
-            row = rows[i]
+            row = input_rows[i]
             for j in range(len(row)):
                 result[i, j] = row[j]
     except Exception:
         # upcast any subclasses to tuple
         for i in range(n):
-            row = (rows[i],) if checknull(rows[i]) else tuple(rows[i])
+            if (checknull(input_rows[i])):
+                row = (input_rows[i],)
+            else:
+                row = tuple(input_rows[i])
             for j in range(len(row)):
                 result[i, j] = row[j]
 
