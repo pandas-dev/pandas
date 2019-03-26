@@ -943,7 +943,6 @@ _TYPE_MAP = {
     'c': 'complex',
     'string': 'bytes',
     'S': 'bytes',
-    'unicode': 'string',
     'U': 'string',
     'bool': 'boolean',
     'b': 'boolean',
