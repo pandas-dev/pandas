@@ -615,16 +615,16 @@ def test_to_integer_array_float():
 
 
 @pytest.mark.parametrize(
-    'bool_values, int_values, result_dtype',
-    [([False, True], [0, 1], Int64Dtype()),
-     ([False, True], [0, 1], 'Int64'),
-     ([False, True, np.nan], [0, 1, np.nan], Int64Dtype()),
-     ([False, True], [0, 1], None),
-     ([False, True, np.nan], [0, 1, np.nan], None)])
-def test_to_integer_array_bool(bool_values, int_values, result_dtype):
-    result = integer_array(bool_values, dtype=result_dtype)
-    assert result.dtype == result_dtype
-    expected = integer_array(int_values, dtype=result_dtype)
+    'bool_values, int_values, target_dtype, expected_dtype',
+    [([False, True], [0, 1], Int64Dtype(), Int64Dtype()),
+     ([False, True], [0, 1], 'Int64', Int64Dtype()),
+     ([False, True, np.nan], [0, 1, np.nan], Int64Dtype(), Int64Dtype()),
+     ([False, True], [0, 1], None, Int64Dtype()),
+     ([False, True, np.nan], [0, 1, np.nan], None, Int64Dtype())])
+def test_to_integer_array_bool(bool_values, int_values, target_dtype, expected_dtype):
+    result = integer_array(bool_values, dtype=target_dtype)
+    assert result.dtype == expected_dtype
+    expected = integer_array(int_values, dtype=target_dtype)
     tm.assert_extension_array_equal(result, expected)
 
 
