@@ -2305,6 +2305,24 @@ def tuples_to_object_array(ndarray[object] tuples):
 
 
 def to_object_array_tuples(rows: list):
+    """
+    Convert a list of tuples into an object array. Any subclass of
+    tuple in `rows` will be casted to tuple.
+
+    Parameters
+    ----------
+    rows : 2-d array (N, K)
+        A list of tuples to be converted into an array
+    min_width : int
+        The minimum width of the object array. If a tuple
+        in `rows` contains fewer than `width` elements,
+        the remaining elements in the corresponding row
+        will all be `NaN`.
+
+    Returns
+    -------
+    obj_array : numpy array of the object dtype
+    """
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
