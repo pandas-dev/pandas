@@ -26,7 +26,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
-class TestSeriesConstructors():
+class TestSeriesConstructors(object):
 
     def test_invalid_dtype(self):
         # GH15520
@@ -1118,7 +1118,8 @@ class TestSeriesConstructors():
 
         # these are frequency conversion astypes
         # for t in ['s', 'D', 'us', 'ms']:
-        #    pytest.raises(TypeError, td.astype, 'm8[%s]' % t)
+        #    with pytest.raises(TypeError):
+        #        td.astype('m8[%s]' % t)
 
         # valid astype
         td.astype('int64')
