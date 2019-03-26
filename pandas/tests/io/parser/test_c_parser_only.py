@@ -15,7 +15,7 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import BytesIO, StringIO, lrange, range
+from pandas.compat import BytesIO, StringIO, lrange
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 

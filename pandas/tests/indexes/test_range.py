@@ -5,8 +5,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import range, u
-
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas.util.testing as tm
@@ -672,7 +670,7 @@ class TestRangeIndex(Numeric):
             idx.take(np.array([1, -5]))
 
     def test_print_unicode_columns(self):
-        df = pd.DataFrame({u("\u05d0"): [1, 2, 3],
+        df = pd.DataFrame({"\u05d0": [1, 2, 3],
                            "\u05d1": [4, 5, 6],
                            "c": [7, 8, 9]})
         repr(df.columns)  # should not raise UnicodeDecodeError

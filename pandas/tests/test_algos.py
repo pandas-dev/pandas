@@ -11,7 +11,7 @@ import pytest
 
 from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -20,7 +20,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DatetimeIndex, Index, IntervalIndex, Series,
-    Timestamp, compat)
+    Timestamp, _np_version_under1p14, compat)
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
@@ -228,9 +228,11 @@ class TestFactorize(object):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        msg = (r"'(<|>)' not supported between instances of 'complex' and"
-               r" 'complex'|"
-               r"unorderable types: complex\(\) > complex\(\)")
+        msg = (r"unorderable types: {0} [<>] {0}".format(r"complex\(\)")
+               if _np_version_under1p14 else
+               r"'[<>]' not supported between instances of {0} and {0}".format(
+                   "'complex'")
+               )
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
 

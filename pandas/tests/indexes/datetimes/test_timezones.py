@@ -12,7 +12,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
-from pandas.compat import lrange, zip
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd

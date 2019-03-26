@@ -12,7 +12,7 @@ from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
-from pandas.compat import range, set_function_name, u
+from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -931,14 +931,14 @@ class Index(IndexOpsMixin, PandasObject):
         attrs = self._format_attrs()
         space = self._format_space()
 
-        prepr = (u(",%s") %
-                 space).join(u("%s=%s") % (k, v) for k, v in attrs)
+        prepr = (",%s" %
+                 space).join("%s=%s" % (k, v) for k, v in attrs)
 
         # no data provided, just attributes
         if data is None:
             data = ''
 
-        res = u("%s(%s%s)") % (klass, data, prepr)
+        res = "%s(%s%s)" % (klass, data, prepr)
 
         return res
 

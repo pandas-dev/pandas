@@ -9,7 +9,7 @@ import tokenize
 
 import numpy as np
 
-from pandas.compat import StringIO, lmap, map, reduce, string_types, zip
+from pandas.compat import StringIO, lmap, reduce, string_types
 
 import pandas as pd
 from pandas import compat
