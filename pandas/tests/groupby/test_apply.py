@@ -107,39 +107,30 @@ def test_fast_apply():
 
 
 @pytest.mark.parametrize(
-    "df,group_names",
+    "df, group_names",
     [
-        (
-            DataFrame({"a": [1, 1, 1, 2, 3],
-                       "b": ["a", "a", "a", "b", "c"]}),
-            [1, 2, 3],
-        ),  # GH2936
-        (
-            DataFrame({"a": [0, 0, 1, 1],
-                       "b": [0, 1, 0, 1]}),
-            [0, 1]
-        ),  # GH7739, GH10519
-        (DataFrame({"a": [1]}), [1]),  # GH10519
-        (
-            DataFrame({"a": [1, 1, 1, 2, 2, 1, 1, 2],
-                       "b": range(8)}),
-            [1, 2]),  # GH2656
-        (
-            DataFrame({"a": [1, 2, 3, 1, 2, 3], "two": [4, 5, 6, 7, 8, 9]}),
-            [1, 2, 3],
-        ),  # GH12155
-        (
-            DataFrame({"a": list("aaabbbcccc"),
-                       "B": [3, 4, 3, 6, 5, 2, 1, 9, 5, 4],
-                       "C": [4, 0, 2, 2, 2, 7, 8, 6, 2, 8]}),
-            ["a", "b", "c"],
-        ),  # GH20084
-        (
-            DataFrame([[1, 2, 3], [2, 2, 3]], columns=["a", "b", "c"]),
-            [1, 2],
-        ),  # GH21417
-    ],
-)
+        (DataFrame({"a": [1, 1, 1, 2, 3],
+                    "b": ["a", "a", "a", "b", "c"]}),
+         [1, 2, 3]),
+        (DataFrame({"a": [0, 0, 1, 1],
+                    "b": [0, 1, 0, 1]}),
+         [0, 1]),
+        (DataFrame({"a": [1]}),
+         [1]),
+        (DataFrame({"a": [1, 1, 1, 2, 2, 1, 1, 2],
+                    "b": range(8)}),
+         [1, 2]),
+        (DataFrame({"a": [1, 2, 3, 1, 2, 3],
+                    "two": [4, 5, 6, 7, 8, 9]}),
+         [1, 2, 3]),
+        (DataFrame({"a": list("aaabbbcccc"),
+                    "B": [3, 4, 3, 6, 5, 2, 1, 9, 5, 4],
+                    "C": [4, 0, 2, 2, 2, 7, 8, 6, 2, 8]}),
+         ["a", "b", "c"]),
+        (DataFrame([[1, 2, 3], [2, 2, 3]], columns=["a", "b", "c"]),
+         [1, 2]),
+    ], ids=['GH2936', 'GH7739 & GH10519', 'GH10519',
+            'GH2656', 'GH12155', 'GH20084', 'GH21417'])
 def test_group_apply_once_per_group(df, group_names):
     # GH2936, GH7739, GH10519, GH2656, GH12155, GH20084, GH21417
 
