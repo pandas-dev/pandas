@@ -31,8 +31,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.timezones import UTC
 
 
-PY2 = bytes == str
-
 # ---------------------------------------------------------------------
 # Constants
 
@@ -551,10 +549,6 @@ class _Tick(object):
     def __rtruediv__(self, other):
         result = self.delta.__rtruediv__(other)
         return _wrap_timedelta_result(result)
-
-    if PY2:
-        __div__ = __truediv__
-        __rdiv__ = __rtruediv__
 
 
 # ----------------------------------------------------------------------

@@ -4,7 +4,6 @@ import textwrap
 import warnings
 
 import sys
-cdef bint PY3 = (sys.version_info[0] >= 3)
 
 import cython
 
@@ -312,14 +311,6 @@ cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     return <int64_t>(base * m) + <int64_t>(frac * m)
 
 
-cdef inline _decode_if_necessary(object ts):
-    # decode ts if necessary
-    if not isinstance(ts, unicode) and not PY3:
-        ts = str(ts).decode('utf-8')
-
-    return ts
-
-
 cdef inline parse_timedelta_string(object ts):
     """
     Parse a regular format timedelta string. Return an int64_t (in ns)
@@ -341,8 +332,6 @@ cdef inline parse_timedelta_string(object ts):
 
     if len(ts) == 0 or ts in nat_strings:
         return NPY_NAT
-
-    ts = _decode_if_necessary(ts)
 
     for c in ts:
 
@@ -650,8 +639,6 @@ cdef inline int64_t parse_iso_format_string(object ts) except? -1:
         object dec_unit = 'ms', err_msg
         bint have_dot = 0, have_value = 0, neg = 0
         list number = [], unit = []
-
-    ts = _decode_if_necessary(ts)
 
     err_msg = "Invalid ISO 8601 Duration format - {}".format(ts)
 
@@ -1388,10 +1375,6 @@ class Timedelta(_Timedelta):
         if other is NaT:
             return NaT
         return float(other.value) / self.value
-
-    if not PY3:
-        __div__ = __truediv__
-        __rdiv__ = __rtruediv__
 
     def __floordiv__(self, other):
         # numpy does not implement floordiv for timedelta64 dtype, so we cannot
