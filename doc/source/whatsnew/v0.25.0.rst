@@ -97,7 +97,7 @@ Now every group is evaluated only a single time.
         print(group.name)
         return group
 
-Previous Behaviour:
+*Previous Behaviour*:
 
 .. code-block:: python
 
@@ -110,7 +110,7 @@ Previous Behaviour:
    0  x  1
    1  y  2
 
-New Behaviour:
+*New Behaviour*:
 
 .. ipython:: python
 
@@ -127,14 +127,14 @@ Series or DataFrame with sparse values, rather than a ``SparseDataFrame`` (:issu
 
    df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
 
-*Previous Behavior:*
+*Previous Behavior*:
 
 .. code-block:: ipython
 
    In [2]: type(pd.concat([df, df]))
    pandas.core.sparse.frame.SparseDataFrame
 
-*New Behavior:*
+*New Behavior*:
 
 .. ipython:: python
 
@@ -181,7 +181,6 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | pytest (dev)    | 4.0.2           |          |
 +-----------------+-----------------+----------+
->>>>>>> master
 
 .. _whatsnew_0250.api.other:
 
