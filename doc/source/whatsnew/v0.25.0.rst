@@ -158,8 +158,8 @@ cause a ``SparseSeries`` or ``SparseDataFrame`` to be returned, as before.
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions.
-Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`24942`, :issue:`25554`, :issue:`25752`).
+Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions (issue:`25725`, :issue:`24942`, :issue:`25752`).
+Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`25554`).
 
 Below is an overview of the minimal versions, as required resp. recommended. Optional libraries below the lowest tested version may still work, but are not considered supported.
 
