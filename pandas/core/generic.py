@@ -11,6 +11,8 @@ import weakref
 
 import numpy as np
 
+from pandas._config import config
+
 from pandas._libs import Timestamp, iNaT, properties
 import pandas.compat as compat
 from pandas.compat import (
@@ -25,16 +27,16 @@ from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_object, is_bool, is_bool_dtype,
-    is_datetime64_any_dtype, is_datetime64tz_dtype, is_dict_like,
-    is_extension_array_dtype, is_integer, is_list_like, is_number,
-    is_numeric_dtype, is_object_dtype, is_period_arraylike, is_re_compilable,
-    is_scalar, is_timedelta64_dtype, pandas_dtype)
+    is_datetime64_any_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_dict_like, is_extension_array_dtype, is_integer, is_list_like,
+    is_number, is_numeric_dtype, is_object_dtype, is_period_arraylike,
+    is_re_compilable, is_scalar, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas.core import config, missing, nanops
+from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -6863,6 +6865,18 @@ class NDFrame(PandasObject, SelectionMixin):
             index = np.arange(len(_maybe_transposed_self._get_axis(alt_ax)))
         else:
             index = _maybe_transposed_self._get_axis(alt_ax)
+            methods = {"index", "values", "nearest", "time"}
+            is_numeric_or_datetime = (
+                is_numeric_dtype(index) or
+                is_datetime64_dtype(index) or
+                is_timedelta64_dtype(index)
+            )
+            if method not in methods and not is_numeric_or_datetime:
+                raise ValueError(
+                    "Index column must be numeric or datetime type when "
+                    "using {method} method other than linear. "
+                    "Try setting a numeric or datetime index column before "
+                    "interpolating.".format(method=method))
 
         if isna(index).any():
             raise NotImplementedError("Interpolation with NaNs in the index "

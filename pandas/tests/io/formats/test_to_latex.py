@@ -3,8 +3,6 @@ from datetime import datetime
 
 import pytest
 
-from pandas.compat import u
-
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.util import testing as tm
@@ -25,7 +23,7 @@ class TestToLatex(object):
                 assert frame.to_latex() == f.read()
 
         # test with utf-8 and encoding option (GH 7061)
-        df = DataFrame([[u'au\xdfgangen']])
+        df = DataFrame([['au\xdfgangen']])
         with tm.ensure_clean('test.tex') as path:
             df.to_latex(path, encoding='utf-8')
             with codecs.open(path, 'r', encoding='utf-8') as f:
@@ -343,9 +341,9 @@ c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
         a = 'a'
         b = 'b'
 
-        test_dict = {u('co$e^x$'): {a: "a",
+        test_dict = {'co$e^x$': {a: "a",
                                     b: "b"},
-                     u('co^l1'): {a: "a",
+                     'co^l1': {a: "a",
                                   b: "b"}}
 
         unescaped_result = DataFrame(test_dict).to_latex(escape=False)

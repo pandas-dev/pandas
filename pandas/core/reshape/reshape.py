@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import algos as _algos, reshape as _reshape
 from pandas._libs.sparse import IntIndex
-from pandas.compat import PY2, text_type, u
+from pandas.compat import PY2, text_type
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -914,7 +914,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             if PY2 and (isinstance(prefix, text_type) or
                         isinstance(prefix_sep, text_type) or
                         isinstance(level, text_type)):
-                fstr = u(fstr)
+                fstr = fstr
             return fstr.format(prefix=prefix,
                                prefix_sep=prefix_sep,
                                level=level)
