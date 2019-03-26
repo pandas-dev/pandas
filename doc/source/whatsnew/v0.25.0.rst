@@ -93,25 +93,28 @@ Now every group is evaluated only a single time.
     df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
     df
 
-    side_effects = []
     def func(group):
-        side_effects.append(group.name)
+        print(group.name)
         return group
-
-    df.groupby("a").apply(func)
 
 Previous Behaviour:
 
 .. code-block:: python
 
-    side_effects
-    >>> ["x", "x", "y"]
+   In [3]: df.groupby('a').apply(func)
+   x
+   x
+   y
+   Out[3]:
+      a  b
+   0  x  1
+   1  y  2
 
 New Behaviour:
 
 .. ipython:: python
 
-    side_effects
+    df.groupby("a").apply(func)
 
 
 Concatenating Sparse Values
