@@ -51,6 +51,7 @@ def _is_sqlalchemy_connectable(con):
             _SQLALCHEMY_INSTALLED = False
 
     if _SQLALCHEMY_INSTALLED:
+        import sqlalchemy
         return isinstance(con, sqlalchemy.engine.Connectable)
     else:
         return False

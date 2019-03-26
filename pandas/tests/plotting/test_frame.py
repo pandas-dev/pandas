@@ -2194,6 +2194,7 @@ class TestDataFramePlots(TestPlotBase):
         ydata = ax.lines[0].get_ydata()
         tm.assert_numpy_array_equal(ydata, np.array([1.0, 2.0, 3.0]))
 
+    @td.skip_if_no_scipy
     def test_kind_both_ways(self):
         df = DataFrame({'x': [1, 2, 3]})
         for kind in plotting._core._common_kinds:
@@ -2702,6 +2703,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_visible(ax.get_xticklabels(), visible=True)
             self._check_visible(ax.get_xticklabels(minor=True), visible=True)
 
+    @td.skip_if_no_scipy
     def test_memory_leak(self):
         """ Check that every plot type gets properly collected. """
         import weakref
