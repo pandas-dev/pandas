@@ -2,8 +2,6 @@
 """
 Module for formatting output data in Latex.
 """
-from __future__ import print_function
-
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
