@@ -4,6 +4,8 @@ import string
 import textwrap
 import pytest
 import numpy as np
+import pandas as pd
+
 import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
@@ -228,6 +230,27 @@ class GoodDocStrings(object):
         9999
         """
         pass
+
+    def no_returns(self):
+        """
+        Say hello and have no returns.
+        """
+        pass
+
+    def empty_returns(self):
+        """
+        Say hello and always return None.
+
+        Since this function never returns a value, this
+        docstring doesn't need a return section.
+        """
+        def say_hello():
+            return "Hello World!"
+        say_hello()
+        if True:
+            return
+        else:
+            return None
 
 
 class BadGenericDocStrings(object):
@@ -783,7 +806,7 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains', 'mode', 'good_imports'])
+        'contains', 'mode', 'good_imports', 'no_returns', 'empty_returns'])
     def test_good_functions(self, capsys, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
@@ -1002,6 +1025,32 @@ class TestApiItems(object):
     def test_item_subsection(self, idx, subsection):
         result = list(validate_docstrings.get_api_items(self.api_doc))
         assert result[idx][3] == subsection
+
+
+class TestDocstringClass(object):
+    @pytest.mark.parametrize('name, expected_obj',
+                             [('pandas.isnull', pd.isnull),
+                              ('pandas.DataFrame', pd.DataFrame),
+                              ('pandas.Series.sum', pd.Series.sum)])
+    def test_resolves_class_name(self, name, expected_obj):
+        d = validate_docstrings.Docstring(name)
+        assert d.obj is expected_obj
+
+    @pytest.mark.parametrize('invalid_name', ['panda', 'panda.DataFrame'])
+    def test_raises_for_invalid_module_name(self, invalid_name):
+        msg = 'No module can be imported from "{}"'.format(invalid_name)
+        with pytest.raises(ImportError, match=msg):
+            validate_docstrings.Docstring(invalid_name)
+
+    @pytest.mark.parametrize('invalid_name',
+                             ['pandas.BadClassName',
+                              'pandas.Series.bad_method_name'])
+    def test_raises_for_invalid_attribute_name(self, invalid_name):
+        name_components = invalid_name.split('.')
+        obj_name, invalid_attr_name = name_components[-2], name_components[-1]
+        msg = "'{}' has no attribute '{}'".format(obj_name, invalid_attr_name)
+        with pytest.raises(AttributeError, match=msg):
+            validate_docstrings.Docstring(invalid_name)
 
 
 class TestMainFunction(object):

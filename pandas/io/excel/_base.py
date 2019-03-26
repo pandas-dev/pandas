@@ -5,15 +5,16 @@ import os
 from textwrap import fill
 import warnings
 
+from pandas._config import config
+
 import pandas.compat as compat
-from pandas.compat import add_metaclass, range, string_types, u
+from pandas.compat import add_metaclass, string_types
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     is_bool, is_float, is_integer, is_list_like)
 
-from pandas.core import config
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import _NA_VALUES, _stringify_path, _validate_header_arg
@@ -70,11 +71,12 @@ parse_cols : int or list, default None
 
 usecols : int, str, list-like, or callable default None
     Return a subset of the columns.
+
     * If None, then parse all columns.
     * If int, then indicates last column to be parsed.
 
-    .. deprecated:: 0.24.0
-       Pass in a list of int instead from 0 to `usecols` inclusive.
+      .. deprecated:: 0.24.0
+         Pass in a list of int instead from 0 to `usecols` inclusive.
 
     * If str, then indicates comma separated list of Excel column letters
       and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
@@ -82,12 +84,12 @@ usecols : int, str, list-like, or callable default None
     * If list of int, then indicates list of column numbers to be parsed.
     * If list of string, then indicates list of column names to be parsed.
 
-    .. versionadded:: 0.24.0
+      .. versionadded:: 0.24.0
 
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
 
-    .. versionadded:: 0.24.0
+      .. versionadded:: 0.24.0
 
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
@@ -510,7 +512,7 @@ class ExcelWriter(object):
     mode : {'w' or 'a'}, default 'w'
         File mode to use (write or append).
 
-    .. versionadded:: 0.24.0
+        .. versionadded:: 0.24.0
 
     Attributes
     ----------
@@ -714,7 +716,7 @@ class ExcelWriter(object):
         if ext.startswith('.'):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = (u("Invalid extension for engine '{engine}': '{ext}'")
+            msg = ("Invalid extension for engine '{engine}': '{ext}'"
                    .format(engine=pprint_thing(cls.engine),
                            ext=pprint_thing(ext)))
             raise ValueError(msg)

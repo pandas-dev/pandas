@@ -8,13 +8,13 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY35, lrange
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, MultiIndex, Series, Timestamp, compat, date_range,
-    isna, notna, to_datetime, to_timedelta)
+    Categorical, DataFrame, MultiIndex, Series, Timestamp, date_range, isna,
+    notna, to_datetime, to_timedelta)
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
@@ -332,8 +332,8 @@ class TestDataFrameAnalytics(object):
     def test_corr_invalid_method(self):
         # GH 22298
         df = pd.DataFrame(np.random.normal(size=(10, 2)))
-        msg = ("method must be either 'pearson', 'spearman', "
-               "or 'kendall'")
+        msg = ("method must be either 'pearson', "
+               "'spearman', 'kendall', or a callable, ")
         with pytest.raises(ValueError, match=msg):
             df.corr(method="____")
 
@@ -919,10 +919,12 @@ class TestDataFrameAnalytics(object):
         tm.assert_series_equal(expected, result)
 
         # df1 has all numbers, df2 has a letter inside
-        pytest.raises(TypeError, lambda: getattr(df1, meth)(
-            axis=1, numeric_only=False))
-        pytest.raises(TypeError, lambda: getattr(df2, meth)(
-            axis=1, numeric_only=False))
+        msg = r"unsupported operand type\(s\) for -: 'float' and 'str'"
+        with pytest.raises(TypeError, match=msg):
+            getattr(df1, meth)(axis=1, numeric_only=False)
+        msg = "could not convert string to float: 'a'"
+        with pytest.raises(TypeError, match=msg):
+            getattr(df2, meth)(axis=1, numeric_only=False)
 
     def test_sem(self, datetime_frame):
         result = datetime_frame.sem(ddof=4)
@@ -1007,7 +1009,6 @@ class TestDataFrameAnalytics(object):
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not compat.PY3, reason="only PY3")
     def test_mode_sortwarning(self):
         # Check for the warning that is raised when the mode
         # results cannot be sorted
@@ -1096,7 +1097,9 @@ class TestDataFrameAnalytics(object):
         assert df['off1'].dtype == 'timedelta64[ns]'
         assert df['off2'].dtype == 'timedelta64[ns]'
 
-    def test_sum_corner(self, empty_frame):
+    def test_sum_corner(self):
+        empty_frame = DataFrame()
+
         axis0 = empty_frame.sum(0)
         axis1 = empty_frame.sum(1)
         assert isinstance(axis0, Series)
@@ -1379,7 +1382,10 @@ class TestDataFrameAnalytics(object):
                                         skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        pytest.raises(ValueError, frame.idxmin, axis=2)
+        msg = ("No axis named 2 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            frame.idxmin(axis=2)
 
     def test_idxmax(self, float_frame, int_frame):
         frame = float_frame
@@ -1393,7 +1399,10 @@ class TestDataFrameAnalytics(object):
                                         skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        pytest.raises(ValueError, frame.idxmax, axis=2)
+        msg = ("No axis named 2 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            frame.idxmax(axis=2)
 
     # ----------------------------------------------------------------------
     # Logical reductions
@@ -1842,6 +1851,14 @@ class TestDataFrameAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.round(df, decimals=0, out=df)
 
+    def test_numpy_round_nan(self):
+        # See gh-14197
+        df = Series([1.53, np.nan, 0.06]).to_frame()
+        with tm.assert_produces_warning(None):
+            result = df.round()
+        expected = Series([2., np.nan, 0.]).to_frame()
+        tm.assert_frame_equal(result, expected)
+
     def test_round_mixed_type(self):
         # GH 11885
         df = DataFrame({'col1': [1.1, 2.2, 3.3, 4.4],
@@ -1868,13 +1885,11 @@ class TestDataFrameAnalytics(object):
         tm.assert_index_equal(rounded.index, dfs.index)
 
         decimals = pd.Series([1, 0, 2], index=['A', 'B', 'A'])
-        pytest.raises(ValueError, df.round, decimals)
+        msg = "Index of decimals must be unique"
+        with pytest.raises(ValueError, match=msg):
+            df.round(decimals)
 
     def test_built_in_round(self):
-        if not compat.PY3:
-            pytest.skip("build in round cannot be overridden "
-                        "prior to Python 3")
-
         # GH 11763
         # Here's the test frame we'll be working with
         df = DataFrame(
@@ -2131,8 +2146,6 @@ class TestDataFrameAnalytics(object):
         with pytest.raises(ValueError, match='aligned'):
             df.dot(df2)
 
-    @pytest.mark.skipif(not PY35,
-                        reason='matmul supported for Python>=3.5')
     def test_matmul(self):
         # matmul test is for GH 10259
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],

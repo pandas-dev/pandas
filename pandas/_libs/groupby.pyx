@@ -57,10 +57,10 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         n -= na_count
 
     if n % 2:
-        result = kth_smallest_c( a, n / 2, n)
+        result = kth_smallest_c( a, n // 2, n)
     else:
-        result = (kth_smallest_c(a, n / 2, n) +
-                  kth_smallest_c(a, n / 2 - 1, n)) / 2
+        result = (kth_smallest_c(a, n // 2, n) +
+                  kth_smallest_c(a, n // 2 - 1, n)) / 2
 
     if na_count:
         free(a)
@@ -643,6 +643,107 @@ def _group_ohlc(floating[:, :] out,
 
 group_ohlc_float32 = _group_ohlc['float']
 group_ohlc_float64 = _group_ohlc['double']
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_quantile(ndarray[float64_t] out,
+                   ndarray[int64_t] labels,
+                   numeric[:] values,
+                   ndarray[uint8_t] mask,
+                   float64_t q,
+                   object interpolation):
+    """
+    Calculate the quantile per group.
+
+    Parameters
+    ----------
+    out : ndarray
+        Array of aggregated values that will be written to.
+    labels : ndarray
+        Array containing the unique group labels.
+    values : ndarray
+        Array containing the values to apply the function against.
+    q : float
+        The quantile value to search for.
+
+    Notes
+    -----
+    Rather than explicitly returning a value, this function modifies the
+    provided `out` parameter.
+    """
+    cdef:
+        Py_ssize_t i, N=len(labels), ngroups, grp_sz, non_na_sz
+        Py_ssize_t grp_start=0, idx=0
+        int64_t lab
+        uint8_t interp
+        float64_t q_idx, frac, val, next_val
+        ndarray[int64_t] counts, non_na_counts, sort_arr
+
+    assert values.shape[0] == N
+    inter_methods = {
+        'linear': INTERPOLATION_LINEAR,
+        'lower': INTERPOLATION_LOWER,
+        'higher': INTERPOLATION_HIGHER,
+        'nearest': INTERPOLATION_NEAREST,
+        'midpoint': INTERPOLATION_MIDPOINT,
+    }
+    interp = inter_methods[interpolation]
+
+    counts = np.zeros_like(out, dtype=np.int64)
+    non_na_counts = np.zeros_like(out, dtype=np.int64)
+    ngroups = len(counts)
+
+    # First figure out the size of every group
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            counts[lab] += 1
+            if not mask[i]:
+                non_na_counts[lab] += 1
+
+    # Get an index of values sorted by labels and then values
+    order = (values, labels)
+    sort_arr = np.lexsort(order).astype(np.int64, copy=False)
+
+    with nogil:
+        for i in range(ngroups):
+            # Figure out how many group elements there are
+            grp_sz = counts[i]
+            non_na_sz = non_na_counts[i]
+
+            if non_na_sz == 0:
+                out[i] = NaN
+            else:
+                # Calculate where to retrieve the desired value
+                # Casting to int will intentionaly truncate result
+                idx = grp_start + <int64_t>(q * <float64_t>(non_na_sz - 1))
+
+                val = values[sort_arr[idx]]
+                # If requested quantile falls evenly on a particular index
+                # then write that index's value out. Otherwise interpolate
+                q_idx = q * (non_na_sz - 1)
+                frac = q_idx % 1
+
+                if frac == 0.0 or interp == INTERPOLATION_LOWER:
+                    out[i] = val
+                else:
+                    next_val = values[sort_arr[idx + 1]]
+                    if interp == INTERPOLATION_LINEAR:
+                        out[i] = val + (next_val - val) * frac
+                    elif interp == INTERPOLATION_HIGHER:
+                        out[i] = next_val
+                    elif interp == INTERPOLATION_MIDPOINT:
+                        out[i] = (val + next_val) / 2.0
+                    elif interp == INTERPOLATION_NEAREST:
+                        if frac > .5 or (frac == .5 and q > .5):  # Always OK?
+                            out[i] = next_val
+                        else:
+                            out[i] = val
+
+            # Increment the index reference in sorted_arr for the next group
+            grp_start += grp_sz
+
 
 # generated from template
 include "groupby_helper.pxi"

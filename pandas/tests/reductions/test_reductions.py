@@ -7,7 +7,7 @@ import pytest
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, NaT, Period, PeriodIndex,
-    RangeIndex, Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna,
+    RangeIndex, Series, Timedelta, TimedeltaIndex, Timestamp, isna,
     timedelta_range, to_timedelta)
 from pandas.core import nanops
 import pandas.util.testing as tm
@@ -276,7 +276,9 @@ class TestIndexReductions(object):
 
         # invalid ops
         for op in ['skew', 'kurt', 'sem', 'prod']:
-            pytest.raises(TypeError, getattr(td, op))
+            msg = "reduction operation '{}' not allowed for this dtype"
+            with pytest.raises(TypeError, match=msg.format(op)):
+                getattr(td, op)()
 
         # GH#10040
         # make sure NaT is properly handled by median()
@@ -1144,7 +1146,6 @@ class TestSeriesMode(object):
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)
 
-    @pytest.mark.skipif(not compat.PY3, reason="only PY3")
     def test_mode_sortwarning(self):
         # Check for the warning that is raised when the mode
         # results cannot be sorted

@@ -15,7 +15,7 @@ dependencies:
   - numpy
   - openpyxl
   - psycopg2
-  - pymysql
+  - pymysql=0.7.9
   - pytables
   - python-dateutil
   - python=3.6*
@@ -28,9 +28,10 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - pytest
+  - pytest>=4.0.2
   - pytest-xdist
   - pytest-mock
   - moto
+  - isort
   - pip:
     - hypothesis>=3.58.0

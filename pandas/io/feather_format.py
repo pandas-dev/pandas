@@ -2,7 +2,6 @@
 
 from distutils.version import LooseVersion
 
-from pandas.compat import range
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas import DataFrame, Int64Index, RangeIndex
@@ -110,7 +109,6 @@ def read_feather(path, columns=None, use_threads=True):
     Returns
     -------
     type of object stored in file
-
     """
 
     feather, pyarrow = _try_import()

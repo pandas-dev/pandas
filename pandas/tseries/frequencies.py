@@ -16,7 +16,6 @@ import pandas._libs.tslibs.resolution as libresolution
 from pandas._libs.tslibs.resolution import Resolution
 from pandas._libs.tslibs.timezones import UTC
 import pandas.compat as compat
-from pandas.compat import zip
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -67,7 +66,7 @@ def to_offset(freq):
 
     Returns
     -------
-    delta : DateOffset
+    DateOffset
         None if freq is None.
 
     Raises
@@ -214,7 +213,7 @@ def infer_freq(index, warn=True):
 
     Returns
     -------
-    freq : string or None
+    str or None
         None if no discernible frequency
         TypeError if the index is not datetime-like
         ValueError if there are less than three values.
@@ -300,7 +299,7 @@ class _FrequencyInferer(object):
 
         Returns
         -------
-        freqstr : str or None
+        str or None
         """
         if not self.is_monotonic or not self.index._is_unique:
             return None

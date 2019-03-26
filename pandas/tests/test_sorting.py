@@ -1,13 +1,14 @@
 from collections import defaultdict
 from datetime import datetime
 from itertools import product
-import warnings
 
 import numpy as np
 from numpy import nan
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series, compat, concat, merge
+from pandas import (
+    DataFrame, MultiIndex, Series, _np_version_under1p14, compat, concat,
+    merge, to_datetime)
 from pandas.core import common as com
 from pandas.core.sorting import (
     decons_group_index, get_group_index, is_int64_overflow_possible,
@@ -180,6 +181,13 @@ class TestSorting(object):
                           na_position='first')
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
+
+    def test_nargsort_datetimearray_warning(self):
+        # https://github.com/pandas-dev/pandas/issues/25439
+        # can be removed once the FutureWarning for np.array(DTA) is removed
+        data = to_datetime([0, 2, 0, 1]).tz_localize('Europe/Brussels')
+        with tm.assert_produces_warning(None):
+            nargsort(data)
 
 
 class TestMerge(object):
@@ -406,12 +414,15 @@ class TestSafeSort(object):
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        if compat.PY2:
-            # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
-            with warnings.catch_warnings():
-                pytest.raises(TypeError, safe_sort, arr)
-        else:
-            pytest.raises(TypeError, safe_sort, arr)
+        msg = (r"unorderable types: ({0} [<>] {1}|{1} [<>] {0})".format(
+                   r"int\(\)", r"datetime\.datetime\(\)")  # noqa: E126
+               if _np_version_under1p14 else
+               (r"'[<>]' not supported between instances of "
+                r"({0} and {1}|{1} and {0})").format(
+                    "'int'", r"'datetime\.datetime'")
+               )
+        with pytest.raises(TypeError, match=msg):
+            safe_sort(arr)
 
     def test_exceptions(self):
         with pytest.raises(TypeError,

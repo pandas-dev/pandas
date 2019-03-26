@@ -9,8 +9,8 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.frequencies import (
     INVALID_FREQ_ERR_MSG, get_freq_code, get_freq_str)
 import pandas._libs.tslibs.offsets as liboffsets
+from pandas._libs.tslibs.offsets import ApplyTypeError
 import pandas.compat as compat
-from pandas.compat import range
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
@@ -150,7 +150,8 @@ class Base(object):
             # offset2 attr
             return
         off = self.offset2
-        with pytest.raises(Exception):
+        msg = "Cannot subtract datetime from offset"
+        with pytest.raises(TypeError, match=msg):
             off - self.d
 
         assert 2 * off - off == off
@@ -736,7 +737,10 @@ class TestBusinessDay(Base):
         assert rs == xp
 
     def test_apply_corner(self):
-        pytest.raises(TypeError, BDay().apply, BMonthEnd())
+        msg = ("Only know how to combine business day with datetime or"
+               " timedelta")
+        with pytest.raises(ApplyTypeError, match=msg):
+            BDay().apply(BMonthEnd())
 
 
 class TestBusinessHour(Base):
@@ -812,7 +816,8 @@ class TestBusinessHour(Base):
         # we have to override test_sub here becasue self.offset2 is not
         # defined as self._offset(2)
         off = self.offset2
-        with pytest.raises(Exception):
+        msg = "Cannot subtract datetime from offset"
+        with pytest.raises(TypeError, match=msg):
             off - self.d
         assert 2 * off - off == off
 
@@ -1796,7 +1801,10 @@ class TestCustomBusinessDay(Base):
         assert rs == xp
 
     def test_apply_corner(self):
-        pytest.raises(Exception, CDay().apply, BMonthEnd())
+        msg = ("Only know how to combine trading day with datetime, datetime64"
+               " or timedelta")
+        with pytest.raises(ApplyTypeError, match=msg):
+            CDay().apply(BMonthEnd())
 
     def test_holidays(self):
         # Define a TradingDay offset

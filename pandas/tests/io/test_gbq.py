@@ -6,10 +6,8 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import range
-
 import pandas as pd
-from pandas import DataFrame, compat
+from pandas import DataFrame
 import pandas.util.testing as tm
 
 api_exceptions = pytest.importorskip("google.api_core.exceptions")
@@ -21,10 +19,7 @@ PROJECT_ID = None
 PRIVATE_KEY_JSON_PATH = None
 PRIVATE_KEY_JSON_CONTENTS = None
 
-if compat.PY3:
-    DATASET_ID = 'pydata_pandas_bq_testing_py3'
-else:
-    DATASET_ID = 'pydata_pandas_bq_testing_py2'
+DATASET_ID = 'pydata_pandas_bq_testing_py3'
 
 TABLE_ID = 'new_test'
 DESTINATION_TABLE = "{0}.{1}".format(DATASET_ID + "1", TABLE_ID)

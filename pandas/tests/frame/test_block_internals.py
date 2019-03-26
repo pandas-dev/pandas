@@ -274,10 +274,12 @@ class TestDataFrameBlockInternals():
                              columns=["A", "B", "C"],
                              dtype=dtype)
 
-        pytest.raises(NotImplementedError, f,
-                      [("A", "datetime64[h]"),
-                       ("B", "str"),
-                       ("C", "int32")])
+        msg = ("compound dtypes are not implemented in the DataFrame"
+               " constructor")
+        with pytest.raises(NotImplementedError, match=msg):
+            f([("A", "datetime64[h]"),
+               ("B", "str"),
+               ("C", "int32")])
 
         # these work (though results may be unexpected)
         f('int64')
@@ -347,7 +349,9 @@ class TestDataFrameBlockInternals():
         copy = float_string_frame.copy()
         assert copy._data is not float_string_frame._data
 
-    def test_pickle(self, float_string_frame, empty_frame, timezone_frame):
+    def test_pickle(self, float_string_frame, timezone_frame):
+        empty_frame = DataFrame()
+
         unpickled = tm.round_trip_pickle(float_string_frame)
         assert_frame_equal(float_string_frame, unpickled)
 
