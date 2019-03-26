@@ -405,7 +405,7 @@ class TestTSPlot(TestPlotBase):
     def test_finder_daily(self):
         day_lst = [10, 40, 252, 400, 950, 2750, 10000]
 
-        if self.mpl_ge_3_0_0 or self.mpl_eq_2_2_2:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
             xpl1 = xpl2 = [Period('1999-1-1', freq='B').ordinal] * len(day_lst)
         else:  # 2.2.3, 2.2.4
             xpl1 = [7565, 7564, 7553, 7546, 7518, 7428, 7066]
@@ -433,7 +433,7 @@ class TestTSPlot(TestPlotBase):
     def test_finder_quarterly(self):
         yrs = [3.5, 11]
 
-        if self.mpl_ge_3_0_0 or self.mpl_eq_2_2_2:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
             xpl1 = xpl2 = [Period('1988Q1').ordinal] * len(yrs)
         else:  # 2.2.3, 2.2.4
             xpl1 = [68, 68]
@@ -461,7 +461,7 @@ class TestTSPlot(TestPlotBase):
     def test_finder_monthly(self):
         yrs = [1.15, 2.5, 4, 11]
 
-        if self.mpl_ge_3_0_0 or self.mpl_eq_2_2_2:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
             xpl1 = xpl2 = [Period('Jan 1988').ordinal] * len(yrs)
         else:  # 2.2.3, 2.2.4
             xpl1 = [216, 216, 204, 204]
@@ -497,7 +497,7 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_finder_annual(self):
-        if self.mpl_ge_3_0_0 or self.mpl_eq_2_2_2:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
             xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
         else:  # 2.2.3, 2.2.4
             xp = [1986, 1986, 1990, 1990, 1995, 2020, 1970, 1970]
@@ -551,7 +551,7 @@ class TestTSPlot(TestPlotBase):
         line = lines[0]
         data = line.get_xydata()
 
-        if self.mpl_ge_3_0_0 or self.mpl_eq_2_2_2:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
@@ -570,7 +570,7 @@ class TestTSPlot(TestPlotBase):
         line = lines[0]
         data = line.get_xydata()
 
-        if self.mpl_ge_3_0_0 or self.mpl_eq_2_2_2:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
@@ -588,7 +588,7 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         line = lines[0]
         data = line.get_xydata()
-        if self.mpl_ge_3_0_0 or self.mpl_eq_2_2_2:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
@@ -611,7 +611,7 @@ class TestTSPlot(TestPlotBase):
 
         line = lines[0]
         data = line.get_xydata()
-        if self.mpl_ge_3_0_0 or self.mpl_eq_2_2_2:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
