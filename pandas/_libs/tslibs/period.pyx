@@ -53,7 +53,6 @@ from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.offsets import _Tick
 
 cdef:
-    bint PY2 = str == bytes
     enum:
         INT32_MIN = -2147483648
 
@@ -1286,9 +1285,6 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
                 repl = '%09d' % (value % 1000000000)
 
             result = result.replace(str_extra_fmts[i], repl)
-
-    if PY2:
-        result = result.decode('utf-8', 'ignore')
 
     return result
 

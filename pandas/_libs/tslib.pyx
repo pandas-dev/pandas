@@ -45,9 +45,6 @@ from pandas._libs.tslibs.timestamps cimport create_timestamp_from_ts
 from pandas._libs.tslibs.timestamps import Timestamp
 
 
-cdef bint PY2 = str == bytes
-
-
 cdef inline object create_datetime_from_ts(
         int64_t value, npy_datetimestruct dts,
         object tz, object freq):
@@ -579,8 +576,6 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                     if len(val) == 0 or val in nat_strings:
                         iresult[i] = NPY_NAT
                         continue
-                    if isinstance(val, unicode) and PY2:
-                        val = val.encode('utf-8')
 
                     try:
                         _string_to_dts(val, &dts, &out_local, &out_tzoffset)
