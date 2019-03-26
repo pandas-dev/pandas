@@ -5,12 +5,11 @@ import os
 
 import pytest
 
+from pandas._config.localization import can_set_locale, get_locales, set_locale
+
 from pandas.compat import is_platform_windows
 
-import pandas.core.common as com
-import pandas.util.testing as tm
-
-_all_locales = tm.get_locales() or []
+_all_locales = get_locales() or []
 _current_locale = locale.getlocale()
 
 # Don't run any of these tests if we are on Windows or have no locales.
@@ -23,44 +22,43 @@ _skip_if_only_one_locale = pytest.mark.skipif(
 
 def test_can_set_locale_valid_set():
     # Can set the default locale.
-    assert tm.can_set_locale("")
+    assert can_set_locale("")
 
 
 def test_can_set_locale_invalid_set():
     # Cannot set an invalid locale.
-    assert not tm.can_set_locale("non-existent_locale")
+    assert not can_set_locale("non-existent_locale")
 
 
 def test_can_set_locale_invalid_get(monkeypatch):
-    # see gh-22129
-    #
+    # see GH#22129
     # In some cases, an invalid locale can be set,
-    # but a subsequent getlocale() raises a ValueError.
+    #  but a subsequent getlocale() raises a ValueError.
 
     def mock_get_locale():
         raise ValueError()
 
     with monkeypatch.context() as m:
         m.setattr(locale, "getlocale", mock_get_locale)
-        assert not tm.can_set_locale("")
+        assert not can_set_locale("")
 
 
 def test_get_locales_at_least_one():
-    # see gh-9744
+    # see GH#9744
     assert len(_all_locales) > 0
 
 
 @_skip_if_only_one_locale
 def test_get_locales_prefix():
     first_locale = _all_locales[0]
-    assert len(tm.get_locales(prefix=first_locale[:2])) > 0
+    assert len(get_locales(prefix=first_locale[:2])) > 0
 
 
 @_skip_if_only_one_locale
 def test_set_locale():
-    if com._all_none(_current_locale):
+    if all(x is None for x in _current_locale):
         # Not sure why, but on some Travis runs with pytest,
-        # getlocale() returned (None, None).
+        #  getlocale() returned (None, None).
         pytest.skip("Current locale is not set.")
 
     locale_override = os.environ.get("LOCALE_OVERRIDE", None)
@@ -75,14 +73,14 @@ def test_set_locale():
     enc = codecs.lookup(enc).name
     new_locale = lang, enc
 
-    if not tm.can_set_locale(new_locale):
+    if not can_set_locale(new_locale):
         msg = "unsupported locale setting"
 
         with pytest.raises(locale.Error, match=msg):
-            with tm.set_locale(new_locale):
+            with set_locale(new_locale):
                 pass
     else:
-        with tm.set_locale(new_locale) as normalized_locale:
+        with set_locale(new_locale) as normalized_locale:
             new_lang, new_enc = normalized_locale.split(".")
             new_enc = codecs.lookup(enc).name
 

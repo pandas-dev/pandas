@@ -11,7 +11,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
 import pandas.compat as compat
 from pandas.compat import (
-    get_range_parameters, lmap, lrange, raise_with_traceback, range)
+    get_range_parameters, lmap, lrange, raise_with_traceback)
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar, construct_1d_ndarray_preserving_na,

@@ -16,7 +16,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 import pandas.compat as compat
-from pandas.compat import lzip, map
+from pandas.compat import lzip
 from pandas.compat.numpy import _np_version_under1p13
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
@@ -40,6 +40,7 @@ from pandas.core.index import CategoricalIndex, Index, MultiIndex
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
+from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting._core import boxplot_frame_groupby
 
@@ -198,9 +199,16 @@ class NDFrameGroupBy(GroupBy):
                     assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
                         [arg], _level=_level, _axis=self.axis)
+
                     result.columns = Index(
                         result.columns.levels[0],
                         name=self._selected_obj.columns.name)
+
+                    if isinstance(self.obj, SparseDataFrame):
+                        # Backwards compat for groupby.agg() with sparse
+                        # values. concat no longer converts DataFrame[Sparse]
+                        # to SparseDataFrame, so we do it here.
+                        result = SparseDataFrame(result._data)
                 except Exception:
                     result = self._aggregate_generic(arg, *args, **kwargs)
 
@@ -219,7 +227,7 @@ class NDFrameGroupBy(GroupBy):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result = {}
+        result = collections.OrderedDict()
         if axis != obj._info_axis_number:
             try:
                 for name, data in self:
@@ -246,7 +254,7 @@ class NDFrameGroupBy(GroupBy):
         # only for axis==0
 
         obj = self._obj_with_exclusions
-        result = {}
+        result = collections.OrderedDict()
         cannot_agg = []
         errors = None
         for item in obj:
@@ -899,7 +907,7 @@ class SeriesGroupBy(GroupBy):
                           name=self._selection_name)
 
     def _aggregate_named(self, func, *args, **kwargs):
-        result = {}
+        result = collections.OrderedDict()
 
         for name, group in self:
             group.name = name

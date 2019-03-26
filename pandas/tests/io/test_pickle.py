@@ -20,7 +20,7 @@ from warnings import catch_warnings, simplefilter
 
 import pytest
 
-from pandas.compat import PY3, is_platform_little_endian
+from pandas.compat import is_platform_little_endian
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -313,7 +313,7 @@ def test_pickle_path_localpath():
 
 @pytest.fixture
 def get_random_path():
-    return u'__%s__.pickle' % tm.rands(10)
+    return '__%s__.pickle' % tm.rands(10)
 
 
 class TestCompression(object):
@@ -472,14 +472,3 @@ class TestProtocol(object):
             df.to_pickle(path, protocol=protocol)
             df2 = pd.read_pickle(path)
             tm.assert_frame_equal(df, df2)
-
-    @pytest.mark.parametrize('protocol', [3, 4])
-    @pytest.mark.skipif(PY3, reason="Testing invalid parameters for Python 2")
-    def test_read_bad_versions(self, protocol, get_random_path):
-        # For Python 2, HIGHEST_PROTOCOL should be 2.
-        msg = ("pickle protocol {protocol} asked for; the highest available "
-               "protocol is 2").format(protocol=protocol)
-        with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean(get_random_path) as path:
-                df = tm.makeDataFrame()
-                df.to_pickle(path, protocol=protocol)
