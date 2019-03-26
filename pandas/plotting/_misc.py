@@ -4,7 +4,7 @@ from __future__ import division
 
 import numpy as np
 
-from pandas.compat import lmap, lrange, range, zip
+from pandas.compat import lmap, lrange
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.missing import notna
@@ -178,11 +178,11 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
     Returns
     -------
-    axes : :class:`matplotlib.axes.Axes`
+    class:`matplotlib.axes.Axes`
 
     See Also
     --------
-    pandas.plotting.andrews_curves : Plot clustering visualization.
+    plotting.andrews_curves : Plot clustering visualization.
 
     Examples
     --------
@@ -273,7 +273,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                    colormap=None, **kwds):
     """
-    Generates a matplotlib plot of Andrews curves, for visualising clusters of
+    Generate a matplotlib plot of Andrews curves, for visualising clusters of
     multivariate data.
 
     Andrews curves have the functional form:
@@ -302,8 +302,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
 
     Returns
     -------
-    ax : Matplotlib axis object
-
+    class:`matplotlip.axis.Axes`
     """
     from math import sqrt, pi
     import matplotlib.pyplot as plt
@@ -389,13 +388,13 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Matplotlib figure
+    matplotlib.figure.Figure
+        Matplotlib figure.
 
     See Also
     --------
-    pandas.DataFrame.plot : Basic plotting for DataFrame objects.
-    pandas.Series.plot : Basic plotting for Series objects.
+    DataFrame.plot : Basic plotting for DataFrame objects.
+    Series.plot : Basic plotting for Series objects.
 
     Examples
     --------
@@ -490,7 +489,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
     Returns
     -------
-    ax: matplotlib axis object
+    class:`matplotlib.axis.Axes`
 
     Examples
     --------
@@ -579,7 +578,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
     Returns
     -------
-    ax: Matplotlib axis object
+    class:`matplotlib.axis.Axes`
     """
     import matplotlib.pyplot as plt
 
@@ -598,7 +597,8 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
 
 def autocorrelation_plot(series, ax=None, **kwds):
-    """Autocorrelation plot for time series.
+    """
+    Autocorrelation plot for time series.
 
     Parameters:
     -----------
@@ -609,7 +609,7 @@ def autocorrelation_plot(series, ax=None, **kwds):
 
     Returns:
     -----------
-    ax: Matplotlib axis object
+    class:`matplotlib.axis.Axes`
     """
     import matplotlib.pyplot as plt
     n = len(series)

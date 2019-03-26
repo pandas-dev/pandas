@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 
 import numpy as np
 import pytest
@@ -263,9 +264,13 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_index_equal(rng.nanoseconds,
                               Index([456, 456], dtype='int64'))
 
-        pytest.raises(AttributeError, lambda: rng.hours)
-        pytest.raises(AttributeError, lambda: rng.minutes)
-        pytest.raises(AttributeError, lambda: rng.milliseconds)
+        msg = "'TimedeltaIndex' object has no attribute '{}'"
+        with pytest.raises(AttributeError, match=msg.format('hours')):
+            rng.hours
+        with pytest.raises(AttributeError, match=msg.format('minutes')):
+            rng.minutes
+        with pytest.raises(AttributeError, match=msg.format('milliseconds')):
+            rng.milliseconds
 
         # with nat
         s = Series(rng)
@@ -324,6 +329,13 @@ class TestTimedeltaIndex(DatetimeLike):
 
         result = td.astype('timedelta64[s]')
         assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
+    def test_unit_m_y_deprecated(self, unit):
+        with tm.assert_produces_warning(FutureWarning) as w:
+            TimedeltaIndex([1, 3, 7], unit)
+        msg = r'.* units are deprecated .*'
+        assert re.match(msg, str(w[0].message))
 
 
 class TestTimeSeries(object):

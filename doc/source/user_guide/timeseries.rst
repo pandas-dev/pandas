@@ -321,6 +321,15 @@ which can be specified. These are computed from the starting point specified by 
    pd.to_datetime([1349720105100, 1349720105200, 1349720105300,
                    1349720105400, 1349720105500], unit='ms')
 
+Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
+with the ``tz`` argument specified will localize the epoch timestamps to UTC
+first then convert the result to the specified time zone.
+
+.. ipython:: python
+
+   pd.Timestamp(1262347200000000000, tz='US/Pacific')
+   pd.DatetimeIndex([1262347200000000000], tz='US/Pacific')
+
 .. note::
 
    Epoch times will be rounded to the nearest nanosecond.
@@ -623,6 +632,16 @@ We are stopping on the included end-point as it is part of the index:
    idx = pd.IndexSlice
    dft2 = dft2.swaplevel(0, 1).sort_index()
    dft2.loc[idx[:, '2013-01-05'], :]
+
+.. versionadded:: 0.25.0
+
+Slicing with string indexing also honors UTC offset.
+
+.. ipython:: python
+
+    df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
+    df
+    df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
 .. _timeseries.slice_vs_exact_match:
 
@@ -2130,12 +2149,9 @@ Time Zone Handling
 ------------------
 
 pandas provides rich support for working with timestamps in different time
-zones using the ``pytz`` and ``dateutil`` libraries.
+zones using the ``pytz`` and ``dateutil`` libraries or class:`datetime.timezone`
+objects from the standard library.
 
-.. note::
-
-    pandas does not yet support ``datetime.timezone`` objects from the standard
-    library.
 
 Working with Time Zones
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -2178,6 +2194,15 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
                            tz=dateutil.tz.tzutc())
    rng_utc.tz
 
+.. versionadded:: 0.25.0
+
+.. ipython:: python
+
+   # datetime.timezone
+   rng_utc = pd.date_range('3/6/2012 00:00', periods=3, freq='D',
+                           tz=datetime.timezone.utc)
+   rng_utc.tz
+
 Note that the ``UTC`` time zone is a special case in ``dateutil`` and should be constructed explicitly
 as an instance of ``dateutil.tz.tzutc``. You can also construct other time
 zones objects explicitly first.
@@ -2204,6 +2229,21 @@ you can use the ``tz_convert`` method.
 .. ipython:: python
 
    rng_pytz.tz_convert('US/Eastern')
+
+.. note::
+
+    When using ``pytz`` time zones, :class:`DatetimeIndex` will construct a different
+    time zone object than a :class:`Timestamp` for the same time zone input. A :class:`DatetimeIndex`
+    can hold a collection of :class:`Timestamp` objects that may have different UTC offsets and cannot be
+    succinctly represented by one ``pytz`` time zone instance while one :class:`Timestamp`
+    represents one point in time with a specific UTC offset.
+
+    .. ipython:: python
+
+       dti = pd.date_range('2019-01-01', periods=3, freq='D', tz='US/Pacific')
+       dti.tz
+       ts = pd.Timestamp('2019-01-01', tz='US/Pacific')
+       ts.tz
 
 .. warning::
 

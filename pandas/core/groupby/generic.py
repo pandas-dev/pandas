@@ -1,5 +1,5 @@
 """
-Define the SeriesGroupBy, DataFrameGroupBy, and PanelGroupBy
+Define the SeriesGroupBy and DataFrameGroupBy
 classes that hold the groupby interfaces (and some implementations).
 
 These are user facing as the result of the ``df.groupby(...)`` operations,
@@ -16,7 +16,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 import pandas.compat as compat
-from pandas.compat import lzip, map
+from pandas.compat import lzip
 from pandas.compat.numpy import _np_version_under1p13
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
@@ -39,8 +39,8 @@ from pandas.core.groupby.groupby import (
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
-from pandas.core.panel import Panel
 from pandas.core.series import Series
+from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting._core import boxplot_frame_groupby
 
@@ -199,9 +199,16 @@ class NDFrameGroupBy(GroupBy):
                     assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
                         [arg], _level=_level, _axis=self.axis)
+
                     result.columns = Index(
                         result.columns.levels[0],
                         name=self._selected_obj.columns.name)
+
+                    if isinstance(self.obj, SparseDataFrame):
+                        # Backwards compat for groupby.agg() with sparse
+                        # values. concat no longer converts DataFrame[Sparse]
+                        # to SparseDataFrame, so we do it here.
+                        result = SparseDataFrame(result._data)
                 except Exception:
                     result = self._aggregate_generic(arg, *args, **kwargs)
 
@@ -220,7 +227,7 @@ class NDFrameGroupBy(GroupBy):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result = {}
+        result = collections.OrderedDict()
         if axis != obj._info_axis_number:
             try:
                 for name, data in self:
@@ -247,7 +254,7 @@ class NDFrameGroupBy(GroupBy):
         # only for axis==0
 
         obj = self._obj_with_exclusions
-        result = {}
+        result = collections.OrderedDict()
         cannot_agg = []
         errors = None
         for item in obj:
@@ -823,7 +830,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(com.get_callable_name(f))
             arg = lzip(columns, arg)
 
-        results = {}
+        results = collections.OrderedDict()
         for name, func in arg:
             obj = self
             if name in results:
@@ -900,7 +907,7 @@ class SeriesGroupBy(GroupBy):
                           name=self._selection_name)
 
     def _aggregate_named(self, func, *args, **kwargs):
-        result = {}
+        result = collections.OrderedDict()
 
         for name, group in self:
             group.name = name
@@ -965,7 +972,7 @@ class SeriesGroupBy(GroupBy):
 
         ids, _, ngroup = self.grouper.group_info
         cast = self._transform_should_cast(func_nm)
-        out = algorithms.take_1d(func().values, ids)
+        out = algorithms.take_1d(func()._values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
@@ -1021,7 +1028,9 @@ class SeriesGroupBy(GroupBy):
         return filtered
 
     def nunique(self, dropna=True):
-        """ Returns number of unique elements in the group """
+        """
+        Return number of unique elements in the group.
+        """
         ids, _, _ = self.grouper.group_info
 
         val = self.obj.get_values()
@@ -1461,8 +1470,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
         # reindex `result`, and then reset the in-axis grouper columns.
 
         # Select in-axis groupers
-        in_axis_grps = [(i, ping.name) for (i, ping)
-                        in enumerate(groupings) if ping.in_axis]
+        in_axis_grps = ((i, ping.name) for (i, ping)
+                        in enumerate(groupings) if ping.in_axis)
         g_nums, g_names = zip(*in_axis_grps)
 
         result = result.drop(labels=list(g_names), axis=1)
@@ -1578,96 +1587,10 @@ class DataFrameGroupBy(NDFrameGroupBy):
             from pandas.core.reshape.concat import concat
             results = [groupby_series(obj[col], col) for col in obj.columns]
             results = concat(results, axis=1)
+            results.columns.names = obj.columns.names
 
         if not self.as_index:
             results.index = ibase.default_index(len(results))
         return results
 
     boxplot = boxplot_frame_groupby
-
-
-class PanelGroupBy(NDFrameGroupBy):
-
-    def aggregate(self, arg, *args, **kwargs):
-        return super(PanelGroupBy, self).aggregate(arg, *args, **kwargs)
-
-    agg = aggregate
-
-    def _iterate_slices(self):
-        if self.axis == 0:
-            # kludge
-            if self._selection is None:
-                slice_axis = self._selected_obj.items
-            else:
-                slice_axis = self._selection_list
-            slicer = lambda x: self._selected_obj[x]
-        else:
-            raise NotImplementedError("axis other than 0 is not supported")
-
-        for val in slice_axis:
-            if val in self.exclusions:
-                continue
-
-            yield val, slicer(val)
-
-    def aggregate(self, arg, *args, **kwargs):
-        """
-        Aggregate using input function or dict of {column -> function}
-
-        Parameters
-        ----------
-        arg : function or dict
-            Function to use for aggregating groups. If a function, must either
-            work when passed a Panel or when passed to Panel.apply. If
-            pass a dict, the keys must be DataFrame column names
-
-        Returns
-        -------
-        aggregated : Panel
-        """
-        if isinstance(arg, compat.string_types):
-            return getattr(self, arg)(*args, **kwargs)
-
-        return self._aggregate_generic(arg, *args, **kwargs)
-
-    def _wrap_generic_output(self, result, obj):
-        if self.axis == 0:
-            new_axes = list(obj.axes)
-            new_axes[0] = self.grouper.result_index
-        elif self.axis == 1:
-            x, y, z = obj.axes
-            new_axes = [self.grouper.result_index, z, x]
-        else:
-            x, y, z = obj.axes
-            new_axes = [self.grouper.result_index, y, x]
-
-        result = Panel._from_axes(result, new_axes)
-
-        if self.axis == 1:
-            result = result.swapaxes(0, 1).swapaxes(0, 2)
-        elif self.axis == 2:
-            result = result.swapaxes(0, 2)
-
-        return result
-
-    def _aggregate_item_by_item(self, func, *args, **kwargs):
-        obj = self._obj_with_exclusions
-        result = {}
-
-        if self.axis > 0:
-            for item in obj:
-                try:
-                    itemg = DataFrameGroupBy(obj[item],
-                                             axis=self.axis - 1,
-                                             grouper=self.grouper)
-                    result[item] = itemg.aggregate(func, *args, **kwargs)
-                except (ValueError, TypeError):
-                    raise
-            new_axes = list(obj.axes)
-            new_axes[self.axis] = self.grouper.result_index
-            return Panel._from_axes(result, new_axes)
-        else:
-            raise ValueError("axis value must be greater than 0")
-
-    def _wrap_aggregated_output(self, output, names=None):
-        raise AbstractMethodError(self)

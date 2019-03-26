@@ -12,7 +12,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
-from pandas.compat import PY3, lrange, zip
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -825,6 +825,13 @@ class TestDatetimeIndexTimezones(object):
 
         assert ind.tz is not None
 
+    def test_dti_tz_conversion_freq(self, tz_naive_fixture):
+        # GH25241
+        t3 = DatetimeIndex(['2019-01-01 10:00'], freq='H')
+        assert t3.tz_localize(tz=tz_naive_fixture).freq == t3.freq
+        t4 = DatetimeIndex(['2019-01-02 12:00'], tz='UTC', freq='T')
+        assert t4.tz_convert(tz='UTC').freq == t4.freq
+
     def test_drop_dst_boundary(self):
         # see gh-18031
         tz = "Europe/Brussels"
@@ -1077,7 +1084,6 @@ class TestDatetimeIndexTimezones(object):
     @pytest.mark.parametrize('tz', [None, 'UTC', "US/Central",
                                     dateutil.tz.tzoffset(None, -28800)])
     @pytest.mark.usefixtures("datetime_tz_utc")
-    @pytest.mark.skipif(not PY3, reason="datetime.timezone not in PY2")
     def test_iteration_preserves_nanoseconds(self, tz):
         # GH 19603
         index = DatetimeIndex(["2018-02-08 15:00:00.168456358",

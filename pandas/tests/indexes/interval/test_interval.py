@@ -242,12 +242,10 @@ class TestIntervalIndex(Base):
             [0, 0, 1], [1, 1, 2], closed=closed)
         tm.assert_index_equal(result, expected)
 
-    def test_unique(self, closed):
-        # unique non-overlapping
-        idx = IntervalIndex.from_tuples(
-            [(0, 1), (2, 3), (4, 5)], closed=closed)
-        assert idx.is_unique is True
-
+    def test_is_unique_interval(self, closed):
+        """
+        Interval specific tests for is_unique in addition to base class tests
+        """
         # unique overlapping - distinct endpoints
         idx = IntervalIndex.from_tuples([(0, 1), (0.5, 1.5)], closed=closed)
         assert idx.is_unique is True
@@ -259,15 +257,6 @@ class TestIntervalIndex(Base):
 
         # unique nested
         idx = IntervalIndex.from_tuples([(-1, 1), (-2, 2)], closed=closed)
-        assert idx.is_unique is True
-
-        # duplicate
-        idx = IntervalIndex.from_tuples(
-            [(0, 1), (0, 1), (2, 3)], closed=closed)
-        assert idx.is_unique is False
-
-        # empty
-        idx = IntervalIndex([], closed=closed)
         assert idx.is_unique is True
 
     def test_monotonic(self, closed):
@@ -414,13 +403,16 @@ class TestIntervalIndex(Base):
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_loc_value(self):
-        pytest.raises(KeyError, self.index.get_loc, 0)
+        with pytest.raises(KeyError, match="^0$"):
+            self.index.get_loc(0)
         assert self.index.get_loc(0.5) == 0
         assert self.index.get_loc(1) == 0
         assert self.index.get_loc(1.5) == 1
         assert self.index.get_loc(2) == 1
-        pytest.raises(KeyError, self.index.get_loc, -1)
-        pytest.raises(KeyError, self.index.get_loc, 3)
+        with pytest.raises(KeyError, match="^-1$"):
+            self.index.get_loc(-1)
+        with pytest.raises(KeyError, match="^3$"):
+            self.index.get_loc(3)
 
         idx = IntervalIndex.from_tuples([(0, 2), (1, 3)])
         assert idx.get_loc(0.5) == 0
@@ -430,10 +422,12 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(np.sort(idx.get_loc(2)),
                                     np.array([0, 1], dtype='intp'))
         assert idx.get_loc(3) == 1
-        pytest.raises(KeyError, idx.get_loc, 3.5)
+        with pytest.raises(KeyError, match=r"^3\.5$"):
+            idx.get_loc(3.5)
 
         idx = IntervalIndex.from_arrays([0, 2], [1, 3])
-        pytest.raises(KeyError, idx.get_loc, 1.5)
+        with pytest.raises(KeyError, match=r"^1\.5$"):
+            idx.get_loc(1.5)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def slice_locs_cases(self, breaks):
@@ -497,7 +491,9 @@ class TestIntervalIndex(Base):
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_slice_locs_fails(self):
         index = IntervalIndex.from_tuples([(1, 2), (0, 1), (2, 3)])
-        with pytest.raises(KeyError):
+        msg = ("'can only get slices from an IntervalIndex if bounds are"
+               " non-overlapping and all monotonic increasing or decreasing'")
+        with pytest.raises(KeyError, match=msg):
             index.slice_locs(1, 2)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
@@ -505,9 +501,12 @@ class TestIntervalIndex(Base):
         assert self.index.get_loc(Interval(0, 1)) == 0
         assert self.index.get_loc(Interval(0, 0.5)) == 0
         assert self.index.get_loc(Interval(0, 1, 'left')) == 0
-        pytest.raises(KeyError, self.index.get_loc, Interval(2, 3))
-        pytest.raises(KeyError, self.index.get_loc,
-                      Interval(-1, 0, 'left'))
+        msg = r"Interval\(2, 3, closed='right'\)"
+        with pytest.raises(KeyError, match=msg):
+            self.index.get_loc(Interval(2, 3))
+        msg = r"Interval\(-1, 0, closed='left'\)"
+        with pytest.raises(KeyError, match=msg):
+            self.index.get_loc(Interval(-1, 0, 'left'))
 
     # Make consistent with test_interval_new.py (see #16316, #16386)
     @pytest.mark.parametrize('item', [3, Interval(1, 4)])
@@ -992,9 +991,11 @@ class TestIntervalIndex(Base):
             self.index > 0
         with pytest.raises(TypeError, match='unorderable types'):
             self.index <= 0
-        with pytest.raises(TypeError):
+        msg = r"unorderable types: Interval\(\) > int\(\)"
+        with pytest.raises(TypeError, match=msg):
             self.index > np.arange(2)
-        with pytest.raises(ValueError):
+        msg = "Lengths must match to compare"
+        with pytest.raises(ValueError, match=msg):
             self.index > np.arange(3)
 
     def test_missing_values(self, closed):
@@ -1004,7 +1005,9 @@ class TestIntervalIndex(Base):
             [np.nan, 0, 1], [np.nan, 1, 2], closed=closed)
         assert idx.equals(idx2)
 
-        with pytest.raises(ValueError):
+        msg = ("missing values must be missing in the same location both left"
+               " and right sides")
+        with pytest.raises(ValueError, match=msg):
             IntervalIndex.from_arrays(
                 [np.nan, 0, 1], np.array([0, 1, 2]), closed=closed)
 

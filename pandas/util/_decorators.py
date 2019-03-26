@@ -4,12 +4,13 @@ from textwrap import dedent
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
-from pandas.compat import PY2, callable, signature
+from pandas.compat import PY2, signature
 
 
 def deprecate(name, alternative, version, alt_name=None,
               klass=None, stacklevel=2, msg=None):
-    """Return a new function that emits a deprecation warning on use.
+    """
+    Return a new function that emits a deprecation warning on use.
 
     To use this method for a deprecated function, another function
     `alternative` with the same signature must exist. The deprecated

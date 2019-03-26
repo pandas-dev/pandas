@@ -8,7 +8,8 @@ import pytz
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 
-from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
+from pandas.core.dtypes.generic import (
+    ABCCategoricalIndex, ABCDateOffset, ABCIndexClass)
 
 from pandas import compat
 
@@ -17,7 +18,8 @@ from .inference import is_list_like
 
 
 def register_extension_dtype(cls):
-    """Class decorator to register an ExtensionType with pandas.
+    """
+    Register an ExtensionType with pandas as class decorator.
 
     .. versionadded:: 0.24.0
 
@@ -136,7 +138,7 @@ class PandasExtensionDtype(_DtypeOpsMixin):
         Invoked by bytes(obj) in py3 only.
         Yields a bytestring in both py2/py3.
         """
-        from pandas.core.config import get_option
+        from pandas._config import get_option
 
         encoding = get_option("display.encoding")
         return self.__unicode__().encode(encoding, 'replace')
@@ -194,7 +196,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     See Also
     --------
-    pandas.Categorical
+    Categorical
 
     Notes
     -----
@@ -391,9 +393,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return hash(self) == hash(other)
 
     def __repr__(self):
-        tpl = u'CategoricalDtype(categories={}ordered={})'
+        tpl = 'CategoricalDtype(categories={}ordered={})'
         if self.categories is None:
-            data = u"None, "
+            data = "None, "
         else:
             data = self.categories._format_data(name=self.__class__.__name__)
         return tpl.format(data, self.ordered)
@@ -413,8 +415,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             cat_array = hash_tuples(categories)
         else:
             if categories.dtype == 'O':
-                types = [type(x) for x in categories]
-                if not len(set(types)) == 1:
+                if len({type(x) for x in categories}) != 1:
                     # TODO: hash_array doesn't handle mixed types. It casts
                     # everything to a str first, which means we treat
                     # {'1', '2'} the same as {'1', 2}
@@ -639,6 +640,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
         if tz:
             tz = timezones.maybe_get_tz(tz)
+            tz = timezones.tz_standardize(tz)
         elif tz is not None:
             raise pytz.UnknownTimeZoneError(tz)
         elif tz is None:
@@ -757,8 +759,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
             # empty constructor for pickle compat
             return object.__new__(cls)
 
-        from pandas.tseries.offsets import DateOffset
-        if not isinstance(freq, DateOffset):
+        if not isinstance(freq, ABCDateOffset):
             freq = cls._parse_dtype_strict(freq)
 
         try:
@@ -789,12 +790,10 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
         Strict construction from a string, raise a TypeError if not
         possible
         """
-        from pandas.tseries.offsets import DateOffset
-
         if (isinstance(string, compat.string_types) and
             (string.startswith('period[') or
              string.startswith('Period[')) or
-                isinstance(string, DateOffset)):
+                isinstance(string, ABCDateOffset)):
             # do not parse string like U as period[U]
             # avoid tuple to be regarded as freq
             try:
@@ -932,13 +931,18 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         attempt to construct this type from a string, raise a TypeError
         if its not possible
         """
-        if (isinstance(string, compat.string_types) and
-            (string.startswith('interval') or
-             string.startswith('Interval'))):
+        if not isinstance(string, compat.string_types):
+            msg = "a string needs to be passed, got type {typ}"
+            raise TypeError(msg.format(typ=type(string)))
+
+        if (string.lower() == 'interval' or
+           cls._match.search(string) is not None):
             return cls(string)
 
-        msg = "a string needs to be passed, got type {typ}"
-        raise TypeError(msg.format(typ=type(string)))
+        msg = ('Incorrectly formatted string passed to constructor. '
+               'Valid formats include Interval or Interval[dtype] '
+               'where dtype is numeric, datetime, or timedelta')
+        raise TypeError(msg)
 
     @property
     def type(self):
@@ -979,7 +983,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                         return True
                     else:
                         return False
-                except ValueError:
+                except (ValueError, TypeError):
                     return False
             else:
                 return False

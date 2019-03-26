@@ -69,7 +69,7 @@ def get_console_size():
         if in_ipython_frontend():
             # sane defaults for interactive non-shell terminal
             # match default for width,height in config_init
-            from pandas.core.config import get_default_val
+            from pandas._config.config import get_default_val
             terminal_width = get_default_val('display.width')
             terminal_height = get_default_val('display.max_rows')
         else:
@@ -106,44 +106,6 @@ def in_interactive_session():
         return __IPYTHON__ or check_main()  # noqa
     except NameError:
         return check_main()
-
-
-def in_qtconsole():
-    """
-    check if we're inside an IPython qtconsole
-
-    .. deprecated:: 0.14.1
-       This is no longer needed, or working, in IPython 3 and above.
-    """
-    try:
-        ip = get_ipython()  # noqa
-        front_end = (
-            ip.config.get('KernelApp', {}).get('parent_appname', "") or
-            ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
-        if 'qtconsole' in front_end.lower():
-            return True
-    except NameError:
-        return False
-    return False
-
-
-def in_ipnb():
-    """
-    check if we're inside an IPython Notebook
-
-    .. deprecated:: 0.14.1
-       This is no longer needed, or working, in IPython 3 and above.
-    """
-    try:
-        ip = get_ipython()  # noqa
-        front_end = (
-            ip.config.get('KernelApp', {}).get('parent_appname', "") or
-            ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
-        if 'notebook' in front_end.lower():
-            return True
-    except NameError:
-        return False
-    return False
 
 
 def in_ipython_frontend():

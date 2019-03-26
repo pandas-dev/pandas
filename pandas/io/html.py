@@ -10,8 +10,7 @@ import re
 
 import pandas.compat as compat
 from pandas.compat import (
-    binary_type, iteritems, lmap, lrange, raise_with_traceback, string_types,
-    u)
+    binary_type, iteritems, lmap, lrange, raise_with_traceback, string_types)
 from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
@@ -622,8 +621,8 @@ def _build_xpath_expr(attrs):
     if 'class_' in attrs:
         attrs['class'] = attrs.pop('class_')
 
-    s = [u("@{key}={val!r}").format(key=k, val=v) for k, v in iteritems(attrs)]
-    return u('[{expr}]').format(expr=' and '.join(s))
+    s = ["@{key}={val!r}".format(key=k, val=v) for k, v in iteritems(attrs)]
+    return '[{expr}]'.format(expr=' and '.join(s))
 
 
 _re_namespace = {'re': 'http://exslt.org/regular-expressions'}
@@ -665,7 +664,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         # 1. check all descendants for the given pattern and only search tables
         # 2. go up the tree until we find a table
         query = '//table//*[re:test(text(), {patt!r})]/ancestor::table'
-        xpath_expr = u(query).format(patt=pattern)
+        xpath_expr = query.format(patt=pattern)
 
         # if any table attributes were given build an xpath expression to
         # search for them
@@ -988,7 +987,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         latest information on table attributes for the modern web.
 
     parse_dates : bool, optional
-        See :func:`~pandas.read_csv` for more details.
+        See :func:`~read_csv` for more details.
 
     tupleize_cols : bool, optional
         If ``False`` try to parse multiple header rows into a
@@ -1043,7 +1042,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
     See Also
     --------
-    pandas.read_csv
+    read_csv
 
     Notes
     -----
@@ -1066,7 +1065,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.21.0
 
-    Similar to :func:`~pandas.read_csv` the `header` argument is applied
+    Similar to :func:`~read_csv` the `header` argument is applied
     **after** `skiprows` is applied.
 
     This function will *always* return a list of :class:`DataFrame` *or*

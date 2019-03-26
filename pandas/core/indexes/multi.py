@@ -6,10 +6,12 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     Timestamp, algos as libalgos, index as libindex, lib, tslibs)
 import pandas.compat as compat
-from pandas.compat import lrange, lzip, map, range, zip
+from pandas.compat import lrange, lzip
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
@@ -24,7 +26,6 @@ from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-from pandas.core.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs, ensure_index)
@@ -61,7 +62,7 @@ class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine,
         Returns
         ------
         int_keys : scalar or 1-dimensional array, of dtype uint64
-            Integer(s) representing one combination (each)
+            Integer(s) representing one combination (each).
         """
         # Shift the representation of each level by the pre-calculated number
         # of bits:
@@ -101,7 +102,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
         Returns
         ------
         int_keys : int, or 1-dimensional array of dtype object
-            Integer(s) representing one combination (each)
+            Integer(s) representing one combination (each).
         """
 
         # Shift the representation of each level by the pre-calculated number
@@ -324,10 +325,16 @@ class MultiIndex(Index):
                    codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
                    names=['number', 'color'])
         """
+        error_msg = "Input must be a list / sequence of array-likes."
         if not is_list_like(arrays):
-            raise TypeError("Input must be a list / sequence of array-likes.")
+            raise TypeError(error_msg)
         elif is_iterator(arrays):
             arrays = list(arrays)
+
+        # Check if elements of array are list-like
+        for array in arrays:
+            if not is_list_like(array):
+                raise TypeError(error_msg)
 
         # Check if lengths of all arrays are equal or not,
         # raise ValueError, if not
@@ -372,8 +379,8 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> tuples = [(1, u'red'), (1, u'blue'),
-        ...           (2, u'red'), (2, u'blue')]
+        >>> tuples = [(1, 'red'), (1, 'blue'),
+        ...           (2, 'red'), (2, 'blue')]
         >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
         MultiIndex(levels=[[1, 2], ['blue', 'red']],
                    codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
@@ -614,25 +621,25 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                            (2, u'one'), (2, u'two')],
+        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
+                                            (2, 'one'), (2, 'two')],
                                             names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]])
-        MultiIndex(levels=[[u'a', u'b'], [1, 2]],
+        MultiIndex(levels=[['a', 'b'], [1, 2]],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_levels(['a','b'], level=0)
-        MultiIndex(levels=[[u'a', u'b'], [u'one', u'two']],
+        MultiIndex(levels=[['a', 'b'], ['one', 'two']],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_levels(['a','b'], level='bar')
-        MultiIndex(levels=[[1, 2], [u'a', u'b']],
+        MultiIndex(levels=[[1, 2], ['a', 'b']],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]], level=[0,1])
-        MultiIndex(levels=[[u'a', u'b'], [1, 2]],
+        MultiIndex(levels=[['a', 'b'], [1, 2]],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         """
         if is_list_like(levels) and not isinstance(levels, Index):
             levels = list(levels)
@@ -733,25 +740,25 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                            (2, u'one'), (2, u'two')],
+        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
+                                            (2, 'one'), (2, 'two')],
                                             names=['foo', 'bar'])
         >>> idx.set_codes([[1,0,1,0], [0,0,1,1]])
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_codes([1,0,1,0], level=0)
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[1, 0, 1, 0], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_codes([0,0,1,1], level='bar')
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[0, 0, 1, 1], [0, 0, 1, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_codes([[1,0,1,0], [0,0,1,1]], level=[0,1])
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         """
         if level is not None and not is_list_like(level):
             if not is_list_like(codes):
@@ -840,7 +847,7 @@ class MultiIndex(Index):
         try:
             self.get_loc(key)
             return True
-        except (LookupError, TypeError):
+        except (LookupError, TypeError, ValueError):
             return False
 
     contains = __contains__
@@ -1391,7 +1398,7 @@ class MultiIndex(Index):
         Returns
         -------
         values : Index
-            ``values`` is a level of this MultiIndex converted to
+            Values is a level of this MultiIndex converted to
             a single :class:`Index` (or subclass thereof).
 
         Examples
@@ -1505,10 +1512,10 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                            (2, u'one'), (2, u'two')])
+        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
+                                            (2, 'one'), (2, 'two')])
         >>> idx.to_hierarchical(3)
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
                           [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
         """
@@ -1956,7 +1963,7 @@ class MultiIndex(Index):
         Returns
         -------
         MultiIndex
-            A new MultiIndex
+            A new MultiIndex.
 
         .. versionchanged:: 0.18.1
 
@@ -2053,9 +2060,9 @@ class MultiIndex(Index):
         Returns
         -------
         sorted_index : pd.MultiIndex
-            Resulting index
+            Resulting index.
         indexer : np.ndarray
-            Indices of output values in original index
+            Indices of output values in original index.
         """
         from pandas.core.sorting import indexer_from_factorized
 
@@ -2189,7 +2196,7 @@ class MultiIndex(Index):
         new_index : pd.MultiIndex
             Resulting index
         indexer : np.ndarray or None
-            Indices of output values in original index
+            Indices of output values in original index.
 
         """
         # GH6552: preserve names when reindexing to non-named target

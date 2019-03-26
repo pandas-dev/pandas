@@ -9,13 +9,12 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY35, lrange, range
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
-    Categorical, CategoricalIndex, DataFrame, Series, compat, date_range, isna,
-    notna)
+    Categorical, CategoricalIndex, DataFrame, Series, date_range, isna, notna)
 from pandas.api.types import is_scalar
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
@@ -285,11 +284,15 @@ class TestSeriesAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.round(s, decimals=0, out=s)
 
-    def test_built_in_round(self):
-        if not compat.PY3:
-            pytest.skip(
-                'build in round cannot be overridden prior to Python 3')
+    def test_numpy_round_nan(self):
+        # See gh-14197
+        s = Series([1.53, np.nan, 0.06])
+        with tm.assert_produces_warning(None):
+            result = s.round()
+        expected = Series([2., np.nan, 0.])
+        assert_series_equal(result, expected)
 
+    def test_built_in_round(self):
         s = Series([1.123, 2.123, 3.123], index=lrange(3))
         result = round(s)
         expected_rounded0 = Series([1., 2., 3.], index=lrange(3))
@@ -376,8 +379,8 @@ class TestSeriesAnalytics(object):
         # GH PR #22298
         s1 = pd.Series(np.random.randn(10))
         s2 = pd.Series(np.random.randn(10))
-        msg = ("method must be either 'pearson', 'spearman', "
-               "or 'kendall'")
+        msg = ("method must be either 'pearson', "
+               "'spearman', 'kendall', or a callable, ")
         with pytest.raises(ValueError, match=msg):
             s1.corr(s2, method="____")
 
@@ -486,8 +489,6 @@ class TestSeriesAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             a.dot(b.T)
 
-    @pytest.mark.skipif(not PY35,
-                        reason='matmul supported for Python>=3.5')
     def test_matmul(self):
         # matmul test is for GH #10259
         a = Series(np.random.randn(4), index=['p', 'q', 'r', 's'])
@@ -785,7 +786,8 @@ class TestSeriesAnalytics(object):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
-        msg = r"No axis named 1 for object type <(class|type) 'type'>"
+        msg = ("No axis named 1 for object type"
+               " <class 'pandas.core.series.Series'>")
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):

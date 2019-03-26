@@ -7,7 +7,7 @@ import operator
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas.compat import range, string_types
+from pandas.compat import string_types
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
@@ -329,9 +329,10 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
                                     bounds_error=bounds_error)
         new_y = terp(new_x)
     elif method == 'spline':
-        # GH #10633
-        if not order:
-            raise ValueError("order needs to be specified and greater than 0")
+        # GH #10633, #24014
+        if isna(order) or (order <= 0):
+            raise ValueError("order needs to be specified and greater than 0; "
+                             "got order: {}".format(order))
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
         new_y = terp(new_x)
     else:
