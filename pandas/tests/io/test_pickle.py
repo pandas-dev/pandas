@@ -343,7 +343,7 @@ class TestCompression(object):
                                  compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == 'xz':
-            lzma = pd.compat.import_lzma()
+            import lzma
             f = lzma.LZMAFile(dest_path, "w")
         else:
             msg = 'Unrecognized compression type: {}'.format(compression)
@@ -381,10 +381,7 @@ class TestCompression(object):
                 df = tm.makeDataFrame()
                 df.to_pickle(path, compression=compression)
 
-    @pytest.mark.parametrize('ext', [
-        '', '.gz', '.bz2', '.no_compress',
-        pytest.param('.xz', marks=td.skip_if_no_lzma)
-    ])
+    @pytest.mark.parametrize('ext', ['', '.gz', '.bz2', '.no_compress', '.xz'])
     def test_write_infer(self, ext, get_random_path):
         base = get_random_path
         path1 = base + ext
@@ -431,9 +428,7 @@ class TestCompression(object):
             tm.assert_frame_equal(df, df2)
 
     @pytest.mark.parametrize('ext', [
-        '', '.gz', '.bz2', '.zip', '.no_compress',
-        pytest.param('.xz', marks=td.skip_if_no_lzma)
-    ])
+        '', '.gz', '.bz2', '.zip', '.no_compress', '.xz'])
     def test_read_infer(self, ext, get_random_path):
         base = get_random_path
         path1 = base + ".raw"

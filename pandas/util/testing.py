@@ -8,7 +8,6 @@ import os
 import re
 from shutil import rmtree
 import string
-import sys
 import tempfile
 import traceback
 import warnings
@@ -22,8 +21,7 @@ from pandas._config.localization import (  # noqa:F401
 from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
-    PY2, PY3, httplib, lmap, lrange, lzip, raise_with_traceback, string_types,
-    unichr)
+    PY2, PY3, httplib, lmap, lrange, lzip, raise_with_traceback, string_types)
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -185,7 +183,7 @@ def decompress_file(path, compression):
         import bz2
         f = bz2.BZ2File(path, 'rb')
     elif compression == 'xz':
-        lzma = compat.import_lzma()
+        import lzma
         f = lzma.LZMAFile(path, 'rb')
     elif compression == 'zip':
         import zipfile
@@ -238,7 +236,7 @@ def write_to_compressed(compression, path, data, dest="test"):
         import bz2
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        lzma = compat.import_lzma()
+        import lzma
         compress_method = lzma.LZMAFile
     else:
         msg = "Unrecognized compression type: {}".format(compression)
@@ -369,7 +367,7 @@ def randbool(size=(), p=0.5):
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits),
                        dtype=(np.str_, 1))
-RANDU_CHARS = np.array(list("".join(map(unichr, lrange(1488, 1488 + 26))) +
+RANDU_CHARS = np.array(list("".join(map(chr, lrange(1488, 1488 + 26))) +
                             string.digits), dtype=(np.unicode_, 1))
 
 
@@ -421,32 +419,6 @@ def close(fignum=None):
             _close(fignum)
     else:
         _close(fignum)
-
-
-# -----------------------------------------------------------------------------
-# Stdout / stderr decorators
-
-
-@contextmanager
-def set_defaultencoding(encoding):
-    """
-    Set default encoding (as given by sys.getdefaultencoding()) to the given
-    encoding; restore on exit.
-
-    Parameters
-    ----------
-    encoding : str
-    """
-    if not PY2:
-        raise ValueError("set_defaultencoding context is only available "
-                         "in Python 2.")
-    orig = sys.getdefaultencoding()
-    reload(sys)  # noqa:F821
-    sys.setdefaultencoding(encoding)
-    try:
-        yield
-    finally:
-        sys.setdefaultencoding(orig)
 
 
 # -----------------------------------------------------------------------------
@@ -2209,7 +2181,7 @@ def network(t, url="http://www.google.com",
     from pytest import skip
     t.network = True
 
-    @compat.wraps(t)
+    @wraps(t)
     def wrapper(*args, **kwargs):
         if check_before_test and not raise_on_error:
             if not can_connect(url, error_classes):

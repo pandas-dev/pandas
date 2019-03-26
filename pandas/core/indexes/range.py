@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import index as libindex, lib
 import pandas.compat as compat
-from pandas.compat import get_range_parameters, lrange
+from pandas.compat import lrange
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -132,7 +132,7 @@ class RangeIndex(Int64Index):
                 '{0}(...) must be called with object coercible to a '
                 'range, {1} was passed'.format(cls.__name__, repr(data)))
 
-        start, stop, step = get_range_parameters(data)
+        start, stop, step = data.start, data.stop, data.step
         return RangeIndex(start, stop, step, dtype=dtype, name=name, **kwargs)
 
     @classmethod

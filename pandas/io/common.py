@@ -404,7 +404,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
         # XZ Compression
         elif compression == 'xz':
-            lzma = compat.import_lzma()
+            import lzma
             f = lzma.LZMAFile(path_or_buf, mode)
 
         # Unrecognized Compression

@@ -655,8 +655,7 @@ cdef class TextReader:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
-                lzma = compat.import_lzma()
-
+                import lzma
                 if isinstance(source, basestring):
                     source = lzma.LZMAFile(source, 'rb')
                 else:

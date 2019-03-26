@@ -5,7 +5,6 @@ compat
 Cross-compatible functions for Python 2 and 3.
 
 Key items to import for 2/3 compatible code:
-* iterators: reduce()
 * lists: lrange(), lmap(), lzip(), lfilter()
 * iterable method compatibility: iteritems, iterkeys, itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
@@ -100,15 +99,6 @@ if PY3:
                                            'varargs', 'keywords'])
         return argspec(args, defaults, varargs, keywords)
 
-    def get_range_parameters(data):
-        """Gets the start, stop, and step parameters from a range object"""
-        return data.start, data.stop, data.step
-
-    # have to explicitly put builtins into the namespace
-    intern = sys.intern
-    reduce = functools.reduce
-    unichr = chr
-
     # list-producing versions of the major Python iterating functions
     def lrange(*args, **kwargs):
         return list(range(*args, **kwargs))
@@ -122,8 +112,6 @@ if PY3:
     def lfilter(*args, **kwargs):
         return list(filter(*args, **kwargs))
 
-    from importlib import reload
-    reload = reload
     Hashable = collections.abc.Hashable
     Iterable = collections.abc.Iterable
     Iterator = collections.abc.Iterator
@@ -149,36 +137,11 @@ else:
     def signature(f):
         return inspect.getargspec(f)
 
-    def get_range_parameters(data):
-        """Gets the start, stop, and step parameters from a range object"""
-        # seems we only have indexing ops to infer
-        # rather than direct accessors
-        if len(data) > 1:
-            step = data[1] - data[0]
-            stop = data[-1] + step
-            start = data[0]
-        elif len(data):
-            start = data[0]
-            stop = data[0] + 1
-            step = 1
-        else:
-            start = stop = 0
-            step = 1
-
-        return start, stop, step
-
-    # import iterator versions of these functions
-    intern = intern
-    reduce = reduce
-    unichr = unichr
-
     # Python 2-builtin ranges produce lists
     lrange = builtins.range
     lzip = builtins.zip
     lmap = builtins.map
     lfilter = builtins.filter
-
-    reload = builtins.reload
 
     Hashable = collections.Hashable
     Iterable = collections.Iterable
@@ -247,7 +210,6 @@ _EAW_MAP = {'Na': 1, 'N': 1, 'W': 2, 'F': 2, 'H': 1}
 
 if PY3:
     string_types = str,
-    class_types = type,
     text_type = str
     binary_type = bytes
 
@@ -274,11 +236,6 @@ if PY3:
         else:
             return len(data)
 
-    def import_lzma():
-        """ import lzma from the std library """
-        import lzma
-        return lzma
-
     def set_function_name(f, name, cls):
         """ Bind the name/qualname attributes of the function """
         f.__name__ = name
@@ -289,7 +246,6 @@ if PY3:
         return f
 else:
     string_types = basestring,
-    class_types = (type, types.ClassType)
     text_type = unicode
     binary_type = str
 
@@ -321,32 +277,12 @@ else:
         else:
             return len(data)
 
-    def import_lzma():
-        """ import the backported lzma library
-        or raise ImportError if not available """
-        from backports import lzma
-        return lzma
-
     def set_function_name(f, name, cls):
         """ Bind the name attributes of the function """
         f.__name__ = name
         return f
 
 string_and_binary_types = string_types + (binary_type,)
-
-
-if PY2:
-    # In PY2 functools.wraps doesn't provide metadata pytest needs to generate
-    # decorated tests using parametrization. See pytest GH issue #2782
-    def wraps(wrapped, assigned=functools.WRAPPER_ASSIGNMENTS,
-              updated=functools.WRAPPER_UPDATES):
-        def wrapper(f):
-            f = functools.wraps(wrapped, assigned, updated)(f)
-            f.__wrapped__ = wrapped
-            return f
-        return wrapper
-else:
-    wraps = functools.wraps
 
 
 def add_metaclass(metaclass):
