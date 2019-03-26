@@ -5716,7 +5716,8 @@ class NDFrame(PandasObject, SelectionMixin):
             results = []
             for col_name, col in self.iteritems():
                 if col_name in dtype:
-                    results.append(col.astype(dtype[col_name], copy=copy))
+                    results.append(col.astype(dtype=dtype[col_name], copy=copy,
+                                              errors=errors, **kwargs))
                 else:
                     results.append(results.append(col.copy() if copy else col))
 
