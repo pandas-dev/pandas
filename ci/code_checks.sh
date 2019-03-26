@@ -263,8 +263,8 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
     echo "mypy --version"
     mypy --version
 
-    MSG='Performing static analysis on items in mypy_whitelist.txt' ; echo $MSG
-    mypy @mypy_whitelist.txt
+    MSG='Performing static analysis using mypy' ; echo $MSG
+    mypy pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
