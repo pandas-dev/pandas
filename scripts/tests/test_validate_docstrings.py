@@ -252,6 +252,35 @@ class GoodDocStrings(object):
         else:
             return None
 
+    def parameters_with_bullet_points(self, method='min'):
+        """
+        Allow bullet points to end without a period.
+
+        Parameters
+        ----------
+        method : {'min', 'max'}, default 'min
+            Parameter introduction:
+
+            * 'min': the description for min
+            * 'max': the description for max
+        """
+        pass
+
+    def parameters_with_bullet_points1(self, method='min'):
+        """
+        Allow long description in bullet points to end without a period.
+
+        Parameters
+        ----------
+        method : {'min', 'max'}, default 'min
+            Parameter introduction:
+
+            * 'min': the description for min
+            * 'max': the description for max that can also be very long and
+              requires an extra row
+        """
+        pass
+
 
 class BadGenericDocStrings(object):
     """Everything here has a bad docstring
@@ -806,7 +835,8 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains', 'mode', 'good_imports', 'no_returns', 'empty_returns'])
+        'contains', 'mode', 'good_imports', 'no_returns', 'empty_returns',
+        'parameters_with_bullet_points', 'parameters_with_bullet_points1'])
     def test_good_functions(self, capsys, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
