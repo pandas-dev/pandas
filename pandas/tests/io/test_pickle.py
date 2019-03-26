@@ -21,7 +21,6 @@ from warnings import catch_warnings, simplefilter
 import pytest
 
 from pandas.compat import is_platform_little_endian
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Index
