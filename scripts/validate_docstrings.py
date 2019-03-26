@@ -486,6 +486,21 @@ class Docstring(object):
                     break
         return desc_list
 
+    def parameter_correct_end(self, param):
+        if self.parameter_desc(param)[-1] == '.':
+            return True
+        else:
+            # Return True if a parameter description ends
+            # with a bullet point
+            for desc_line in self.parameter_desc_list(param)[::-1]:
+                if desc_line[0] in ['*', '-', '+']:
+                    return True
+                elif desc_line[0:2] != '  ':
+                    return False
+                else:
+                    pass
+            return False
+
     @property
     def see_also(self):
         return collections.OrderedDict((name, ''.join(desc))
@@ -739,22 +754,8 @@ def get_validation_data(doc):
         else:
             if not doc.parameter_desc(param)[0].isupper():
                 errs.append(error('PR08', param_name=param))
-            if doc.parameter_desc(param)[-1] != '.':
-
-                def end_with_bullet(param_desc_list):
-                    # Return True if a parameter description ends
-                    # with a bullet point
-                    desc_line = param_desc_list[-1]
-                    if desc_line and desc_line[0] in ['*', '-', '+']:
-                        return True
-                    elif desc_line and desc_line[0:2] == '  ':
-                        return end_with_bullet(param_desc_list[:-1])
-                    else:
-                        return False
-
-                desc_list = doc.parameter_desc_list(param)
-                if desc_list[-1][-1] != '.' and not end_with_bullet(desc_list):
-                    errs.append(error('PR09', param_name=param))
+            if not doc.parameter_correct_end(param):
+                errs.append(error('PR09', param_name=param))
 
     if doc.is_function_or_method:
         if not doc.returns:
