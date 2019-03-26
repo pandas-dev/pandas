@@ -987,9 +987,9 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         List/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``.
     calendar : pd.HolidayCalendar or np.busdaycalendar
-        A business day calendar.
+        Calendar to integrate.
     offset : timedelta, default timedelta(0)
-        Applies a time offset (from ms to years).
+        Time offset to apply.
     """
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
