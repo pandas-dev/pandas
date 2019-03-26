@@ -91,6 +91,13 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
+      ci/code_checks.sh typing
+    displayName: 'Typing validation'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
       pytest --capture=no --strict scripts
     displayName: 'Testing docstring validaton script'
     condition: true

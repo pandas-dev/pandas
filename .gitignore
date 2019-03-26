@@ -61,6 +61,7 @@ dist
 .coverage
 coverage.xml
 coverage_html_report
+.mypy_cache
 *.pytest_cache
 # hypothesis test database
 .hypothesis/
