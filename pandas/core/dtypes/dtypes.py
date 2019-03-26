@@ -138,7 +138,7 @@ class PandasExtensionDtype(_DtypeOpsMixin):
         Invoked by bytes(obj) in py3 only.
         Yields a bytestring in both py2/py3.
         """
-        from pandas.core.config import get_option
+        from pandas._config import get_option
 
         encoding = get_option("display.encoding")
         return self.__unicode__().encode(encoding, 'replace')
@@ -393,9 +393,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return hash(self) == hash(other)
 
     def __repr__(self):
-        tpl = u'CategoricalDtype(categories={}ordered={})'
+        tpl = 'CategoricalDtype(categories={}ordered={})'
         if self.categories is None:
-            data = u"None, "
+            data = "None, "
         else:
             data = self.categories._format_data(name=self.__class__.__name__)
         return tpl.format(data, self.ordered)

@@ -24,6 +24,8 @@ from typing import List, Optional, Union
 import numpy as np
 import numpy.ma as ma
 
+from pandas._config import get_option
+
 from pandas._libs import lib, algos as libalgos
 
 from pandas.util._decorators import (Appender, Substitution,
@@ -33,9 +35,9 @@ from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
 from pandas import compat
-from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
-                           PY36, raise_with_traceback, Iterator,
-                           string_and_binary_types)
+from pandas.compat import (
+    PY36, Iterator, StringIO, lmap, lzip, raise_with_traceback,
+    string_and_binary_types)
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
     maybe_upcast,
@@ -85,7 +87,6 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin as DatetimeLikeArray
 )
-from pandas.core.config import get_option
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
                                ensure_index_from_sequences)
@@ -622,7 +623,7 @@ class DataFrame(NDFrame):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        buf = StringIO(u(""))
+        buf = StringIO("")
         if self._info_repr():
             self.info(buf=buf)
             return buf.getvalue()
@@ -646,7 +647,7 @@ class DataFrame(NDFrame):
         Mainly for IPython notebook.
         """
         if self._info_repr():
-            buf = StringIO(u(""))
+            buf = StringIO("")
             self.info(buf=buf)
             # need to escape the <class>, should be the first line.
             val = buf.getvalue().replace('<', r'&lt;', 1)
@@ -5548,8 +5549,8 @@ class DataFrame(NDFrame):
         other = other.reindex_like(self)
 
         for col in self.columns:
-            this = self[col].values
-            that = other[col].values
+            this = self[col]._values
+            that = other[col]._values
             if filter_func is not None:
                 with np.errstate(all='ignore'):
                     mask = ~filter_func(this) | isna(that)
@@ -8063,4 +8064,4 @@ def _from_nested_dict(data):
 
 
 def _put_str(s, space):
-    return u'{s}'.format(s=s)[:space].ljust(space)
+    return '{s}'.format(s=s)[:space].ljust(space)

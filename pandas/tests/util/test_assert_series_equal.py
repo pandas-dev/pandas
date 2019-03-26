@@ -67,7 +67,7 @@ def _assert_not_series_equal_both(a, b, **kwargs):
 
 
 @pytest.mark.parametrize("data", [
-    range(3), list("abc"), list(u"áàä"),
+    range(3), list("abc"), list("áàä"),
 ])
 def test_series_equal(data):
     _assert_series_equal_both(Series(data), Series(data))
@@ -76,8 +76,8 @@ def test_series_equal(data):
 @pytest.mark.parametrize("data1,data2", [
     (range(3), range(1, 4)),
     (list("abc"), list("xyz")),
-    (list(u"áàä"), list(u"éèë")),
-    (list(u"áàä"), list(b"aaa")),
+    (list("áàä"), list("éèë")),
+    (list("áàä"), list(b"aaa")),
     (range(3), range(4)),
 ])
 def test_series_not_equal_value_mismatch(data1, data2):

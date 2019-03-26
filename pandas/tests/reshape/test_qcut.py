@@ -3,8 +3,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import zip
-
 from pandas import (
     Categorical, DatetimeIndex, Interval, IntervalIndex, NaT, Series,
     TimedeltaIndex, Timestamp, cut, date_range, isna, qcut, timedelta_range)

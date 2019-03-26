@@ -39,11 +39,13 @@ import pandas._libs.lib as lib
 from pandas._libs.khash cimport (
     khiter_t,
     kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
-    kh_get_str, kh_destroy_str,
+    kh_get_str, kh_destroy_str, kh_resize_str,
     kh_float64_t, kh_get_float64, kh_destroy_float64,
-    kh_put_float64, kh_init_float64,
+    kh_put_float64, kh_init_float64, kh_resize_float64,
     kh_strbox_t, kh_put_strbox, kh_get_strbox, kh_init_strbox,
-    kh_destroy_strbox)
+    kh_destroy_strbox,
+    kh_str_starts_t, kh_put_str_starts_item, kh_init_str_starts,
+    kh_get_str_starts_item, kh_destroy_str_starts, kh_resize_str_starts)
 
 import pandas.compat as compat
 from pandas.core.dtypes.common import (
@@ -65,14 +67,9 @@ CParserError = ParserError
 
 
 cdef:
-    bint PY3 = (sys.version_info[0] >= 3)
-
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
 
-
-cdef extern from "errno.h":
-    int errno
 
 cdef extern from "headers/portable.h":
     # I *think* this is here so that strcasecmp is defined on Windows
@@ -186,7 +183,7 @@ cdef extern from "parser/tokenizer.h":
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
         float64_t (*double_converter_nogil)(const char *, char **,
-                                            char, char, char, int) nogil
+                                            char, char, char, int, int *) nogil
         float64_t (*double_converter_withgil)(const char *, char **,
                                               char, char, char, int)
 
@@ -237,9 +234,9 @@ cdef extern from "parser/tokenizer.h":
                            uint64_t uint_max, int *error, char tsep) nogil
 
     float64_t xstrtod(const char *p, char **q, char decimal, char sci,
-                      char tsep, int skip_trailing) nogil
+                      char tsep, int skip_trailing, int *error) nogil
     float64_t precise_xstrtod(const char *p, char **q, char decimal, char sci,
-                              char tsep, int skip_trailing) nogil
+                              char tsep, int skip_trailing, int *error) nogil
     float64_t round_trip(const char *p, char **q, char decimal, char sci,
                          char tsep, int skip_trailing) nogil
 
@@ -285,8 +282,8 @@ cdef class TextReader:
         int64_t parser_start
         list clocks
         char *c_encoding
-        kh_str_t *false_set
-        kh_str_t *true_set
+        kh_str_starts_t *false_set
+        kh_str_starts_t *true_set
 
     cdef public:
         int64_t leading_cols, table_width, skipfooter, buffer_lines
@@ -557,10 +554,10 @@ cdef class TextReader:
     def __dealloc__(self):
         parser_free(self.parser)
         if self.true_set:
-            kh_destroy_str(self.true_set)
+            kh_destroy_str_starts(self.true_set)
             self.true_set = NULL
         if self.false_set:
-            kh_destroy_str(self.false_set)
+            kh_destroy_str_starts(self.false_set)
             self.false_set = NULL
         parser_del(self.parser)
 
@@ -575,10 +572,10 @@ cdef class TextReader:
         # also preemptively free all allocated memory
         parser_free(self.parser)
         if self.true_set:
-            kh_destroy_str(self.true_set)
+            kh_destroy_str_starts(self.true_set)
             self.true_set = NULL
         if self.false_set:
-            kh_destroy_str(self.false_set)
+            kh_destroy_str_starts(self.false_set)
             self.false_set = NULL
 
     def set_error_bad_lines(self, int status):
@@ -634,12 +631,7 @@ cdef class TextReader:
                     source = gzip.GzipFile(fileobj=source)
             elif self.compression == 'bz2':
                 import bz2
-                if isinstance(source, basestring) or PY3:
-                    source = bz2.BZ2File(source, 'rb')
-                else:
-                    content = source.read()
-                    source.close()
-                    source = compat.StringIO(bz2.decompress(content))
+                source = bz2.BZ2File(source, 'rb')
             elif self.compression == 'zip':
                 import zipfile
                 zip_file = zipfile.ZipFile(source)
@@ -699,7 +691,7 @@ cdef class TextReader:
 
             if ptr == NULL:
                 if not os.path.exists(source):
-                    raise compat.FileNotFoundError(
+                    raise FileNotFoundError(
                         ENOENT,
                         'File {source} does not exist'.format(source=source),
                         source)
@@ -1020,7 +1012,7 @@ cdef class TextReader:
         cdef:
             int64_t i
             int nused
-            kh_str_t *na_hashset = NULL
+            kh_str_starts_t *na_hashset = NULL
             int64_t start, end
             object name, na_flist, col_dtype = None
             bint na_filter = 0
@@ -1144,7 +1136,7 @@ cdef class TextReader:
 
     cdef inline _convert_tokens(self, Py_ssize_t i, int start, int end,
                                 object name, bint na_filter,
-                                kh_str_t *na_hashset,
+                                kh_str_starts_t *na_hashset,
                                 object na_flist, object col_dtype):
 
         if col_dtype is not None:
@@ -1207,7 +1199,7 @@ cdef class TextReader:
                              int64_t start, int64_t end,
                              bint na_filter,
                              bint user_dtype,
-                             kh_str_t *na_hashset,
+                             kh_str_starts_t *na_hashset,
                              object na_flist):
         if is_categorical_dtype(dtype):
             # TODO: I suspect that _categorical_convert could be
@@ -1304,7 +1296,7 @@ cdef class TextReader:
                             "supported for parsing".format(dtype=dtype))
 
     cdef _string_convert(self, Py_ssize_t i, int64_t start, int64_t end,
-                         bint na_filter, kh_str_t *na_hashset):
+                         bint na_filter, kh_str_starts_t *na_hashset):
 
         cdef StringPath path = _string_path(self.c_encoding)
 
@@ -1363,8 +1355,8 @@ cdef class TextReader:
 
             return _ensure_encoded(self.na_values), self.na_fvalues
 
-    cdef _free_na_set(self, kh_str_t *table):
-        kh_destroy_str(table)
+    cdef _free_na_set(self, kh_str_starts_t *table):
+        kh_destroy_str_starts(table)
 
     cdef _get_column_name(self, Py_ssize_t i, Py_ssize_t nused):
         cdef int64_t j
@@ -1397,17 +1389,10 @@ def _ensure_encoded(list lst):
         if isinstance(x, unicode):
             x = PyUnicode_AsUTF8String(x)
         elif not isinstance(x, bytes):
-            x = asbytes(x)
+            x = str(x).encode('utf-8')
 
         result.append(x)
     return result
-
-
-cdef asbytes(object o):
-    if PY3:
-        return str(o).encode('utf-8')
-    else:
-        return str(o)
 
 
 # common NA values
@@ -1442,10 +1427,7 @@ cdef enum StringPath:
 cdef inline StringPath _string_path(char *encoding):
     if encoding != NULL and encoding != b"utf-8":
         return ENCODED
-    elif PY3 or encoding != NULL:
-        return UTF8
-    else:
-        return CSTRING
+    return UTF8
 
 
 # ----------------------------------------------------------------------
@@ -1454,7 +1436,7 @@ cdef inline StringPath _string_path(char *encoding):
 
 cdef _string_box_factorize(parser_t *parser, int64_t col,
                            int64_t line_start, int64_t line_end,
-                           bint na_filter, kh_str_t *na_hashset):
+                           bint na_filter, kh_str_starts_t *na_hashset):
     cdef:
         int error, na_count = 0
         Py_ssize_t i, lines
@@ -1479,9 +1461,8 @@ cdef _string_box_factorize(parser_t *parser, int64_t col,
         COLITER_NEXT(it, word)
 
         if na_filter:
-            k = kh_get_str(na_hashset, word)
-            # in the hash table
-            if k != na_hashset.n_buckets:
+            if kh_get_str_starts_item(na_hashset, word):
+                # in the hash table
                 na_count += 1
                 result[i] = NA
                 continue
@@ -1508,7 +1489,7 @@ cdef _string_box_factorize(parser_t *parser, int64_t col,
 
 cdef _string_box_utf8(parser_t *parser, int64_t col,
                       int64_t line_start, int64_t line_end,
-                      bint na_filter, kh_str_t *na_hashset):
+                      bint na_filter, kh_str_starts_t *na_hashset):
     cdef:
         int error, na_count = 0
         Py_ssize_t i, lines
@@ -1533,9 +1514,8 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         COLITER_NEXT(it, word)
 
         if na_filter:
-            k = kh_get_str(na_hashset, word)
-            # in the hash table
-            if k != na_hashset.n_buckets:
+            if kh_get_str_starts_item(na_hashset, word):
+                # in the hash table
                 na_count += 1
                 result[i] = NA
                 continue
@@ -1562,7 +1542,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
 
 cdef _string_box_decode(parser_t *parser, int64_t col,
                         int64_t line_start, int64_t line_end,
-                        bint na_filter, kh_str_t *na_hashset,
+                        bint na_filter, kh_str_starts_t *na_hashset,
                         char *encoding):
     cdef:
         int error, na_count = 0
@@ -1590,9 +1570,8 @@ cdef _string_box_decode(parser_t *parser, int64_t col,
         COLITER_NEXT(it, word)
 
         if na_filter:
-            k = kh_get_str(na_hashset, word)
+            if kh_get_str_starts_item(na_hashset, word):
             # in the hash table
-            if k != na_hashset.n_buckets:
                 na_count += 1
                 result[i] = NA
                 continue
@@ -1621,7 +1600,7 @@ cdef _string_box_decode(parser_t *parser, int64_t col,
 @cython.boundscheck(False)
 cdef _categorical_convert(parser_t *parser, int64_t col,
                           int64_t line_start, int64_t line_end,
-                          bint na_filter, kh_str_t *na_hashset,
+                          bint na_filter, kh_str_starts_t *na_hashset,
                           char *encoding):
     "Convert column data into codes, categories"
     cdef:
@@ -1654,9 +1633,8 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
             COLITER_NEXT(it, word)
 
             if na_filter:
-                k = kh_get_str(na_hashset, word)
+                if kh_get_str_starts_item(na_hashset, word):
                 # is in NA values
-                if k != na_hashset.n_buckets:
                     na_count += 1
                     codes[i] = NA
                     continue
@@ -1733,7 +1711,7 @@ cdef:
 
 cdef _try_double(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
-                 bint na_filter, kh_str_t *na_hashset, object na_flist):
+                 bint na_filter, kh_str_starts_t *na_hashset, object na_flist):
     cdef:
         int error, na_count = 0
         Py_ssize_t i, lines
@@ -1761,7 +1739,7 @@ cdef _try_double(parser_t *parser, int64_t col,
         assert parser.double_converter_withgil != NULL
         error = _try_double_nogil(parser,
                                   <float64_t (*)(const char *, char **,
-                                                 char, char, char, int)
+                                                 char, char, char, int, int *)
                                   nogil>parser.double_converter_withgil,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
@@ -1775,22 +1753,20 @@ cdef _try_double(parser_t *parser, int64_t col,
 cdef inline int _try_double_nogil(parser_t *parser,
                                   float64_t (*double_converter)(
                                       const char *, char **, char,
-                                      char, char, int) nogil,
+                                      char, char, int, int *) nogil,
                                   int col, int line_start, int line_end,
-                                  bint na_filter, kh_str_t *na_hashset,
+                                  bint na_filter, kh_str_starts_t *na_hashset,
                                   bint use_na_flist,
                                   const kh_float64_t *na_flist,
                                   float64_t NA, float64_t *data,
                                   int *na_count) nogil:
     cdef:
-        int error,
+        int error = 0,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
         char *p_end
         khiter_t k, k64
-
-    global errno
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
@@ -1799,23 +1775,22 @@ cdef inline int _try_double_nogil(parser_t *parser,
         for i in range(lines):
             COLITER_NEXT(it, word)
 
-            k = kh_get_str(na_hashset, word)
-            # in the hash table
-            if k != na_hashset.n_buckets:
+            if kh_get_str_starts_item(na_hashset, word):
+                # in the hash table
                 na_count[0] += 1
                 data[0] = NA
             else:
                 data[0] = double_converter(word, &p_end, parser.decimal,
-                                           parser.sci, parser.thousands, 1)
-                if errno != 0 or p_end[0] or p_end == word:
+                                           parser.sci, parser.thousands,
+                                           1, &error)
+                if error != 0 or p_end == word or p_end[0]:
+                    error = 0
                     if (strcasecmp(word, cinf) == 0 or
                             strcasecmp(word, cposinf) == 0):
                         data[0] = INF
                     elif strcasecmp(word, cneginf) == 0:
                         data[0] = NEGINF
                     else:
-                        # Just return a non-zero value since
-                        # the errno is never consumed.
                         return 1
                 if use_na_flist:
                     k64 = kh_get_float64(na_flist, data[0])
@@ -1827,16 +1802,15 @@ cdef inline int _try_double_nogil(parser_t *parser,
         for i in range(lines):
             COLITER_NEXT(it, word)
             data[0] = double_converter(word, &p_end, parser.decimal,
-                                       parser.sci, parser.thousands, 1)
-            if errno != 0 or p_end[0] or p_end == word:
+                                       parser.sci, parser.thousands, 1, &error)
+            if error != 0 or p_end == word or p_end[0]:
+                error = 0
                 if (strcasecmp(word, cinf) == 0 or
                         strcasecmp(word, cposinf) == 0):
                     data[0] = INF
                 elif strcasecmp(word, cneginf) == 0:
                     data[0] = NEGINF
                 else:
-                    # Just return a non-zero value since
-                    # the errno is never consumed.
                     return 1
             data += 1
 
@@ -1845,7 +1819,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
 
 cdef _try_uint64(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
-                 bint na_filter, kh_str_t *na_hashset):
+                 bint na_filter, kh_str_starts_t *na_hashset):
     cdef:
         int error
         Py_ssize_t i, lines
@@ -1882,7 +1856,7 @@ cdef _try_uint64(parser_t *parser, int64_t col,
 cdef inline int _try_uint64_nogil(parser_t *parser, int64_t col,
                                   int64_t line_start,
                                   int64_t line_end, bint na_filter,
-                                  const kh_str_t *na_hashset,
+                                  const kh_str_starts_t *na_hashset,
                                   uint64_t *data, uint_state *state) nogil:
     cdef:
         int error
@@ -1896,9 +1870,8 @@ cdef inline int _try_uint64_nogil(parser_t *parser, int64_t col,
     if na_filter:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            k = kh_get_str(na_hashset, word)
-            # in the hash table
-            if k != na_hashset.n_buckets:
+            if kh_get_str_starts_item(na_hashset, word):
+                # in the hash table
                 state.seen_null = 1
                 data[i] = 0
                 continue
@@ -1920,7 +1893,7 @@ cdef inline int _try_uint64_nogil(parser_t *parser, int64_t col,
 
 cdef _try_int64(parser_t *parser, int64_t col,
                 int64_t line_start, int64_t line_end,
-                bint na_filter, kh_str_t *na_hashset):
+                bint na_filter, kh_str_starts_t *na_hashset):
     cdef:
         int error, na_count = 0
         Py_ssize_t i, lines
@@ -1950,7 +1923,7 @@ cdef _try_int64(parser_t *parser, int64_t col,
 cdef inline int _try_int64_nogil(parser_t *parser, int64_t col,
                                  int64_t line_start,
                                  int64_t line_end, bint na_filter,
-                                 const kh_str_t *na_hashset, int64_t NA,
+                                 const kh_str_starts_t *na_hashset, int64_t NA,
                                  int64_t *data, int *na_count) nogil:
     cdef:
         int error
@@ -1965,9 +1938,8 @@ cdef inline int _try_int64_nogil(parser_t *parser, int64_t col,
     if na_filter:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            k = kh_get_str(na_hashset, word)
-            # in the hash table
-            if k != na_hashset.n_buckets:
+            if kh_get_str_starts_item(na_hashset, word):
+                # in the hash table
                 na_count[0] += 1
                 data[i] = NA
                 continue
@@ -1989,9 +1961,9 @@ cdef inline int _try_int64_nogil(parser_t *parser, int64_t col,
 
 cdef _try_bool_flex(parser_t *parser, int64_t col,
                     int64_t line_start, int64_t line_end,
-                    bint na_filter, const kh_str_t *na_hashset,
-                    const kh_str_t *true_hashset,
-                    const kh_str_t *false_hashset):
+                    bint na_filter, const kh_str_starts_t *na_hashset,
+                    const kh_str_starts_t *true_hashset,
+                    const kh_str_starts_t *false_hashset):
     cdef:
         int error, na_count = 0
         Py_ssize_t i, lines
@@ -2018,9 +1990,9 @@ cdef _try_bool_flex(parser_t *parser, int64_t col,
 cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
                                      int64_t line_start,
                                      int64_t line_end, bint na_filter,
-                                     const kh_str_t *na_hashset,
-                                     const kh_str_t *true_hashset,
-                                     const kh_str_t *false_hashset,
+                                     const kh_str_starts_t *na_hashset,
+                                     const kh_str_starts_t *true_hashset,
+                                     const kh_str_starts_t *false_hashset,
                                      uint8_t NA, uint8_t *data,
                                      int *na_count) nogil:
     cdef:
@@ -2037,21 +2009,18 @@ cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
         for i in range(lines):
             COLITER_NEXT(it, word)
 
-            k = kh_get_str(na_hashset, word)
-            # in the hash table
-            if k != na_hashset.n_buckets:
+            if kh_get_str_starts_item(na_hashset, word):
+                # in the hash table
                 na_count[0] += 1
                 data[0] = NA
                 data += 1
                 continue
 
-            k = kh_get_str(true_hashset, word)
-            if k != true_hashset.n_buckets:
+            if kh_get_str_starts_item(true_hashset, word):
                 data[0] = 1
                 data += 1
                 continue
-            k = kh_get_str(false_hashset, word)
-            if k != false_hashset.n_buckets:
+            if kh_get_str_starts_item(false_hashset, word):
                 data[0] = 0
                 data += 1
                 continue
@@ -2064,14 +2033,12 @@ cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
         for i in range(lines):
             COLITER_NEXT(it, word)
 
-            k = kh_get_str(true_hashset, word)
-            if k != true_hashset.n_buckets:
+            if kh_get_str_starts_item(true_hashset, word):
                 data[0] = 1
                 data += 1
                 continue
 
-            k = kh_get_str(false_hashset, word)
-            if k != false_hashset.n_buckets:
+            if kh_get_str_starts_item(false_hashset, word):
                 data[0] = 0
                 data += 1
                 continue
@@ -2084,27 +2051,34 @@ cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
     return 0
 
 
-cdef kh_str_t* kset_from_list(list values) except NULL:
+cdef kh_str_starts_t* kset_from_list(list values) except NULL:
     # caller takes responsibility for freeing the hash table
     cdef:
         Py_ssize_t i
         khiter_t k
-        kh_str_t *table
+        kh_str_starts_t *table
         int ret = 0
 
         object val
 
-    table = kh_init_str()
+    table = kh_init_str_starts()
 
     for i in range(len(values)):
         val = values[i]
 
         # None creeps in sometimes, which isn't possible here
         if not isinstance(val, bytes):
-            kh_destroy_str(table)
+            kh_destroy_str_starts(table)
             raise ValueError('Must be all encoded bytes')
 
-        k = kh_put_str(table, PyBytes_AsString(val), &ret)
+        kh_put_str_starts_item(table, PyBytes_AsString(val), &ret)
+
+    if table.table.n_buckets <= 128:
+        # Resize the hash table to make it almost empty, this
+        # reduces amount of hash collisions on lookup thus
+        # "key not in table" case is faster.
+        # Note that this trades table memory footprint for lookup speed.
+        kh_resize_str_starts(table, table.table.n_buckets * 8)
 
     return table
 
@@ -2126,6 +2100,9 @@ cdef kh_float64_t* kset_float64_from_list(values) except NULL:
 
         k = kh_put_float64(table, val, &ret)
 
+    if table.n_buckets <= 128:
+        # See reasoning in kset_from_list
+        kh_resize_float64(table, table.n_buckets * 8)
     return table
 
 
@@ -2161,10 +2138,7 @@ cdef raise_parser_error(object base, parser_t *parser):
 
     message = '{base}. C error: '.format(base=base)
     if parser.error_msg != NULL:
-        if PY3:
-            message += parser.error_msg.decode('utf-8')
-        else:
-            message += parser.error_msg
+        message += parser.error_msg.decode('utf-8')
     else:
         message += 'no error message set'
 
@@ -2263,12 +2237,7 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
 
     coliter_setup(&it, parser, col, line_start)
 
-    if not PY3 and c_encoding == NULL:
-        for i in range(lines):
-            COLITER_NEXT(it, word)
-            val = PyBytes_FromString(word)
-            result[i] = f(val)
-    elif ((PY3 and c_encoding == NULL) or c_encoding == b'utf-8'):
+    if c_encoding == NULL or c_encoding == b'utf-8':
         for i in range(lines):
             COLITER_NEXT(it, word)
             val = PyUnicode_FromString(word)

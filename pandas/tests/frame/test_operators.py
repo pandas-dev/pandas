@@ -8,8 +8,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import range
-
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, compat
 import pandas.core.common as com
@@ -726,7 +724,7 @@ class TestDataFrameOperators(object):
                                     'xor'])
     def test_inplace_ops_identity2(self, op):
 
-        if compat.PY3 and op == 'div':
+        if op == 'div':
             return
 
         df = DataFrame({'a': [1., 2., 3.],

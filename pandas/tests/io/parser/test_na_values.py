@@ -8,7 +8,7 @@ parsing for all of the parsers defined in parsers.py
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, range
+from pandas.compat import StringIO
 
 from pandas import DataFrame, Index, MultiIndex
 import pandas.util.testing as tm
