@@ -416,9 +416,12 @@ class TestDataFrameNonuniqueIndexes(TestData):
             [[1, 2, 1., 2., 3., 'foo', 'bar']], columns=list('ABCDEFG'))
         assert_frame_equal(df, expected)
 
-        # this is an error because we cannot disambiguate the dup columns
-        pytest.raises(Exception, lambda x: DataFrame(
-            [[1, 2, 'foo', 'bar']], columns=['a', 'a', 'a', 'a']))
+        df = DataFrame([[1, 2, 'foo', 'bar']], columns=['a', 'a', 'a', 'a'])
+        df.columns = ['a', 'a.1', 'a.2', 'a.3']
+        str(df)
+        expected = DataFrame([[1, 2, 'foo', 'bar']],
+                             columns=['a', 'a.1', 'a.2', 'a.3'])
+        assert_frame_equal(df, expected)
 
         # dups across blocks
         df_float = DataFrame(np.random.randn(10, 3), dtype='float64')

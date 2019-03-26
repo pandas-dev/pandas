@@ -120,6 +120,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for pytest raises without context' ; echo $MSG
+    invgrep -r -E --include '*.py' "[[:space:]] pytest.raises" pandas/tests/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # Check for the following code in testing: `np.testing` and `np.array_equal`
     MSG='Check for invalid testing' ; echo $MSG
     invgrep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
