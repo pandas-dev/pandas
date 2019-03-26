@@ -966,7 +966,7 @@ def isiterable(obj):
     return hasattr(obj, '__iter__')
 
 
-def is_sorted(seq):
+def assert_is_sorted(seq):
     """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
         seq = seq.values
