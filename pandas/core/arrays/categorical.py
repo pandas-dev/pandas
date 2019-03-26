@@ -2140,7 +2140,7 @@ class Categorical(ExtensionArray, PandasObject):
         Categories (3, object): [a, b, c]
 
         In [3]: c.categories
-        Out[3]: Index([u'a', u'b', u'c'], dtype='object')
+        Out[3]: Index(['a', 'b', 'c'], dtype='object')
 
         In [4]: c.codes
         Out[4]: array([0, 0, 1, 2, 0], dtype=int8)

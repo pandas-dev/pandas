@@ -135,8 +135,8 @@ def test_compression_utf16_encoding(all_parsers, csv_dir_path):
     result = parser.read_csv(path, encoding="utf-16",
                              compression="zip", sep="\t")
     expected = pd.DataFrame({
-        u"Country": [u"Venezuela", u"Venezuela"],
-        u"Twitter": [u"Hugo Chávez Frías", u"Henrique Capriles R."]
+        "Country": ["Venezuela", "Venezuela"],
+        "Twitter": ["Hugo Chávez Frías", "Henrique Capriles R."]
     })
 
     tm.assert_frame_equal(result, expected)

@@ -152,7 +152,7 @@ class TestDataFrameConvertTo(TestData):
     def test_to_records_with_unicode_index(self):
         # GH13172
         # unicode_literals conflict with to_records
-        result = DataFrame([{u'a': u'x', u'b': 'y'}]).set_index(u'a') \
+        result = DataFrame([{'a': 'x', 'b': 'y'}]).set_index('a') \
             .to_records()
         expected = np.rec.array([('x', 'y')], dtype=[('a', 'O'), ('b', 'O')])
         tm.assert_almost_equal(result, expected)
@@ -161,13 +161,13 @@ class TestDataFrameConvertTo(TestData):
         # xref issue: https://github.com/numpy/numpy/issues/2407
         # Issue #11879. to_records used to raise an exception when used
         # with column names containing non-ascii characters in Python 2
-        result = DataFrame(data={u"accented_name_é": [1.0]}).to_records()
+        result = DataFrame(data={"accented_name_é": [1.0]}).to_records()
 
         # Note that numpy allows for unicode field names but dtypes need
         # to be specified using dictionary instead of list of tuples.
         expected = np.rec.array(
             [(0, 1.0)],
-            dtype={"names": ["index", u"accented_name_é"],
+            dtype={"names": ["index", "accented_name_é"],
                    "formats": ['=i8', '=f8']}
         )
         tm.assert_almost_equal(result, expected)
@@ -312,8 +312,8 @@ class TestDataFrameConvertTo(TestData):
                    columns=MultiIndex.from_tuples([("a", "d"), ("b", "e"),
                                                    ("c", "f")])),
          dict(column_dtypes={0: "<U1", 2: "float32"}, index_dtypes="float32"),
-         np.rec.array([(0., u"1", 2, 3.), (1., u"4", 5, 6.),
-                       (2., u"7", 8, 9.)],
+         np.rec.array([(0., "1", 2, 3.), (1., "4", 5, 6.),
+                       (2., "7", 8, 9.)],
                       dtype=[("index", "<f4"),
                              ("('a', 'd')", "<U1"),
                              ("('b', 'e')", "<i8"),

@@ -118,7 +118,7 @@ class HTMLFormatter(TableFormatter):
         else:
             end_a = ''
 
-        self.write(u'{start}{rs}{end_a}</{kind}>'.format(
+        self.write('{start}{rs}{end_a}</{kind}>'.format(
             start=start_tag, rs=rs, end_a=end_a, kind=kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=0, header=False,
