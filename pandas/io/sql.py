@@ -15,8 +15,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas.compat import (
-    map, raise_with_traceback, string_types, text_type, zip)
+from pandas.compat import raise_with_traceback, string_types, text_type
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype, is_dict_like, is_list_like)
@@ -182,26 +181,29 @@ def execute(sql, con, cur=None, params=None):
 def read_sql_table(table_name, con, schema=None, index_col=None,
                    coerce_float=True, parse_dates=None, columns=None,
                    chunksize=None):
-    """Read SQL database table into a DataFrame.
+    """
+    Read SQL database table into a DataFrame.
 
     Given a table name and a SQLAlchemy connectable, returns a DataFrame.
     This function does not support DBAPI connections.
 
     Parameters
     ----------
-    table_name : string
+    table_name : str
         Name of SQL table in database.
-    con : SQLAlchemy connectable (or database string URI)
+    con : SQLAlchemy connectable or str
+        A database URI could be provided as as str.
         SQLite DBAPI connection mode not supported.
-    schema : string, default None
+    schema : str, default None
         Name of SQL schema in database to query (if database flavor
         supports this). Uses default schema if None (default).
-    index_col : string or list of strings, optional, default: None
+    index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
-    coerce_float : boolean, default True
+    coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Can result in loss of Precision.
-    parse_dates : list or dict, default: None
+    parse_dates : list or dict, default None
+        The behavior is as follows:
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
           strftime compatible in case of parsing string times or is one of
@@ -210,8 +212,8 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
           to the keyword arguments of :func:`pandas.to_datetime`
           Especially useful with databases without native Datetime support,
           such as SQLite.
-    columns : list, default: None
-        List of column names to select from SQL table
+    columns : list, default None
+        List of column names to select from SQL table.
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
@@ -219,15 +221,21 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     Returns
     -------
     DataFrame
+        A SQL table is returned as two-dimensional data structure with labeled
+        axes.
 
     See Also
     --------
     read_sql_query : Read SQL query into a DataFrame.
-    read_sql
+    read_sql : Read SQL query or database table into a DataFrame.
 
     Notes
     -----
     Any datetime values with time zone information will be converted to UTC.
+
+    Examples
+    --------
+    >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
 
     con = _engine_builder(con)
@@ -1310,7 +1318,7 @@ class SQLiteTable(SQLTable):
         col_names = ','.join(bracketed_names)
         wildcards = ','.join([wld] * len(names))
         insert_statement = \
-            u'INSERT INTO {table} ({columns}) VALUES ({wld})'.format(
+            'INSERT INTO {table} ({columns}) VALUES ({wld})'.format(
                 table=escape(self.name), columns=col_names, wld=wildcards)
         return insert_statement
 

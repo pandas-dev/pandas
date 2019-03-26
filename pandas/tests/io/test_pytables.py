@@ -11,7 +11,7 @@ import pytest
 
 from pandas.compat import (
     PY35, PY36, BytesIO, is_platform_little_endian, is_platform_windows,
-    lrange, range, text_type, u)
+    lrange, text_type)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -19,8 +19,8 @@ from pandas.core.dtypes.common import is_categorical_dtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex,
-    RangeIndex, Series, Timestamp, bdate_range, compat, concat, date_range,
-    isna, timedelta_range)
+    RangeIndex, Series, Timestamp, bdate_range, concat, date_range, isna,
+    timedelta_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, set_timezone)
@@ -32,6 +32,16 @@ from pandas.io.pytables import (
 from pandas.io.pytables import TableIterator  # noqa:E402
 
 tables = pytest.importorskip('tables')
+
+
+# TODO:
+# remove when gh-24839 is fixed; this affects numpy 1.16
+# and pytables 3.4.4
+xfail_non_writeable = pytest.mark.xfail(
+    LooseVersion(np.__version__) >= LooseVersion('1.16') and
+    LooseVersion(tables.__version__) < LooseVersion('3.5.1'),
+    reason=('gh-25511, gh-24839. pytables needs a '
+            'release beyong 3.4.4 to support numpy 1.16x'))
 
 
 _default_compressor = ('blosc' if LooseVersion(tables.__version__) >=
@@ -291,8 +301,7 @@ class TestHDFStore(Base):
 
         # File path doesn't exist
         path = ""
-        pytest.raises(compat.FileNotFoundError,
-                      read_hdf, path, 'df')
+        pytest.raises(FileNotFoundError, read_hdf, path, 'df')
 
     def test_api_default_format(self):
 
@@ -862,6 +871,7 @@ class TestHDFStore(Base):
         df = DataFrame(np.random.randn(50, 100))
         self._check_roundtrip(df, tm.assert_frame_equal)
 
+    @xfail_non_writeable
     def test_put_mixed_type(self):
         df = tm.makeTimeDataFrame()
         df['obj1'] = 'foo'
@@ -1025,18 +1035,8 @@ class TestHDFStore(Base):
 
             # unicode
             index = tm.makeUnicodeIndex
-            if compat.PY3:
-                check('table', index)
-                check('fixed', index)
-            else:
-
-                # only support for fixed types (and they have a perf warning)
-                pytest.raises(TypeError, check, 'table', index)
-
-                # PerformanceWarning
-                with catch_warnings(record=True):
-                    simplefilter("ignore", pd.errors.PerformanceWarning)
-                    check('fixed', index)
+            check('table', index)
+            check('fixed', index)
 
     @pytest.mark.skipif(not is_platform_little_endian(),
                         reason="reason platform is not little endian")
@@ -1055,9 +1055,6 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(result, expected)
 
     def test_latin_encoding(self):
-
-        if compat.PY2:
-            pytest.skip("[unicode] is not implemented as a table column")
 
         values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
                   [b'E\xc9, 17', b'a', b'b', b'c'],
@@ -1438,7 +1435,10 @@ class TestHDFStore(Base):
             tm.assert_series_equal(pd.read_hdf(path, 'ss4'),
                                    pd.concat([df['B'], df2['B']]))
 
-    @pytest.mark.parametrize("format", ['fixed', 'table'])
+    @pytest.mark.parametrize(
+        "format",
+        [pytest.param('fixed', marks=xfail_non_writeable),
+         'table'])
     def test_to_hdf_errors(self, format):
 
         data = ['\ud800foo']
@@ -1815,6 +1815,7 @@ class TestHDFStore(Base):
             pytest.raises(TypeError, store.select,
                           'df', where=[('columns=A')])
 
+    @xfail_non_writeable
     def test_append_misc(self):
 
         with ensure_clean_store(self.path) as store:
@@ -1984,10 +1985,6 @@ class TestHDFStore(Base):
 
             dtypes = [('date', datetime.date(2001, 1, 2))]
 
-            # py3 ok for unicode
-            if not compat.PY3:
-                dtypes.append(('unicode', u('\\u03c3')))
-
             # currently not supported dtypes ####
             for n, f in dtypes:
                 df = tm.makeDataFrame()
@@ -2006,6 +2003,7 @@ class TestHDFStore(Base):
             # this fails because we have a date in the object block......
             pytest.raises(TypeError, store.append, 'df_unimplemented', df)
 
+    @xfail_non_writeable
     @pytest.mark.skipif(
         LooseVersion(np.__version__) == LooseVersion('1.15.0'),
         reason=("Skipping  pytables test when numpy version is "
@@ -2245,6 +2243,7 @@ class TestHDFStore(Base):
         s = Series(np.random.randn(10), index=index)
         self._check_roundtrip(s, tm.assert_series_equal)
 
+    @xfail_non_writeable
     def test_tuple_index(self):
 
         # GH #492
@@ -2257,6 +2256,7 @@ class TestHDFStore(Base):
             simplefilter("ignore", pd.errors.PerformanceWarning)
             self._check_roundtrip(DF, tm.assert_frame_equal)
 
+    @xfail_non_writeable
     @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_index_types(self):
 
@@ -2320,6 +2320,7 @@ class TestHDFStore(Base):
         except OverflowError:
             pytest.skip('known failer on some windows platforms')
 
+    @xfail_non_writeable
     @pytest.mark.parametrize("compression", [
         False, pytest.param(True, marks=td.skip_if_windows_python_3)
     ])
@@ -2350,6 +2351,7 @@ class TestHDFStore(Base):
         # empty
         self._check_roundtrip(df[:0], tm.assert_frame_equal)
 
+    @xfail_non_writeable
     def test_empty_series_frame(self):
         s0 = Series()
         s1 = Series(name='myseries')
@@ -2363,10 +2365,12 @@ class TestHDFStore(Base):
         self._check_roundtrip(df1, tm.assert_frame_equal)
         self._check_roundtrip(df2, tm.assert_frame_equal)
 
-    def test_empty_series(self):
-        for dtype in [np.int64, np.float64, np.object, 'm8[ns]', 'M8[ns]']:
-            s = Series(dtype=dtype)
-            self._check_roundtrip(s, tm.assert_series_equal)
+    @xfail_non_writeable
+    @pytest.mark.parametrize(
+        'dtype', [np.int64, np.float64, np.object, 'm8[ns]', 'M8[ns]'])
+    def test_empty_series(self, dtype):
+        s = Series(dtype=dtype)
+        self._check_roundtrip(s, tm.assert_series_equal)
 
     def test_can_serialize_dates(self):
 
@@ -2420,10 +2424,10 @@ class TestHDFStore(Base):
         # GH #13492
         idx = pd.Index(pd.to_datetime([datetime.date(2000, 1, 1),
                                        datetime.date(2000, 1, 2)]),
-                       name=u('cols\u05d2'))
+                       name='cols\u05d2')
         idx1 = pd.Index(pd.to_datetime([datetime.date(2010, 1, 1),
                                         datetime.date(2010, 1, 2)]),
-                        name=u('rows\u05d0'))
+                        name='rows\u05d0')
         df = pd.DataFrame(np.arange(4).reshape(2, 2), columns=idx, index=idx1)
 
         # This used to fail, returning numpy strings instead of python strings.
@@ -2445,6 +2449,7 @@ class TestHDFStore(Base):
             recons = store['series']
             tm.assert_series_equal(recons, series)
 
+    @xfail_non_writeable
     @pytest.mark.parametrize("compression", [
         False, pytest.param(True, marks=td.skip_if_windows_python_3)
     ])
@@ -3954,6 +3959,7 @@ class TestHDFStore(Base):
             d1 = store['detector']
             assert isinstance(d1, DataFrame)
 
+    @xfail_non_writeable
     def test_legacy_table_fixed_format_read_py2(self, datapath):
         # GH 24510
         # legacy table with fixed format written in Python 2
@@ -4094,7 +4100,7 @@ class TestHDFStore(Base):
 
     def test_unicode_index(self):
 
-        unicode_values = [u('\u03c3'), u('\u03c3\u03c3')]
+        unicode_values = ['\u03c3', '\u03c3\u03c3']
 
         # PerformanceWarning
         with catch_warnings(record=True):
@@ -4117,6 +4123,7 @@ class TestHDFStore(Base):
             result = store.get('df')
             tm.assert_frame_equal(result, df)
 
+    @xfail_non_writeable
     def test_store_datetime_mixed(self):
 
         df = DataFrame(
@@ -4380,14 +4387,8 @@ class TestHDFStore(Base):
         types_should_fail = [tm.makeIntIndex, tm.makeFloatIndex,
                              tm.makeDateIndex, tm.makeTimedeltaIndex,
                              tm.makePeriodIndex]
-        types_should_run = [tm.makeStringIndex, tm.makeCategoricalIndex]
-
-        if compat.PY3:
-            types_should_run.append(tm.makeUnicodeIndex)
-        else:
-            # TODO: Add back to types_should_fail
-            # https://github.com/pandas-dev/pandas/issues/20907
-            pass
+        types_should_run = [tm.makeStringIndex, tm.makeCategoricalIndex,
+                            tm.makeUnicodeIndex]
 
         for index in types_should_fail:
             df = DataFrame(np.random.randn(10, 2), columns=index(2))
@@ -4677,6 +4678,7 @@ class TestHDFComplexValues(Base):
             reread = read_hdf(path, 'df')
             assert_frame_equal(df, reread)
 
+    @xfail_non_writeable
     def test_complex_mixed_fixed(self):
         complex64 = np.array([1.0 + 1.0j, 1.0 + 1.0j,
                               1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64)

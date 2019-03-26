@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import NaT, iNaT
-import pandas.compat as compat
 
 import pandas as pd
 from pandas import (
@@ -240,8 +239,8 @@ class TestTimedeltas(object):
 
     def test_fields(self):
         def check(value):
-            # that we are int/long like
-            assert isinstance(value, (int, compat.long))
+            # that we are int
+            assert isinstance(value, int)
 
         # compat to datetime.timedelta
         rng = to_timedelta('1 days, 10:11:12')
@@ -250,9 +249,13 @@ class TestTimedeltas(object):
         assert rng.microseconds == 0
         assert rng.nanoseconds == 0
 
-        pytest.raises(AttributeError, lambda: rng.hours)
-        pytest.raises(AttributeError, lambda: rng.minutes)
-        pytest.raises(AttributeError, lambda: rng.milliseconds)
+        msg = "'Timedelta' object has no attribute '{}'"
+        with pytest.raises(AttributeError, match=msg.format('hours')):
+            rng.hours
+        with pytest.raises(AttributeError, match=msg.format('minutes')):
+            rng.minutes
+        with pytest.raises(AttributeError, match=msg.format('milliseconds')):
+            rng.milliseconds
 
         # GH 10050
         check(rng.days)
@@ -272,9 +275,13 @@ class TestTimedeltas(object):
         assert rng.seconds == 10 * 3600 + 11 * 60 + 12
         assert rng.microseconds == 100 * 1000 + 123
         assert rng.nanoseconds == 456
-        pytest.raises(AttributeError, lambda: rng.hours)
-        pytest.raises(AttributeError, lambda: rng.minutes)
-        pytest.raises(AttributeError, lambda: rng.milliseconds)
+        msg = "'Timedelta' object has no attribute '{}'"
+        with pytest.raises(AttributeError, match=msg.format('hours')):
+            rng.hours
+        with pytest.raises(AttributeError, match=msg.format('minutes')):
+            rng.minutes
+        with pytest.raises(AttributeError, match=msg.format('milliseconds')):
+            rng.milliseconds
 
         # components
         tup = pd.to_timedelta(-1, 'us').components
@@ -310,12 +317,12 @@ class TestTimedeltas(object):
         assert to_timedelta('P0DT0H0M1S') == expected
 
     def test_nat_converters(self):
-        result = to_timedelta('nat', box=False)
-        assert result.dtype.kind == 'm'
+        result = to_timedelta('nat').to_numpy()
+        assert result.dtype.kind == 'M'
         assert result.astype('int64') == iNaT
 
-        result = to_timedelta('nan', box=False)
-        assert result.dtype.kind == 'm'
+        result = to_timedelta('nan').to_numpy()
+        assert result.dtype.kind == 'M'
         assert result.astype('int64') == iNaT
 
     @pytest.mark.filterwarnings("ignore:M and Y units are deprecated")
@@ -378,7 +385,6 @@ class TestTimedeltas(object):
             result = Timedelta('2{}'.format(unit))
             assert result == expected
 
-    @pytest.mark.skipif(compat.PY2, reason="requires python3.5 or higher")
     @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
     def test_unit_m_y_deprecated(self, unit):
         with tm.assert_produces_warning(FutureWarning) as w1:
@@ -449,8 +455,12 @@ class TestTimedeltas(object):
             assert r2 == s2
 
         # invalid
-        for freq in ['Y', 'M', 'foobar']:
-            pytest.raises(ValueError, lambda: t1.round(freq))
+        for freq, msg in [
+            ('Y', '<YearEnd: month=12> is a non-fixed frequency'),
+            ('M', '<MonthEnd> is a non-fixed frequency'),
+                ('foobar', 'Invalid frequency: foobar')]:
+            with pytest.raises(ValueError, match=msg):
+                t1.round(freq)
 
         t1 = timedelta_range('1 days', periods=3, freq='1 min 2 s 3 us')
         t2 = -1 * t1
@@ -495,11 +505,15 @@ class TestTimedeltas(object):
             r1 = t1.round(freq)
             tm.assert_index_equal(r1, s1)
             r2 = t2.round(freq)
-        tm.assert_index_equal(r2, s2)
+            tm.assert_index_equal(r2, s2)
 
         # invalid
-        for freq in ['Y', 'M', 'foobar']:
-            pytest.raises(ValueError, lambda: t1.round(freq))
+        for freq, msg in [
+            ('Y', '<YearEnd: month=12> is a non-fixed frequency'),
+            ('M', '<MonthEnd> is a non-fixed frequency'),
+                ('foobar', 'Invalid frequency: foobar')]:
+            with pytest.raises(ValueError, match=msg):
+                t1.round(freq)
 
     def test_contains(self):
         # Checking for any NaT-like objects
@@ -609,9 +623,12 @@ class TestTimedeltas(object):
         assert np.allclose(result.value / 1000, expected.value / 1000)
 
         # sum
-        pytest.raises(ValueError, lambda: (s - s.min()).sum())
+        msg = "overflow in timedelta operation"
+        with pytest.raises(ValueError, match=msg):
+            (s - s.min()).sum()
         s1 = s[0:10000]
-        pytest.raises(ValueError, lambda: (s1 - s1.min()).sum())
+        with pytest.raises(ValueError, match=msg):
+            (s1 - s1.min()).sum()
         s2 = s[0:1000]
         result = (s2 - s2.min()).sum()
 

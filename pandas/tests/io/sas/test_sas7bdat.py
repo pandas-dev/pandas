@@ -4,7 +4,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import PY2
 from pandas.errors import EmptyDataError
 import pandas.util._test_decorators as td
 
@@ -34,11 +33,6 @@ class TestSAS7BDAT(object):
                 col = df.iloc[:, k]
                 if col.dtype == np.int64:
                     df.iloc[:, k] = df.iloc[:, k].astype(np.float64)
-                elif col.dtype == np.dtype('O'):
-                    if PY2:
-                        f = lambda x: (x.decode('utf-8') if
-                                       isinstance(x, str) else x)
-                        df.iloc[:, k] = df.iloc[:, k].apply(f)
             self.data.append(df)
 
     def test_from_file(self):

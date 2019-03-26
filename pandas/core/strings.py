@@ -9,7 +9,6 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas.compat as compat
-from pandas.compat import zip
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -2834,7 +2833,7 @@ class StringMethods(NoNewAttributesMixin):
         normalized : Series/Index of objects
         """
         import unicodedata
-        f = lambda x: unicodedata.normalize(form, compat.u_safe(x))
+        f = lambda x: unicodedata.normalize(form, x)
         result = _na_map(f, self._parent)
         return self._wrap_result(result)
 
@@ -2926,7 +2925,7 @@ class StringMethods(NoNewAttributesMixin):
 
     _shared_docs['casemethods'] = ("""
     Convert strings in the Series/Index to %(type)s.
-
+    %(version)s
     Equivalent to :meth:`str.%(method)s`.
 
     Returns
@@ -2943,6 +2942,7 @@ class StringMethods(NoNewAttributesMixin):
         remaining to lowercase.
     Series.str.swapcase : Converts uppercase to lowercase and lowercase to
         uppercase.
+    Series.str.casefold: Removes all case distinctions in the string.
 
     Examples
     --------
@@ -2989,12 +2989,15 @@ class StringMethods(NoNewAttributesMixin):
     3              sWaPcAsE
     dtype: object
     """)
-    _shared_docs['lower'] = dict(type='lowercase', method='lower')
-    _shared_docs['upper'] = dict(type='uppercase', method='upper')
-    _shared_docs['title'] = dict(type='titlecase', method='title')
+    _shared_docs['lower'] = dict(type='lowercase', method='lower', version='')
+    _shared_docs['upper'] = dict(type='uppercase', method='upper', version='')
+    _shared_docs['title'] = dict(type='titlecase', method='title', version='')
     _shared_docs['capitalize'] = dict(type='be capitalized',
-                                      method='capitalize')
-    _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase')
+                                      method='capitalize', version='')
+    _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase',
+                                    version='')
+    _shared_docs['casefold'] = dict(type='be casefolded', method='casefold',
+                                    version='\n    .. versionadded:: 0.25.0\n')
     lower = _noarg_wrapper(lambda x: x.lower(),
                            docstring=_shared_docs['casemethods'] %
                            _shared_docs['lower'])
@@ -3010,6 +3013,9 @@ class StringMethods(NoNewAttributesMixin):
     swapcase = _noarg_wrapper(lambda x: x.swapcase(),
                               docstring=_shared_docs['casemethods'] %
                               _shared_docs['swapcase'])
+    casefold = _noarg_wrapper(lambda x: x.casefold(),
+                              docstring=_shared_docs['casemethods'] %
+                              _shared_docs['casefold'])
 
     _shared_docs['ismethods'] = ("""
     Check whether all characters in each string are %(type)s.
@@ -3181,10 +3187,10 @@ class StringMethods(NoNewAttributesMixin):
     istitle = _noarg_wrapper(lambda x: x.istitle(),
                              docstring=_shared_docs['ismethods'] %
                              _shared_docs['istitle'])
-    isnumeric = _noarg_wrapper(lambda x: compat.u_safe(x).isnumeric(),
+    isnumeric = _noarg_wrapper(lambda x: x.isnumeric(),
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isnumeric'])
-    isdecimal = _noarg_wrapper(lambda x: compat.u_safe(x).isdecimal(),
+    isdecimal = _noarg_wrapper(lambda x: x.isdecimal(),
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 

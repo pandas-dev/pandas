@@ -12,7 +12,7 @@ dependencies:
   - nomkl
   - numexpr
   - numpy=1.12.0
-  - openpyxl=2.5.5
+  - openpyxl
   - pyarrow
   - pytables
   - python=3.5*
@@ -21,10 +21,11 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  # universal
-  - pytest
-  - pytest-xdist
-  - pytest-mock
+  - isort
   - pip:
     - python-dateutil==2.5.3
+    # universal
+    - pytest>=4.0.2
+    - pytest-xdist
+    - pytest-mock
     - hypothesis>=3.58.0

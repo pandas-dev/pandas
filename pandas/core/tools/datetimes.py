@@ -8,7 +8,7 @@ from pandas._libs.tslibs import Timestamp, conversion, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError, _format_is_iso, _guess_datetime_format, parse_time_string)
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas.compat import zip
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
@@ -398,6 +398,7 @@ def _adjust_to_origin(arg, origin, unit):
     return arg
 
 
+@deprecate_kwarg(old_arg_name='box', new_arg_name=None)
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='unix',
@@ -444,9 +445,17 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         - If True returns a DatetimeIndex or Index-like object
         - If False returns ndarray of values.
+
+        .. deprecated:: 0.25.0
+            Use :meth:`.to_numpy` or :meth:`Timestamp.to_datetime64`
+            instead to get an ndarray of values or numpy.datetime64,
+            respectively.
+
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
         all the way up to nanoseconds.
+        See strftime documentation for more information on choices:
+        https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
     exact : boolean, True by default
 
         - If True, require an exact format match.
