@@ -19,7 +19,7 @@ PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_GETITEM, PyArray_Check,
+from numpy cimport (ndarray, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
                     int64_t, float32_t, float64_t,
@@ -2320,15 +2320,15 @@ cdef inline void convert_and_set_item(object item, Py_ssize_t index,
                                       bint keep_trivial_numbers):
     cdef:
         bint do_convert = 1
-        double double_item
+        float64_t float_item
 
     if keep_trivial_numbers:
         if isinstance(item, int) and Py_SIZE(item) < 2:
             if <int>item == 0:
                 do_convert = 0
         elif isinstance(item, float):
-            double_item = item
-            if double_item == 0.0 or double_item != double_item:
+            float_item = item
+            if float_item == 0.0 or float_item != float_item:
                 do_convert = 0
 
     if do_convert and not isinstance(item, (str, bytes)):
@@ -2367,7 +2367,7 @@ cpdef object _concat_date_cols(tuple date_cols,
         array_size = len(array)
         result = np.zeros(array_size, dtype=object)
         result_view = result
-        if PyArray_Check(array):
+        if util.is_array(array):
             # for numpy array case use special api for performance
             it = <flatiter>PyArray_IterNew(array)
             for i in range(array_size):
@@ -2379,7 +2379,7 @@ cpdef object _concat_date_cols(tuple date_cols,
                 convert_and_set_item(item, i, result_view, keep_trivial_numbers)
     else:
         for i, array in enumerate(date_cols):
-            if not PyArray_Check(array):
+            if not util.is_array(array):
                 all_numpy = 0
             # find min length for arrays in date_cols
             # imitation python zip behavior
