@@ -17,8 +17,6 @@ from pandas.core.dtypes.common import is_file_like, is_number
 
 from pandas.io.formats.printing import pprint_thing
 
-from pandas.typing import FilePathOrBuffer
-
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
 
@@ -93,7 +91,7 @@ def _is_url(url):
         return False
 
 
-def _expand_user(filepath_or_buffer: FilePathOrBuffer):
+def _expand_user(filepath_or_buffer):
     """Return the argument with an initial component of ~ or ~user
        replaced by that user's home directory.
 
@@ -119,7 +117,7 @@ def _validate_header_arg(header):
                         "the row(s) making up the column names")
 
 
-def _stringify_path(filepath_or_buffer: FilePathOrBuffer):
+def _stringify_path(filepath_or_buffer):
     """Attempt to convert a path-like object to a string.
 
     Parameters
@@ -178,10 +176,8 @@ def is_gcs_url(url):
         return False
 
 
-def get_filepath_or_buffer(filepath_or_buffer: FilePathOrBuffer,
-                           encoding=None,
-                           compression=None,
-                           mode=None):
+def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
+                           compression=None, mode=None):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -261,8 +257,7 @@ _compression_to_extension = {
 }
 
 
-def _infer_compression(filepath_or_buffer: FilePathOrBuffer,
-                       compression):
+def _infer_compression(filepath_or_buffer, compression):
     """
     Get the compression method for filepath_or_buffer. If compression='infer',
     the inferred compression method is returned. Otherwise, the input
@@ -316,8 +311,7 @@ def _infer_compression(filepath_or_buffer: FilePathOrBuffer,
     raise ValueError(msg)
 
 
-def _get_handle(path_or_buf: FilePathOrBuffer,
-                mode, encoding=None, compression=None,
+def _get_handle(path_or_buf, mode, encoding=None, compression=None,
                 memory_map=False, is_text=True):
     """
     Get file handle for given path/buffer and mode.
