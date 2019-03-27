@@ -160,8 +160,7 @@ Increased minimum versions for dependencies
 
 Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions (issue:`25725`, :issue:`24942`, :issue:`25752`).
 Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`25554`).
-
-Below is an overview of the minimal versions, as required resp. recommended. Optional libraries below the lowest tested version may still work, but are not considered supported.
+If installed, we now require:
 
 +-----------------+-----------------+-----------------------+
 | Package         | Minimum Version | Comment               |
@@ -174,31 +173,27 @@ Below is an overview of the minimal versions, as required resp. recommended. Opt
 +-----------------+-----------------+-----------------------+
 | numexpr         | 2.6.2           | Required if installed |
 +-----------------+-----------------+-----------------------+
-| beautifulsoup4  | 4.4.1           | Lowest tested version |
+| cython          | 0.28.2          | Development-only req. |
 +-----------------+-----------------+-----------------------+
-| blosc           | 1.14.3          | Lowest tested version |
+| pytest          | 4.0.2           | Development-only req. |
 +-----------------+-----------------+-----------------------+
+
+For `optional libraries <https://pandas-docs.github.io/pandas-docs-travis/install.html#dependencies>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+-----------------------+
+| Package         | Minimum Version | Comment               |
++=================+=================+=======================+
 | fastparquet     | 0.2.1           | Lowest tested version |
-+-----------------+-----------------+-----------------------+
-| gcsfs           | 0.1.0           | Lowest tested version |
-+-----------------+-----------------+-----------------------+
-| jinja2          | 2.8             | Lowest tested version |
-+-----------------+-----------------+-----------------------+
-| lxml            | 3.7.0           | Lowest tested version |
 +-----------------+-----------------+-----------------------+
 | matplotlib      | 2.2.2           | Lowest tested version |
 +-----------------+-----------------+-----------------------+
 | openpyxl        | 2.4.0           | Lowest tested version |
 +-----------------+-----------------+-----------------------+
-| psycopg2        | 2.6.2           | Lowest tested version |
-+-----------------+-----------------+-----------------------+
 | pyarrow         | 0.9.0           | Lowest tested version |
 +-----------------+-----------------+-----------------------+
-| pymysql         | 0.7.9           | Lowest tested version |
-+-----------------+-----------------+-----------------------+
 | pytables        | 3.4.2           | Lowest tested version |
-+-----------------+-----------------+-----------------------+
-| s3fs            | 0.0.8           | Lowest tested version |
 +-----------------+-----------------+-----------------------+
 | scipy           | 0.19.0          | Lowest tested version |
 +-----------------+-----------------+-----------------------+
@@ -211,10 +206,6 @@ Below is an overview of the minimal versions, as required resp. recommended. Opt
 | xlsxwriter      | 0.7.7           | Lowest tested version |
 +-----------------+-----------------+-----------------------+
 | xlwt            | 1.0.0           | Lowest tested version |
-+-----------------+-----------------+-----------------------+
-| cython          | 0.28.2          | Development-only req. |
-+-----------------+-----------------+-----------------------+
-| pytest          | 4.0.2           | Development-only req. |
 +-----------------+-----------------+-----------------------+
 
 .. _whatsnew_0250.api.other:
