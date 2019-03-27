@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from cpython cimport (Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE,
-                      PyUnicode_AsASCIIString)
+from cpython cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
 
 from cpython.datetime cimport (datetime, date,
                                PyDateTime_IMPORT,
@@ -13,6 +12,7 @@ from cpython.datetime cimport (datetime, date,
 PyDateTime_IMPORT
 
 from numpy cimport int64_t
+from pandas._libs.tslibs.util cimport get_string_data
 
 cdef extern from "src/datetime/np_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
@@ -174,30 +174,11 @@ cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
 cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
                                int* out_local, int* out_tzoffset) except? -1:
     cdef:
-        int result
+        Py_ssize_t length
         char *tmp
 
-    if isinstance(val, unicode):
-        val = PyUnicode_AsASCIIString(val)
-
-    tmp = val
-    result = _cstring_to_dts(tmp, len(val), dts, out_local, out_tzoffset)
-
-    if result == -1:
+    if not get_string_data(val, &tmp, &length):
         raise ValueError('Unable to parse %s' % str(val))
-    return result
+    return parse_iso_8601_datetime(tmp, length,
+                                   dts, out_local, out_tzoffset)
 
-
-cdef inline int _cstring_to_dts(char *val, int length,
-                                npy_datetimestruct* dts,
-                                int* out_local, int* out_tzoffset) except? -1:
-    # Note: without this "extra layer" between _string_to_dts
-    # and parse_iso_8601_datetime, calling _string_to_dts raises
-    # `SystemError: <class 'str'> returned a result with an error set`
-    # in Python3
-    cdef:
-        int result
-
-    result = parse_iso_8601_datetime(val, length,
-                                     dts, out_local, out_tzoffset)
-    return result

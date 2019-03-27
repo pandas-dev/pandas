@@ -18,11 +18,14 @@ cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.
     bint PyUnicode_Check(object obj) nogil
+    bint PyBytes_Check(object obj) nogil
     bint PyString_Check(object obj) nogil
     bint PyBool_Check(object obj) nogil
     bint PyFloat_Check(object obj) nogil
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
+    bint PyBytes_AsStringAndSize(object obj, char** buf, Py_ssize_t* length) nogil
+    char* PyUnicode_AsUTF8AndSize(object obj, Py_ssize_t* length) nogil
 
 from numpy cimport int64_t
 
@@ -227,3 +230,12 @@ cdef inline bint is_nan(object val):
     is_nan : bool
     """
     return (is_float_object(val) or is_complex_object(val)) and val != val
+
+
+cdef inline bint get_string_data(object s, char **buf, Py_ssize_t *length):
+    if PyUnicode_Check(s):
+        buf[0] = PyUnicode_AsUTF8AndSize(s, length)
+        return buf[0] != NULL
+    if PyBytes_Check(s):
+        return PyBytes_AsStringAndSize(s, buf, length) == 0
+    return False
