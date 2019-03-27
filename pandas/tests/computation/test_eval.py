@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+from functools import reduce
 from itertools import product
 import operator
 import warnings
@@ -7,7 +8,6 @@ import numpy as np
 from numpy.random import rand, randint, randn
 import pytest
 
-from pandas.compat import reduce
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
