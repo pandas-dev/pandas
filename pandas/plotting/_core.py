@@ -9,8 +9,10 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 import pandas.compat as compat
-from pandas.compat import lrange, map, range, string_types, zip
+from pandas.compat import lrange, string_types
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -22,7 +24,6 @@ from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing
@@ -365,6 +366,12 @@ class MPLPlot(object):
         if is_empty:
             raise TypeError('no numeric data to plot')
 
+        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
+        # np.ndarray before plot.
+        numeric_data = numeric_data.copy()
+        for col in numeric_data:
+            numeric_data[col] = np.asarray(numeric_data[col])
+
         self.data = numeric_data
 
     def _make_plot(self):
@@ -468,12 +475,20 @@ class MPLPlot(object):
                 self.axes[0].set_title(self.title)
 
     def _apply_axis_properties(self, axis, rot=None, fontsize=None):
-        labels = axis.get_majorticklabels() + axis.get_minorticklabels()
-        for label in labels:
-            if rot is not None:
-                label.set_rotation(rot)
-            if fontsize is not None:
-                label.set_fontsize(fontsize)
+        """ Tick creation within matplotlib is reasonably expensive and is
+            internally deferred until accessed as Ticks are created/destroyed
+            multiple times per draw. It's therefore beneficial for us to avoid
+            accessing unless we will act on the Tick.
+        """
+
+        if rot is not None or fontsize is not None:
+            # rot=0 is a valid setting, hence the explicit None check
+            labels = axis.get_majorticklabels() + axis.get_minorticklabels()
+            for label in labels:
+                if rot is not None:
+                    label.set_rotation(rot)
+                if fontsize is not None:
+                    label.set_fontsize(fontsize)
 
     @property
     def legend_title(self):
@@ -1794,7 +1809,6 @@ def _plot(data, x=None, y=None, subplots=False,
                         )
                     label_name = label_kw or data.columns
                     data.columns = label_name
-
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()

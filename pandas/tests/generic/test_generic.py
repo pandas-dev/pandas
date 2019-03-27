@@ -2,17 +2,14 @@
 # pylint: disable-msg=E1101,W0612
 
 from copy import copy, deepcopy
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, PY3, range, zip
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Panel, Series, date_range
+from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -238,12 +235,6 @@ class Generic(object):
         o2 = self._construct(shape=3)
         o2.name = 'bar'
 
-        # TODO
-        # Once panel can do non-trivial combine operations
-        # (currently there is an a raise in the Panel arith_ops to prevent
-        # this, though it actually does work)
-        # can remove all of these try: except: blocks on the actual operations
-
         # ----------
         # preserving
         # ----------
@@ -255,63 +246,37 @@ class Generic(object):
 
         # ops with like
         for op in ['__add__', '__sub__', '__truediv__', '__mul__']:
-            try:
-                result = getattr(o, op)(o)
-                self.check_metadata(o, result)
-            except (ValueError, AttributeError):
-                pass
+            result = getattr(o, op)(o)
+            self.check_metadata(o, result)
 
         # simple boolean
         for op in ['__eq__', '__le__', '__ge__']:
             v1 = getattr(o, op)(o)
             self.check_metadata(o, v1)
-
-            try:
-                self.check_metadata(o, v1 & v1)
-            except (ValueError):
-                pass
-
-            try:
-                self.check_metadata(o, v1 | v1)
-            except (ValueError):
-                pass
+            self.check_metadata(o, v1 & v1)
+            self.check_metadata(o, v1 | v1)
 
         # combine_first
-        try:
-            result = o.combine_first(o2)
-            self.check_metadata(o, result)
-        except (AttributeError):
-            pass
+        result = o.combine_first(o2)
+        self.check_metadata(o, result)
 
         # ---------------------------
         # non-preserving (by default)
         # ---------------------------
 
         # add non-like
-        try:
-            result = o + o2
-            self.check_metadata(result)
-        except (ValueError, AttributeError):
-            pass
+        result = o + o2
+        self.check_metadata(result)
 
         # simple boolean
         for op in ['__eq__', '__le__', '__ge__']:
 
             # this is a name matching op
             v1 = getattr(o, op)(o)
-
             v2 = getattr(o, op)(o2)
             self.check_metadata(v2)
-
-            try:
-                self.check_metadata(v1 & v2)
-            except (ValueError):
-                pass
-
-            try:
-                self.check_metadata(v1 | v2)
-            except (ValueError):
-                pass
+            self.check_metadata(v1 & v2)
+            self.check_metadata(v1 | v2)
 
     def test_head_tail(self):
         # GH5370
@@ -325,12 +290,7 @@ class Generic(object):
             axis = o._get_axis_name(0)
             setattr(o, axis, index(len(getattr(o, axis))))
 
-            # Panel + dims
-            try:
-                o.head()
-            except (NotImplementedError):
-                pytest.skip('not implemented on {0}'.format(
-                    o.__class__.__name__))
+            o.head()
 
             self._compare(o.head(), o.iloc[:5])
             self._compare(o.tail(), o.iloc[-5:])
@@ -520,8 +480,7 @@ class Generic(object):
         for func in ['sum', 'cumsum', 'any', 'var']:
             f = getattr(obj, func)
             assert f.__name__ == func
-            if PY3:
-                assert f.__qualname__.endswith(func)
+            assert f.__qualname__.endswith(func)
 
     def test_stat_non_defaults_args(self):
         obj = self._construct(5)
@@ -639,18 +598,11 @@ class TestNDFrame(object):
         sample1 = df.sample(n=1, weights='easyweights')
         assert_frame_equal(sample1, df.iloc[5:6])
 
-        # Ensure proper error if string given as weight for Series, panel, or
+        # Ensure proper error if string given as weight for Series or
         # DataFrame with axis = 1.
         s = Series(range(10))
         with pytest.raises(ValueError):
             s.sample(n=3, weights='weight_column')
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            panel = Panel(items=[0, 1, 2], major_axis=[2, 3, 4],
-                          minor_axis=[3, 4, 5])
-            with pytest.raises(ValueError):
-                panel.sample(n=1, weights='weight_column')
 
         with pytest.raises(ValueError):
             df.sample(n=1, weights='weight_column', axis=1)
@@ -738,7 +690,6 @@ class TestNDFrame(object):
         with pytest.raises(ValueError):
             df.sample(1, weights=s4)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_squeeze(self):
         # noop
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
@@ -754,12 +705,9 @@ class TestNDFrame(object):
         # don't fail with 0 length dimensions GH11229 & GH8999
         empty_series = Series([], name='five')
         empty_frame = DataFrame([empty_series])
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            empty_panel = Panel({'six': empty_frame})
 
         [tm.assert_series_equal(empty_series, higher_dim.squeeze())
-         for higher_dim in [empty_series, empty_frame, empty_panel]]
+         for higher_dim in [empty_series, empty_frame]]
 
         # axis argument
         df = tm.makeTimeDataFrame(nper=1).iloc[:, :1]

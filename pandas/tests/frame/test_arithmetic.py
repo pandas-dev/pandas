@@ -6,8 +6,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import range
-
 import pandas as pd
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 import pandas.util.testing as tm

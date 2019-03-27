@@ -8,7 +8,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, lzip, map, range, zip
+from pandas.compat import StringIO, lmap, lrange, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -770,7 +770,7 @@ def test_empty_groups_corner(mframe):
 
 def test_nonsense_func():
     df = DataFrame([0])
-    msg = r"unsupported operand type\(s\) for \+: '(int|long)' and 'str'"
+    msg = r"unsupported operand type\(s\) for \+: 'int' and 'str'"
     with pytest.raises(TypeError, match=msg):
         df.groupby(lambda x: x + 'foo')
 
@@ -1381,11 +1381,9 @@ def test_group_name_available_in_inference_pass():
     def f(group):
         names.append(group.name)
         return group.copy()
-
     df.groupby('a', sort=False, group_keys=False).apply(f)
-    # we expect 2 zeros because we call ``f`` once to see if a faster route
-    # can be used.
-    expected_names = [0, 0, 1, 2]
+
+    expected_names = [0, 1, 2]
     assert names == expected_names
 
 
@@ -1690,9 +1688,9 @@ def test_groupby_agg_ohlc_non_first():
         [1, 1, 1, 1, 1],
         [1, 1, 1, 1, 1]
     ], columns=pd.MultiIndex.from_tuples((
-        ('foo', 'ohlc', 'open'), ('foo', 'ohlc', 'high'),
-        ('foo', 'ohlc', 'low'), ('foo', 'ohlc', 'close'),
-        ('foo', 'sum', 'foo'))), index=pd.date_range(
+        ('foo', 'sum', 'foo'), ('foo', 'ohlc', 'open'),
+        ('foo', 'ohlc', 'high'), ('foo', 'ohlc', 'low'),
+        ('foo', 'ohlc', 'close'))), index=pd.date_range(
             '2018-01-01', periods=2, freq='D'))
 
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])

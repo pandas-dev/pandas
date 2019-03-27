@@ -7,7 +7,7 @@ import pytz
 
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.compat import lrange, range, zip
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp

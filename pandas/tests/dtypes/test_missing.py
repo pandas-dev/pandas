@@ -7,9 +7,10 @@ from warnings import catch_warnings, filterwarnings
 import numpy as np
 import pytest
 
+from pandas._config import config as cf
+
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT, is_null_datetimelike
-from pandas.compat import u
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import (
@@ -20,7 +21,6 @@ from pandas.core.dtypes.missing import (
 import pandas as pd
 from pandas import (
     DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range)
-from pandas.core import config as cf
 from pandas.util import testing as tm
 
 
@@ -108,7 +108,7 @@ class TestIsNA(object):
         exp = np.array([False, False])
         tm.assert_numpy_array_equal(result, exp)
 
-        result = isna([u('foo'), u('bar')])
+        result = isna(['foo', 'bar'])
         exp = np.array([False, False])
         tm.assert_numpy_array_equal(result, exp)
 

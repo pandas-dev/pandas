@@ -16,7 +16,6 @@ import os
 import inspect
 import importlib
 import logging
-import warnings
 import jinja2
 from sphinx.ext.autosummary import _import_by_name
 from numpydoc.docscrape import NumpyDocString
@@ -135,8 +134,8 @@ source_encoding = 'utf-8'
 master_doc = 'index'
 
 # General information about the project.
-project = u'pandas'
-copyright = u'2008-2014, the pandas development team'
+project = 'pandas'
+copyright = '2008-2014, the pandas development team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -410,12 +409,6 @@ extlinks = {'issue': ('https://github.com/pandas-dev/pandas/issues/%s',
                       'GH'),
             'wiki': ('https://github.com/pandas-dev/pandas/wiki/%s',
                      'wiki ')}
-
-
-# ignore all deprecation warnings from Panel during doc build
-# (to avoid the need to add :okwarning: in many places)
-warnings.filterwarnings("ignore", message="\nPanel is deprecated",
-                        category=FutureWarning)
 
 
 ipython_warning_is_error = False

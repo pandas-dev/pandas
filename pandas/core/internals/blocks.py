@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 import functools
 import inspect
 import re
+from typing import Any, List
 import warnings
 
 import numpy as np
@@ -10,7 +11,6 @@ import numpy as np
 from pandas._libs import internals as libinternals, lib, tslib, tslibs
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
 import pandas.compat as compat
-from pandas.compat import range, zip
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -738,7 +738,7 @@ class Block(PandasObject):
         values = self.values
         if deep:
             values = values.copy()
-        return self.make_block_same_class(values)
+        return self.make_block_same_class(values, ndim=self.ndim)
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True):
@@ -1079,7 +1079,7 @@ class Block(PandasObject):
 
         try:
             return self.astype(dtype)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, OverflowError):
             pass
 
         return self.astype(object)
@@ -1826,8 +1826,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                  limit=limit),
             placement=self.mgr_locs)
 
-    def shift(self, periods, axis=0, fill_value=None):
-        # type: (int, Optional[BlockPlacement], Any) -> List[ExtensionBlock]
+    def shift(self,
+              periods: int,
+              axis: libinternals.BlockPlacement = 0,
+              fill_value: Any = None) -> List['ExtensionBlock']:
         """
         Shift the block by `periods`.
 
@@ -1956,9 +1958,9 @@ class FloatBlock(FloatOrComplexBlock):
                     not issubclass(tipo.type, (np.datetime64, np.timedelta64)))
         return (
             isinstance(
-                element, (float, int, np.floating, np.int_, compat.long))
-            and not isinstance(element, (bool, np.bool_, datetime, timedelta,
-                                         np.datetime64, np.timedelta64)))
+                element, (float, int, np.floating, np.int_)) and
+            not isinstance(element, (bool, np.bool_, datetime, timedelta,
+                                     np.datetime64, np.timedelta64)))
 
     def to_native_types(self, slicer=None, na_rep='', float_format=None,
                         decimal='.', quoting=None, **kwargs):
@@ -2008,8 +2010,8 @@ class ComplexBlock(FloatOrComplexBlock):
         return (
             isinstance(
                 element,
-                (float, int, complex, np.float_, np.int_, compat.long))
-            and not isinstance(element, (bool, np.bool_)))
+                (float, int, complex, np.float_, np.int_)) and
+            not isinstance(element, (bool, np.bool_)))
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.complexfloating)
@@ -3210,7 +3212,7 @@ def _putmask_smart(v, m, n):
                 nv = v.copy()
                 nv[m] = nn_at
                 return nv
-    except (ValueError, IndexError, TypeError):
+    except (ValueError, IndexError, TypeError, OverflowError):
         pass
 
     n = np.asarray(n)

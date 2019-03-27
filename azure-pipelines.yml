@@ -10,7 +10,6 @@ jobs:
     name: Linux
     vmImage: ubuntu-16.04
 
-# Windows Python 2.7 needs VC 9.0 installed, handled in the template
 - template: ci/azure/windows.yml
   parameters:
     name: Windows
@@ -87,6 +86,13 @@ jobs:
       source activate pandas-dev
       ci/code_checks.sh docstrings
     displayName: 'Docstring validation'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
+      ci/code_checks.sh typing
+    displayName: 'Typing validation'
     condition: true
 
   - script: |

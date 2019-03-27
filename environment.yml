@@ -19,6 +19,8 @@ dependencies:
   - hypothesis>=3.82
   - isort
   - moto
+  - mypy
+  - pycodestyle
   - pytest>=4.0.2
   - pytest-mock
   - sphinx
