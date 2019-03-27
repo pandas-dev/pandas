@@ -37,14 +37,13 @@ from pandas.core.index import (
     Index, MultiIndex, RangeIndex, ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
+from pandas.typing import FilePathOrBuffer
 
 from pandas.io.common import (
     _NA_VALUES, BaseIterator, UnicodeReader, UTF8Recoder, _get_handle,
     _infer_compression, _validate_header_arg, get_filepath_or_buffer,
     is_file_like)
 from pandas.io.date_converters import generic_parser
-
-from pandas.typing import FilePathOrBuffer
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness
