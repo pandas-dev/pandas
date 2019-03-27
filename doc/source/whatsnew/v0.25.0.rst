@@ -153,6 +153,42 @@ returned if all the columns were dummy encoded, and a :class:`DataFrame` otherwi
 Providing any ``SparseSeries`` or ``SparseDataFrame`` to :func:`concat` will
 cause a ``SparseSeries`` or ``SparseDataFrame`` to be returned, as before.
 
+The ``.str``-accessor performs stricter type checks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Due to the lack of a native string dtype in numpy, :attr:`Series.str` only checked whether the data was of ``object`` dtype.
+From now on, the inferred dtype of the Series is checked to be correct (particularly, not ``'bytes'``), as :attr:`Index.str` does already.
+
+*Previous Behaviour*:
+
+.. code-block:: python
+
+    In [1]: s = pd.Series(np.array(['a', 'ba', 'cba'], 'S'), dtype=object)
+
+    In [2]: s
+    Out[2]:
+    0      b'a'
+    1     b'ba'
+    2    b'cba'
+    dtype: object
+
+    In [3]: s.str.startswith(b'a')
+    Out[3]:
+    0     True
+    1    False
+    2    False
+    dtype: bool
+
+*New Behaviour*:
+
+.. ipython:: python
+    :okexcept:
+
+    s = pd.Series(np.array(['a', 'ba', 'cba'], 'S'), dtype=object)
+    s
+    s.str.startswith(b'a')
+
+For more details, see this :ref:`warning<text.warn_types>`.
 
 .. _whatsnew_0250.api_breaking.deps:
 
@@ -281,15 +317,6 @@ Conversion
 
 Strings
 ^^^^^^^
-
-**The ``.str``-accessor performs stricter type checks**
-
-Due to the lack of a native string dtype in numpy, :attr:`Series.str` only checked whether the data was of ``object`` dtype.
-From now on, the inferred dtype of the Series is checked to be correct (particularly, not ``'bytes'``), as :attr:`Index.str` does already.
-
-For more details, see this :ref:`warning<text.warn_types>`.
-
-**Other bugs**
 
 - Bug in the ``__name__`` attribute of several methods of :class:`Series.str`, which were set incorrectly (:issue:`23551`)
 -
