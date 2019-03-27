@@ -616,7 +616,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
                                            na_value=na_value)
 
     if sort and len(uniques) > 0:
-        from pandas.core.sorting import safe_sort
+        from pandas.core.sorting import safe_sort, SortError
         if na_sentinel == -1:
             # GH-25409 take_1d only works for na_sentinels of -1
             try:
@@ -626,13 +626,19 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
                 uniques = uniques.take(order)
             except TypeError:
                 # Mixed types, where uniques.argsort fails.
+                try:
+                    uniques, labels = safe_sort(uniques, labels,
+                                                na_sentinel=na_sentinel,
+                                                assume_unique=True)
+                except SortError as e:
+                    raise TypeError(e) from e
+        else:
+            try:
                 uniques, labels = safe_sort(uniques, labels,
                                             na_sentinel=na_sentinel,
                                             assume_unique=True)
-        else:
-            uniques, labels = safe_sort(uniques, labels,
-                                        na_sentinel=na_sentinel,
-                                        assume_unique=True)
+            except SortError as e:
+                raise TypeError(e) from e
 
     uniques = _reconstruct_data(uniques, dtype, original)
 

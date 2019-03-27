@@ -229,8 +229,9 @@ class TestFactorize(object):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        with pytest.raises(SortError, match="complex"):
+        with pytest.raises(TypeError, match="complex") as excinfo:
             algos.factorize(x17[::-1], sort=True)
+        assert type(excinfo.value.__cause__) == SortError
 
     def test_float64_factorize(self, writable):
         data = np.array([1.0, 1e8, 1.0, 1e-8, 1e8, 1.0], dtype=np.float64)
