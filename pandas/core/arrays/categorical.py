@@ -11,7 +11,6 @@ from pandas._libs import algos as libalgos, lib
 import pandas.compat as compat
 from pandas.compat import lzip
 from pandas.compat.numpy import function as nv
-from pandas.core.sorting import SortError
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
@@ -36,7 +35,7 @@ from pandas.core.algorithms import factorize, take, take_1d, unique1d
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
-from pandas.core.sorting import nargsort
+from pandas.core.sorting import SortError, nargsort
 
 from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size

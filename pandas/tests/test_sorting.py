@@ -6,13 +6,11 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.core.sorting import SortError
-
 from pandas import (
     DataFrame, MultiIndex, Series, compat, concat, merge, to_datetime)
 from pandas.core import common as com
 from pandas.core.sorting import (
-    decons_group_index, get_group_index, is_int64_overflow_possible,
+    SortError, decons_group_index, get_group_index, is_int64_overflow_possible,
     lexsort_indexer, nargsort, safe_sort)
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal

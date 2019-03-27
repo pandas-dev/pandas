@@ -13,7 +13,6 @@ from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
 from pandas.compat import lrange
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.core.sorting import SortError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
@@ -25,6 +24,7 @@ from pandas import (
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
+from pandas.core.sorting import SortError
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
