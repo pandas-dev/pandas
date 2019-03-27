@@ -157,13 +157,6 @@ class MergeError(ValueError):
     """
 
 
-class SortError(TypeError):
-    """
-    Error raised when problems arise during sorting due to problems
-    with input data. Subclass of `TypeError`.
-    """
-
-
 class NullFrequencyError(ValueError):
     """
     Error raised when a null `freq` attribute is used in an operation

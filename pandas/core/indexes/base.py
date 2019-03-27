@@ -14,7 +14,7 @@ from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.errors import SortError
+from pandas.core.sorting import SortError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array

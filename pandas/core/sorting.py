@@ -6,7 +6,6 @@ import numpy as np
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import PY3, string_types
-from pandas.errors import SortError
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
@@ -16,6 +15,13 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algorithms
 
 _INT64_MAX = np.iinfo(np.int64).max
+
+
+class SortError(TypeError):
+    """
+    Error raised when problems arise during sorting due to problems
+    with input data. Subclass of `TypeError`.
+    """
 
 
 def get_group_index(labels, shape, sort, xnull):
@@ -439,7 +445,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     TypeError
         * If ``values`` is not list-like or if ``labels`` is neither None
         nor list-like.
-    pandas.error.SortError
+    SortError
         * If ``values`` cannot be sorted.
     ValueError
         * If ``labels`` is not None and ``values`` contain duplicates.
@@ -462,7 +468,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
             nums = np.sort(values[~str_pos])
             strs = np.sort(values[str_pos])
         except TypeError as e:
-            raise SortError(e)
+            raise SortError(e) from e
         return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
     sorter = None

@@ -11,7 +11,7 @@ from pandas._libs import algos as libalgos, lib
 import pandas.compat as compat
 from pandas.compat import lzip
 from pandas.compat.numpy import function as nv
-from pandas.errors import SortError
+from pandas.core.sorting import SortError
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs

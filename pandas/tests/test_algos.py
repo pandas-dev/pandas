@@ -13,7 +13,7 @@ from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
 from pandas.compat import lrange
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.errors import SortError
+from pandas.core.sorting import SortError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import CategoricalDtype as CDT

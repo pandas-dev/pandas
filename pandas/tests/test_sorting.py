@@ -6,7 +6,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.errors import SortError
+from pandas.core.sorting import SortError
 
 from pandas import (
     DataFrame, MultiIndex, Series, compat, concat, merge, to_datetime)
