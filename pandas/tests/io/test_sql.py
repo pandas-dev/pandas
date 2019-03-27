@@ -17,8 +17,6 @@ The SQL tests are broken down in different classes:
 
 """
 
-from __future__ import print_function
-
 import csv
 from datetime import date, datetime, time
 import sqlite3

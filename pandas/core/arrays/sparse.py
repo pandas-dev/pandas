@@ -1,8 +1,6 @@
 """
 SparseArray data structure
 """
-from __future__ import division
-
 import numbers
 import operator
 import re
