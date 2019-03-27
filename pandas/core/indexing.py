@@ -12,7 +12,7 @@ from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     ensure_platform_int, is_float, is_integer, is_integer_dtype, is_iterator,
-    is_list_like, is_scalar, is_sequence, is_sparse)
+    is_list_like, is_numeric_dtype, is_scalar, is_sequence, is_sparse)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
@@ -1242,7 +1242,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if missing:
             if missing == len(indexer):
                 raise KeyError(
-                    u"None of [{key}] are in the [{axis}]".format(
+                    "None of [{key}] are in the [{axis}]".format(
                         key=key, axis=self.obj._get_axis_name(axis)))
 
             # We (temporarily) allow for some missing keys with .loc, except in
@@ -2074,10 +2074,15 @@ class _iLocIndexer(_LocationIndexer):
             # so don't treat a tuple as a valid indexer
             raise IndexingError('Too many indexers')
         elif is_list_like_indexer(key):
-            # check that the key does not exceed the maximum size of the index
             arr = np.array(key)
             len_axis = len(self.obj._get_axis(axis))
 
+            # check that the key has a numeric dtype
+            if not is_numeric_dtype(arr.dtype):
+                raise IndexError(".iloc requires numeric indexers, got "
+                                 "{arr}".format(arr=arr))
+
+            # check that the key does not exceed the maximum size of the index
             if len(arr) and (arr.max() >= len_axis or arr.min() < -len_axis):
                 raise IndexError("positional indexers are out-of-bounds")
         else:

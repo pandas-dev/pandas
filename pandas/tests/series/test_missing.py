@@ -870,6 +870,22 @@ def nontemporal_method(request):
     return method, kwargs
 
 
+@pytest.fixture(params=['linear', 'slinear', 'zero', 'quadratic', 'cubic',
+                        'barycentric', 'krogh', 'polynomial', 'spline',
+                        'piecewise_polynomial', 'from_derivatives', 'pchip',
+                        'akima', ])
+def interp_methods_ind(request):
+    """ Fixture that returns a (method name, required kwargs) pair to
+    be tested for various Index types.
+
+    This fixture does not include methods - 'time', 'index', 'nearest',
+    'values' as a parameterization
+    """
+    method = request.param
+    kwargs = dict(order=1) if method in ('spline', 'polynomial') else dict()
+    return method, kwargs
+
+
 class TestSeriesInterpolateData():
     def test_interpolate(self, datetime_series, string_series):
         ts = Series(np.arange(len(datetime_series), dtype=float),
@@ -1397,3 +1413,55 @@ class TestSeriesInterpolateData():
         ser = pd.Series([1, 0, 3, 4])
         with tm.assert_produces_warning(FutureWarning):
             ser.nonzero()
+
+    @pytest.mark.parametrize(
+        "ind",
+        [
+            ['a', 'b', 'c', 'd'],
+            pd.period_range(start="2019-01-01", periods=4),
+            pd.interval_range(start=0, end=4),
+        ])
+    def test_interp_non_timedelta_index(self, interp_methods_ind, ind):
+        # gh 21662
+        df = pd.DataFrame([0, 1, np.nan, 3], index=ind)
+
+        method, kwargs = interp_methods_ind
+        if method == "pchip":
+            _skip_if_no_pchip()
+
+        if method == "linear":
+            result = df[0].interpolate(**kwargs)
+            expected = pd.Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
+            assert_series_equal(result, expected)
+        else:
+            expected_error = (
+                "Index column must be numeric or datetime type when "
+                "using {method} method other than linear. "
+                "Try setting a numeric or datetime index column before "
+                "interpolating.".format(method=method))
+            with pytest.raises(ValueError, match=expected_error):
+                df[0].interpolate(method=method, **kwargs)
+
+    def test_interpolate_timedelta_index(self, interp_methods_ind):
+        """
+        Tests for non numerical index types  - object, period, timedelta
+        Note that all methods except time, index, nearest and values
+        are tested here.
+        """
+        # gh 21662
+        ind = pd.timedelta_range(start=1, periods=4)
+        df = pd.DataFrame([0, 1, np.nan, 3], index=ind)
+
+        method, kwargs = interp_methods_ind
+        if method == "pchip":
+            _skip_if_no_pchip()
+
+        if method in {"linear", "pchip"}:
+            result = df[0].interpolate(method=method, **kwargs)
+            expected = pd.Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
+            assert_series_equal(result, expected)
+        else:
+            pytest.skip(
+                "This interpolation method is not supported for "
+                "Timedelta Index yet."
+            )

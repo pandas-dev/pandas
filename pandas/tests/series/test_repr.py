@@ -203,18 +203,16 @@ class TestSeriesRepr(TestData):
 class TestCategoricalRepr(object):
 
     def test_categorical_repr_unicode(self):
-        # GH#21002 if len(index) > 60, sys.getdefaultencoding()=='ascii',
-        # and we are working in PY2, then rendering a Categorical could raise
-        # UnicodeDecodeError by trying to decode when it shouldn't
+        # see gh-21002
 
         class County(StringMixin):
-            name = u'San Sebastián'
-            state = u'PR'
+            name = 'San Sebastián'
+            state = 'PR'
 
             def __unicode__(self):
-                return self.name + u', ' + self.state
+                return self.name + ', ' + self.state
 
-        cat = pd.Categorical([County() for n in range(61)])
+        cat = pd.Categorical([County() for _ in range(61)])
         idx = pd.Index(cat)
         ser = idx.to_series()
 

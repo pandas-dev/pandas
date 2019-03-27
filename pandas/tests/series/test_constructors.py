@@ -11,7 +11,7 @@ import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY36, long, lrange
+from pandas.compat import PY36, lrange
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64tz_dtype)
@@ -26,7 +26,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
-class TestSeriesConstructors():
+class TestSeriesConstructors(object):
 
     def test_invalid_dtype(self):
         # GH15520
@@ -45,7 +45,6 @@ class TestSeriesConstructors():
         # Coercion
         assert float(Series([1.])) == 1.0
         assert int(Series([1.])) == 1
-        assert long(Series([1.])) == 1
 
     def test_constructor(self, datetime_series):
         empty_series = Series()
@@ -1119,7 +1118,8 @@ class TestSeriesConstructors():
 
         # these are frequency conversion astypes
         # for t in ['s', 'D', 'us', 'ms']:
-        #    pytest.raises(TypeError, td.astype, 'm8[%s]' % t)
+        #    with pytest.raises(TypeError):
+        #        td.astype('m8[%s]' % t)
 
         # valid astype
         td.astype('int64')
@@ -1174,7 +1174,7 @@ class TestSeriesConstructors():
         assert_series_equal(result, expected)
 
     def test_constructor_name_hashable(self):
-        for n in [777, 777., 'name', datetime(2001, 11, 11), (1, ), u"\u05D0"]:
+        for n in [777, 777., 'name', datetime(2001, 11, 11), (1, ), "\u05D0"]:
             for data in [[1, 2, 3], np.ones(3), {'a': 0, 'b': 1}]:
                 s = Series(data, name=n)
                 assert s.name == n

@@ -770,7 +770,7 @@ def test_empty_groups_corner(mframe):
 
 def test_nonsense_func():
     df = DataFrame([0])
-    msg = r"unsupported operand type\(s\) for \+: '(int|long)' and 'str'"
+    msg = r"unsupported operand type\(s\) for \+: 'int' and 'str'"
     with pytest.raises(TypeError, match=msg):
         df.groupby(lambda x: x + 'foo')
 
@@ -1381,11 +1381,9 @@ def test_group_name_available_in_inference_pass():
     def f(group):
         names.append(group.name)
         return group.copy()
-
     df.groupby('a', sort=False, group_keys=False).apply(f)
-    # we expect 2 zeros because we call ``f`` once to see if a faster route
-    # can be used.
-    expected_names = [0, 0, 1, 2]
+
+    expected_names = [0, 1, 2]
     assert names == expected_names
 
 
