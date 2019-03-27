@@ -1,5 +1,5 @@
 
-from cpython cimport PyTypeObject
+from cpython cimport PyTypeObject, PyErr_BadArgument
 
 cdef extern from *:
     """
@@ -24,9 +24,14 @@ cdef extern from "Python.h":
     bint PyFloat_Check(object obj) nogil
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
+
+    # Note that following functions can potentially raise an exception,
+    # thus they cannot be declared 'nogil'. Also PyUnicode_AsUTF8AndSize() can
+    # potentially allocate memory inside in unlikely case of when underlying
+    # unicode object was stored as non-utf8 and utf8 wasn't requested before.
     bint PyBytes_AsStringAndSize(object obj, char** buf,
-                                 Py_ssize_t* length) nogil
-    char* PyUnicode_AsUTF8AndSize(object obj, Py_ssize_t* length) nogil
+                                 Py_ssize_t* length)
+    char* PyUnicode_AsUTF8AndSize(object obj, Py_ssize_t* length)
 
 from numpy cimport int64_t
 
@@ -237,14 +242,15 @@ cdef inline bint get_string_data(object s, const char **buf,
                                  Py_ssize_t *length):
     """
     Extract internal char * buffer of unicode or bytes object `s` to `buf` with
-    getting length of this internal buffer, that save in `length`.
-    Return `False` if it failed to extract such buffer for whatever reason
-    otherwise return `True`
+    getting length of this internal buffer saved in `length`.
+    Returns `False` if it failed to extract such buffer for whatever reason,
+    otherwise returns `True`.
 
-    Note
-    ----
-    python object owns memory, `buf` should not be freed
-    `length` can be NULL
+    Notes
+    -----
+    Python object owns memory, `buf` should not be freed.
+    `length` can be NULL if getting buffer length is not needed.
+    This function should only raise exceptions in out-of-memory cases.
 
     Parameters
     ----------
@@ -262,3 +268,12 @@ cdef inline bint get_string_data(object s, const char **buf,
     if PyBytes_Check(s):
         return PyBytes_AsStringAndSize(s, <char**>buf, length) == 0
     return False
+
+cdef inline void get_string_data_checked(object s, const char **buf,
+                                         Py_ssize_t *length):
+    """
+    This is a wrapper for get_string_data() that raises TypeError
+    when supplied with neither unicode nor bytes object
+    """
+    if not get_string_data(s, buf, length):
+        PyErr_BadArgument()

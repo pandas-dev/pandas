@@ -72,7 +72,7 @@ int parse_iso_8601_datetime(const char *str, int len,
     int year_leap = 0;
     int i, numdigits;
     const char *substr;
-    char sublen;
+    int sublen;
 
     /* If year-month-day are separated by a valid separator,
      * months/days without leading zeroes will be parsed
@@ -587,7 +587,8 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
  */
 int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
                            NPY_DATETIMEUNIT base) {
-    char *substr = outstr, sublen = outlen;
+    char *substr = outstr;
+    int sublen = outlen;
     int tmplen;
 
     /*
