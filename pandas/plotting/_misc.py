@@ -1,7 +1,5 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-from __future__ import division
-
 import numpy as np
 
 from pandas.compat import lmap, lrange

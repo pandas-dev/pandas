@@ -11,7 +11,6 @@ files will probably erase them.
 Usage::
     $ ./find_commits_touching_func.py  (see arguments below)
 """
-from __future__ import print_function
 import logging
 import re
 import os
