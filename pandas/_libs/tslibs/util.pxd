@@ -241,6 +241,11 @@ cdef inline bint get_string_data(object s, const char **buf,
     Return `False` if it failed to extract such buffer for whatever reason
     otherwise return `True`
 
+    Note
+    ----
+    python object owns memory, `buf` should not be freed
+    `length` can be NULL
+
     Parameters
     ----------
     s      : object
