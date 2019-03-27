@@ -2,8 +2,6 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
-from __future__ import division
-
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
@@ -953,7 +951,7 @@ class _Rolling_and_Expanding(_Rolling):
     ----------
     func : function
         Must produce a single value from an ndarray input if ``raw=True``
-        or a Series if ``raw=False``.
+        or a single value from a Series if ``raw=False``.
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.

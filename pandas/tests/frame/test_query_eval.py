@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 import operator
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange, range, zip
+from pandas.compat import StringIO, lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1031,3 +1029,54 @@ class TestDataFrameEvalWithFrame(object):
 
         with pytest.raises(TypeError, match=msg):
             df.eval('a {0} b'.format(op), engine=engine, parser=parser)
+
+
+class TestDataFrameQueryBacktickQuoting(object):
+
+    @pytest.fixture(scope='class')
+    def df(self):
+        yield DataFrame({'A': [1, 2, 3],
+                         'B B': [3, 2, 1],
+                         'C C': [4, 5, 6],
+                         'C_C': [8, 9, 10],
+                         'D_D D': [11, 1, 101]})
+
+    def test_single_backtick_variable_query(self, df):
+        res = df.query('1 < `B B`')
+        expect = df[1 < df['B B']]
+        assert_frame_equal(res, expect)
+
+    def test_two_backtick_variables_query(self, df):
+        res = df.query('1 < `B B` and 4 < `C C`')
+        expect = df[(1 < df['B B']) & (4 < df['C C'])]
+        assert_frame_equal(res, expect)
+
+    def test_single_backtick_variable_expr(self, df):
+        res = df.eval('A + `B B`')
+        expect = df['A'] + df['B B']
+        assert_series_equal(res, expect)
+
+    def test_two_backtick_variables_expr(self, df):
+        res = df.eval('`B B` + `C C`')
+        expect = df['B B'] + df['C C']
+        assert_series_equal(res, expect)
+
+    def test_already_underscore_variable(self, df):
+        res = df.eval('`C_C` + A')
+        expect = df['C_C'] + df['A']
+        assert_series_equal(res, expect)
+
+    def test_same_name_but_underscores(self, df):
+        res = df.eval('C_C + `C C`')
+        expect = df['C_C'] + df['C C']
+        assert_series_equal(res, expect)
+
+    def test_mixed_underscores_and_spaces(self, df):
+        res = df.eval('A + `D_D D`')
+        expect = df['A'] + df['D_D D']
+        assert_series_equal(res, expect)
+
+    def backtick_quote_name_with_no_spaces(self, df):
+        res = df.eval('A + `C_C`')
+        expect = df['A'] + df['C_C']
+        assert_series_equal(res, expect)

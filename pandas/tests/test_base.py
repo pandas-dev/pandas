@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-
 from datetime import datetime, timedelta
 import re
 import sys
@@ -9,8 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-import pandas.compat as compat
-from pandas.compat import PYPY, StringIO, long
+from pandas.compat import PYPY, StringIO
 from pandas.compat.numpy import np_array_datetime64_compat
 
 from pandas.core.dtypes.common import (
@@ -21,7 +18,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 import pandas as pd
 from pandas import (
     CategoricalIndex, DataFrame, DatetimeIndex, Index, Interval, IntervalIndex,
-    Panel, PeriodIndex, Series, Timedelta, TimedeltaIndex, Timestamp)
+    PeriodIndex, Series, Timedelta, TimedeltaIndex, Timestamp)
 from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import DatetimeArray, PandasArray, TimedeltaArray
 from pandas.core.base import NoNewAttributesMixin, PandasObject
@@ -35,8 +32,6 @@ class CheckStringMixin(object):
         repr(self.container)
         str(self.container)
         bytes(self.container)
-        if not compat.PY3:
-            unicode(self.container)  # noqa
 
     def test_tricky_container(self):
         if not hasattr(self, 'unicode_container'):
@@ -44,8 +39,6 @@ class CheckStringMixin(object):
         repr(self.unicode_container)
         str(self.unicode_container)
         bytes(self.unicode_container)
-        if not compat.PY3:
-            unicode(self.unicode_container)  # noqa
 
 
 class CheckImmutable(object):
@@ -239,7 +232,7 @@ class Ops(object):
                     with pytest.raises(err):
                         getattr(o, op)
 
-    @pytest.mark.parametrize('klass', [Series, DataFrame, Panel])
+    @pytest.mark.parametrize('klass', [Series, DataFrame])
     def test_binary_ops_docs(self, klass):
         op_map = {'add': '+',
                   'sub': '-',
@@ -1011,14 +1004,14 @@ class TestToIterable(object):
     # test that we convert an iterable to python types
 
     dtypes = [
-        ('int8', (int, long)),
-        ('int16', (int, long)),
-        ('int32', (int, long)),
-        ('int64', (int, long)),
-        ('uint8', (int, long)),
-        ('uint16', (int, long)),
-        ('uint32', (int, long)),
-        ('uint64', (int, long)),
+        ('int8', int),
+        ('int16', int),
+        ('int32', int),
+        ('int64', int),
+        ('uint8', int),
+        ('uint16', int),
+        ('uint32', int),
+        ('uint64', int),
         ('float16', float),
         ('float32', float),
         ('float64', float),
@@ -1051,9 +1044,9 @@ class TestToIterable(object):
         'dtype, rdtype, obj',
         [
             ('object', object, 'a'),
-            ('object', (int, long), 1),
+            ('object', int, 1),
             ('category', object, 'a'),
-            ('category', (int, long), 1)])
+            ('category', int, 1)])
     @pytest.mark.parametrize(
         'method',
         [
@@ -1088,8 +1081,8 @@ class TestToIterable(object):
     @pytest.mark.parametrize(
         'dtype, rdtype',
         dtypes + [
-            ('object', (int, long)),
-            ('category', (int, long))])
+            ('object', int),
+            ('category', int)])
     @pytest.mark.parametrize('typ', [Series, Index])
     @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     # TODO(GH-24559): Remove the filterwarnings

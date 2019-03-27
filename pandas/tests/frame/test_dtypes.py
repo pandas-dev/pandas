@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from collections import OrderedDict
 from datetime import timedelta
 
 import numpy as np
 import pytest
-
-from pandas.compat import u
 
 from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype
 
@@ -364,7 +360,7 @@ class TestDataFrameDataTypes(TestData):
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg):
         df = DataFrame({"a": list("abc"),
-                        "g": list(u("abc")),
+                        "g": list("abc"),
                         "b": list(range(1, 4)),
                         "c": np.arange(3, 6).astype("u1"),
                         "d": np.arange(4.0, 7.0, dtype="float64"),
@@ -378,7 +374,7 @@ class TestDataFrameDataTypes(TestData):
 
     def test_select_dtypes_bad_arg_raises(self):
         df = DataFrame({'a': list('abc'),
-                        'g': list(u('abc')),
+                        'g': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
                         'd': np.arange(4.0, 7.0, dtype='float64'),
@@ -808,11 +804,15 @@ class TestDataFrameDataTypes(TestData):
         other = "m8[{}]".format(unit)
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
-        with pytest.raises(TypeError):
+        msg = (r"cannot astype a datetimelike from \[datetime64\[ns\]\] to"
+               r" \[timedelta64\[{}\]\]").format(unit)
+        with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
+        msg = (r"cannot astype a timedelta from \[timedelta64\[ns\]\] to"
+               r" \[datetime64\[{}\]\]").format(unit)
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df.astype(dtype)
 
     def test_timedeltas(self):

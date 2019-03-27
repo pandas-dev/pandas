@@ -53,7 +53,6 @@ from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.offsets import _Tick
 
 cdef:
-    bint PY2 = str == bytes
     enum:
         INT32_MIN = -2147483648
 
@@ -1287,9 +1286,6 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 
             result = result.replace(str_extra_fmts[i], repl)
 
-    if PY2:
-        result = result.decode('utf-8', 'ignore')
-
     return result
 
 
@@ -1438,7 +1434,9 @@ cdef accessor _get_accessor_func(int code):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def extract_ordinals(object[:] values, freq):
+def extract_ordinals(ndarray[object] values, freq):
+    # TODO: Change type to const object[:] when Cython supports that.
+
     cdef:
         Py_ssize_t i, n = len(values)
         int64_t[:] ordinals = np.empty(n, dtype=np.int64)
@@ -1472,7 +1470,9 @@ def extract_ordinals(object[:] values, freq):
     return ordinals.base  # .base to access underlying np.ndarray
 
 
-def extract_freq(object[:] values):
+def extract_freq(ndarray[object] values):
+    # TODO: Change type to const object[:] when Cython supports that.
+
     cdef:
         Py_ssize_t i, n = len(values)
         object p

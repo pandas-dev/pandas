@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import datetime, timedelta
 import inspect
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_interval_dtype, is_object_dtype)
@@ -201,7 +199,8 @@ class TestDataFrameAlterAxes():
         # need to adapt first drop for case that both keys are 'A' --
         # cannot drop the same column twice;
         # use "is" because == would give ambiguous Boolean error for containers
-        first_drop = False if (keys[0] is 'A' and keys[1] is 'A') else drop
+        first_drop = False if (
+            keys[0] is 'A' and keys[1] is 'A') else drop  # noqa: F632
 
         # to test against already-tested behaviour, we add sequentially,
         # hence second append always True; must wrap keys in list, otherwise
@@ -1272,7 +1271,7 @@ class TestDataFrameAlterAxes():
             df.rename(id, mapper=id)
 
     def test_reindex_api_equivalence(self):
-            # equivalence of the labels/axis and index/columns API's
+        # equivalence of the labels/axis and index/columns API's
         df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],
                        index=['a', 'b', 'c'],
                        columns=['d', 'e', 'f'])
@@ -1341,14 +1340,12 @@ class TestDataFrameAlterAxes():
         with tm.assert_produces_warning(FutureWarning):
             df.rename({0: 10}, {"A": "B"})
 
-    @pytest.mark.skipif(PY2, reason="inspect.signature")
     def test_rename_signature(self):
         sig = inspect.signature(DataFrame.rename)
         parameters = set(sig.parameters)
         assert parameters == {"self", "mapper", "index", "columns", "axis",
                               "inplace", "copy", "level", "errors"}
 
-    @pytest.mark.skipif(PY2, reason="inspect.signature")
     def test_reindex_signature(self):
         sig = inspect.signature(DataFrame.reindex)
         parameters = set(sig.parameters)

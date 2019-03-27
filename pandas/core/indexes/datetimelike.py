@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, iNaT, lib
+from pandas._libs.algos import unique_deltas
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
@@ -300,7 +301,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return self.astype(object)
 
     def _convert_tolerance(self, tolerance, target):
-        tolerance = np.asarray(to_timedelta(tolerance, box=False))
+        tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
+
         if target.size != tolerance.size and tolerance.size > 1:
             raise ValueError('list-like tolerance size must match '
                              'target index size')
@@ -586,11 +588,15 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         if len({str(x.dtype) for x in to_concat}) != 1:
             raise ValueError('to_concat must have the same tz')
 
-        if not is_period_dtype(self):
+        new_data = type(self._values)._concat_same_type(to_concat).asi8
+
+        # GH 3232: If the concat result is evenly spaced, we can retain the
+        # original frequency
+        is_diff_evenly_spaced = len(unique_deltas(new_data)) == 1
+        if not is_period_dtype(self) and not is_diff_evenly_spaced:
             # reset freq
             attribs['freq'] = None
 
-        new_data = type(self._values)._concat_same_type(to_concat).asi8
         return self._simple_new(new_data, **attribs)
 
     @Appender(_index_shared_docs['astype'])

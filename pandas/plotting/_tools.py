@@ -1,13 +1,9 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-from __future__ import division
-
 from math import ceil
 import warnings
 
 import numpy as np
-
-from pandas.compat import range
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries

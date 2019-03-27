@@ -1,9 +1,7 @@
-from __future__ import division
-
 import numpy as np
 import pytest
 
-from pandas import Interval, Timedelta, Timestamp
+from pandas import Interval, Period, Timedelta, Timestamp
 import pandas.core.common as com
 
 
@@ -100,13 +98,14 @@ class TestInterval(object):
         ('a', 'z'),
         (('a', 'b'), ('c', 'd')),
         (list('AB'), list('ab')),
-        (Interval(0, 1), Interval(1, 2))])
-    def test_length_errors(self, left, right):
-        # GH 18789
-        iv = Interval(left, right)
-        msg = 'cannot compute length between .* and .*'
-        with pytest.raises(TypeError, match=msg):
-            iv.length
+        (Interval(0, 1), Interval(1, 2)),
+        (Period('2018Q1', freq='Q'), Period('2018Q1', freq='Q'))
+    ])
+    def test_construct_errors(self, left, right):
+        # GH 23013
+        msg = "Only numeric, Timestamp and Timedelta endpoints are allowed"
+        with pytest.raises(ValueError, match=msg):
+            Interval(left, right)
 
     def test_math_add(self, closed):
         interval = Interval(0, 1, closed=closed)

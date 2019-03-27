@@ -138,7 +138,7 @@ class ParserWarning(Warning):
     Using a `sep` in `pd.read_csv` other than a single character:
 
     >>> import io
-    >>> csv = u'''a;b;c
+    >>> csv = '''a;b;c
     ...           1;1,8
     ...           1;2,1'''
     >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]')  # doctest: +SKIP

@@ -157,7 +157,7 @@ class TestSparseIndexUnion(object):
         elen = [3, 2, 3, 2]
         _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
-    def test_intindex_make_union(self):
+    def test_int_index_make_union(self):
         a = IntIndex(5, np.array([0, 3, 4], dtype=np.int32))
         b = IntIndex(5, np.array([0, 2], dtype=np.int32))
         res = a.make_union(b)
@@ -184,7 +184,9 @@ class TestSparseIndexUnion(object):
 
         a = IntIndex(5, np.array([0, 1], dtype=np.int32))
         b = IntIndex(4, np.array([0, 1], dtype=np.int32))
-        with pytest.raises(ValueError):
+
+        msg = "Indices must reference same underlying length"
+        with pytest.raises(ValueError, match=msg):
             a.make_union(b)
 
 
@@ -197,7 +199,9 @@ class TestSparseIndexIntersect(object):
             assert (result.equals(expected))
 
         def _check_length_exc(a, longer):
-            pytest.raises(Exception, a.intersect, longer)
+            msg = "Indices must reference same underlying length"
+            with pytest.raises(Exception, match=msg):
+                a.intersect(longer)
 
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
