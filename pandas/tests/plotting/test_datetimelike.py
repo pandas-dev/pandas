@@ -1105,7 +1105,7 @@ class TestTSPlot(TestPlotBase):
                 assert xp == rs
 
     @pytest.mark.slow
-    @pytest.mark.xfail(reason="Unreliable test")
+    @pytest.mark.xfail(strict=False, reason="Unreliable test")
     def test_time_change_xlim(self):
         t = datetime(1, 1, 1, 3, 30, 0)
         deltas = np.random.randint(1, 20, 3).cumsum()
