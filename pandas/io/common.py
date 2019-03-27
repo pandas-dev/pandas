@@ -1,8 +1,11 @@
 """Common IO api utilities"""
 
+import bz2
 import codecs
 from contextlib import closing, contextmanager
 import csv
+import gzip
+import lzma
 import mmap
 import os
 import zipfile
@@ -364,7 +367,6 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
         # GZ Compression
         if compression == 'gzip':
-            import gzip
             if is_path:
                 f = gzip.open(path_or_buf, mode)
             else:
@@ -372,7 +374,6 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
         # BZ Compression
         elif compression == 'bz2':
-            import bz2
             if is_path:
                 f = bz2.BZ2File(path_or_buf, mode)
             elif compat.PY2:
@@ -404,7 +405,6 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
         # XZ Compression
         elif compression == 'xz':
-            lzma = compat.import_lzma()
             f = lzma.LZMAFile(path_or_buf, mode)
 
         # Unrecognized Compression

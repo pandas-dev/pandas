@@ -2,6 +2,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta
+from importlib import reload
 import string
 import sys
 
@@ -188,7 +189,7 @@ class TestSeriesDtypes(object):
 
         # Restore the former encoding
         if former_encoding is not None and former_encoding != "utf-8":
-            reload(sys)  # noqa
+            reload(sys)
             sys.setdefaultencoding(former_encoding)
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
