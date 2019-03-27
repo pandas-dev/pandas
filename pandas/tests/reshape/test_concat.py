@@ -766,7 +766,7 @@ class TestAppend(ConcatenateBase):
             mixed_appended2.reindex(columns=['A', 'B', 'C', 'D']))
 
         # append empty
-        empty = DataFrame({})
+        empty = DataFrame()
 
         appended = self.frame.append(empty)
         tm.assert_frame_equal(self.frame, appended)
@@ -868,7 +868,7 @@ class TestAppend(ConcatenateBase):
 
     def test_append_preserve_index_name(self):
         # #980
-        df1 = DataFrame(data=None, columns=['A', 'B', 'C'])
+        df1 = DataFrame(columns=['A', 'B', 'C'])
         df1 = df1.set_index(['A'])
         df2 = DataFrame(data=[[1, 4, 7], [2, 5, 8], [3, 6, 9]],
                         columns=['A', 'B', 'C'])

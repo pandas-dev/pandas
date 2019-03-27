@@ -3,8 +3,6 @@
 Module for formatting output data in HTML.
 """
 
-from __future__ import print_function
-
 from collections import OrderedDict
 from textwrap import dedent
 

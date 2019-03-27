@@ -1,5 +1,3 @@
-from __future__ import division
-
 import bz2
 from collections import Counter
 from contextlib import contextmanager

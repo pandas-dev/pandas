@@ -339,7 +339,6 @@ domain.
 
 """
 
-from __future__ import print_function
 try:
     import configparser
 except ImportError:
