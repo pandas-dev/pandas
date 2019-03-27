@@ -46,6 +46,8 @@ from pandas.io.common import (
     is_file_like)
 from pandas.io.date_converters import generic_parser
 
+from pandas.typing import FilePathOrBuffer
+
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness
 # of a file (stream). Unfortunately, this marker screws up parsing,
@@ -402,7 +404,7 @@ def _validate_names(names):
     return names
 
 
-def _read(filepath_or_buffer, kwds):
+def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
     encoding = kwds.get('encoding', None)
     if encoding is not None:
@@ -535,7 +537,7 @@ def _make_parser_function(name, default_sep=','):
     else:
         sep = default_sep
 
-    def parser_f(filepath_or_buffer,
+    def parser_f(filepath_or_buffer: FilePathOrBuffer,
                  sep=sep,
                  delimiter=None,
 
@@ -727,8 +729,11 @@ Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
                       )(read_table)
 
 
-def read_fwf(filepath_or_buffer, colspecs='infer', widths=None,
-             infer_nrows=100, **kwds):
+def read_fwf(filepath_or_buffer: FilePathOrBuffer,
+             colspecs='infer',
+             widths=None,
+             infer_nrows=100,
+             **kwds):
 
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
