@@ -31,6 +31,7 @@ Other Enhancements
 - ``Series.str`` has gained :meth:`Series.str.casefold` method to removes all case distinctions present in a string (:issue:`25405`)
 - :meth:`DataFrame.set_index` now works for instances of ``abc.Iterator``, provided their output is of the same length as the calling frame (:issue:`22484`, :issue:`24984`)
 - :meth:`DatetimeIndex.union` now supports the ``sort`` argument. The behaviour of the sort parameter matches that of :meth:`Index.union` (:issue:`24994`)
+- :meth:`RangeIndex.union` now supports the ``sort`` argument. If ``sort=False`` an unsorted ``Int64Index`` is always returned. ``sort=None`` is the default and returns a mononotically increasing ``RangeIndex`` if possible or a sorted ``Int64Index`` if not (:issue:`24471`)
 - :meth:`DataFrame.rename` now supports the ``errors`` argument to raise errors when attempting to rename nonexistent keys (:issue:`13473`)
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)

@@ -2320,7 +2320,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             rvals = other._values
 
-        if self.is_monotonic and other.is_monotonic:
+        if sort is None and self.is_monotonic and other.is_monotonic:
             try:
                 result = self._outer_indexer(lvals, rvals)[0]
             except TypeError:
