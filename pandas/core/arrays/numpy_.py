@@ -83,9 +83,6 @@ class PandasDtype(ExtensionDtype):
         return self._dtype.itemsize
 
 
-# We would normally write this as bases=(...), then "class Foo(*bases):
-# but Python2 doesn't allow unpacking tuples in the class statement.
-# So, we fall back to "object", to avoid writing a metaclass.
 class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     """
     A pandas ExtensionArray for NumPy data.
