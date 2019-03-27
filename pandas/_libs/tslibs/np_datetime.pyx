@@ -33,7 +33,7 @@ cdef extern from "src/datetime/np_datetime.h":
     npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
 cdef extern from "src/datetime/np_datetime_strings.h":
-    int parse_iso_8601_datetime(char *str, int len,
+    int parse_iso_8601_datetime(const char *str, int len,
                                 npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)
 
@@ -175,7 +175,7 @@ cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
                                int* out_local, int* out_tzoffset) except? -1:
     cdef:
         Py_ssize_t length
-        char *tmp
+        const char* tmp
 
     if not get_string_data(val, &tmp, &length):
         raise ValueError('Unable to parse %s' % str(val))

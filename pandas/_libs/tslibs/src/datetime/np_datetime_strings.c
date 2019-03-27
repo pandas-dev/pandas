@@ -66,12 +66,13 @@ This file implements string parsing and creation for NumPy datetime.
  *
  * Returns 0 on success, -1 on failure.
  */
-int parse_iso_8601_datetime(char *str, int len,
+int parse_iso_8601_datetime(const char *str, int len,
                             npy_datetimestruct *out,
                             int *out_local, int *out_tzoffset) {
     int year_leap = 0;
     int i, numdigits;
-    char *substr, sublen;
+    const char *substr;
+    char sublen;
 
     /* If year-month-day are separated by a valid separator,
      * months/days without leading zeroes will be parsed
