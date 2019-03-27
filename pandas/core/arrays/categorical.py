@@ -35,7 +35,7 @@ from pandas.core.algorithms import factorize, take, take_1d, unique1d
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
-from pandas.core.sorting import SortError, nargsort
+from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size
@@ -357,7 +357,7 @@ class Categorical(ExtensionArray, PandasObject):
         if dtype.categories is None:
             try:
                 codes, categories = factorize(values, sort=True)
-            except SortError:
+            except TypeError:
                 codes, categories = factorize(values, sort=False)
                 if dtype.ordered:
                     # raise, as we don't have a sortable data structure and so
