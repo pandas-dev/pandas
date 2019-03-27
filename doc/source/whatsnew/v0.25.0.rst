@@ -31,6 +31,7 @@ Other Enhancements
 - ``Series.str`` has gained :meth:`Series.str.casefold` method to removes all case distinctions present in a string (:issue:`25405`)
 - :meth:`DataFrame.set_index` now works for instances of ``abc.Iterator``, provided their output is of the same length as the calling frame (:issue:`22484`, :issue:`24984`)
 - :meth:`DatetimeIndex.union` now supports the ``sort`` argument. The behaviour of the sort parameter matches that of :meth:`Index.union` (:issue:`24994`)
+- :meth:`RangeIndex.union` now supports the ``sort`` argument. If ``sort=False`` an unsorted ``Int64Index`` is always returned. ``sort=None`` is the default and returns a mononotically increasing ``RangeIndex`` if possible or a sorted ``Int64Index`` if not (:issue:`24471`)
 - :meth:`DataFrame.rename` now supports the ``errors`` argument to raise errors when attempting to rename nonexistent keys (:issue:`13473`)
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
@@ -73,6 +74,50 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
     df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
     df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
+.. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
+
+GroupBy.apply on ``DataFrame`` evaluates first group only once
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The implementation of :meth:`DataFrameGroupBy.apply() <pandas.core.groupby.DataFrameGroupBy.apply>`
+previously evaluated the supplied function consistently twice on the first group
+to infer if it is safe to use a fast code path. Particularly for functions with
+side effects, this was an undesired behavior and may have led to surprises.
+
+(:issue:`2936`, :issue:`2656`, :issue:`7739`, :issue:`10519`, :issue:`12155`,
+:issue:`20084`, :issue:`21417`)
+
+Now every group is evaluated only a single time.
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
+    df
+
+    def func(group):
+        print(group.name)
+        return group
+
+*Previous Behaviour*:
+
+.. code-block:: python
+
+   In [3]: df.groupby('a').apply(func)
+   x
+   x
+   y
+   Out[3]:
+      a  b
+   0  x  1
+   1  y  2
+
+*New Behaviour*:
+
+.. ipython:: python
+
+    df.groupby("a").apply(func)
+
+
 Concatenating Sparse Values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -83,14 +128,14 @@ Series or DataFrame with sparse values, rather than a ``SparseDataFrame`` (:issu
 
    df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
 
-*Previous Behavior:*
+*Previous Behavior*:
 
 .. code-block:: ipython
 
    In [2]: type(pd.concat([df, df]))
    pandas.core.sparse.frame.SparseDataFrame
 
-*New Behavior:*
+*New Behavior*:
 
 .. ipython:: python
 
