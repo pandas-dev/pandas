@@ -11,6 +11,7 @@ import re
 import sys
 from textwrap import fill
 import warnings
+from typing import cast, IO
 
 import numpy as np
 
@@ -442,7 +443,8 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
 
     if should_close:
         try:
-            filepath_or_buffer.close()
+            # See MyPy GH issue 1424
+            cast(IO, filepath_or_buffer).close()
         except ValueError:
             pass
 
