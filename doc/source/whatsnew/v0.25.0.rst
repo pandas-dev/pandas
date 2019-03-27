@@ -178,7 +178,7 @@ If installed, we now require:
 +-----------------+-----------------+-----------------------+
 
 For `optional libraries <https://pandas-docs.github.io/pandas-docs-travis/install.html#dependencies>`_ the general recommendation is to use the latest version.
-The following table lists the lowest version per library that is being tested throughout the development of pandas.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
 +-----------------+-----------------+-----------------------+
