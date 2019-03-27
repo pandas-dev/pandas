@@ -24,7 +24,8 @@ cdef extern from "Python.h":
     bint PyFloat_Check(object obj) nogil
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
-    bint PyBytes_AsStringAndSize(object obj, char** buf, Py_ssize_t* length) nogil
+    bint PyBytes_AsStringAndSize(object obj, char** buf,
+                                 Py_ssize_t* length) nogil
     char* PyUnicode_AsUTF8AndSize(object obj, Py_ssize_t* length) nogil
 
 from numpy cimport int64_t
@@ -245,7 +246,7 @@ cdef inline bint get_string_data(object s, const char **buf,
     s      : object
     buf    : const char**
     length : Py_ssize_t*
-    
+
     Returns
     -------
     bint
