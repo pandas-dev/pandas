@@ -453,6 +453,28 @@ def test_dataframe_categorical_with_nan(observed):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("observed", [True, False])
+@pytest.mark.parametrize("sort",     [True, False])
+def test_dataframe_categorical_ordered_observed(observed, sort):
+    # GH 25871
+    cat = pd.Categorical([3, 1, 2, 1, 3, 2], categories=[1, 2, 3, 4], ordered=True)
+    val = pd.Series([1.5, 0.5, 1.0, 0.5, 1.5, 1.0])
+    df  = pd.DataFrame({'cat': cat, 'val': val})
+    result = df.groupby('cat', observed=observed, sort=sort)['val'].agg('sum')
+    
+    # For ordered Categoricals, sort must have no influence on the result (they always sort)
+    if observed:
+        expected = pd.Series(data=[1.0, 2.0, 3.0], 
+                             index=pd.CategoricalIndex([1, 2, 3], categories=[1, 2, 3, 4], ordered=True, name='cat', dtype='category'), 
+                             dtype='float64', name='val')
+    else:
+        expected = pd.Series(data=[1.0, 2.0, 3.0, 0.0], 
+                             index=pd.CategoricalIndex([1, 2, 3, 4], categories=[1, 2, 3, 4], ordered=True, name='cat', dtype='category'), 
+                             dtype='float64', name='val')
+    
+    tm.assert_series_equal(result, expected)
+
+
 def test_datetime():
     # GH9049: ensure backward compatibility
     levels = pd.date_range('2014-01-01', periods=4)
