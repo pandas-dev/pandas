@@ -12,11 +12,15 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+import bz2
 from distutils.version import LooseVersion
 import glob
+import gzip
+import lzma
 import os
 import shutil
 from warnings import catch_warnings, simplefilter
+import zipfile
 
 import pytest
 
@@ -331,18 +335,14 @@ class TestCompression(object):
             return
 
         if compression == 'gzip':
-            import gzip
             f = gzip.open(dest_path, "w")
         elif compression == 'bz2':
-            import bz2
             f = bz2.BZ2File(dest_path, "w")
         elif compression == 'zip':
-            import zipfile
             with zipfile.ZipFile(dest_path, "w",
                                  compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == 'xz':
-            import lzma
             f = lzma.LZMAFile(dest_path, "w")
         else:
             msg = 'Unrecognized compression type: {}'.format(compression)

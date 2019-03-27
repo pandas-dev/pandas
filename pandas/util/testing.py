@@ -1,9 +1,12 @@
 from __future__ import division
 
+import bz2
 from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
+import gzip
+import lzma
 import os
 import re
 from shutil import rmtree
@@ -11,6 +14,7 @@ import string
 import tempfile
 import traceback
 import warnings
+import zipfile
 
 import numpy as np
 from numpy.random import rand, randn
@@ -177,16 +181,12 @@ def decompress_file(path, compression):
     if compression is None:
         f = open(path, 'rb')
     elif compression == 'gzip':
-        import gzip
         f = gzip.open(path, 'rb')
     elif compression == 'bz2':
-        import bz2
         f = bz2.BZ2File(path, 'rb')
     elif compression == 'xz':
-        import lzma
         f = lzma.LZMAFile(path, 'rb')
     elif compression == 'zip':
-        import zipfile
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
         if len(zip_names) == 1:
