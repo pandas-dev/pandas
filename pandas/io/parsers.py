@@ -9,7 +9,6 @@ import re
 import sys
 from textwrap import fill
 import warnings
-from typing import cast, IO
 
 import numpy as np
 
@@ -412,7 +411,12 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
 
     compression = kwds.get('compression', 'infer')
     compression = _infer_compression(filepath_or_buffer, compression)
-    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
+
+    # TODO: get_filepath_or_buffer could return
+    # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
+    # though mypy handling of conditional imports is difficult.
+    # See https://github.com/python/mypy/issues/1297
+    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression)
     kwds['compression'] = compression
 
@@ -429,7 +433,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     _validate_names(kwds.get("names", None))
 
     # Create the parser.
-    parser = TextFileReader(filepath_or_buffer, **kwds)
+    parser = TextFileReader(fp_or_buf, **kwds)
 
     if chunksize or iterator:
         return parser
@@ -441,8 +445,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
 
     if should_close:
         try:
-            # See MyPy GH issue 1424
-            cast(IO, filepath_or_buffer).close()
+            fp_or_buf.close()
         except ValueError:
             pass
 
