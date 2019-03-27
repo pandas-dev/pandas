@@ -105,7 +105,7 @@ def test_index_col_empty_data(all_parsers, index_col, kwargs):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=index_col)
 
-    expected = DataFrame([], **kwargs)
+    expected = DataFrame(**kwargs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -115,7 +115,7 @@ def test_empty_with_index_col_false(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=False)
 
-    expected = DataFrame([], columns=["x", "y"])
+    expected = DataFrame(columns=["x", "y"])
     tm.assert_frame_equal(result, expected)
 
 

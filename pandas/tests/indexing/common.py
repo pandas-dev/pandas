@@ -85,8 +85,8 @@ class Base(object):
         self.frame_ts_rev = DataFrame(np.random.randn(4, 4),
                                       index=dates_rev)
 
-        self.frame_empty = DataFrame({})
-        self.series_empty = Series({})
+        self.frame_empty = DataFrame()
+        self.series_empty = Series()
 
         # form agglomerates
         for o in self._objs:

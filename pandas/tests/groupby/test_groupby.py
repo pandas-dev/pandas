@@ -296,7 +296,7 @@ def test_indices_concatenation_order():
         if y.empty:
             multiindex = MultiIndex(levels=[[]] * 2, codes=[[]] * 2,
                                     names=['b', 'c'])
-            res = DataFrame(None, columns=['a'], index=multiindex)
+            res = DataFrame(columns=['a'], index=multiindex)
             return res
         else:
             y = y.set_index(['b', 'c'])
@@ -315,7 +315,7 @@ def test_indices_concatenation_order():
         if y.empty:
             multiindex = MultiIndex(levels=[[]] * 2, codes=[[]] * 2,
                                     names=['foo', 'bar'])
-            res = DataFrame(None, columns=['a', 'b'], index=multiindex)
+            res = DataFrame(columns=['a', 'b'], index=multiindex)
             return res
         else:
             return y

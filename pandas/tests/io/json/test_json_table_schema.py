@@ -459,7 +459,7 @@ class TestTableOrient(object):
     ])
     def test_warns_non_roundtrippable_names(self, idx):
         # GH 19130
-        df = pd.DataFrame([[]], index=idx)
+        df = pd.DataFrame(index=idx)
         df.index.name = 'index'
         with tm.assert_produces_warning():
             set_default_names(df)
@@ -566,7 +566,7 @@ class TestTableOrientReader(object):
 
     def test_empty_frame_roundtrip(self):
         # GH 21287
-        df = pd.DataFrame([], columns=['a', 'b', 'c'])
+        df = pd.DataFrame(columns=['a', 'b', 'c'])
         expected = df.copy()
         out = df.to_json(orient='table')
         result = pd.read_json(out, orient='table')

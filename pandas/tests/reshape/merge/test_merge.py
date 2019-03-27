@@ -386,10 +386,10 @@ class TestMerge(object):
                               dict(left_on='a', right_on='x')])
     def test_merge_left_empty_right_empty(self, join_type, kwarg):
         # GH 10824
-        left = pd.DataFrame([], columns=['a', 'b', 'c'])
-        right = pd.DataFrame([], columns=['x', 'y', 'z'])
+        left = pd.DataFrame(columns=['a', 'b', 'c'])
+        right = pd.DataFrame(columns=['x', 'y', 'z'])
 
-        exp_in = pd.DataFrame([], columns=['a', 'b', 'c', 'x', 'y', 'z'],
+        exp_in = pd.DataFrame(columns=['a', 'b', 'c', 'x', 'y', 'z'],
                               index=pd.Index([], dtype=object),
                               dtype=object)
 
@@ -398,7 +398,7 @@ class TestMerge(object):
 
     def test_merge_left_empty_right_notempty(self):
         # GH 10824
-        left = pd.DataFrame([], columns=['a', 'b', 'c'])
+        left = pd.DataFrame(columns=['a', 'b', 'c'])
         right = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                              columns=['x', 'y', 'z'])
 
@@ -444,7 +444,7 @@ class TestMerge(object):
         # GH 10824
         left = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                             columns=['a', 'b', 'c'])
-        right = pd.DataFrame([], columns=['x', 'y', 'z'])
+        right = pd.DataFrame(columns=['x', 'y', 'z'])
 
         exp_out = pd.DataFrame({'a': [1, 4, 7],
                                 'b': [2, 5, 8],
