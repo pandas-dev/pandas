@@ -202,6 +202,12 @@ class Generic(object):
         expected = o.astype(np.int64)
         self._compare(result, expected)
 
+    def test_multiple_astype_casts(self):
+        df = DataFrame({'A': [1, 2, 'z'], 'B': [3, 4, 'z']})
+        df.astype({'A': int,
+                   'B': 'datetime64[ns]'},
+                  errors='ignore')
+
     def test_constructor_compound_dtypes(self):
         # see gh-5191
         # Compound dtypes should raise NotImplementedError.
