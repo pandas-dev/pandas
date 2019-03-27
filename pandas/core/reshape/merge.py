@@ -1738,7 +1738,10 @@ def _sort_labels(uniques, left, right):
     llength = len(left)
     labels = np.concatenate([left, right])
 
-    _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
+    try:
+        _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
+    except sorting.SortError as e:
+        raise TypeError(e) from e
     new_labels = ensure_int64(new_labels)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 

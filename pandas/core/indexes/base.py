@@ -2433,7 +2433,10 @@ class Index(IndexOpsMixin, PandasObject):
         taken = other.take(indexer)
 
         if sort is None:
-            taken = sorting.safe_sort(taken.values)
+            try:
+                taken = sorting.safe_sort(taken.values)
+            except sorting.SortError as e:
+                raise TypeError(e) from e
             if self.name != other.name:
                 name = None
             else:
