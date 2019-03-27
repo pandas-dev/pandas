@@ -10,8 +10,6 @@ Similar to its R counterpart, data.frame, except providing automatic data
 alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
-from __future__ import division
-
 import collections
 from collections import OrderedDict
 import functools

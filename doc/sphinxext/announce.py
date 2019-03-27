@@ -33,8 +33,6 @@ From the bash command line with $GITHUB token.
     $ ./scripts/announce.py $GITHUB v1.11.0..v1.11.1 > announce.rst
 
 """
-from __future__ import division, print_function
-
 import codecs
 import os
 import re

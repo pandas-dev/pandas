@@ -1,7 +1,5 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-from __future__ import division
-
 from distutils.version import LooseVersion
 import operator
 

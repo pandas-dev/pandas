@@ -4,8 +4,6 @@ Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
 
-from __future__ import division, print_function
-
 from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial

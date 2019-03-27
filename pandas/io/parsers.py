@@ -2,8 +2,6 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 
-from __future__ import print_function
-
 from collections import defaultdict
 import csv
 import datetime

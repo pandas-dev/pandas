@@ -4,8 +4,6 @@ Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
 
-from __future__ import print_function
-
 from functools import partial
 
 import numpy as np

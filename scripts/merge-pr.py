@@ -22,8 +22,6 @@
 #   usage: ./apache-pr-merge.py    (see config env vars below)
 #
 # Lightly modified from version of this script in incubator-parquet-format
-from __future__ import print_function
-
 from subprocess import check_output
 from requests.auth import HTTPBasicAuth
 import requests

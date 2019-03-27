@@ -3,9 +3,6 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
-# necessary to enforce truediv in Python 2.X
-from __future__ import division
-
 import datetime
 import operator
 import textwrap

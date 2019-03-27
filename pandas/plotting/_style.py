@@ -1,7 +1,5 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-from __future__ import division
-
 from contextlib import contextmanager
 import warnings
 

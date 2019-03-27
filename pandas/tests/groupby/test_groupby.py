@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-
 from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal

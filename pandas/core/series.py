@@ -1,8 +1,6 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
-from __future__ import division
-
 from collections import OrderedDict
 from textwrap import dedent
 import warnings
