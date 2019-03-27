@@ -2348,66 +2348,83 @@ cdef inline void put_object_as_unicode(list lst, Py_ssize_t idx,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+cdef void concat_date_cols_numpy(tuple date_cols, object[:] result_view,
+                                 Py_ssize_t min_size,
+                                 bint keep_trivial_numbers=False):
+    cdef:
+        Py_ssize_t i, j, sequence_size = len(date_cols)
+        list list_to_join
+        cnp.ndarray[object] iters
+        object[::1] iters_view
+        flatiter it
+
+    if sequence_size == 1:
+        array = date_cols[0]
+        it = <flatiter>PyArray_IterNew(array)
+        for i in range(min_size):
+            item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
+            convert_and_set_item(item, i, result_view, keep_trivial_numbers)
+            PyArray_ITER_NEXT(it)
+    else:
+        list_to_join = [None] * sequence_size
+        # setup iterators
+        iters = np.zeros(sequence_size, dtype=object)
+        iters_view = iters
+        for i, array in enumerate(date_cols):
+            iters_view[i] = PyArray_IterNew(array)
+        for i in range(min_size):
+            for j, array in enumerate(date_cols):
+                it = <flatiter>iters_view[j]
+                item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
+                put_object_as_unicode(list_to_join, j, item)
+                PyArray_ITER_NEXT(it)
+            result_view[i] = PyUnicode_Join(' ', list_to_join)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef void concat_date_cols_sequence(tuple date_cols, object[:] result_view,
+                                    Py_ssize_t min_size,
+                                    bint keep_trivial_numbers=False):
+    cdef:
+        Py_ssize_t i, j, sequence_size = len(date_cols)
+        list list_to_join
+
+    if sequence_size == 1:
+        for i, item in enumerate(date_cols[0]):
+            convert_and_set_item(item, i, result_view, keep_trivial_numbers)
+    else:
+        list_to_join = [None] * sequence_size
+        for i in range(min_size):
+            for j, array in enumerate(date_cols):
+                put_object_as_unicode(list_to_join, j, array[i])
+            result_view[i] = PyUnicode_Join(' ', list_to_join)
+
+
 cpdef object _concat_date_cols(tuple date_cols,
                                bint keep_trivial_numbers=False):
     cdef:
-        Py_ssize_t i, j, sequence_size = len(date_cols)
-        Py_ssize_t array_size, min_size = 0
-        object[:] result_view
-        flatiter it
+        Py_ssize_t min_size = 0, sequence_size = len(date_cols)
+        cnp.ndarray[object] result
         int all_numpy = 1
-        cnp.ndarray[object] iters
-        object[::1] iters_view
-        list list_to_join
 
     if sequence_size == 0:
-        result = np.zeros(0, dtype=object)
-    elif sequence_size == 1:
-        array = date_cols[0]
-        array_size = len(array)
-        result = np.zeros(array_size, dtype=object)
-        result_view = result
-        if util.is_array(array):
-            # for numpy array case use special api for performance
-            it = <flatiter>PyArray_IterNew(array)
-            for i in range(array_size):
-                item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-                convert_and_set_item(item, i, result_view, keep_trivial_numbers)
-                PyArray_ITER_NEXT(it)
-        else:
-            for i, item in enumerate(array):
-                convert_and_set_item(item, i, result_view, keep_trivial_numbers)
+        return np.zeros(0, dtype=object)
+
+    for i, array in enumerate(date_cols):
+        if not util.is_array(array):
+            all_numpy = 0
+        # find min length for arrays in date_cols
+        # imitation python zip behavior
+        if len(array) < min_size or min_size == 0:
+            min_size = len(array)
+
+    result = np.zeros(min_size, dtype=object)
+    if all_numpy:
+        # call special function to increase performance
+        concat_date_cols_numpy(date_cols, result, min_size,
+                               keep_trivial_numbers)
     else:
-        for i, array in enumerate(date_cols):
-            if not util.is_array(array):
-                all_numpy = 0
-            # find min length for arrays in date_cols
-            # imitation python zip behavior
-            if len(array) < min_size or min_size == 0:
-                min_size = len(array)
-
-        result = np.zeros(min_size, dtype=object)
-        result_view = result
-        list_to_join = [None] * sequence_size
-
-        if all_numpy:
-            # setup iterators
-            iters = np.zeros(sequence_size, dtype=object)
-            iters_view = iters
-            for i, array in enumerate(date_cols):
-                iters_view[i] = PyArray_IterNew(array)
-            # for numpy array case use special api for performance
-            for i in range(min_size):
-                for j, array in enumerate(date_cols):
-                    it = <flatiter>iters_view[j]
-                    item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-                    put_object_as_unicode(list_to_join, j, item)
-                    PyArray_ITER_NEXT(it)
-                result_view[i] = PyUnicode_Join(' ', list_to_join)
-        else:
-            for i in range(min_size):
-                for j, array in enumerate(date_cols):
-                    put_object_as_unicode(list_to_join, j, array[i])
-                result_view[i] = PyUnicode_Join(' ', list_to_join)
-
+        concat_date_cols_sequence(date_cols, result, min_size,
+                                  keep_trivial_numbers)
     return result
