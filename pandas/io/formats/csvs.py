@@ -3,8 +3,6 @@
 Module for formatting output data into CSV files.
 """
 
-from __future__ import print_function
-
 import csv as csvlib
 import os
 import warnings
