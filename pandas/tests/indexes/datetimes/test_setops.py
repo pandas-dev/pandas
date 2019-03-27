@@ -86,7 +86,11 @@ class TestDatetimeIndexSetOps(object):
         rng_b = date_range('1/1/2012', periods=4, freq='4H')
 
         result = rng_a.union(rng_b, sort=sort)
-        exp = DatetimeIndex(sorted(set(list(rng_a)) | set(list(rng_b))))
+        exp = list(rng_a) + list(rng_b[1:])
+        if sort is None:
+            exp = DatetimeIndex(sorted(exp))
+        else:
+            exp = DatetimeIndex(exp)
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize("sort", [None, False])
@@ -112,7 +116,11 @@ class TestDatetimeIndexSetOps(object):
         right = left + DateOffset(minutes=15)
 
         result = left.union(right, sort=sort)
-        exp = DatetimeIndex(sorted(set(list(left)) | set(list(right))))
+        exp = list(left) + list(right)
+        if sort is None:
+            exp = DatetimeIndex(sorted(exp))
+        else:
+            exp = DatetimeIndex(exp)
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize("sort", [None, False])

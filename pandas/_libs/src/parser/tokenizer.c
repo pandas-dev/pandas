@@ -45,7 +45,7 @@ void coliter_setup(coliter_t *self, parser_t *parser, int i, int start) {
     self->line_start = parser->line_start + start;
 }
 
-coliter_t *coliter_new(parser_t *self, int i) {
+coliter_t *coliter_new(register parser_t *self, int i) {
     // column i, starting at 0
     coliter_t *iter = (coliter_t *)malloc(sizeof(coliter_t));
 
@@ -97,7 +97,7 @@ static void *grow_buffer(void *buffer, int64_t length, int64_t *capacity,
     return newbuffer;
 }
 
-void parser_set_default_options(parser_t *self) {
+void parser_set_default_options(register parser_t *self) {
     self->decimal = '.';
     self->sci = 'E';
 
@@ -131,11 +131,11 @@ void parser_set_default_options(parser_t *self) {
     self->skip_footer = 0;
 }
 
-int get_parser_memory_footprint(parser_t *self) { return 0; }
+int get_parser_memory_footprint(register parser_t *self) { return 0; }
 
 parser_t *parser_new() { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
-int parser_clear_data_buffers(parser_t *self) {
+int parser_clear_data_buffers(register parser_t *self) {
     free_if_not_null((void *)&self->stream);
     free_if_not_null((void *)&self->words);
     free_if_not_null((void *)&self->word_starts);
@@ -144,7 +144,7 @@ int parser_clear_data_buffers(parser_t *self) {
     return 0;
 }
 
-int parser_cleanup(parser_t *self) {
+int parser_cleanup(register parser_t *self) {
     int status = 0;
 
     // XXX where to put this
@@ -170,7 +170,7 @@ int parser_cleanup(parser_t *self) {
     return status;
 }
 
-int parser_init(parser_t *self) {
+int parser_init(register parser_t *self) {
     int64_t sz;
 
     /*
@@ -240,16 +240,16 @@ int parser_init(parser_t *self) {
     return 0;
 }
 
-void parser_free(parser_t *self) {
+void parser_free(register parser_t *self) {
     // opposite of parser_init
     parser_cleanup(self);
 }
 
-void parser_del(parser_t *self) {
+void parser_del(register parser_t *self) {
     free(self);
 }
 
-static int make_stream_space(parser_t *self, size_t nbytes) {
+static int make_stream_space(register parser_t *self, size_t nbytes) {
     int64_t i, cap, length;
     int status;
     void *orig_ptr, *newptr;
@@ -363,7 +363,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     return 0;
 }
 
-static int push_char(parser_t *self, char c) {
+static int push_char(register parser_t *self, char c) {
     TRACE(("push_char: self->stream[%zu] = %x, stream_cap=%zu\n",
            self->stream_len + 1, c, self->stream_cap))
     if (self->stream_len >= self->stream_cap) {
@@ -381,7 +381,7 @@ static int push_char(parser_t *self, char c) {
     return 0;
 }
 
-int PANDAS_INLINE end_field(parser_t *self) {
+int PANDAS_INLINE end_field(register parser_t *self) {
     // XXX cruft
     if (self->words_len >= self->words_cap) {
         TRACE(
@@ -419,7 +419,7 @@ int PANDAS_INLINE end_field(parser_t *self) {
     return 0;
 }
 
-static void append_warning(parser_t *self, const char *msg) {
+static void append_warning(register parser_t *self, const char *msg) {
     int64_t ex_length;
     int64_t length = strlen(msg);
     void *newptr;
@@ -437,7 +437,7 @@ static void append_warning(parser_t *self, const char *msg) {
     }
 }
 
-static int end_line(parser_t *self) {
+static int end_line(register parser_t *self) {
     char *msg;
     int64_t fields;
     int ex_fields = self->expected_fields;
@@ -556,7 +556,7 @@ static int end_line(parser_t *self) {
     return 0;
 }
 
-int parser_add_skiprow(parser_t *self, int64_t row) {
+int parser_add_skiprow(register parser_t *self, int64_t row) {
     khiter_t k;
     kh_int64_t *set;
     int ret = 0;
@@ -573,7 +573,7 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
     return 0;
 }
 
-int parser_set_skipfirstnrows(parser_t *self, int64_t nrows) {
+int parser_set_skipfirstnrows(register parser_t *self, int64_t nrows) {
     // self->file_lines is zero based so subtract 1 from nrows
     if (nrows > 0) {
         self->skip_first_N_rows = nrows - 1;
@@ -582,7 +582,7 @@ int parser_set_skipfirstnrows(parser_t *self, int64_t nrows) {
     return 0;
 }
 
-static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
+static int parser_buffer_bytes(register parser_t *self, size_t nbytes) {
     int status;
     size_t bytes_read;
 
@@ -677,18 +677,16 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 #define IS_WHITESPACE(c) ((c == ' ' || c == '\t'))
 
 #define IS_TERMINATOR(c)                            \
-    ((self->lineterminator == '\0' && c == '\n') || \
-     (self->lineterminator != '\0' && c == self->lineterminator))
+    (c == line_terminator)
 
 #define IS_QUOTE(c) ((c == self->quotechar && self->quoting != QUOTE_NONE))
 
 // don't parse '\r' with a custom line terminator
-#define IS_CARRIAGE(c) ((self->lineterminator == '\0' && c == '\r'))
+#define IS_CARRIAGE(c) (c == carriage_symbol)
 
-#define IS_COMMENT_CHAR(c) \
-    ((self->commentchar != '\0' && c == self->commentchar))
+#define IS_COMMENT_CHAR(c) (c == comment_symbol)
 
-#define IS_ESCAPE_CHAR(c) ((self->escapechar != '\0' && c == self->escapechar))
+#define IS_ESCAPE_CHAR(c) (c == escape_symbol)
 
 #define IS_SKIPPABLE_SPACE(c) \
     ((!self->delim_whitespace && c == ' ' && self->skipinitialspace))
@@ -710,7 +708,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
         self->datapos += 3;                                               \
     }
 
-int skip_this_line(parser_t *self, int64_t rownum) {
+int skip_this_line(register parser_t *self, int64_t rownum) {
     int should_skip;
     PyObject *result;
     PyGILState_STATE state;
@@ -739,12 +737,24 @@ int skip_this_line(parser_t *self, int64_t rownum) {
     }
 }
 
-int tokenize_bytes(parser_t *self, size_t line_limit, int64_t start_lines) {
+int tokenize_bytes(register parser_t *self,
+                   size_t line_limit, int64_t start_lines) {
     int64_t i, slen;
     int should_skip;
     char c;
     char *stream;
     char *buf = self->data + self->datapos;
+
+    const char line_terminator = (self->lineterminator == '\0') ?
+            '\n' : self->lineterminator;
+
+    // 1000 is something that couldn't fit in "char"
+    // thus comparing a char to it would always be "false"
+    const int carriage_symbol = (self->lineterminator == '\0') ? '\r' : 1000;
+    const int comment_symbol = (self->commentchar != '\0') ?
+            self->commentchar : 1000;
+    const int escape_symbol = (self->escapechar != '\0') ?
+            self->escapechar : 1000;
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
         int64_t bufsize = 100;
@@ -1149,7 +1159,7 @@ linelimit:
     return 0;
 }
 
-static int parser_handle_eof(parser_t *self) {
+static int parser_handle_eof(register parser_t *self) {
     int64_t bufsize = 100;
 
     TRACE(
@@ -1194,7 +1204,7 @@ static int parser_handle_eof(parser_t *self) {
         return 0;
 }
 
-int parser_consume_rows(parser_t *self, size_t nrows) {
+int parser_consume_rows(register parser_t *self, size_t nrows) {
     int64_t i, offset, word_deletions, char_count;
 
     if (nrows > self->lines) {
@@ -1250,7 +1260,7 @@ static size_t _next_pow2(size_t sz) {
     return result;
 }
 
-int parser_trim_buffers(parser_t *self) {
+int parser_trim_buffers(register parser_t *self) {
     /*
       Free memory
      */
@@ -1353,7 +1363,7 @@ int parser_trim_buffers(parser_t *self) {
   all : tokenize all the data vs. certain number of rows
  */
 
-int _tokenize_helper(parser_t *self, size_t nrows, int all) {
+int _tokenize_helper(register parser_t *self, size_t nrows, int all) {
     int status = 0;
     int64_t start_lines = self->lines;
 
@@ -1402,12 +1412,12 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
     return status;
 }
 
-int tokenize_nrows(parser_t *self, size_t nrows) {
+int tokenize_nrows(register parser_t *self, size_t nrows) {
     int status = _tokenize_helper(self, nrows, 0);
     return status;
 }
 
-int tokenize_all_rows(parser_t *self) {
+int tokenize_all_rows(register parser_t *self) {
     int status = _tokenize_helper(self, -1, 1);
     return status;
 }
@@ -1529,9 +1539,14 @@ int main(int argc, char *argv[]) {
 // * Add tsep argument for thousands separator
 //
 
+// pessimistic but quick assessment,
+// assuming that each decimal digit requires 4 bits to store
+const int max_int_decimal_digits = (sizeof(unsigned int) * 8) / 4;
+
 double xstrtod(const char *str, char **endptr, char decimal, char sci,
-               char tsep, int skip_trailing) {
+               char tsep, int skip_trailing, int *error) {
     double number;
+    unsigned int i_number = 0;
     int exponent;
     int negative;
     char *p = (char *)str;
@@ -1540,7 +1555,6 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     int num_digits;
     int num_decimals;
 
-    errno = 0;
 
     // Skip leading whitespace.
     while (isspace_ascii(*p)) p++;
@@ -1554,18 +1568,29 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
             p++;
     }
 
-    number = 0.;
     exponent = 0;
     num_digits = 0;
     num_decimals = 0;
 
     // Process string of digits.
-    while (isdigit_ascii(*p)) {
-        number = number * 10. + (*p - '0');
+    while (isdigit_ascii(*p) && num_digits <= max_int_decimal_digits) {
+        i_number = i_number * 10 + (*p - '0');
         p++;
         num_digits++;
 
         p += (tsep != '\0' && *p == tsep);
+    }
+    number = i_number;
+
+    if (num_digits > max_int_decimal_digits) {
+        // process what's left as double
+        while (isdigit_ascii(*p)) {
+            number = number * 10. + (*p - '0');
+            p++;
+            num_digits++;
+
+            p += (tsep != '\0' && *p == tsep);
+        }
     }
 
     // Process decimal part.
@@ -1583,7 +1608,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (num_digits == 0) {
-        errno = ERANGE;
+        *error = ERANGE;
         return 0.0;
     }
 
@@ -1620,7 +1645,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (exponent < DBL_MIN_EXP || exponent > DBL_MAX_EXP) {
-        errno = ERANGE;
+        *error = ERANGE;
         return HUGE_VAL;
     }
 
@@ -1640,7 +1665,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (number == HUGE_VAL) {
-        errno = ERANGE;
+        *error = ERANGE;
     }
 
     if (skip_trailing) {
@@ -1654,7 +1679,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
 }
 
 double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
-                       char tsep, int skip_trailing) {
+                       char tsep, int skip_trailing, int *error) {
     double number;
     int exponent;
     int negative;
@@ -1696,7 +1721,6 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
         1e280, 1e281, 1e282, 1e283, 1e284, 1e285, 1e286, 1e287, 1e288, 1e289,
         1e290, 1e291, 1e292, 1e293, 1e294, 1e295, 1e296, 1e297, 1e298, 1e299,
         1e300, 1e301, 1e302, 1e303, 1e304, 1e305, 1e306, 1e307, 1e308};
-    errno = 0;
 
     // Skip leading whitespace.
     while (isspace_ascii(*p)) p++;
@@ -1746,7 +1770,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (num_digits == 0) {
-        errno = ERANGE;
+        *error = ERANGE;
         return 0.0;
     }
 
@@ -1783,7 +1807,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (exponent > 308) {
-        errno = ERANGE;
+        *error = ERANGE;
         return HUGE_VAL;
     } else if (exponent > 0) {
         number *= e[exponent];
@@ -1796,7 +1820,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
         number /= e[-exponent];
     }
 
-    if (number == HUGE_VAL || number == -HUGE_VAL) errno = ERANGE;
+    if (number == HUGE_VAL || number == -HUGE_VAL) *error = ERANGE;
 
     if (skip_trailing) {
         // Skip trailing whitespace.

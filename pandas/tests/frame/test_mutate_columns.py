@@ -5,17 +5,16 @@ from __future__ import print_function
 import numpy as np
 import pytest
 
-from pandas.compat import PY36, lrange, range
+from pandas.compat import PY36, lrange
 
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 # Column add, remove, delete.
 
 
-class TestDataFrameMutateColumns(TestData):
+class TestDataFrameMutateColumns():
 
     def test_assign(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
@@ -193,9 +192,9 @@ class TestDataFrameMutateColumns(TestData):
         exp = DataFrame(data={'X': ['x', 'y', 'z']}, index=['A', 'B', 'C'])
         assert_frame_equal(df, exp)
 
-    def test_delitem(self):
-        del self.frame['A']
-        assert 'A' not in self.frame
+    def test_delitem(self, float_frame):
+        del float_frame['A']
+        assert 'A' not in float_frame
 
     def test_delitem_multiindex(self):
         midx = MultiIndex.from_product([['A', 'B'], [1, 2]])
@@ -223,16 +222,16 @@ class TestDataFrameMutateColumns(TestData):
         with pytest.raises(KeyError):
             del df['A']
 
-    def test_pop(self):
-        self.frame.columns.name = 'baz'
+    def test_pop(self, float_frame):
+        float_frame.columns.name = 'baz'
 
-        self.frame.pop('A')
-        assert 'A' not in self.frame
+        float_frame.pop('A')
+        assert 'A' not in float_frame
 
-        self.frame['foo'] = 'bar'
-        self.frame.pop('foo')
-        assert 'foo' not in self.frame
-        assert self.frame.columns.name == 'baz'
+        float_frame['foo'] = 'bar'
+        float_frame.pop('foo')
+        assert 'foo' not in float_frame
+        assert float_frame.columns.name == 'baz'
 
         # gh-10912: inplace ops cause caching issue
         a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[

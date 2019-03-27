@@ -11,11 +11,13 @@ import weakref
 
 import numpy as np
 
+from pandas._config import config
+
 from pandas._libs import Timestamp, iNaT, properties
 import pandas.compat as compat
 from pandas.compat import (
-    cPickle as pkl, isidentifier, lrange, lzip, map, set_function_name,
-    string_types, to_str, zip)
+    cPickle as pkl, isidentifier, lrange, lzip, set_function_name,
+    string_types, to_str)
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -25,16 +27,16 @@ from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_object, is_bool, is_bool_dtype,
-    is_datetime64_any_dtype, is_datetime64tz_dtype, is_dict_like,
-    is_extension_array_dtype, is_integer, is_list_like, is_number,
-    is_numeric_dtype, is_object_dtype, is_period_arraylike, is_re_compilable,
-    is_scalar, is_timedelta64_dtype, pandas_dtype)
+    is_datetime64_any_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_dict_like, is_extension_array_dtype, is_integer, is_list_like,
+    is_number, is_numeric_dtype, is_object_dtype, is_period_arraylike,
+    is_re_compilable, is_scalar, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas.core import config, missing, nanops
+from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -422,6 +424,18 @@ class NDFrame(PandasObject, SelectionMixin):
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
         return d
+
+    def _get_space_character_free_column_resolvers(self):
+        """Return the space character free column resolvers of a dataframe.
+
+        Column names with spaces are 'cleaned up' so that they can be referred
+        to by backtick quoting.
+        Used in :meth:`DataFrame.eval`.
+        """
+        from pandas.core.computation.common import _remove_spaces_column_name
+
+        return {_remove_spaces_column_name(k): v for k, v
+                in self.iteritems()}
 
     @property
     def _info_axis(self):
@@ -948,7 +962,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
            The indexes ``i`` and ``j`` are now optional, and default to
            the two innermost levels of the index.
-
         """
         axis = self._get_axis_number(axis)
         result = self.copy()
@@ -2920,7 +2933,8 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         path_or_buf : str or file handle, default None
             File path or object, if None is provided the result is returned as
-            a string.
+            a string.  If a file object is passed it should be opened with
+            `newline=''`, disabling universal newlines.
 
             .. versionchanged:: 0.24.0
 
@@ -3008,7 +3022,7 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         read_csv : Load a CSV file into a DataFrame.
-        to_excel : Load an Excel file into a DataFrame.
+        to_excel : Write DataFrame to an Excel file.
 
         Examples
         --------
@@ -4534,11 +4548,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         items : list-like
-            List of axis to restrict to (must not all be present).
+            Keep labels from axis which are in items.
         like : string
-            Keep axis where "arg in col == True".
+            Keep labels from axis for which "like in label == True".
         regex : string (regular expression)
-            Keep axis with re.search(regex, col) == True.
+            Keep labels from axis for which re.search(regex, label) == True.
         axis : int or string axis name
             The axis to filter on.  By default this is the info axis,
             'index' for Series, 'columns' for DataFrame.
@@ -4561,7 +4575,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.array(([1,2,3], [4,5,6])),
+        >>> df = pd.DataFrame(np.array(([1, 2, 3], [4, 5, 6])),
         ...                   index=['mouse', 'rabbit'],
         ...                   columns=['one', 'two', 'three'])
 
@@ -4951,9 +4965,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['aggregate'] = dedent("""
     Aggregate using one or more operations over the specified axis.
-
     %(versionadded)s
-
     Parameters
     ----------
     func : function, str, list or dict
@@ -4983,17 +4995,13 @@ class NDFrame(PandasObject, SelectionMixin):
         * DataFrame : when DataFrame.agg is called with several functions
 
         Return scalar, Series or DataFrame.
-
     %(see_also)s
-
     Notes
     -----
     `agg` is an alias for `aggregate`. Use the alias.
 
     A passed user-defined-function will be passed a Series for evaluation.
-
-    %(examples)s
-    """)
+    %(examples)s""")
 
     _shared_docs['transform'] = ("""
     Call ``func`` on self producing a %(klass)s with transformed values
@@ -6857,6 +6865,18 @@ class NDFrame(PandasObject, SelectionMixin):
             index = np.arange(len(_maybe_transposed_self._get_axis(alt_ax)))
         else:
             index = _maybe_transposed_self._get_axis(alt_ax)
+            methods = {"index", "values", "nearest", "time"}
+            is_numeric_or_datetime = (
+                is_numeric_dtype(index) or
+                is_datetime64_dtype(index) or
+                is_timedelta64_dtype(index)
+            )
+            if method not in methods and not is_numeric_or_datetime:
+                raise ValueError(
+                    "Index column must be numeric or datetime type when "
+                    "using {method} method other than linear. "
+                    "Try setting a numeric or datetime index column before "
+                    "interpolating.".format(method=method))
 
         if isna(index).any():
             raise NotImplementedError("Interpolation with NaNs in the index "
@@ -10307,7 +10327,7 @@ numeric_only : bool, default None
 
 Returns
 -------
-%(name1)s or %(name2)s (if level specified)
+%(name1)s or %(name2)s (if level specified)\
 %(see_also)s
 %(examples)s\
 """
@@ -10464,8 +10484,7 @@ core.window.Expanding.%(accum_func_name)s : Similar functionality
 %(name2)s.cumsum : Return cumulative sum over %(name2)s axis.
 %(name2)s.cumprod : Return cumulative product over %(name2)s axis.
 
-%(examples)s
-"""
+%(examples)s"""
 
 _cummin_examples = """\
 Examples

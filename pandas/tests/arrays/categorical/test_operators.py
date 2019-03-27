@@ -4,8 +4,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import PY2
-
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, date_range
 from pandas.tests.arrays.categorical.common import TestCategorical
@@ -19,7 +17,6 @@ class TestCategoricalOpsWithFactor(TestCategorical):
                               'a', 'c', 'c', 'c'], ordered=True)
         tm.assert_categorical_equal(factor, self.factor)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_comparisons(self):
 
         result = self.factor[self.factor == 'a']
@@ -190,7 +187,6 @@ class TestCategoricalOps(object):
         tm.assert_numpy_array_equal(cat != 4,
                                     np.array([True, True, True]))
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     @pytest.mark.parametrize('data,reverse,base', [
         (list("abc"), list("cba"), list("bbb")),
         ([1, 2, 3], [3, 2, 1], [2, 2, 2])]

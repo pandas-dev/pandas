@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import codecs
+from functools import wraps
 import re
 import textwrap
 import warnings
@@ -9,7 +10,6 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas.compat as compat
-from pandas.compat import wraps, zip
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -2929,7 +2929,7 @@ class StringMethods(NoNewAttributesMixin):
         normalized : Series/Index of objects
         """
         import unicodedata
-        f = lambda x: unicodedata.normalize(form, compat.u_safe(x))
+        f = lambda x: unicodedata.normalize(form, x)
         result = _na_map(f, self._parent)
         return self._wrap_result(result)
 
@@ -3299,11 +3299,11 @@ class StringMethods(NoNewAttributesMixin):
                              name='istitle',
                              docstring=_shared_docs['ismethods'] %
                              _shared_docs['istitle'])
-    isnumeric = _noarg_wrapper(lambda x: compat.u_safe(x).isnumeric(),
+    isnumeric = _noarg_wrapper(lambda x: x.isnumeric(),
                                name='isnumeric',
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isnumeric'])
-    isdecimal = _noarg_wrapper(lambda x: compat.u_safe(x).isdecimal(),
+    isdecimal = _noarg_wrapper(lambda x: x.isdecimal(),
                                name='isdecimal',
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])

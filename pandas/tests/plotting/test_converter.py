@@ -5,11 +5,11 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import u
+import pandas._config.config as cf
+
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas import Index, Period, Series, Timestamp, date_range
-import pandas.core.config as cf
 import pandas.util.testing as tm
 
 from pandas.tseries.offsets import Day, Micro, Milli, Second
@@ -20,7 +20,7 @@ from pandas.plotting import (deregister_matplotlib_converters,  # isort:skip
 
 
 def test_timtetonum_accepts_unicode():
-    assert (converter.time2num("00:01") == converter.time2num(u("00:01")))
+    assert (converter.time2num("00:01") == converter.time2num("00:01"))
 
 
 class TestRegistration(object):
@@ -151,7 +151,7 @@ class TestDateTimeConverter(object):
 
     def test_convert_accepts_unicode(self):
         r1 = self.dtc.convert("12:22", None, None)
-        r2 = self.dtc.convert(u("12:22"), None, None)
+        r2 = self.dtc.convert("12:22", None, None)
         assert (r1 == r2), "DatetimeConverter.convert should accept unicode"
 
     def test_conversion(self):
@@ -296,7 +296,7 @@ class TestPeriodConverter(object):
 
     def test_convert_accepts_unicode(self):
         r1 = self.pc.convert("2012-1-1", None, self.axis)
-        r2 = self.pc.convert(u("2012-1-1"), None, self.axis)
+        r2 = self.pc.convert("2012-1-1", None, self.axis)
         assert r1 == r2
 
     def test_conversion(self):
