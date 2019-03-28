@@ -18,6 +18,7 @@ import pytz
 from pandas._libs.util cimport (
     is_integer_object, is_float_object, is_string_object, is_datetime64_object)
 
+from pandas._libs.tslibs._timestamp cimport _Timestamp
 
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, _string_to_dts, dt64_to_dtstruct,
@@ -40,8 +41,7 @@ from pandas._libs.tslibs.nattype cimport (
 
 from pandas._libs.tslibs.offsets cimport to_offset
 
-from pandas._libs.tslibs.timestamps cimport (
-    create_timestamp_from_ts, _Timestamp)
+from pandas._libs.tslibs.timestamps cimport create_timestamp_from_ts
 from pandas._libs.tslibs.timestamps import Timestamp
 
 

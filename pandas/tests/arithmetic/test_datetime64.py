@@ -2355,6 +2355,8 @@ def test_shift_months(years, months):
 
 def test_dt_subclass_add_timedelta():
     # GH 25851
+    # ensure that subclassed datetime works for
+    # Timedelta operations
     class SubDatetime(datetime):
         pass
     dt = SubDatetime(2000, 1, 1)

@@ -171,6 +171,8 @@ class SubDatetime(datetime):
 ])
 def test_datetime_subclass(data, expected):
     # GH 25851
+    # ensure that subclassed datetime works with
+    # array_to_datetime
 
     arr = np.array(data, dtype=object)
     result, _ = tslib.array_to_datetime(arr)

@@ -16,6 +16,8 @@ from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_IMPORT, PyDelta_Check)
 PyDateTime_IMPORT
 
+from pandas._libs.tslibs._timestamp cimport _Timestamp
+
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
 
 from pandas._libs.tslibs.np_datetime cimport (
@@ -30,7 +32,6 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.timedeltas cimport (cast_from_unit,
                                              delta_to_nanoseconds)
-from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
     get_timezone, maybe_get_tz, tz_compare)

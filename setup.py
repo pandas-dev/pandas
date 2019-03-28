@@ -312,6 +312,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/ops.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/_timestamp.pyx',
                  'pandas/_libs/tslibs/ccalendar.pyx',
                  'pandas/_libs/tslibs/period.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
@@ -587,6 +588,11 @@ ext_data = {
         'depends': _pxi_dep['sparse']},
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
+        'include': ts_include,
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
+    '_libs.tslibs._timestamp': {
+        'pyxfile': '_libs/tslibs/_timestamp',
         'include': ts_include,
         'depends': tseries_depends,
         'sources': np_datetime_sources},

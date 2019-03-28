@@ -33,5 +33,7 @@ class SubDatetime(datetime):
                  SubDatetime(2000, 1, 1, 0))])
 def test_normalize_date_sub_types(dt, expected):
     # GH 25851
+    # ensure that subclassed datetime works with
+    # normalize_date
     result = tslibs.normalize_date(dt)
     assert result == expected

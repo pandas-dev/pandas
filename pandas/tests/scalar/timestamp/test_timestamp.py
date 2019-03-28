@@ -606,6 +606,8 @@ class TestTimestampConstructors(object):
 
     def test_constructor_subclassed_datetime(self):
         # GH 25851
+        # ensure that subclassed datetime works for
+        # Timestamp creation
         class SubDatetime(datetime):
             pass
         data = SubDatetime(2000, 1, 1)
