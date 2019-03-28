@@ -373,7 +373,7 @@ class SparseDtype(ExtensionDtype):
 _sparray_doc_kwargs = dict(klass='SparseArray')
 
 
-def _get_fill(arr: 'SparseArray') -> np.ndarray:
+def _get_fill(arr: ABCSparseArray) -> np.ndarray:
     """
     Create a 0-dim ndarray containing the fill value
 
@@ -680,7 +680,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             sparse_array: np.ndarray,
             sparse_index: SparseIndex,
             dtype: SparseDtype
-    ) -> 'SparseArray':
+    ) -> ABCSparseArray:
         new = cls([])
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array

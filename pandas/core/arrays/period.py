@@ -544,7 +544,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             self,
             other: Union[ExtensionArray, np.ndarray, ABCIndexClass],
             op: Callable[[Any], Any]
-    ) -> 'PeriodArray':
+    ) -> ABCPeriodArray:
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other

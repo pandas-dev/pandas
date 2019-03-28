@@ -479,7 +479,7 @@ class ExtensionArray(object):
             self,
             periods: int = 1,
             fill_value: object = None,
-    ) -> 'ExtensionArray':
+    ) -> ABCExtensionArray:
         """
         Shift values by desired number.
 
@@ -621,7 +621,7 @@ class ExtensionArray(object):
     def factorize(
             self,
             na_sentinel: int = -1,
-    ) -> Tuple[np.ndarray, 'ExtensionArray']:
+    ) -> Tuple[np.ndarray, ABCExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
@@ -728,7 +728,7 @@ class ExtensionArray(object):
             indices: Sequence[int],
             allow_fill: bool = False,
             fill_value: Any = None
-    ) -> 'ExtensionArray':
+    ) -> ABCExtensionArray:
         """
         Take elements from an array.
 
@@ -817,7 +817,7 @@ class ExtensionArray(object):
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self, deep: bool = False) -> 'ExtensionArray':
+    def copy(self, deep: bool = False) -> ABCExtensionArray:
         """
         Return a copy of the array.
 
@@ -901,8 +901,8 @@ class ExtensionArray(object):
     @classmethod
     def _concat_same_type(
             cls,
-            to_concat: Sequence['ExtensionArray']
-    ) -> 'ExtensionArray':
+            to_concat: Sequence[ABCExtensionArray]
+    ) -> ABCExtensionArray:
         """
         Concatenate multiple array
 
