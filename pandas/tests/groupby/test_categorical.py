@@ -453,6 +453,28 @@ def test_dataframe_categorical_with_nan(observed):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("ordered",  [True, False])
+@pytest.mark.parametrize("observed", [True, False])
+@pytest.mark.parametrize("sort",     [True, False])
+def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
+    # GH 25871: Fix groupby sorting on ordered Categoricals 
+    # Build a dataframe with a Categorical having one unobserved category ('AWOL'), and a Series with identical values
+    cat = pd.Categorical(['d', 'a', 'b', 'a', 'd', 'b'], categories=['a', 'b', 'AWOL', 'd'], ordered=ordered)
+    val = pd.Series     (['d', 'a', 'b', 'a', 'd', 'b'])
+    df  = pd.DataFrame({'cat': cat, 'val': val})
+
+    # aggregate on the Categorical
+    result = df.groupby('cat', observed=observed, sort=sort)['val'].agg('first')
+    
+    # If ordering is correct, we expect index labels equal to aggregation results,
+    # except for 'observed=False', when index contains 'AWOL' and aggregation None
+    label = pd.Series(result.index.array, dtype='object')
+    aggr  = pd.Series(result.array)
+    if not observed:
+        aggr[aggr.isna()] = 'AWOL'
+    tm.assert_equal(label, aggr)    
+
+    
 def test_datetime():
     # GH9049: ensure backward compatibility
     levels = pd.date_range('2014-01-01', periods=4)
