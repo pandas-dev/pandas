@@ -19,12 +19,8 @@ from pandas.io.parsers import read_csv
 
 
 @pytest.mark.network
-@pytest.mark.parametrize(
-    "compress_type, extension", [
-        ('gzip', '.gz'), ('bz2', '.bz2'), ('zip', '.zip'),
-        pytest.param('xz', '.xz', marks=td.skip_if_no_lzma)
-    ]
-)
+@pytest.mark.parametrize("compress_type, extension", [
+    ('gzip', '.gz'), ('bz2', '.bz2'), ('zip', '.zip'), ('xz', '.xz')])
 @pytest.mark.parametrize('mode', ['explicit', 'infer'])
 @pytest.mark.parametrize('engine', ['python', 'c'])
 def test_compressed_urls(salaries_table, compress_type, extension, mode,

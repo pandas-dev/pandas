@@ -1,9 +1,13 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
+import bz2
+import gzip
+import lzma
 import os
 import sys
 import time
 import warnings
+import zipfile
 
 from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
 from errno import ENOENT
@@ -624,16 +628,13 @@ cdef class TextReader:
 
         if self.compression:
             if self.compression == 'gzip':
-                import gzip
                 if isinstance(source, basestring):
                     source = gzip.GzipFile(source, 'rb')
                 else:
                     source = gzip.GzipFile(fileobj=source)
             elif self.compression == 'bz2':
-                import bz2
                 source = bz2.BZ2File(source, 'rb')
             elif self.compression == 'zip':
-                import zipfile
                 zip_file = zipfile.ZipFile(source)
                 zip_names = zip_file.namelist()
 
@@ -648,8 +649,6 @@ cdef class TextReader:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
-                lzma = compat.import_lzma()
-
                 if isinstance(source, basestring):
                     source = lzma.LZMAFile(source, 'rb')
                 else:

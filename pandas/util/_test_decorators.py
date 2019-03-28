@@ -27,8 +27,7 @@ import locale
 
 import pytest
 
-from pandas.compat import (
-    PY3, import_lzma, is_platform_32bit, is_platform_windows)
+from pandas.compat import PY3, is_platform_32bit, is_platform_windows
 from pandas.compat.numpy import _np_version_under1p15
 
 from pandas.core.computation.expressions import (
@@ -98,13 +97,6 @@ def _skip_if_no_scipy():
                 safe_import('scipy.signal'))
 
 
-def _skip_if_no_lzma():
-    try:
-        import_lzma()
-    except ImportError:
-        return True
-
-
 def skip_if_no(package, min_version=None):
     """
     Generic function to help skip test functions when required packages are not
@@ -161,8 +153,6 @@ skip_if_not_us_locale = pytest.mark.skipif(_skip_if_not_us_locale(),
                                                lang=locale.getlocale()[0]))
 skip_if_no_scipy = pytest.mark.skipif(_skip_if_no_scipy(),
                                       reason="Missing SciPy requirement")
-skip_if_no_lzma = pytest.mark.skipif(_skip_if_no_lzma(),
-                                     reason="need backports.lzma to run")
 skip_if_no_ne = pytest.mark.skipif(not _USE_NUMEXPR,
                                    reason="numexpr enabled->{enabled}, "
                                    "installed->{installed}".format(
