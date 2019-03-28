@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - c3i_test
 dependencies:
-  - python=3.7
+  - python=3.7.*
   - botocore>=1.11
   - cython>=0.28.2
   - numpy

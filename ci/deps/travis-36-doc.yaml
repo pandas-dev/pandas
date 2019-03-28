@@ -29,7 +29,7 @@ dependencies:
   - pytables
   - python-dateutil
   - python-snappy
-  - python=3.6*
+  - python=3.6.*
   - pytz
   - scipy
   - seaborn

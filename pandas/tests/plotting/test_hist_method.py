@@ -12,7 +12,6 @@ from pandas import DataFrame, Series
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 import pandas.util.testing as tm
 
-from pandas.plotting._compat import _mpl_ge_2_2_0
 from pandas.plotting._core import grouped_hist
 
 
@@ -193,12 +192,8 @@ class TestDataFramePlots(TestPlotBase):
                                 ylabelsize=yf, yrot=yrot)
 
         tm.close()
-        # make sure kwargs to hist are handled
-        if _mpl_ge_2_2_0():
-            kwargs = {"density": True}
-        else:
-            kwargs = {"normed": True}
-        ax = ser.hist(cumulative=True, bins=4, **kwargs)
+
+        ax = ser.hist(cumulative=True, bins=4, density=True)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
@@ -248,12 +243,11 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     # GH 9351
     def test_tight_layout(self):
-        if self.mpl_ge_2_0_1:
-            df = DataFrame(randn(100, 3))
-            _check_plot_works(df.hist)
-            self.plt.tight_layout()
+        df = DataFrame(randn(100, 3))
+        _check_plot_works(df.hist)
+        self.plt.tight_layout()
 
-            tm.close()
+        tm.close()
 
 
 @td.skip_if_no_mpl
@@ -285,14 +279,9 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         xf, yf = 20, 18
         xrot, yrot = 30, 40
 
-        if _mpl_ge_2_2_0():
-            kwargs = {"density": True}
-        else:
-            kwargs = {"normed": True}
-
         axes = grouped_hist(df.A, by=df.C, cumulative=True,
                             bins=4, xlabelsize=xf, xrot=xrot,
-                            ylabelsize=yf, yrot=yrot, **kwargs)
+                            ylabelsize=yf, yrot=yrot, density=True)
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]

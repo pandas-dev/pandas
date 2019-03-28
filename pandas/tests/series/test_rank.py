@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from distutils.version import LooseVersion
 from itertools import chain
 
 import numpy as np
@@ -321,7 +320,6 @@ class TestSeriesRank(TestData):
     def test_rank_methods_series(self):
         pytest.importorskip('scipy.stats.special')
         rankdata = pytest.importorskip('scipy.stats.rankdata')
-        import scipy
 
         xs = np.random.randn(9)
         xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates
@@ -335,10 +333,7 @@ class TestSeriesRank(TestData):
             for m in ['average', 'min', 'max', 'first', 'dense']:
                 result = ts.rank(method=m)
                 sprank = rankdata(vals, m if m != 'first' else 'ordinal')
-                expected = Series(sprank, index=index)
-
-                if LooseVersion(scipy.__version__) >= LooseVersion('0.17.0'):
-                    expected = expected.astype('float64')
+                expected = Series(sprank, index=index).astype('float64')
                 tm.assert_series_equal(result, expected)
 
     def test_rank_dense_method(self):

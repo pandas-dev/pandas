@@ -10,14 +10,14 @@ dependencies:
   - ipython
   - jinja2
   - lxml
-  - matplotlib
+  - matplotlib=3.0.*
   - nomkl
   - numexpr
-  - numpy
+  - numpy=1.15.*
   - openpyxl
   - pytables
   - python-dateutil
-  - python=3.6*
+  - python=3.6.*
   - pytz
   - s3fs
   - scipy

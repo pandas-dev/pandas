@@ -963,8 +963,7 @@ class TestNumericArithmeticUnsorted(object):
         self.check_binop(ops, scalars, idxs)
 
     def test_binops_pow(self):
-        # later versions of numpy don't allow powers of negative integers
-        # so test separately
+        # numpy does not allow powers of negative integers so test separately
         # https://github.com/numpy/numpy/pull/8127
         ops = [pow]
         scalars = [1, 2]
