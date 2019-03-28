@@ -13,7 +13,7 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
 
     Parameters
     ----------
-    filepath_or_buffer : string or file-like object
+    filepath_or_buffer : str, path object, URL or file-like object
         Path to the SAS file.
     format : string {'xport', 'sas7bdat'} or None
         If None, file format is inferred from file extension. If 'xport' or
