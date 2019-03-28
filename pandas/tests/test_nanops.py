@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import division, print_function
-
 from functools import partial
 import warnings
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY2
 from pandas.compat.numpy import _np_version_under1p13
 import pandas.util._test_decorators as td
 
@@ -729,7 +726,6 @@ class TestEnsureNumeric(object):
         # Test complex
         assert nanops._ensure_numeric(1 + 2j) == 1 + 2j
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_ndarray(self):
         # Test numeric ndarray
         values = np.array([1, 2, 3])

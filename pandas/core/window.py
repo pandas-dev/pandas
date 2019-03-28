@@ -2,8 +2,6 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
-from __future__ import division
-
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent

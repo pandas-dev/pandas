@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import index as libindex, lib
 import pandas.compat as compat
-from pandas.compat import get_range_parameters, lrange, range
+from pandas.compat import lrange
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -132,7 +132,7 @@ class RangeIndex(Int64Index):
                 '{0}(...) must be called with object coercible to a '
                 'range, {1} was passed'.format(cls.__name__, repr(data)))
 
-        start, stop, step = get_range_parameters(data)
+        start, stop, step = data.start, data.stop, data.step
         return RangeIndex(start, stop, step, dtype=dtype, name=name, **kwargs)
 
     @classmethod
@@ -466,8 +466,7 @@ class RangeIndex(Int64Index):
     def _union(self, other, sort):
         if not len(other) or self.equals(other) or not len(self):
             return super(RangeIndex, self)._union(other, sort=sort)
-
-        if isinstance(other, RangeIndex):
+        if isinstance(other, RangeIndex) and sort is None:
             start_s, step_s = self._start, self._step
             end_s = self._start + self._step * (len(self) - 1)
             start_o, step_o = other._start, other._step
@@ -503,7 +502,6 @@ class RangeIndex(Int64Index):
                         (start_s + step_o >= start_o) and
                         (end_s - step_o <= end_o)):
                     return RangeIndex(start_r, end_r + step_o, step_o)
-
         return self._int64index._union(other, sort=sort)
 
     @Appender(_index_shared_docs['join'])

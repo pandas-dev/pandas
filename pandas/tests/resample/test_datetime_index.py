@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import StringIO, range
+from pandas.compat import StringIO
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd

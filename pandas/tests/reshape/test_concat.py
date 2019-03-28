@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import PY2, Iterable, StringIO, iteritems
+from pandas.compat import Iterable, StringIO, iteritems
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -766,7 +766,7 @@ class TestAppend(ConcatenateBase):
             mixed_appended2.reindex(columns=['A', 'B', 'C', 'D']))
 
         # append empty
-        empty = DataFrame({})
+        empty = DataFrame()
 
         appended = self.frame.append(empty)
         tm.assert_frame_equal(self.frame, appended)
@@ -868,7 +868,7 @@ class TestAppend(ConcatenateBase):
 
     def test_append_preserve_index_name(self):
         # #980
-        df1 = DataFrame(data=None, columns=['A', 'B', 'C'])
+        df1 = DataFrame(columns=['A', 'B', 'C'])
         df1 = df1.set_index(['A'])
         df2 = DataFrame(data=[[1, 4, 7], [2, 5, 8], [3, 6, 9]],
                         columns=['A', 'B', 'C'])
@@ -968,7 +968,7 @@ class TestAppend(ConcatenateBase):
                r"'(<|>)' not supported between instances of 'int' and 'str'|"
                r"the other index needs to be an IntervalIndex too, but was"
                r" type {}|"
-               r"object of type '(int|long|float|Timestamp)' has no len\(\)|"
+               r"object of type '(int|float|Timestamp)' has no len\(\)|"
                "Expected tuple, got str")
         with pytest.raises(TypeError, match=msg):
             df.append(ser)
@@ -1401,8 +1401,8 @@ class TestConcatenate(ConcatenateBase):
     def test_with_mixed_tuples(self, sort):
         # 10697
         # columns have mixed tuples, so handle properly
-        df1 = DataFrame({u'A': 'foo', (u'B', 1): 'bar'}, index=range(2))
-        df2 = DataFrame({u'B': 'foo', (u'B', 1): 'bar'}, index=range(2))
+        df1 = DataFrame({'A': 'foo', ('B', 1): 'bar'}, index=range(2))
+        df2 = DataFrame({'B': 'foo', ('B', 1): 'bar'}, index=range(2))
 
         # it works
         concat([df1, df2], sort=sort)
@@ -2305,13 +2305,7 @@ bar2,12,13,14,15
                 for i in range(100)]
 
         result = pd.concat(dfs, sort=True).columns
-
-        if PY2:
-            # Different sort order between incomparable objects between
-            # python 2 and python3 via Index.union.
-            expected = dfs[1].columns
-        else:
-            expected = dfs[0].columns
+        expected = dfs[0].columns
         tm.assert_index_equal(result, expected)
 
     def test_concat_datetime_timezone(self):
@@ -2361,7 +2355,6 @@ bar2,12,13,14,15
                                 index=idx1.append(idx1))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(PY2, reason="Unhashable Decimal dtype")
     def test_concat_different_extension_dtypes_upcasts(self):
         a = pd.Series(pd.core.arrays.integer_array([1, 2]))
         b = pd.Series(to_decimal([1, 2]))
@@ -2541,3 +2534,20 @@ def test_concat_categorical_tz():
         'a', 'b'
     ])
     tm.assert_series_equal(result, expected)
+
+
+def test_concat_datetimeindex_freq():
+    # GH 3232
+    # Monotonic index result
+    dr = pd.date_range('01-Jan-2013', periods=100, freq='50L', tz='UTC')
+    data = list(range(100))
+    expected = pd.DataFrame(data, index=dr)
+    result = pd.concat([expected[:50], expected[50:]])
+    tm.assert_frame_equal(result, expected)
+
+    # Non-monotonic index result
+    result = pd.concat([expected[50:], expected[:50]])
+    expected = pd.DataFrame(data[50:] + data[:50],
+                            index=dr[50:].append(dr[:50]))
+    expected.index.freq = None
+    tm.assert_frame_equal(result, expected)

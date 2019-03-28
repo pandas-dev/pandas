@@ -11,7 +11,7 @@ import pytest
 
 from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
-from pandas.compat import PY2, lrange, range
+from pandas.compat import lrange
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -224,7 +224,6 @@ class TestFactorize(object):
                                                      dtype=object)
         tm.assert_numpy_array_equal(result[1], expected_level_array)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)

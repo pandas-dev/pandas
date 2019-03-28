@@ -4,8 +4,6 @@
 test all other .agg behavior
 """
 
-from __future__ import print_function
-
 from collections import OrderedDict
 import datetime as dt
 from functools import partial

@@ -31,6 +31,7 @@ Other Enhancements
 - ``Series.str`` has gained :meth:`Series.str.casefold` method to removes all case distinctions present in a string (:issue:`25405`)
 - :meth:`DataFrame.set_index` now works for instances of ``abc.Iterator``, provided their output is of the same length as the calling frame (:issue:`22484`, :issue:`24984`)
 - :meth:`DatetimeIndex.union` now supports the ``sort`` argument. The behaviour of the sort parameter matches that of :meth:`Index.union` (:issue:`24994`)
+- :meth:`RangeIndex.union` now supports the ``sort`` argument. If ``sort=False`` an unsorted ``Int64Index`` is always returned. ``sort=None`` is the default and returns a mononotically increasing ``RangeIndex`` if possible or a sorted ``Int64Index`` if not (:issue:`24471`)
 - :meth:`DataFrame.rename` now supports the ``errors`` argument to raise errors when attempting to rename nonexistent keys (:issue:`13473`)
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
@@ -73,6 +74,50 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
     df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
     df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
+.. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
+
+GroupBy.apply on ``DataFrame`` evaluates first group only once
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The implementation of :meth:`DataFrameGroupBy.apply() <pandas.core.groupby.DataFrameGroupBy.apply>`
+previously evaluated the supplied function consistently twice on the first group
+to infer if it is safe to use a fast code path. Particularly for functions with
+side effects, this was an undesired behavior and may have led to surprises.
+
+(:issue:`2936`, :issue:`2656`, :issue:`7739`, :issue:`10519`, :issue:`12155`,
+:issue:`20084`, :issue:`21417`)
+
+Now every group is evaluated only a single time.
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
+    df
+
+    def func(group):
+        print(group.name)
+        return group
+
+*Previous Behaviour*:
+
+.. code-block:: python
+
+   In [3]: df.groupby('a').apply(func)
+   x
+   x
+   y
+   Out[3]:
+      a  b
+   0  x  1
+   1  y  2
+
+*New Behaviour*:
+
+.. ipython:: python
+
+    df.groupby("a").apply(func)
+
+
 Concatenating Sparse Values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -83,14 +128,14 @@ Series or DataFrame with sparse values, rather than a ``SparseDataFrame`` (:issu
 
    df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
 
-*Previous Behavior:*
+*Previous Behavior*:
 
 .. code-block:: ipython
 
    In [2]: type(pd.concat([df, df]))
    pandas.core.sparse.frame.SparseDataFrame
 
-*New Behavior:*
+*New Behavior*:
 
 .. ipython:: python
 
@@ -150,13 +195,13 @@ If installed, we now require:
 +=================+=================+==========+
 | beautifulsoup4  | 4.4.1           |          |
 +-----------------+-----------------+----------+
-| openpyxl        | 2.2.6           |          |
+| openpyxl        | 2.4.0           |          |
 +-----------------+-----------------+----------+
-| pymysql         | 0.6.6           |          |
+| pymysql         | 0.7.9           |          |
 +-----------------+-----------------+----------+
 | pytz            | 2015.4          |          |
 +-----------------+-----------------+----------+
-| sqlalchemy      | 1.0.8           |          |
+| sqlalchemy      | 1.1.4           |          |
 +-----------------+-----------------+----------+
 | xlsxwriter      | 0.7.7           |          |
 +-----------------+-----------------+----------+
@@ -203,6 +248,7 @@ Performance Improvements
   int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
+- Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
 
 .. _whatsnew_0250.bug_fixes:
 
@@ -235,9 +281,11 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
+- Bug in :func:`DatetimeIndex.to_frame` where timezone aware data would be converted to timezone naive data (:issue:`25809`)
 - Bug in :func:`to_datetime` with ``utc=True`` and datetime strings that would apply previously parsed UTC offsets to subsequent arguments (:issue:`24992`)
 - Bug in :func:`Timestamp.tz_localize` and :func:`Timestamp.tz_convert` does not propagate ``freq`` (:issue:`25241`)
 - Bug in :func:`Series.at` where setting :class:`Timestamp` with timezone raises ``TypeError`` (:issue:`25506`)
+- Bug in :func:`DataFrame.update` when updating with timezone aware data would return timezone naive data (:issue:`25807`)
 
 Numeric
 ^^^^^^^
@@ -246,7 +294,7 @@ Numeric
 - Bug in :meth:`to_numeric` in which numbers were being coerced to float, even though ``errors`` was not ``coerce`` (:issue:`24910`)
 - Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
 - Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
--
+- Raises a helpful exception when a non-numeric index is sent to :meth:`interpolate` with methods which require numeric index. (:issue:`21662`)
 -
 -
 
@@ -269,14 +317,14 @@ Strings
 Interval
 ^^^^^^^^
 
--
+- Construction of :class:`Interval` is restricted to numeric, :class:`Timestamp` and :class:`Timedelta` endpoints (:issue:`23013`)
 -
 -
 
 Indexing
 ^^^^^^^^
 
--
+- Improved exception message when calling :meth:`DataFrame.iloc` with a list of non-numeric objects (:issue:`25753`).
 -
 -
 
@@ -336,7 +384,7 @@ Reshaping
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
 - Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
-
+- Bug in :func:`concat` where the resulting ``freq`` of two :class:`DatetimeIndex` with the same ``freq`` would be dropped (:issue:`3232`).
 
 Sparse
 ^^^^^^

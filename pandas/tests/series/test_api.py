@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import isidentifier, lzip, range, string_types
+from pandas.compat import isidentifier, lzip, string_types
 
 import pandas as pd
 from pandas import (

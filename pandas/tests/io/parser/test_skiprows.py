@@ -10,7 +10,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange, range
+from pandas.compat import StringIO, lrange
 from pandas.errors import EmptyDataError
 
 from pandas import DataFrame, Index
