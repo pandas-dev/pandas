@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype)
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
-    ABCIndexClass, ABCSeries, ABCSparseSeries)
+    ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core.accessor import PandasDelegate, delegate_names
@@ -398,8 +398,8 @@ def _get_fill(arr: 'SparseArray') -> np.ndarray:
 
 
 def _sparse_array_op(
-        left: 'SparseArray',
-        right: 'SparseArray',
+        left: ABCSparseArray,
+        right: ABCSparseArray,
         op: Callable,
         name: str
 ) -> Any:

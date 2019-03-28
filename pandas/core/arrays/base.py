@@ -17,7 +17,8 @@ from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -337,7 +338,7 @@ class ExtensionArray(object):
         """
         return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self) -> Union['ExtensionArray', np.ndarray]:
+    def isna(self) -> Union[ABCExtensionArray, np.ndarray]:
         """
         A 1-D array indicating if each value is missing.
 

@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_list_like, is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndexClass, ABCPeriodIndex, ABCSeries)
+    ABCDataFrame, ABCIndexClass, ABCPeriodArray, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
@@ -188,7 +188,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             scalars: Sequence[Optional[Period]],
             dtype: PeriodDtype = None,
             copy: bool = False,
-    ) -> 'PeriodArray':
+    ) -> ABCPeriodArray:
         if dtype:
             freq = dtype.freq
         else:

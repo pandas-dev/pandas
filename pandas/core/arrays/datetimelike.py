@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Tuple, Union
+from typing import Any, Sequence, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -58,7 +58,7 @@ class AttributesMixin(object):
         return {k: getattr(self, k, None) for k in self._attributes}
 
     @property
-    def _scalar_type(self) -> Union[type, Tuple[type]]:
+    def _scalar_type(self) -> Union[Type, Tuple[Type]]:
         """The scalar associated with this datelike
 
         * PeriodArray : Period
