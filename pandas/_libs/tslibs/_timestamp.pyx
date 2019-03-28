@@ -46,6 +46,7 @@ def maybe_integer_op_deprecated(obj):
 # shadows the python class, where we do any heavy lifting.
 cdef class _Timestamp(datetime):
 
+
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)
@@ -210,7 +211,7 @@ cdef class _Timestamp(datetime):
         if is_timedelta64_object(other):
             other_int = other.astype('timedelta64[ns]').view('i8')
             return self.__class__(self.value + other_int,
-                             tz=self.tzinfo, freq=self.freq)
+                                  tz=self.tzinfo, freq=self.freq)
 
         elif is_integer_object(other):
             maybe_integer_op_deprecated(self)
@@ -233,11 +234,11 @@ cdef class _Timestamp(datetime):
                 nanos = other.delta
             elif PyDelta_Check(other):
                 nanos = (other.days * 24 * 60 * 60 * 1000000 +
-                        other.seconds * 1000000 +
-                        other.microseconds) * 1000
+                         other.seconds * 1000000 +
+                         other.microseconds) * 1000
 
             result = self.__class__(self.value + nanos,
-                               tz=self.tzinfo, freq=self.freq)
+                                    tz=self.tzinfo, freq=self.freq)
             if getattr(other, 'normalize', False):
                 # DateOffset
                 result = result.normalize()
