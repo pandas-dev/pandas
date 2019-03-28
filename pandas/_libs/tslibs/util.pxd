@@ -238,8 +238,7 @@ cdef inline bint is_nan(object val):
     return (is_float_object(val) or is_complex_object(val)) and val != val
 
 
-cdef inline bint get_string_data(object s, const char **buf,
-                                 Py_ssize_t *length):
+cdef inline const char* get_string_data(object s, Py_ssize_t *length):
     """
     Extract internal char * buffer of unicode or bytes object `s` to `buf` with
     getting length of this internal buffer saved in `length`.
@@ -255,25 +254,31 @@ cdef inline bint get_string_data(object s, const char **buf,
     Parameters
     ----------
     s      : object
-    buf    : const char**
     length : Py_ssize_t*
 
     Returns
     -------
-    bint
+    buf : const char*
     """
-    if PyUnicode_Check(s):
-        buf[0] = PyUnicode_AsUTF8AndSize(s, length)
-        return buf[0] != NULL
-    if PyBytes_Check(s):
-        return PyBytes_AsStringAndSize(s, <char**>buf, length) == 0
-    return False
+    cdef:
+        const char *buf
 
-cdef inline void get_string_data_checked(object s, const char **buf,
-                                         Py_ssize_t *length):
+    if PyUnicode_Check(s):
+        buf = PyUnicode_AsUTF8AndSize(s, length)
+    if PyBytes_Check(s):
+        if PyBytes_AsStringAndSize(s, <char**>&buf, length) != 0:
+            return NULL
+    return buf
+
+
+cdef inline const char* get_string_data_checked(object s, Py_ssize_t *length):
     """
     This is a wrapper for get_string_data() that raises TypeError
     when supplied with neither unicode nor bytes object
     """
-    if not get_string_data(s, buf, length):
+    cdef:
+        const char *buf = get_string_data(s, length)
+
+    if not buf:
         PyErr_BadArgument()
+    return buf

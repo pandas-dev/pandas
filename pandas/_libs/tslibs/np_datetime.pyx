@@ -177,6 +177,6 @@ cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
         Py_ssize_t length
         const char* tmp
 
-    get_string_data_checked(val, &tmp, &length)
+    tmp = get_string_data_checked(val, &length)
     return parse_iso_8601_datetime(tmp, length,
                                    dts, out_local, out_tzoffset)
