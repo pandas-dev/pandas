@@ -6,6 +6,7 @@ import gc
 import json
 import operator
 from textwrap import dedent
+from typing import Container, List
 import warnings
 import weakref
 
@@ -113,10 +114,10 @@ class NDFrame(PandasObject, SelectionMixin):
                        '_default_fill_value', '_metadata', '__array_struct__',
                        '__array_interface__']
     _internal_names_set = set(_internal_names)
-    _accessors = frozenset()
+    _accessors = frozenset()  # type: Container[str]
     _deprecations = frozenset(['as_blocks', 'blocks',
                                'convert_objects', 'is_copy'])
-    _metadata = []
+    _metadata = []  # type: List[str]
     _is_copy = None
 
     # dummy attribute so that datetime.__eq__(Series/DataFrame) defers
