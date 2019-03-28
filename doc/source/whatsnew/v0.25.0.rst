@@ -382,6 +382,7 @@ Reshaping
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
 - Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
 - Bug in :func:`concat` where the resulting ``freq`` of two :class:`DatetimeIndex` with the same ``freq`` would be dropped (:issue:`3232`).
+- Bug in :func:`merge` where merging with equivalent Categorical dtypes was raising an error (:issue:`22501`)
 
 Sparse
 ^^^^^^
