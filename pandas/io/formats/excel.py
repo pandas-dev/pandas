@@ -57,8 +57,7 @@ class CSSToExcelConverter(object):
 
     def __init__(self, inherited=None):
         if inherited is not None:
-            inherited = self.compute_css(inherited,
-                                         self.compute_css.INITIAL_STYLE)
+            inherited = self.compute_css(inherited)
 
         self.inherited = inherited
 
