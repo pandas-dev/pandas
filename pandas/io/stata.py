@@ -85,7 +85,7 @@ Read Stata file into DataFrame.
 
 Parameters
 ----------
-filepath_or_buffer : string or file-like object
+filepath_or_buffer : str, path object, URL or file-like object
     Path to .dta file or object implementing a binary read() functions.
 %s
 %s
