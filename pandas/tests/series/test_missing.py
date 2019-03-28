@@ -2,7 +2,6 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta
-from distutils.version import LooseVersion
 
 import numpy as np
 from numpy import nan
@@ -20,13 +19,6 @@ from pandas import (
 from pandas.core.series import remove_na
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-
-try:
-    import scipy
-    _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
-                         LooseVersion('0.19.0'))
-except ImportError:
-    _is_scipy_ge_0190 = False
 
 
 def _skip_if_no_pchip():
@@ -1069,12 +1061,7 @@ class TestSeriesInterpolateData():
         assert_series_equal(result, expected)
         # quadratic
         # GH #15662.
-        # new cubic and quadratic interpolation algorithms from scipy 0.19.0.
-        # previously `splmake` was used. See scipy/scipy#6710
-        if _is_scipy_ge_0190:
-            expected = Series([1, 3., 6.823529, 12., 18.058824, 25.])
-        else:
-            expected = Series([1, 3., 6.769231, 12., 18.230769, 25.])
+        expected = Series([1, 3., 6.823529, 12., 18.058824, 25.])
         result = s.interpolate(method='quadratic')
         assert_series_equal(result, expected)
 
@@ -1342,7 +1329,7 @@ class TestSeriesInterpolateData():
         expected = Series([1., 2., 3., 4., 5., 6., 7.])
         assert_series_equal(result, expected)
 
-    @td.skip_if_no('scipy', min_version='0.15')
+    @td.skip_if_no_scipy
     def test_spline_extrapolate(self):
         s = Series([1, 2, 3, 4, np.nan, 6, np.nan])
         result3 = s.interpolate(method='spline', order=1, ext=3)
