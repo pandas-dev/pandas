@@ -347,7 +347,7 @@ def test_usecols_with_unicode_strings(all_parsers):
     }
     expected = DataFrame(exp_data)
 
-    result = parser.read_csv(StringIO(data), usecols=[u"AAA", u"BBB"])
+    result = parser.read_csv(StringIO(data), usecols=["AAA", "BBB"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -369,11 +369,11 @@ def test_usecols_with_single_byte_unicode_strings(all_parsers):
     }
     expected = DataFrame(exp_data)
 
-    result = parser.read_csv(StringIO(data), usecols=[u"A", u"B"])
+    result = parser.read_csv(StringIO(data), usecols=["A", "B"])
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("usecols", [[u"AAA", b"BBB"], [b"AAA", u"BBB"]])
+@pytest.mark.parametrize("usecols", [["AAA", b"BBB"], [b"AAA", "BBB"]])
 def test_usecols_with_mixed_encoding_strings(all_parsers, usecols):
     data = """AAA,BBB,CCC,DDD
 0.056674973,8,True,a
@@ -387,7 +387,7 @@ def test_usecols_with_mixed_encoding_strings(all_parsers, usecols):
 
 @pytest.mark.parametrize("usecols", [
     ["あああ", "いい"],
-    [u"あああ", u"いい"]
+    ["あああ", "いい"]
 ])
 def test_usecols_with_multi_byte_characters(all_parsers, usecols):
     data = """あああ,いい,ううう,ええええ

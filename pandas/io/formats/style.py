@@ -12,7 +12,8 @@ from uuid import uuid1
 
 import numpy as np
 
-from pandas.compat import range
+from pandas._config import get_option
+
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_float, is_string_like
@@ -21,7 +22,6 @@ from pandas.core.dtypes.generic import ABCSeries
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 

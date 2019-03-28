@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas._libs import hashtable as libhashtable, join as libjoin, lib
 import pandas.compat as compat
-from pandas.compat import filter, lzip, map, range, zip
+from pandas.compat import lzip
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 

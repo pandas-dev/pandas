@@ -9,8 +9,7 @@ from numpy.random import randn
 import pytest
 import pytz
 
-from pandas.compat import (
-    StringIO, lrange, lzip, product as cart_product, range, u, zip)
+from pandas.compat import StringIO, lrange, lzip, product as cart_product
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
@@ -314,7 +313,7 @@ class TestMultiLevel(Base):
 
         df = self.frame[:0]
         result = df.count(level=0)
-        expected = DataFrame({}, index=s.index.levels[0],
+        expected = DataFrame(index=s.index.levels[0],
                              columns=df.columns).fillna(0).astype(np.int64)
         tm.assert_frame_equal(result, expected)
 
@@ -1304,7 +1303,7 @@ Thur,Lunch,Yes,51.51,17"""
         assert result.index.names == ('one', 'two')
 
     def test_unicode_repr_issues(self):
-        levels = [Index([u('a/\u03c3'), u('b/\u03c3'), u('c/\u03c3')]),
+        levels = [Index(['a/\u03c3', 'b/\u03c3', 'c/\u03c3']),
                   Index([0, 1])]
         codes = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
         index = MultiIndex(levels=levels, codes=codes)
@@ -1316,7 +1315,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_unicode_repr_level_names(self):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)],
-                                       names=[u('\u0394'), 'i1'])
+                                       names=['\u0394', 'i1'])
 
         s = Series(lrange(2), index=index)
         df = DataFrame(np.random.randn(2, 4), index=index)

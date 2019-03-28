@@ -668,7 +668,7 @@ class TestCategoricalIndex(object):
         # CategoricalIndex([1, 1, 2, 1, 3, 2],
         #         categories=[3, 2, 1],
         #         ordered=True,
-        #         name=u'B')
+        #         name='B')
         result = df3[df3.index < 2]
         expected = df3.iloc[[4]]
         assert_frame_equal(result, expected)
@@ -683,7 +683,7 @@ class TestCategoricalIndex(object):
         # CategoricalIndex([1, 1, 2, 1, 3, 2],
         #         categories=[3, 2, 1],
         #         ordered=False,
-        #         name=u'B')
+        #         name='B')
         msg = "Unordered Categoricals can only compare equality or not"
         with pytest.raises(TypeError, match=msg):
             df4[df4.index < 2]

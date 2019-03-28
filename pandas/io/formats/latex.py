@@ -2,11 +2,7 @@
 """
 Module for formatting output data in Latex.
 """
-from __future__ import print_function
-
 import numpy as np
-
-from pandas.compat import map, range, u, zip
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
@@ -51,7 +47,7 @@ class LatexFormatter(TableFormatter):
 
         # string representation of the columns
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
-            info_line = (u('Empty {name}\nColumns: {col}\nIndex: {idx}')
+            info_line = ('Empty {name}\nColumns: {col}\nIndex: {idx}'
                          .format(name=type(self.frame).__name__,
                                  col=self.frame.columns,
                                  idx=self.frame.index))

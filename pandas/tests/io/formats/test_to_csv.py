@@ -46,7 +46,7 @@ class TestToCSV(object):
 
     def test_to_csv_defualt_encoding(self):
         # GH17097
-        df = DataFrame({'col': [u"AAAAA", u"ÄÄÄÄÄ", u"ßßßßß", u"聞聞聞聞聞"]})
+        df = DataFrame({'col': ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
 
         with tm.ensure_clean('test.csv') as path:
             # the default to_csv encoding in Python 2 is ascii, and that in
@@ -352,15 +352,15 @@ $1$,$2$
             with open(path, 'r') as f:
                 assert f.read() == expected_ascii
 
-    @pytest.mark.xfail
+    @pytest.mark.xfail(strict=False)
     def test_to_csv_string_array_utf8(self):
         # GH 10813
         str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]
         df = pd.DataFrame(str_array)
         expected_utf8 = '''\
 ,names
-0,"[u'foo', u'bar']"
-1,"[u'baz', u'qux']"
+0,"['foo', 'bar']"
+1,"['baz', 'qux']"
 '''
         with tm.ensure_clean('unicode_test.csv') as path:
             df.to_csv(path, encoding='utf-8')

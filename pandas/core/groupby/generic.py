@@ -16,8 +16,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 import pandas.compat as compat
-from pandas.compat import lzip, map
-from pandas.compat.numpy import _np_version_under1p13
+from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
@@ -1218,7 +1217,7 @@ class SeriesGroupBy(GroupBy):
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)
-        minlength = ngroups or (None if _np_version_under1p13 else 0)
+        minlength = ngroups or 0
         out = np.bincount(ids[mask], minlength=minlength)
 
         return Series(out,

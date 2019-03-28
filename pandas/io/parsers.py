@@ -2,8 +2,6 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 
-from __future__ import print_function
-
 from collections import defaultdict
 import csv
 import datetime
@@ -19,8 +17,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
 import pandas.compat as compat
-from pandas.compat import (
-    PY3, StringIO, lrange, lzip, map, range, string_types, u, zip)
+from pandas.compat import StringIO, lrange, lzip, string_types
 from pandas.errors import (
     AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender
@@ -51,7 +48,7 @@ from pandas.io.date_converters import generic_parser
 # This exists at the beginning of a file to indicate endianness
 # of a file (stream). Unfortunately, this marker screws up parsing,
 # so we need to remove it if we see it.
-_BOM = u('\ufeff')
+_BOM = '\ufeff'
 
 _doc_read_csv_and_table = r"""
 {summary}
@@ -942,7 +939,7 @@ class TextFileReader(BaseIterator):
     def _check_file_or_buffer(self, f, engine):
         # see gh-16530
         if is_file_like(f):
-            next_attr = "__next__" if PY3 else "next"
+            next_attr = "__next__"
 
             # The C engine doesn't need the file-like to have the "next" or
             # "__next__" attribute. However, the Python engine explicitly calls
@@ -1147,7 +1144,7 @@ class TextFileReader(BaseIterator):
         if index is None:
             if col_dict:
                 # Any column is actually fine:
-                new_rows = len(compat.next(compat.itervalues(col_dict)))
+                new_rows = len(next(compat.itervalues(col_dict)))
                 index = RangeIndex(self._currow, self._currow + new_rows)
             else:
                 new_rows = 0
@@ -2227,8 +2224,7 @@ class PythonParser(ParserBase):
         self.comment = kwds['comment']
         self._comment_lines = []
 
-        mode = 'r' if PY3 else 'rb'
-        f, handles = _get_handle(f, mode, encoding=self.encoding,
+        f, handles = _get_handle(f, 'r', encoding=self.encoding,
                                  compression=self.compression,
                                  memory_map=self.memory_map)
         self.handles.extend(handles)
@@ -2380,12 +2376,10 @@ class PythonParser(ParserBase):
         else:
             def _read():
                 line = f.readline()
-
-                if compat.PY2 and self.encoding:
-                    line = line.decode(self.encoding)
-
                 pat = re.compile(sep)
+
                 yield pat.split(line.strip())
+
                 for line in f:
                     yield pat.split(line.strip())
             reader = _read()
@@ -2725,15 +2719,6 @@ class PythonParser(ParserBase):
         # Since the string is non-empty, check that it does
         # in fact begin with a BOM.
         first_elt = first_row[0][0]
-
-        # This is to avoid warnings we get in Python 2.x if
-        # we find ourselves comparing with non-Unicode
-        if compat.PY2 and not isinstance(first_elt, unicode):  # noqa
-            try:
-                first_elt = u(first_elt)
-            except UnicodeDecodeError:
-                return first_row
-
         if first_elt != _BOM:
             return first_row
 
@@ -3489,14 +3474,8 @@ def _get_col_names(colspec, columns):
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:
-        if compat.PY3:
-            return np.array([compat.text_type(x) for x in date_cols[0]],
-                            dtype=object)
-        else:
-            return np.array([
-                str(x) if not isinstance(x, compat.string_types) else x
-                for x in date_cols[0]
-            ], dtype=object)
+        return np.array([compat.text_type(x) for x in date_cols[0]],
+                        dtype=object)
 
     rs = np.array([' '.join(compat.text_type(y) for y in x)
                    for x in zip(*date_cols)], dtype=object)

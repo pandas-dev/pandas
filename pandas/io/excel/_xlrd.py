@@ -1,13 +1,13 @@
 from datetime import time
 from distutils.version import LooseVersion
 from io import UnsupportedOperation
+from urllib.request import urlopen
 
 import numpy as np
 
 import pandas.compat as compat
-from pandas.compat import range, zip
 
-from pandas.io.common import _is_url, _urlopen, get_filepath_or_buffer
+from pandas.io.common import _is_url, get_filepath_or_buffer
 from pandas.io.excel._base import _BaseExcelReader
 
 
@@ -36,7 +36,7 @@ class _XlrdReader(_BaseExcelReader):
         # If filepath_or_buffer is a url, want to keep the data as bytes so
         # can't pass to get_filepath_or_buffer()
         if _is_url(filepath_or_buffer):
-            filepath_or_buffer = _urlopen(filepath_or_buffer)
+            filepath_or_buffer = urlopen(filepath_or_buffer)
         elif not isinstance(filepath_or_buffer, (ExcelFile, xlrd.Book)):
             filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
                 filepath_or_buffer)

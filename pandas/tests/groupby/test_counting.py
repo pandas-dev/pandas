@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-
 import numpy as np
 import pytest
 
-from pandas.compat import product as cart_product, range
+from pandas.compat import product as cart_product
 
 from pandas import DataFrame, MultiIndex, Period, Series, Timedelta, Timestamp
 from pandas.util.testing import assert_frame_equal, assert_series_equal

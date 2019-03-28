@@ -4,12 +4,11 @@ printing tools
 
 import sys
 
-from pandas.compat import u
+from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
 
 from pandas import compat
-from pandas.core.config import get_option
 
 
 def adjoin(space, *lists, **kwargs):
@@ -100,9 +99,9 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     bounds length of printed sequence, depending on options
     """
     if isinstance(seq, set):
-        fmt = u("{{{body}}}")
+        fmt = "{{{body}}}"
     else:
-        fmt = u("[{body}]") if hasattr(seq, '__setitem__') else u("({body})")
+        fmt = "[{body}]" if hasattr(seq, '__setitem__') else "({body})"
 
     if max_seq_items is False:
         nitems = len(seq)
@@ -129,10 +128,10 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
     """
-    fmt = u("{{{things}}}")
+    fmt = "{{{things}}}"
     pairs = []
 
-    pfmt = u("{key}: {val}")
+    pfmt = "{key}: {val}"
 
     if max_seq_items is False:
         nitems = len(seq)
@@ -207,7 +206,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
 
         return compat.text_type(result)
 
-    if (compat.PY3 and hasattr(thing, '__next__')) or hasattr(thing, 'next'):
+    if hasattr(thing, '__next__'):
         return compat.text_type(thing)
     elif (isinstance(thing, dict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
@@ -219,11 +218,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
                              quote_strings=quote_strings,
                              max_seq_items=max_seq_items)
     elif isinstance(thing, compat.string_types) and quote_strings:
-        if compat.PY3:
-            fmt = u("'{thing}'")
-        else:
-            fmt = u("u'{thing}'")
-        result = fmt.format(thing=as_escaped_unicode(thing))
+        result = "'{thing}'".format(thing=as_escaped_unicode(thing))
     else:
         result = as_escaped_unicode(thing)
 
@@ -337,17 +332,17 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         else:
             return 0
 
-    close = u', '
+    close = ', '
 
     if n == 0:
-        summary = u'[]{}'.format(close)
+        summary = '[]{}'.format(close)
     elif n == 1:
         first = formatter(obj[0])
-        summary = u'[{}]{}'.format(first, close)
+        summary = '[{}]{}'.format(first, close)
     elif n == 2:
         first = formatter(obj[0])
         last = formatter(obj[-1])
-        summary = u'[{}, {}]{}'.format(first, last, close)
+        summary = '[{}, {}]{}'.format(first, last, close)
     else:
 
         if n > max_seq_items:
