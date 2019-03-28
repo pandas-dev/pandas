@@ -145,7 +145,7 @@ class HTMLFormatter(TableFormatter):
         self._write_table()
 
         if self.should_show_dimensions:
-            by = chr(215)
+            by = chr(215)  # ×
             self.write('<p>{rows} rows {by} {cols} columns</p>'
                        .format(rows=len(self.frame),
                                by=by,

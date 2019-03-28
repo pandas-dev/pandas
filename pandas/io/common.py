@@ -2,23 +2,26 @@
 
 import bz2
 import codecs
-from contextlib import closing, contextmanager
 import csv
 import gzip
+from http.client import HTTPException  # noqa
 import lzma
 import mmap
 import os
+from urllib.error import URLError  # noqa
+from urllib.parse import (  # noqa
+    urlencode, urljoin, urlparse as parse_url, uses_netloc, uses_params,
+    uses_relative)
+from urllib.request import pathname2url, urlopen
 import zipfile
 
 import pandas.compat as compat
-from pandas.compat import BytesIO, StringIO, string_types, text_type
+from pandas.compat import BytesIO, string_types, text_type
 from pandas.errors import (  # noqa
     AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
     ParserWarning)
 
-from pandas.core.dtypes.common import is_file_like, is_number
-
-from pandas.io.formats.printing import pprint_thing
+from pandas.core.dtypes.common import is_file_like
 
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
@@ -29,31 +32,6 @@ CParserError = ParserError
 _NA_VALUES = {'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
               'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan',
               '-nan', ''}
-
-
-if compat.PY3:
-    from urllib.request import urlopen, pathname2url
-    _urlopen = urlopen
-    from urllib.parse import urlparse as parse_url
-    from urllib.parse import (uses_relative, uses_netloc, uses_params,
-                              urlencode, urljoin)
-    from urllib.error import URLError
-    from http.client import HTTPException  # noqa
-else:
-    from urllib2 import urlopen as _urlopen
-    from urllib import urlencode, pathname2url  # noqa
-    from urlparse import urlparse as parse_url
-    from urlparse import uses_relative, uses_netloc, uses_params, urljoin
-    from urllib2 import URLError  # noqa
-    from httplib import HTTPException  # noqa
-    from contextlib import contextmanager, closing  # noqa
-    from functools import wraps  # noqa
-
-    # @wraps(_urlopen)
-    @contextmanager
-    def urlopen(*args, **kwargs):
-        with closing(_urlopen(*args, **kwargs)) as f:
-            yield f
 
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
@@ -70,10 +48,6 @@ class BaseIterator(object):
 
     def __next__(self):
         raise AbstractMethodError(self)
-
-
-if not compat.PY3:
-    BaseIterator.next = lambda self: self.__next__()
 
 
 def _is_url(url):
@@ -189,7 +163,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     ----------
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
-    encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
+    compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
+    encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
 
     Returns
@@ -202,7 +177,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
     if _is_url(filepath_or_buffer):
-        req = _urlopen(filepath_or_buffer)
+        req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get('Content-Encoding', None)
         if content_encoding == 'gzip':
             # Override compression based on Content-Encoding header
@@ -361,10 +336,6 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
     if compression:
 
-        if compat.PY2 and not is_path and encoding:
-            msg = 'compression with encoding is not yet supported in Python 2'
-            raise ValueError(msg)
-
         # GZ Compression
         if compression == 'gzip':
             if is_path:
@@ -376,11 +347,6 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         elif compression == 'bz2':
             if is_path:
                 f = bz2.BZ2File(path_or_buf, mode)
-            elif compat.PY2:
-                # Python 2's bz2 module can't take file objects, so have to
-                # run through decompress manually
-                f = StringIO(bz2.decompress(path_or_buf.read()))
-                path_or_buf.close()
             else:
                 f = bz2.BZ2File(path_or_buf)
 
@@ -415,24 +381,19 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         handles.append(f)
 
     elif is_path:
-        if compat.PY2:
-            # Python 2
-            mode = "wb" if mode == "w" else mode
-            f = open(path_or_buf, mode)
-        elif encoding:
-            # Python 3 and encoding
+        if encoding:
+            # Encoding
             f = open(path_or_buf, mode, encoding=encoding, newline="")
         elif is_text:
-            # Python 3 and no explicit encoding
+            # No explicit encoding
             f = open(path_or_buf, mode, errors='replace', newline="")
         else:
-            # Python 3 and binary mode
+            # Binary mode
             f = open(path_or_buf, mode)
         handles.append(f)
 
-    # in Python 3, convert BytesIO or fileobjects passed with an encoding
-    if (compat.PY3 and is_text and
-            (compression or isinstance(f, need_text_wrapping))):
+    # Convert BytesIO or file objects passed with an encoding
+    if is_text and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
         f = TextIOWrapper(f, encoding=encoding, newline='')
         handles.append(f)
@@ -499,11 +460,9 @@ class MMapWrapper(BaseIterator):
     def __next__(self):
         newline = self.mmap.readline()
 
-        # readline returns bytes, not str, in Python 3,
-        # but Python's CSV reader expects str, so convert
-        # the output to str before continuing
-        if compat.PY3:
-            newline = compat.bytes_to_str(newline)
+        # readline returns bytes, not str, but Python's CSV reader
+        # expects str, so convert the output to str before continuing
+        newline = compat.bytes_to_str(newline)
 
         # mmap doesn't raise if reading past the allocated
         # data but instead returns an empty string, so raise
@@ -513,14 +472,10 @@ class MMapWrapper(BaseIterator):
         return newline
 
 
-if not compat.PY3:
-    MMapWrapper.next = lambda self: self.__next__()
-
-
 class UTF8Recoder(BaseIterator):
 
     """
-    Iterator that reads an encoded stream and reencodes the input to UTF-8
+    Iterator that reads an encoded stream and re-encodes the input to UTF-8
     """
 
     def __init__(self, f, encoding):
@@ -536,82 +491,12 @@ class UTF8Recoder(BaseIterator):
         return next(self.reader).encode("utf-8")
 
 
-if compat.PY3:  # pragma: no cover
-    def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
-        # ignore encoding
-        return csv.reader(f, dialect=dialect, **kwds)
+# Keeping these class for now because it provides a necessary convenience
+# for "dropping" the "encoding" argument from our I/O arguments when
+# creating a Unicode I/O object.
+def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
+    return csv.reader(f, dialect=dialect, **kwds)
 
-    def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
-        return csv.writer(f, dialect=dialect, **kwds)
-else:
-    class UnicodeReader(BaseIterator):
 
-        """
-        A CSV reader which will iterate over lines in the CSV file "f",
-        which is encoded in the given encoding.
-
-        On Python 3, this is replaced (below) by csv.reader, which handles
-        unicode.
-        """
-
-        def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-            f = UTF8Recoder(f, encoding)
-            self.reader = csv.reader(f, dialect=dialect, **kwds)
-
-        def __next__(self):
-            row = next(self.reader)
-            return [compat.text_type(s, "utf-8") for s in row]
-
-    class UnicodeWriter(object):
-
-        """
-        A CSV writer which will write rows to CSV file "f",
-        which is encoded in the given encoding.
-        """
-
-        def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-            # Redirect output to a queue
-            self.queue = StringIO()
-            self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
-            self.stream = f
-            self.encoder = codecs.getincrementalencoder(encoding)()
-            self.quoting = kwds.get("quoting", None)
-
-        def writerow(self, row):
-            def _check_as_is(x):
-                return (self.quoting == csv.QUOTE_NONNUMERIC and
-                        is_number(x)) or isinstance(x, str)
-
-            row = [x if _check_as_is(x)
-                   else pprint_thing(x).encode("utf-8") for x in row]
-
-            self.writer.writerow([s for s in row])
-            # Fetch UTF-8 output from the queue ...
-            data = self.queue.getvalue()
-            data = data.decode("utf-8")
-            # ... and re-encode it into the target encoding
-            data = self.encoder.encode(data)
-            # write to the target stream
-            self.stream.write(data)
-            # empty queue
-            self.queue.truncate(0)
-
-        def writerows(self, rows):
-            def _check_as_is(x):
-                return (self.quoting == csv.QUOTE_NONNUMERIC and
-                        is_number(x)) or isinstance(x, str)
-
-            for i, row in enumerate(rows):
-                rows[i] = [x if _check_as_is(x)
-                           else pprint_thing(x).encode("utf-8") for x in row]
-
-            self.writer.writerows([[s for s in row] for row in rows])
-            # Fetch UTF-8 output from the queue ...
-            data = self.queue.getvalue()
-            data = data.decode("utf-8")
-            # ... and re-encode it into the target encoding
-            data = self.encoder.encode(data)
-            # write to the target stream
-            self.stream.write(data)
-            # empty queue
-            self.queue.truncate(0)
+def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
+    return csv.writer(f, dialect=dialect, **kwds)

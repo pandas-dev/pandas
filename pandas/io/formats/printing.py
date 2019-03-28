@@ -206,7 +206,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
 
         return compat.text_type(result)
 
-    if (compat.PY3 and hasattr(thing, '__next__')) or hasattr(thing, 'next'):
+    if hasattr(thing, '__next__'):
         return compat.text_type(thing)
     elif (isinstance(thing, dict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
@@ -218,11 +218,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
                              quote_strings=quote_strings,
                              max_seq_items=max_seq_items)
     elif isinstance(thing, compat.string_types) and quote_strings:
-        if compat.PY3:
-            fmt = "'{thing}'"
-        else:
-            fmt = "u'{thing}'"
-        result = fmt.format(thing=as_escaped_unicode(thing))
+        result = "'{thing}'".format(thing=as_escaped_unicode(thing))
     else:
         result = as_escaped_unicode(thing)
 
