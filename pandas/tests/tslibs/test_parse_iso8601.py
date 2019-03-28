@@ -60,3 +60,15 @@ def test_parsers_iso8601_invalid_offset_invalid():
 
     with pytest.raises(ValueError, match=msg):
         tslib._test_parse_iso8601(date_str)
+
+
+def test_parsers_iso8601_overflow():
+    # if use char sublen variable in parse_iso_8601_datetime, then overflow
+    # occurs and no exception is thrown
+    date_str = "2013-01-01 05:30:00aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\
+               "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\
+               "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\
+               "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\
+               "aaaaaaaaaaaaaaaaaaaaaa"
+    with pytest.raises(ValueError):
+        tslib._test_parse_iso8601(date_str)
