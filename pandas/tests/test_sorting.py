@@ -413,13 +413,9 @@ class TestSafeSort(object):
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        msg = ("unorderable types: ({0} [<>] {1}|{1} [<>] {0})".format(
-                   r"int\(\)", r"datetime\.datetime\(\)")  # noqa: E126
-               + "|" +
-               ("'[<>]' not supported between instances of "
-                "({0} and {1}|{1} and {0})").format(
-                    "'int'", r"'datetime\.datetime'")
-               )
+        msg = ("unorderable types: .* [<>] .*"
+               "|"  # the above case happens for numpy < 1.14
+               "'[<>]' not supported between instances of .*")
         with pytest.raises(TypeError, match=msg):
             safe_sort(arr)
 
