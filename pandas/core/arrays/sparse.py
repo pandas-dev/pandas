@@ -1846,9 +1846,7 @@ def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     if isna(fill_value):
         mask = notna(arr)
     else:
-        # For str arrays in NumPy 1.12.0, operator!= below isn't
-        # element-wise but just returns False if fill_value is not str,
-        # so cast to object comparison to be safe
+        # cast to object comparison to be safe
         if is_string_dtype(arr):
             arr = arr.astype(object)
 

@@ -1,5 +1,3 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
 
@@ -77,9 +75,8 @@ def test_from_to_scipy_object(spmatrix, fill_value):
     columns = list('cd')
     index = list('ab')
 
-    if (spmatrix is scipy.sparse.dok_matrix and LooseVersion(
-            scipy.__version__) >= LooseVersion('0.19.0')):
-        pytest.skip("dok_matrix from object does not work in SciPy >= 0.19")
+    if spmatrix is scipy.sparse.dok_matrix:
+        pytest.skip("dok_matrix from object does not work in SciPy")
 
     # Make one ndarray and from it one sparse matrix, both to be used for
     # constructing frames and comparing results

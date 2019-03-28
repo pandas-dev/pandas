@@ -1,6 +1,8 @@
+from functools import reduce
+
 import numpy as np
 
-from pandas.compat import reduce, string_types
+from pandas.compat import string_types
 
 import pandas as pd
 

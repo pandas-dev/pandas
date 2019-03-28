@@ -197,9 +197,6 @@ def _dt_array_cmp(cls, op):
 
             result = com.values_from_object(result)
 
-            # Make sure to pass an array to result[...]; indexing with
-            # Series breaks with older version of numpy
-            o_mask = np.array(o_mask)
             if o_mask.any():
                 result[o_mask] = nat_result
 
