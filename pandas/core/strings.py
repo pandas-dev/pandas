@@ -2,8 +2,8 @@
 import codecs
 import re
 import textwrap
-import warnings
 from typing import Dict, Union
+import warnings
 
 import numpy as np
 
