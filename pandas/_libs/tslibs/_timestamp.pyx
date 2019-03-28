@@ -40,12 +40,12 @@ def maybe_integer_op_deprecated(obj):
                       .format(cls=type(obj).__name__),
                       FutureWarning)
 
+
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
 # (see Timestamp class below). This will serve as a C extension type that
 # shadows the python class, where we do any heavy lifting.
 cdef class _Timestamp(datetime):
-
 
     def __hash__(_Timestamp self):
         if self.nanosecond:
