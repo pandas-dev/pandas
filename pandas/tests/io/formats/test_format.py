@@ -4,13 +4,12 @@
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
 
-from __future__ import print_function
-
 from datetime import datetime
 import itertools
 from operator import methodcaller
 import os
 import re
+from shutil import get_terminal_size
 import sys
 import textwrap
 import warnings
@@ -32,7 +31,6 @@ import pandas.util.testing as tm
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
-from pandas.io.formats.terminal import get_terminal_size
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
@@ -308,8 +306,6 @@ class TestDataFrameFormatting(object):
         # see gh-21180
 
         terminal_size = (118, 96)
-        monkeypatch.setattr('pandas.io.formats.console.get_terminal_size',
-                            lambda: terminal_size)
         monkeypatch.setattr('pandas.io.formats.format.get_terminal_size',
                             lambda: terminal_size)
 
@@ -338,8 +334,7 @@ class TestDataFrameFormatting(object):
         # GH 22984 ensure entire window is filled
         terminal_size = (80, 24)
         df = pd.DataFrame(np.random.rand(1, 7))
-        monkeypatch.setattr('pandas.io.formats.console.get_terminal_size',
-                            lambda: terminal_size)
+
         monkeypatch.setattr('pandas.io.formats.format.get_terminal_size',
                             lambda: terminal_size)
         assert "..." not in str(df)

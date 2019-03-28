@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-
 from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal
@@ -298,7 +296,7 @@ def test_indices_concatenation_order():
         if y.empty:
             multiindex = MultiIndex(levels=[[]] * 2, codes=[[]] * 2,
                                     names=['b', 'c'])
-            res = DataFrame(None, columns=['a'], index=multiindex)
+            res = DataFrame(columns=['a'], index=multiindex)
             return res
         else:
             y = y.set_index(['b', 'c'])
@@ -317,7 +315,7 @@ def test_indices_concatenation_order():
         if y.empty:
             multiindex = MultiIndex(levels=[[]] * 2, codes=[[]] * 2,
                                     names=['foo', 'bar'])
-            res = DataFrame(None, columns=['a', 'b'], index=multiindex)
+            res = DataFrame(columns=['a', 'b'], index=multiindex)
             return res
         else:
             return y
@@ -1381,11 +1379,9 @@ def test_group_name_available_in_inference_pass():
     def f(group):
         names.append(group.name)
         return group.copy()
-
     df.groupby('a', sort=False, group_keys=False).apply(f)
-    # we expect 2 zeros because we call ``f`` once to see if a faster route
-    # can be used.
-    expected_names = [0, 0, 1, 2]
+
+    expected_names = [0, 1, 2]
     assert names == expected_names
 
 

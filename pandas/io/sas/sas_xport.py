@@ -449,9 +449,10 @@ class XportReader(BaseIterator):
                 v[miss] = np.nan
             elif self.fields[j]['ntype'] == 'char':
                 v = [y.rstrip() for y in vec]
-                if compat.PY3:
-                    if self._encoding is not None:
-                        v = [y.decode(self._encoding) for y in v]
+
+                if self._encoding is not None:
+                    v = [y.decode(self._encoding) for y in v]
+
             df[x] = v
 
         if self._index is None:

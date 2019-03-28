@@ -766,7 +766,7 @@ class TestAppend(ConcatenateBase):
             mixed_appended2.reindex(columns=['A', 'B', 'C', 'D']))
 
         # append empty
-        empty = DataFrame({})
+        empty = DataFrame()
 
         appended = self.frame.append(empty)
         tm.assert_frame_equal(self.frame, appended)
@@ -868,7 +868,7 @@ class TestAppend(ConcatenateBase):
 
     def test_append_preserve_index_name(self):
         # #980
-        df1 = DataFrame(data=None, columns=['A', 'B', 'C'])
+        df1 = DataFrame(columns=['A', 'B', 'C'])
         df1 = df1.set_index(['A'])
         df2 = DataFrame(data=[[1, 4, 7], [2, 5, 8], [3, 6, 9]],
                         columns=['A', 'B', 'C'])
@@ -2532,3 +2532,20 @@ def test_concat_categorical_tz():
         'a', 'b'
     ])
     tm.assert_series_equal(result, expected)
+
+
+def test_concat_datetimeindex_freq():
+    # GH 3232
+    # Monotonic index result
+    dr = pd.date_range('01-Jan-2013', periods=100, freq='50L', tz='UTC')
+    data = list(range(100))
+    expected = pd.DataFrame(data, index=dr)
+    result = pd.concat([expected[:50], expected[50:]])
+    tm.assert_frame_equal(result, expected)
+
+    # Non-monotonic index result
+    result = pd.concat([expected[50:], expected[:50]])
+    expected = pd.DataFrame(data[50:] + data[:50],
+                            index=dr[50:].append(dr[:50]))
+    expected.index.freq = None
+    tm.assert_frame_equal(result, expected)

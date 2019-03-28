@@ -1,9 +1,13 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
+import bz2
+import gzip
+import lzma
 import os
 import sys
 import time
 import warnings
+import zipfile
 
 from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
 from errno import ENOENT
@@ -67,8 +71,6 @@ CParserError = ParserError
 
 
 cdef:
-    bint PY3 = (sys.version_info[0] >= 3)
-
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
 
@@ -626,21 +628,13 @@ cdef class TextReader:
 
         if self.compression:
             if self.compression == 'gzip':
-                import gzip
                 if isinstance(source, basestring):
                     source = gzip.GzipFile(source, 'rb')
                 else:
                     source = gzip.GzipFile(fileobj=source)
             elif self.compression == 'bz2':
-                import bz2
-                if isinstance(source, basestring) or PY3:
-                    source = bz2.BZ2File(source, 'rb')
-                else:
-                    content = source.read()
-                    source.close()
-                    source = compat.StringIO(bz2.decompress(content))
+                source = bz2.BZ2File(source, 'rb')
             elif self.compression == 'zip':
-                import zipfile
                 zip_file = zipfile.ZipFile(source)
                 zip_names = zip_file.namelist()
 
@@ -655,8 +649,6 @@ cdef class TextReader:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
-                lzma = compat.import_lzma()
-
                 if isinstance(source, basestring):
                     source = lzma.LZMAFile(source, 'rb')
                 else:
@@ -1396,17 +1388,10 @@ def _ensure_encoded(list lst):
         if isinstance(x, unicode):
             x = PyUnicode_AsUTF8String(x)
         elif not isinstance(x, bytes):
-            x = asbytes(x)
+            x = str(x).encode('utf-8')
 
         result.append(x)
     return result
-
-
-cdef asbytes(object o):
-    if PY3:
-        return str(o).encode('utf-8')
-    else:
-        return str(o)
 
 
 # common NA values
@@ -1441,10 +1426,7 @@ cdef enum StringPath:
 cdef inline StringPath _string_path(char *encoding):
     if encoding != NULL and encoding != b"utf-8":
         return ENCODED
-    elif PY3 or encoding != NULL:
-        return UTF8
-    else:
-        return CSTRING
+    return UTF8
 
 
 # ----------------------------------------------------------------------
@@ -2155,10 +2137,7 @@ cdef raise_parser_error(object base, parser_t *parser):
 
     message = '{base}. C error: '.format(base=base)
     if parser.error_msg != NULL:
-        if PY3:
-            message += parser.error_msg.decode('utf-8')
-        else:
-            message += parser.error_msg
+        message += parser.error_msg.decode('utf-8')
     else:
         message += 'no error message set'
 
@@ -2257,12 +2236,7 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
 
     coliter_setup(&it, parser, col, line_start)
 
-    if not PY3 and c_encoding == NULL:
-        for i in range(lines):
-            COLITER_NEXT(it, word)
-            val = PyBytes_FromString(word)
-            result[i] = f(val)
-    elif ((PY3 and c_encoding == NULL) or c_encoding == b'utf-8'):
+    if c_encoding == NULL or c_encoding == b'utf-8':
         for i in range(lines):
             COLITER_NEXT(it, word)
             val = PyUnicode_FromString(word)

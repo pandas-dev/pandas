@@ -1,9 +1,6 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-from __future__ import division
-
 from collections import namedtuple
-from distutils.version import LooseVersion
 import re
 import warnings
 
@@ -1476,18 +1473,9 @@ class KdePlot(HistPlot):
     def _plot(cls, ax, y, style=None, bw_method=None, ind=None,
               column_num=None, stacking_id=None, **kwds):
         from scipy.stats import gaussian_kde
-        from scipy import __version__ as spv
 
         y = remove_na_arraylike(y)
-
-        if LooseVersion(spv) >= '0.11.0':
-            gkde = gaussian_kde(y, bw_method=bw_method)
-        else:
-            gkde = gaussian_kde(y)
-            if bw_method is not None:
-                msg = ('bw_method was added in Scipy 0.11.0.' +
-                       ' Scipy version in use is {spv}.'.format(spv=spv))
-                warnings.warn(msg)
+        gkde = gaussian_kde(y, bw_method=bw_method)
 
         y = gkde.evaluate(ind)
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
