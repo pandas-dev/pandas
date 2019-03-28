@@ -1953,7 +1953,7 @@ class Categorical(ExtensionArray, PandasObject):
             result = '{result}\n{footer}'.format(
                 result=result, footer=self._repr_footer())
 
-        return compat.text_type(result)
+        return str(result)
 
     def _repr_categories(self):
         """
@@ -2017,7 +2017,7 @@ class Categorical(ExtensionArray, PandasObject):
         formatter = fmt.CategoricalFormatter(self, length=length,
                                              na_rep=na_rep, footer=footer)
         result = formatter.to_string()
-        return compat.text_type(result)
+        return str(result)
 
     def __unicode__(self):
         """

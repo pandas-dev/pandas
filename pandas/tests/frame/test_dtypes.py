@@ -19,11 +19,6 @@ from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, makeCustomDataframe as mkdf)
 
 
-@pytest.fixture(params=[str, compat.text_type])
-def text_dtype(request):
-    return request.param
-
-
 class TestDataFrameDataTypes(TestData):
 
     def test_concat_empty_dataframe_dtypes(self):
@@ -355,7 +350,7 @@ class TestDataFrameDataTypes(TestData):
 
     @pytest.mark.parametrize("dtype", [
         str, "str", np.string_, "S1", "unicode", np.unicode_, "U1",
-        compat.text_type
+        str
     ])
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg):
@@ -514,7 +509,7 @@ class TestDataFrameDataTypes(TestData):
         with pytest.raises(ValueError, match=msg):
             df.astype(dtype)
 
-    def test_astype_str(self, text_dtype):
+    def test_astype_str(self):
         # see gh-9757
         a = Series(date_range("2010-01-04", periods=5))
         b = Series(date_range("3/6/2012 00:00", periods=5, tz="US/Eastern"))
@@ -525,29 +520,28 @@ class TestDataFrameDataTypes(TestData):
         df = DataFrame({"a": a, "b": b, "c": c, "d": d, "e": e})
 
         # Datetime-like
-        # Test str and unicode on Python 2.x and just str on Python 3.x
-        result = df.astype(text_dtype)
+        result = df.astype(str)
 
         expected = DataFrame({
-            "a": list(map(text_dtype,
+            "a": list(map(str,
                           map(lambda x: Timestamp(x)._date_repr, a._values))),
-            "b": list(map(text_dtype, map(Timestamp, b._values))),
-            "c": list(map(text_dtype,
+            "b": list(map(str, map(Timestamp, b._values))),
+            "c": list(map(str,
                           map(lambda x: Timedelta(x)._repr_base(format="all"),
                               c._values))),
-            "d": list(map(text_dtype, d._values)),
-            "e": list(map(text_dtype, e._values)),
+            "d": list(map(str, d._values)),
+            "e": list(map(str, e._values)),
         })
 
         assert_frame_equal(result, expected)
 
-    def test_astype_str_float(self, text_dtype):
+    def test_astype_str_float(self):
         # see gh-11302
-        result = DataFrame([np.NaN]).astype(text_dtype)
+        result = DataFrame([np.NaN]).astype(str)
         expected = DataFrame(["nan"])
 
         assert_frame_equal(result, expected)
-        result = DataFrame([1.12345678901234567890]).astype(text_dtype)
+        result = DataFrame([1.12345678901234567890]).astype(str)
 
         # < 1.14 truncates
         # >= 1.14 preserves the full repr

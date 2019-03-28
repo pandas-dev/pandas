@@ -23,7 +23,7 @@ import numpy as np
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import BytesIO, lmap, lrange, lzip, string_types, text_type
+from pandas.compat import BytesIO, lmap, lrange, lzip
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -630,7 +630,7 @@ class StataValueLabel(object):
         # Compute lengths and setup lists of offsets and labels
         for vl in self.value_labels:
             category = vl[1]
-            if not isinstance(category, string_types):
+            if not isinstance(category, str):
                 category = str(category)
                 warnings.warn(value_label_mismatch_doc.format(catarray.name),
                               ValueLabelTypeMismatch)
@@ -989,7 +989,7 @@ class StataReader(StataParser, BaseIterator):
             path_or_buf, encoding, _, should_close = get_filepath_or_buffer(
                 path_or_buf)
 
-        if isinstance(path_or_buf, (str, text_type, bytes)):
+        if isinstance(path_or_buf, (str, bytes)):
             self.path_or_buf = open(path_or_buf, 'rb')
         else:
             # Copy to BytesIO, and ensure no encoding
@@ -2092,8 +2092,8 @@ class StataWriter(StataParser):
         duplicate_var_id = 0
         for j, name in enumerate(columns):
             orig_name = name
-            if not isinstance(name, string_types):
-                name = text_type(name)
+            if not isinstance(name, str):
+                name = str(name)
 
             for c in name:
                 if ((c < 'A' or c > 'Z') and (c < 'a' or c > 'z') and
@@ -2478,7 +2478,7 @@ def _pad_bytes_new(name, length):
     """
     Takes a bytes instance and pads it with null bytes until it's length chars.
     """
-    if isinstance(name, string_types):
+    if isinstance(name, str):
         name = _bytes(name, 'utf-8')
     return name + b'\x00' * (length - len(name))
 
@@ -2602,7 +2602,7 @@ class StataStrLWriter(object):
         if compat.PY3:
             return s.encode(self._encoding)
         else:
-            if isinstance(s, text_type):
+            if isinstance(s, str):
                 return s.encode(self._encoding)
             return s
 

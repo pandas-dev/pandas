@@ -1261,7 +1261,7 @@ class MultiIndex(Index):
             raise KeyError
 
         def f(k, stringify):
-            if stringify and not isinstance(k, compat.string_types):
+            if stringify and not isinstance(k, str):
                 k = str(k)
             return k
         key = tuple(f(k, stringify)
@@ -1341,7 +1341,7 @@ class MultiIndex(Index):
             # note that a string that 'looks' like a Timestamp will raise
             # a KeyError! (GH5725)
             if (isinstance(key, (datetime.datetime, np.datetime64)) or
-                    (compat.PY3 and isinstance(key, compat.string_types))):
+                    (compat.PY3 and isinstance(key, str))):
                 try:
                     return _try_mi(key)
                 except KeyError:
@@ -2066,7 +2066,7 @@ class MultiIndex(Index):
         """
         from pandas.core.sorting import indexer_from_factorized
 
-        if isinstance(level, (compat.string_types, int)):
+        if isinstance(level, (str, int)):
             level = [level]
         level = [self._get_level_number(lev) for lev in level]
         sortorder = None

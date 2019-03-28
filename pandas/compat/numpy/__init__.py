@@ -3,7 +3,6 @@
 import re
 import numpy as np
 from distutils.version import LooseVersion
-from pandas.compat import string_types, string_and_binary_types
 
 
 # numpy versioning
@@ -28,7 +27,7 @@ _tz_regex = re.compile('[+-]0000$')
 
 
 def tz_replacer(s):
-    if isinstance(s, string_types):
+    if isinstance(s, str):
         if s.endswith('Z'):
             s = s[:-1]
         elif _tz_regex.search(s):
@@ -54,8 +53,7 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
     warning, when need to pass '2015-01-01 09:00:00'
     """
     # is_list_like
-    if (hasattr(arr, '__iter__')
-            and not isinstance(arr, string_and_binary_types)):
+    if (hasattr(arr, '__iter__') and not isinstance(arr, (str, bytes))):
         arr = [tz_replacer(s) for s in arr]
     else:
         arr = tz_replacer(arr)

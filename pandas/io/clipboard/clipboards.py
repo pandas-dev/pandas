@@ -1,6 +1,6 @@
 import subprocess
 
-from pandas.compat import PY2, text_type
+from pandas.compat import PY2
 
 from .exceptions import PyperclipException
 
@@ -66,7 +66,7 @@ def init_qt_clipboard():
 
     def paste_qt():
         cb = app.clipboard()
-        return text_type(cb.text())
+        return str(cb.text())
 
     return copy_qt, paste_qt
 

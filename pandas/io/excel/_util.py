@@ -144,7 +144,7 @@ def _maybe_convert_usecols(usecols):
                       FutureWarning, stacklevel=2)
         return lrange(usecols + 1)
 
-    if isinstance(usecols, compat.string_types):
+    if isinstance(usecols, str):
         return _range2cols(usecols)
 
     return usecols
@@ -194,7 +194,7 @@ def _maybe_convert_to_string(row):
         converted = []
 
         for i in range(len(row)):
-            if isinstance(row[i], compat.string_types):
+            if isinstance(row[i], str):
                 try:
                     converted.append(str(row[i]))
                 except UnicodeEncodeError:

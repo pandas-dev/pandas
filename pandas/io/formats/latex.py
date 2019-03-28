@@ -6,8 +6,6 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas import compat
-
 from pandas.io.formats.format import TableFormatter
 
 
@@ -98,7 +96,7 @@ class LatexFormatter(TableFormatter):
                 index_format = 'l' * self.frame.index.nlevels
                 column_format = index_format + column_format
         elif not isinstance(column_format,
-                            compat.string_types):  # pragma: no cover
+                            str):  # pragma: no cover
             raise AssertionError('column_format must be str or unicode, '
                                  'not {typ}'.format(typ=type(column_format)))
 

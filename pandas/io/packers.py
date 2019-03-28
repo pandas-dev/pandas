@@ -146,7 +146,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
             fh.write(pack(a, **kwargs))
 
     path_or_buf = _stringify_path(path_or_buf)
-    if isinstance(path_or_buf, compat.string_types):
+    if isinstance(path_or_buf, str):
         with open(path_or_buf, mode) as fh:
             writer(fh)
     elif path_or_buf is None:
@@ -193,7 +193,7 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
         return unpacked_obj
 
     # see if we have an actual file
-    if isinstance(path_or_buf, compat.string_types):
+    if isinstance(path_or_buf, str):
         try:
             exists = os.path.exists(path_or_buf)
         except (TypeError, ValueError):
@@ -203,7 +203,7 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
             with open(path_or_buf, 'rb') as fh:
                 return read(fh)
 
-    if isinstance(path_or_buf, compat.binary_type):
+    if isinstance(path_or_buf, bytes):
         # treat as a binary-like
         fh = None
         try:
@@ -796,7 +796,7 @@ class Iterator(object):
         try:
 
             # see if we have an actual file
-            if isinstance(self.path, compat.string_types):
+            if isinstance(self.path, str):
 
                 try:
                     path_exists = os.path.exists(self.path)

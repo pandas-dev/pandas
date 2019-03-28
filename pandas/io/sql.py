@@ -13,7 +13,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas.compat import raise_with_traceback, string_types, text_type
+from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype, is_dict_like, is_list_like)
@@ -499,7 +499,7 @@ def _engine_builder(con):
     else it just return con without modifying it.
     """
     global _SQLALCHEMY_INSTALLED
-    if isinstance(con, string_types):
+    if isinstance(con, str):
         try:
             import sqlalchemy
         except ImportError:
@@ -522,7 +522,7 @@ def pandasSQL_builder(con, schema=None, meta=None,
     con = _engine_builder(con)
     if _is_sqlalchemy_connectable(con):
         return SQLDatabase(con, schema=schema, meta=meta)
-    elif isinstance(con, string_types):
+    elif isinstance(con, str):
         raise ImportError("Using URI string without sqlalchemy installed.")
     else:
         return SQLiteDatabase(con, is_cursor=is_cursor)
@@ -626,7 +626,7 @@ class SQLTable(PandasObject):
         else:
             temp = self.frame
 
-        column_names = list(map(text_type, temp.columns))
+        column_names = list(map(str, temp.columns))
         ncols = len(column_names)
         data_list = [None] * ncols
         blocks = temp._data.blocks
@@ -764,7 +764,7 @@ class SQLTable(PandasObject):
                         for i, l in enumerate(self.frame.index.names)]
 
         # for reading: index=(list of) string to specify column to set as index
-        elif isinstance(index, string_types):
+        elif isinstance(index, str):
             return [index]
         elif isinstance(index, list):
             return index
@@ -777,11 +777,10 @@ class SQLTable(PandasObject):
             for i, idx_label in enumerate(self.index):
                 idx_type = dtype_mapper(
                     self.frame.index._get_level_values(i))
-                column_names_and_types.append((text_type(idx_label),
-                                              idx_type, True))
+                column_names_and_types.append((str(idx_label), idx_type, True))
 
         column_names_and_types += [
-            (text_type(self.frame.columns[i]),
+            (str(self.frame.columns[i]),
              dtype_mapper(self.frame.iloc[:, i]),
              False)
             for i in range(len(self.frame.columns))
@@ -1251,7 +1250,7 @@ _SQL_TYPES = {
 
 def _get_unicode_name(name):
     try:
-        uname = text_type(name).encode("utf-8", "strict").decode("utf-8")
+        uname = str(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError:
         raise ValueError(
             "Cannot convert identifier to UTF-8: '{name}'".format(name=name))
@@ -1305,7 +1304,7 @@ class SQLiteTable(SQLTable):
                 conn.execute(stmt)
 
     def insert_statement(self):
-        names = list(map(text_type, self.frame.columns))
+        names = list(map(str, self.frame.columns))
         wld = '?'  # wildcard char
         escape = _get_valid_sqlite_name
 

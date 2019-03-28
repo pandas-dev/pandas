@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-import pandas.compat as compat
 from pandas.compat import lrange
 
 import pandas as pd
@@ -131,7 +130,7 @@ class TestSeriesDtypes(object):
         expected = Series(date_range('20130101 06:00:00', periods=3, tz='CET'))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [compat.text_type, np.str_])
+    @pytest.mark.parametrize("dtype", [str, np.str_])
     @pytest.mark.parametrize("series", [Series([string.digits * 10,
                                                 tm.rands(63),
                                                 tm.rands(64),
@@ -142,10 +141,10 @@ class TestSeriesDtypes(object):
     def test_astype_str_map(self, dtype, series):
         # see gh-4405
         result = series.astype(dtype)
-        expected = series.map(compat.text_type)
+        expected = series.map(str)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [str, compat.text_type])
+    @pytest.mark.parametrize("dtype", [str, str])
     def test_astype_str_cast(self, dtype):
         # see gh-9757: test str and unicode on python 2.x
         # and just str on python 3.x
@@ -184,7 +183,7 @@ class TestSeriesDtypes(object):
 
         for s in test_series:
             res = s.astype("unicode")
-            expec = s.map(compat.text_type)
+            expec = s.map(str)
             tm.assert_series_equal(res, expec)
 
         # Restore the former encoding

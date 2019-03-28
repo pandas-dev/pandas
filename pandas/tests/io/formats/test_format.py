@@ -18,7 +18,6 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas.compat as compat
 from pandas.compat import (
     StringIO, is_platform_32bit, is_platform_windows, lrange, lzip)
 
@@ -485,7 +484,7 @@ class TestDataFrameFormatting(object):
         buf.getvalue()
 
         result = self.frame.to_string()
-        assert isinstance(result, compat.text_type)
+        assert isinstance(result, str)
 
     def test_to_string_utf8_columns(self):
         n = "\u05d0".encode('utf-8')
@@ -956,7 +955,7 @@ class TestDataFrameFormatting(object):
 
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({'c/\u03c3': Series({'test': np.nan})})
-        compat.text_type(dm.to_string())
+        str(dm.to_string())
 
     def test_string_repr_encoding(self, datapath):
         filepath = datapath('io', 'parser', 'data', 'unicode_series.csv')
@@ -1192,7 +1191,7 @@ class TestDataFrameFormatting(object):
         assert retval is None
         assert buf.getvalue() == s
 
-        assert isinstance(s, compat.string_types)
+        assert isinstance(s, str)
 
         # print in right order
         result = biggie.to_string(columns=['B', 'A'], col_space=17,
