@@ -493,7 +493,7 @@ class Docstring(object):
             # Return True if a parameter description ends
             # with a bullet point
             for desc_line in self.parameter_desc_list(param)[::-1]:
-                if desc_line[0] in ['*', '-', '+']:
+                if desc_line[0] in ['*', '-', '+', '•', '‣', '⁃']:
                     return True
                 elif desc_line[0:2] != '  ':
                     return False
