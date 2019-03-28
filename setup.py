@@ -30,7 +30,7 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
-min_numpy_ver = '1.12.0'
+min_numpy_ver = '1.13.3'
 setuptools_kwargs = {
     'install_requires': [
         'python-dateutil >= 2.5.0',

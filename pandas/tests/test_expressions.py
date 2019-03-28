@@ -6,7 +6,6 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas import _np_version_under1p13
 from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
 import pandas.util.testing as tm
@@ -357,8 +356,8 @@ class TestExpressions(object):
             f = getattr(operator, name)
             fe = getattr(operator, sub_funcs[subs[op]])
 
-            # >= 1.13.0 these are now TypeErrors
-            if op == '-' and not _np_version_under1p13:
+            if op == '-':
+                # raises TypeError
                 continue
 
             with tm.use_numexpr(True, min_elements=5):
