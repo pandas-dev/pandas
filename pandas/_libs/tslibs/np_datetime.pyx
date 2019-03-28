@@ -12,7 +12,7 @@ from cpython.datetime cimport (datetime, date,
 PyDateTime_IMPORT
 
 from numpy cimport int64_t
-from pandas._libs.tslibs.util cimport get_string_data_checked
+from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 
 cdef extern from "src/datetime/np_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
@@ -175,8 +175,8 @@ cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
                                int* out_local, int* out_tzoffset) except? -1:
     cdef:
         Py_ssize_t length
-        const char* tmp
+        const char* buf
 
-    tmp = get_string_data_checked(val, &length)
-    return parse_iso_8601_datetime(tmp, length,
+    buf = get_c_string_buf_and_size(val, &length)
+    return parse_iso_8601_datetime(buf, length,
                                    dts, out_local, out_tzoffset)
