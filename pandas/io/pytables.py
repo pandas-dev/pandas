@@ -274,7 +274,7 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
 
     Parameters
     ----------
-    path_or_buf : string, buffer or path object
+    path_or_buf : str, path object, URL, pandas.HDFStore or file-like object
         Path to the file to open, or an open :class:`pandas.HDFStore` object.
         Supports any object implementing the ``__fspath__`` protocol.
         This includes :class:`pathlib.Path` and py._path.local.LocalPath
