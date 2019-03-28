@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import FilePathOrBuffer
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
@@ -37,7 +38,6 @@ from pandas.core.index import (
     Index, MultiIndex, RangeIndex, ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
-from pandas.typing import FilePathOrBuffer
 
 from pandas.io.common import (
     _NA_VALUES, BaseIterator, UnicodeReader, UTF8Recoder, _get_handle,
