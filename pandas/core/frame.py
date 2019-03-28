@@ -17,7 +17,7 @@ import itertools
 import sys
 import warnings
 from textwrap import dedent
-from typing import FrozenSet, List, Union
+from typing import List, Set, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -365,7 +365,7 @@ class DataFrame(NDFrame):
     _constructor_sliced = Series
     _deprecations = NDFrame._deprecations | frozenset(
         ['get_value', 'set_value', 'from_csv', 'from_items'])
-    _accessors = frozenset()  # type: FrozenSet[str]
+    _accessors = set()  # type: Set[str]
 
     @property
     def _constructor_expanddim(self):
