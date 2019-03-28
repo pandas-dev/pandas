@@ -2,7 +2,7 @@
 import codecs
 import re
 import textwrap
-from typing import Dict, Union
+from typing import Dict
 import warnings
 
 import numpy as np
