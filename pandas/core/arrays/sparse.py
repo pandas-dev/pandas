@@ -4,7 +4,7 @@ SparseArray data structure
 import numbers
 import operator
 import re
-from typing import Any, Callable, Union
+from typing import Any, Callable, Type, Union
 import warnings
 
 import numpy as np
@@ -79,7 +79,7 @@ class SparseDtype(ExtensionDtype):
 
     def __init__(
             self,
-            dtype: Union[str, np.dtype, 'ExtensionDtype', type] = np.float64,
+            dtype: Union[str, np.dtype, ExtensionDtype, Type] = np.float64,
             fill_value: Any = None
     ) -> None:
         from pandas.core.dtypes.missing import na_value_for_dtype
