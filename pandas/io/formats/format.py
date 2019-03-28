@@ -942,10 +942,14 @@ class GenericArrayFormatter(object):
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                if x is None:
-                    return 'None'
-                elif x is NaT or is_np_nat(x):
-                    return 'NaT'
+                try:
+                    if x is None:
+                        return 'None'
+                    elif x is NaT or np.isnat(x):
+                        return 'NaT'
+                except (TypeError, ValueError):
+                    # np.isnat only handles datetime or timedelta objects
+                    pass
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return '{x}'.format(x=x)
