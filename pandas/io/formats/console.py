@@ -2,7 +2,7 @@
 Internal module for console introspection
 """
 
-from pandas.io.formats.terminal import get_terminal_size
+from shutil import get_terminal_size
 
 
 def get_console_size():

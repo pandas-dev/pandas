@@ -207,12 +207,8 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
         # treat as a binary-like
         fh = None
         try:
-            # We can't distinguish between a path and a buffer of bytes in
-            # Python 2 so instead assume the first byte of a valid path is
-            # less than 0x80.
-            if compat.PY3 or ord(path_or_buf[0]) >= 0x80:
-                fh = compat.BytesIO(path_or_buf)
-                return read(fh)
+            fh = compat.BytesIO(path_or_buf)
+            return read(fh)
         finally:
             if fh is not None:
                 fh.close()

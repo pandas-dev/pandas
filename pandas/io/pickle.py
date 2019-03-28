@@ -3,7 +3,7 @@ import warnings
 
 from numpy.lib.format import read_array
 
-from pandas.compat import PY3, BytesIO, cPickle as pkl, pickle_compat as pc
+from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc
 
 from pandas.io.common import _get_handle, _stringify_path
 
@@ -153,9 +153,7 @@ def read_pickle(path, compression='infer'):
         try:
             return pc.load(f, encoding=None)
         except Exception:  # noqa: E722
-            if PY3:
-                return pc.load(f, encoding='latin1')
-            raise
+            return pc.load(f, encoding='latin1')
     finally:
         f.close()
         for _f in fh:

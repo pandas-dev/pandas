@@ -2,6 +2,7 @@
 Data structure for 1-dimensional cross-sectional and time series data
 """
 from collections import OrderedDict
+from shutil import get_terminal_size
 from textwrap import dedent
 import warnings
 
@@ -47,7 +48,6 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
-from pandas.io.formats.terminal import get_terminal_size
 import pandas.plotting._core as gfx
 
 # pylint: disable=E1101,E1103
