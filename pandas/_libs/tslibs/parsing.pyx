@@ -34,7 +34,7 @@ cdef extern from "../src/headers/portable.h":
 
 cdef extern from "../src/parser/tokenizer.h":
     double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
-                   int skip_trailing)
+                   int skip_trailing, int *error)
 
 cdef extern from *:
     char* PyUnicode_AsUTF8AndSize(object unicode, Py_ssize_t* length)
@@ -327,6 +327,7 @@ cpdef bint _does_string_look_like_datetime(object date_string):
         Py_ssize_t length = -1
         double converted_date
         char first
+        int error = 0
 
     if not get_string_data(date_string, &buf, &length):
         return False
@@ -339,8 +340,9 @@ cpdef bint _does_string_look_like_datetime(object date_string):
         elif date_string in _not_datelike_strings:
             return False
         else:
-            converted_date = xstrtod(buf, &endptr, b'.', b'e', b'\0', 1)
-            if errno == 0 and endptr == buf + length:
+            converted_date = xstrtod(buf, &endptr,
+                                     b'.', b'e', b'\0', 1, &error)
+            if error == 0 and endptr == buf + length:
                 return converted_date >= 1000
 
     return True
