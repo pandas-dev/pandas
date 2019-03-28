@@ -6,8 +6,10 @@ import re
 import time
 from io import StringIO
 
-from cpython.datetime cimport datetime
+from libc.string cimport strchr
+from cpython.datetime cimport datetime, PyDateTime_IMPORT, PyDateTimeAPI
 
+PyDateTime_IMPORT
 
 import numpy as np
 
@@ -24,6 +26,10 @@ from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 from pandas._libs.tslibs.nattype import nat_strings, NaT
+from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
+
+cdef extern from "../src/headers/portable.h":
+    int getdigit_ascii(char c, int default) nogil
 
 # ----------------------------------------------------------------------
 # Constants
@@ -35,6 +41,7 @@ class DateParseError(ValueError):
 
 _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
+_DEFAULT_TZINFO = _DEFAULT_DATETIME.tzinfo
 
 cdef:
     object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
@@ -42,6 +49,68 @@ cdef:
     set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 # ----------------------------------------------------------------------
+cdef char delimiters[5]
+delimiters[:] = [b' ', b'/', b'-', b'\\', b'\0']
+
+cdef int MAX_DAYS_IN_MONTH = 31
+cdef int MAX_MONTH = 12
+
+cdef inline int _parse_2digit(const char* s):
+    cdef int result = 0
+    result += getdigit_ascii(s[0], -10) * 10
+    result += getdigit_ascii(s[1], -100) * 1
+    return result
+    
+cdef inline int _parse_4digit(const char* s):
+    cdef int result = 0
+    result += getdigit_ascii(s[0], -10) * 1000
+    result += getdigit_ascii(s[1], -100) * 100
+    result += getdigit_ascii(s[2], -1000) * 10
+    result += getdigit_ascii(s[3], -10000) * 1
+    return result
+
+cdef object parse_slashed_date(object date_string, bint dayfirst,
+                               object tzinfo):
+    cdef:
+        const char* buf
+        Py_ssize_t length
+        int day, month, year
+        int part1, part2
+
+    buf = get_c_string_buf_and_size(date_string, &length)
+    if length != 10 or strchr(delimiters, buf[2]) == NULL \
+            or strchr(delimiters, buf[5]) == NULL:
+        return None
+
+    part1 = _parse_2digit(buf)
+    part2 = _parse_2digit(buf + 3)
+    year = _parse_4digit(buf + 6)
+    if part1 < 0 or part2 < 0 or year < 0:
+        # some part is not an integer, so it's not a dd/mm/yyyy date
+        return None
+
+    if part1 < 1 or part2 < 1 or \
+            part1 > MAX_DAYS_IN_MONTH or part2 > MAX_DAYS_IN_MONTH or \
+            (part1 > MAX_MONTH and part2 > MAX_MONTH):
+        raise DateParseError("Invalid date specified (%d/%d)" % 
+                             (part1, part2))
+
+    if part1 > MAX_MONTH:
+        day = part1
+        month = part2
+    elif part2 > MAX_MONTH:
+        day = part2
+        month = part1
+    elif dayfirst:
+        day = part1
+        month = part2
+    else:
+        day = part2
+        month = part1
+
+    return PyDateTimeAPI.DateTime_FromDateAndTime(year, month, day, 
+                                                  0, 0, 0, 0, tzinfo,
+                                                  PyDateTimeAPI.DateTimeType)
 
 
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
@@ -64,6 +133,10 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
         # use current datetime as default, not pass _DEFAULT_DATETIME
         dt = du_parse(date_string, dayfirst=dayfirst,
                       yearfirst=yearfirst, **kwargs)
+        return dt
+
+    dt = parse_slashed_date(date_string, dayfirst, _DEFAULT_TZINFO)
+    if dt is not None:
         return dt
 
     try:
