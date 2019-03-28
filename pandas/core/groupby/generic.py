@@ -16,8 +16,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 import pandas.compat as compat
-from pandas.compat import lzip, map
-from pandas.compat.numpy import _np_version_under1p13
+from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
@@ -40,6 +39,7 @@ from pandas.core.index import CategoricalIndex, Index, MultiIndex
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
+from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting._core import boxplot_frame_groupby
 
@@ -198,9 +198,16 @@ class NDFrameGroupBy(GroupBy):
                     assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
                         [arg], _level=_level, _axis=self.axis)
+
                     result.columns = Index(
                         result.columns.levels[0],
                         name=self._selected_obj.columns.name)
+
+                    if isinstance(self.obj, SparseDataFrame):
+                        # Backwards compat for groupby.agg() with sparse
+                        # values. concat no longer converts DataFrame[Sparse]
+                        # to SparseDataFrame, so we do it here.
+                        result = SparseDataFrame(result._data)
                 except Exception:
                     result = self._aggregate_generic(arg, *args, **kwargs)
 
@@ -1210,7 +1217,7 @@ class SeriesGroupBy(GroupBy):
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)
-        minlength = ngroups or (None if _np_version_under1p13 else 0)
+        minlength = ngroups or 0
         out = np.bincount(ids[mask], minlength=minlength)
 
         return Series(out,

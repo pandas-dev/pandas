@@ -6,6 +6,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import iNaT, lib, tslibs
 import pandas.compat as compat
 
@@ -19,10 +21,9 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.common as com
-from pandas.core.config import get_option
 
 _BOTTLENECK_INSTALLED = False
-_MIN_BOTTLENECK_VERSION = '1.0.0'
+_MIN_BOTTLENECK_VERSION = '1.2.1'
 
 try:
     import bottleneck as bn

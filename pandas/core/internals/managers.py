@@ -4,11 +4,11 @@ from functools import partial
 import itertools
 import operator
 import re
+from typing import List, Optional, Union
 
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas.compat import map, range, zip
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
     is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -295,12 +296,12 @@ class BlockManager(PandasObject):
         output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
-                output += u'\nItems: {ax}'.format(ax=ax)
+                output += '\nItems: {ax}'.format(ax=ax)
             else:
-                output += u'\nAxis {i}: {ax}'.format(i=i, ax=ax)
+                output += '\nAxis {i}: {ax}'.format(i=i, ax=ax)
 
         for block in self.blocks:
-            output += u'\n{block}'.format(block=pprint_thing(block))
+            output += '\n{block}'.format(block=pprint_thing(block))
         return output
 
     def _verify_integrity(self):

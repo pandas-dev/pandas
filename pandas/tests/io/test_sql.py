@@ -17,8 +17,6 @@ The SQL tests are broken down in different classes:
 
 """
 
-from __future__ import print_function
-
 import csv
 from datetime import date, datetime, time
 import sqlite3
@@ -28,7 +26,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import PY2, PY36, lrange, range, string_types
+from pandas.compat import PY36, lrange, string_types
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype, is_datetime64tz_dtype)
@@ -857,7 +855,7 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_unicode_column_name(self):
         # GH 11431
-        df = DataFrame([[1, 2], [3, 4]], columns=[u'\xe9', u'b'])
+        df = DataFrame([[1, 2], [3, 4]], columns=['\xe9', 'b'])
         df.to_sql('test_unicode', self.conn, index=False)
 
     def test_escaped_table_name(self):
@@ -1704,7 +1702,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         main(self.conn)
 
     def test_temporary_table(self):
-        test_data = u'Hello, World!'
+        test_data = 'Hello, World!'
         expected = DataFrame({'spam': [test_data]})
         Base = declarative.declarative_base()
 
@@ -2113,7 +2111,6 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
                 return ctype
         raise ValueError('Table %s, column %s not found' % (table, column))
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_dtype(self):
         if self.flavor == 'mysql':
             pytest.skip('Not applicable to MySQL legacy')
@@ -2172,7 +2169,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
                 ['test_weird_name]', 'test_weird_name[',
                  'test_weird_name`', 'test_weird_name"', 'test_weird_name\'',
                  '_b.test_weird_name_01-30', '"_b.test_weird_name_01-30"',
-                 '99beginswithnumber', '12345', u'\xe9']):
+                 '99beginswithnumber', '12345', '\xe9']):
             df.to_sql(weird_name, self.conn)
             sql.table_exists(weird_name, self.conn)
 
