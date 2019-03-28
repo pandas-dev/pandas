@@ -23,9 +23,7 @@ import numpy as np
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import (
-    BytesIO, ResourceWarning, lmap, lrange, lzip, range, string_types,
-    text_type, zip)
+from pandas.compat import BytesIO, lmap, lrange, lzip, string_types, text_type
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -767,9 +765,9 @@ class StataMissingValue(StringMixin):
     bases = (101, 32741, 2147483621)
     for b in bases:
         # Conversion to long to avoid hash issues on 32 bit platforms #8968
-        MISSING_VALUES[compat.long(b)] = '.'
+        MISSING_VALUES[b] = '.'
         for i in range(1, 27):
-            MISSING_VALUES[compat.long(i + b)] = '.' + chr(96 + i)
+            MISSING_VALUES[i + b] = '.' + chr(96 + i)
 
     float32_base = b'\x00\x00\x00\x7f'
     increment = struct.unpack('<i', b'\x00\x08\x00\x00')[0]
@@ -800,8 +798,8 @@ class StataMissingValue(StringMixin):
 
     def __init__(self, value):
         self._value = value
-        # Conversion to long to avoid hash issues on 32 bit platforms #8968
-        value = compat.long(value) if value < 2147483648 else float(value)
+        # Conversion to int to avoid hash issues on 32 bit platforms #8968
+        value = int(value) if value < 2147483648 else float(value)
         self._str = self.MISSING_VALUES[value]
 
     string = property(lambda self: self._str,

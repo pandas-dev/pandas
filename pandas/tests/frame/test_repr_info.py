@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import datetime, timedelta
 import re
 import sys
@@ -10,7 +8,7 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY, StringIO, lrange, u
+from pandas.compat import PYPY, StringIO, lrange
 
 import pandas as pd
 from pandas import (
@@ -125,7 +123,7 @@ class TestDataFrameReprInfoEtc(TestData):
         warnings.filters = warn_filters
 
     def test_repr_unicode(self):
-        uval = u('\u03c3\u03c3\u03c3\u03c3')
+        uval = '\u03c3\u03c3\u03c3\u03c3'
 
         # TODO(wesm): is this supposed to be used?
         bval = uval.encode('utf-8')  # noqa
@@ -141,11 +139,11 @@ class TestDataFrameReprInfoEtc(TestData):
         assert result.split('\n')[0].rstrip() == ex_top
 
     def test_unicode_string_with_unicode(self):
-        df = DataFrame({'A': [u("\u05d0")]})
+        df = DataFrame({'A': ["\u05d0"]})
         str(df)
 
     def test_bytestring_with_unicode(self):
-        df = DataFrame({'A': [u("\u05d0")]})
+        df = DataFrame({'A': ["\u05d0"]})
         bytes(df)
 
     def test_very_wide_info_repr(self):

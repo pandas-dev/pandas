@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from collections import OrderedDict
 from datetime import timedelta
 
 import numpy as np
 import pytest
-
-from pandas.compat import u
 
 from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype
 
@@ -364,7 +360,7 @@ class TestDataFrameDataTypes(TestData):
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg):
         df = DataFrame({"a": list("abc"),
-                        "g": list(u("abc")),
+                        "g": list("abc"),
                         "b": list(range(1, 4)),
                         "c": np.arange(3, 6).astype("u1"),
                         "d": np.arange(4.0, 7.0, dtype="float64"),
@@ -378,7 +374,7 @@ class TestDataFrameDataTypes(TestData):
 
     def test_select_dtypes_bad_arg_raises(self):
         df = DataFrame({'a': list('abc'),
-                        'g': list(u('abc')),
+                        'g': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
                         'd': np.arange(4.0, 7.0, dtype='float64'),
