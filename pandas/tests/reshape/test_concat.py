@@ -766,7 +766,7 @@ class TestAppend(ConcatenateBase):
             mixed_appended2.reindex(columns=['A', 'B', 'C', 'D']))
 
         # append empty
-        empty = DataFrame({})
+        empty = DataFrame()
 
         appended = self.frame.append(empty)
         tm.assert_frame_equal(self.frame, appended)
@@ -868,7 +868,7 @@ class TestAppend(ConcatenateBase):
 
     def test_append_preserve_index_name(self):
         # #980
-        df1 = DataFrame(data=None, columns=['A', 'B', 'C'])
+        df1 = DataFrame(columns=['A', 'B', 'C'])
         df1 = df1.set_index(['A'])
         df2 = DataFrame(data=[[1, 4, 7], [2, 5, 8], [3, 6, 9]],
                         columns=['A', 'B', 'C'])
@@ -963,7 +963,7 @@ class TestAppend(ConcatenateBase):
                         name=2)
         msg = ("the other index needs to be an IntervalIndex too, but was"
                r" type {}|"
-               r"object of type '(int|long|float|Timestamp)' has no len\(\)|"
+               r"object of type '(int|float|Timestamp)' has no len\(\)|"
                "Expected tuple, got str")
         with pytest.raises(TypeError, match=msg.format(
                 index_can_append.__class__.__name__)):
@@ -973,9 +973,9 @@ class TestAppend(ConcatenateBase):
                           columns=index_cannot_append_with_other)
         ser = pd.Series([7, 8, 9], index=index_can_append, name=2)
         msg = (r"unorderable types: (Interval|int)\(\) > "
-               r"(int|long|float|str)\(\)|"
-               r"Expected tuple, got (int|long|float|str)|"
-               r"Cannot compare type 'Timestamp' with type '(int|long)'|"
+               r"(int|float|str)\(\)|"
+               r"Expected tuple, got (int|float|str)|"
+               r"Cannot compare type 'Timestamp' with type 'int'|"
                r"'>' not supported between instances of 'int' and 'str'")
         with pytest.raises(TypeError, match=msg):
             df.append(ser)
@@ -1401,8 +1401,8 @@ class TestConcatenate(ConcatenateBase):
     def test_with_mixed_tuples(self, sort):
         # 10697
         # columns have mixed tuples, so handle properly
-        df1 = DataFrame({u'A': 'foo', (u'B', 1): 'bar'}, index=range(2))
-        df2 = DataFrame({u'B': 'foo', (u'B', 1): 'bar'}, index=range(2))
+        df1 = DataFrame({'A': 'foo', ('B', 1): 'bar'}, index=range(2))
+        df2 = DataFrame({'B': 'foo', ('B', 1): 'bar'}, index=range(2))
 
         # it works
         concat([df1, df2], sort=sort)
@@ -2532,3 +2532,20 @@ def test_concat_categorical_tz():
         'a', 'b'
     ])
     tm.assert_series_equal(result, expected)
+
+
+def test_concat_datetimeindex_freq():
+    # GH 3232
+    # Monotonic index result
+    dr = pd.date_range('01-Jan-2013', periods=100, freq='50L', tz='UTC')
+    data = list(range(100))
+    expected = pd.DataFrame(data, index=dr)
+    result = pd.concat([expected[:50], expected[50:]])
+    tm.assert_frame_equal(result, expected)
+
+    # Non-monotonic index result
+    result = pd.concat([expected[50:], expected[:50]])
+    expected = pd.DataFrame(data[50:] + data[:50],
+                            index=dr[50:].append(dr[:50]))
+    expected.index.freq = None
+    tm.assert_frame_equal(result, expected)

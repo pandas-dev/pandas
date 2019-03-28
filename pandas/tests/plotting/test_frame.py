@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import rand, randn
 import pytest
 
-from pandas.compat import lmap, lrange, lzip, range, u, zip
+from pandas.compat import lmap, lrange, lzip
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -113,21 +113,20 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, use_index=True)
 
         # unicode
-        index = MultiIndex.from_tuples([(u('\u03b1'), 0),
-                                        (u('\u03b1'), 1),
-                                        (u('\u03b2'), 2),
-                                        (u('\u03b2'), 3),
-                                        (u('\u03b3'), 4),
-                                        (u('\u03b3'), 5),
-                                        (u('\u03b4'), 6),
-                                        (u('\u03b4'), 7)], names=['i0', 'i1'])
-        columns = MultiIndex.from_tuples([('bar', u('\u0394')),
-                                          ('bar', u('\u0395'))], names=['c0',
-                                                                        'c1'])
+        index = MultiIndex.from_tuples([('\u03b1', 0),
+                                        ('\u03b1', 1),
+                                        ('\u03b2', 2),
+                                        ('\u03b2', 3),
+                                        ('\u03b3', 4),
+                                        ('\u03b3', 5),
+                                        ('\u03b4', 6),
+                                        ('\u03b4', 7)], names=['i0', 'i1'])
+        columns = MultiIndex.from_tuples(
+            [('bar', '\u0394'), ('bar', '\u0395')], names=['c0', 'c1'])
         df = DataFrame(np.random.randint(0, 10, (8, 2)),
                        columns=columns,
                        index=index)
-        _check_plot_works(df.plot, title=u('\u03A3'))
+        _check_plot_works(df.plot, title='\u03A3')
 
         # GH 6951
         # Test with single column
@@ -2471,7 +2470,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_has_errorbars(ax, xerr=0, yerr=2)
 
             # yerr is column name
-            for yerr in ['yerr', u('誤差')]:
+            for yerr in ['yerr', '誤差']:
                 s_df = df.copy()
                 s_df[yerr] = np.ones(12) * 0.2
                 ax = _check_plot_works(s_df.plot, yerr=yerr)

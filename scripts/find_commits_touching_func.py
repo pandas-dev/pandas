@@ -11,13 +11,12 @@ files will probably erase them.
 Usage::
     $ ./find_commits_touching_func.py  (see arguments below)
 """
-from __future__ import print_function
 import logging
 import re
 import os
 import argparse
 from collections import namedtuple
-from pandas.compat import lrange, map, string_types, text_type, parse_date
+from pandas.compat import lrange, string_types, text_type, parse_date
 try:
     import sh
 except ImportError:

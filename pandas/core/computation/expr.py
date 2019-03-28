@@ -2,14 +2,14 @@
 """
 
 import ast
-from functools import partial
+from functools import partial, reduce
 import itertools as it
 import operator
 import tokenize
 
 import numpy as np
 
-from pandas.compat import StringIO, lmap, map, reduce, string_types, zip
+from pandas.compat import StringIO, lmap, string_types
 
 import pandas as pd
 from pandas import compat
