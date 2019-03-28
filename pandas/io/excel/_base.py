@@ -32,7 +32,7 @@ Support an option to read a single sheet or a list of sheets.
 
 Parameters
 ----------
-io : str, file descriptor, pathlib.Path, ExcelFile or xlrd.Book
+io : str, xlrd.Book, path object, URL or file-like object
     The string could be a URL. Valid URL schemes include http, ftp, s3,
     gcs, and file. For file URLs, a host is expected. For instance, a local
     file could be /path/to/workbook.xlsx.
