@@ -144,26 +144,24 @@ class TestSeriesDtypes(object):
         expected = series.map(str)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [str, str])
-    def test_astype_str_cast(self, dtype):
-        # see gh-9757: test str and unicode on python 2.x
-        # and just str on python 3.x
+    def test_astype_str_cast(self):
+        # see gh-9757
         ts = Series([Timestamp('2010-01-04 00:00:00')])
-        s = ts.astype(dtype)
+        s = ts.astype(str)
 
-        expected = Series([dtype('2010-01-04')])
+        expected = Series([str('2010-01-04')])
         tm.assert_series_equal(s, expected)
 
         ts = Series([Timestamp('2010-01-04 00:00:00', tz='US/Eastern')])
-        s = ts.astype(dtype)
+        s = ts.astype(str)
 
-        expected = Series([dtype('2010-01-04 00:00:00-05:00')])
+        expected = Series([str('2010-01-04 00:00:00-05:00')])
         tm.assert_series_equal(s, expected)
 
         td = Series([Timedelta(1, unit='d')])
-        s = td.astype(dtype)
+        s = td.astype(str)
 
-        expected = Series([dtype('1 days 00:00:00.000000000')])
+        expected = Series([str('1 days 00:00:00.000000000')])
         tm.assert_series_equal(s, expected)
 
     def test_astype_unicode(self):

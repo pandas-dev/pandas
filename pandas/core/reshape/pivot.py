@@ -529,7 +529,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
 
 def _normalize(table, normalize, margins, margins_name='All'):
 
-    if not isinstance(normalize, bool) and not isinstance(normalize, str):
+    if not isinstance(normalize, (bool, str)):
         axis_subs = {0: 'index', 1: 'columns'}
         try:
             normalize = axis_subs[normalize]

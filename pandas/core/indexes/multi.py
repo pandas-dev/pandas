@@ -1340,8 +1340,7 @@ class MultiIndex(Index):
             # rather than a KeyError, try it here
             # note that a string that 'looks' like a Timestamp will raise
             # a KeyError! (GH5725)
-            if (isinstance(key, (datetime.datetime, np.datetime64)) or
-                    (compat.PY3 and isinstance(key, str))):
+            if isinstance(key, (datetime.datetime, np.datetime64, str)):
                 try:
                     return _try_mi(key)
                 except KeyError:

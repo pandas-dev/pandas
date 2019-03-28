@@ -601,8 +601,7 @@ class Block(PandasObject):
                 if self.is_extension:
                     values = self.values.astype(dtype)
                 else:
-                    if issubclass(dtype.type,
-                                  (str, str)):
+                    if issubclass(dtype.type, str):
 
                         # use native type formatting for datetime/tz/timedelta
                         if self.is_datelike:

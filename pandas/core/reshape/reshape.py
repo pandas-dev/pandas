@@ -910,10 +910,6 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         # PY2 embedded unicode, gh-22084
         def _make_col_name(prefix, prefix_sep, level):
             fstr = '{prefix}{prefix_sep}{level}'
-            if PY2 and (isinstance(prefix, str) or
-                        isinstance(prefix_sep, str) or
-                        isinstance(level, str)):
-                fstr = fstr
             return fstr.format(prefix=prefix,
                                prefix_sep=prefix_sep,
                                level=level)

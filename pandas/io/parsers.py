@@ -1005,7 +1005,7 @@ class TextFileReader(BaseIterator):
 
         quotechar = options['quotechar']
         if (quotechar is not None and
-                isinstance(quotechar, (str, str, bytes))):
+                isinstance(quotechar, (str, bytes))):
             if (len(quotechar) == 1 and ord(quotechar) > 127 and
                     engine not in ('python', 'python-fwf')):
                 fallback_reason = ("ord(quotechar) > 127, meaning the "
@@ -2909,8 +2909,7 @@ class PythonParser(ParserBase):
         for l in lines:
             # Remove empty lines and lines with only one whitespace value
             if (len(l) > 1 or len(l) == 1 and
-                    (not isinstance(l[0], str) or
-                     l[0].strip())):
+                    (not isinstance(l[0], str) or l[0].strip())):
                 ret.append(l)
         return ret
 

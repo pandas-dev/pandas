@@ -1660,8 +1660,7 @@ class DataFrame(NDFrame):
             elif index_names[0] is None:
                 index_names = ['index']
 
-            names = (lmap(str, index_names) +
-                     lmap(str, self.columns))
+            names = lmap(str, index_names) + map(str, self.columns)
         else:
             arrays = [self[c].get_values() for c in self.columns]
             names = lmap(str, self.columns)
@@ -1710,8 +1709,7 @@ class DataFrame(NDFrame):
             # string naming a type.
             if dtype_mapping is None:
                 formats.append(v.dtype)
-            elif isinstance(dtype_mapping, (type, np.dtype,
-                                            str)):
+            elif isinstance(dtype_mapping, (type, np.dtype, str)):
                 formats.append(dtype_mapping)
             else:
                 element = "row" if i < index_len else "column"

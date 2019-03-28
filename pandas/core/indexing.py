@@ -1831,8 +1831,7 @@ class _LocIndexer(_LocationIndexer):
         """Translate any partial string timestamp matches in key, returning the
         new key (GH 10331)"""
         if isinstance(labels, MultiIndex):
-            if (isinstance(key, str) and
-                    labels.levels[0].is_all_dates):
+            if (isinstance(key, str) and labels.levels[0].is_all_dates):
                 # Convert key '2016-01-01' to
                 # ('2016-01-01'[, slice(None, None, None)]+)
                 key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))

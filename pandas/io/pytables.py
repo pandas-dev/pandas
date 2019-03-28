@@ -66,9 +66,9 @@ def _ensure_encoding(encoding):
 
 
 def _ensure_str(name):
-    """Ensure that an index / column name is a str (python 3) or
-    unicode (python 2); otherwise they may be np.string dtype.
-    Non-string dtypes are passed through unchanged.
+    """
+    Ensure that an index / column name is a str (python 3); otherwise they
+    may be np.string dtype. Non-string dtypes are passed through unchanged.
 
     https://github.com/pandas-dev/pandas/issues/13492
     """

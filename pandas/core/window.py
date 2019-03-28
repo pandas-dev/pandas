@@ -1569,8 +1569,7 @@ class Rolling(_Rolling_and_Expanding):
 
         # we allow rolling on a datetimelike index
         if ((self.obj.empty or self.is_datetimelike) and
-                isinstance(self.window, (str, ABCDateOffset,
-                                         timedelta))):
+                isinstance(self.window, (str, ABCDateOffset, timedelta))):
 
             self._validate_monotonic()
             freq = self._validate_freq()
