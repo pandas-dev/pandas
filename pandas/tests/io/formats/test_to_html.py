@@ -633,3 +633,11 @@ def test_to_html_invalid_classes_type(classes):
 
     with pytest.raises(TypeError, match=msg):
         df.to_html(classes=classes)
+
+
+@pytest.mark.parametrize("notebook", [True, False])
+def test_to_html_round_column_headers(notebook):
+    df = DataFrame([1], columns=[0.55555555])
+    with pd.option_context('display.precision', 3):
+        html = df.to_html(notebook=notebook)
+    assert "0.556" in html

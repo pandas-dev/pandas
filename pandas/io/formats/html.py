@@ -292,7 +292,14 @@ class HTMLFormatter(TableFormatter):
                     row.append(self.columns.name or '')
                 else:
                     row.append('')
-            row.extend(self.columns)
+
+            precision = get_option('display.precision')
+            for column in self.columns:
+                if isinstance(column, float):
+                    row.append('{float:.{precision}f}'
+                               .format(float=column, precision=precision))
+                else:
+                    row.append(column)
             align = self.fmt.justify
 
             if truncate_h:
