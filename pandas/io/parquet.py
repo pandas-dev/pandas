@@ -260,7 +260,7 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
 
     Parameters
     ----------
-    path : various
+    path : str, path object, URL or file-like object
         Either a path to a file (a :class:`str`,
         :class:`pathlib.Path`,
         or :class:`py:py._path.local.LocalPath`),
