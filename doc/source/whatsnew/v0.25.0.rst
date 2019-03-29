@@ -347,7 +347,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying a aggregation function to timezone aware data (:issue:`23683`)
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
 - Ensured that ordering of outputs in ``groupby`` aggregation functions is consistent across all versions of Python (:issue:`25692`)
-- Ensured that result group order is correct when grouping on an ordered Categorical and specifying ``observed=True`` (:issue:`25871`)
+- Ensured that result group order is correct when grouping on an ordered ``Categorical`` and specifying ``observed=True`` (:issue:`25871`)
 
 Reshaping
 ^^^^^^^^^
