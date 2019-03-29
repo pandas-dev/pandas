@@ -14,7 +14,6 @@ from pandas._config.config import get_option, set_option
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
-from pandas._libs.tslibs.nattype import is_np_nat
 from pandas.compat import StringIO, lzip
 
 from pandas.core.dtypes.common import (
@@ -943,6 +942,8 @@ class GenericArrayFormatter(object):
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
                 try:
+                    # try block for np.isnat specifically
+                    # determine na_rep if x is None or NaT-like
                     if x is None:
                         return 'None'
                     elif x is NaT or np.isnat(x):

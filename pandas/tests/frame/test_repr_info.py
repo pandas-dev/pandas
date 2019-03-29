@@ -518,5 +518,6 @@ class TestDataFrameReprInfoEtc(TestData):
         [Series, '0    NaT\ndtype: object'],
         [DataFrame, '     0\n0  NaT']])
     def test_repr_np_nat_with_object(self, arg, box, expected):
+        # GH 25445
         result = repr(box([arg('NaT')], dtype=object))
         assert result == expected
