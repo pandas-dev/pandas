@@ -145,7 +145,7 @@ def _check_mixed_int(df, dtype=None):
 
 
 @contextmanager
-def not_raises(expected_exception: Union[Exception, ValueError],
+def not_raises(expected_exception: Exception,
                msg: Optional[str] = None) -> None:
     """Explicitly checks that a type of exception is not raised inside a
     with context.
