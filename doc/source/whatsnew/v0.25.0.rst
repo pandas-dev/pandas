@@ -372,6 +372,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying a aggregation function to timezone aware data (:issue:`23683`)
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
 - Ensured that ordering of outputs in ``groupby`` aggregation functions is consistent across all versions of Python (:issue:`25692`)
+- Bug in :meth:`pandas.core.window.Rolling.min` and :meth:`pandas.core.window.Rolling.max` that caused a memory leak (:issue:`25893`)
 
 
 Reshaping

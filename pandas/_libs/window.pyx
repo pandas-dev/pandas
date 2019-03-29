@@ -1251,7 +1251,7 @@ cdef _roll_min_max(ndarray[numeric] values, int64_t win, int64_t minp,
     ignoring NaNs.
     """
     cdef:
-        ndarray[int64_t] starti, endi
+        int64_t[:] starti, endi
         int64_t N
         bint is_variable
 
@@ -1267,8 +1267,8 @@ cdef _roll_min_max(ndarray[numeric] values, int64_t win, int64_t minp,
 
 
 cdef _roll_min_max_variable(ndarray[numeric] values,
-                            ndarray[int64_t] starti,
-                            ndarray[int64_t] endi,
+                            int64_t[:] starti,
+                            int64_t[:] endi,
                             int64_t N,
                             int64_t win,
                             int64_t minp,
@@ -1349,8 +1349,8 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
 
 
 cdef _roll_min_max_fixed(ndarray[numeric] values,
-                         ndarray[int64_t] starti,
-                         ndarray[int64_t] endi,
+                         int64_t[:] starti,
+                         int64_t[:] endi,
                          int64_t N,
                          int64_t win,
                          int64_t minp,
