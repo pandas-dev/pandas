@@ -238,10 +238,10 @@ cdef inline bint is_nan(object val):
     return (is_float_object(val) or is_complex_object(val)) and val != val
 
 
-cdef inline const char* get_c_string_buf_and_size(object s,
+cdef inline const char* get_c_string_buf_and_size(object py_string,
                                                   Py_ssize_t *length):
     """
-    Extract internal char * buffer of unicode or bytes object `s` with
+    Extract internal char* buffer of unicode or bytes object `py_string` with
     getting length of this internal buffer saved in `length`.
 
     Notes
@@ -251,7 +251,7 @@ cdef inline const char* get_c_string_buf_and_size(object s,
 
     Parameters
     ----------
-    s      : object
+    py_string : object
     length : Py_ssize_t*
 
     Returns
@@ -261,12 +261,12 @@ cdef inline const char* get_c_string_buf_and_size(object s,
     cdef:
         const char *buf
 
-    if PyUnicode_Check(s):
-        buf = PyUnicode_AsUTF8AndSize(s, length)
+    if PyUnicode_Check(py_string):
+        buf = PyUnicode_AsUTF8AndSize(py_string, length)
     else:
-        PyBytes_AsStringAndSize(s, <char**>&buf, length)
+        PyBytes_AsStringAndSize(py_string, <char**>&buf, length)
     return buf
 
 
-cdef inline const char* get_c_string(object s):
-    return get_c_string_buf_and_size(s, NULL)
+cdef inline const char* get_c_string(object py_string):
+    return get_c_string_buf_and_size(py_string, NULL)
