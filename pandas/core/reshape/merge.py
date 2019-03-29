@@ -813,10 +813,7 @@ class _MergeOperation(object):
             # and fill_value because it throws a ValueError on integer indices
             mask = indexer == -1
             if np.any(mask):
-                if is_integer_dtype(index.dtype):
-                    fill_value = np.nan
-                else:
-                    fill_value = na_value_for_dtype(index.dtype)
+                fill_value = na_value_for_dtype(index.dtype, compat=False)
                 index = index.append(Index([fill_value]))
         return index.take(indexer)
 
