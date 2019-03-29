@@ -19,7 +19,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas.compat import lrange, string_types
+from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -65,14 +65,14 @@ def _ensure_encoding(encoding):
 
 
 def _ensure_str(name):
-    """Ensure that an index / column name is a str (python 3) or
-    unicode (python 2); otherwise they may be np.string dtype.
-    Non-string dtypes are passed through unchanged.
+    """
+    Ensure that an index / column name is a str (python 3); otherwise they
+    may be np.string dtype. Non-string dtypes are passed through unchanged.
 
     https://github.com/pandas-dev/pandas/issues/13492
     """
-    if isinstance(name, compat.string_types):
-        name = compat.text_type(name)
+    if isinstance(name, str):
+        name = str(name)
     return name
 
 
@@ -256,7 +256,7 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
         f = lambda store: store.put(key, value, **kwargs)
 
     path_or_buf = _stringify_path(path_or_buf)
-    if isinstance(path_or_buf, string_types):
+    if isinstance(path_or_buf, str):
         with HDFStore(path_or_buf, mode=mode, complevel=complevel,
                       complib=complib) as store:
             f(store)
@@ -339,7 +339,7 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
         auto_close = False
     else:
         path_or_buf = _stringify_path(path_or_buf)
-        if not isinstance(path_or_buf, string_types):
+        if not isinstance(path_or_buf, str):
             raise NotImplementedError('Support for generic buffers has not '
                                       'been implemented.')
         try:
@@ -790,7 +790,7 @@ class HDFStore(StringMixin):
         where = _ensure_term(where, scope_level=1)
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
             keys = keys[0]
-        if isinstance(keys, string_types):
+        if isinstance(keys, str):
             return self.select(key=keys, where=where, columns=columns,
                                start=start, stop=stop, iterator=iterator,
                                chunksize=chunksize, **kwargs)
@@ -4579,7 +4579,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None,
         itemsize = libwriters.max_len_string_array(ensure_object(data))
         dtype = "U{0}".format(itemsize)
 
-        if isinstance(data[0], compat.binary_type):
+        if isinstance(data[0], bytes):
             data = Series(data).str.decode(encoding, errors=errors).values
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)

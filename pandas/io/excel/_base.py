@@ -8,7 +8,7 @@ import warnings
 from pandas._config import config
 
 import pandas.compat as compat
-from pandas.compat import add_metaclass, string_types
+from pandas.compat import add_metaclass
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -394,7 +394,7 @@ class _BaseExcelReader(object):
             if verbose:
                 print("Reading sheet {sheet}".format(sheet=asheetname))
 
-            if isinstance(asheetname, compat.string_types):
+            if isinstance(asheetname, str):
                 sheet = self.get_sheet_by_name(asheetname)
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
@@ -576,9 +576,9 @@ class ExcelWriter(object):
         # only switch class if generic(ExcelWriter)
 
         if issubclass(cls, ExcelWriter):
-            if engine is None or (isinstance(engine, string_types) and
+            if engine is None or (isinstance(engine, str) and
                                   engine == 'auto'):
-                if isinstance(path, string_types):
+                if isinstance(path, str):
                     ext = os.path.splitext(path)[-1][1:]
                 else:
                     ext = 'xlsx'
@@ -640,7 +640,7 @@ class ExcelWriter(object):
                  date_format=None, datetime_format=None, mode='w',
                  **engine_kwargs):
         # validate that this engine can handle the extension
-        if isinstance(path, string_types):
+        if isinstance(path, str):
             ext = os.path.splitext(path)[-1]
         else:
             ext = 'xls' if engine == 'xlwt' else 'xlsx'

@@ -72,7 +72,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
         new_d = copy.deepcopy(d)
         for k, v in d.items():
             # each key gets renamed with prefix
-            if not isinstance(k, compat.string_types):
+            if not isinstance(k, str):
                 k = str(k)
             if level == 0:
                 newkey = k
@@ -224,7 +224,7 @@ def json_normalize(data, record_path=None, meta=None,
     lengths = []
 
     meta_vals = defaultdict(list)
-    if not isinstance(sep, compat.string_types):
+    if not isinstance(sep, str):
         sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
 

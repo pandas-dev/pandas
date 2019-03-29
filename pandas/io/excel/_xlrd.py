@@ -5,8 +5,6 @@ from urllib.request import urlopen
 
 import numpy as np
 
-import pandas.compat as compat
-
 from pandas.io.common import _is_url, get_filepath_or_buffer
 from pandas.io.excel._base import _BaseExcelReader
 
@@ -56,7 +54,7 @@ class _XlrdReader(_BaseExcelReader):
 
             data = filepath_or_buffer.read()
             self.book = xlrd.open_workbook(file_contents=data)
-        elif isinstance(filepath_or_buffer, compat.string_types):
+        elif isinstance(filepath_or_buffer, str):
             self.book = xlrd.open_workbook(filepath_or_buffer)
         else:
             raise ValueError('Must explicitly set engine if not passing in'
