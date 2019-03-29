@@ -81,28 +81,30 @@ cdef inline object parse_delimited_date(object date_string, bint dayfirst,
     buf = get_c_string_buf_and_size(date_string, &length)
     if length == 10:
         if _is_not_delimiter(buf[2]) or _is_not_delimiter(buf[5]):
-            return None
+            return None, None
         month = _parse_2digit(buf)
         day = _parse_2digit(buf + 3)
         year = _parse_4digit(buf + 6)
+        reso = 'day'
     elif length == 7:
         if _is_not_delimiter(buf[2]):
-            return None
+            return None, None
         month = _parse_2digit(buf)
         year = _parse_4digit(buf + 3)
+        reso = 'month'
     else:
-        return None
+        return None, None
 
     if month < 0 or day < 0 or year < 0:
         # some part is not an integer, so it's not a mm/dd/yyyy date
-        return None
+        return None, None
 
     if 1 <= month <= MAX_DAYS_IN_MONTH and 1 <= day <= MAX_DAYS_IN_MONTH \
             and (month <= MAX_MONTH or day <= MAX_MONTH):
         if month > MAX_MONTH or (day < MAX_MONTH and dayfirst):
             day, month = month, day
         return PyDateTimeAPI.DateTime_FromDateAndTime(year, month, day,
-                0, 0, 0, 0, tzinfo, PyDateTimeAPI.DateTimeType)
+                0, 0, 0, 0, tzinfo, PyDateTimeAPI.DateTimeType), reso
 
     raise DateParseError("Invalid date specified (%d/%d)" %
                             (month, day))
@@ -131,7 +133,7 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
                       yearfirst=yearfirst, **kwargs)
         return dt
 
-    dt = parse_delimited_date(date_string, dayfirst, _DEFAULT_TZINFO)
+    dt, _ = parse_delimited_date(date_string, dayfirst, _DEFAULT_TZINFO)
     if dt is not None:
         return dt
 
@@ -214,6 +216,10 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
 
     if not _does_string_look_like_datetime(date_string):
         raise ValueError('Given date string not likely a datetime.')
+
+    parsed, reso = parse_delimited_date(date_string, dayfirst, _DEFAULT_TZINFO)
+    if parsed is not None:
+        return parsed, parsed, reso
 
     try:
         return _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
