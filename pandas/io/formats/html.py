@@ -491,7 +491,7 @@ class NotebookFormatter(HTMLFormatter):
     Notebooks. This class is intended for functionality specific to
     DataFrame._repr_html_() and DataFrame.to_html(notebook=True)
     """
-    
+
     def __init__(self, formatter, classes=None, border=None):
         super(NotebookFormatter, self).__init__(formatter,
                                                 classes=classes,
