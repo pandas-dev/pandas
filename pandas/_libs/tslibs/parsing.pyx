@@ -12,7 +12,6 @@ from cpython.datetime cimport datetime
 import numpy as np
 
 import six
-from six import binary_type, text_type
 
 # Avoid import from outside _libs
 if sys.version_info.major == 2:
@@ -29,6 +28,8 @@ from dateutil.tz import (tzoffset,
 from dateutil.relativedelta import relativedelta
 from dateutil.parser import DEFAULTPARSER
 from dateutil.parser import parse as du_parse
+
+from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 from pandas._libs.tslibs.nattype import nat_strings, NaT
@@ -50,20 +51,6 @@ cdef:
     set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 # ----------------------------------------------------------------------
-
-_get_option = None
-
-
-def get_option(param):
-    """ Defer import of get_option to break an import cycle that caused
-    significant performance degradation in Period construction. See
-    GH#24118 for details
-    """
-    global _get_option
-    if _get_option is None:
-        from pandas.core.config import get_option
-        _get_option = get_option
-    return _get_option(param)
 
 
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
@@ -114,7 +101,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
     Parameters
     ----------
-    arg : compat.string_types
+    arg : str
     freq : str or DateOffset, default None
         Helps with interpreting time string if supplied
     dayfirst : bool, default None
@@ -549,13 +536,13 @@ class _timelex(object):
         if six.PY2:
             # In Python 2, we can't duck type properly because unicode has
             # a 'decode' function, and we'd be double-decoding
-            if isinstance(instream, (binary_type, bytearray)):
+            if isinstance(instream, (bytes, bytearray)):
                 instream = instream.decode()
         else:
             if getattr(instream, 'decode', None) is not None:
                 instream = instream.decode()
 
-        if isinstance(instream, text_type):
+        if isinstance(instream, str):
             self.stream = instream
         elif getattr(instream, 'read', None) is None:
             raise TypeError(

@@ -10,7 +10,7 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 

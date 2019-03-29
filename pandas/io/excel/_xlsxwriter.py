@@ -1,5 +1,4 @@
 import pandas._libs.json as json
-from pandas.compat import string_types
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import _validate_freeze_panes
@@ -121,12 +120,12 @@ class _XlsxStyler(object):
                 else:
                     props[dst] = v
 
-        if isinstance(props.get('pattern'), string_types):
+        if isinstance(props.get('pattern'), str):
             # TODO: support other fill patterns
             props['pattern'] = 0 if props['pattern'] == 'none' else 1
 
         for k in ['border', 'top', 'right', 'bottom', 'left']:
-            if isinstance(props.get(k), string_types):
+            if isinstance(props.get(k), str):
                 try:
                     props[k] = ['none', 'thin', 'medium', 'dashed', 'dotted',
                                 'thick', 'double', 'hair', 'mediumDashed',
@@ -136,11 +135,11 @@ class _XlsxStyler(object):
                 except ValueError:
                     props[k] = 2
 
-        if isinstance(props.get('font_script'), string_types):
+        if isinstance(props.get('font_script'), str):
             props['font_script'] = ['baseline', 'superscript',
                                     'subscript'].index(props['font_script'])
 
-        if isinstance(props.get('underline'), string_types):
+        if isinstance(props.get('underline'), str):
             props['underline'] = {'none': 0, 'single': 1, 'double': 2,
                                   'singleAccounting': 33,
                                   'doubleAccounting': 34}[props['underline']]

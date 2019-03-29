@@ -1,7 +1,6 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-from distutils.version import LooseVersion
 from itertools import product
 import operator
 
@@ -9,7 +8,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -343,7 +342,6 @@ class TestSeriesAnalytics(object):
 
     @td.skip_if_no_scipy
     def test_corr_rank(self):
-        import scipy
         import scipy.stats as stats
 
         # kendall and spearman
@@ -357,11 +355,6 @@ class TestSeriesAnalytics(object):
         result = A.corr(B, method='spearman')
         expected = stats.spearmanr(A, B)[0]
         tm.assert_almost_equal(result, expected)
-
-        # these methods got rewritten in 0.8
-        if LooseVersion(scipy.__version__) < LooseVersion('0.9'):
-            pytest.skip("skipping corr rank because of scipy version "
-                        "{0}".format(scipy.__version__))
 
         # results from R
         A = Series(

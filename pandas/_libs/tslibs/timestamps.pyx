@@ -111,18 +111,6 @@ class RoundTo(object):
         return 4
 
 
-cdef inline _npdivmod(x1, x2):
-    """implement divmod for numpy < 1.13"""
-    return np.floor_divide(x1, x2), np.remainder(x1, x2)
-
-
-try:
-    from numpy import divmod as npdivmod
-except ImportError:
-    # numpy < 1.13
-    npdivmod = _npdivmod
-
-
 cdef inline _floor_int64(values, unit):
     return values - np.remainder(values, unit)
 
@@ -165,7 +153,7 @@ def round_nsint64(values, mode, freq):
         # for odd unit there is no need of a tie break
         if unit % 2:
             return _rounddown_int64(values, unit)
-        quotient, remainder = npdivmod(values, unit)
+        quotient, remainder = np.divmod(values, unit)
         mask = np.logical_or(
             remainder > (unit // 2),
             np.logical_and(remainder == (unit // 2), quotient % 2)

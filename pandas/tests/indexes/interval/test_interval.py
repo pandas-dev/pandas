@@ -1,5 +1,3 @@
-from __future__ import division
-
 from itertools import permutations
 import re
 

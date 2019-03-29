@@ -2,14 +2,14 @@
 """
 
 import ast
-from functools import partial
+from functools import partial, reduce
 import itertools as it
 import operator
 import tokenize
 
 import numpy as np
 
-from pandas.compat import StringIO, lmap, map, reduce, string_types, zip
+from pandas.compat import StringIO, lmap
 
 import pandas as pd
 from pandas import compat
@@ -188,7 +188,7 @@ def _is_type(t):
 
 
 _is_list = _is_type(list)
-_is_str = _is_type(string_types)
+_is_str = _is_type(str)
 
 
 # partition all AST nodes
@@ -355,7 +355,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         self.assigner = None
 
     def visit(self, node, **kwargs):
-        if isinstance(node, string_types):
+        if isinstance(node, str):
             clean = self.preparser(node)
             try:
                 node = ast.fix_missing_locations(ast.parse(clean))

@@ -12,7 +12,6 @@ from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
@@ -649,7 +648,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         indices : array of ints
             Array of insertion points with the same shape as `value`.
         """
-        if isinstance(value, compat.string_types):
+        if isinstance(value, str):
             value = self._scalar_from_string(value)
 
         if not (isinstance(value, (self._scalar_type, type(self)))
@@ -1154,7 +1153,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             Frequency increment to shift by.
         """
         if freq is not None and freq != self.freq:
-            if isinstance(freq, compat.string_types):
+            if isinstance(freq, str):
                 freq = frequencies.to_offset(freq)
             offset = periods * freq
             result = self + offset

@@ -34,8 +34,6 @@ run under the older AND the newer version.
 
 """
 
-from __future__ import print_function
-
 from datetime import timedelta
 from distutils.version import LooseVersion
 import os
@@ -43,8 +41,6 @@ import platform as pl
 import sys
 
 import numpy as np
-
-from pandas.compat import u
 
 import pandas
 from pandas import (
@@ -70,7 +66,7 @@ def _create_sp_series():
     arr[-1:] = nan
 
     bseries = SparseSeries(arr, kind='block')
-    bseries.name = u'bseries'
+    bseries.name = 'bseries'
     return bseries
 
 
@@ -84,17 +80,17 @@ def _create_sp_tsseries():
 
     date_index = bdate_range('1/1/2011', periods=len(arr))
     bseries = SparseSeries(arr, index=date_index, kind='block')
-    bseries.name = u'btsseries'
+    bseries.name = 'btsseries'
     return bseries
 
 
 def _create_sp_frame():
     nan = np.nan
 
-    data = {u'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
-            u'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
-            u'C': np.arange(10).astype(np.int64),
-            u'D': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
+    data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+            'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+            'C': np.arange(10).astype(np.int64),
+            'D': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
 
     dates = bdate_range('1/1/2011', periods=10)
     return SparseDataFrame(data, index=dates)
@@ -104,11 +100,11 @@ def create_data():
     """ create the pickle/msgpack data """
 
     data = {
-        u'A': [0., 1., 2., 3., np.nan],
-        u'B': [0, 1, 0, 1, 0],
-        u'C': [u'foo1', u'foo2', u'foo3', u'foo4', u'foo5'],
-        u'D': date_range('1/1/2009', periods=5),
-        u'E': [0., 1, Timestamp('20100101'), u'foo', 2.]
+        'A': [0., 1., 2., 3., np.nan],
+        'B': [0, 1, 0, 1, 0],
+        'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
+        'D': date_range('1/1/2009', periods=5),
+        'E': [0., 1, Timestamp('20100101'), 'foo', 2.]
     }
 
     scalars = dict(timestamp=Timestamp('20130101'),
@@ -130,60 +126,60 @@ def create_data():
         index['interval'] = interval_range(0, periods=10)
 
     mi = dict(reg2=MultiIndex.from_tuples(
-        tuple(zip(*[[u'bar', u'bar', u'baz', u'baz', u'foo',
-                     u'foo', u'qux', u'qux'],
-                    [u'one', u'two', u'one', u'two', u'one',
-                     u'two', u'one', u'two']])),
-        names=[u'first', u'second']))
+        tuple(zip(*[['bar', 'bar', 'baz', 'baz', 'foo',
+                     'foo', 'qux', 'qux'],
+                    ['one', 'two', 'one', 'two', 'one',
+                     'two', 'one', 'two']])),
+        names=['first', 'second']))
 
-    series = dict(float=Series(data[u'A']),
-                  int=Series(data[u'B']),
-                  mixed=Series(data[u'E']),
+    series = dict(float=Series(data['A']),
+                  int=Series(data['B']),
+                  mixed=Series(data['E']),
                   ts=Series(np.arange(10).astype(np.int64),
                             index=date_range('20130101', periods=10)),
                   mi=Series(np.arange(5).astype(np.float64),
                             index=MultiIndex.from_tuples(
                                 tuple(zip(*[[1, 1, 2, 2, 2],
                                             [3, 4, 3, 4, 5]])),
-                                names=[u'one', u'two'])),
+                                names=['one', 'two'])),
                   dup=Series(np.arange(5).astype(np.float64),
-                             index=[u'A', u'B', u'C', u'D', u'A']),
-                  cat=Series(Categorical([u'foo', u'bar', u'baz'])),
+                             index=['A', 'B', 'C', 'D', 'A']),
+                  cat=Series(Categorical(['foo', 'bar', 'baz'])),
                   dt=Series(date_range('20130101', periods=5)),
                   dt_tz=Series(date_range('20130101', periods=5,
                                           tz='US/Eastern')),
                   period=Series([Period('2000Q1')] * 5))
 
     mixed_dup_df = DataFrame(data)
-    mixed_dup_df.columns = list(u"ABCDA")
-    frame = dict(float=DataFrame({u'A': series[u'float'],
-                                  u'B': series[u'float'] + 1}),
-                 int=DataFrame({u'A': series[u'int'],
-                                u'B': series[u'int'] + 1}),
+    mixed_dup_df.columns = list("ABCDA")
+    frame = dict(float=DataFrame({'A': series['float'],
+                                  'B': series['float'] + 1}),
+                 int=DataFrame({'A': series['int'],
+                                'B': series['int'] + 1}),
                  mixed=DataFrame({k: data[k]
-                                  for k in [u'A', u'B', u'C', u'D']}),
-                 mi=DataFrame({u'A': np.arange(5).astype(np.float64),
-                               u'B': np.arange(5).astype(np.int64)},
+                                  for k in ['A', 'B', 'C', 'D']}),
+                 mi=DataFrame({'A': np.arange(5).astype(np.float64),
+                               'B': np.arange(5).astype(np.int64)},
                               index=MultiIndex.from_tuples(
-                                  tuple(zip(*[[u'bar', u'bar', u'baz',
-                                               u'baz', u'baz'],
-                                              [u'one', u'two', u'one',
-                                               u'two', u'three']])),
-                                  names=[u'first', u'second'])),
+                                  tuple(zip(*[['bar', 'bar', 'baz',
+                                               'baz', 'baz'],
+                                              ['one', 'two', 'one',
+                                               'two', 'three']])),
+                                  names=['first', 'second'])),
                  dup=DataFrame(np.arange(15).reshape(5, 3).astype(np.float64),
-                               columns=[u'A', u'B', u'A']),
-                 cat_onecol=DataFrame({u'A': Categorical([u'foo', u'bar'])}),
+                               columns=['A', 'B', 'A']),
+                 cat_onecol=DataFrame({'A': Categorical(['foo', 'bar'])}),
                  cat_and_float=DataFrame({
-                     u'A': Categorical([u'foo', u'bar', u'baz']),
-                     u'B': np.arange(3).astype(np.int64)}),
+                     'A': Categorical(['foo', 'bar', 'baz']),
+                     'B': np.arange(3).astype(np.int64)}),
                  mixed_dup=mixed_dup_df,
                  dt_mixed_tzs=DataFrame({
-                     u'A': Timestamp('20130102', tz='US/Eastern'),
-                     u'B': Timestamp('20130603', tz='CET')}, index=range(5)),
+                     'A': Timestamp('20130102', tz='US/Eastern'),
+                     'B': Timestamp('20130603', tz='CET')}, index=range(5)),
                  dt_mixed2_tzs=DataFrame({
-                     u'A': Timestamp('20130102', tz='US/Eastern'),
-                     u'B': Timestamp('20130603', tz='CET'),
-                     u'C': Timestamp('20130603', tz='UTC')}, index=range(5))
+                     'A': Timestamp('20130102', tz='US/Eastern'),
+                     'B': Timestamp('20130603', tz='CET'),
+                     'C': Timestamp('20130603', tz='UTC')}, index=range(5))
                  )
 
     cat = dict(int8=Categorical(list('abcdefg')),
@@ -254,7 +250,7 @@ def create_pickle_data():
 
 
 def _u(x):
-    return {u(k): _u(x[k]) for k in x} if isinstance(x, dict) else x
+    return {k: _u(x[k]) for k in x} if isinstance(x, dict) else x
 
 
 def create_msgpack_data():
@@ -290,7 +286,7 @@ def write_legacy_pickles(output_dir):
 
     # make sure we are < 0.13 compat (in py3)
     try:
-        from pandas.compat import zip, cPickle as pickle  # noqa
+        from pandas.compat import cPickle as pickle  # noqa
     except ImportError:
         import pickle
 

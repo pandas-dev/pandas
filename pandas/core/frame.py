@@ -10,8 +10,6 @@ Similar to its R counterpart, data.frame, except providing automatic data
 alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
-from __future__ import division
-
 import collections
 from collections import OrderedDict
 import functools
@@ -24,6 +22,8 @@ from typing import List, Union
 import numpy as np
 import numpy.ma as ma
 
+from pandas._config import get_option
+
 from pandas._libs import lib, algos as libalgos
 
 from pandas.util._decorators import (Appender, Substitution,
@@ -33,9 +33,8 @@ from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
 from pandas import compat
-from pandas.compat import (range, map, zip, lmap, lzip, StringIO, u,
-                           PY36, raise_with_traceback, Iterator,
-                           string_and_binary_types)
+from pandas.compat import (
+    PY36, Iterator, StringIO, lmap, lzip, raise_with_traceback)
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
     maybe_upcast,
@@ -84,7 +83,6 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin as DatetimeLikeArray
 )
-from pandas.core.config import get_option
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
                                ensure_index_from_sequences)
@@ -426,8 +424,8 @@ class DataFrame(NDFrame):
                                    copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif (isinstance(data, compat.Iterable)
-              and not isinstance(data, string_and_binary_types)):
+        elif (isinstance(data, compat.Iterable) and
+              not isinstance(data, (str, bytes))):
             if not isinstance(data, compat.Sequence):
                 data = list(data)
             if len(data) > 0:
@@ -620,7 +618,7 @@ class DataFrame(NDFrame):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        buf = StringIO(u(""))
+        buf = StringIO("")
         if self._info_repr():
             self.info(buf=buf)
             return buf.getvalue()
@@ -644,7 +642,7 @@ class DataFrame(NDFrame):
         Mainly for IPython notebook.
         """
         if self._info_repr():
-            buf = StringIO(u(""))
+            buf = StringIO("")
             self.info(buf=buf)
             # need to escape the <class>, should be the first line.
             val = buf.getvalue().replace('<', r'&lt;', 1)
@@ -1510,7 +1508,7 @@ class DataFrame(NDFrame):
 
         result_index = None
         if index is not None:
-            if (isinstance(index, compat.string_types) or
+            if (isinstance(index, str) or
                     not hasattr(index, "__iter__")):
                 i = columns.get_loc(index)
                 exclude.add(index)
@@ -1662,11 +1660,10 @@ class DataFrame(NDFrame):
             elif index_names[0] is None:
                 index_names = ['index']
 
-            names = (lmap(compat.text_type, index_names) +
-                     lmap(compat.text_type, self.columns))
+            names = lmap(str, index_names) + lmap(str, self.columns)
         else:
             arrays = [self[c].get_values() for c in self.columns]
-            names = lmap(compat.text_type, self.columns)
+            names = lmap(str, self.columns)
             index_names = []
 
         index_len = len(index_names)
@@ -1712,8 +1709,7 @@ class DataFrame(NDFrame):
             # string naming a type.
             if dtype_mapping is None:
                 formats.append(v.dtype)
-            elif isinstance(dtype_mapping, (type, np.dtype,
-                                            compat.string_types)):
+            elif isinstance(dtype_mapping, (type, np.dtype, str)):
                 formats.append(dtype_mapping)
             else:
                 element = "row" if i < index_len else "column"
@@ -3068,7 +3064,7 @@ class DataFrame(NDFrame):
         0  1  10   10
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        if not isinstance(expr, compat.string_types):
+        if not isinstance(expr, str):
             msg = "expr must be a string to be evaluated, {0} given"
             raise ValueError(msg.format(type(expr)))
         kwargs['level'] = kwargs.pop('level', 0) + 1
@@ -4725,7 +4721,7 @@ class DataFrame(NDFrame):
         if subset is None:
             subset = self.columns
         elif (not np.iterable(subset) or
-              isinstance(subset, compat.string_types) or
+              isinstance(subset, str) or
               isinstance(subset, tuple) and subset in self.columns):
             subset = subset,
 
@@ -7451,7 +7447,7 @@ class DataFrame(NDFrame):
             # upcasts to object, which induces a ~20x slowdown
             mask = mask.T
 
-        if isinstance(level, compat.string_types):
+        if isinstance(level, str):
             level = count_axis._get_level_number(level)
 
         level_index = count_axis.levels[level]
@@ -8062,4 +8058,4 @@ def _from_nested_dict(data):
 
 
 def _put_str(s, space):
-    return u'{s}'.format(s=s)[:space].ljust(space)
+    return '{s}'.format(s=s)[:space].ljust(space)
