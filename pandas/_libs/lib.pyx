@@ -2264,22 +2264,21 @@ def to_object_array(rows: object, int min_width=0):
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
-        list input_rows
         list row
 
-    input_rows = list(rows)
-    n = len(input_rows)
+    rows = list(rows)
+    n = len(rows)
 
     k = min_width
     for i in range(n):
-        tmp = len(input_rows[i])
+        tmp = len(rows[i])
         if tmp > k:
             k = tmp
 
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = list(input_rows[i])
+        row = list(rows[i])
 
         for j in range(len(row)):
             result[i, j] = row[j]
@@ -2326,15 +2325,14 @@ def to_object_array_tuples(rows: object):
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
-        list input_rows
         tuple row
 
-    input_rows = list(rows)
-    n = len(input_rows)
+    rows = list(rows)
+    n = len(rows)
 
     k = 0
     for i in range(n):
-        tmp = 1 if checknull(input_rows[i]) else len(input_rows[i])
+        tmp = 1 if checknull(rows[i]) else len(rows[i])
         if tmp > k:
             k = tmp
 
@@ -2342,16 +2340,13 @@ def to_object_array_tuples(rows: object):
 
     try:
         for i in range(n):
-            row = input_rows[i]
+            row = rows[i]
             for j in range(len(row)):
                 result[i, j] = row[j]
     except Exception:
         # upcast any subclasses to tuple
         for i in range(n):
-            if (checknull(input_rows[i])):
-                row = (input_rows[i],)
-            else:
-                row = tuple(input_rows[i])
+            row = (rows[i],) if checknull(rows[i]) else tuple(rows[i])
             for j in range(len(row)):
                 result[i, j] = row[j]
 
