@@ -302,7 +302,7 @@ def extract_index(data):
                              ' an index')
 
         if have_series or have_dicts:
-                index = _union_indexes(indexes, sort=False)
+            index = _union_indexes(indexes, sort=False)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
