@@ -1369,7 +1369,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     day_of_year = _field_accessor('day_of_year', 'doy',
-                                "The ordinal day of the year.")
+                                  "The ordinal day of the year.")
     quarter = _field_accessor('quarter', 'q', "The quarter of the date.")
     days_in_month = _field_accessor(
         'days_in_month',
