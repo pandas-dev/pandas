@@ -328,107 +328,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     take_split_path = True
                     break
 
-        def can_do_equal_len(labels, value, plane_indexer, lplane_indexer):
-            """ return True if we have an equal len settable """
-            if (not len(labels) == 1 or not np.iterable(value) or
-                    is_scalar(plane_indexer[0])):
-                return False
-
-            item = labels[0]
-            index = self.obj[item].index
-
-            values_len = len(value)
-            # equal len list/ndarray
-            if len(index) == values_len:
-                return True
-            elif lplane_indexer == values_len:
-                return True
-
-            return False
-
-        def get_key_value_list(labels, value, plane_indexer, lplane_indexer):
-            """Splits the value and labels in corresponding groups"""
-            # we need an iterable, with a ndim of at least 1
-            # eg. don't pass through np.array(0)
-            if not(is_list_like_indexer(value) and
-                   getattr(value, 'ndim', 1) > 0):
-                return [(item, value) for item in labels]
-
-            # we have an equal len Frame
-            if isinstance(value, ABCDataFrame) and value.ndim > 1:
-                sub_indexer = list(indexer)
-                multiindex_indexer = isinstance(labels, MultiIndex)
-
-                ret = []
-                for item in labels:
-                    if item in value:
-                        sub_indexer[info_axis] = item
-                        v = self._align_series(
-                            tuple(sub_indexer), value[item],
-                            multiindex_indexer)
-                    else:
-                        v = np.nan
-
-                    ret.append((item, v))
-                return ret
-
-            # we have an equal len ndarray/convertible to our labels
-            # hasattr first, to avoid coercing to ndarray without reason.
-            # But we may be relying on the ndarray coercion to check ndim.
-            # Why not just convert to an ndarray earlier on if needed?
-            elif ((hasattr(value, 'ndim') and value.ndim == 2)
-                  or (not hasattr(value, 'ndim') and
-                      np.array(value).ndim) == 2):
-
-                # note that this coerces the dtype if we are mixed
-                # GH 7551
-                value = np.array(value, dtype=object)
-                if len(labels) != value.shape[1]:
-                    raise ValueError('Must have equal len keys and value '
-                                     'when setting with an ndarray')
-
-                # setting with a list, recoerces
-                return [(item, value[:, i].tolist())
-                        for i, item in enumerate(labels)]
-
-            # we have an equal len list/ndarray
-            elif can_do_equal_len(labels, value,
-                                  plane_indexer, lplane_indexer):
-                return [(labels[0], value)]
-
-            # per label values
-            else:
-
-                if len(labels) != len(value):
-                    raise ValueError('Must have equal len keys and value '
-                                     'when setting with an iterable')
-                return [(item, v) for item, v in zip(labels, value)]
-
-        def get_plane_indexer(indexer, value, labels):
-            """Get Plane indexer and corresponding length"""
-            # if we have a partial multiindex, then need to adjust the plane
-            # indexer here
-            if (len(labels) == 1 and
-                    isinstance(self.obj[labels[0]].axes[0], MultiIndex)):
-                item = labels[0]
-                obj = self.obj[item]
-                index = obj.index
-                idx = indexer[:info_axis][0]
-
-                plane_indexer = tuple([idx]) + indexer[info_axis + 1:]
-                lplane_indexer = length_of_indexer(plane_indexer[0], index)
-
-            # non-mi
-            else:
-                plane_indexer = indexer[:info_axis] + indexer[info_axis + 1:]
-                if info_axis > 0:
-                    plane_axis = self.obj.axes[:info_axis][0]
-                    lplane_indexer = length_of_indexer(plane_indexer[0],
-                                                       plane_axis)
-                else:
-                    lplane_indexer = 0
-            return plane_indexer, lplane_indexer
-
         def can_use_idx_as_list(idx, axis):
             """Returns True if we can safely wiew idx as a list on index"""
             if self.name != 'loc':
@@ -598,9 +497,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 elif self.ndim >= 3:
                     return self.obj.__setitem__(indexer, value)
 
-        # set
-        item_labels = self.obj._get_axis(info_axis)
-
         # align and set the values
         if take_split_path:
 
@@ -610,16 +506,11 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if isinstance(value, ABCSeries):
                 value = self._align_series(indexer, value)
 
-            info_idx = indexer[info_axis]
-            if is_integer(info_idx):
-                info_idx = [info_idx]
-            labels = item_labels[info_idx]
-
-            plane_indexer, lplane_indexer = get_plane_indexer(
-                indexer, value, labels)
+            plane_indexer, lplane_indexer = self._get_plane_indexer(indexer)
 
             # require that we are setting the right number of values that
             # we are indexing
+            labels = self._get_labels(indexer)
             if (len(labels) == 1 and
                     isinstance(self.obj[labels[0]].axes[0], MultiIndex) and
                     (is_list_like_indexer(value) and np.iterable(value) and
@@ -671,8 +562,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # reset the sliced object if unique
                 self.obj[item] = s
 
-            for (item, v) in get_key_value_list(labels, value,
-                                                plane_indexer, lplane_indexer):
+            for (item, v) in self._get_key_value_list(indexer, value):
                 setter(item, v)
 
         else:
@@ -682,6 +572,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # if we are setting on the info axis ONLY
                 # set using those methods to avoid block-splitting
                 # logic here
+                item_labels = self.obj._get_axis(info_axis)
                 if (len(indexer) > info_axis and
                         is_integer(indexer[info_axis]) and
                         all(com.is_null_slice(idx)
@@ -711,6 +602,127 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             self.obj._data = self.obj._data.setitem(indexer=indexer,
                                                     value=value)
             self.obj._maybe_update_cacher(clear=True)
+
+    def _can_do_equal_len(self, indexer, value):
+        """return True if we have an equal len settable"""
+        labels = self._get_labels(indexer)
+        plane_indexer, lplane_indexer = self._get_plane_indexer(indexer)
+        if (not len(labels) == 1 or not np.iterable(value) or
+                is_scalar(plane_indexer[0])):
+            return False
+
+        item = labels[0]
+        index = self.obj[item].index
+
+        values_len = len(value)
+        # equal len list/ndarray
+        if len(index) == values_len:
+            return True
+
+        if lplane_indexer == values_len:
+            return True
+
+        return False
+
+    def _get_key_value_list(self, indexer, value):
+        """Splits the value into a key value list to match the indexer"""
+        # we need an iterable, with a ndim of at least 1
+        # eg. don't pass through np.array(0)
+        info_axis = self.obj._info_axis_number
+        labels = self._get_labels(indexer)
+
+        if not(is_list_like_indexer(value) and
+               getattr(value, 'ndim', 1) > 0):
+            return [(item, value) for item in labels]
+
+        # we have an equal len Frame
+        if isinstance(value, ABCDataFrame) and value.ndim > 1:
+            sub_indexer = list(indexer)
+            multiindex_indexer = isinstance(labels, MultiIndex)
+
+            ret = []
+            for item in labels:
+                if item in value:
+                    sub_indexer[info_axis] = item
+                    value = self._align_series(
+                        tuple(sub_indexer), value[item],
+                        multiindex_indexer)
+                else:
+                    value = np.nan
+                ret.append((item, value))
+            return ret
+
+        # we have an equal len ndarray/convertible to our labels
+        # hasattr first, to avoid coercing to ndarray without reason.
+        # But we may be relying on the ndarray coercion to check ndim.
+        # Why not just convert to an ndarray earlier on if needed?
+        elif ((hasattr(value, 'ndim') and value.ndim == 2)
+              or (not hasattr(value, 'ndim') and
+                  np.array(value).ndim) == 2):
+
+            # note that this coerces the dtype if we are mixed
+            # GH 7551
+            value = np.array(value, dtype=object)
+            if len(labels) != value.shape[1]:
+                raise ValueError('Must have equal len keys and value '
+                                 'when setting with an ndarray')
+
+            # setting with a list, recoerces
+            return [(item, value[:, i].tolist())
+                    for i, item in enumerate(labels)]
+
+        # we have an equal len list/ndarray
+        elif self._can_do_equal_len(indexer, value):
+            return [(labels[0], value)]
+
+        # per label values
+        else:
+
+            if len(labels) != len(value):
+                raise ValueError('Must have equal len keys and value '
+                                 'when setting with an iterable')
+            return [(item, v) for item, v in zip(labels, value)]
+
+    def _get_labels(self, indexer):
+        """
+        Get Labels from an indexer
+        """
+        info_axis = self.obj._info_axis_number
+        item_labels = self.obj._get_axis(info_axis)
+        info_idx = indexer[info_axis]
+        if is_integer(info_idx):
+            info_idx = [info_idx]
+        return item_labels[info_idx]
+
+    def _get_plane_indexer(self, indexer):
+        """
+        Get Plane indexer and corresponding length from indexer
+        """
+        # if we have a partial multiindex, then need to adjust the plane
+        # indexer here
+        info_axis = self.obj._info_axis_number
+        labels = self._get_labels(indexer)
+
+        if (len(labels) == 1 and
+                isinstance(self.obj[labels[0]].axes[0], MultiIndex)):
+            item = labels[0]
+            obje = self.obj[item]
+            index = obje.index
+            idx = indexer[:info_axis][0]
+
+            plane_indexer = tuple([idx]) + indexer[info_axis + 1:]
+            lplane_indexer = length_of_indexer(plane_indexer[0], index)
+
+        # non-mi
+        else:
+            plane_indexer = indexer[:info_axis] + indexer[info_axis + 1:]
+            if info_axis > 0:
+                plane_axis = self.obj.axes[:info_axis][0]
+                lplane_indexer = length_of_indexer(plane_indexer[0],
+                                                   plane_axis)
+            else:
+                lplane_indexer = 0
+        return plane_indexer, lplane_indexer
 
     def _align_series(self, indexer, ser, multiindex_indexer=False):
         """
