@@ -559,7 +559,7 @@ ext_data = {
         'pyxfile': '_libs/lib',
         'include': common_include + ts_include,
         'depends': lib_depends + tseries_depends,
-        'sources':['pandas/_libs/src/parser/tokenizer.c']},
+        'sources': ['pandas/_libs/src/parser/tokenizer.c']},
     '_libs.missing': {
         'pyxfile': '_libs/missing',
         'include': common_include + ts_include,
