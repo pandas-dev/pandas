@@ -60,7 +60,7 @@ cdef inline int _parse_2digit(const char* s):
     result += getdigit_ascii(s[0], -10) * 10
     result += getdigit_ascii(s[1], -100) * 1
     return result
-    
+
 cdef inline int _parse_4digit(const char* s):
     cdef int result = 0
     result += getdigit_ascii(s[0], -10) * 1000
@@ -92,7 +92,7 @@ cdef object parse_slashed_date(object date_string, bint dayfirst,
     if part1 < 1 or part2 < 1 or \
             part1 > MAX_DAYS_IN_MONTH or part2 > MAX_DAYS_IN_MONTH or \
             (part1 > MAX_MONTH and part2 > MAX_MONTH):
-        raise DateParseError("Invalid date specified (%d/%d)" % 
+        raise DateParseError("Invalid date specified (%d/%d)" %
                              (part1, part2))
 
     if part1 > MAX_MONTH:
@@ -108,7 +108,7 @@ cdef object parse_slashed_date(object date_string, bint dayfirst,
         day = part2
         month = part1
 
-    return PyDateTimeAPI.DateTime_FromDateAndTime(year, month, day, 
+    return PyDateTimeAPI.DateTime_FromDateAndTime(year, month, day,
                                                   0, 0, 0, 0, tzinfo,
                                                   PyDateTimeAPI.DateTimeType)
 

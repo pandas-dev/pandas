@@ -2,14 +2,15 @@ import numpy as np
 
 from pandas._libs.tslib import array_to_datetime
 
+
 class ParseDateString(object):
     params = (['mY', 'mdY', 'mQY', 'hm'],)
     params_name = ['value']
     objects = {
-        'mY':  ['01-2019', '1-2019'],
+        'hm': ['21:34'],
+        'mY': ['01-2019', '1-2019'],
         'mdY': ['12/02/2010'],
-        'mQY': ['1Q09', '1Q2000', '09Q1', '2000Q1'],
-        'hm': ['21:34']
+        'mQY': ['1Q09', '1Q2000', '09Q1', '2000Q1']
     }
 
     def setup(self, value):
