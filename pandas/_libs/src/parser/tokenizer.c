@@ -1544,7 +1544,7 @@ int main(int argc, char *argv[]) {
 const int max_int_decimal_digits = (sizeof(unsigned int) * 8) / 4;
 
 double xstrtod(const char *str, char **endptr, char decimal, char sci,
-               char tsep, int skip_trailing, int *error) {
+               char tsep, int skip_trailing, int *error, int *maybe_int) {
     double number;
     unsigned int i_number = 0;
     int exponent;
@@ -1554,6 +1554,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     int n;
     int num_digits;
     int num_decimals;
+    int _maybe_int = 1;
 
 
     // Skip leading whitespace.
@@ -1595,6 +1596,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     // Process decimal part.
     if (*p == decimal) {
+        _maybe_int = 0;
         p++;
 
         while (isdigit_ascii(*p)) {
@@ -1617,6 +1619,8 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     // Process an exponent string.
     if (toupper_ascii(*p) == toupper_ascii(sci)) {
+        _maybe_int = 0;
+
         // Handle optional sign.
         negative = 0;
         switch (*++p) {
@@ -1674,12 +1678,13 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (endptr) *endptr = p;
-
+    if (maybe_int) *maybe_int = _maybe_int;
     return number;
 }
 
-double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
-                       char tsep, int skip_trailing, int *error) {
+double precise_xstrtod(const char *str, char **endptr, char decimal,
+                       char sci, char tsep, int skip_trailing,
+                       int *error, int *maybe_int) {
     double number;
     int exponent;
     int negative;
@@ -1688,6 +1693,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     int num_decimals;
     int max_digits = 17;
     int n;
+    int _maybe_int = 1;
     // Cache powers of 10 in memory.
     static double e[] = {
         1.,    1e1,   1e2,   1e3,   1e4,   1e5,   1e6,   1e7,   1e8,   1e9,
@@ -1754,6 +1760,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     // Process decimal part
     if (*p == decimal) {
+        _maybe_int = 0;
         p++;
 
         while (num_digits < max_digits && isdigit_ascii(*p)) {
@@ -1779,6 +1786,8 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     // Process an exponent string.
     if (toupper_ascii(*p) == toupper_ascii(sci)) {
+        _maybe_int = 0;
+
         // Handle optional sign
         negative = 0;
         switch (*++p) {
@@ -1828,12 +1837,16 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (endptr) *endptr = p;
+    if (maybe_int) *maybe_int = _maybe_int;
     return number;
 }
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
-                  int skip_trailing) {
+                  int skip_trailing, int *error, int *maybe_int) {
     double r = PyOS_string_to_double(p, q, 0);
+    if (maybe_int != NULL) *maybe_int = 0;
+    if (PyErr_Occurred() != NULL) *error = -1;
+    else if (r == Py_HUGE_VAL) *error = Py_HUGE_VAL;
     PyErr_Clear();
     return r;
 }
