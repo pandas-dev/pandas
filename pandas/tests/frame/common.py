@@ -163,9 +163,9 @@ def not_raises(expected_exception: Union[Exception, ValueError],
     except expected_exception as e:
         if not msg:
             raise AssertionError(
-                f"Raised exception {repr(e)} when it should not!")
+                "Raised exception {} when it should not!".format(repr(e)))
 
         elif hasattr(e, 'message') and e.message == msg:
             raise AssertionError(
-                f"Raised exception {repr(e)} with message {e.message} " +
-                "when it should not!")
+                "Raised exception {} with message {} when it should not!"
+                .format(repr(e), e.message))
