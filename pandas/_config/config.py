@@ -58,8 +58,8 @@ DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
 RegisteredOption = namedtuple('RegisteredOption',
                               'key defval doc validator cb')
 
-_deprecated_options = {}  # type: Dict[str, str]
-_registered_options = {}  # type: Dict[str, object]
+_deprecated_options = {}  # type: Dict[str, DeprecatedOption]
+_registered_options = {}  # type: Dict[str, RegisteredOption]
 _global_config = {}  # type: Dict[str, str]
 _reserved_keys = ['all']  # keys which have a special meaning
 
