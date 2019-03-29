@@ -36,7 +36,7 @@ class HTMLFormatter(TableFormatter):
         self.classes = classes
 
         self.frame = self.fmt.frame
-        self.columns = self.fmt.tr_frame.columns
+        self.columns = self._get_columns_formatted_values()
         self.elements = []
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
@@ -69,6 +69,9 @@ class HTMLFormatter(TableFormatter):
             return 1
         # not showing (row) index
         return 0
+
+    def _get_columns_formatted_values(self):
+        return self.fmt.tr_frame.columns
 
     @property
     def is_truncated(self):
@@ -495,13 +498,16 @@ class NotebookFormatter(HTMLFormatter):
         super(NotebookFormatter, self).__init__(formatter,
                                                 classes=classes,
                                                 border=border)
-        precision = get_option('display.precision')
-        fmt = lambda f: '{float:.{p}f}'.format(float=f, p=precision)
-        fmt_floats = lambda f: fmt(f) if isinstance(f, float) else f
-        self.columns = self.columns.map(fmt_floats)
+        self.columns = self._get_columns_formatted_values()
 
     def _get_formatted_values(self):
         return {i: self.fmt._format_col(i) for i in range(self.ncols)}
+
+    def _get_columns_formatted_values(self):
+        precision = get_option('display.precision')
+        fmt = lambda f: '{float:.{p}f}'.format(float=f, p=precision)
+        fmt_floats = lambda f: fmt(f) if isinstance(f, float) else f
+        return self.fmt.tr_frame.columns.map(fmt_floats)
 
     def write_style(self):
         # We use the "scoped" attribute here so that the desired
