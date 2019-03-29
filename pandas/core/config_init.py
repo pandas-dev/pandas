@@ -14,8 +14,6 @@ from pandas._config.config import (
     is_bool, is_callable, is_instance_factory, is_int, is_one_of_factory,
     is_text)
 
-from pandas.io.formats.terminal import is_terminal
-
 # compute
 
 use_bottleneck_doc = """
@@ -285,6 +283,23 @@ style_backup = dict()
 def table_schema_cb(key):
     from pandas.io.formats.printing import _enable_data_resource_formatter
     _enable_data_resource_formatter(cf.get_option(key))
+
+
+def is_terminal():
+    """
+    Detect if Python is running in a terminal.
+
+    Returns True if Python is running in a terminal or False if not.
+    """
+    try:
+        ip = get_ipython()
+    except NameError:  # assume standard Python interpreter in a terminal
+        return True
+    else:
+        if hasattr(ip, 'kernel'):  # IPython as a Jupyter kernel
+            return False
+        else:  # IPython in a terminal
+            return True
 
 
 with cf.config_prefix('display'):
