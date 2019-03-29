@@ -53,6 +53,9 @@ DEF delimiters = b' /-\\'
 DEF MAX_DAYS_IN_MONTH = 31
 DEF MAX_MONTH = 12
 
+cdef bint _is_not_delimiter(const char ch):
+    return strchr(delimiters, ch) == NULL
+
 cdef inline int _parse_2digit(const char* s):
     cdef int result = 0
     result += getdigit_ascii(s[0], -10) * 10
@@ -75,13 +78,21 @@ cdef object parse_slashed_date(object date_string, bint dayfirst,
         int day, month, year
 
     buf = get_c_string_buf_and_size(date_string, &length)
-    if length != 10 or strchr(delimiters, buf[2]) == NULL \
-            or strchr(delimiters, buf[5]) == NULL:
+    if length == 10:
+        if _is_not_delimiter(buf[2]) or _is_not_delimiter(buf[5]):
+            return None
+        month = _parse_2digit(buf)
+        day = _parse_2digit(buf + 3)
+        year = _parse_4digit(buf + 6)
+    elif length == 7:
+        if _is_not_delimiter(buf[2]):
+            return None
+        month = _parse_2digit(buf)
+        day = 1
+        year = _parse_4digit(buf + 3)
+    else:
         return None
 
-    month = _parse_2digit(buf)
-    day = _parse_2digit(buf + 3)
-    year = _parse_4digit(buf + 6)
     if month < 0 or day < 0 or year < 0:
         # some part is not an integer, so it's not a mm/dd/yyyy date
         return None
