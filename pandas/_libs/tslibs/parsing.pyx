@@ -70,13 +70,14 @@ cdef inline int _parse_4digit(const char* s):
     result += getdigit_ascii(s[3], -10000) * 1
     return result
 
-cdef object parse_slashed_date(object date_string, bint dayfirst,
-                               object tzinfo):
+cdef inline object parse_delimited_date(object date_string, bint dayfirst,
+                                        object tzinfo):
     cdef:
         const char* buf
         Py_ssize_t length
-        int day, month, year
+        int day = 1, month = 1, year
 
+    assert isinstance(date_string, (str, unicode))
     buf = get_c_string_buf_and_size(date_string, &length)
     if length == 10:
         if _is_not_delimiter(buf[2]) or _is_not_delimiter(buf[5]):
@@ -88,7 +89,6 @@ cdef object parse_slashed_date(object date_string, bint dayfirst,
         if _is_not_delimiter(buf[2]):
             return None
         month = _parse_2digit(buf)
-        day = 1
         year = _parse_4digit(buf + 3)
     else:
         return None
@@ -131,7 +131,7 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
                       yearfirst=yearfirst, **kwargs)
         return dt
 
-    dt = parse_slashed_date(date_string, dayfirst, _DEFAULT_TZINFO)
+    dt = parse_delimited_date(date_string, dayfirst, _DEFAULT_TZINFO)
     if dt is not None:
         return dt
 
