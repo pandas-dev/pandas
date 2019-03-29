@@ -5,9 +5,8 @@ from datetime import date, datetime
 
 import pytest
 
-from pandas._libs.tslibs.timestamps import Timestamp
-
 from pandas._libs import tslibs
+from pandas._libs.tslibs.timestamps import Timestamp
 
 
 @pytest.mark.parametrize("value,expected", [
