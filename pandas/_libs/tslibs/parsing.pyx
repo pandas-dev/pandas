@@ -6,7 +6,6 @@ import time
 from io import StringIO
 
 from libc.string cimport strchr
-from cpython cimport PyUnicode_Check, PyBytes_Check, PyBytes_AsStringAndSize
 
 from cpython.datetime cimport datetime, datetime_new, import_datetime
 from cpython.version cimport PY_VERSION_HEX
@@ -36,16 +35,6 @@ cdef extern from "../src/parser/tokenizer.h":
     double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
                    int skip_trailing, int *error)
 
-cdef extern from *:
-    char* PyUnicode_AsUTF8AndSize(object unicode, Py_ssize_t* length)
-
-cdef inline bint get_string_data(object s, char **buf, Py_ssize_t *length):
-    if PyUnicode_Check(s):
-        buf[0] = PyUnicode_AsUTF8AndSize(s, length)
-        return buf[0] != NULL
-    if PyBytes_Check(s):
-        return PyBytes_AsStringAndSize(s, buf, length) == 0
-    return False
 
 # ----------------------------------------------------------------------
 # Constants
@@ -322,15 +311,14 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
 
 cpdef bint _does_string_look_like_datetime(object date_string):
     cdef:
-        char *buf = NULL
+        const char *buf
         char *endptr = NULL
         Py_ssize_t length = -1
         double converted_date
         char first
         int error = 0
 
-    if not get_string_data(date_string, &buf, &length):
-        return False
+    buf = get_c_string_buf_and_size(date_string, &length)
     if length >= 1:
         first = buf[0]
         if first == b'0':
