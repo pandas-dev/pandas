@@ -481,7 +481,7 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
     # GH 25167: Groupby with observed=True doesn't sort
     df = pd.DataFrame({'A': pd.Categorical(['b', 'a']), 'B': [1, 2]})
     result = df.groupby('A', observed=True).sum()
-    expected = pd.DataFrame({'B': [2, 1]},
+    expected = pd.DataFrame({'B': [1, 2]},
                             index=pd.CategoricalIndex(['b', 'a'], categories=['a', 'b'],
                                                       ordered=False, name='A', dtype='category'),
                             dtype='int')
