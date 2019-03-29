@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 import pydoc
@@ -9,7 +7,7 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, long, lrange, range
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -242,7 +240,7 @@ class SharedWithSparse(object):
                          'ints': lrange(5)}, columns=['floats', 'ints'])
 
         for tup in df.itertuples(index=False):
-            assert isinstance(tup[1], (int, long))
+            assert isinstance(tup[1], int)
 
         df = self.klass(data={"a": [1, 2, 3], "b": [4, 5, 6]})
         dfaa = df[['a', 'a']]
@@ -250,7 +248,7 @@ class SharedWithSparse(object):
         assert (list(dfaa.itertuples()) ==
                 [(0, 1, 1), (1, 2, 2), (2, 3, 3)])
 
-        # repr with be int/long on 32-bit/windows
+        # repr with int on 32-bit/windows
         if not (compat.is_platform_windows() or compat.is_platform_32bit()):
             assert (repr(list(df.itertuples(name=None))) ==
                     '[(0, 1, 4), (1, 2, 5), (2, 3, 6)]')
@@ -360,7 +358,6 @@ class SharedWithSparse(object):
         for col, s in compat.iteritems(mixed_T):
             assert s.dtype == np.object_
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_swapaxes(self):
         df = self.klass(np.random.randn(10, 5))
         self._assert_frame_equal(df.T, df.swapaxes(0, 1))

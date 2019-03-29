@@ -7,15 +7,15 @@ dependencies:
   - bottleneck
   - boost-cpp<1.67
   - fastparquet>=0.2.1
-  - matplotlib
+  - matplotlib=3.0.2
   - numexpr
-  - numpy=1.14*
+  - numpy=1.15.*
   - openpyxl
   - parquet-cpp
   - pyarrow
   - pytables
   - python-dateutil
-  - python=3.6.6
+  - python=3.6.*
   - pytz
   - scipy
   - xlrd

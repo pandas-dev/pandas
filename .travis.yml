@@ -1,6 +1,5 @@
 sudo: false
 language: python
-# Default Python version is usually 2.7
 python: 3.5
 
 # To turn off cached cython files and compiler cache
@@ -38,19 +37,11 @@ matrix:
 
     - dist: trusty
       env:
-        - JOB="2.7" ENV_FILE="ci/deps/travis-27.yaml" PATTERN="(not slow or (single and db))"
-      addons:
-        apt:
-          packages:
-          - python-gtk2
-
-    - dist: trusty
-      env:
         - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="((not slow and not network) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8"
 
     - dist: trusty
       env:
-        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36.yaml" PATTERN="((not slow and not network) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
+        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
 
     # In allow_failures
     - dist: trusty

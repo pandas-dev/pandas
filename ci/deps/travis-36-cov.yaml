@@ -14,14 +14,18 @@ dependencies:
   - matplotlib
   - nomkl
   - numexpr
-  - numpy
+  - numpy=1.15.*
   - openpyxl
+  - pandas-gbq
   - psycopg2
   - pyarrow=0.9.0
+  # add pydata-google-auth until for pandas-gbq, see
+  # https://github.com/conda-forge/pandas-gbq-feedstock/issues/18
+  - pydata-google-auth
   - pymysql
   - pytables
   - python-snappy
-  - python=3.6.6
+  - python=3.6.*
   - pytz
   - s3fs
   - scikit-learn

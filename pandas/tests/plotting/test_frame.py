@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import rand, randn
 import pytest
 
-from pandas.compat import PY3, lmap, lrange, lzip, range, u, zip
+from pandas.compat import lmap, lrange, lzip
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -18,9 +18,8 @@ from pandas.core.dtypes.api import is_list_like
 import pandas as pd
 from pandas import (
     DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range)
-from pandas.tests.plotting.common import (
-    TestPlotBase, _check_plot_works, _ok_for_gaussian_kde,
-    _skip_if_no_scipy_gaussian_kde)
+from pandas.core.arrays import integer_array
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
@@ -112,21 +111,20 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, use_index=True)
 
         # unicode
-        index = MultiIndex.from_tuples([(u('\u03b1'), 0),
-                                        (u('\u03b1'), 1),
-                                        (u('\u03b2'), 2),
-                                        (u('\u03b2'), 3),
-                                        (u('\u03b3'), 4),
-                                        (u('\u03b3'), 5),
-                                        (u('\u03b4'), 6),
-                                        (u('\u03b4'), 7)], names=['i0', 'i1'])
-        columns = MultiIndex.from_tuples([('bar', u('\u0394')),
-                                          ('bar', u('\u0395'))], names=['c0',
-                                                                        'c1'])
+        index = MultiIndex.from_tuples([('\u03b1', 0),
+                                        ('\u03b1', 1),
+                                        ('\u03b2', 2),
+                                        ('\u03b2', 3),
+                                        ('\u03b3', 4),
+                                        ('\u03b3', 5),
+                                        ('\u03b4', 6),
+                                        ('\u03b4', 7)], names=['i0', 'i1'])
+        columns = MultiIndex.from_tuples(
+            [('bar', '\u0394'), ('bar', '\u0395')], names=['c0', 'c1'])
         df = DataFrame(np.random.randint(0, 10, (8, 2)),
                        columns=columns,
                        index=index)
-        _check_plot_works(df.plot, title=u('\u03A3'))
+        _check_plot_works(df.plot, title='\u03A3')
 
         # GH 6951
         # Test with single column
@@ -144,8 +142,26 @@ class TestDataFramePlots(TestPlotBase):
         result = ax.axes
         assert result is axes[0]
 
-    # GH 15516
+    def test_integer_array_plot(self):
+        # GH 25587
+        arr = integer_array([1, 2, 3, 4], dtype="UInt32")
+
+        s = Series(arr)
+        _check_plot_works(s.plot.line)
+        _check_plot_works(s.plot.bar)
+        _check_plot_works(s.plot.hist)
+        _check_plot_works(s.plot.pie)
+
+        df = DataFrame({'x': arr, 'y': arr})
+        _check_plot_works(df.plot.line)
+        _check_plot_works(df.plot.bar)
+        _check_plot_works(df.plot.hist)
+        _check_plot_works(df.plot.pie, y='y')
+        _check_plot_works(df.plot.scatter, x='x', y='y')
+        _check_plot_works(df.plot.hexbin, x='x', y='y')
+
     def test_mpl2_color_cycle_str(self):
+        # GH 15516
         colors = ['C' + str(x) for x in range(10)]
         df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
         for c in colors:
@@ -1414,17 +1430,6 @@ class TestDataFramePlots(TestPlotBase):
                                     np.arange(1, len(numeric_cols) + 1))
         assert len(ax.lines) == self.bp_n_objects * len(numeric_cols)
 
-        # different warning on py3
-        if not PY3:
-            with tm.assert_produces_warning(UserWarning):
-                axes = _check_plot_works(df.plot.box, subplots=True, logy=True)
-
-            self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
-            self._check_ax_scales(axes, yaxis='log')
-            for ax, label in zip(axes, labels):
-                self._check_text_labels(ax.get_xticklabels(), [label])
-                assert len(ax.lines) == self.bp_n_objects
-
         axes = series.plot.box(rot=40)
         self._check_ticks_props(axes, xrot=40, yrot=0)
         tm.close()
@@ -1507,8 +1512,6 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_df(self):
-        _skip_if_no_scipy_gaussian_kde()
-
         df = DataFrame(randn(100, 4))
         ax = _check_plot_works(df.plot, kind='kde')
         expected = [pprint_thing(c) for c in df.columns]
@@ -1529,8 +1532,6 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
-        _skip_if_no_scipy_gaussian_kde()
-
         df = DataFrame(np.random.uniform(size=(100, 4)))
         df.loc[0, 0] = np.nan
         _check_plot_works(df.plot, kind='kde')
@@ -1556,11 +1557,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(axes, xrot=40, yrot=0)
         tm.close()
 
-        if plotting._compat._mpl_ge_2_2_0():
-            kwargs = {"density": True}
-        else:
-            kwargs = {"normed": True}
-        ax = series.plot.hist(cumulative=True, bins=4, **kwargs)
+        ax = series.plot.hist(cumulative=True, bins=4, density=True)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
@@ -1700,8 +1697,6 @@ class TestDataFramePlots(TestPlotBase):
         df4 = DataFrame(rand(3, 3), columns=['j', 'k', 'l'])
 
         for kind in kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
 
             ax = df.plot(kind=kind, legend=True)
             self._check_legend_labels(ax, labels=df.columns)
@@ -1790,8 +1785,6 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(rand(3, 3), columns=['a', 'b', 'c'])
 
         for kind in kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
 
             ax = df.plot(kind=kind, legend=False)
             self._check_legend_labels(ax, visible=False)
@@ -2037,8 +2030,6 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_colors(self):
-        _skip_if_no_scipy_gaussian_kde()
-
         from matplotlib import cm
 
         custom_colors = 'rgcby'
@@ -2060,8 +2051,6 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots(self):
-        _skip_if_no_scipy_gaussian_kde()
-
         from matplotlib import cm
         default_colors = self._unpack_cycler(self.plt.rcParams)
 
@@ -2205,11 +2194,11 @@ class TestDataFramePlots(TestPlotBase):
         ydata = ax.lines[0].get_ydata()
         tm.assert_numpy_array_equal(ydata, np.array([1.0, 2.0, 3.0]))
 
+    @td.skip_if_no_scipy
     def test_kind_both_ways(self):
         df = DataFrame({'x': [1, 2, 3]})
         for kind in plotting._core._common_kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
+
             df.plot(kind=kind)
             getattr(df.plot, kind)()
         for kind in ['scatter', 'hexbin']:
@@ -2219,8 +2208,6 @@ class TestDataFramePlots(TestPlotBase):
     def test_all_invalid_plot_data(self):
         df = DataFrame(list('abcd'))
         for kind in plotting._core._common_kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
 
             msg = "no numeric data to plot"
             with pytest.raises(TypeError, match=msg):
@@ -2232,8 +2219,6 @@ class TestDataFramePlots(TestPlotBase):
             df = DataFrame(randn(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = 'a'
             for kind in plotting._core._common_kinds:
-                if not _ok_for_gaussian_kde(kind):
-                    continue
 
                 msg = "no numeric data to plot"
                 with pytest.raises(TypeError, match=msg):
@@ -2463,7 +2448,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_has_errorbars(ax, xerr=0, yerr=2)
 
             # yerr is column name
-            for yerr in ['yerr', u('誤差')]:
+            for yerr in ['yerr', '誤差']:
                 s_df = df.copy()
                 s_df[yerr] = np.ones(12) * 0.2
                 ax = _check_plot_works(s_df.plot, yerr=yerr)
@@ -2562,8 +2547,6 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
 
-    # This XPASSES when tested with mpl == 3.0.1
-    @td.xfail_if_mpl_2_2
     def test_table(self):
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))
@@ -2720,6 +2703,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_visible(ax.get_xticklabels(), visible=True)
             self._check_visible(ax.get_xticklabels(minor=True), visible=True)
 
+    @td.skip_if_no_scipy
     def test_memory_leak(self):
         """ Check that every plot type gets properly collected. """
         import weakref
@@ -2727,8 +2711,7 @@ class TestDataFramePlots(TestPlotBase):
 
         results = {}
         for kind in plotting._core._plot_klass.keys():
-            if not _ok_for_gaussian_kde(kind):
-                continue
+
             args = {}
             if kind in ['hexbin', 'scatter', 'pie']:
                 df = self.hexbin_df

@@ -23,13 +23,11 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
-from distutils.version import LooseVersion
 import locale
 
 import pytest
 
-from pandas.compat import (
-    PY3, import_lzma, is_platform_32bit, is_platform_windows)
+from pandas.compat import PY3, is_platform_32bit, is_platform_windows
 from pandas.compat.numpy import _np_version_under1p15
 
 from pandas.core.computation.expressions import (
@@ -80,17 +78,6 @@ def _skip_if_no_mpl():
         return True
 
 
-def _skip_if_mpl_2_2():
-    mod = safe_import("matplotlib")
-
-    if mod:
-        v = mod.__version__
-        if LooseVersion(v) > LooseVersion('2.1.2'):
-            return True
-        else:
-            mod.use("Agg", warn=False)
-
-
 def _skip_if_has_locale():
     lang, _ = locale.getlocale()
     if lang is not None:
@@ -108,13 +95,6 @@ def _skip_if_no_scipy():
                 safe_import('scipy.sparse') and
                 safe_import('scipy.interpolate') and
                 safe_import('scipy.signal'))
-
-
-def _skip_if_no_lzma():
-    try:
-        import_lzma()
-    except ImportError:
-        return True
 
 
 def skip_if_no(package, min_version=None):
@@ -157,9 +137,6 @@ skip_if_np_lt_115 = pytest.mark.skipif(_np_version_under1p15,
                                        reason="NumPy 1.15 or greater required")
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(),
                                  reason="matplotlib is present")
-xfail_if_mpl_2_2 = pytest.mark.xfail(_skip_if_mpl_2_2(),
-                                     reason="matplotlib 2.2",
-                                     strict=False)
 skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
                                    reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(),
@@ -176,8 +153,6 @@ skip_if_not_us_locale = pytest.mark.skipif(_skip_if_not_us_locale(),
                                                lang=locale.getlocale()[0]))
 skip_if_no_scipy = pytest.mark.skipif(_skip_if_no_scipy(),
                                       reason="Missing SciPy requirement")
-skip_if_no_lzma = pytest.mark.skipif(_skip_if_no_lzma(),
-                                     reason="need backports.lzma to run")
 skip_if_no_ne = pytest.mark.skipif(not _USE_NUMEXPR,
                                    reason="numexpr enabled->{enabled}, "
                                    "installed->{installed}".format(

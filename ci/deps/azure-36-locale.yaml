@@ -3,22 +3,22 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - bottleneck=1.2.0
+  - beautifulsoup4==4.5.1
+  - bottleneck=1.2.*
   - cython=0.28.2
   - lxml
-  - matplotlib=2.0.0
-  - numpy=1.12.0
+  - matplotlib=2.2.2
+  - numpy=1.14.*
   - openpyxl=2.4.0
   - python-dateutil
   - python-blosc
-  - python=2.7
-  - pytz
-  - pytz=2013b
+  - python=3.6.*
+  - pytz=2016.10
   - scipy
-  - sqlalchemy=0.8.1
+  - sqlalchemy=1.1.4
   - xlrd=1.0.0
-  - xlsxwriter=0.5.2
-  - xlwt=0.7.5
+  - xlsxwriter=0.9.4
+  - xlwt=1.2.0
   # universal
   - pytest>=4.0.2
   - pytest-xdist
@@ -27,4 +27,3 @@ dependencies:
   - isort
   - pip:
     - html5lib==1.0b2
-    - beautifulsoup4==4.2.1

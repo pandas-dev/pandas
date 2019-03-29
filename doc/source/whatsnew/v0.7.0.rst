@@ -45,7 +45,7 @@ New features
 - :ref:`Add<basics.iterrows>` ``DataFrame.iterrows`` method for efficiently
   iterating through the rows of a DataFrame
 
-- :ref:`Add<dsintro.to_panel>` ``DataFrame.to_panel`` with code adapted from
+- Add ``DataFrame.to_panel`` with code adapted from
   ``LongPanel.to_long``
 
 - :ref:`Add <basics.reindexing>` ``reindex_axis`` method added to DataFrame
@@ -57,7 +57,7 @@ New features
   and ``align`` methods on Series and DataFrame for broadcasting values across
   a level (:issue:`542`, :issue:`552`, others)
 
-- :ref:`Add <dsintro.panel_item_selection>` attribute-based item access to
+- Add attribute-based item access to
   ``Panel`` and add IPython completion (:issue:`563`)
 
 - :ref:`Add <visualization.basic>` ``logy`` option to ``Series.plot`` for
@@ -81,7 +81,7 @@ New features
 - :ref:`Can <basics.dataframe.from_series>` pass MaskedArray to Series
   constructor (:issue:`563`)
 
-- :ref:`Add <dsintro.panel_item_selection>` Panel item access via attributes
+- Add Panel item access via attributes
   and IPython completion (:issue:`554`)
 
 - Implement ``DataFrame.lookup``, fancy-indexing analogue for retrieving values

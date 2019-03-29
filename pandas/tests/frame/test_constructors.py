@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from collections import OrderedDict
 from datetime import datetime, timedelta
 import functools
@@ -11,17 +9,15 @@ import numpy as np
 import numpy.ma as ma
 import pytest
 
-from pandas.compat import (
-    PY2, PY3, PY36, is_platform_little_endian, lmap, long, lrange, lzip, range,
-    zip)
+from pandas.compat import PY36, is_platform_little_endian, lmap, lrange, lzip
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Index, MultiIndex, Series, Timedelta, Timestamp,
-    _np_version_under1p13, compat, date_range, isna)
+    Categorical, DataFrame, Index, MultiIndex, RangeIndex, Series, Timedelta,
+    Timestamp, compat, date_range, isna)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -32,12 +28,36 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
 
 class TestDataFrameConstructors(TestData):
 
-    def test_constructor(self):
-        df = DataFrame()
-        assert len(df.index) == 0
+    @pytest.mark.parametrize('constructor', [
+        lambda: DataFrame(),
+        lambda: DataFrame(None),
+        lambda: DataFrame({}),
+        lambda: DataFrame(()),
+        lambda: DataFrame([]),
+        lambda: DataFrame((x for x in [])),
+        lambda: DataFrame(data=None),
+        lambda: DataFrame(data={}),
+        lambda: DataFrame(data=()),
+        lambda: DataFrame(data=[]),
+        lambda: DataFrame(data=(x for x in []))
+    ])
+    def test_empty_constructor(self, constructor):
+        expected = DataFrame()
+        result = constructor()
+        assert len(result.index) == 0
+        assert len(result.columns) == 0
+        tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(data={})
-        assert len(df.index) == 0
+    @pytest.mark.parametrize('emptylike,expected_index,expected_columns', [
+        ([[]], RangeIndex(1), RangeIndex(0)),
+        ([[], []], RangeIndex(2), RangeIndex(0)),
+        ([(x for x in [])], RangeIndex(1), RangeIndex(0))
+    ])
+    def test_emptylike_constructor(
+            self, emptylike, expected_index, expected_columns):
+        expected = DataFrame(index=expected_index, columns=expected_columns)
+        result = DataFrame(emptylike)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_mixed(self):
         index, data = tm.getMixedTypeDict()
@@ -95,7 +115,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_list_frames(self):
         # see gh-3243
-        result = DataFrame([DataFrame([])])
+        result = DataFrame([DataFrame()])
         assert result.shape == (1, 0)
 
         result = DataFrame([DataFrame(dict(A=lrange(5)))])
@@ -163,9 +183,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
-        if PY3:
-            # unicode error under PY2
-            rec.dtype.names = list(rec.dtype.names)[::-1]
+        rec.dtype.names = list(rec.dtype.names)[::-1]
 
         index = self.frame.index
 
@@ -196,9 +214,8 @@ class TestDataFrameConstructors(TestData):
 
         # see gh-2355
         data_scores = [(6311132704823138710, 273), (2685045978526272070, 23),
-                       (8921811264899370420, 45),
-                       (long(17019687244989530680), 270),
-                       (long(9930107427299601010), 273)]
+                       (8921811264899370420, 45), (17019687244989530680, 270),
+                       (9930107427299601010, 273)]
         dtype = [('uid', 'u8'), ('score', 'u8')]
         data = np.zeros((len(data_scores),), dtype=dtype)
         data[:] = data_scores
@@ -265,7 +282,7 @@ class TestDataFrameConstructors(TestData):
         frame = DataFrame({}, index=idx)
         assert frame.index is idx
 
-        # empty with index and columns
+        # empty dict with index and columns
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx, columns=idx)
         assert frame.index is idx
@@ -684,8 +701,6 @@ class TestDataFrameConstructors(TestData):
         frame = DataFrame(['foo', 'bar'], index=[0, 1], columns=['A'])
         assert len(frame) == 2
 
-    @pytest.mark.skipif(PY2 and _np_version_under1p13,
-                        reason="old numpy & py2")
     def test_constructor_maskedarray(self):
         self._check_basic_constructor(ma.masked_all)
 
@@ -702,8 +717,6 @@ class TestDataFrameConstructors(TestData):
         frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
         assert np.all(~np.asarray(frame == frame))
 
-    @pytest.mark.skipif(PY2 and _np_version_under1p13,
-                        reason="old numpy & py2")
     def test_constructor_maskedarray_nonfloat(self):
         # masked int promoted to float
         mat = ma.masked_all((2, 3), dtype=int)
@@ -771,8 +784,6 @@ class TestDataFrameConstructors(TestData):
         assert frame['A'][1] is True
         assert frame['C'][2] is False
 
-    @pytest.mark.skipif(PY2 and _np_version_under1p13,
-                        reason="old numpy & py2")
     def test_constructor_maskedarray_hardened(self):
         # Check numpy masked arrays with hard masks -- from GH24574
         mat_hard = ma.masked_all((2, 2), dtype=float).harden_mask()
@@ -795,8 +806,6 @@ class TestDataFrameConstructors(TestData):
             dtype=float)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(PY2 and _np_version_under1p13,
-                        reason="old numpy & py2")
     def test_constructor_maskedrecarray_dtype(self):
         # Ensure constructor honors dtype
         data = np.ma.array(
@@ -808,8 +817,6 @@ class TestDataFrameConstructors(TestData):
                                 columns=['date', 'price'])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(PY2 and _np_version_under1p13,
-                        reason="old numpy & py2")
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479
@@ -1122,7 +1129,7 @@ class TestDataFrameConstructors(TestData):
         result2 = DataFrame(data, index=np.arange(6))
         tm.assert_frame_equal(result, result2)
 
-        result = DataFrame([Series({})])
+        result = DataFrame([Series()])
         expected = DataFrame(index=[0])
         tm.assert_frame_equal(result, expected)
 
@@ -1711,7 +1718,6 @@ class TestDataFrameConstructors(TestData):
 
         assert not (series['A'] == 5).all()
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_constructor_with_nas(self):
         # GH 5016
         # na's in indices

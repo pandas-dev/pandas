@@ -110,11 +110,14 @@ names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list will cause
   a ``UserWarning`` to be issued.
-index_col :  int or sequence or ``False``, default ``None``
-  Column to use as the row labels of the ``DataFrame``. If a sequence is given, a
-  MultiIndex is used. If you have a malformed file with delimiters at the end of
-  each line, you might consider ``index_col=False`` to force pandas to *not* use
-  the first column as the index (row names).
+index_col : int, str, sequence of int / str, or False, default ``None``
+  Column(s) to use as the row labels of the ``DataFrame``, either given as
+  string name or column index. If a sequence of int / str is given, a
+  MultiIndex is used.
+
+  Note: ``index_col=False`` can be used to force pandas to *not* use the first
+  column as the index, e.g. when you have a malformed file with delimiters at
+  the end of each line.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
@@ -3182,7 +3185,7 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
 .. code-block:: python
 
-   # By setting the 'engine' in the DataFrame and Panel 'to_excel()' methods.
+   # By setting the 'engine' in the DataFrame 'to_excel()' methods.
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1', engine='xlsxwriter')
 
    # By setting the 'engine' in the ExcelWriter constructor.
@@ -3471,19 +3474,11 @@ dict:
    s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
    df = pd.DataFrame(np.random.randn(8, 3), index=index,
                      columns=['A', 'B', 'C'])
-   wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
-                 major_axis=pd.date_range('1/1/2000', periods=5),
-                 minor_axis=['A', 'B', 'C', 'D'])
 
    # store.put('s', s) is an equivalent method
    store['s'] = s
 
    store['df'] = df
-
-   store['wp'] = wp
-
-   # the type of stored data
-   store.root.wp._v_attrs.pandas_type
 
    store
 
@@ -3501,8 +3496,8 @@ Deletion of the object specified by the key:
 
 .. ipython:: python
 
-   # store.remove('wp') is an equivalent method
-   del store['wp']
+   # store.remove('df') is an equivalent method
+   del store['df']
 
    store
 
@@ -3568,28 +3563,6 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
    :suppress:
 
    os.remove('file.h5')
-
-This is also true for the major axis of a ``Panel``:
-
-.. ipython:: python
-
-   matrix = [[[np.nan, np.nan, np.nan], [1, np.nan, np.nan]],
-             [[np.nan, np.nan, np.nan], [np.nan, 5, 6]],
-             [[np.nan, np.nan, np.nan], [np.nan, 3, np.nan]]]
-
-   panel_with_major_axis_all_missing = pd.Panel(matrix,
-                                                items=['Item1', 'Item2', 'Item3'],
-                                                major_axis=[1, 2],
-                                                minor_axis=['A', 'B', 'C'])
-
-   panel_with_major_axis_all_missing
-
-   panel_with_major_axis_all_missing.to_hdf('file.h5', 'panel',
-                                            dropna=True,
-                                            format='table',
-                                            mode='w')
-   reloaded = pd.read_hdf('file.h5', 'panel')
-   reloaded
 
 
 .. ipython:: python
@@ -3812,8 +3785,6 @@ data.
 A query is specified using the ``Term`` class under the hood, as a boolean expression.
 
 * ``index`` and ``columns`` are supported indexers of a ``DataFrames``.
-* ``major_axis``, ``minor_axis``, and ``items`` are supported indexers of
-  the Panel.
 * if ``data_columns`` are specified, these can be used as additional indexers.
 
 Valid comparison operators are:
@@ -3911,15 +3882,6 @@ Use and inline column reference
 
    store.select('dfq', where="A>0 or C>0")
 
-Works with a Panel as well.
-
-.. ipython:: python
-
-   store.append('wp', wp)
-   store
-   store.select('wp',
-                "major_axis>pd.Timestamp('20000102') & minor_axis=['A', 'B']")
-
 The ``columns`` keyword can be supplied to select a list of columns to be
 returned, this is equivalent to passing a
 ``'columns=list_of_columns_to_filter'``:
@@ -3930,15 +3892,6 @@ returned, this is equivalent to passing a
 
 ``start`` and ``stop`` parameters can be specified to limit the total search
 space. These are in terms of the total number of rows in a table.
-
-.. ipython:: python
-
-   # this is effectively what the storage of a Panel looks like
-   wp.to_frame()
-
-   # limiting the search
-   store.select('wp', "major_axis>20000102 & minor_axis=['A', 'B']",
-                start=0, stop=10)
 
 .. note::
 
@@ -4232,8 +4185,7 @@ You can delete from a table selectively by specifying a ``where``. In
 deleting rows, it is important to understand the ``PyTables`` deletes
 rows by erasing the rows, then **moving** the following data. Thus
 deleting can potentially be a very expensive operation depending on the
-orientation of your data. This is especially true in higher dimensional
-objects (``Panel`` and ``Panel4D``). To get optimal performance, it's
+orientation of your data. To get optimal performance, it's
 worthwhile to have the dimension you are deleting be the first of the
 ``indexables``.
 
@@ -4257,12 +4209,6 @@ fairly quick, as one chunk is removed, then the following data moved. On
 the other hand a delete operation on the ``minor_axis`` will be very
 expensive. In this case it would almost certainly be faster to rewrite
 the table using a ``where`` that selects all but the missing data.
-
-.. ipython:: python
-
-   # returns the number of rows deleted
-   store.remove('wp', 'major_axis > 20000102')
-   store.select('wp')
 
 .. warning::
 
@@ -4381,7 +4327,7 @@ Caveats
 * If you use locks to manage write access between multiple processes, you
   may want to use :py:func:`~os.fsync` before releasing write locks. For
   convenience you can use ``store.flush(fsync=True)`` to do this for you.
-* Once a ``table`` is created its items (Panel) / columns (DataFrame)
+* Once a ``table`` is created columns (DataFrame)
   are fixed; only exactly the same columns can be appended
 * Be aware that timezones (e.g., ``pytz.timezone('US/Eastern')``)
   are not necessarily equal across timezone versions.  So if data is

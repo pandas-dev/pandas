@@ -14,9 +14,8 @@ from pandas._libs.tslibs.offsets import (
     ApplyTypeError, BaseOffset, _get_calendar, _is_normalized, _to_dt64,
     apply_index_wraps, as_datetime, roll_yearday, shift_month)
 import pandas.compat as compat
-from pandas.compat import range
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.generic import ABCPeriod
 
@@ -972,21 +971,25 @@ class BusinessMonthBegin(MonthOffset):
 
 class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
     """
-    DateOffset subclass representing one custom business month, incrementing
-    between [BEGIN/END] of month dates.
+    DateOffset subclass representing custom business month(s).
+
+    Increments between %(bound)s of month dates.
 
     Parameters
     ----------
     n : int, default 1
+        The number of months represented.
     normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
+        Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        weekmask of valid business days, passed to ``numpy.busdaycalendar``
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
     holidays : list
-        list/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``
+        List/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``.
     calendar : pd.HolidayCalendar or np.busdaycalendar
+        Calendar to integrate.
     offset : timedelta, default timedelta(0)
+        Time offset to apply.
     """
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
@@ -1053,18 +1056,15 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         return result
 
 
+@Substitution(bound="end")
+@Appender(_CustomBusinessMonth.__doc__)
 class CustomBusinessMonthEnd(_CustomBusinessMonth):
-    # TODO(py27): Replace condition with Subsitution after dropping Py27
-    if _CustomBusinessMonth.__doc__:
-        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
     _prefix = 'CBM'
 
 
+@Substitution(bound="beginning")
+@Appender(_CustomBusinessMonth.__doc__)
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
-    # TODO(py27): Replace condition with Subsitution after dropping Py27
-    if _CustomBusinessMonth.__doc__:
-        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]',
-                                                       'beginning')
     _prefix = 'CBMS'
 
 
