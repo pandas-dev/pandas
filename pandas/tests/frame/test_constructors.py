@@ -314,6 +314,17 @@ class TestDataFrameConstructors(TestData):
         with pytest.raises(ValueError, match=msg):
             DataFrame({'a': 0.7}, columns=['a'])
 
+    def test_constructor_dict_order(self):
+        data = {'B': {'b': 1, 'c': 2, 'a': 3},
+                'A': {'b': 3, 'c': 2, 'a': 1}}
+        result = pd.DataFrame(data)
+
+        expected = pd.DataFrame([[1, 3], [2, 2], [3, 1]],
+                                index=['b', 'c', 'a'],
+                                columns=['B', 'A'])
+
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("scalar", [2, np.nan, None, 'D'])
     def test_constructor_invalid_items_unused(self, scalar):
         # No error if invalid (scalar) value is in fact not used:
@@ -479,7 +490,7 @@ class TestDataFrameConstructors(TestData):
             dct.update(v.to_dict())
             data[k] = dct
         frame = DataFrame(data)
-        tm.assert_frame_equal(self.frame.sort_index(), frame)
+        tm.assert_frame_equal(self.frame, frame)
 
     def test_constructor_dict_block(self):
         expected = np.array([[4., 3., 2., 1.]])
@@ -1110,7 +1121,7 @@ class TestDataFrameConstructors(TestData):
 
         sdict = OrderedDict(zip(['x', 'Unnamed 0'], data))
         expected = DataFrame.from_dict(sdict, orient='index')
-        tm.assert_frame_equal(result.sort_index(), expected)
+        tm.assert_frame_equal(result, expected)
 
         # none named
         data = [OrderedDict([['a', 1.5], ['b', 3], ['c', 4], ['d', 6]]),
@@ -1231,7 +1242,7 @@ class TestDataFrameConstructors(TestData):
     def test_constructor_orient(self):
         data_dict = self.mixed_frame.T._series
         recons = DataFrame.from_dict(data_dict, orient='index')
-        expected = self.mixed_frame.sort_index()
+        expected = self.mixed_frame
         tm.assert_frame_equal(recons, expected)
 
         # dict of sequence

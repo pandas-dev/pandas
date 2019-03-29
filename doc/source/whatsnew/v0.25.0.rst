@@ -395,7 +395,7 @@ Sparse
 Other
 ^^^^^
 
--
+- Ensured that ``DataFrame`` constructed from a ``dict`` with no index passed will follow the ``dict``'s insertion order (:issue:`25911`)
 -
 -
 
