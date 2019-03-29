@@ -172,7 +172,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     date
     time
     timetz
-    dayofyear
+    day_of_year
     weekofyear
     week
     dayofweek

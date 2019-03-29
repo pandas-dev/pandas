@@ -1034,10 +1034,10 @@ class TestPivotTable(object):
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         annual = pivot_table(DataFrame(ts), index=ts.index.year,
-                             columns=ts.index.dayofyear)
+                             columns=ts.index.day_of_year)
         annual.columns = annual.columns.droplevel(0)
 
-        doy = np.asarray(ts.index.dayofyear)
+        doy = np.asarray(ts.index.day_of_year)
 
         for i in range(1, 367):
             subset = ts[doy == i]

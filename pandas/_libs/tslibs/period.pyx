@@ -1748,7 +1748,7 @@ cdef class _Period(object):
         See Also
         --------
         Period.end_time : Return the end Timestamp.
-        Period.dayofyear : Return the day of year.
+        Period.day_of_year : Return the day of year.
         Period.daysinmonth : Return the days in that month.
         Period.dayofweek : Return the day of the week.
 
@@ -1832,7 +1832,7 @@ cdef class _Period(object):
         See Also
         --------
         Period.dayofweek : Get the day of the week.
-        Period.dayofyear : Get the day of the year.
+        Period.day_of_year : Get the day of the year.
 
         Examples
         --------
@@ -1978,7 +1978,7 @@ cdef class _Period(object):
         Period.dayofweek : Day of the week the period lies in.
         Period.weekday : Alias of Period.dayofweek.
         Period.day : Day of the month.
-        Period.dayofyear : Day of the year.
+        Period.day_of_year : Day of the year.
 
         Examples
         --------
@@ -2029,7 +2029,7 @@ cdef class _Period(object):
         Period.dayofweek : Day of the week the period lies in.
         Period.weekday : Alias of Period.dayofweek.
         Period.day : Day of the month.
-        Period.dayofyear : Day of the year.
+        Period.day_of_year : Day of the year.
 
         Examples
         --------
@@ -2061,7 +2061,7 @@ cdef class _Period(object):
         return self.dayofweek
 
     @property
-    def dayofyear(self):
+    def day_of_year(self):
         """
         Return the day of the year.
 
@@ -2078,18 +2078,18 @@ cdef class _Period(object):
         --------
         Period.day : Return the day of the month.
         Period.dayofweek : Return the day of week.
-        PeriodIndex.dayofyear : Return the day of year of all indexes.
+        PeriodIndex.day_of_year : Return the day of year of all indexes.
 
         Examples
         --------
         >>> period = pd.Period("2015-10-23", freq='H')
-        >>> period.dayofyear
+        >>> period.day_of_year
         296
         >>> period = pd.Period("2012-12-31", freq='D')
-        >>> period.dayofyear
+        >>> period.day_of_year
         366
         >>> period = pd.Period("2013-01-01", freq='D')
-        >>> period.dayofyear
+        >>> period.day_of_year
         1
         """
         base, mult = get_freq_code(self.freq)
@@ -2190,7 +2190,7 @@ cdef class _Period(object):
         See Also
         --------
         Period.days_in_month : Return the days of the month.
-        Period.dayofyear : Return the day of the year.
+        Period.day_of_year : Return the day of the year.
 
         Examples
         --------

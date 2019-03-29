@@ -350,6 +350,7 @@ Time/Date Components
    DatetimeIndex.time
    DatetimeIndex.timetz
    DatetimeIndex.dayofyear
+   DatetimeIndex.day_of_year
    DatetimeIndex.weekofyear
    DatetimeIndex.week
    DatetimeIndex.dayofweek
@@ -452,7 +453,7 @@ Properties
 
     PeriodIndex.day
     PeriodIndex.dayofweek
-    PeriodIndex.dayofyear
+    PeriodIndex.day_of_year
     PeriodIndex.days_in_month
     PeriodIndex.daysinmonth
     PeriodIndex.end_time

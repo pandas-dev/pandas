@@ -327,7 +327,7 @@ Datetime Properties
    Series.dt.weekofyear
    Series.dt.dayofweek
    Series.dt.weekday
-   Series.dt.dayofyear
+   Series.dt.day_of_year
    Series.dt.quarter
    Series.dt.is_month_start
    Series.dt.is_month_end

@@ -855,7 +855,7 @@ class TestPeriodProperties(object):
         assert b_date.month == 1
         assert b_date.day == 1
         assert b_date.weekday == 0
-        assert b_date.dayofyear == 1
+        assert b_date.day_of_year == 1
         assert b_date.days_in_month == 31
         assert Period(freq='B', year=2012,
                       month=2, day=1).days_in_month == 29
@@ -867,7 +867,7 @@ class TestPeriodProperties(object):
         assert d_date.month == 1
         assert d_date.day == 1
         assert d_date.weekday == 0
-        assert d_date.dayofyear == 1
+        assert d_date.day_of_year == 1
         assert d_date.days_in_month == 31
         assert Period(freq='D', year=2012, month=2,
                       day=1).days_in_month == 29
@@ -883,7 +883,7 @@ class TestPeriodProperties(object):
             assert h_date.month == 1
             assert h_date.day == 1
             assert h_date.weekday == 0
-            assert h_date.dayofyear == 1
+            assert h_date.day_of_year == 1
             assert h_date.hour == 0
             assert h_date.days_in_month == 31
             assert Period(freq='H', year=2012, month=2, day=1,
@@ -898,7 +898,7 @@ class TestPeriodProperties(object):
         assert t_date.month == 1
         assert t_date.day == 1
         assert t_date.weekday == 0
-        assert t_date.dayofyear == 1
+        assert t_date.day_of_year == 1
         assert t_date.hour == 0
         assert t_date.minute == 0
         assert t_date.days_in_month == 31
@@ -915,7 +915,7 @@ class TestPeriodProperties(object):
         assert s_date.month == 1
         assert s_date.day == 1
         assert s_date.weekday == 0
-        assert s_date.dayofyear == 1
+        assert s_date.day_of_year == 1
         assert s_date.hour == 0
         assert s_date.minute == 0
         assert s_date.second == 0

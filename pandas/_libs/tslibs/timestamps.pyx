@@ -1022,7 +1022,7 @@ class Timestamp(_Timestamp):
         return self.day_name()
 
     @property
-    def dayofyear(self):
+    def day_of_year(self):
         """
         Return the day of the year.
         """

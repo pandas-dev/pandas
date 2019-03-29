@@ -50,7 +50,7 @@ class TimestampProperties(object):
         self.ts.day_name
 
     def time_dayofyear(self, tz, freq):
-        self.ts.dayofyear
+        self.ts.day_of_year
 
     def time_week(self, tz, freq):
         self.ts.week

@@ -250,7 +250,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     _object_ops = ['weekday_name', 'freq', 'tz']
     _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
                   'weekofyear', 'week', 'weekday', 'dayofweek',
-                  'dayofyear', 'quarter', 'days_in_month',
+                  'day_of_year', 'quarter', 'days_in_month',
                   'daysinmonth', 'microsecond',
                   'nanosecond']
     _other_ops = ['date', 'time', 'timetz']
@@ -1368,7 +1368,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         'weekday_name',
         "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
-    dayofyear = _field_accessor('dayofyear', 'doy',
+    day_of_year = _field_accessor('day_of_year', 'doy',
                                 "The ordinal day of the year.")
     quarter = _field_accessor('quarter', 'q', "The quarter of the date.")
     days_in_month = _field_accessor(

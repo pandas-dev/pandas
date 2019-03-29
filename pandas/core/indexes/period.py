@@ -121,7 +121,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     ----------
     day
     dayofweek
-    dayofyear
+    day_of_year
     days_in_month
     daysinmonth
     end_time

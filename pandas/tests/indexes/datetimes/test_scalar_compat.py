@@ -39,7 +39,7 @@ class TestDatetimeIndexOps(object):
             DatetimeIndex(data)
 
     @pytest.mark.parametrize('field', [
-        'dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
+        'dayofweek', 'day_of_year', 'week', 'weekofyear', 'quarter',
         'days_in_month', 'is_month_start', 'is_month_end',
         'is_quarter_start', 'is_quarter_end', 'is_year_start',
         'is_year_end', 'weekday_name'])

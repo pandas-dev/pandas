@@ -107,8 +107,8 @@ class TestDatetime64(object):
             assert dti.microsecond[0] == 0
             assert dti.dayofweek[0] == 3
 
-            assert dti.dayofyear[0] == 1
-            assert dti.dayofyear[120] == 121
+            assert dti.day_of_year[0] == 1
+            assert dti.day_of_year[120] == 121
 
             assert dti.weekofyear[0] == 1
             assert dti.weekofyear[120] == 18
@@ -145,7 +145,7 @@ class TestDatetime64(object):
             assert len(dti.second) == 365
             assert len(dti.microsecond) == 365
             assert len(dti.dayofweek) == 365
-            assert len(dti.dayofyear) == 365
+            assert len(dti.day_of_year) == 365
             assert len(dti.weekofyear) == 365
             assert len(dti.quarter) == 365
             assert len(dti.is_month_start) == 365

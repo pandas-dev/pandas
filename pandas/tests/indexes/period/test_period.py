@@ -249,7 +249,7 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_fields(self):
         # year, month, day, hour, minute
-        # second, weekofyear, week, dayofweek, weekday, dayofyear, quarter
+        # second, weekofyear, week, dayofweek, weekday, day_of_year, quarter
         # qyear
         pi = period_range(freq='A', start='1/1/2001', end='12/1/2005')
         self._check_all_fields(pi)
@@ -282,7 +282,7 @@ class TestPeriodIndex(DatetimeLike):
 
     def _check_all_fields(self, periodindex):
         fields = ['year', 'month', 'day', 'hour', 'minute', 'second',
-                  'weekofyear', 'week', 'dayofweek', 'dayofyear',
+                  'weekofyear', 'week', 'dayofweek', 'day_of_year',
                   'quarter', 'qyear', 'days_in_month']
 
         periods = list(periodindex)
