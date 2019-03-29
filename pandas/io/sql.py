@@ -4,8 +4,6 @@ Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
 
-from __future__ import division, print_function
-
 from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
@@ -47,24 +45,11 @@ def _is_sqlalchemy_connectable(con):
         try:
             import sqlalchemy
             _SQLALCHEMY_INSTALLED = True
-
-            from distutils.version import LooseVersion
-            ver = sqlalchemy.__version__
-            # For sqlalchemy versions < 0.8.2, the BIGINT type is recognized
-            # for a sqlite engine, which results in a warning when trying to
-            # read/write a DataFrame with int64 values. (GH7433)
-            if LooseVersion(ver) < LooseVersion('0.8.2'):
-                from sqlalchemy import BigInteger
-                from sqlalchemy.ext.compiler import compiles
-
-                @compiles(BigInteger, 'sqlite')
-                def compile_big_int_sqlite(type_, compiler, **kw):
-                    return 'INTEGER'
         except ImportError:
             _SQLALCHEMY_INSTALLED = False
 
     if _SQLALCHEMY_INSTALLED:
-        import sqlalchemy
+        import sqlalchemy  # noqa: F811
         return isinstance(con, sqlalchemy.engine.Connectable)
     else:
         return False

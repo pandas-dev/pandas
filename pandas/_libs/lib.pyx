@@ -73,7 +73,6 @@ cdef:
     object oINT64_MIN = <int64_t>INT64_MIN
     object oUINT64_MAX = <uint64_t>UINT64_MAX
 
-    bint PY2 = sys.version_info[0] == 2
     float64_t NaN = <float64_t>np.NaN
 
 
@@ -942,10 +941,9 @@ _TYPE_MAP = {
     'complex64': 'complex',
     'complex128': 'complex',
     'c': 'complex',
-    'string': 'string' if PY2 else 'bytes',
-    'S': 'string' if PY2 else 'bytes',
-    'unicode': 'unicode' if PY2 else 'string',
-    'U': 'unicode' if PY2 else 'string',
+    'string': 'bytes',
+    'S': 'bytes',
+    'U': 'string',
     'bool': 'boolean',
     'b': 'boolean',
     'datetime64[ns]': 'datetime64',

@@ -5,8 +5,6 @@ the interface tests.
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas.arrays import PandasArray
 from pandas.core.arrays.numpy_ import PandasDtype
@@ -178,7 +176,7 @@ def test_validate_reduction_keyword_args():
 # ----------------------------------------------------------------------------
 # Ops
 
-@td.skip_if_no("numpy", min_version="1.13.0")
+
 def test_ufunc():
     arr = PandasArray(np.array([-1.0, 0.0, 1.0]))
     result = np.abs(arr)
@@ -193,7 +191,6 @@ def test_ufunc():
     tm.assert_extension_array_equal(r2, e2)
 
 
-@td.skip_if_no("numpy", min_version="1.13.0")
 def test_basic_binop():
     # Just a basic smoke test. The EA interface tests exercise this
     # more thoroughly.

@@ -5,8 +5,6 @@ Tests multithreading behaviour for reading and
 parsing files for each parser defined in parsers.py
 """
 
-from __future__ import division
-
 from multiprocessing.pool import ThreadPool
 
 import numpy as np

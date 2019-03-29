@@ -4,9 +4,8 @@ Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
 
-from __future__ import print_function
-
 from functools import partial
+from shutil import get_terminal_size
 
 import numpy as np
 
@@ -34,7 +33,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
-from pandas.io.formats.terminal import get_terminal_size
 
 # pylint: disable=W0141
 
@@ -691,7 +689,7 @@ class DataFrameFormatter(TableFormatter):
                                         multirow=multirow)
 
         if encoding is None:
-            encoding = 'ascii' if compat.PY2 else 'utf-8'
+            encoding = 'utf-8'
 
         if hasattr(self.buf, 'write'):
             latex_renderer.write_result(self.buf)
