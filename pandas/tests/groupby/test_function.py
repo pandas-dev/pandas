@@ -1064,8 +1064,8 @@ def test_size(df):
         tm.assert_series_equal(left, right, check_names=False)
 
     # GH11699
-    df = DataFrame([], columns=['A', 'B'])
-    out = Series([], dtype='int64', index=Index([], name='A'))
+    df = DataFrame(columns=['A', 'B'])
+    out = Series(dtype='int64', index=Index([], name='A'))
     tm.assert_series_equal(df.groupby('A').size(), out)
 
 
@@ -1145,7 +1145,7 @@ def test_pipe():
     # NDFrame.pipe methods
     result = df.groupby('A').pipe(f).pipe(square)
 
-    index = Index([u'bar', u'foo'], dtype='object', name=u'A')
+    index = Index(['bar', 'foo'], dtype='object', name='A')
     expected = pd.Series([8.99110003361, 8.17516964785], name='B',
                          index=index)
 

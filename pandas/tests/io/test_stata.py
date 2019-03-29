@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import ResourceWarning, iterkeys
+from pandas.compat import iterkeys
 
 from pandas.core.dtypes.common import is_categorical_dtype
 
@@ -277,10 +277,10 @@ class TestStata(object):
         parsed_118 = self.read_dta(self.dta22_118)
         parsed_118["Bytes"] = parsed_118["Bytes"].astype('O')
         expected = DataFrame.from_records(
-            [['Cat', 'Bogota', u'Bogotá', 1, 1.0, u'option b Ünicode', 1.0],
-             ['Dog', 'Boston', u'Uzunköprü', np.nan, np.nan, np.nan, np.nan],
-             ['Plane', 'Rome', u'Tromsø', 0, 0.0, 'option a', 0.0],
-             ['Potato', 'Tokyo', u'Elâzığ', -4, 4.0, 4, 4],
+            [['Cat', 'Bogota', 'Bogotá', 1, 1.0, 'option b Ünicode', 1.0],
+             ['Dog', 'Boston', 'Uzunköprü', np.nan, np.nan, np.nan, np.nan],
+             ['Plane', 'Rome', 'Tromsø', 0, 0.0, 'option a', 0.0],
+             ['Potato', 'Tokyo', 'Elâzığ', -4, 4.0, 4, 4],
              ['', '', '', 0, 0.3332999, 'option a', 1 / 3.]
              ],
             columns=['Things', 'Cities', 'Unicode_Cities_Strl',
@@ -291,17 +291,17 @@ class TestStata(object):
 
         with StataReader(self.dta22_118) as rdr:
             vl = rdr.variable_labels()
-            vl_expected = {u'Unicode_Cities_Strl':
-                           u'Here are some strls with Ünicode chars',
-                           u'Longs': u'long data',
-                           u'Things': u'Here are some things',
-                           u'Bytes': u'byte data',
-                           u'Ints': u'int data',
-                           u'Cities': u'Here are some cities',
-                           u'Floats': u'float data'}
+            vl_expected = {'Unicode_Cities_Strl':
+                           'Here are some strls with Ünicode chars',
+                           'Longs': 'long data',
+                           'Things': 'Here are some things',
+                           'Bytes': 'byte data',
+                           'Ints': 'int data',
+                           'Cities': 'Here are some cities',
+                           'Floats': 'float data'}
             tm.assert_dict_equal(vl, vl_expected)
 
-            assert rdr.data_label == u'This is a  Ünicode data label'
+            assert rdr.data_label == 'This is a  Ünicode data label'
 
     def test_read_write_dta5(self):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
@@ -372,7 +372,7 @@ class TestStata(object):
 
         expected = raw.kreis1849[0]
         assert result == expected
-        assert isinstance(result, compat.string_types)
+        assert isinstance(result, str)
 
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(FutureWarning):
@@ -383,7 +383,7 @@ class TestStata(object):
 
     def test_read_write_dta11(self):
         original = DataFrame([(1, 2, 3, 4)],
-                             columns=['good', compat.u('b\u00E4d'), '8number',
+                             columns=['good', 'b\u00E4d', '8number',
                                       'astringwithmorethan32characters______'])
         formatted = DataFrame([(1, 2, 3, 4)],
                               columns=['good', 'b_d', '_8number',
@@ -1213,7 +1213,7 @@ class TestStata(object):
                                   variable_labels=variable_labels,
                                   version=version)
 
-        variable_labels['a'] = u'invalid character Œ'
+        variable_labels['a'] = 'invalid character Œ'
         with tm.ensure_clean() as path:
             msg = ("Variable labels must contain only characters that can be"
                    " encoded in Latin-1")
@@ -1227,13 +1227,13 @@ class TestStata(object):
                                  'b': [1.0, 3.0, 27.0, 81.0],
                                  'c': ['Atlanta', 'Birmingham',
                                        'Cincinnati', 'Detroit']})
-        values = [u'\u03A1', u'\u0391',
-                  u'\u039D', u'\u0394',
-                  u'\u0391', u'\u03A3']
+        values = ['\u03A1', '\u0391',
+                  '\u039D', '\u0394',
+                  '\u0391', '\u03A3']
 
         variable_labels_utf8 = {'a': 'City Rank',
                                 'b': 'City Exponent',
-                                'c': u''.join(values)}
+                                'c': ''.join(values)}
 
         msg = ("Variable labels must contain only characters that can be"
                " encoded in Latin-1")
@@ -1521,9 +1521,9 @@ class TestStata(object):
         unicode_df = self.read_dta(self.dta25_118)
 
         columns = ['utf8', 'latin1', 'ascii', 'utf8_strl', 'ascii_strl']
-        values = [[u'ραηδας', u'PÄNDÄS', 'p', u'ραηδας', 'p'],
-                  [u'ƤĀńĐąŜ', u'Ö', 'a', u'ƤĀńĐąŜ', 'a'],
-                  [u'ᴘᴀᴎᴅᴀS', u'Ü', 'n', u'ᴘᴀᴎᴅᴀS', 'n'],
+        values = [['ραηδας', 'PÄNDÄS', 'p', 'ραηδας', 'p'],
+                  ['ƤĀńĐąŜ', 'Ö', 'a', 'ƤĀńĐąŜ', 'a'],
+                  ['ᴘᴀᴎᴅᴀS', 'Ü', 'n', 'ᴘᴀᴎᴅᴀS', 'n'],
                   ['      ', '      ', 'd', '      ', 'd'],
                   [' ', '', 'a', ' ', 'a'],
                   ['', '', 's', '', 's'],
@@ -1593,14 +1593,14 @@ class TestStata(object):
 
     def test_strl_latin1(self):
         # GH 23573, correct GSO data to reflect correct size
-        output = DataFrame([[u'pandas'] * 2, [u'þâÑÐÅ§'] * 2],
+        output = DataFrame([['pandas'] * 2, ['þâÑÐÅ§'] * 2],
                            columns=['var_str', 'var_strl'])
 
         with tm.ensure_clean() as path:
             output.to_stata(path, version=117, convert_strl=['var_strl'])
             with open(path, 'rb') as reread:
                 content = reread.read()
-                expected = u'þâÑÐÅ§'
+                expected = 'þâÑÐÅ§'
                 assert expected.encode('latin-1') in content
                 assert expected.encode('utf-8') in content
                 gsos = content.split(b'strls')[1][1:-2]

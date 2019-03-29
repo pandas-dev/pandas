@@ -36,6 +36,9 @@ except ImportError as e:  # pragma: no cover
 
 from datetime import datetime
 
+from pandas._config import (get_option, set_option, reset_option,
+                            describe_option, option_context, options)
+
 # let init-time option registration happen
 import pandas.core.config_init
 

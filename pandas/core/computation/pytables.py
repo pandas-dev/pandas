@@ -6,7 +6,7 @@ from functools import partial
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta, Timestamp
-from pandas.compat import DeepChainMap, string_types, u
+from pandas.compat import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -34,7 +34,7 @@ class Scope(expr.Scope):
 class Term(ops.Term):
 
     def __new__(cls, name, env, side=None, encoding=None):
-        klass = Constant if not isinstance(name, string_types) else cls
+        klass = Constant if not isinstance(name, str) else cls
         supr_new = StringMixin.__new__
         return supr_new(klass)
 
@@ -182,7 +182,7 @@ class BinOp(ops.BinOp):
 
         kind = _ensure_decoded(self.kind)
         meta = _ensure_decoded(self.meta)
-        if kind == u('datetime64') or kind == u('datetime'):
+        if kind == 'datetime64' or kind == 'datetime':
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = _ensure_decoded(v)
@@ -190,10 +190,10 @@ class BinOp(ops.BinOp):
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
-        elif kind == u('timedelta64') or kind == u('timedelta'):
+        elif kind == 'timedelta64' or kind == 'timedelta':
             v = Timedelta(v, unit='s').value
             return TermValue(int(v), v, kind)
-        elif meta == u('category'):
+        elif meta == 'category':
             metadata = com.values_from_object(self.metadata)
             result = metadata.searchsorted(v, side='left')
 
@@ -201,24 +201,24 @@ class BinOp(ops.BinOp):
             # check that metadata contains v
             if not result and v not in metadata:
                 result = -1
-            return TermValue(result, result, u('integer'))
-        elif kind == u('integer'):
+            return TermValue(result, result, 'integer')
+        elif kind == 'integer':
             v = int(float(v))
             return TermValue(v, v, kind)
-        elif kind == u('float'):
+        elif kind == 'float':
             v = float(v)
             return TermValue(v, v, kind)
-        elif kind == u('bool'):
-            if isinstance(v, string_types):
-                v = not v.strip().lower() in [u('false'), u('f'), u('no'),
-                                              u('n'), u('none'), u('0'),
-                                              u('[]'), u('{}'), u('')]
+        elif kind == 'bool':
+            if isinstance(v, str):
+                v = not v.strip().lower() in ['false', 'f', 'no',
+                                              'n', 'none', '0',
+                                              '[]', '{}', '']
             else:
                 v = bool(v)
             return TermValue(v, v, kind)
-        elif isinstance(v, string_types):
+        elif isinstance(v, str):
             # string quoting
-            return TermValue(v, stringify(v), u('string'))
+            return TermValue(v, stringify(v), 'string')
         else:
             raise TypeError("Cannot compare {v} of type {typ} to {kind} column"
                             .format(v=v, typ=type(v), kind=kind))
@@ -476,7 +476,7 @@ def _validate_where(w):
     TypeError : An invalid data type was passed in for w (e.g. dict).
     """
 
-    if not (isinstance(w, (Expr, string_types)) or is_list_like(w)):
+    if not (isinstance(w, (Expr, str)) or is_list_like(w)):
         raise TypeError("where must be passed as a string, Expr, "
                         "or list-like of Exprs")
 
@@ -541,7 +541,7 @@ class Expr(expr.Expr):
         self.expr = where
         self.env = Scope(scope_level + 1, local_dict=local_dict)
 
-        if queryables is not None and isinstance(self.expr, string_types):
+        if queryables is not None and isinstance(self.expr, str):
             self.env.queryables.update(queryables)
             self._visitor = ExprVisitor(self.env, queryables=queryables,
                                         parser='pytables', engine='pytables',
@@ -584,11 +584,11 @@ class TermValue(object):
     def tostring(self, encoding):
         """ quote the string if not encoded
             else encode and return """
-        if self.kind == u'string':
+        if self.kind == 'string':
             if encoding is not None:
                 return self.converted
             return '"{converted}"'.format(converted=self.converted)
-        elif self.kind == u'float':
+        elif self.kind == 'float':
             # python 2 str(float) is not always
             # round-trippable so use repr()
             return repr(self.converted)
@@ -597,7 +597,7 @@ class TermValue(object):
 
 def maybe_expression(s):
     """ loose checking if s is a pytables-acceptable expression """
-    if not isinstance(s, string_types):
+    if not isinstance(s, str):
         return False
     ops = ExprVisitor.binary_ops + ExprVisitor.unary_ops + ('=',)
 

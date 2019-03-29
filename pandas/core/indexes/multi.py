@@ -6,10 +6,11 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     Timestamp, algos as libalgos, index as libindex, lib, tslibs)
-import pandas.compat as compat
-from pandas.compat import lrange, lzip, map, range, zip
+from pandas.compat import lrange, lzip
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
@@ -24,7 +25,6 @@ from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-from pandas.core.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs, ensure_index)
@@ -378,8 +378,8 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> tuples = [(1, u'red'), (1, u'blue'),
-        ...           (2, u'red'), (2, u'blue')]
+        >>> tuples = [(1, 'red'), (1, 'blue'),
+        ...           (2, 'red'), (2, 'blue')]
         >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
         MultiIndex(levels=[[1, 2], ['blue', 'red']],
                    codes=[[0, 0, 1, 1], [1, 0, 1, 0]],
@@ -620,25 +620,25 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                            (2, u'one'), (2, u'two')],
+        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
+                                            (2, 'one'), (2, 'two')],
                                             names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]])
-        MultiIndex(levels=[[u'a', u'b'], [1, 2]],
+        MultiIndex(levels=[['a', 'b'], [1, 2]],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_levels(['a','b'], level=0)
-        MultiIndex(levels=[[u'a', u'b'], [u'one', u'two']],
+        MultiIndex(levels=[['a', 'b'], ['one', 'two']],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_levels(['a','b'], level='bar')
-        MultiIndex(levels=[[1, 2], [u'a', u'b']],
+        MultiIndex(levels=[[1, 2], ['a', 'b']],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]], level=[0,1])
-        MultiIndex(levels=[[u'a', u'b'], [1, 2]],
+        MultiIndex(levels=[['a', 'b'], [1, 2]],
                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         """
         if is_list_like(levels) and not isinstance(levels, Index):
             levels = list(levels)
@@ -739,25 +739,25 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                            (2, u'one'), (2, u'two')],
+        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
+                                            (2, 'one'), (2, 'two')],
                                             names=['foo', 'bar'])
         >>> idx.set_codes([[1,0,1,0], [0,0,1,1]])
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_codes([1,0,1,0], level=0)
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[1, 0, 1, 0], [0, 1, 0, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_codes([0,0,1,1], level='bar')
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[0, 0, 1, 1], [0, 0, 1, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         >>> idx.set_codes([[1,0,1,0], [0,0,1,1]], level=[0,1])
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
-                   names=[u'foo', u'bar'])
+                   names=['foo', 'bar'])
         """
         if level is not None and not is_list_like(level):
             if not is_list_like(codes):
@@ -1260,7 +1260,7 @@ class MultiIndex(Index):
             raise KeyError
 
         def f(k, stringify):
-            if stringify and not isinstance(k, compat.string_types):
+            if stringify and not isinstance(k, str):
                 k = str(k)
             return k
         key = tuple(f(k, stringify)
@@ -1339,8 +1339,7 @@ class MultiIndex(Index):
             # rather than a KeyError, try it here
             # note that a string that 'looks' like a Timestamp will raise
             # a KeyError! (GH5725)
-            if (isinstance(key, (datetime.datetime, np.datetime64)) or
-                    (compat.PY3 and isinstance(key, compat.string_types))):
+            if isinstance(key, (datetime.datetime, np.datetime64, str)):
                 try:
                     return _try_mi(key)
                 except KeyError:
@@ -1511,10 +1510,10 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                            (2, u'one'), (2, u'two')])
+        >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
+                                            (2, 'one'), (2, 'two')])
         >>> idx.to_hierarchical(3)
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        MultiIndex(levels=[[1, 2], ['one', 'two']],
                    codes=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
                           [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
         """
@@ -2065,7 +2064,7 @@ class MultiIndex(Index):
         """
         from pandas.core.sorting import indexer_from_factorized
 
-        if isinstance(level, (compat.string_types, int)):
+        if isinstance(level, (str, int)):
             level = [level]
         level = [self._get_level_number(lev) for lev in level]
         sortorder = None

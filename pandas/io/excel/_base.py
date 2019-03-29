@@ -5,21 +5,22 @@ import os
 from textwrap import fill
 import warnings
 
+from pandas._config import config
+
 import pandas.compat as compat
-from pandas.compat import add_metaclass, range, string_types, u
+from pandas.compat import add_metaclass
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     is_bool, is_float, is_integer, is_list_like)
 
-from pandas.core import config
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import _NA_VALUES, _stringify_path, _validate_header_arg
 from pandas.io.excel._util import (
-    _fill_mi_header, _get_default_writer, _maybe_convert_to_string,
-    _maybe_convert_usecols, _pop_header_name, get_writer)
+    _fill_mi_header, _get_default_writer, _maybe_convert_usecols,
+    _pop_header_name, get_writer)
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -393,7 +394,7 @@ class _BaseExcelReader(object):
             if verbose:
                 print("Reading sheet {sheet}".format(sheet=asheetname))
 
-            if isinstance(asheetname, compat.string_types):
+            if isinstance(asheetname, str):
                 sheet = self.get_sheet_by_name(asheetname)
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
@@ -475,9 +476,6 @@ class _BaseExcelReader(object):
                     if header_names:
                         output[asheetname].columns = output[
                             asheetname].columns.set_names(header_names)
-                    elif compat.PY2:
-                        output[asheetname].columns = _maybe_convert_to_string(
-                            output[asheetname].columns)
 
             except EmptyDataError:
                 # No Data, return an empty DataFrame
@@ -578,9 +576,9 @@ class ExcelWriter(object):
         # only switch class if generic(ExcelWriter)
 
         if issubclass(cls, ExcelWriter):
-            if engine is None or (isinstance(engine, string_types) and
+            if engine is None or (isinstance(engine, str) and
                                   engine == 'auto'):
-                if isinstance(path, string_types):
+                if isinstance(path, str):
                     ext = os.path.splitext(path)[-1][1:]
                 else:
                     ext = 'xlsx'
@@ -642,7 +640,7 @@ class ExcelWriter(object):
                  date_format=None, datetime_format=None, mode='w',
                  **engine_kwargs):
         # validate that this engine can handle the extension
-        if isinstance(path, string_types):
+        if isinstance(path, str):
             ext = os.path.splitext(path)[-1]
         else:
             ext = 'xls' if engine == 'xlwt' else 'xlsx'
@@ -715,7 +713,7 @@ class ExcelWriter(object):
         if ext.startswith('.'):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = (u("Invalid extension for engine '{engine}': '{ext}'")
+            msg = ("Invalid extension for engine '{engine}': '{ext}'"
                    .format(engine=pprint_thing(cls.engine),
                            ext=pprint_thing(ext)))
             raise ValueError(msg)

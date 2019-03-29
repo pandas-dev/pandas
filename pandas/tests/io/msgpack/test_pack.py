@@ -4,8 +4,6 @@ import struct
 
 import pytest
 
-from pandas.compat import u
-
 from pandas import compat
 
 from pandas.io.msgpack import Packer, Unpacker, packb, unpackb
@@ -32,7 +30,7 @@ class TestPack(object):
             self.check(td)
 
     def testPackUnicode(self):
-        test_data = [u(""), u("abcd"), [u("defgh")], u("Русский текст"), ]
+        test_data = ["", "abcd", ["defgh"], "Русский текст", ]
         for td in test_data:
             re = unpackb(
                 packb(td, encoding='utf-8'), use_list=1, encoding='utf-8')
@@ -44,12 +42,7 @@ class TestPack(object):
             assert re == td
 
     def testPackUTF32(self):
-        test_data = [
-            compat.u(""),
-            compat.u("abcd"),
-            [compat.u("defgh")],
-            compat.u("Русский текст"),
-        ]
+        test_data = ["", "abcd", ["defgh"], "Русский текст"]
         for td in test_data:
             re = unpackb(
                 packb(td, encoding='utf-32'), use_list=1, encoding='utf-32')
@@ -76,20 +69,18 @@ class TestPack(object):
         msg = (r"'ascii' codec can't encode character u*'\\xed' in position 3:"
                r" ordinal not in range\(128\)")
         with pytest.raises(UnicodeEncodeError, match=msg):
-            packb(compat.u("abc\xeddef"), encoding='ascii',
-                  unicode_errors='strict')
+            packb("abc\xeddef", encoding='ascii', unicode_errors='strict')
 
     def testIgnoreErrorsPack(self):
         re = unpackb(
-            packb(
-                compat.u("abcФФФdef"), encoding='ascii',
-                unicode_errors='ignore'), encoding='utf-8', use_list=1)
-        assert re == compat.u("abcdef")
+            packb("abcФФФdef", encoding='ascii', unicode_errors='ignore'),
+            encoding='utf-8', use_list=1)
+        assert re == "abcdef"
 
     def testNoEncoding(self):
         msg = "Can't encode unicode string: no encoding is specified"
         with pytest.raises(TypeError, match=msg):
-            packb(compat.u("abc"), encoding=None)
+            packb("abc", encoding=None)
 
     def testDecodeBinary(self):
         re = unpackb(packb("abc"), encoding=None, use_list=1)

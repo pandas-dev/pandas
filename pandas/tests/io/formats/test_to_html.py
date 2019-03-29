@@ -7,10 +7,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange, u
+from pandas.compat import StringIO, lrange
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, compat, option_context
+from pandas import DataFrame, Index, MultiIndex, option_context
 from pandas.util import testing as tm
 
 import pandas.io.formats.format as fmt
@@ -89,8 +89,8 @@ def test_to_html_with_empty_string_label():
 
 
 @pytest.mark.parametrize('df,expected', [
-    (DataFrame({u('\u03c3'): np.arange(10.)}), 'unicode_1'),
-    (DataFrame({'A': [u('\u03c3')]}), 'unicode_2')
+    (DataFrame({'\u03c3': np.arange(10.)}), 'unicode_1'),
+    (DataFrame({'A': ['\u03c3']}), 'unicode_2')
 ])
 def test_to_html_unicode(df, expected, datapath):
     expected = expected_html(datapath, expected)
@@ -201,13 +201,13 @@ def test_to_html_formatters(df, formatters, expected, datapath):
 
 def test_to_html_regression_GH6098():
     df = DataFrame({
-        u('clé1'): [u('a'), u('a'), u('b'), u('b'), u('a')],
-        u('clé2'): [u('1er'), u('2ème'), u('1er'), u('2ème'), u('1er')],
+        'clé1': ['a', 'a', 'b', 'b', 'a'],
+        'clé2': ['1er', '2ème', '1er', '2ème', '1er'],
         'données1': np.random.randn(5),
         'données2': np.random.randn(5)})
 
     # it works
-    df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
+    df.pivot_table(index=['clé1'], columns=['clé2'])._repr_html_()
 
 
 def test_to_html_truncate(datapath):
@@ -265,7 +265,7 @@ def test_to_html(biggie_df_fixture):
     assert retval is None
     assert buf.getvalue() == s
 
-    assert isinstance(s, compat.string_types)
+    assert isinstance(s, str)
 
     df.to_html(columns=['B', 'A'], col_space=17)
     df.to_html(columns=['B', 'A'],

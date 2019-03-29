@@ -1,16 +1,11 @@
 """ s3 support for remote file interactivity """
-from pandas import compat
-
 try:
     import s3fs
     from botocore.exceptions import NoCredentialsError
 except ImportError:
     raise ImportError("The s3fs library is required to handle s3 files")
 
-if compat.PY3:
-    from urllib.parse import urlparse as parse_url
-else:
-    from urlparse import urlparse as parse_url
+from urllib.parse import urlparse as parse_url
 
 
 def _strip_schema(url):
@@ -28,7 +23,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     fs = s3fs.S3FileSystem(anon=False)
     try:
         filepath_or_buffer = fs.open(_strip_schema(filepath_or_buffer), mode)
-    except (compat.FileNotFoundError, NoCredentialsError):
+    except (FileNotFoundError, NoCredentialsError):
         # boto3 has troubles when trying to access a public file
         # when credentialed...
         # An OSError is raised if you have credentials, but they
