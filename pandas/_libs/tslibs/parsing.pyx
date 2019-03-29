@@ -49,11 +49,9 @@ cdef:
     set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 # ----------------------------------------------------------------------
-cdef char delimiters[5]
-delimiters[:] = [b' ', b'/', b'-', b'\\', b'\0']
-
-cdef int MAX_DAYS_IN_MONTH = 31
-cdef int MAX_MONTH = 12
+DEF delimiters = b' /-\\'
+DEF MAX_DAYS_IN_MONTH = 31
+DEF MAX_MONTH = 12
 
 cdef inline int _parse_2digit(const char* s):
     cdef int result = 0
