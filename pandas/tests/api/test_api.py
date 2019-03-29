@@ -27,7 +27,7 @@ class TestPDApi(Base):
 
     # top-level sub-packages
     lib = ['api', 'arrays', 'compat', 'core', 'errors', 'pandas',
-           'plotting', 'test', 'testing', 'tseries', '_typing',
+           'plotting', 'test', 'testing', 'tseries',
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
