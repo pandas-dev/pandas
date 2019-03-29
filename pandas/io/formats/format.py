@@ -5,6 +5,7 @@ and latex files. This module also applies to display formatting.
 """
 
 from functools import partial
+from shutil import get_terminal_size
 from unicodedata import east_asian_width
 
 import numpy as np
@@ -25,7 +26,6 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCMultiIndex, ABCSeries, ABCSparseArray)
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas import compat
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
@@ -33,7 +33,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
-from pandas.io.formats.terminal import get_terminal_size
 
 # pylint: disable=W0141
 
@@ -701,7 +700,7 @@ class DataFrameFormatter(TableFormatter):
                                         multirow=multirow)
 
         if encoding is None:
-            encoding = 'ascii' if compat.PY2 else 'utf-8'
+            encoding = 'utf-8'
 
         if hasattr(self.buf, 'write'):
             latex_renderer.write_result(self.buf)

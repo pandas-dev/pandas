@@ -8,18 +8,17 @@ from distutils.version import LooseVersion
 # numpy versioning
 _np_version = np.__version__
 _nlv = LooseVersion(_np_version)
-_np_version_under1p13 = _nlv < LooseVersion('1.13')
 _np_version_under1p14 = _nlv < LooseVersion('1.14')
 _np_version_under1p15 = _nlv < LooseVersion('1.15')
 _np_version_under1p16 = _nlv < LooseVersion('1.16')
 _np_version_under1p17 = _nlv < LooseVersion('1.17')
 
 
-if _nlv < '1.12':
+if _nlv < '1.13.3':
     raise ImportError('this version of pandas is incompatible with '
-                      'numpy < 1.12.0\n'
+                      'numpy < 1.13.3\n'
                       'your numpy version is {0}.\n'
-                      'Please upgrade numpy to >= 1.12.0 to use '
+                      'Please upgrade numpy to >= 1.13.3 to use '
                       'this pandas version'.format(_np_version))
 
 
@@ -62,7 +61,6 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
 
 
 __all__ = ['np',
-           '_np_version_under1p13',
            '_np_version_under1p14',
            '_np_version_under1p15',
            '_np_version_under1p16',

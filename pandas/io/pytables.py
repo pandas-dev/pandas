@@ -19,7 +19,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas.compat import PY3, lrange
+from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -46,7 +46,6 @@ from pandas.io.formats.printing import adjoin, pprint_thing
 _version = '0.15.2'
 
 # encoding
-# PY3 encoding if we don't specify
 _default_encoding = 'UTF-8'
 
 
@@ -60,8 +59,8 @@ def _ensure_decoded(s):
 def _ensure_encoding(encoding):
     # set the encoding if we need
     if encoding is None:
-        if PY3:
-            encoding = _default_encoding
+        encoding = _default_encoding
+
     return encoding
 
 
@@ -4572,16 +4571,13 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None,
     shape = data.shape
     data = np.asarray(data.ravel(), dtype=object)
 
-    # guard against a None encoding in PY3 (because of a legacy
+    # guard against a None encoding (because of a legacy
     # where the passed encoding is actually None)
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
 
         itemsize = libwriters.max_len_string_array(ensure_object(data))
-        if compat.PY3:
-            dtype = "U{0}".format(itemsize)
-        else:
-            dtype = "S{0}".format(itemsize)
+        dtype = "U{0}".format(itemsize)
 
         if isinstance(data[0], bytes):
             data = Series(data).str.decode(encoding, errors=errors).values

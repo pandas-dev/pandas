@@ -1,5 +1,6 @@
 # pylint: disable=E1101,W0232
 
+from shutil import get_terminal_size
 import textwrap
 from warnings import warn
 
@@ -38,7 +39,6 @@ from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
-from pandas.io.formats.terminal import get_terminal_size
 
 from .base import ExtensionArray, _extension_array_shared_docs
 
@@ -101,13 +101,6 @@ def _cat_compare_op(op):
                 ret[na_mask] = False
             return ret
 
-        # Numpy < 1.13 may convert a scalar to a zerodim array during
-        # comparison operation when second arg has higher priority, e.g.
-        #
-        #     cat[0] < cat
-        #
-        # With cat[0], for example, being ``np.int64(1)`` by the time it gets
-        # into this function would become ``np.array(1)``.
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)

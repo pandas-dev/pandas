@@ -1,7 +1,5 @@
 import subprocess
 
-from pandas.compat import PY2
-
 from .exceptions import PyperclipException
 
 EXCEPT_MSG = """
@@ -135,11 +133,7 @@ def init_no_clipboard():
         def __call__(self, *args, **kwargs):
             raise PyperclipException(EXCEPT_MSG)
 
-        if PY2:
-            def __nonzero__(self):
-                return False
-        else:
-            def __bool__(self):
-                return False
+        def __bool__(self):
+            return False
 
     return ClipboardUnavailable(), ClipboardUnavailable()

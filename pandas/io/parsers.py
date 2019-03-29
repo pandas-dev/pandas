@@ -17,7 +17,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
 import pandas.compat as compat
-from pandas.compat import PY3, StringIO, lrange, lzip
+from pandas.compat import StringIO, lrange, lzip
 from pandas.errors import (
     AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender
@@ -939,7 +939,7 @@ class TextFileReader(BaseIterator):
     def _check_file_or_buffer(self, f, engine):
         # see gh-16530
         if is_file_like(f):
-            next_attr = "__next__" if PY3 else "next"
+            next_attr = "__next__"
 
             # The C engine doesn't need the file-like to have the "next" or
             # "__next__" attribute. However, the Python engine explicitly calls
@@ -2224,8 +2224,7 @@ class PythonParser(ParserBase):
         self.comment = kwds['comment']
         self._comment_lines = []
 
-        mode = 'r' if PY3 else 'rb'
-        f, handles = _get_handle(f, mode, encoding=self.encoding,
+        f, handles = _get_handle(f, 'r', encoding=self.encoding,
                                  compression=self.compression,
                                  memory_map=self.memory_map)
         self.handles.extend(handles)
@@ -2377,12 +2376,10 @@ class PythonParser(ParserBase):
         else:
             def _read():
                 line = f.readline()
-
-                if compat.PY2 and self.encoding:
-                    line = line.decode(self.encoding)
-
                 pat = re.compile(sep)
+
                 yield pat.split(line.strip())
+
                 for line in f:
                     yield pat.split(line.strip())
             reader = _read()
@@ -3476,14 +3473,7 @@ def _get_col_names(colspec, columns):
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:
-        if compat.PY3:
-            return np.array([str(x) for x in date_cols[0]],
-                            dtype=object)
-        else:
-            return np.array([
-                str(x) if not isinstance(x, str) else x
-                for x in date_cols[0]
-            ], dtype=object)
+        return np.array([str(x) for x in date_cols[0]], dtype=object)
 
     rs = np.array([' '.join(str(y) for y in x)
                    for x in zip(*date_cols)], dtype=object)
