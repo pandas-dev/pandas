@@ -662,17 +662,17 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         # indexer here
         info_axis = self.obj._info_axis_number
         labels = self._get_labels(indexer)
-    
+
         if (len(labels) == 1 and
                 isinstance(self.obj[labels[0]].axes[0], MultiIndex)):
             item = labels[0]
             obje = self.obj[item]
             index = obje.index
             idx = indexer[:info_axis][0]
-    
+
             plane_indexer = tuple([idx]) + indexer[info_axis + 1:]
             lplane_indexer = length_of_indexer(plane_indexer[0], index)
-    
+
         # non-mi
         else:
             plane_indexer = indexer[:info_axis] + indexer[info_axis + 1:]
