@@ -292,7 +292,6 @@ class HTMLFormatter(TableFormatter):
                     row.append(self.columns.name or '')
                 else:
                     row.append('')
-
             row.extend(self.columns)
             align = self.fmt.justify
 
