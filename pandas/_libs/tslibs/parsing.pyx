@@ -73,42 +73,29 @@ cdef object parse_slashed_date(object date_string, bint dayfirst,
         const char* buf
         Py_ssize_t length
         int day, month, year
-        int part1, part2
 
     buf = get_c_string_buf_and_size(date_string, &length)
     if length != 10 or strchr(delimiters, buf[2]) == NULL \
             or strchr(delimiters, buf[5]) == NULL:
         return None
 
-    part1 = _parse_2digit(buf)
-    part2 = _parse_2digit(buf + 3)
+    month = _parse_2digit(buf)
+    day = _parse_2digit(buf + 3)
     year = _parse_4digit(buf + 6)
-    if part1 < 0 or part2 < 0 or year < 0:
-        # some part is not an integer, so it's not a dd/mm/yyyy date
+    if month < 0 or day < 0 or year < 0:
+        # some part is not an integer, so it's not a mm/dd/yyyy date
         return None
 
-    if part1 < 1 or part2 < 1 or \
-            part1 > MAX_DAYS_IN_MONTH or part2 > MAX_DAYS_IN_MONTH or \
-            (part1 > MAX_MONTH and part2 > MAX_MONTH):
-        raise DateParseError("Invalid date specified (%d/%d)" %
-                             (part1, part2))
+    if 1 <= month <= MAX_DAYS_IN_MONTH and 1 <= day <= MAX_DAYS_IN_MONTH \
+            and (month <= MAX_MONTH or day <= MAX_MONTH):
+        if month > MAX_MONTH or (day < MAX_MONTH and dayfirst):
+            day, month = month, day
+        return PyDateTimeAPI.DateTime_FromDateAndTime(year, month, day,
+                0, 0, 0, 0, tzinfo, PyDateTimeAPI.DateTimeType)
 
-    if part1 > MAX_MONTH:
-        day = part1
-        month = part2
-    elif part2 > MAX_MONTH:
-        day = part2
-        month = part1
-    elif dayfirst:
-        day = part1
-        month = part2
-    else:
-        day = part2
-        month = part1
+    raise DateParseError("Invalid date specified (%d/%d)" %
+                            (month, day))
 
-    return PyDateTimeAPI.DateTime_FromDateAndTime(year, month, day,
-                                                  0, 0, 0, 0, tzinfo,
-                                                  PyDateTimeAPI.DateTimeType)
 
 
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
