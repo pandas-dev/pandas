@@ -18,18 +18,6 @@ What's New in 0.25.0 (April XX, 2019)
 These are the changes in pandas 0.25.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
-Enhancements
-~~~~~~~~~~~~
-
-.. _whatsnew_0250.enhancements.typing:
-
-Type Hints and ``pandas.typing``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In accordance with :pep:`484` pandas has introduced Type Hints and a new ``pandas._typing`` module containing aliases for idiomatic pandas types into the code base. We will be continually adding annotations to the code base to improve readability, reduce code maintenance and proactively identify bugs. Note that ``pandas._typing`` is currently private as it is developmental and subject to change, though this will eventually be exposed as ``pandas.typing`` for third party libraries to leverage when type checking their own code which interfaces with pandas.
-
-`MyPy <http://mypy-lang.org>`__  has been configured as part of our CI to perform compile-time type checking.
-
 
 .. _whatsnew_0250.enhancements.other:
 
