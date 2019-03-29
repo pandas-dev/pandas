@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 from pandas import Int64Index, TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
+
 from pandas.tseries.offsets import Hour
 
 
@@ -78,6 +79,7 @@ class TestTimedeltaIndex(object):
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_equal(self, sort):
+        # GH 24471 Test intersection outcome given the sort keyword
         # for equal indicies intersection should return the original index
         first = timedelta_range('1 day', periods=4, freq='h')
         second = timedelta_range('1 day', periods=4, freq='h')
@@ -93,6 +95,7 @@ class TestTimedeltaIndex(object):
     @pytest.mark.parametrize("period_1, period_2", [(0, 4), (4, 0)])
     @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_zero_length(self, period_1, period_2, sort):
+        # GH 24471 test for non overlap the intersection should be zero length
         index_1 = timedelta_range('1 day', periods=period_1, freq='h')
         index_2 = timedelta_range('1 day', periods=period_2, freq='h')
         inter = index_1.intersection(index_2, sort=sort)
@@ -148,7 +151,7 @@ class TestTimedeltaIndex(object):
                                               name='idx'))])
     @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_non_monotonic(self, rng, expected, sort):
-        # non-monotonic
+        # 24471 non-monotonic
         base = TimedeltaIndex(['1 hour', '2 hour', '4 hour', '3 hour'],
                               name='idx')
         result = base.intersection(rng, sort=sort)

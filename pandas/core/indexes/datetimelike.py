@@ -541,6 +541,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return self._get_reconciled_name_object(other)
 
         if not isinstance(other, type(self)):
+            # try converting other type to own type and ignore Type/ValueErrors
+            # caused e.g. by trying calling TimedeltaIndex on another object
             try:
                 other = self(other)
             except (TypeError, ValueError):

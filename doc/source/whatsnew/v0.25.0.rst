@@ -36,8 +36,8 @@ Other Enhancements
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
-- :meth:`DatetimeIndex.intersection` and :meth:`TimedeltaIndex.intersection` have been moved to :meth:`Datetimelike.intersection` and tests were added for :meth:`TimedeltaIndex.intersection` (:issue:`24966`).
-- :meth:`TimedeltaIndex.intersection` now also supports the ``sort`` keyword.
+- :meth:`DatetimeIndex.intersection` and :meth:`TimedeltaIndex.intersection` have been moved to :meth:`Datetimelike.intersection` (:issue:`24966`)
+- :meth:`TimedeltaIndex.intersection` now also supports the ``sort`` keyword (:issue:`24471`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -249,7 +249,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 
-- Bug in :func:`TimedeltaIndex.intersection` where for non-monotonic indicies in some cases an empty Index was returned when in fact an intersection existed.
+- Bug in :func:`TimedeltaIndex.intersection` where for non-monotonic indicies in some cases an empty Index was returned when in fact an intersection existed (:issue:`25913`)
 -
 -
 
