@@ -293,13 +293,7 @@ class HTMLFormatter(TableFormatter):
                 else:
                     row.append('')
 
-            precision = get_option('display.precision')
-            for column in self.columns:
-                if isinstance(column, float):
-                    row.append('{float:.{precision}f}'
-                               .format(float=column, precision=precision))
-                else:
-                    row.append(column)
+            row.extend(self.columns)
             align = self.fmt.justify
 
             if truncate_h:
@@ -497,6 +491,15 @@ class NotebookFormatter(HTMLFormatter):
     Notebooks. This class is intended for functionality specific to
     DataFrame._repr_html_() and DataFrame.to_html(notebook=True)
     """
+    
+    def __init__(self, formatter, classes=None, border=None):
+        super(NotebookFormatter, self).__init__(formatter,
+                                                classes=classes,
+                                                border=border)
+        precision = get_option('display.precision')
+        fmt = lambda f: '{float:.{p}f}'.format(float=f, p=precision)
+        fmt_floats = lambda f: fmt(f) if isinstance(f, float) else f
+        self.columns = self.columns.map(fmt_floats)
 
     def _get_formatted_values(self):
         return {i: self.fmt._format_col(i) for i in range(self.ncols)}
