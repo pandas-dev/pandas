@@ -24,6 +24,15 @@ cdef extern from "Python.h":
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
+    # Note that following functions can potentially raise an exception,
+    # thus they cannot be declared 'nogil'. Also PyUnicode_AsUTF8AndSize() can
+    # potentially allocate memory inside in unlikely case of when underlying
+    # unicode object was stored as non-utf8 and utf8 wasn't requested before.
+    bint PyBytes_AsStringAndSize(object obj, char** buf,
+                                 Py_ssize_t* length) except -1
+    const char* PyUnicode_AsUTF8AndSize(object obj,
+                                        Py_ssize_t* length) except NULL
+
 from numpy cimport int64_t
 
 cdef extern from "numpy/arrayobject.h":
@@ -227,3 +236,37 @@ cdef inline bint is_nan(object val):
     is_nan : bool
     """
     return (is_float_object(val) or is_complex_object(val)) and val != val
+
+
+cdef inline const char* get_c_string_buf_and_size(object py_string,
+                                                  Py_ssize_t *length):
+    """
+    Extract internal char* buffer of unicode or bytes object `py_string` with
+    getting length of this internal buffer saved in `length`.
+
+    Notes
+    -----
+    Python object owns memory, thus returned char* must not be freed.
+    `length` can be NULL if getting buffer length is not needed.
+
+    Parameters
+    ----------
+    py_string : object
+    length : Py_ssize_t*
+
+    Returns
+    -------
+    buf : const char*
+    """
+    cdef:
+        const char *buf
+
+    if PyUnicode_Check(py_string):
+        buf = PyUnicode_AsUTF8AndSize(py_string, length)
+    else:
+        PyBytes_AsStringAndSize(py_string, <char**>&buf, length)
+    return buf
+
+
+cdef inline const char* get_c_string(object py_string):
+    return get_c_string_buf_and_size(py_string, NULL)

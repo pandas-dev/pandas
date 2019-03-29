@@ -9,6 +9,8 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # VectorData
 # ----------------------------------------------------------------------
 
+from pandas._libs.tslibs.util cimport get_c_string
+
 {{py:
 
 # name, dtype, arg
@@ -595,7 +597,7 @@ cdef class StringHashTable(HashTable):
         cdef:
             khiter_t k
             const char *v
-        v = util.get_c_string(val)
+        v = get_c_string(val)
 
         k = kh_get_str(self.table, v)
         if k != self.table.n_buckets:
@@ -609,7 +611,7 @@ cdef class StringHashTable(HashTable):
             int ret = 0
             const char *v
 
-        v = util.get_c_string(val)
+        v = get_c_string(val)
 
         k = kh_put_str(self.table, v, &ret)
         self.table.keys[k] = key
@@ -632,7 +634,7 @@ cdef class StringHashTable(HashTable):
         vecs = <const char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
-            v = util.get_c_string(val)
+            v = get_c_string(val)
             vecs[i] = v
 
         with nogil:
@@ -662,9 +664,9 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, (str, unicode)):
-                v = util.get_c_string(val)
+                v = get_c_string(val)
             else:
-                v = util.get_c_string(self.na_string_sentinel)
+                v = get_c_string(self.na_string_sentinel)
             vecs[i] = v
 
         with nogil:
@@ -695,9 +697,9 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, (str, unicode)):
-                v = util.get_c_string(val)
+                v = get_c_string(val)
             else:
-                v = util.get_c_string(self.na_string_sentinel)
+                v = get_c_string(self.na_string_sentinel)
             vecs[i] = v
 
         with nogil:
@@ -776,7 +778,7 @@ cdef class StringHashTable(HashTable):
                 labels[i] = na_sentinel
             else:
                 # if ignore_na is False, we also stringify NaN/None/etc.
-                v = util.get_c_string(val)
+                v = get_c_string(val)
                 vecs[i] = v
 
         # compute
