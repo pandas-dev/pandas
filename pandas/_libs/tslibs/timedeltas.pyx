@@ -815,8 +815,7 @@ cdef class _Timedelta(timedelta):
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
-        Convert a pandas Timedelta object into a python datetime.timedelta
-        object.
+        Convert a pandas Timedelta object into a python timedelta object.
 
         Timedelta objects are internally saved as numpy datetime64[ns] dtype.
         Use to_pytimedelta() to convert to object dtype.
@@ -832,20 +831,6 @@ cdef class _Timedelta(timedelta):
         Notes
         -----
         Any nanosecond resolution will be lost.
-
-        Examples
-        --------
-        >>> idx = pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
-        >>> idx
-        TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015',
-                        NaT],
-                       dtype='timedelta64[ns]', freq=None)
-
-        >>> idx.to_pytimedelta()
-        array([datetime.timedelta(1, 21901, 30), datetime.timedelta(0, 0, 16),
-               NaT], dtype=object)
-        >>> idx[1].to_pytimedelta()
-        datetime.timedelta(0, 0, 16)
         """
         return timedelta(microseconds=int(self.value) / 1000)
 
