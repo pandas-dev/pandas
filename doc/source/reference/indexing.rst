@@ -349,7 +349,10 @@ Time/Date Components
    DatetimeIndex.date
    DatetimeIndex.time
    DatetimeIndex.timetz
+<<<<<<< HEAD
    DatetimeIndex.day_of_year
+=======
+>>>>>>> f990e59e07086d36884a25bcf380ef85ec457a76
    DatetimeIndex.day_of_year
    DatetimeIndex.weekofyear
    DatetimeIndex.week
