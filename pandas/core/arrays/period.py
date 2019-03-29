@@ -297,7 +297,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                                 "The day of the week with Monday=0, Sunday=6")
     weekday = dayofweek
     day_of_year = _field_accessor('day_of_year', 9,
-                                              "The ordinal day of the year")
+                                  "The ordinal day of the year")
     quarter = _field_accessor('quarter', 2, "The quarter of the date")
     qyear = _field_accessor('qyear', 1)
     days_in_month = _field_accessor('days_in_month', 11,
