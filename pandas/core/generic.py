@@ -114,7 +114,7 @@ class NDFrame(PandasObject, SelectionMixin):
                        '_default_fill_value', '_metadata', '__array_struct__',
                        '__array_interface__']
     _internal_names_set = set(_internal_names)
-    _accessors = frozenset()  # type: Set[str]
+    _accessors = set()  # type: Set[str]
     _deprecations = frozenset(['as_blocks', 'blocks',
                                'convert_objects', 'is_copy'])
     _metadata = []  # type: List[str]
