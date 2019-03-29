@@ -7,7 +7,7 @@ import pytest
 
 from pandas._libs import tslibs
 
-from pandas import Timestamp
+from pandas._libs.tslibs.timestamps import Timestamp
 
 
 @pytest.mark.parametrize("value,expected", [

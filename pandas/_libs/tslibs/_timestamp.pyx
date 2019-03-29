@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+"""
+_Timestamp is in its own module to prevent the circular imports
+that would happen if it was included in timestamps.pyx
+
+This allows _Timestamp to be imported in other modules
+so that isinstance(obj, _Timestamp) checks can be performed
+"""
+
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
