@@ -372,7 +372,7 @@ class TestStata(object):
 
         expected = raw.kreis1849[0]
         assert result == expected
-        assert isinstance(result, compat.string_types)
+        assert isinstance(result, str)
 
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(FutureWarning):

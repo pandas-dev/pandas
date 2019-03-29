@@ -13,7 +13,6 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError, BaseOffset, _get_calendar, _is_normalized, _to_dt64,
     apply_index_wraps, as_datetime, roll_yearday, shift_month)
-import pandas.compat as compat
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -2269,7 +2268,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                                 "will overflow".format(self=self, other=other))
 
     def __eq__(self, other):
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
@@ -2290,7 +2289,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         return hash(self._params)
 
     def __ne__(self, other):
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
             try:
                 # GH#23524 if to_offset fails, we are dealing with an

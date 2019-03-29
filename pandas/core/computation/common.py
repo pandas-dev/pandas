@@ -2,8 +2,6 @@ from functools import reduce
 
 import numpy as np
 
-from pandas.compat import string_types
-
 import pandas as pd
 
 # A token value Python's tokenizer probably will never use.
@@ -30,7 +28,7 @@ def _result_type_many(*arrays_and_dtypes):
 def _remove_spaces_column_name(name):
     """Check if name contains any spaces, if it contains any spaces
     the spaces will be removed and an underscore suffix is added."""
-    if not isinstance(name, string_types) or " " not in name:
+    if not isinstance(name, str) or " " not in name:
         return name
 
     return name.replace(" ", "_") + "_BACKTICK_QUOTED_STRING"

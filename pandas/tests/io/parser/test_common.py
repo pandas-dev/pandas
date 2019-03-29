@@ -123,7 +123,7 @@ def test_read_csv_local(all_parsers, csv1):
     prefix = "file:///" if compat.is_platform_windows() else "file://"
     parser = all_parsers
 
-    fname = prefix + compat.text_type(os.path.abspath(csv1))
+    fname = prefix + str(os.path.abspath(csv1))
     result = parser.read_csv(fname, index_col=0, parse_dates=True)
 
     expected = DataFrame([[0.980269, 3.685731, -0.364216805298, -1.159738],

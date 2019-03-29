@@ -8,10 +8,6 @@ Key items to import for 2/3 compatible code:
 * lists: lrange(), lmap(), lzip(), lfilter()
 * iterable method compatibility: iteritems, iterkeys, itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
-* types:
-    * text_type: unicode in Python 2, str in Python 3
-    * binary_type: str in Python 2, bytes in Python 3
-    * string_types: basestring in Python 2, str in Python 3
 * bind_method: binds functions to classes
 * add_metaclass(metaclass) - class decorator that recreates class with with the
   given metaclass instead (and avoids intermediary class creation)
@@ -30,7 +26,6 @@ from itertools import product
 import sys
 import platform
 import types
-from unicodedata import east_asian_width
 import struct
 import inspect
 from collections import namedtuple
@@ -203,38 +198,17 @@ def bind_method(cls, name, func):
 # The license for this library can be found in LICENSES/SIX and the code can be
 # found at https://bitbucket.org/gutworth/six
 
-# Definition of East Asian Width
-# http://unicode.org/reports/tr11/
-# Ambiguous width can be changed by option
-_EAW_MAP = {'Na': 1, 'N': 1, 'W': 2, 'F': 2, 'H': 1}
 
 if PY3:
-    string_types = str,
-    text_type = str
-    binary_type = bytes
-
     def to_str(s):
         """
         Convert bytes and non-string into Python 3 str
         """
-        if isinstance(s, binary_type):
+        if isinstance(s, bytes):
             s = bytes_to_str(s)
-        elif not isinstance(s, string_types):
+        elif not isinstance(s, str):
             s = str(s)
         return s
-
-    def strlen(data, encoding=None):
-        # encoding is for compat with PY2
-        return len(data)
-
-    def east_asian_len(data, encoding=None, ambiguous_width=1):
-        """
-        Calculate display width considering unicode East Asian Width
-        """
-        if isinstance(data, text_type):
-            return sum(_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data)
-        else:
-            return len(data)
 
     def set_function_name(f, name, cls):
         """ Bind the name/qualname attributes of the function """
@@ -245,44 +219,18 @@ if PY3:
         f.__module__ = cls.__module__
         return f
 else:
-    string_types = basestring,
-    text_type = unicode
-    binary_type = str
-
     def to_str(s):
         """
         Convert unicode and non-string into Python 2 str
         """
-        if not isinstance(s, string_types):
+        if not isinstance(s, basestring):
             s = str(s)
         return s
-
-    def strlen(data, encoding=None):
-        try:
-            data = data.decode(encoding)
-        except UnicodeError:
-            pass
-        return len(data)
-
-    def east_asian_len(data, encoding=None, ambiguous_width=1):
-        """
-        Calculate display width considering unicode East Asian Width
-        """
-        if isinstance(data, text_type):
-            try:
-                data = data.decode(encoding)
-            except UnicodeError:
-                pass
-            return sum(_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data)
-        else:
-            return len(data)
 
     def set_function_name(f, name, cls):
         """ Bind the name attributes of the function """
         f.__name__ = name
         return f
-
-string_and_binary_types = string_types + (binary_type,)
 
 
 def add_metaclass(metaclass):

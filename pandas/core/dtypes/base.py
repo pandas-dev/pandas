@@ -7,8 +7,6 @@ from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
-from pandas import compat
-
 
 class _DtypeOpsMixin(object):
     # Not all of pandas' extension dtypes are compatibile with
@@ -46,7 +44,7 @@ class _DtypeOpsMixin(object):
         -------
         bool
         """
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             try:
                 other = self.construct_from_string(other)
             except TypeError:

@@ -2390,7 +2390,7 @@ class Period(_Period):
 
     Parameters
     ----------
-    value : Period or compat.string_types, default None
+    value : Period or str, default None
         The time period represented (e.g., '4Q2005')
     freq : str, default None
         One of pandas period strings or corresponding objects

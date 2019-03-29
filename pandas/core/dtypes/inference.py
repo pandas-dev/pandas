@@ -6,8 +6,7 @@ import re
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import (
-    PY2, Set, re_type, string_and_binary_types, string_types, text_type)
+from pandas.compat import PY2, Set, re_type
 
 from pandas import compat
 
@@ -88,7 +87,7 @@ def is_string_like(obj):
         Whether `obj` is a string or not.
     """
 
-    return isinstance(obj, (text_type, string_types))
+    return isinstance(obj, str)
 
 
 def _iterable_not_string(obj):
@@ -114,8 +113,7 @@ def _iterable_not_string(obj):
     False
     """
 
-    return (isinstance(obj, compat.Iterable) and
-            not isinstance(obj, string_types))
+    return isinstance(obj, compat.Iterable) and not isinstance(obj, str)
 
 
 def is_iterator(obj):
@@ -290,15 +288,15 @@ def is_list_like(obj, allow_sets=True):
     False
     """
 
-    return (isinstance(obj, compat.Iterable)
+    return (isinstance(obj, compat.Iterable) and
             # we do not count strings/unicode/bytes as list-like
-            and not isinstance(obj, string_and_binary_types)
+            not isinstance(obj, (str, bytes)) and
 
             # exclude zero-dimensional numpy arrays, effectively scalars
-            and not (isinstance(obj, np.ndarray) and obj.ndim == 0)
+            not (isinstance(obj, np.ndarray) and obj.ndim == 0) and
 
             # exclude sets if allow_sets is False
-            and not (allow_sets is False and isinstance(obj, Set)))
+            not (allow_sets is False and isinstance(obj, Set)))
 
 
 def is_array_like(obj):
@@ -494,6 +492,6 @@ def is_sequence(obj):
     try:
         iter(obj)  # Can iterate over it.
         len(obj)   # Has a length associated with it.
-        return not isinstance(obj, string_and_binary_types)
+        return not isinstance(obj, (str, bytes))
     except (TypeError, AttributeError):
         return False

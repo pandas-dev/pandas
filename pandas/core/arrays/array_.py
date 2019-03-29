@@ -8,8 +8,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype, is_extension_array_dtype, is_timedelta64_ns_dtype)
 from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 
-from pandas import compat
-
 
 def array(data,         # type: Sequence[object]
           dtype=None,   # type: Optional[Union[str, np.dtype, ExtensionDtype]]
@@ -227,7 +225,7 @@ def array(data,         # type: Sequence[object]
         dtype = data.dtype
 
     # this returns None for not-found dtypes.
-    if isinstance(dtype, compat.string_types):
+    if isinstance(dtype, str):
         dtype = registry.find(dtype) or dtype
 
     if is_extension_array_dtype(dtype):

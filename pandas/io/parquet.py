@@ -3,7 +3,6 @@
 from distutils.version import LooseVersion
 from warnings import catch_warnings
 
-from pandas.compat import string_types
 from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
@@ -59,7 +58,7 @@ class BaseImpl(object):
 
         # index level names must be strings
         valid_names = all(
-            isinstance(name, string_types)
+            isinstance(name, str)
             for name in df.index.names
             if name is not None
         )

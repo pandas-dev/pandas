@@ -6,7 +6,6 @@
 import tokenize
 import warnings
 
-from pandas.compat import string_types
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
@@ -263,7 +262,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
     inplace = validate_bool_kwarg(inplace, "inplace")
 
-    if isinstance(expr, string_types):
+    if isinstance(expr, str):
         _check_expression(expr)
         exprs = [e.strip() for e in expr.splitlines() if e.strip() != '']
     else:

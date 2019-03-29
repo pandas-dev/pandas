@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import set_function_name, string_types
+from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -154,7 +154,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             dtype = values.dtype
 
     if dtype is not None:
-        if (isinstance(dtype, string_types) and
+        if (isinstance(dtype, str) and
                 (dtype.startswith("Int") or dtype.startswith("UInt"))):
             # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
             # https://github.com/numpy/numpy/pull/7476

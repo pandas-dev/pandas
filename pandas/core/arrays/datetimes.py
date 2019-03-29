@@ -137,7 +137,7 @@ def _dt_array_cmp(cls, op):
 
         other = lib.item_from_zerodim(other)
 
-        if isinstance(other, (datetime, np.datetime64, compat.string_types)):
+        if isinstance(other, (datetime, np.datetime64, str)):
             if isinstance(other, (datetime, np.datetime64)):
                 # GH#18435 strings get a pass from tzawareness compat
                 self._assert_tzawareness_compat(other)
@@ -2031,7 +2031,7 @@ def validate_tz_from_dtype(dtype, tz):
     ValueError : on tzinfo mismatch
     """
     if dtype is not None:
-        if isinstance(dtype, compat.string_types):
+        if isinstance(dtype, str):
             try:
                 dtype = DatetimeTZDtype.construct_from_string(dtype)
             except TypeError:

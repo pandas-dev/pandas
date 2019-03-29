@@ -165,7 +165,7 @@ def rmod(left, right):
     # check if right is a string as % is the string
     # formatting operation; this is a TypeError
     # otherwise perform the op
-    if isinstance(right, compat.string_types):
+    if isinstance(right, str):
         raise TypeError("{typ} cannot perform the operation mod".format(
             typ=type(left).__name__))
 

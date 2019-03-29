@@ -9,7 +9,7 @@ import numpy as np
 from pandas._config import get_option
 
 import pandas.compat as compat
-from pandas.compat import lrange, string_types
+from pandas.compat import lrange
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -722,7 +722,7 @@ class MPLPlot(object):
             err = np.tile(err, (self.nseries, 1))
 
         # errors are a column in the dataframe
-        elif isinstance(err, string_types):
+        elif isinstance(err, str):
             evalues = self.data[err].values
             self.data = self.data[self.data.columns.drop(err)]
             err = np.atleast_2d(evalues)
@@ -1776,7 +1776,7 @@ def _plot(data, x=None, y=None, subplots=False,
                 label_kw = kwds['label'] if 'label' in kwds else False
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
-                        (isinstance(kwds[kw], string_types) or
+                        (isinstance(kwds[kw], str) or
                             is_integer(kwds[kw])):
                         try:
                             kwds[kw] = data[kwds[kw]]

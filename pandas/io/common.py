@@ -16,7 +16,7 @@ from urllib.request import pathname2url, urlopen
 import zipfile
 
 import pandas.compat as compat
-from pandas.compat import BytesIO, string_types, text_type
+from pandas.compat import BytesIO
 from pandas.errors import (  # noqa
     AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
     ParserWarning)
@@ -81,7 +81,7 @@ def _expand_user(filepath_or_buffer):
     expanded_filepath_or_buffer : an expanded filepath or the
                                   input if not expandable
     """
-    if isinstance(filepath_or_buffer, string_types):
+    if isinstance(filepath_or_buffer, str):
         return os.path.expanduser(filepath_or_buffer)
     return filepath_or_buffer
 
@@ -131,7 +131,7 @@ def _stringify_path(filepath_or_buffer):
     if hasattr(filepath_or_buffer, '__fspath__'):
         return filepath_or_buffer.__fspath__()
     if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
-        return text_type(filepath_or_buffer)
+        return str(filepath_or_buffer)
     if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
         return filepath_or_buffer.strpath
     return _expand_user(filepath_or_buffer)
@@ -200,9 +200,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                                           compression=compression,
                                           mode=mode)
 
-    if isinstance(filepath_or_buffer, (compat.string_types,
-                                       compat.binary_type,
-                                       mmap.mmap)):
+    if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return _expand_user(filepath_or_buffer), None, compression, False
 
     if not is_file_like(filepath_or_buffer):
@@ -269,7 +267,7 @@ def _infer_compression(filepath_or_buffer, compression):
     if compression == 'infer':
         # Convert all path types (e.g. pathlib.Path) to strings
         filepath_or_buffer = _stringify_path(filepath_or_buffer)
-        if not isinstance(filepath_or_buffer, compat.string_types):
+        if not isinstance(filepath_or_buffer, str):
             # Cannot infer compression of a buffer, assume no compression
             return None
 
@@ -329,7 +327,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
     # Convert pathlib.Path/py.path.local or string
     path_or_buf = _stringify_path(path_or_buf)
-    is_path = isinstance(path_or_buf, compat.string_types)
+    is_path = isinstance(path_or_buf, str)
 
     if is_path:
         compression = _infer_compression(path_or_buf, compression)

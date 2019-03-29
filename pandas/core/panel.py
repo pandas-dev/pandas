@@ -451,7 +451,7 @@ class Panel(NDFrame):
         """
         from pandas.io.excel import ExcelWriter
 
-        if isinstance(path, compat.string_types):
+        if isinstance(path, str):
             writer = ExcelWriter(path, engine=engine)
         else:
             writer = path
@@ -1466,7 +1466,7 @@ class Panel(NDFrame):
         if not isinstance(values, np.ndarray):
             values = np.asarray(values)
             # NumPy strings are a pain, convert to object
-            if issubclass(values.dtype.type, compat.string_types):
+            if issubclass(values.dtype.type, str):
                 values = np.array(values, dtype=object, copy=True)
         else:
             if copy:

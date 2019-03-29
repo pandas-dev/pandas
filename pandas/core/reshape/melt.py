@@ -82,7 +82,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         else:
             var_name = [frame.columns.name if frame.columns.name is not None
                         else 'variable']
-    if isinstance(var_name, compat.string_types):
+    if isinstance(var_name, str):
         var_name = [var_name]
 
     N, K = frame.shape

@@ -3,7 +3,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import index as libindex
-import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -44,7 +43,7 @@ class NumericIndex(Index):
         # is_scalar, generators handled in coerce_to_ndarray
         data = cls._coerce_to_ndarray(data)
 
-        if issubclass(data.dtype.type, compat.string_types):
+        if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
 
         if copy or not is_dtype_equal(data.dtype, cls._default_dtype):

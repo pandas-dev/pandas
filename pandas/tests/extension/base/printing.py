@@ -3,7 +3,6 @@ import io
 import pytest
 
 import pandas as pd
-from pandas import compat
 
 from .base import BaseExtensionTests
 
@@ -26,8 +25,8 @@ class BasePrintingTests(BaseExtensionTests):
             assert '...' in result
 
     def test_array_repr_unicode(self, data):
-        result = compat.text_type(data)
-        assert isinstance(result, compat.text_type)
+        result = str(data)
+        assert isinstance(result, str)
 
     def test_series_repr(self, data):
         ser = pd.Series(data)

@@ -6,13 +6,13 @@ import warnings
 import pytest
 
 import pandas as pd
-from pandas import MultiIndex, compat
+from pandas import MultiIndex
 import pandas.util.testing as tm
 
 
 def test_dtype_str(indices):
     dtype = indices.dtype_str
-    assert isinstance(dtype, compat.string_types)
+    assert isinstance(dtype, str)
     assert dtype == str(indices.dtype)
 
 

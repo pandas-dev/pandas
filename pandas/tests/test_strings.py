@@ -9,8 +9,6 @@ from numpy import nan as NA
 from numpy.random import randint
 import pytest
 
-import pandas.compat as compat
-
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
 import pandas.util.testing as tm
@@ -302,7 +300,7 @@ class TestStringMethods(object):
 
             for el in s:
                 # each element of the series is either a basestring/str or nan
-                assert isinstance(el, compat.string_types) or isna(el)
+                assert isinstance(el, str) or isna(el)
 
         # desired behavior is to iterate until everything would be nan on the
         # next iter so make sure the last element of the iterator was 'l' in
