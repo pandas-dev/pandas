@@ -103,12 +103,11 @@ cdef inline object parse_delimited_date(object date_string, bint dayfirst,
             and (month <= MAX_MONTH or day <= MAX_MONTH):
         if month > MAX_MONTH or (day < MAX_MONTH and dayfirst):
             day, month = month, day
-        return PyDateTimeAPI.DateTime_FromDateAndTime(year, month, day,
-                0, 0, 0, 0, tzinfo, PyDateTimeAPI.DateTimeType), reso
+        return PyDateTimeAPI.DateTime_FromDateAndTime(
+            year, month, day, 0, 0, 0, 0, tzinfo, PyDateTimeAPI.DateTimeType
+        ), reso
 
-    raise DateParseError("Invalid date specified (%d/%d)" %
-                            (month, day))
-
+    raise DateParseError("Invalid date specified (%d/%d)" % (month, day))
 
 
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
