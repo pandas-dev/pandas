@@ -10,7 +10,7 @@ import pytest
 from pandas.compat import StringIO, lrange
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, compat, option_context
+from pandas import DataFrame, Index, MultiIndex, option_context
 from pandas.util import testing as tm
 
 import pandas.io.formats.format as fmt
@@ -265,7 +265,7 @@ def test_to_html(biggie_df_fixture):
     assert retval is None
     assert buf.getvalue() == s
 
-    assert isinstance(s, compat.string_types)
+    assert isinstance(s, str)
 
     df.to_html(columns=['B', 'A'], col_space=17)
     df.to_html(columns=['B', 'A'],

@@ -6,7 +6,6 @@ import operator
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas.compat import string_types
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
@@ -72,7 +71,7 @@ def clean_fill_method(method, allow_nearest=False):
     if method in [None, 'asfreq']:
         return None
 
-    if isinstance(method, string_types):
+    if isinstance(method, str):
         method = method.lower()
         if method == 'ffill':
             method = 'pad'
