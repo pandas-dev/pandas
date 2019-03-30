@@ -608,9 +608,10 @@ class TestEvalNumexprPandas(object):
                       -False, False, ~False, +False,
                       -37, 37, ~37, +37], dtype=np.object_))
 
-    def test_float_comparison_bin_op(self):
+    @pytest.mark.parametrize('dtype', [np.float32, np.float64])
+    def test_float_comparison_bin_op(self, dtype):
         # GH 16363
-        df = pd.DataFrame({'x': np.array([0], dtype=np.float32)})
+        df = pd.DataFrame({'x': np.array([0], dtype=dtype)})
         res = df.eval('x < -0.1')
         assert res.values == np.array([False])
 
