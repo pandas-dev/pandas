@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
 from pandas._libs import (
     algos as libalgos, index as libindex, join as libjoin, lib)
 from pandas._libs.lib import is_datetime_array
@@ -39,7 +40,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name, make_invalid_op

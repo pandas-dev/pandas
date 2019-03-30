@@ -1760,11 +1760,11 @@ class TestDataFrameGroupByFormatting(object):
 
         with option_context('display.max_rows', 2):
             x = df.groupby('a').groups
-            assert ', ... ,' in x.__repr__()
+            assert x.__repr__().endswith('...}')
 
         with option_context('display.max_rows', 5):
             x = df.groupby('a').groups
-            assert ', ... ,' not in x.__repr__()
+            assert not x.__repr__().endswith('...}')
 
 
 def gen_series_formatting():

@@ -216,7 +216,7 @@ Other API Changes
 - ``Timestamp`` and ``Timedelta`` scalars now implement the :meth:`to_numpy` method as aliases to :meth:`Timestamp.to_datetime64` and :meth:`Timedelta.to_timedelta64`, respectively. (:issue:`24653`)
 - :meth:`Timestamp.strptime` will now rise a ``NotImplementedError`` (:issue:`25016`)
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserve the ``name`` of the input :class:`Index` (:issue:`25575`)
-- :meth:`Index.groupby` and dependent methods (notably :meth:`GroupBy.groups`) now return object with abbreviated repr (:issue:`1135`)
+- :meth:`Index.groupby` and dependent methods (notably :attr:`GroupBy.groups`) now return object with abbreviated repr (:issue:`1135`)
 
 .. _whatsnew_0250.deprecations:
 
