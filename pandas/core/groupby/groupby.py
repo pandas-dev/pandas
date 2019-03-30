@@ -12,7 +12,7 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import Optional, Type
+from typing import Optional, Tuple, Type
 import warnings
 
 import numpy as np
@@ -1041,8 +1041,7 @@ class GroupBy(_GroupBy):
         Shared func to call any / all Cython GroupBy implementations.
         """
 
-        def objs_to_bool(vals):
-            # type: (np.ndarray) -> (np.ndarray, Type)
+        def objs_to_bool(vals: np.ndarray) -> Tuple[np.ndarray, Type]:
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
             else:
@@ -1050,8 +1049,7 @@ class GroupBy(_GroupBy):
 
             return vals.view(np.uint8), np.bool
 
-        def result_to_bool(result, inference):
-            # type: (np.ndarray, Type) -> np.ndarray
+        def result_to_bool(result: np.ndarray, inference: Type) -> np.ndarray:
             return result.astype(inference, copy=False)
 
         return self._get_cythonized_result('group_any_all', self.grouper,
@@ -1739,8 +1737,9 @@ class GroupBy(_GroupBy):
         b    3.0
         """
 
-        def pre_processor(vals):
-            # type: (np.ndarray) -> (np.ndarray, Optional[Type])
+        def pre_processor(
+                vals: np.ndarray
+        ) -> Tuple[np.ndarray, Optional[Type]]:
             if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
@@ -1754,8 +1753,10 @@ class GroupBy(_GroupBy):
 
             return vals, inference
 
-        def post_processor(vals, inference):
-            # type: (np.ndarray, Optional[Type]) -> np.ndarray
+        def post_processor(
+                vals: np.ndarray,
+                inference: Optional[Type]
+        ) -> np.ndarray:
             if inference:
                 # Check for edge case
                 if not (is_integer_dtype(inference) and
