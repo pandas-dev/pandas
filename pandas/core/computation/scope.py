@@ -160,7 +160,7 @@ class Scope(StringMixin):
 
         Parameters
         ----------
-        key : text_type
+        key : str
             A variable name
         is_local : bool
             Flag indicating whether the variable is local or not (prefixed with

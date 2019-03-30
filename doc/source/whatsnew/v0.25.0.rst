@@ -159,29 +159,53 @@ cause a ``SparseSeries`` or ``SparseDataFrame`` to be returned, as before.
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions.
-Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`24942`).
+Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions (issue:`25725`, :issue:`24942`, :issue:`25752`).
+Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`25554`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
 | Package         | Minimum Version | Required |
 +=================+=================+==========+
-| beautifulsoup4  | 4.4.1           |          |
+| numpy           | 1.13.3          |    X     |
 +-----------------+-----------------+----------+
-| openpyxl        | 2.4.0           |          |
+| pytz            | 2015.4          |    X     |
 +-----------------+-----------------+----------+
-| pymysql         | 0.7.9           |          |
+| bottleneck      | 1.2.1           |          |
 +-----------------+-----------------+----------+
-| pytz            | 2015.4          |          |
-+-----------------+-----------------+----------+
-| sqlalchemy      | 1.1.4           |          |
-+-----------------+-----------------+----------+
-| xlsxwriter      | 0.7.7           |          |
-+-----------------+-----------------+----------+
-| xlwt            | 1.0.0           |          |
+| numexpr         | 2.6.2           |          |
 +-----------------+-----------------+----------+
 | pytest (dev)    | 4.0.2           |          |
 +-----------------+-----------------+----------+
+
+For `optional libraries <https://pandas-docs.github.io/pandas-docs-travis/install.html#dependencies>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+
+| Package         | Minimum Version |
++=================+=================+
+| fastparquet     | 0.2.1           |
++-----------------+-----------------+
+| matplotlib      | 2.2.2           |
++-----------------+-----------------+
+| openpyxl        | 2.4.0           |
++-----------------+-----------------+
+| pyarrow         | 0.9.0           |
++-----------------+-----------------+
+| pytables        | 3.4.2           |
++-----------------+-----------------+
+| scipy           | 0.19.0          |
++-----------------+-----------------+
+| sqlalchemy      | 1.1.4           |
++-----------------+-----------------+
+| xarray          | 0.8.2           |
++-----------------+-----------------+
+| xlrd            | 1.0.0           |
++-----------------+-----------------+
+| xlsxwriter      | 0.7.7           |
++-----------------+-----------------+
+| xlwt            | 1.0.0           |
++-----------------+-----------------+
 
 .. _whatsnew_0250.api.other:
 
@@ -329,7 +353,7 @@ I/O
 - Bug in :meth:`DataFrame.to_string` and :meth:`DataFrame.to_latex` that would lead to incorrect output when the ``header`` keyword is used (:issue:`16718`)
 - Bug in :func:`read_csv` not properly interpreting the UTF8 encoded filenames on Windows on Python 3.6+ (:issue:`15086`)
 - Improved performance in :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` when converting columns that have missing values (:issue:`25772`)
-
+- Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
 
 Plotting
 ^^^^^^^^
@@ -358,6 +382,7 @@ Reshaping
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
 - Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
 - Bug in :func:`concat` where the resulting ``freq`` of two :class:`DatetimeIndex` with the same ``freq`` would be dropped (:issue:`3232`).
+- Bug in :func:`merge` where merging with equivalent Categorical dtypes was raising an error (:issue:`22501`)
 
 Sparse
 ^^^^^^
@@ -370,7 +395,7 @@ Sparse
 Other
 ^^^^^
 
--
+- Bug in :class:`Series` and :class:`DataFrame` repr where ``np.datetime64('NaT')`` and ``np.timedelta64('NaT')`` with ``dtype=object`` would be represented as ``NaN`` (:issue:`25445`)
 -
 -
 

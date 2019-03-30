@@ -653,7 +653,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
-    if issubclass(subarr.dtype.type, compat.string_types):
+    if issubclass(subarr.dtype.type, str):
         # GH#16605
         # If not empty convert the data to dtype
         # GH#19853: If data is a scalar, subarr has already the result
