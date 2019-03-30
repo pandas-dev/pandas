@@ -535,6 +535,12 @@ class TestDatetimeIndex(object):
         result = DatetimeIndex(idx, dtype='datetime64[ns, US/Eastern]')
         tm.assert_index_equal(idx, result)
 
+    @pytest.mark.parametrize('dtype', [object, np.int32, np.int64])
+    def test_constructor_invalid_dtype(self, dtype):
+        # GH 23986
+        with pytest.raises(ValueError):
+            DatetimeIndex([1, 2], dtype=dtype)
+
     def test_constructor_name(self):
         idx = date_range(start='2000-01-01', periods=1, freq='A',
                          name='TEST')
