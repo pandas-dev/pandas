@@ -851,12 +851,7 @@ class TestDataFrameDataTypes(TestData):
         df.astype(np.int8, errors='ignore')
 
     def test_arg_for_errors_in_astype_dictlist(self):
-        """Test that the errors=ignore argument silences the exception that is
-        thrown by default for data that cannot be converted to the specified
-        type with astype.
-
-        Test for GH-25905
-        """
+        # GH-25905
         data_df = pd.DataFrame([{'a': '1',
                                  'b': '16.5%',
                                  'c': 'test'},
