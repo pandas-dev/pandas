@@ -2990,6 +2990,8 @@ class StringMethods(NoNewAttributesMixin):
     3              sWaPcAsE
     dtype: object
     """)
+
+    # _doc_args holds dict of strings to use in substituting casemethod docs
     _doc_args = {}  # type: Dict[str, Dict[str, str]]
     _doc_args['lower'] = dict(type='lowercase', method='lower', version='')
     _doc_args['upper'] = dict(type='uppercase', method='upper', version='')
