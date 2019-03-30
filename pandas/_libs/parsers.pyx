@@ -592,8 +592,7 @@ cdef class TextReader:
         if not QUOTE_MINIMAL <= quoting <= QUOTE_NONE:
             raise TypeError('bad "quoting" value')
 
-        if not isinstance(quote_char, (str, compat.text_type,
-                                       bytes)) and quote_char is not None:
+        if not isinstance(quote_char, (str, bytes)) and quote_char is not None:
             dtype = type(quote_char).__name__
             raise TypeError('"quotechar" must be string, '
                             'not {dtype}'.format(dtype=dtype))
@@ -2123,7 +2122,7 @@ cdef raise_parser_error(object base, parser_t *parser):
 
             # PyErr_Fetch only returned the error message in *value,
             # so the Exception class must be extracted from *type.
-            if isinstance(old_exc, compat.string_types):
+            if isinstance(old_exc, str):
                 if type != NULL:
                     exc_type = <object>type
                 else:

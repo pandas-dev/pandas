@@ -6,6 +6,7 @@ and latex files. This module also applies to display formatting.
 
 from functools import partial
 from shutil import get_terminal_size
+from unicodedata import east_asian_width
 
 import numpy as np
 
@@ -25,7 +26,6 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCMultiIndex, ABCSeries, ABCSparseArray)
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas import compat
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
@@ -130,7 +130,7 @@ class CategoricalFormatter(object):
             footer += '\n'
         footer += level_info
 
-        return compat.text_type(footer)
+        return str(footer)
 
     def _get_formatted_values(self):
         return format_array(self.categorical.get_values(), None,
@@ -156,7 +156,7 @@ class CategoricalFormatter(object):
             if footer:
                 result.append(footer)
 
-        return compat.text_type('\n'.join(result))
+        return str('\n'.join(result))
 
 
 class SeriesFormatter(object):
@@ -235,7 +235,7 @@ class SeriesFormatter(object):
                 footer += "\n"
             footer += level_info
 
-        return compat.text_type(footer)
+        return str(footer)
 
     def _get_formatted_index(self):
         index = self.tr_series.index
@@ -289,7 +289,7 @@ class SeriesFormatter(object):
         if footer:
             result += '\n' + footer
 
-        return compat.text_type(''.join(result))
+        return str(''.join(result))
 
 
 class TextAdjustment(object):
@@ -298,7 +298,7 @@ class TextAdjustment(object):
         self.encoding = get_option("display.encoding")
 
     def len(self, text):
-        return compat.strlen(text, encoding=self.encoding)
+        return len(text)
 
     def justify(self, texts, max_len, mode='right'):
         return justify(texts, max_len, mode=mode)
@@ -317,9 +317,20 @@ class EastAsianTextAdjustment(TextAdjustment):
         else:
             self.ambiguous_width = 1
 
+        # Definition of East Asian Width
+        # http://unicode.org/reports/tr11/
+        # Ambiguous width can be changed by option
+        self._EAW_MAP = {'Na': 1, 'N': 1, 'W': 2, 'F': 2, 'H': 1}
+
     def len(self, text):
-        return compat.east_asian_len(text, encoding=self.encoding,
-                                     ambiguous_width=self.ambiguous_width)
+        """
+        Calculate display width considering unicode East Asian Width
+        """
+        if not isinstance(text, str):
+            return len(text)
+
+        return sum(self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width)
+                   for c in text)
 
     def justify(self, texts, max_len, mode='right'):
         # re-calculate padding space per str considering East Asian Width
@@ -693,7 +704,7 @@ class DataFrameFormatter(TableFormatter):
 
         if hasattr(self.buf, 'write'):
             latex_renderer.write_result(self.buf)
-        elif isinstance(self.buf, compat.string_types):
+        elif isinstance(self.buf, str):
             import codecs
             with codecs.open(self.buf, 'w', encoding=encoding) as f:
                 latex_renderer.write_result(f)
@@ -731,7 +742,7 @@ class DataFrameFormatter(TableFormatter):
         html = Klass(self, classes=classes, border=border).render()
         if hasattr(self.buf, 'write'):
             buffer_put_lines(self.buf, html)
-        elif isinstance(self.buf, compat.string_types):
+        elif isinstance(self.buf, str):
             with open(self.buf, 'w') as f:
                 buffer_put_lines(f, html)
         else:
@@ -1618,6 +1629,6 @@ def buffer_put_lines(buf, lines):
     lines
         The lines to append.
     """
-    if any(isinstance(x, compat.text_type) for x in lines):
-        lines = [compat.text_type(x) for x in lines]
+    if any(isinstance(x, str) for x in lines):
+        lines = [str(x) for x in lines]
     buf.write('\n'.join(lines))
