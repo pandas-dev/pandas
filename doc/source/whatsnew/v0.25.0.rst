@@ -275,7 +275,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 
-- Bug in :func:`DataFrame.astype()` when passing a dict of columns and types the `errors` parameter was discarded by mistake. (:issue:`25905`)
+- Bug in :func:`DataFrame.astype()` when passing a dict of columns and types the `errors` parameter was ignored. (:issue:`25905`)
 -
 -
 

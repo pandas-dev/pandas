@@ -15,7 +15,7 @@ from pandas import (
     Categorical, DataFrame, Series, Timedelta, Timestamp,
     _np_version_under1p14, compat, concat, date_range, option_context)
 from pandas.core.arrays import integer_array
-from pandas.tests.frame.common import TestData, not_raises
+from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, makeCustomDataframe as mkdf)
@@ -851,22 +851,33 @@ class TestDataFrameDataTypes(TestData):
         df.astype(np.int8, errors='ignore')
 
     def test_arg_for_errors_in_astype_dictlist(self):
-        data_df = pd.DataFrame([{'col_a': '1', 'col_b': '16.5%',
-                                 'col_c': 'test'},
-                                {'col_a': '2.2', 'col_b': '15.3',
-                                 'col_c': 'another_test'}
+        """Test that the errors=ignore argument silences the exception that is
+        thrown by default for data that cannot be converted to the specified
+        type with astype.
+
+        Test for GH-25905
+        """
+        data_df = pd.DataFrame([{'a': '1',
+                                 'b': '16.5%',
+                                 'c': 'test'},
+                                {'a': '2.2',
+                                 'b': '15.3',
+                                 'c': 'another_test'}
                                 ])
-        reference_df = pd.DataFrame([{'col_a': '1', 'col_b': '16.5%',
-                                     'col_c': 'test'},
-                                     {'col_a': '2.2', 'col_b': '15.3',
-                                     'col_c': 'another_test'}
-                                     ], dtype='float64')
-        type_dict = {'col_a': 'float64', 'col_b': 'float64', 'col_c': 'object'}
+        expected = pd.DataFrame([{'a': '1',
+                                  'b': '16.5%',
+                                  'c': 'test'},
+                                 {'a': '2.2',
+                                  'b': '15.3',
+                                  'c': 'another_test'}
+                                 ], dtype='float64')
+        type_dict = {'a': 'float64',
+                     'b': 'float64',
+                     'c': 'object'}
 
-        with not_raises(ValueError):
-            df_astype = data_df.astype(dtype=type_dict, errors='ignore')
+        result = data_df.astype(dtype=type_dict, errors='ignore')
 
-        tm.assert_frame_equal(reference_df, df_astype)
+        tm.assert_frame_equal(expected, result)
 
     @pytest.mark.parametrize('input_vals', [
         ([1, 2]),

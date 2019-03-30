@@ -142,30 +142,3 @@ def _check_mixed_int(df, dtype=None):
         assert(df.dtypes['C'] == dtypes['C'])
     if dtypes.get('D'):
         assert(df.dtypes['D'] == dtypes['D'])
-
-
-@contextmanager
-def not_raises(expected_exception: Exception,
-               msg: Optional[str] = None) -> None:
-    """Explicitly checks that a type of exception is not raised inside a
-    with context.
-
-    References:
-        SO: how-to-use-pytest-to-check-that-error-is-not-raised
-
-    Parameters
-    ----------
-        expected_exception: that is verified not to be raised.
-        msg: if given the message to verify in addition to the exception type.
-    """
-    try:
-        yield
-    except expected_exception as e:
-        if not msg:
-            raise AssertionError(
-                "Raised exception {} when it should not!".format(repr(e)))
-
-        elif hasattr(e, 'message') and e.message == msg:
-            raise AssertionError(
-                "Raised exception {} with message {} when it should not!"
-                .format(repr(e), e.message))
