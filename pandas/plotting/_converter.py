@@ -12,7 +12,6 @@ import numpy as np
 from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import resolution
 from pandas._libs.tslibs.frequencies import FreqGroup, get_freq
-import pandas.compat as compat
 from pandas.compat import lrange
 
 from pandas.core.dtypes.common import (
@@ -137,7 +136,7 @@ def _to_ordinalf(tm):
 
 
 def time2num(d):
-    if isinstance(d, compat.string_types):
+    if isinstance(d, str):
         parsed = tools.to_datetime(d)
         if not isinstance(parsed, datetime):
             raise ValueError('Could not parse time {d}'.format(d=d))
@@ -235,8 +234,8 @@ class PeriodConverter(dates.DateConverter):
     def _convert_1d(values, units, axis):
         if not hasattr(axis, 'freq'):
             raise TypeError('Axis must have `freq` set to convert to Periods')
-        valid_types = (compat.string_types, datetime,
-                       Period, pydt.date, pydt.time, np.datetime64)
+        valid_types = (str, datetime, Period, pydt.date, pydt.time,
+                       np.datetime64)
         if (isinstance(values, valid_types) or is_integer(values) or
                 is_float(values)):
             return get_datevalue(values, axis.freq)
@@ -256,8 +255,8 @@ class PeriodConverter(dates.DateConverter):
 def get_datevalue(date, freq):
     if isinstance(date, Period):
         return date.asfreq(freq).ordinal
-    elif isinstance(date, (compat.string_types, datetime,
-                           pydt.date, pydt.time, np.datetime64)):
+    elif isinstance(date, (str, datetime, pydt.date, pydt.time,
+                           np.datetime64)):
         return Period(date, freq).ordinal
     elif (is_integer(date) or is_float(date) or
           (isinstance(date, (np.ndarray, Index)) and (date.size == 1))):
@@ -311,7 +310,7 @@ class DatetimeConverter(dates.DateConverter):
             return dates.date2num(values)
         elif (is_integer(values) or is_float(values)):
             return values
-        elif isinstance(values, compat.string_types):
+        elif isinstance(values, str):
             return try_parse(values)
         elif isinstance(values, (list, tuple, np.ndarray, Index, ABCSeries)):
             if isinstance(values, ABCSeries):
@@ -952,7 +951,7 @@ def _annual_finder(vmin, vmax, freq):
 
 
 def get_finder(freq):
-    if isinstance(freq, compat.string_types):
+    if isinstance(freq, str):
         freq = get_freq(freq)
     fgroup = resolution.get_freq_group(freq)
 
@@ -989,7 +988,7 @@ class TimeSeries_DateLocator(Locator):
 
     def __init__(self, freq, minor_locator=False, dynamic_mode=True,
                  base=1, quarter=1, month=1, day=1, plot_obj=None):
-        if isinstance(freq, compat.string_types):
+        if isinstance(freq, str):
             freq = get_freq(freq)
         self.freq = freq
         self.base = base
@@ -1070,7 +1069,7 @@ class TimeSeries_DateFormatter(Formatter):
 
     def __init__(self, freq, minor_locator=False, dynamic_mode=True,
                  plot_obj=None):
-        if isinstance(freq, compat.string_types):
+        if isinstance(freq, str):
             freq = get_freq(freq)
         self.format = None
         self.freq = freq

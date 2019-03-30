@@ -1078,12 +1078,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if len(self) > 0:
             head = self[0]
-            if (hasattr(head, 'format') and
-                    not isinstance(head, compat.string_types)):
+            if hasattr(head, 'format') and not isinstance(head, str):
                 head = head.format()
             tail = self[-1]
-            if (hasattr(tail, 'format') and
-                    not isinstance(tail, compat.string_types)):
+            if hasattr(tail, 'format') and not isinstance(tail, str):
                 tail = tail.format()
             index_summary = ', %s to %s' % (pprint_thing(head),
                                             pprint_thing(tail))
@@ -3633,8 +3631,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @property
-    def _values(self):
-        # type: () -> Union[ExtensionArray, Index, np.ndarray]
+    def _values(self) -> Union[ExtensionArray, ABCIndexClass, np.ndarray]:
         # TODO(EA): remove index types as they become extension arrays
         """
         The best array representation.
@@ -4872,8 +4869,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH 16785: If start and end happen to be date strings with UTC offsets
         # attempt to parse and check that the offsets are the same
-        if (isinstance(start, (compat.string_types, datetime))
-                and isinstance(end, (compat.string_types, datetime))):
+        if (isinstance(start, (str, datetime))
+                and isinstance(end, (str, datetime))):
             try:
                 ts_start = Timestamp(start)
                 ts_end = Timestamp(end)

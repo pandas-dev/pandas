@@ -1,6 +1,5 @@
 import warnings
 
-import pandas.compat as compat
 from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -144,7 +143,7 @@ def _maybe_convert_usecols(usecols):
                       FutureWarning, stacklevel=2)
         return lrange(usecols + 1)
 
-    if isinstance(usecols, compat.string_types):
+    if isinstance(usecols, str):
         return _range2cols(usecols)
 
     return usecols

@@ -8,8 +8,6 @@ from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
 
-from pandas import compat
-
 
 def adjoin(space, *lists, **kwargs):
     """
@@ -62,7 +60,7 @@ def _join_unicode(lines, sep=''):
     try:
         return sep.join(lines)
     except UnicodeDecodeError:
-        sep = compat.text_type(sep)
+        sep = str(sep)
         return sep.join([x.decode('utf-8') if isinstance(x, str) else x
                          for x in lines])
 
@@ -188,7 +186,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         # should deal with it himself.
 
         try:
-            result = compat.text_type(thing)  # we should try this first
+            result = str(thing)  # we should try this first
         except UnicodeDecodeError:
             # either utf-8 or we replace errors
             result = str(thing).decode('utf-8', "replace")
@@ -205,10 +203,10 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         for c in escape_chars:
             result = result.replace(c, translate[c])
 
-        return compat.text_type(result)
+        return str(result)
 
     if hasattr(thing, '__next__'):
-        return compat.text_type(thing)
+        return str(thing)
     elif (isinstance(thing, dict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
         result = _pprint_dict(thing, _nest_lvl, quote_strings=True,
@@ -218,12 +216,12 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
                              quote_strings=quote_strings,
                              max_seq_items=max_seq_items)
-    elif isinstance(thing, compat.string_types) and quote_strings:
+    elif isinstance(thing, str) and quote_strings:
         result = "'{thing}'".format(thing=as_escaped_unicode(thing))
     else:
         result = as_escaped_unicode(thing)
 
-    return compat.text_type(result)  # always unicode
+    return str(result)  # always unicode
 
 
 def pprint_thing_encoded(object, encoding='utf-8', errors='replace', **kwds):
