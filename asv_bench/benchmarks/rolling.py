@@ -115,33 +115,35 @@ class Quantile(object):
 
 class PeakMemFixed(object):
 
-    params = (['max', 'min'])
-    param_names = ['method']
-
-    def setup(self, method):
+    def setup(self):
         N = 10**4
         arr = 100 * np.random.random(N)
         self.roll = pd.Series(arr).rolling(1000)
 
-    def peakmem_fixed(self, method):
-        for x in range(10000):
-            getattr(self.roll, method)()
+    def peakmem_fixed(self):
+        # GH 25926
+        # This is to detect memory leaks in rolling operations.
+        # To save time, this is only ran 1000 times, and will
+        # only detect larger memory leaks
+        for x in range(1000):
+            self.roll.max()
 
 
 class PeakMemVariable(object):
 
-    params = (['max', 'min'])
-    param_names = ['method']
-
-    def setup(self, method):
+    def setup(self):
         N = 10**4
         arr = (100 * np.random.random(N)).astype('int')
         index = pd.date_range('2017-01-01', periods=N, freq='5s')
         self.roll = pd.Series(arr, index=index).rolling('1d')
 
-    def peakmem_variable(self, method):
-        for x in range(10000):
-            getattr(self.roll, method)()
+    def peakmem_variable(self):
+        # GH 25926
+        # This is to detect memory leaks in rolling operations.
+        # To save time, this is only ran 1000 times, and will
+        # only detect larger memory leaks
+        for x in range(1000):
+            self.roll.max()
 
 
 from .pandas_vb_common import setup  # noqa: F401
