@@ -612,7 +612,7 @@ class TestEvalNumexprPandas(object):
         # GH 16363
         df = pd.DataFrame({'x': np.array([0], dtype=np.float32)})
         res = df.eval('x < -0.1')
-        assert np.array_equal(res, np.array([False])), res
+        assert np.array_equal(res, np.array([False]))
 
     def test_disallow_scalar_bool_ops(self):
         exprs = '1 or 2', '1 and 2'

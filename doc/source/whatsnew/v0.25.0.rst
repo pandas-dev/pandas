@@ -228,6 +228,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in :meth:`~pandas.eval` when comparing floats with scalar operators that don't have a 'value' attribute (e.g., unary operators) (:issue:`25928`)
 
 Categorical
 ^^^^^^^^^^^
