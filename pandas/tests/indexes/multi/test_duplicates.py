@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import hashtable
-from pandas.compat import range, u
 
 from pandas import DatetimeIndex, MultiIndex
 import pandas.util.testing as tm
@@ -158,24 +157,24 @@ def test_has_duplicates(idx, idx_dup):
 
 def test_has_duplicates_from_tuples():
     # GH 9075
-    t = [(u('x'), u('out'), u('z'), 5, u('y'), u('in'), u('z'), 169),
-         (u('x'), u('out'), u('z'), 7, u('y'), u('in'), u('z'), 119),
-         (u('x'), u('out'), u('z'), 9, u('y'), u('in'), u('z'), 135),
-         (u('x'), u('out'), u('z'), 13, u('y'), u('in'), u('z'), 145),
-         (u('x'), u('out'), u('z'), 14, u('y'), u('in'), u('z'), 158),
-         (u('x'), u('out'), u('z'), 16, u('y'), u('in'), u('z'), 122),
-         (u('x'), u('out'), u('z'), 17, u('y'), u('in'), u('z'), 160),
-         (u('x'), u('out'), u('z'), 18, u('y'), u('in'), u('z'), 180),
-         (u('x'), u('out'), u('z'), 20, u('y'), u('in'), u('z'), 143),
-         (u('x'), u('out'), u('z'), 21, u('y'), u('in'), u('z'), 128),
-         (u('x'), u('out'), u('z'), 22, u('y'), u('in'), u('z'), 129),
-         (u('x'), u('out'), u('z'), 25, u('y'), u('in'), u('z'), 111),
-         (u('x'), u('out'), u('z'), 28, u('y'), u('in'), u('z'), 114),
-         (u('x'), u('out'), u('z'), 29, u('y'), u('in'), u('z'), 121),
-         (u('x'), u('out'), u('z'), 31, u('y'), u('in'), u('z'), 126),
-         (u('x'), u('out'), u('z'), 32, u('y'), u('in'), u('z'), 155),
-         (u('x'), u('out'), u('z'), 33, u('y'), u('in'), u('z'), 123),
-         (u('x'), u('out'), u('z'), 12, u('y'), u('in'), u('z'), 144)]
+    t = [('x', 'out', 'z', 5, 'y', 'in', 'z', 169),
+         ('x', 'out', 'z', 7, 'y', 'in', 'z', 119),
+         ('x', 'out', 'z', 9, 'y', 'in', 'z', 135),
+         ('x', 'out', 'z', 13, 'y', 'in', 'z', 145),
+         ('x', 'out', 'z', 14, 'y', 'in', 'z', 158),
+         ('x', 'out', 'z', 16, 'y', 'in', 'z', 122),
+         ('x', 'out', 'z', 17, 'y', 'in', 'z', 160),
+         ('x', 'out', 'z', 18, 'y', 'in', 'z', 180),
+         ('x', 'out', 'z', 20, 'y', 'in', 'z', 143),
+         ('x', 'out', 'z', 21, 'y', 'in', 'z', 128),
+         ('x', 'out', 'z', 22, 'y', 'in', 'z', 129),
+         ('x', 'out', 'z', 25, 'y', 'in', 'z', 111),
+         ('x', 'out', 'z', 28, 'y', 'in', 'z', 114),
+         ('x', 'out', 'z', 29, 'y', 'in', 'z', 121),
+         ('x', 'out', 'z', 31, 'y', 'in', 'z', 126),
+         ('x', 'out', 'z', 32, 'y', 'in', 'z', 155),
+         ('x', 'out', 'z', 33, 'y', 'in', 'z', 123),
+         ('x', 'out', 'z', 12, 'y', 'in', 'z', 144)]
 
     mi = MultiIndex.from_tuples(t)
     assert not mi.has_duplicates

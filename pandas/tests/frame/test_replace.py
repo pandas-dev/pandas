@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import datetime
 import re
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange, range, zip
+from pandas.compat import StringIO, lrange
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, compat, date_range

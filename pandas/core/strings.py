@@ -9,7 +9,6 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas.compat as compat
-from pandas.compat import zip
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -626,18 +625,18 @@ def str_repeat(arr, repeats):
     if is_scalar(repeats):
         def rep(x):
             try:
-                return compat.binary_type.__mul__(x, repeats)
+                return bytes.__mul__(x, repeats)
             except TypeError:
-                return compat.text_type.__mul__(x, repeats)
+                return str.__mul__(x, repeats)
 
         return _na_map(rep, arr)
     else:
 
         def rep(x, r):
             try:
-                return compat.binary_type.__mul__(x, r)
+                return bytes.__mul__(x, r)
             except TypeError:
-                return compat.text_type.__mul__(x, r)
+                return str.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
         result = libops.vec_binop(com.values_from_object(arr), repeats, rep)
@@ -694,7 +693,7 @@ def _groups_or_na_fun(regex):
     empty_row = [np.nan] * regex.groups
 
     def f(x):
-        if not isinstance(x, compat.string_types):
+        if not isinstance(x, str):
             return empty_row
         m = regex.search(x)
         if m:
@@ -946,13 +945,13 @@ def str_extractall(arr, pat, flags=0):
     is_mi = arr.index.nlevels > 1
 
     for subject_key, subject in arr.iteritems():
-        if isinstance(subject, compat.string_types):
+        if isinstance(subject, str):
 
             if not is_mi:
                 subject_key = (subject_key, )
 
             for match_i, match_tuple in enumerate(regex.findall(subject)):
-                if isinstance(match_tuple, compat.string_types):
+                if isinstance(match_tuple, str):
                     match_tuple = (match_tuple,)
                 na_tuple = [np.NaN if group == "" else group
                             for group in match_tuple]
@@ -1203,7 +1202,7 @@ def str_find(arr, sub, start=0, end=None, side='left'):
         Indexes where substring is found.
     """
 
-    if not isinstance(sub, compat.string_types):
+    if not isinstance(sub, str):
         msg = 'expected a string object, not {0}'
         raise TypeError(msg.format(type(sub).__name__))
 
@@ -1223,7 +1222,7 @@ def str_find(arr, sub, start=0, end=None, side='left'):
 
 
 def str_index(arr, sub, start=0, end=None, side='left'):
-    if not isinstance(sub, compat.string_types):
+    if not isinstance(sub, str):
         msg = 'expected a string object, not {0}'
         raise TypeError(msg.format(type(sub).__name__))
 
@@ -1295,7 +1294,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
     1    --tiger---
     dtype: object
     """
-    if not isinstance(fillchar, compat.string_types):
+    if not isinstance(fillchar, str):
         msg = 'fillchar must be a character, not {0}'
         raise TypeError(msg.format(type(fillchar).__name__))
 
@@ -2191,7 +2190,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         from pandas import Index, Series, concat
 
-        if isinstance(others, compat.string_types):
+        if isinstance(others, str):
             raise ValueError("Did you mean to supply a `sep` keyword?")
         if sep is None:
             sep = ''
@@ -2834,7 +2833,7 @@ class StringMethods(NoNewAttributesMixin):
         normalized : Series/Index of objects
         """
         import unicodedata
-        f = lambda x: unicodedata.normalize(form, compat.u_safe(x))
+        f = lambda x: unicodedata.normalize(form, x)
         result = _na_map(f, self._parent)
         return self._wrap_result(result)
 
@@ -3188,10 +3187,10 @@ class StringMethods(NoNewAttributesMixin):
     istitle = _noarg_wrapper(lambda x: x.istitle(),
                              docstring=_shared_docs['ismethods'] %
                              _shared_docs['istitle'])
-    isnumeric = _noarg_wrapper(lambda x: compat.u_safe(x).isnumeric(),
+    isnumeric = _noarg_wrapper(lambda x: x.isnumeric(),
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isnumeric'])
-    isdecimal = _noarg_wrapper(lambda x: compat.u_safe(x).isdecimal(),
+    isdecimal = _noarg_wrapper(lambda x: x.isdecimal(),
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 

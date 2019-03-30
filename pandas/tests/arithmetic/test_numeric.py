@@ -9,7 +9,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, Iterable
+from pandas.compat import Iterable
 
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex
@@ -438,17 +438,12 @@ class TestMultiplicationDivision(object):
         tm.assert_series_equal(result, expected)
 
     def test_div_int(self, numeric_idx):
-        # truediv under PY3
         idx = numeric_idx
         result = idx / 1
-        expected = idx
-        if PY3:
-            expected = expected.astype('float64')
+        expected = idx.astype('float64')
         tm.assert_index_equal(result, expected)
 
         result = idx / 2
-        if PY3:
-            expected = expected.astype('float64')
         expected = Index(idx.values / 2)
         tm.assert_index_equal(result, expected)
 
@@ -968,8 +963,7 @@ class TestNumericArithmeticUnsorted(object):
         self.check_binop(ops, scalars, idxs)
 
     def test_binops_pow(self):
-        # later versions of numpy don't allow powers of negative integers
-        # so test separately
+        # numpy does not allow powers of negative integers so test separately
         # https://github.com/numpy/numpy/pull/8127
         ops = [pow]
         scalars = [1, 2]
@@ -1013,13 +1007,8 @@ class TestNumericArithmeticUnsorted(object):
         expected = pd.RangeIndex(-2, 8, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
-        # truediv under PY3
         result = idx / 2
-
-        if PY3:
-            expected = pd.RangeIndex(0, 5, 1).astype('float64')
-        else:
-            expected = pd.RangeIndex(0, 5, 1)
+        expected = pd.RangeIndex(0, 5, 1).astype('float64')
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx / 4

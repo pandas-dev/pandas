@@ -9,8 +9,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import hashtable as libhashtable, join as libjoin, lib
-import pandas.compat as compat
-from pandas.compat import filter, lzip, map, range, zip
+from pandas.compat import lzip
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -502,7 +501,7 @@ class _MergeOperation(object):
 
         self.indicator = indicator
 
-        if isinstance(self.indicator, compat.string_types):
+        if isinstance(self.indicator, str):
             self.indicator_name = self.indicator
         elif isinstance(self.indicator, bool):
             self.indicator_name = '_merge' if self.indicator else None
@@ -1776,8 +1775,7 @@ def _get_join_keys(llab, rlab, shape, sort):
 
 
 def _should_fill(lname, rname):
-    if (not isinstance(lname, compat.string_types) or
-            not isinstance(rname, compat.string_types)):
+    if not isinstance(lname, str) or not isinstance(rname, str):
         return True
     return lname == rname
 

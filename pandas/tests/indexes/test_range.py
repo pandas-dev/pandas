@@ -5,13 +5,17 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, range, u
-
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas.util.testing as tm
 
 from .test_numeric import Numeric
+
+# aliases to make some tests easier to read
+RI = RangeIndex
+I64 = Int64Index
+F64 = Float64Index
+OI = Index
 
 
 class TestRangeIndex(Numeric):
@@ -180,10 +184,7 @@ class TestRangeIndex(Numeric):
     def test_repr(self):
         i = RangeIndex(5, name='Foo')
         result = repr(i)
-        if PY3:
-            expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
-        else:
-            expected = "RangeIndex(start=0, stop=5, step=1, name=u'Foo')"
+        expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
         assert result == expected
 
         result = eval(result)
@@ -570,51 +571,73 @@ class TestRangeIndex(Numeric):
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
-    def test_union_noncomparable(self):
+    @pytest.mark.parametrize('sort', [False, None])
+    def test_union_noncomparable(self, sort):
         from datetime import datetime, timedelta
         # corner case, non-Int64Index
         now = datetime.now()
         other = Index([now + timedelta(i) for i in range(4)], dtype=object)
-        result = self.index.union(other)
+        result = self.index.union(other, sort=sort)
         expected = Index(np.concatenate((self.index, other)))
         tm.assert_index_equal(result, expected)
 
-        result = other.union(self.index)
+        result = other.union(self.index, sort=sort)
         expected = Index(np.concatenate((other, self.index)))
         tm.assert_index_equal(result, expected)
 
-    def test_union(self):
-        RI = RangeIndex
-        I64 = Int64Index
-        cases = [(RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1)),
-                 (RI(0, 10, 1), RI(5, 20, 1), RI(0, 20, 1)),
-                 (RI(0, 10, 1), RI(10, 20, 1), RI(0, 20, 1)),
-                 (RI(0, -10, -1), RI(0, -10, -1), RI(0, -10, -1)),
-                 (RI(0, -10, -1), RI(-10, -20, -1), RI(-19, 1, 1)),
-                 (RI(0, 10, 2), RI(1, 10, 2), RI(0, 10, 1)),
-                 (RI(0, 11, 2), RI(1, 12, 2), RI(0, 12, 1)),
-                 (RI(0, 21, 4), RI(-2, 24, 4), RI(-2, 24, 2)),
-                 (RI(0, -20, -2), RI(-1, -21, -2), RI(-19, 1, 1)),
-                 (RI(0, 100, 5), RI(0, 100, 20), RI(0, 100, 5)),
-                 (RI(0, -100, -5), RI(5, -100, -20), RI(-95, 10, 5)),
-                 (RI(0, -11, -1), RI(1, -12, -4), RI(-11, 2, 1)),
-                 (RI(0), RI(0), RI(0)),
-                 (RI(0, -10, -2), RI(0), RI(0, -10, -2)),
-                 (RI(0, 100, 2), RI(100, 150, 200), RI(0, 102, 2)),
-                 (RI(0, -100, -2), RI(-100, 50, 102), RI(-100, 4, 2)),
-                 (RI(0, -100, -1), RI(0, -50, -3), RI(-99, 1, 1)),
-                 (RI(0, 1, 1), RI(5, 6, 10), RI(0, 6, 5)),
-                 (RI(0, 10, 5), RI(-5, -6, -20), RI(-5, 10, 5)),
-                 (RI(0, 3, 1), RI(4, 5, 1), I64([0, 1, 2, 4])),
-                 (RI(0, 10, 1), I64([]), RI(0, 10, 1)),
-                 (RI(0), I64([1, 5, 6]), I64([1, 5, 6]))]
-        for idx1, idx2, expected in cases:
-            res1 = idx1.union(idx2)
-            res2 = idx2.union(idx1)
-            res3 = idx1._int64index.union(idx2)
-            tm.assert_index_equal(res1, expected, exact=True)
-            tm.assert_index_equal(res2, expected, exact=True)
-            tm.assert_index_equal(res3, expected)
+    @pytest.fixture(params=[
+        (RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1)),
+        (RI(0, 10, 1), RI(5, 20, 1), RI(0, 20, 1), I64(range(20))),
+        (RI(0, 10, 1), RI(10, 20, 1), RI(0, 20, 1), I64(range(20))),
+        (RI(0, -10, -1), RI(0, -10, -1), RI(0, -10, -1), RI(0, -10, -1)),
+        (RI(0, -10, -1), RI(-10, -20, -1), RI(-19, 1, 1),
+         I64(range(0, -20, -1))),
+        (RI(0, 10, 2), RI(1, 10, 2), RI(0, 10, 1),
+         I64(list(range(0, 10, 2)) + list(range(1, 10, 2)))),
+        (RI(0, 11, 2), RI(1, 12, 2), RI(0, 12, 1),
+         I64(list(range(0, 11, 2)) + list(range(1, 12, 2)))),
+        (RI(0, 21, 4), RI(-2, 24, 4), RI(-2, 24, 2),
+         I64(list(range(0, 21, 4)) + list(range(-2, 24, 4)))),
+        (RI(0, -20, -2), RI(-1, -21, -2), RI(-19, 1, 1),
+         I64(list(range(0, -20, -2)) + list(range(-1, -21, -2)))),
+        (RI(0, 100, 5), RI(0, 100, 20), RI(0, 100, 5), I64(range(0, 100, 5))),
+        (RI(0, -100, -5), RI(5, -100, -20), RI(-95, 10, 5),
+         I64(list(range(0, -100, -5)) + [5])),
+        (RI(0, -11, -1), RI(1, -12, -4), RI(-11, 2, 1),
+         I64(list(range(0, -11, -1)) + [1, -11])),
+        (RI(0), RI(0), RI(0), RI(0)),
+        (RI(0, -10, -2), RI(0), RI(0, -10, -2), RI(0, -10, -2)),
+        (RI(0, 100, 2), RI(100, 150, 200), RI(0, 102, 2),
+         I64(range(0, 102, 2))),
+        (RI(0, -100, -2), RI(-100, 50, 102), RI(-100, 4, 2),
+         I64(list(range(0, -100, -2)) + [-100, 2])),
+        (RI(0, -100, -1), RI(0, -50, -3), RI(-99, 1, 1),
+         I64(list(range(0, -100, -1)))),
+        (RI(0, 1, 1), RI(5, 6, 10), RI(0, 6, 5), I64([0, 5])),
+        (RI(0, 10, 5), RI(-5, -6, -20), RI(-5, 10, 5), I64([0, 5, -5])),
+        (RI(0, 3, 1), RI(4, 5, 1), I64([0, 1, 2, 4]), I64([0, 1, 2, 4])),
+        (RI(0, 10, 1), I64([]), RI(0, 10, 1), RI(0, 10, 1)),
+        (RI(0), I64([1, 5, 6]), I64([1, 5, 6]), I64([1, 5, 6]))
+    ])
+    def unions(self, request):
+        """Inputs and expected outputs for RangeIndex.union tests"""
+
+        return request.param
+
+    def test_union_sorted(self, unions):
+
+        idx1, idx2, expected_sorted, expected_notsorted = unions
+
+        res1 = idx1.union(idx2, sort=None)
+        tm.assert_index_equal(res1, expected_sorted, exact=True)
+
+        res1 = idx1.union(idx2, sort=False)
+        tm.assert_index_equal(res1, expected_notsorted, exact=True)
+
+        res2 = idx2.union(idx1, sort=None)
+        res3 = idx1._int64index.union(idx2, sort=None)
+        tm.assert_index_equal(res2, expected_sorted, exact=True)
+        tm.assert_index_equal(res3, expected_sorted)
 
     def test_nbytes(self):
 
@@ -675,7 +698,7 @@ class TestRangeIndex(Numeric):
             idx.take(np.array([1, -5]))
 
     def test_print_unicode_columns(self):
-        df = pd.DataFrame({u("\u05d0"): [1, 2, 3],
+        df = pd.DataFrame({"\u05d0": [1, 2, 3],
                            "\u05d1": [4, 5, 6],
                            "c": [7, 8, 9]})
         repr(df.columns)  # should not raise UnicodeDecodeError
@@ -845,38 +868,41 @@ class TestRangeIndex(Numeric):
             i = RangeIndex(0, 5, step)
             assert len(i) == 0
 
-    def test_append(self):
+    @pytest.fixture(params=[
+        ([RI(1, 12, 5)], RI(1, 12, 5)),
+        ([RI(0, 6, 4)], RI(0, 6, 4)),
+        ([RI(1, 3), RI(3, 7)], RI(1, 7)),
+        ([RI(1, 5, 2), RI(5, 6)], RI(1, 6, 2)),
+        ([RI(1, 3, 2), RI(4, 7, 3)], RI(1, 7, 3)),
+        ([RI(-4, 3, 2), RI(4, 7, 2)], RI(-4, 7, 2)),
+        ([RI(-4, -8), RI(-8, -12)], RI(0, 0)),
+        ([RI(-4, -8), RI(3, -4)], RI(0, 0)),
+        ([RI(-4, -8), RI(3, 5)], RI(3, 5)),
+        ([RI(-4, -2), RI(3, 5)], I64([-4, -3, 3, 4])),
+        ([RI(-2,), RI(3, 5)], RI(3, 5)),
+        ([RI(2,), RI(2)], I64([0, 1, 0, 1])),
+        ([RI(2,), RI(2, 5), RI(5, 8, 4)], RI(0, 6)),
+        ([RI(2,), RI(3, 5), RI(5, 8, 4)], I64([0, 1, 3, 4, 5])),
+        ([RI(-2, 2), RI(2, 5), RI(5, 8, 4)], RI(-2, 6)),
+        ([RI(3,), I64([-1, 3, 15])], I64([0, 1, 2, -1, 3, 15])),
+        ([RI(3,), F64([-1, 3.1, 15.])], F64([0, 1, 2, -1, 3.1, 15.])),
+        ([RI(3,), OI(['a', None, 14])], OI([0, 1, 2, 'a', None, 14])),
+        ([RI(3, 1), OI(['a', None, 14])], OI(['a', None, 14]))
+    ])
+    def appends(self, request):
+        """Inputs and expected outputs for RangeIndex.append test"""
+
+        return request.param
+
+    def test_append(self, appends):
         # GH16212
-        RI = RangeIndex
-        I64 = Int64Index
-        F64 = Float64Index
-        OI = Index
-        cases = [([RI(1, 12, 5)], RI(1, 12, 5)),
-                 ([RI(0, 6, 4)], RI(0, 6, 4)),
-                 ([RI(1, 3), RI(3, 7)], RI(1, 7)),
-                 ([RI(1, 5, 2), RI(5, 6)], RI(1, 6, 2)),
-                 ([RI(1, 3, 2), RI(4, 7, 3)], RI(1, 7, 3)),
-                 ([RI(-4, 3, 2), RI(4, 7, 2)], RI(-4, 7, 2)),
-                 ([RI(-4, -8), RI(-8, -12)], RI(0, 0)),
-                 ([RI(-4, -8), RI(3, -4)], RI(0, 0)),
-                 ([RI(-4, -8), RI(3, 5)], RI(3, 5)),
-                 ([RI(-4, -2), RI(3, 5)], I64([-4, -3, 3, 4])),
-                 ([RI(-2,), RI(3, 5)], RI(3, 5)),
-                 ([RI(2,), RI(2)], I64([0, 1, 0, 1])),
-                 ([RI(2,), RI(2, 5), RI(5, 8, 4)], RI(0, 6)),
-                 ([RI(2,), RI(3, 5), RI(5, 8, 4)], I64([0, 1, 3, 4, 5])),
-                 ([RI(-2, 2), RI(2, 5), RI(5, 8, 4)], RI(-2, 6)),
-                 ([RI(3,), I64([-1, 3, 15])], I64([0, 1, 2, -1, 3, 15])),
-                 ([RI(3,), F64([-1, 3.1, 15.])], F64([0, 1, 2, -1, 3.1, 15.])),
-                 ([RI(3,), OI(['a', None, 14])], OI([0, 1, 2, 'a', None, 14])),
-                 ([RI(3, 1), OI(['a', None, 14])], OI(['a', None, 14]))
-                 ]
 
-        for indices, expected in cases:
-            result = indices[0].append(indices[1:])
-            tm.assert_index_equal(result, expected, exact=True)
+        indices, expected = appends
 
-            if len(indices) == 2:
-                # Append single item rather than list
-                result2 = indices[0].append(indices[1])
-                tm.assert_index_equal(result2, expected, exact=True)
+        result = indices[0].append(indices[1:])
+        tm.assert_index_equal(result, expected, exact=True)
+
+        if len(indices) == 2:
+            # Append single item rather than list
+            result2 = indices[0].append(indices[1])
+            tm.assert_index_equal(result2, expected, exact=True)

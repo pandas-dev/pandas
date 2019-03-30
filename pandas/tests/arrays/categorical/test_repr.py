@@ -2,12 +2,9 @@
 
 import numpy as np
 
-from pandas.compat import PY3, u
-
 from pandas import (
-    Categorical, CategoricalIndex, Series, date_range, period_range,
-    timedelta_range)
-from pandas.core.config import option_context
+    Categorical, CategoricalIndex, Series, date_range, option_context,
+    period_range, timedelta_range)
 from pandas.tests.arrays.categorical.common import TestCategorical
 
 
@@ -53,44 +50,39 @@ class TestCategoricalRepr(object):
     def test_print_none_width(self):
         # GH10087
         a = Series(Categorical([1, 2, 3, 4]))
-        exp = u("0    1\n1    2\n2    3\n3    4\n" +
-                "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
+        exp = ("0    1\n1    2\n2    3\n3    4\n"
+               "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
 
         with option_context("display.width", None):
             assert exp == repr(a)
 
     def test_unicode_print(self):
-        if PY3:
-            _rep = repr
-        else:
-            _rep = unicode  # noqa
-
         c = Categorical(['aaaaa', 'bb', 'cccc'] * 20)
-        expected = u"""\
+        expected = """\
 [aaaaa, bb, cccc, aaaaa, bb, ..., bb, cccc, aaaaa, bb, cccc]
 Length: 60
 Categories (3, object): [aaaaa, bb, cccc]"""
 
-        assert _rep(c) == expected
+        assert repr(c) == expected
 
-        c = Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
-        expected = u"""\
+        c = Categorical(['ああああ', 'いいいいい', 'ううううううう'] * 20)
+        expected = """\
 [ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
 Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
-        assert _rep(c) == expected
+        assert repr(c) == expected
 
         # unicode option should not affect to Categorical, as it doesn't care
         # the repr width
         with option_context('display.unicode.east_asian_width', True):
 
-            c = Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
-            expected = u"""[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
+            c = Categorical(['ああああ', 'いいいいい', 'ううううううう'] * 20)
+            expected = """[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
 Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
-            assert _rep(c) == expected
+            assert repr(c) == expected
 
     def test_categorical_repr(self):
         c = Categorical([1, 2, 3])

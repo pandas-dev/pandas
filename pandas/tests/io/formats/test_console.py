@@ -1,9 +1,6 @@
-import subprocess  # noqa: F401
-
 import pytest
 
-from pandas.io.formats.console import detect_console_encoding
-from pandas.io.formats.terminal import _get_terminal_size_tput
+from pandas._config import detect_console_encoding
 
 
 class MockEncoding(object):  # TODO(py27): replace with mock
@@ -75,18 +72,3 @@ def test_detect_console_encoding_fallback_to_default(monkeypatch, std, locale):
         context.setattr('sys.stdout', MockEncoding(std))
         context.setattr('sys.getdefaultencoding', lambda: 'sysDefaultEncoding')
         assert detect_console_encoding() == 'sysDefaultEncoding'
-
-
-@pytest.mark.parametrize("size", ['', ['']])
-def test_terminal_unknown_dimensions(monkeypatch, size, mocker):
-
-    def communicate(*args, **kwargs):
-        return size
-
-    monkeypatch.setattr('subprocess.Popen', mocker.Mock())
-    monkeypatch.setattr('subprocess.Popen.return_value.returncode', None)
-    monkeypatch.setattr(
-        'subprocess.Popen.return_value.communicate', communicate)
-    result = _get_terminal_size_tput()
-
-    assert result is None

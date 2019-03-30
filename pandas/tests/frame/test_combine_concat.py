@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import datetime
 
 import numpy as np
@@ -172,8 +170,8 @@ class TestDataFrameConcatCommon():
     def test_append_empty_dataframe(self):
 
         # Empty df append empty df
-        df1 = DataFrame([])
-        df2 = DataFrame([])
+        df1 = DataFrame()
+        df2 = DataFrame()
         result = df1.append(df2)
         expected = df1.copy()
         assert_frame_equal(result, expected)
@@ -356,6 +354,13 @@ class TestDataFrameConcatCommon():
         expected = DataFrame(d)
 
         assert_frame_equal(df, expected)
+
+    def test_update_datetime_tz(self):
+        # GH 25807
+        result = DataFrame([pd.Timestamp('2019', tz='UTC')])
+        result.update(result)
+        expected = DataFrame([pd.Timestamp('2019', tz='UTC')])
+        assert_frame_equal(result, expected)
 
     def test_join_str_datetime(self):
         str_dates = ['20120209', '20120222']
@@ -576,10 +581,10 @@ class TestDataFrameCombineFirst():
         assert_series_equal(combined['A'].reindex(g.index), g['A'])
 
         # corner cases
-        comb = float_frame.combine_first(DataFrame({}))
+        comb = float_frame.combine_first(DataFrame())
         assert_frame_equal(comb, float_frame)
 
-        comb = DataFrame({}).combine_first(float_frame)
+        comb = DataFrame().combine_first(float_frame)
         assert_frame_equal(comb, float_frame)
 
         comb = float_frame.combine_first(DataFrame(index=["faz", "boo"]))
@@ -587,7 +592,7 @@ class TestDataFrameCombineFirst():
 
         # #2525
         df = DataFrame({'a': [1]}, index=[datetime(2012, 1, 1)])
-        df2 = DataFrame({}, columns=['b'])
+        df2 = DataFrame(columns=['b'])
         result = df.combine_first(df2)
         assert 'b' in result
 

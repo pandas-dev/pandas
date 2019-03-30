@@ -9,6 +9,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
+from typing import Any
 
 import numpy as np
 
@@ -92,8 +93,7 @@ def maybe_box_datetimelike(value):
 values_from_object = lib.values_from_object
 
 
-def is_bool_indexer(key):
-    # type: (Any) -> bool
+def is_bool_indexer(key: Any) -> bool:
     """
     Check whether `key` is a valid boolean indexer.
 
@@ -245,7 +245,7 @@ def asarray_tuplesafe(values, dtype=None):
 
     result = np.asarray(values, dtype=dtype)
 
-    if issubclass(result.dtype.type, compat.string_types):
+    if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
@@ -270,7 +270,7 @@ def index_labels_to_array(labels, dtype=None):
     -------
     array
     """
-    if isinstance(labels, (compat.string_types, tuple)):
+    if isinstance(labels, (str, tuple)):
         labels = [labels]
 
     if not isinstance(labels, (list, np.ndarray)):
