@@ -614,6 +614,9 @@ class TestEvalNumexprPandas(object):
         res = df.eval('x < -0.1')
         assert res.values == np.array([False])
 
+        res = df.eval('-5 > x')
+        assert res.values == np.array([False])
+
     def test_disallow_scalar_bool_ops(self):
         exprs = '1 or 2', '1 and 2'
         exprs += 'a and b', 'a or b'

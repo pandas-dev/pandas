@@ -228,7 +228,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Bug in :meth:`~pandas.eval` when comparing floats with scalar operators that don't have a 'value' attribute (e.g., unary operators) (:issue:`25928`)
+
 
 Categorical
 ^^^^^^^^^^^
@@ -269,7 +269,7 @@ Numeric
 - Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
 - Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
 - Raises a helpful exception when a non-numeric index is sent to :meth:`interpolate` with methods which require numeric index. (:issue:`21662`)
--
+- Bug in :meth:`~pandas.eval` when comparing floats with scalar operators, for example: ``x < -0.1`` (:issue:`25928`)
 -
 
 
