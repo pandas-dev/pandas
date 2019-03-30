@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_list_like, is_period_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndexClass, ABCPeriodIndex, ABCSeries)
+    ABCDataFrame, ABCIndexClass, ABCPeriodArray, ABCPeriodIndex, ABCSeries)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
@@ -183,8 +183,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         return cls(values, freq=freq, **kwargs)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
-        # type: (Sequence[Optional[Period]], PeriodDtype, bool) -> PeriodArray
+    def _from_sequence(
+            cls,
+            scalars: Sequence[Optional[Period]],
+            dtype: PeriodDtype = None,
+            copy: bool = False,
+    ) -> ABCPeriodArray:
         if dtype:
             freq = dtype.freq
         else:
@@ -246,8 +250,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    def _unbox_scalar(self, value):
-        # type: (Union[Period, NaTType]) -> int
+    def _unbox_scalar(self, value: Union[Period, NaTType]) -> int:
         if value is NaT:
             return value.value
         elif isinstance(value, self._scalar_type):
@@ -258,8 +261,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             raise ValueError("'value' should be a Period. Got '{val}' instead."
                              .format(val=value))
 
-    def _scalar_from_string(self, value):
-        # type: (str) -> Period
+    def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
     def _check_compatible_with(self, other):
@@ -540,14 +542,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     @Appender(dtl.DatetimeLikeArrayMixin._addsub_int_array.__doc__)
     def _addsub_int_array(
             self,
-            other,      # type: Union[ExtensionArray, np.ndarray[int]]
-            op          # type: Callable[Any, Any]
-    ):
-        # type: (...) -> PeriodArray
-
-        # TODO: ABCIndexClass is a valid type for other but had to be excluded
-        # due to length of Py2 compatability comment; add back in once migrated
-        # to Py3 syntax
+            other: Union[ExtensionArray, np.ndarray, ABCIndexClass],
+            op: Callable[[Any], Any]
+    ) -> ABCPeriodArray:
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
@@ -716,8 +713,11 @@ def _raise_on_incompatible(left, right):
 # -------------------------------------------------------------------
 # Constructor Helpers
 
-def period_array(data, freq=None, copy=False):
-    # type: (Sequence[Optional[Period]], Optional[Tick], bool) -> PeriodArray
+def period_array(
+        data: Sequence[Optional[Period]],
+        freq: Optional[Tick] = None,
+        copy: bool = False,
+) -> PeriodArray:
     """
     Construct a new PeriodArray from a sequence of Period scalars.
 
