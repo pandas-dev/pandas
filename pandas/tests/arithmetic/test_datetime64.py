@@ -2359,8 +2359,12 @@ def test_dt_subclass_add_timedelta():
     # Timedelta operations
     class SubDatetime(datetime):
         pass
+
     dt = SubDatetime(2000, 1, 1)
     td = Timedelta(hours=1)
     result = dt + td
     expected = SubDatetime(2000, 1, 1, 1)
+    assert result == expected
+
+    result = td + dt
     assert result == expected

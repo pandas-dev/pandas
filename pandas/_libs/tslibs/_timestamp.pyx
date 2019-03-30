@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-_Timestamp is in its own module to prevent the circular imports
-that would happen if it was included in timestamps.pyx
+_Timestamp is a c-defined subclass of datetime.datetime
+
+It is separate from timestamps.pyx to prevent circular cimports
 
 This allows _Timestamp to be imported in other modules
 so that isinstance(obj, _Timestamp) checks can be performed
+
+_Timestamp is PITA. Because we inherit from datetime, which has very specific
+construction requirements, we need to do object instantiation in python
+(see Timestamp class below). This will serve as a C extension type that
+shadows the python class, where we do any heavy lifting.
 """
 
 import warnings
@@ -49,10 +55,6 @@ def maybe_integer_op_deprecated(obj):
                       FutureWarning)
 
 
-# This is PITA. Because we inherit from datetime, which has very specific
-# construction requirements, we need to do object instantiation in python
-# (see Timestamp class below). This will serve as a C extension type that
-# shadows the python class, where we do any heavy lifting.
 cdef class _Timestamp(datetime):
 
     def __hash__(_Timestamp self):
