@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 
 from pandas._config.config import get_option
+
 from pandas._libs import (
     algos as libalgos, index as libindex, join as libjoin, lib)
 from pandas._libs.lib import is_datetime_array
