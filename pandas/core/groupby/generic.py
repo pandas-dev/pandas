@@ -261,8 +261,13 @@ class NDFrameGroupBy(GroupBy):
                 data = obj[item]
                 colg = SeriesGroupBy(data, selection=item,
                                      grouper=self.grouper)
-                result[item] = self._try_cast(
-                    colg.aggregate(func, *args, **kwargs), data)
+
+                cast = self._transform_should_cast(func)
+
+                result[item] = colg.aggregate(func, *args, **kwargs)
+                if cast:
+                    result[item] = self._try_cast(result[item], data)
+
             except ValueError:
                 cannot_agg.append(item)
                 continue
