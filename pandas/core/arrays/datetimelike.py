@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Tuple, Union
+from typing import Any, Sequence, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -57,8 +57,7 @@ class AttributesMixin(object):
         return {k: getattr(self, k, None) for k in self._attributes}
 
     @property
-    def _scalar_type(self):
-        # type: () -> Union[type, Tuple[type]]
+    def _scalar_type(self) -> Union[Type, Tuple[Type]]:
         """The scalar associated with this datelike
 
         * PeriodArray : Period
@@ -67,8 +66,10 @@ class AttributesMixin(object):
         """
         raise AbstractMethodError(self)
 
-    def _scalar_from_string(self, value):
-        # type: (str) -> Union[Period, Timestamp, Timedelta, NaTType]
+    def _scalar_from_string(
+            self,
+            value: str,
+    ) -> Union[Period, Timestamp, Timedelta, NaTType]:
         """
         Construct a scalar type from a string.
 
@@ -88,8 +89,10 @@ class AttributesMixin(object):
         """
         raise AbstractMethodError(self)
 
-    def _unbox_scalar(self, value):
-        # type: (Union[Period, Timestamp, Timedelta, NaTType]) -> int
+    def _unbox_scalar(
+            self,
+            value: Union[Period, Timestamp, Timedelta, NaTType],
+    ) -> int:
         """
         Unbox the integer value of a scalar `value`.
 
@@ -108,8 +111,10 @@ class AttributesMixin(object):
         """
         raise AbstractMethodError(self)
 
-    def _check_compatible_with(self, other):
-        # type: (Union[Period, Timestamp, Timedelta, NaTType]) -> None
+    def _check_compatible_with(
+            self,
+            other: Union[Period, Timestamp, Timedelta, NaTType],
+    ) -> None:
         """
         Verify that `self` and `other` are compatible.
 
@@ -349,8 +354,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         return (self._box_func(v) for v in self.asi8)
 
     @property
-    def asi8(self):
-        # type: () -> np.ndarray
+    def asi8(self) -> np.ndarray:
         """
         Integer representation of the values.
 
@@ -401,8 +405,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         return (len(self),)
 
     @property
-    def size(self):
-        # type: () -> int
+    def size(self) -> int:
         """The number of elements in this array."""
         return np.prod(self.shape)
 
@@ -460,10 +463,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     def __setitem__(
             self,
-            key,    # type: Union[int, Sequence[int], Sequence[bool], slice]
-            value,  # type: Union[NaTType, Any, Sequence[Any]]
-    ):
-        # type: (...) -> None
+            key: Union[int, Sequence[int], Sequence[bool], slice],
+            value: Union[NaTType, Any, Sequence[Any]]
+    ) -> None:
         # I'm fudging the types a bit here. "Any" above really depends
         # on type(self). For PeriodArray, it's Period (or stuff coercible
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...

@@ -174,7 +174,8 @@ def round_nsint64(values, mode, freq):
 
 
 class Timestamp(_Timestamp):
-    """Pandas replacement for datetime.datetime
+    """
+    Pandas replacement for python datetime.datetime object.
 
     Timestamp is the pandas equivalent of python's Datetime
     and is interchangeable with it in most cases. It's the type used
@@ -184,9 +185,9 @@ class Timestamp(_Timestamp):
     Parameters
     ----------
     ts_input : datetime-like, str, int, float
-        Value to be converted to Timestamp
+        Value to be converted to Timestamp.
     freq : str, DateOffset
-        Offset which Timestamp will have
+        Offset which Timestamp will have.
     tz : str, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str

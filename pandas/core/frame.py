@@ -17,7 +17,7 @@ import itertools
 import sys
 import warnings
 from textwrap import dedent
-from typing import List, Union
+from typing import List, Optional, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -71,7 +71,8 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCDataFrame, ABCIndexClass, ABCMultiIndex)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms
@@ -281,6 +282,7 @@ Traceback (most recent call last):
 ValueError: columns overlap but no suffix specified:
     Index(['value'], dtype='object')
 """
+
 
 # -----------------------------------------------------------------------
 # DataFrame class
@@ -6239,11 +6241,10 @@ class DataFrame(NDFrame):
     # Function application
 
     def _gotitem(self,
-                 key,           # type: Union[str, List[str]]
-                 ndim,          # type: int
-                 subset=None    # type: Union[Series, DataFrame, None]
-                 ):
-        # type: (...) -> Union[Series, DataFrame]
+                 key: Union[str, List[str]],
+                 ndim: int,
+                 subset: Optional[Union[Series, ABCDataFrame]] = None,
+                 ) -> Union[Series, ABCDataFrame]:
         """
         Sub-classes to define. Return a sliced object.
 
