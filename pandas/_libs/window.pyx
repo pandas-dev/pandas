@@ -1263,12 +1263,12 @@ cdef _roll_min_max(ndarray[numeric] values, int64_t win, int64_t minp,
         return _roll_min_max_variable(values, starti, endi, N, win, minp,
                                       is_max)
     else:
-        return _roll_min_max_fixed(values, starti, endi, N, win, minp, is_max)
+        return _roll_min_max_fixed(values, N, win, minp, is_max)
 
 
 cdef _roll_min_max_variable(ndarray[numeric] values,
-                            int64_t[:] starti,
-                            int64_t[:] endi,
+                            const int64_t[:] starti,
+                            const int64_t[:] endi,
                             int64_t N,
                             int64_t win,
                             int64_t minp,
@@ -1349,8 +1349,6 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
 
 
 cdef _roll_min_max_fixed(ndarray[numeric] values,
-                         int64_t[:] starti,
-                         int64_t[:] endi,
                          int64_t N,
                          int64_t win,
                          int64_t minp,
