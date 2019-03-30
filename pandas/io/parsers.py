@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import FilePathOrBuffer
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
@@ -400,7 +401,7 @@ def _validate_names(names):
     return names
 
 
-def _read(filepath_or_buffer, kwds):
+def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
     encoding = kwds.get('encoding', None)
     if encoding is not None:
@@ -409,7 +410,12 @@ def _read(filepath_or_buffer, kwds):
 
     compression = kwds.get('compression', 'infer')
     compression = _infer_compression(filepath_or_buffer, compression)
-    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
+
+    # TODO: get_filepath_or_buffer could return
+    # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
+    # though mypy handling of conditional imports is difficult.
+    # See https://github.com/python/mypy/issues/1297
+    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression)
     kwds['compression'] = compression
 
@@ -426,7 +432,7 @@ def _read(filepath_or_buffer, kwds):
     _validate_names(kwds.get("names", None))
 
     # Create the parser.
-    parser = TextFileReader(filepath_or_buffer, **kwds)
+    parser = TextFileReader(fp_or_buf, **kwds)
 
     if chunksize or iterator:
         return parser
@@ -438,7 +444,7 @@ def _read(filepath_or_buffer, kwds):
 
     if should_close:
         try:
-            filepath_or_buffer.close()
+            fp_or_buf.close()
         except ValueError:
             pass
 
@@ -533,7 +539,7 @@ def _make_parser_function(name, default_sep=','):
     else:
         sep = default_sep
 
-    def parser_f(filepath_or_buffer,
+    def parser_f(filepath_or_buffer: FilePathOrBuffer,
                  sep=sep,
                  delimiter=None,
 
@@ -725,8 +731,11 @@ Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
                       )(read_table)
 
 
-def read_fwf(filepath_or_buffer, colspecs='infer', widths=None,
-             infer_nrows=100, **kwds):
+def read_fwf(filepath_or_buffer: FilePathOrBuffer,
+             colspecs='infer',
+             widths=None,
+             infer_nrows=100,
+             **kwds):
 
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
@@ -1899,6 +1908,12 @@ class CParserWrapper(ParserBase):
                     not set(usecols).issubset(self.orig_names)):
                 _validate_usecols_names(usecols, self.orig_names)
 
+            # GH 25623
+            # validate that column indices in usecols are not out of bounds
+            elif self.usecols_dtype == 'integer':
+                indices = lrange(self._reader.table_width)
+                _validate_usecols_names(usecols, indices)
+
             if len(self.names) > len(usecols):
                 self.names = [n for i, n in enumerate(self.names)
                               if (i in usecols or n in usecols)]
@@ -2202,7 +2217,8 @@ class PythonParser(ParserBase):
         self.skipinitialspace = kwds['skipinitialspace']
         self.lineterminator = kwds['lineterminator']
         self.quoting = kwds['quoting']
-        self.usecols, _ = _validate_usecols_arg(kwds['usecols'])
+        self.usecols, self.usecols_dtype = _validate_usecols_arg(
+            kwds['usecols'])
         self.skip_blank_lines = kwds['skip_blank_lines']
 
         self.warn_bad_lines = kwds['warn_bad_lines']
@@ -2592,6 +2608,13 @@ class PythonParser(ParserBase):
             if clear_buffer:
                 self._clear_buffer()
 
+            # GH 25623
+            # validate that column indices in usecols are not out of bounds
+            if self.usecols_dtype == 'integer':
+                for col in columns:
+                    indices = lrange(len(col))
+                    _validate_usecols_names(self.usecols, indices)
+
             if names is not None:
                 if ((self.usecols is not None and
                      len(names) != len(self.usecols)) or
@@ -2626,6 +2649,11 @@ class PythonParser(ParserBase):
 
             ncols = len(line)
             num_original_columns = ncols
+
+            # GH 25623
+            # validate that column indices in usecols are not out of bounds
+            if self.usecols_dtype == 'integer':
+                _validate_usecols_names(self.usecols, lrange(ncols))
 
             if not names:
                 if self.prefix:
