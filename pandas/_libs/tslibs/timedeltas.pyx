@@ -815,13 +815,29 @@ cdef class _Timedelta(timedelta):
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
-        return an actual datetime.timedelta object
-        note: we lose nanosecond resolution if any
+        Convert a pandas Timedelta object into a python timedelta object.
+
+        Timedelta objects are internally saved as numpy datetime64[ns] dtype.
+        Use to_pytimedelta() to convert to object dtype.
+
+        Returns
+        -------
+        datetime.timedelta or numpy.array of datetime.timedelta
+
+        See Also
+        --------
+        to_timedelta : Convert argument to Timedelta type.
+
+        Notes
+        -----
+        Any nanosecond resolution will be lost.
         """
         return timedelta(microseconds=int(self.value) / 1000)
 
     def to_timedelta64(self):
-        """ Returns a numpy.timedelta64 object with 'ns' precision """
+        """
+        Return a numpy.timedelta64 object with 'ns' precision.
+        """
         return np.timedelta64(self.value, 'ns')
 
     def to_numpy(self, dtype=None, copy=False):
@@ -846,17 +862,21 @@ cdef class _Timedelta(timedelta):
 
     def total_seconds(self):
         """
-        Total duration of timedelta in seconds (to ns precision)
+        Total duration of timedelta in seconds (to ns precision).
         """
         return self.value / 1e9
 
     def view(self, dtype):
-        """ array view compat """
+        """
+        Array view compatibility.
+        """
         return np.timedelta64(self.value).view(dtype)
 
     @property
     def components(self):
-        """ Return a Components NamedTuple-like """
+        """
+        Return a components namedtuple-like.
+        """
         self._ensure_components()
         # return the named tuple
         return Components(self._d, self._h, self._m, self._s,
@@ -1157,6 +1177,7 @@ class Timedelta(_Timedelta):
     -----
     The ``.value`` attribute is always in ns.
     """
+
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
 
