@@ -113,4 +113,35 @@ class Quantile(object):
         self.roll.quantile(percentile, interpolation=interpolation)
 
 
+class PeakMemFixed(object):
+
+    params = (['max', 'min'])
+    param_names = ['method']
+
+    def setup(self, method):
+        N = 10**4
+        arr = 100 * np.random.random(N)
+        self.roll = pd.Series(arr).rolling(1000)
+
+    def peakmem_fixed(self, method):
+        for x in range(10000):
+            getattr(self.roll, method)()
+
+
+class PeakMemVariable(object):
+
+    params = (['max', 'min'])
+    param_names = ['method']
+
+    def setup(self, method):
+        N = 10**4
+        arr = (100 * np.random.random(N)).astype('int')
+        index = pd.date_range('2017-01-01', periods=N, freq='5s')
+        self.roll = pd.Series(arr, index=index).rolling('1d')
+
+    def peakmem_variable(self, method):
+        for x in range(10000):
+            getattr(self.roll, method)()
+
+
 from .pandas_vb_common import setup  # noqa: F401
