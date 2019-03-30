@@ -16,6 +16,7 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
+from pandas.core.generic import NDFrame
 from pandas.core.indexing import (
     _maybe_numeric_slice, _non_reducing_slice, validate_indices)
 from pandas.tests.indexing.common import Base, _mklbl
@@ -1100,3 +1101,16 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('idxr, idxr_id', [
+    (lambda x: x, 'getitem'),
+    (lambda x: x.loc, 'loc'),
+    (lambda x: x.iloc, 'iloc'),
+    pytest.param(lambda x: x.ix, 'ix', marks=ignore_ix)
+])
+def test_ndframe_indexing_raises(idxr, idxr_id):
+    frame = NDFrame(np.random.randint(5, size=(2, 2, 2)))
+    msg = "NDFrameIndexer does not support NDFrame objects with ndim > 2"
+    with pytest.raises(ValueError, match=msg):
+        idxr(frame)[0]
