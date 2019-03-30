@@ -608,6 +608,12 @@ class TestEvalNumexprPandas(object):
                       -False, False, ~False, +False,
                       -37, 37, ~37, +37], dtype=np.object_))
 
+    def test_float_comparison_bin_op(self):
+        # GH 16363
+        df = pd.DataFrame({'x': np.array([0], dtype=np.float32)})
+        res = df.eval('x < -0.1')
+        assert np.array_equal(res, np.array([False])), res
+
     def test_disallow_scalar_bool_ops(self):
         exprs = '1 or 2', '1 and 2'
         exprs += 'a and b', 'a or b'
