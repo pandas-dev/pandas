@@ -3,18 +3,16 @@
 Module for formatting output data in HTML.
 """
 
-from __future__ import print_function
-
 from collections import OrderedDict
 from textwrap import dedent
 
 from pandas._config import get_option
 
-from pandas.compat import lzip, unichr
+from pandas.compat import lzip
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas import compat, option_context
+from pandas import option_context
 
 from pandas.io.common import _is_url
 from pandas.io.formats.format import TableFormatter, get_level_lengths
@@ -147,7 +145,7 @@ class HTMLFormatter(TableFormatter):
         self._write_table()
 
         if self.should_show_dimensions:
-            by = chr(215) if compat.PY3 else unichr(215)  # ×
+            by = chr(215)  # ×
             self.write('<p>{rows} rows {by} {cols} columns</p>'
                        .format(rows=len(self.frame),
                                by=by,

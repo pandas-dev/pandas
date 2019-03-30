@@ -11,7 +11,7 @@ import pytest
 
 from pandas.compat import (
     PY35, PY36, BytesIO, is_platform_little_endian, is_platform_windows,
-    lrange, text_type)
+    lrange)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -2479,8 +2479,8 @@ class TestHDFStore(Base):
 
             assert_frame_equal(df, df2, check_names=True)
 
-            assert type(df2.index.name) == text_type
-            assert type(df2.columns.name) == text_type
+            assert type(df2.index.name) == str
+            assert type(df2.columns.name) == str
 
     def test_store_series_name(self):
         df = tm.makeDataFrame()

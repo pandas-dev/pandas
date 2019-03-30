@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 import csv
 import os
 
@@ -13,8 +11,8 @@ from pandas.errors import ParserError
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range,
-    read_csv, to_datetime)
+    DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv,
+    to_datetime)
 import pandas.core.common as com
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
@@ -277,7 +275,7 @@ class TestDataFrameToCSV(TestData):
                     recons = self.read_csv(path, **kwargs)
 
             def _to_uni(x):
-                if not isinstance(x, compat.text_type):
+                if not isinstance(x, str):
                     return x.decode('utf8')
                 return x
             if dupe_col:
