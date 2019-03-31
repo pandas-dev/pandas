@@ -19,7 +19,7 @@ cnp.import_array()
 
 
 from pandas._libs.tslibs cimport util
-from pandas._libs.tslibs.util cimport is_string_object, is_integer_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
@@ -249,7 +249,7 @@ def _to_dt64(dt, dtype='datetime64'):
 
 
 def _validate_business_time(t_input):
-    if is_string_object(t_input):
+    if isinsatnce(t_input, str):
         try:
             t = time.strptime(t_input, '%H:%M')
             return dt_time(hour=t.tm_hour, minute=t.tm_min)
@@ -331,7 +331,7 @@ class _BaseOffset(object):
         raise AttributeError("DateOffset objects are immutable.")
 
     def __eq__(self, other):
-        if is_string_object(other):
+        if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
                 #  incomparable type so == is False and != is True

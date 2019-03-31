@@ -1377,7 +1377,7 @@ def infer_datetimelike_array(arr: object) -> object:
 
     for i in range(n):
         v = arr[i]
-        if util.is_string_object(v):
+        if isinstance(v, str):
             objs.append(v)
 
             if len(objs) == 3:
@@ -2070,7 +2070,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             else:
                 seen.object_ = 1
                 break
-        elif try_float and not util.is_string_object(val):
+        elif try_float and not isinstance(val, str):
             # this will convert Decimal objects
             try:
                 floats[i] = float(val)

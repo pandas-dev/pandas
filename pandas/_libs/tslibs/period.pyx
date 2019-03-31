@@ -29,7 +29,7 @@ cdef extern from "src/datetime/np_datetime.h":
                                            npy_datetimestruct *d) nogil
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.util cimport is_period_object, is_string_object
+from pandas._libs.tslibs.util cimport is_period_object
 
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
@@ -2457,7 +2457,7 @@ class Period(_Period):
         elif is_null_datetimelike(value) or value in nat_strings:
             ordinal = NPY_NAT
 
-        elif is_string_object(value) or util.is_integer_object(value):
+        elif isinsance(value, str) or util.is_integer_object(value):
             if util.is_integer_object(value):
                 value = str(value)
             value = value.upper()
