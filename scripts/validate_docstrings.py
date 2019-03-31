@@ -472,6 +472,10 @@ class Docstring(object):
         return desc
 
     def parameter_desc_list(self, param):
+        """Return a parameter description as a list.
+
+        Each line of the parameter docstring is a string in the list.
+        """
         i = list(self.doc_parameters).index(param)
         desc_list = [line
                      for line in self.doc._parsed_data['Parameters'][i][-1]
@@ -487,6 +491,11 @@ class Docstring(object):
         return desc_list
 
     def parameter_correct_end(self, param):
+        """Return True if a parameter description is terminated correctly.
+
+        A parameter description should always be terminated with a period, a
+        part from when it ends with a bullet point.
+        """
         if self.parameter_desc(param)[-1] == '.':
             return True
         else:
