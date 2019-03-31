@@ -10,7 +10,7 @@ from dateutil.tz import tzutc
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, uint8_t
+from numpy cimport ndarray, int64_t, uint8_t, intp_t
 cnp.import_array()
 
 from pandas._libs.tslibs.util cimport is_string_object
@@ -21,7 +21,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
 from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 from pandas._libs.tslibs.timezones cimport (
-    get_dst_info, is_tzlocal, is_utc, get_utcoffset)
+    get_dst_info, is_tzlocal, is_utc, get_timezone, get_utcoffset)
 
 
 # TODO: cdef scalar version to call from convert_str_to_tsobject
@@ -307,6 +307,44 @@ cdef inline str _render_tstamp(int64_t val):
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz, bint to_utc):
+    """
+    Convert the given values (in i8) either to UTC or from UTC.
+
+    Parameters
+    ----------
+    vals : int64 ndarray
+    tz1 : string / timezone object
+    to_utc : bint
+
+    Returns
+    -------
+    converted : ndarray[int64_t]
+    """
+    cdef:
+        int64_t[:] converted, result
+        Py_ssize_t i, n = len(vals)
+        int64_t val
+
+    if not is_utc(get_timezone(tz)):
+        converted = np.empty(n, dtype=np.int64)
+        if is_tzlocal(tz):
+            for i in range(n):
+                val = vals[i]
+                if val == NPY_NAT:
+                    converted[i] = NPY_NAT
+                else:
+                    converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc)
+        else:
+            converted = _tz_convert_dst(vals, tz, to_utc)
+    else:
+        converted = vals
+
+    return converted
+
+
 cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
     """
     Convert the i8 representation of a datetime from a tzlocal timezone to
@@ -343,3 +381,62 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
     if not to_utc:
         return val + delta
     return val - delta
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
+                                bint to_utc=True):
+    """
+    tz_convert for non-UTC non-tzlocal cases where we have to check
+    DST transitions pointwise.
+
+    Parameters
+    ----------
+    values : ndarray[int64_t]
+    tz : tzinfo
+    to_utc : bool
+        True if converting _to_ UTC, False if converting _from_ utc
+
+    Returns
+    -------
+    result : ndarray[int64_t]
+    """
+    cdef:
+        Py_ssize_t n = len(values)
+        Py_ssize_t i
+        intp_t[:] pos
+        int64_t[:] result = np.empty(n, dtype=np.int64)
+        ndarray[int64_t] trans
+        int64_t[:] deltas
+        int64_t v
+        bint tz_is_local
+
+    tz_is_local = is_tzlocal(tz)
+
+    if not tz_is_local:
+        # get_dst_info cannot extract offsets from tzlocal because its
+        # dependent on a datetime
+        trans, deltas, _ = get_dst_info(tz)
+        if not to_utc:
+            # We add `offset` below instead of subtracting it
+            deltas = -1 * np.array(deltas, dtype='i8')
+
+        # Previously, this search was done pointwise to try and benefit
+        # from getting to skip searches for iNaTs. However, it seems call
+        # overhead dominates the search time so doing it once in bulk
+        # is substantially faster (GH#24603)
+        pos = trans.searchsorted(values, side='right') - 1
+
+    for i in range(n):
+        v = values[i]
+        if v == NPY_NAT:
+            result[i] = v
+        elif tz_is_local:
+            result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=to_utc)
+        else:
+            if pos[i] < 0:
+                raise ValueError('First time before start of DST info')
+            result[i] = v - deltas[pos[i]]
+
+    return result
