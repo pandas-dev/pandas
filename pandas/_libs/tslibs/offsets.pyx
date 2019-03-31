@@ -249,7 +249,7 @@ def _to_dt64(dt, dtype='datetime64'):
 
 
 def _validate_business_time(t_input):
-    if isinsatnce(t_input, str):
+    if isinstance(t_input, str):
         try:
             t = time.strptime(t_input, '%H:%M')
             return dt_time(hour=t.tm_hour, minute=t.tm_min)

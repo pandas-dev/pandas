@@ -2457,7 +2457,7 @@ class Period(_Period):
         elif is_null_datetimelike(value) or value in nat_strings:
             ordinal = NPY_NAT
 
-        elif isinsance(value, str) or util.is_integer_object(value):
+        elif isinstance(value, str) or util.is_integer_object(value):
             if util.is_integer_object(value):
                 value = str(value)
             value = value.upper()
