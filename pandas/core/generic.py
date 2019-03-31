@@ -17,8 +17,7 @@ from pandas._config import config
 from pandas._libs import Timestamp, iNaT, properties
 import pandas.compat as compat
 from pandas.compat import (
-    cPickle as pkl, isidentifier, lrange, lzip, set_function_name,
-    string_types, to_str)
+    cPickle as pkl, isidentifier, lrange, lzip, set_function_name, to_str)
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -366,7 +365,7 @@ class NDFrame(PandasObject, SelectionMixin):
     @classmethod
     def _get_axis_name(cls, axis):
         axis = cls._AXIS_ALIASES.get(axis, axis)
-        if isinstance(axis, string_types):
+        if isinstance(axis, str):
             if axis in cls._AXIS_NUMBERS:
                 return axis
         else:
@@ -3297,7 +3296,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 pass
 
             # a custom message
-            if isinstance(self._is_copy, string_types):
+            if isinstance(self._is_copy, str):
                 t = self._is_copy
 
             elif t == 'referant':
@@ -4849,7 +4848,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 weights = weights.reindex(self.axes[axis])
 
             # Strings acceptable if a dataframe and axis = 0
-            if isinstance(weights, string_types):
+            if isinstance(weights, str):
                 if isinstance(self, pd.DataFrame):
                     if axis == 0:
                         try:
@@ -5152,7 +5151,7 @@ class NDFrame(PandasObject, SelectionMixin):
         If info_axis is a MultiIndex, it's first level values are used.
         """
         additions = {c for c in self._info_axis.unique(level=0)[:100]
-                     if isinstance(c, string_types) and isidentifier(c)}
+                     if isinstance(c, str) and isidentifier(c)}
         return super(NDFrame, self)._dir_additions().union(additions)
 
     # ----------------------------------------------------------------------
@@ -5717,7 +5716,8 @@ class NDFrame(PandasObject, SelectionMixin):
             results = []
             for col_name, col in self.iteritems():
                 if col_name in dtype:
-                    results.append(col.astype(dtype[col_name], copy=copy))
+                    results.append(col.astype(dtype=dtype[col_name], copy=copy,
+                                              errors=errors, **kwargs))
                 else:
                     results.append(results.append(col.copy() if copy else col))
 
@@ -7002,7 +7002,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-02-27 09:03:30   30.0 NaN
         2018-02-27 09:04:30   40.0 NaN
         """
-        if isinstance(where, compat.string_types):
+        if isinstance(where, str):
             from pandas import to_datetime
             where = to_datetime(where)
 
@@ -9082,7 +9082,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if periods == 0:
             return self
 
-        if isinstance(freq, string_types):
+        if isinstance(freq, str):
             freq = to_offset(freq)
 
         block_axis = self._get_block_manager_axis(axis)

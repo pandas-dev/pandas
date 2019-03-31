@@ -2,6 +2,7 @@
 Data structure for 1-dimensional cross-sectional and time series data
 """
 from collections import OrderedDict
+from shutil import get_terminal_size
 from textwrap import dedent
 import warnings
 
@@ -47,7 +48,6 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
-from pandas.io.formats.terminal import get_terminal_size
 import pandas.plotting._core as gfx
 
 # pylint: disable=E1101,E1103
@@ -1433,7 +1433,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = formatter.to_string()
 
         # catch contract violations
-        if not isinstance(result, compat.text_type):
+        if not isinstance(result, str):
             raise AssertionError("result must be of type unicode, type"
                                  " of result is {0!r}"
                                  "".format(result.__class__.__name__))
@@ -1623,7 +1623,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if level is None:
             return notna(com.values_from_object(self)).sum()
 
-        if isinstance(level, compat.string_types):
+        if isinstance(level, str):
             level = self.index._get_level_number(level)
 
         lev = self.index.levels[level]
@@ -3664,7 +3664,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self.aggregate(func, *args, **kwds)
 
         # if we are a string, try to dispatch
-        if isinstance(func, compat.string_types):
+        if isinstance(func, str):
             return self._try_aggregate_string_function(func, *args, **kwds)
 
         # handle ufuncs and lambdas
