@@ -22,8 +22,7 @@ from pandas._libs.tslibs.util cimport (
 
 cimport pandas._libs.tslibs.ccalendar as ccalendar
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
-from pandas._libs.tslibs.conversion import (
-    tz_localize_to_utc, normalize_i8_timestamps)
+from pandas._libs.tslibs.conversion import normalize_i8_timestamps
 from pandas._libs.tslibs.conversion cimport (
     tz_convert_single, _TSObject, convert_to_tsobject,
     convert_datetime_to_tsobject)
@@ -39,6 +38,7 @@ from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 from pandas._libs.tslibs.timezones cimport (
     get_timezone, is_utc, maybe_get_tz, treat_tz_as_pytz, tz_compare)
 from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 
 # ----------------------------------------------------------------------
 # Constants
