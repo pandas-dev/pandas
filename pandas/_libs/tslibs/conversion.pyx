@@ -41,9 +41,9 @@ from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT, checknull_with_nat, c_NaT as NaT)
 
-from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
-from pandas._libs.tslibs.tzconversion cimport (
-    _tz_convert_tzlocal_utc, _tz_convert_dst, _tz_convert_one_way)
+from pandas._libs.tslibs.tzconversion import (
+    tz_localize_to_utc, tz_convert, tz_convert_single)
+from pandas._libs.tslibs.tzconversion cimport _tz_convert_tzlocal_utc
 
 # ----------------------------------------------------------------------
 # Constants
@@ -621,104 +621,6 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
         return tz.localize(dt)
     except AttributeError:
         return dt.replace(tzinfo=tz)
-
-
-# ----------------------------------------------------------------------
-# Timezone Conversion
-
-
-cdef inline int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz):
-    """
-    Parameters
-    ----------
-    utc_val : int64_t
-    tz : tzinfo
-
-    Returns
-    -------
-    local_val : int64_t
-    """
-    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False)
-
-
-cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
-    """
-    Convert the val (in i8) from timezone1 to timezone2
-
-    This is a single timezone version of tz_convert
-
-    Parameters
-    ----------
-    val : int64
-    tz1 : string / timezone object
-    tz2 : string / timezone object
-
-    Returns
-    -------
-    converted: int64
-    """
-    cdef:
-        int64_t[:] deltas
-        Py_ssize_t pos
-        int64_t v, offset, utc_date
-        npy_datetimestruct dts
-        int64_t arr[1]
-
-    # See GH#17734 We should always be converting either from UTC or to UTC
-    assert is_utc(tz1) or is_utc(tz2)
-
-    if val == NPY_NAT:
-        return val
-
-    # Convert to UTC
-    if is_tzlocal(tz1):
-        utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
-    elif not is_utc(get_timezone(tz1)):
-        arr[0] = val
-        utc_date = _tz_convert_dst(arr, tz1, to_utc=True)[0]
-    else:
-        utc_date = val
-
-    if is_utc(get_timezone(tz2)):
-        return utc_date
-    elif is_tzlocal(tz2):
-        return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
-    else:
-        # Convert UTC to other timezone
-        arr[0] = utc_date
-        # Note: at least with cython 0.28.3, doing a lookup `[0]` in the next
-        # line is sensitive to the declared return type of _tz_convert_dst;
-        # if it is declared as returning ndarray[int64_t], a compile-time error
-        # is raised.
-        return _tz_convert_dst(arr, tz2, to_utc=False)[0]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def tz_convert(int64_t[:] vals, object tz1, object tz2):
-    """
-    Convert the values (in i8) from timezone1 to timezone2
-
-    Parameters
-    ----------
-    vals : int64 ndarray
-    tz1 : string / timezone object
-    tz2 : string / timezone object
-
-    Returns
-    -------
-    int64 ndarray of converted
-    """
-    cdef:
-        int64_t[:] utc_dates, converted
-
-    if len(vals) == 0:
-        return np.array([], dtype=np.int64)
-
-    # Convert to UTC
-    utc_dates = _tz_convert_one_way(vals, tz1, to_utc=True)
-    converted = _tz_convert_one_way(utc_dates, tz2, to_utc=False)
-    return np.array(converted, dtype=np.int64)
 
 
 # ----------------------------------------------------------------------
