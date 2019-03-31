@@ -852,23 +852,14 @@ class TestDataFrameDataTypes(TestData):
 
     def test_arg_for_errors_in_astype_dictlist(self):
         # GH-25905
-        data_df = pd.DataFrame([{'a': '1',
-                                 'b': '16.5%',
-                                 'c': 'test'},
-                                {'a': '2.2',
-                                 'b': '15.3',
-                                 'c': 'another_test'}
-                                ])
-        expected = pd.DataFrame([{'a': '1',
-                                  'b': '16.5%',
-                                  'c': 'test'},
-                                 {'a': '2.2',
-                                  'b': '15.3',
-                                  'c': 'another_test'}
-                                 ], dtype='float64')
-        type_dict = {'a': 'float64',
-                     'b': 'float64',
-                     'c': 'object'}
+        data_df = pd.DataFrame([
+            {'a': '1',   'b': '16.5%', 'c': 'test'},
+            {'a': '2.2', 'b': '15.3',  'c': 'another_test'}])
+        expected = pd.DataFrame([
+            {'a': '1',   'b': '16.5%', 'c': 'test'},
+            {'a': '2.2', 'b': '15.3',  'c': 'another_test'}],
+            dtype='float64')
+        type_dict = {'a': 'float64', 'b': 'float64', 'c': 'object'}
 
         result = data_df.astype(dtype=type_dict, errors='ignore')
 
