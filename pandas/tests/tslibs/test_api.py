@@ -27,7 +27,7 @@ def test_namespace():
            'iNaT',
            'is_null_datetimelike',
            'OutOfBoundsDatetime',
-           'maybe_integer_op_deprecated'
+           'maybe_integer_op_deprecated',
            'Period',
            'IncompatibleFrequency',
            'Timedelta',
