@@ -30,12 +30,16 @@ from pandas.util._decorators import Appender, deprecate_kwarg
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype)
 
-from pandas import (
-    DatetimeIndex, compat, concat, isna, to_datetime, to_timedelta)
+from pandas import compat
 from pandas.core.arrays import Categorical
 from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
+from pandas.core.index import DatetimeIndex
+from pandas.core.missing import isna
+from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
+from pandas.core.tools.datetimes import to_datetime
+from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.io.common import (
     BaseIterator, _stringify_path, get_filepath_or_buffer)
@@ -1730,12 +1734,6 @@ the string values returned are correct."""
                 cat_converted_data.append((col, data[col]))
         data = DataFrame.from_dict(OrderedDict(cat_converted_data))
         return data
-
-    def data_label(self):
-        """
-        Return data label of Stata file.
-        """
-        return self.data_label
 
     def variable_labels(self):
         """
