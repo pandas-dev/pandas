@@ -300,8 +300,9 @@ cdef class _Timestamp(datetime):
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
+            from pandas._libs.tslibs.timedeltas import Timedelta
             try:
-                return self._create_timedelta(self.value - other.value)
+                return Timedelta(self.value - other.value)
             except (OverflowError, OutOfBoundsDatetime):
                 pass
 
@@ -404,15 +405,6 @@ cdef class _Timestamp(datetime):
         Return numpy datetime64 format in nanoseconds.
         """
         return np.datetime64(self.value, 'ns')
-
-    @property
-    def resolution(self):
-        """
-        Return resolution describing the smallest difference between two
-        times that can be represented by Timestamp object_state
-        """
-        # GH#21336, GH#21365
-        return self._create_timedelta(nanoseconds=1)
 
     def timestamp(self):
         """Return POSIX timestamp as float."""

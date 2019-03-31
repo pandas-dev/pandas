@@ -24,12 +24,9 @@ class SubDatetime(datetime):
 
 
 @pytest.mark.parametrize("dt, expected", [
-    pytest.param(Timestamp(2000, 1, 1, 1),
-                 Timestamp(2000, 1, 1, 0)),
-    pytest.param(datetime(2000, 1, 1, 1),
-                 datetime(2000, 1, 1, 0)),
-    pytest.param(SubDatetime(2000, 1, 1, 1),
-                 SubDatetime(2000, 1, 1, 0))])
+    (Timestamp(2000, 1, 1, 1), Timestamp(2000, 1, 1, 0)),
+    (datetime(2000, 1, 1, 1), datetime(2000, 1, 1, 0)),
+    (SubDatetime(2000, 1, 1, 1), SubDatetime(2000, 1, 1, 0))])
 def test_normalize_date_sub_types(dt, expected):
     # GH 25851
     # ensure that subclassed datetime works with

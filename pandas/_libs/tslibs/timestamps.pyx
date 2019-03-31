@@ -751,6 +751,15 @@ class Timestamp(_Timestamp):
         """
         return bool(ccalendar.is_leapyear(self.year))
 
+    @property
+    def resolution(self):
+        """
+        Return resolution describing the smallest difference between two
+        times that can be represented by Timestamp object_state
+        """
+        # GH#21336, GH#21365
+        return Timedelta(nanoseconds=1)
+
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
                     errors=None):
         """
@@ -1041,13 +1050,6 @@ class Timestamp(_Timestamp):
         # __radd__ on cython extension types like _Timestamp is not used, so
         # define it here instead
         return self + other
-
-    def _create_timedelta(self, *args, **kwargs):
-        """
-        Helper to create a Timedelta so that the
-        Timedelta class doesn't have to be imported elsewhere
-        """
-        return Timedelta(*args, **kwargs)
 
 
 # Add the min and max fields at the class level

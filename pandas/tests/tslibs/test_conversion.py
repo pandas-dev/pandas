@@ -82,7 +82,7 @@ class SubDatetime(datetime):
                  id="datetime"),
     pytest.param(SubDatetime(2000, 1, 1),
                  SubDatetime(2000, 1, 1, tzinfo=UTC),
-                 id="subdatetime")])
+                 id="subclassed_datetime")])
 def test_localize_pydatetime_dt_types(dt, expected):
     # GH 25851
     # ensure that subclassed datetime works with
