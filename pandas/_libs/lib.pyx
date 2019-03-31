@@ -2311,12 +2311,7 @@ def to_object_array_tuples(rows: object):
     Parameters
     ----------
     rows : 2-d array (N, K)
-        A list of tuples to be converted into an array
-    min_width : int
-        The minimum width of the object array. If a tuple
-        in `rows` contains fewer than `width` elements,
-        the remaining elements in the corresponding row
-        will all be `NaN`.
+        A list of tuples to be converted into an array.
 
     Returns
     -------
