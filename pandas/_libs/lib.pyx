@@ -2352,6 +2352,28 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
                                                  Py_ssize_t rows_count,
                                                  Py_ssize_t col_count,
                                                  bint keep_trivial_numbers):
+    """
+    Concatenates `rows_count` elements from each `col_count` numpy arrays
+    in `date_cols` into strings.
+
+    Note
+    ----
+    This function speeds up concatenation for numpy arrays.
+    You also can use `_concat_date_cols_sequence` function.
+
+    Parameters
+    ----------
+    date_cols : tuple of numpy arrays
+    rows_count : Py_ssize_t
+    col_count : Py_ssize_t
+    keep_trivial_numbers : bool, default False
+        If True, then for the case of one sequence in `date_cols`,
+        conversion (to string from integer/float zero) is not performed
+
+    Returns
+    -------
+    arr_of_rows : 1-d numpy array
+    """
     cdef:
         Py_ssize_t col_idx, row_idx
         list list_to_join
@@ -2396,6 +2418,23 @@ cdef cnp.ndarray[object] _concat_date_cols_sequence(tuple date_cols,
                                                     Py_ssize_t rows_count,
                                                     Py_ssize_t col_count,
                                                     bint keep_trivial_numbers):
+    """
+    Concatenates `rows_count` elements from each `col_count` sequences
+    in `date_cols` into strings.
+
+    Parameters
+    ----------
+    date_cols : tuple of sequences
+    rows_count : Py_ssize_t
+    col_count : Py_ssize_t
+    keep_trivial_numbers : bool, default False
+        If True, then for the case of one sequence in `date_cols`,
+        conversion (to string from integer/float zero) is not performed
+
+    Returns
+    -------
+    arr_of_rows : 1-d numpy array
+    """
     cdef:
         Py_ssize_t col_idx, row_idx
         list list_to_join
@@ -2420,6 +2459,28 @@ cdef cnp.ndarray[object] _concat_date_cols_sequence(tuple date_cols,
 
 
 def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=False):
+    """
+    Concatenates elements from sequences in `date_cols` into strings.
+
+    Parameters
+    ----------
+    date_cols : tuple of sequences
+    keep_trivial_numbers : bool, default False
+        If True, then for the case of one sequence in `date_cols`,
+        conversion (to string from integer/float zero) is not performed
+
+    Returns
+    -------
+    arr_of_rows : 1-d numpy array
+
+    Examples
+    --------
+    >>> dates=np.array(['3/31/2019', '4/31/2019'], dtype=object)
+    >>> times=np.array(['11:20', '10:45'], dtype=object)
+    >>> result = _concat_date_cols((dates, times))
+    >>> result
+    array(['3/31/2019 11:20', '4/31/2019 10:45'], dtype=object)
+    """
     cdef:
         Py_ssize_t rows_count = 0, col_count = len(date_cols)
         cnp.ndarray[object] result
