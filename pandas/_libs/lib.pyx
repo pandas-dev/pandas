@@ -2348,15 +2348,21 @@ cdef inline void put_object_as_unicode(list lst, Py_ssize_t idx,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void _concat_date_cols_numpy(tuple date_cols, object[:] result_view,
-                                  Py_ssize_t rows_count, Py_ssize_t col_count,
-                                  bint keep_trivial_numbers):
+cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
+                                                 Py_ssize_t rows_count,
+                                                 Py_ssize_t col_count,
+                                                 bint keep_trivial_numbers):
     cdef:
         Py_ssize_t col_idx, row_idx
         list list_to_join
         cnp.ndarray[object] iters
         object[::1] iters_view
         flatiter it
+        cnp.ndarray[object] result
+        object[:] result_view
+
+    result = np.zeros(rows_count, dtype=object)
+    result_view = result
 
     if col_count == 1:
         array = date_cols[0]
@@ -2381,16 +2387,23 @@ cdef void _concat_date_cols_numpy(tuple date_cols, object[:] result_view,
                 PyArray_ITER_NEXT(it)
             result_view[row_idx] = PyUnicode_Join(' ', list_to_join)
 
+    return result
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void _concat_date_cols_sequence(tuple date_cols, object[:] result_view,
-                                     Py_ssize_t rows_count,
-                                     Py_ssize_t col_count,
-                                     bint keep_trivial_numbers):
+cdef cnp.ndarray[object] _concat_date_cols_sequence(tuple date_cols,
+                                                    Py_ssize_t rows_count,
+                                                    Py_ssize_t col_count,
+                                                    bint keep_trivial_numbers):
     cdef:
         Py_ssize_t col_idx, row_idx
         list list_to_join
+        cnp.ndarray[object] result
+        object[:] result_view
+
+    result = np.zeros(rows_count, dtype=object)
+    result_view = result
 
     if col_count == 1:
         for row_idx, item in enumerate(date_cols[0]):
@@ -2403,6 +2416,8 @@ cdef void _concat_date_cols_sequence(tuple date_cols, object[:] result_view,
                 put_object_as_unicode(list_to_join, col_idx, array[row_idx])
             result_view[row_idx] = PyUnicode_Join(' ', list_to_join)
 
+    return result
+
 
 def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=False):
     cdef:
@@ -2414,12 +2429,11 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=False):
 
     rows_count = min(len(array) for array in date_cols)
 
-    result = np.zeros(rows_count, dtype=object)
     if all(util.is_array(array) for array in date_cols):
         # call specialized function to increase performance
-        _concat_date_cols_numpy(date_cols, result, rows_count, col_count,
-                                keep_trivial_numbers)
+        result = _concat_date_cols_numpy(date_cols, rows_count, col_count,
+                                         keep_trivial_numbers)
     else:
-        _concat_date_cols_sequence(date_cols, result, rows_count, col_count,
-                                   keep_trivial_numbers)
+        result = _concat_date_cols_sequence(date_cols, rows_count, col_count,
+                                            keep_trivial_numbers)
     return result
