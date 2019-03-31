@@ -51,7 +51,7 @@ Implementation
 from collections import namedtuple
 from contextlib import contextmanager
 import re
-from typing import Dict
+from typing import Dict, List
 import warnings
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
@@ -60,11 +60,15 @@ RegisteredOption = namedtuple('RegisteredOption',
 
 # holds deprecated option metdata
 _deprecated_options = {}  # type: Dict[str, DeprecatedOption]
+
 # holds registered option metdata
 _registered_options = {}  # type: Dict[str, RegisteredOption]
+
 # holds the current values for registered options
 _global_config = {}  # type: Dict[str, str]
-_reserved_keys = ['all']  # keys which have a special meaning
+
+# keys which have a special meaning
+_reserved_keys = ['all']  # type: List[str]
 
 
 class OptionError(AttributeError, KeyError):
