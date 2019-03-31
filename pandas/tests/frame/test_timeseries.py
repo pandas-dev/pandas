@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import datetime, time
 
 import numpy as np
@@ -395,7 +393,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(unshifted, inferred_ts)
 
         no_freq = self.tsframe.iloc[[0, 5, 7], :]
-        pytest.raises(ValueError, no_freq.tshift)
+        msg = "Freq was not given and was not set in the index"
+        with pytest.raises(ValueError, match=msg):
+            no_freq.tshift()
 
     def test_truncate(self):
         ts = self.tsframe[::3]
@@ -436,9 +436,10 @@ class TestDataFrameTimeSeriesMethods(TestData):
         truncated = ts.truncate(after=end_missing)
         assert_frame_equal(truncated, expected)
 
-        pytest.raises(ValueError, ts.truncate,
-                      before=ts.index[-1] - ts.index.freq,
-                      after=ts.index[0] + ts.index.freq)
+        msg = "Truncate: 2000-01-06 00:00:00 must be after 2000-02-04 00:00:00"
+        with pytest.raises(ValueError, match=msg):
+            ts.truncate(before=ts.index[-1] - ts.index.freq,
+                        after=ts.index[0] + ts.index.freq)
 
     def test_truncate_copy(self):
         index = self.tsframe.index
@@ -781,14 +782,18 @@ class TestDataFrameTimeSeriesMethods(TestData):
         ts = DataFrame(rand_data, index=rng, columns=rng)
         stime, etime = ('08:00:00', '09:00:00')
 
+        msg = "Index must be DatetimeIndex"
         if axis in ['columns', 1]:
             ts.index = mask
-            pytest.raises(TypeError, ts.between_time, stime, etime)
-            pytest.raises(TypeError, ts.between_time, stime, etime, axis=0)
+            with pytest.raises(TypeError, match=msg):
+                ts.between_time(stime, etime)
+            with pytest.raises(TypeError, match=msg):
+                ts.between_time(stime, etime, axis=0)
 
         if axis in ['index', 0]:
             ts.columns = mask
-            pytest.raises(TypeError, ts.between_time, stime, etime, axis=1)
+            with pytest.raises(TypeError, match=msg):
+                ts.between_time(stime, etime, axis=1)
 
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.
@@ -854,7 +859,10 @@ class TestDataFrameTimeSeriesMethods(TestData):
         pts = df.to_period('M', axis=1)
         tm.assert_index_equal(pts.columns, exp.columns.asfreq('M'))
 
-        pytest.raises(ValueError, df.to_period, axis=2)
+        msg = ("No axis named 2 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            df.to_period(axis=2)
 
     @pytest.mark.parametrize("fn", ['tz_localize', 'tz_convert'])
     def test_tz_convert_and_localize(self, fn):

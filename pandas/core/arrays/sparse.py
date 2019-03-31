@@ -1,18 +1,17 @@
 """
 SparseArray data structure
 """
-from __future__ import division
-
 import numbers
 import operator
 import re
+from typing import Any, Callable, Type, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import index as libindex, lib
 import pandas._libs.sparse as splib
-from pandas._libs.sparse import BlockIndex, IntIndex
+from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -28,7 +27,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype)
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
-    ABCIndexClass, ABCSeries, ABCSparseSeries)
+    ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core.accessor import PandasDelegate, delegate_names
@@ -78,8 +77,11 @@ class SparseDtype(ExtensionDtype):
     # hash(nan) is (sometimes?) 0.
     _metadata = ('_dtype', '_fill_value', '_is_na_fill_value')
 
-    def __init__(self, dtype=np.float64, fill_value=None):
-        # type: (Union[str, np.dtype, 'ExtensionDtype', type], Any) -> None
+    def __init__(
+            self,
+            dtype: Union[str, np.dtype, ExtensionDtype, Type] = np.float64,
+            fill_value: Any = None
+    ) -> None:
         from pandas.core.dtypes.missing import na_value_for_dtype
         from pandas.core.dtypes.common import (
             pandas_dtype, is_string_dtype, is_scalar
@@ -111,7 +113,7 @@ class SparseDtype(ExtensionDtype):
     def __eq__(self, other):
         # We have to override __eq__ to handle NA values in _metadata.
         # The base class does simple == checks, which fail for NA.
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             try:
                 other = self.construct_from_string(other)
             except TypeError:
@@ -278,7 +280,7 @@ class SparseDtype(ExtensionDtype):
     @classmethod
     def is_dtype(cls, dtype):
         dtype = getattr(dtype, 'dtype', dtype)
-        if (isinstance(dtype, compat.string_types) and
+        if (isinstance(dtype, str) and
                 dtype.startswith("Sparse")):
             sub_type, _ = cls._parse_subtype(dtype)
             dtype = np.dtype(sub_type)
@@ -359,7 +361,7 @@ class SparseDtype(ExtensionDtype):
         >>> dtype._subtype_with_str
         str
         """
-        if isinstance(self.fill_value, compat.string_types):
+        if isinstance(self.fill_value, str):
             return type(self.fill_value)
         return self.subtype
 
@@ -371,8 +373,7 @@ class SparseDtype(ExtensionDtype):
 _sparray_doc_kwargs = dict(klass='SparseArray')
 
 
-def _get_fill(arr):
-    # type: (SparseArray) -> ndarray
+def _get_fill(arr: ABCSparseArray) -> np.ndarray:
     """
     Create a 0-dim ndarray containing the fill value
 
@@ -396,7 +397,12 @@ def _get_fill(arr):
         return np.asarray(arr.fill_value)
 
 
-def _sparse_array_op(left, right, op, name):
+def _sparse_array_op(
+        left: ABCSparseArray,
+        right: ABCSparseArray,
+        op: Callable,
+        name: str
+) -> Any:
     """
     Perform a binary operation between two arrays.
 
@@ -413,7 +419,6 @@ def _sparse_array_op(left, right, op, name):
     -------
     SparseArray
     """
-    # type: (SparseArray, SparseArray, Callable, str) -> Any
     if name.startswith('__'):
         # For lookups in _libs.sparse we need non-dunder op name
         name = name[2:-2]
@@ -541,7 +546,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
 
-
     kind : {'integer', 'block'}, default 'integer'
         The type of storage for sparse locations.
 
@@ -586,7 +590,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             data = data.sp_values
 
         # Handle use-provided dtype
-        if isinstance(dtype, compat.string_types):
+        if isinstance(dtype, str):
             # Two options: dtype='int', regular numpy dtype
             # or dtype='Sparse[int]', a sparse dtype
             try:
@@ -671,8 +675,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         self._dtype = SparseDtype(sparse_values.dtype, fill_value)
 
     @classmethod
-    def _simple_new(cls, sparse_array, sparse_index, dtype):
-        # type: (np.ndarray, SparseIndex, SparseDtype) -> 'SparseArray'
+    def _simple_new(
+            cls,
+            sparse_array: np.ndarray,
+            sparse_index: SparseIndex,
+            dtype: SparseDtype
+    ) -> ABCSparseArray:
         new = cls([])
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
@@ -1848,9 +1856,7 @@ def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     if isna(fill_value):
         mask = notna(arr)
     else:
-        # For str arrays in NumPy 1.12.0, operator!= below isn't
-        # element-wise but just returns False if fill_value is not str,
-        # so cast to object comparison to be safe
+        # cast to object comparison to be safe
         if is_string_dtype(arr):
             arr = arr.astype(object)
 

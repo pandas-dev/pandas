@@ -1,5 +1,3 @@
-from __future__ import division
-
 from itertools import permutations
 
 import numpy as np
@@ -159,7 +157,7 @@ class TestIntervalTree(object):
         left, right = np.arange(3), np.arange(1, 4)
         tree = IntervalTree(left[order], right[order], closed=closed)
         result = tree.is_overlapping
-        expected = closed is 'both'
+        expected = closed == 'both'
         assert result is expected
 
     @pytest.mark.parametrize('left, right', [
@@ -171,3 +169,14 @@ class TestIntervalTree(object):
         # GH 23309
         tree = IntervalTree(left, right, closed=closed)
         assert tree.is_overlapping is False
+
+    @pytest.mark.skipif(compat.is_platform_32bit(), reason='GH 23440')
+    def test_construction_overflow(self):
+        # GH 25485
+        left, right = np.arange(101), [np.iinfo(np.int64).max] * 101
+        tree = IntervalTree(left, right)
+
+        # pivot should be average of left/right medians
+        result = tree.root.pivot
+        expected = (50 + np.iinfo(np.int64).max) / 2
+        assert result == expected

@@ -4,26 +4,33 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
+  - blosc=1.14.3
+  - python-blosc
   - cython>=0.28.2
+  - fastparquet=0.2.1
+  - gcsfs=0.1.0
   - html5lib
   - ipython
   - jinja2
-  - lxml
-  - matplotlib
+  - lxml=3.7.0
+  - matplotlib=3.0.0
   - nomkl
   - numexpr
   - numpy
   - openpyxl
-  - psycopg2
-  - pymysql
+  - pandas-gbq=0.8.0
+  - psycopg2=2.6.2
+  - pymysql=0.7.9
   - pytables
   - python-dateutil
-  - python=3.6*
+  # cannot go past python=3.6.6 for matplotlib=3.0.0 due to
+  # https://github.com/matplotlib/matplotlib/issues/12626
+  - python=3.6.6
   - pytz
-  - s3fs
+  - s3fs=0.0.8
   - scipy
-  - sqlalchemy
-  - xarray
+  - sqlalchemy=1.1.4
+  - xarray=0.8.2
   - xlrd
   - xlsxwriter
   - xlwt

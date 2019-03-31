@@ -16,7 +16,7 @@ dependencies:
   - openpyxl
   - pytables
   - python-dateutil
-  - python=3.7*
+  - python=3.7.*
   - pytz
   - s3fs
   - scipy

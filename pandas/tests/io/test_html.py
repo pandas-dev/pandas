@@ -1,6 +1,5 @@
-from __future__ import print_function
-
 from functools import partial
+from importlib import reload
 import os
 import re
 import threading
@@ -9,8 +8,7 @@ import numpy as np
 from numpy.random import rand
 import pytest
 
-from pandas.compat import (
-    PY3, BytesIO, StringIO, is_platform_windows, map, reload, zip)
+from pandas.compat import BytesIO, StringIO, is_platform_windows
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -88,8 +86,7 @@ class TestReadHtml(object):
     def set_files(self, datapath):
         self.spam_data = datapath('io', 'data', 'spam.html')
         self.spam_data_kwargs = {}
-        if PY3:
-            self.spam_data_kwargs['encoding'] = 'UTF-8'
+        self.spam_data_kwargs['encoding'] = 'UTF-8'
         self.banklist_data = datapath("io", "data", "banklist.html")
 
     @pytest.fixture(autouse=True, scope="function")

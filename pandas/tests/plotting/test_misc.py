@@ -61,8 +61,6 @@ class TestSeriesPlots(TestPlotBase):
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
-    # This XPASSES when tested with mpl == 3.0.1
-    @td.xfail_if_mpl_2_2
     @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
         scatter_matrix = plotting.scatter_matrix
@@ -278,14 +276,20 @@ class TestDataFramePlots(TestPlotBase):
         assert [p.get_title() for p in plot] == title
 
         # Case len(title) > len(df)
-        pytest.raises(ValueError, df.plot, subplots=True,
-                      title=title + ["kittens > puppies"])
+        msg = ("The length of `title` must equal the number of columns if"
+               " using `title` of type `list` and `subplots=True`")
+        with pytest.raises(ValueError, match=msg):
+            df.plot(subplots=True, title=title + ["kittens > puppies"])
 
         # Case len(title) < len(df)
-        pytest.raises(ValueError, df.plot, subplots=True, title=title[:2])
+        with pytest.raises(ValueError, match=msg):
+            df.plot(subplots=True, title=title[:2])
 
         # Case subplots=False and title is of type list
-        pytest.raises(ValueError, df.plot, subplots=False, title=title)
+        msg = ("Using `title` of type `list` is not supported unless"
+               " `subplots=True` is passed")
+        with pytest.raises(ValueError, match=msg):
+            df.plot(subplots=False, title=title)
 
         # Case df with 3 numeric columns but layout of (2,2)
         plot = df.drop('SepalWidth', axis=1).plot(subplots=True, layout=(2, 2),

@@ -31,8 +31,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.timezones import UTC
 
 
-PY2 = bytes == str
-
 # ---------------------------------------------------------------------
 # Constants
 
@@ -552,10 +550,6 @@ class _Tick(object):
         result = self.delta.__rtruediv__(other)
         return _wrap_timedelta_result(result)
 
-    if PY2:
-        __div__ = __truediv__
-        __rdiv__ = __rtruediv__
-
 
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
@@ -587,7 +581,7 @@ def shift_day(other: datetime, days: int) -> datetime:
 
 cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
     """new year number after shifting npy_datetimestruct number of months"""
-    return dts.year + (dts.month + months - 1) / 12
+    return dts.year + (dts.month + months - 1) // 12
 
 
 cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:

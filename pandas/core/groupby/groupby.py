@@ -12,13 +12,16 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
+from typing import Optional, Tuple, Type
 import warnings
 
 import numpy as np
 
+from pandas._config.config import option_context
+
 from pandas._libs import Timestamp, groupby as libgroupby
 import pandas.compat as compat
-from pandas.compat import range, set_function_name, zip
+from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -36,7 +39,6 @@ import pandas.core.algorithms as algorithms
 from pandas.core.base import (
     DataError, GroupByError, PandasObject, SelectionMixin, SpecificationError)
 import pandas.core.common as com
-from pandas.core.config import option_context
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
@@ -221,8 +223,7 @@ See more `here
 
 Examples
 --------
-%(examples)s
-"""
+%(examples)s"""
 
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
@@ -1040,8 +1041,7 @@ class GroupBy(_GroupBy):
         Shared func to call any / all Cython GroupBy implementations.
         """
 
-        def objs_to_bool(vals):
-            # type: np.ndarray -> (np.ndarray, typing.Type)
+        def objs_to_bool(vals: np.ndarray) -> Tuple[np.ndarray, Type]:
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
             else:
@@ -1049,8 +1049,7 @@ class GroupBy(_GroupBy):
 
             return vals.view(np.uint8), np.bool
 
-        def result_to_bool(result, inference):
-            # type: (np.ndarray, typing.Type) -> np.ndarray
+        def result_to_bool(result: np.ndarray, inference: Type) -> np.ndarray:
             return result.astype(inference, copy=False)
 
         return self._get_cythonized_result('group_any_all', self.grouper,
@@ -1106,9 +1105,7 @@ class GroupBy(_GroupBy):
         Returns
         -------
         pandas.Series or pandas.DataFrame
-
         %(see_also)s
-
         Examples
         --------
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
@@ -1564,9 +1561,7 @@ class GroupBy(_GroupBy):
         dropna : None or str, optional
             apply the specified dropna operation before counting which row is
             the nth row. Needs to be None, 'any' or 'all'
-
         %(see_also)s
-
         Examples
         --------
 
@@ -1742,8 +1737,9 @@ class GroupBy(_GroupBy):
         b    3.0
         """
 
-        def pre_processor(vals):
-            # type: np.ndarray -> (np.ndarray, Optional[typing.Type])
+        def pre_processor(
+                vals: np.ndarray
+        ) -> Tuple[np.ndarray, Optional[Type]]:
             if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
@@ -1757,8 +1753,10 @@ class GroupBy(_GroupBy):
 
             return vals, inference
 
-        def post_processor(vals, inference):
-            # type: (np.ndarray, Optional[typing.Type]) -> np.ndarray
+        def post_processor(
+                vals: np.ndarray,
+                inference: Optional[Type]
+        ) -> np.ndarray:
             if inference:
                 # Check for edge case
                 if not (is_integer_dtype(inference) and
@@ -2021,7 +2019,7 @@ class GroupBy(_GroupBy):
             Function to be applied to result of Cython function. Should accept
             an array of values as the first argument and type inferences as its
             second argument, i.e. the signature should be
-            (ndarray, typing.Type).
+            (ndarray, Type).
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -2139,9 +2137,7 @@ class GroupBy(_GroupBy):
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
-
         %(see_also)s
-
         Examples
         --------
 
@@ -2167,9 +2163,7 @@ class GroupBy(_GroupBy):
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
-
         %(see_also)s
-
         Examples
         --------
 

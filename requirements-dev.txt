@@ -10,6 +10,8 @@ gitpython
 hypothesis>=3.82
 isort
 moto
+mypy
+pycodestyle
 pytest>=4.0.2
 pytest-mock
 sphinx
@@ -18,14 +20,14 @@ beautifulsoup4>=4.2.1
 blosc
 botocore>=1.11
 boto3
-bottleneck>=1.2.0
+bottleneck>=1.2.1
 fastparquet>=0.2.1
 html5lib
 ipython>=5.6.0
 ipykernel
 jinja2
 lxml
-matplotlib>=2.0.0
+matplotlib>=2.2.2
 nbsphinx
 numexpr>=2.6.8
 openpyxl

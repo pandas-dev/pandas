@@ -3,8 +3,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import range, zip
-
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.groupby.groupby import DataError

@@ -1,28 +1,29 @@
-from __future__ import division
-
+import bz2
 from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-import locale
+import gzip
+import lzma
 import os
 import re
 from shutil import rmtree
 import string
-import subprocess
-import sys
 import tempfile
 import traceback
 import warnings
+import zipfile
 
 import numpy as np
 from numpy.random import rand, randn
 
+from pandas._config.localization import (  # noqa:F401
+    can_set_locale, get_locales, set_locale)
+
 from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
-    PY2, PY3, filter, httplib, lmap, lrange, lzip, map, raise_with_traceback,
-    range, string_types, u, unichr, zip)
+    PY3, httplib, lmap, lrange, lzip, raise_with_traceback)
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -39,7 +40,6 @@ from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
     period_array)
-import pandas.core.common as com
 
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
@@ -49,7 +49,7 @@ K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
 # set testing_mode
-_testing_mode_warnings = (DeprecationWarning, compat.ResourceWarning)
+_testing_mode_warnings = (DeprecationWarning, ResourceWarning)
 
 
 def set_testing_mode():
@@ -95,7 +95,7 @@ def round_trip_pickle(obj, path=None):
     """
 
     if path is None:
-        path = u('__{random_bytes}__.pickle'.format(random_bytes=rands(10)))
+        path = '__{random_bytes}__.pickle'.format(random_bytes=rands(10))
     with ensure_clean(path) as path:
         pd.to_pickle(obj, path)
         return pd.read_pickle(path)
@@ -179,16 +179,12 @@ def decompress_file(path, compression):
     if compression is None:
         f = open(path, 'rb')
     elif compression == 'gzip':
-        import gzip
         f = gzip.open(path, 'rb')
     elif compression == 'bz2':
-        import bz2
         f = bz2.BZ2File(path, 'rb')
     elif compression == 'xz':
-        lzma = compat.import_lzma()
         f = lzma.LZMAFile(path, 'rb')
     elif compression == 'zip':
-        import zipfile
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
         if len(zip_names) == 1:
@@ -238,7 +234,7 @@ def write_to_compressed(compression, path, data, dest="test"):
         import bz2
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        lzma = compat.import_lzma()
+        import lzma
         compress_method = lzma.LZMAFile
     else:
         msg = "Unrecognized compression type: {}".format(compression)
@@ -369,7 +365,7 @@ def randbool(size=(), p=0.5):
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits),
                        dtype=(np.str_, 1))
-RANDU_CHARS = np.array(list(u("").join(map(unichr, lrange(1488, 1488 + 26))) +
+RANDU_CHARS = np.array(list("".join(map(chr, lrange(1488, 1488 + 26))) +
                             string.digits), dtype=(np.unicode_, 1))
 
 
@@ -422,250 +418,6 @@ def close(fignum=None):
     else:
         _close(fignum)
 
-
-# -----------------------------------------------------------------------------
-# locale utilities
-
-
-def check_output(*popenargs, **kwargs):
-    # shamelessly taken from Python 2.7 source
-    r"""Run command with arguments and return its output as a byte string.
-
-    If the exit code was non-zero it raises a CalledProcessError.  The
-    CalledProcessError object will have the return code in the returncode
-    attribute and output in the output attribute.
-
-    The arguments are the same as for the Popen constructor.  Example:
-
-    >>> check_output(["ls", "-l", "/dev/null"])
-    'crw-rw-rw- 1 root root 1, 3 Oct 18  2007 /dev/null\n'
-
-    The stdout argument is not allowed as it is used internally.
-    To capture standard error in the result, use stderr=STDOUT.
-
-    >>> check_output(["/bin/sh", "-c",
-    ...               "ls -l non_existent_file ; exit 0"],
-    ...              stderr=STDOUT)
-    'ls: non_existent_file: No such file or directory\n'
-    """
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = subprocess.Popen(stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                               *popenargs, **kwargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        raise subprocess.CalledProcessError(retcode, cmd, output=output)
-    return output
-
-
-def _default_locale_getter():
-    try:
-        raw_locales = check_output(['locale -a'], shell=True)
-    except subprocess.CalledProcessError as e:
-        raise type(e)("{exception}, the 'locale -a' command cannot be found "
-                      "on your system".format(exception=e))
-    return raw_locales
-
-
-def get_locales(prefix=None, normalize=True,
-                locale_getter=_default_locale_getter):
-    """Get all the locales that are available on the system.
-
-    Parameters
-    ----------
-    prefix : str
-        If not ``None`` then return only those locales with the prefix
-        provided. For example to get all English language locales (those that
-        start with ``"en"``), pass ``prefix="en"``.
-    normalize : bool
-        Call ``locale.normalize`` on the resulting list of available locales.
-        If ``True``, only locales that can be set without throwing an
-        ``Exception`` are returned.
-    locale_getter : callable
-        The function to use to retrieve the current locales. This should return
-        a string with each locale separated by a newline character.
-
-    Returns
-    -------
-    locales : list of strings
-        A list of locale strings that can be set with ``locale.setlocale()``.
-        For example::
-
-            locale.setlocale(locale.LC_ALL, locale_string)
-
-    On error will return None (no locale available, e.g. Windows)
-
-    """
-    try:
-        raw_locales = locale_getter()
-    except Exception:
-        return None
-
-    try:
-        # raw_locales is "\n" separated list of locales
-        # it may contain non-decodable parts, so split
-        # extract what we can and then rejoin.
-        raw_locales = raw_locales.split(b'\n')
-        out_locales = []
-        for x in raw_locales:
-            if PY3:
-                out_locales.append(str(
-                    x, encoding=pd.options.display.encoding))
-            else:
-                out_locales.append(str(x))
-
-    except TypeError:
-        pass
-
-    if prefix is None:
-        return _valid_locales(out_locales, normalize)
-
-    pattern = re.compile('{prefix}.*'.format(prefix=prefix))
-    found = pattern.findall('\n'.join(out_locales))
-    return _valid_locales(found, normalize)
-
-
-@contextmanager
-def set_locale(new_locale, lc_var=locale.LC_ALL):
-    """Context manager for temporarily setting a locale.
-
-    Parameters
-    ----------
-    new_locale : str or tuple
-        A string of the form <language_country>.<encoding>. For example to set
-        the current locale to US English with a UTF8 encoding, you would pass
-        "en_US.UTF-8".
-    lc_var : int, default `locale.LC_ALL`
-        The category of the locale being set.
-
-    Notes
-    -----
-    This is useful when you want to run a particular block of code under a
-    particular locale, without globally setting the locale. This probably isn't
-    thread-safe.
-    """
-    current_locale = locale.getlocale()
-
-    try:
-        locale.setlocale(lc_var, new_locale)
-        normalized_locale = locale.getlocale()
-        if com._all_not_none(*normalized_locale):
-            yield '.'.join(normalized_locale)
-        else:
-            yield new_locale
-    finally:
-        locale.setlocale(lc_var, current_locale)
-
-
-def can_set_locale(lc, lc_var=locale.LC_ALL):
-    """
-    Check to see if we can set a locale, and subsequently get the locale,
-    without raising an Exception.
-
-    Parameters
-    ----------
-    lc : str
-        The locale to attempt to set.
-    lc_var : int, default `locale.LC_ALL`
-        The category of the locale being set.
-
-    Returns
-    -------
-    is_valid : bool
-        Whether the passed locale can be set
-    """
-
-    try:
-        with set_locale(lc, lc_var=lc_var):
-            pass
-    except (ValueError,
-            locale.Error):  # horrible name for a Exception subclass
-        return False
-    else:
-        return True
-
-
-def _valid_locales(locales, normalize):
-    """Return a list of normalized locales that do not throw an ``Exception``
-    when set.
-
-    Parameters
-    ----------
-    locales : str
-        A string where each locale is separated by a newline.
-    normalize : bool
-        Whether to call ``locale.normalize`` on each locale.
-
-    Returns
-    -------
-    valid_locales : list
-        A list of valid locales.
-    """
-    if normalize:
-        normalizer = lambda x: locale.normalize(x.strip())
-    else:
-        normalizer = lambda x: x.strip()
-
-    return list(filter(can_set_locale, map(normalizer, locales)))
-
-# -----------------------------------------------------------------------------
-# Stdout / stderr decorators
-
-
-@contextmanager
-def set_defaultencoding(encoding):
-    """
-    Set default encoding (as given by sys.getdefaultencoding()) to the given
-    encoding; restore on exit.
-
-    Parameters
-    ----------
-    encoding : str
-    """
-    if not PY2:
-        raise ValueError("set_defaultencoding context is only available "
-                         "in Python 2.")
-    orig = sys.getdefaultencoding()
-    reload(sys)  # noqa:F821
-    sys.setdefaultencoding(encoding)
-    try:
-        yield
-    finally:
-        sys.setdefaultencoding(orig)
-
-
-# -----------------------------------------------------------------------------
-# Console debugging tools
-
-
-def debug(f, *args, **kwargs):
-    from pdb import Pdb as OldPdb
-    try:
-        from IPython.core.debugger import Pdb
-        kw = dict(color_scheme='Linux')
-    except ImportError:
-        Pdb = OldPdb
-        kw = {}
-    pdb = Pdb(**kw)
-    return pdb.runcall(f, *args, **kwargs)
-
-
-def pudebug(f, *args, **kwargs):
-    import pudb
-    return pudb.runcall(f, *args, **kwargs)
-
-
-def set_trace():
-    from IPython.core.debugger import Pdb
-    try:
-        Pdb(color_scheme='Linux').set_trace(sys._getframe().f_back)
-    except Exception:
-        from pdb import Pdb as OldPdb
-        OldPdb().set_trace(sys._getframe().f_back)
 
 # -----------------------------------------------------------------------------
 # contextmanager to ensure the file cleanup
@@ -1070,18 +822,10 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     elif is_categorical_dtype(left):
         left = repr(left)
 
-    if PY2 and isinstance(left, string_types):
-        # left needs to be printable in native text type in python2
-        left = left.encode('utf-8')
-
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
     elif is_categorical_dtype(right):
         right = repr(right)
-
-    if PY2 and isinstance(right, string_types):
-        # right needs to be printable in native text type in python2
-        right = right.encode('utf-8')
 
     msg = """{obj} are different
 
@@ -2030,7 +1774,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         names = None
 
     # make singelton case uniform
-    if isinstance(names, compat.string_types) and nlevels == 1:
+    if isinstance(names, str) and nlevels == 1:
         names = [names]
 
     # specific 1D index type requested?
@@ -2427,7 +2171,7 @@ def network(t, url="http://www.google.com",
     from pytest import skip
     t.network = True
 
-    @compat.wraps(t)
+    @wraps(t)
     def wrapper(*args, **kwargs):
         if check_before_test and not raise_on_error:
             if not can_connect(url, error_classes):
@@ -2600,7 +2344,8 @@ class _AssertRaisesContextmanager(object):
 
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
-                            clear=None, check_stacklevel=True):
+                            clear=None, check_stacklevel=True,
+                            raise_on_extra_warnings=True):
     """
     Context manager for running code expected to either raise a specific
     warning, or not raise any warnings. Verifies that the code raises the
@@ -2613,7 +2358,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         The type of Exception raised. ``exception.Warning`` is the base
         class for all warnings. To check that no warning is returned,
         specify ``False`` or ``None``.
-    filter_level : str, default "always"
+    filter_level : str or None, default "always"
         Specifies whether warnings are ignored, displayed, or turned
         into errors.
         Valid values are:
@@ -2637,6 +2382,9 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
         line that implements the function is displayed.
+    raise_on_extra_warnings : bool, default True
+        Whether extra warnings not of the type `expected_warning` should
+        cause the test to fail.
 
     Examples
     --------
@@ -2705,8 +2453,10 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             msg = "Did not see expected warning of class {name!r}.".format(
                 name=expected_warning.__name__)
             assert saw_warning, msg
-        assert not extra_warnings, ("Caused unexpected warning(s): {extra!r}."
-                                    ).format(extra=extra_warnings)
+        if raise_on_extra_warnings and extra_warnings:
+            raise AssertionError(
+                "Caused unexpected warning(s): {!r}.".format(extra_warnings)
+            )
 
 
 class RNGContext(object):

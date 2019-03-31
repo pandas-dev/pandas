@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import BytesIO, StringIO, lrange, range, u
+from pandas.compat import BytesIO, StringIO, lrange
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
@@ -75,9 +75,6 @@ def test_override_set_noconvert_columns():
 
 
 def test_bytes_io_input(all_parsers):
-    if compat.PY2:
-        pytest.skip("Bytes-related test does not need to work on Python 2.x")
-
     encoding = "cp1255"
     parser = all_parsers
 
@@ -111,9 +108,7 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
     codec = codecs.lookup("utf-8")
     utf8 = codecs.lookup('utf-8')
     parser = all_parsers
-
-    msg = ("'utf-8' codec can't decode byte" if compat.PY3
-           else "'utf8' codec can't decode byte")
+    msg = "'utf-8' codec can't decode byte"
 
     # Stream must be binary UTF8.
     with open(path, "rb") as handle, codecs.StreamRecoder(
@@ -124,12 +119,11 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
             parser.read_csv(stream)
 
 
-@pytest.mark.skipif(compat.PY2, reason="PY3-only test")
 def test_read_csv_local(all_parsers, csv1):
-    prefix = u("file:///") if compat.is_platform_windows() else u("file://")
+    prefix = "file:///" if compat.is_platform_windows() else "file://"
     parser = all_parsers
 
-    fname = prefix + compat.text_type(os.path.abspath(csv1))
+    fname = prefix + str(os.path.abspath(csv1))
     result = parser.read_csv(fname, index_col=0, parse_dates=True)
 
     expected = DataFrame([[0.980269, 3.685731, -0.364216805298, -1.159738],
@@ -316,10 +310,10 @@ def test_read_csv_no_index_name(all_parsers, csv_dir_path):
 
 def test_read_csv_unicode(all_parsers):
     parser = all_parsers
-    data = BytesIO(u("\u0141aski, Jan;1").encode("utf-8"))
+    data = BytesIO("\u0141aski, Jan;1".encode("utf-8"))
 
     result = parser.read_csv(data, sep=";", encoding="utf-8", header=None)
-    expected = DataFrame([[u("\u0141aski, Jan"), 1]])
+    expected = DataFrame([["\u0141aski, Jan", 1]])
     tm.assert_frame_equal(result, expected)
 
 
@@ -898,7 +892,7 @@ def test_nonexistent_path(all_parsers):
 
     msg = ("does not exist" if parser.engine == "c"
            else r"\[Errno 2\]")
-    with pytest.raises(compat.FileNotFoundError, match=msg) as e:
+    with pytest.raises(FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
 
         filename = e.value.filename
@@ -947,26 +941,24 @@ def test_skip_initial_space(all_parsers):
 def test_utf16_bom_skiprows(all_parsers, sep, encoding):
     # see gh-2298
     parser = all_parsers
-    data = u("""skip this
+    data = """skip this
 skip this too
 A,B,C
 1,2,3
-4,5,6""").replace(",", sep)
+4,5,6""".replace(",", sep)
     path = "__%s__.csv" % tm.rands(10)
     kwargs = dict(sep=sep, skiprows=2)
     utf8 = "utf-8"
 
     with tm.ensure_clean(path) as path:
+        from io import TextIOWrapper
         bytes_data = data.encode(encoding)
 
         with open(path, "wb") as f:
             f.write(bytes_data)
 
         bytes_buffer = BytesIO(data.encode(utf8))
-
-        if compat.PY3:
-            from io import TextIOWrapper
-            bytes_buffer = TextIOWrapper(bytes_buffer, encoding=utf8)
+        bytes_buffer = TextIOWrapper(bytes_buffer, encoding=utf8)
 
         result = parser.read_csv(path, encoding=encoding, **kwargs)
         expected = parser.read_csv(bytes_buffer, encoding=utf8, **kwargs)
@@ -975,16 +967,10 @@ A,B,C
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("buffer", [
-    False,
-    pytest.param(True, marks=pytest.mark.skipif(
-        compat.PY3, reason="Not supported on PY3"))])
-def test_utf16_example(all_parsers, csv_dir_path, buffer):
+def test_utf16_example(all_parsers, csv_dir_path):
     path = os.path.join(csv_dir_path, "utf16_ex.txt")
     parser = all_parsers
-
-    src = BytesIO(open(path, "rb").read()) if buffer else path
-    result = parser.read_csv(src, encoding="utf-16", sep="\t")
+    result = parser.read_csv(path, encoding="utf-16", sep="\t")
     assert len(result) == 50
 
 
@@ -996,7 +982,7 @@ def test_unicode_encoding(all_parsers, csv_dir_path):
     result = result.set_index(0)
     got = result[1][1632]
 
-    expected = u('\xc1 k\xf6ldum klaka (Cold Fever) (1994)')
+    expected = '\xc1 k\xf6ldum klaka (Cold Fever) (1994)'
     assert got == expected
 
 
@@ -1151,7 +1137,7 @@ def test_empty_with_index(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=0)
 
-    expected = DataFrame([], columns=["y"], index=Index([], name="x"))
+    expected = DataFrame(columns=["y"], index=Index([], name="x"))
     tm.assert_frame_equal(result, expected)
 
 
@@ -1161,7 +1147,7 @@ def test_empty_with_multi_index(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=["x", "y"])
 
-    expected = DataFrame([], columns=["z"],
+    expected = DataFrame(columns=["z"],
                          index=MultiIndex.from_arrays(
                              [[]] * 2, names=["x", "y"]))
     tm.assert_frame_equal(result, expected)
@@ -1172,7 +1158,7 @@ def test_empty_with_reversed_multi_index(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=[1, 0])
 
-    expected = DataFrame([], columns=["z"],
+    expected = DataFrame(columns=["z"],
                          index=MultiIndex.from_arrays(
                              [[]] * 2, names=["y", "x"]))
     tm.assert_frame_equal(result, expected)
@@ -1284,7 +1270,7 @@ def test_numeric_range_too_wide(all_parsers, exp_data):
 def test_empty_with_nrows_chunksize(all_parsers, iterator):
     # see gh-9535
     parser = all_parsers
-    expected = DataFrame([], columns=["foo", "bar"])
+    expected = DataFrame(columns=["foo", "bar"])
 
     nrows = 10
     data = StringIO("foo,bar\n")
@@ -1565,22 +1551,17 @@ def test_iteration_open_handle(all_parsers):
     kwargs = dict(squeeze=True, header=None)
 
     with tm.ensure_clean() as path:
-        with open(path, "wb" if compat.PY2 else "w") as f:
+        with open(path, "w") as f:
             f.write("AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG")
 
-        with open(path, "rb" if compat.PY2 else "r") as f:
+        with open(path, "r") as f:
             for line in f:
                 if "CCC" in line:
                     break
 
-            if parser.engine == "c" and compat.PY2:
-                msg = "Mixing iteration and read methods would lose data"
-                with pytest.raises(ValueError, match=msg):
-                    parser.read_csv(f, **kwargs)
-            else:
-                result = parser.read_csv(f, **kwargs)
-                expected = Series(["DDD", "EEE", "FFF", "GGG"], name=0)
-                tm.assert_series_equal(result, expected)
+            result = parser.read_csv(f, **kwargs)
+            expected = Series(["DDD", "EEE", "FFF", "GGG"], name=0)
+            tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("data,thousands,decimal", [
@@ -1705,7 +1686,7 @@ def test_null_byte_char(all_parsers):
 def test_utf8_bom(all_parsers, data, kwargs, expected):
     # see gh-4793
     parser = all_parsers
-    bom = u("\ufeff")
+    bom = "\ufeff"
     utf8 = "utf-8"
 
     def _encode_data_with_bom(_data):
@@ -1904,12 +1885,15 @@ def test_suppress_error_output(all_parsers, capsys):
     assert captured.err == ""
 
 
-def test_filename_with_special_chars(all_parsers):
+@pytest.mark.skipif(compat.is_platform_windows() and not compat.PY36,
+                    reason="On Python < 3.6 won't pass on Windows")
+@pytest.mark.parametrize("filename", ["sé-es-vé.csv", "ru-sй.csv"])
+def test_filename_with_special_chars(all_parsers, filename):
     # see gh-15086.
     parser = all_parsers
     df = DataFrame({"a": [1, 2, 3]})
 
-    with tm.ensure_clean("sé-es-vé.csv") as path:
+    with tm.ensure_clean(filename) as path:
         df.to_csv(path, index=False)
 
         result = parser.read_csv(path)
