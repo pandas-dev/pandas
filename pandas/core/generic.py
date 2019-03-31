@@ -6,7 +6,7 @@ import gc
 import json
 import operator
 from textwrap import dedent
-from typing import List, Set
+from typing import FrozenSet, List, Set
 import warnings
 import weakref
 
@@ -111,11 +111,12 @@ class NDFrame(PandasObject, SelectionMixin):
     _internal_names = ['_data', '_cacher', '_item_cache', '_cache', '_is_copy',
                        '_subtyp', '_name', '_index', '_default_kind',
                        '_default_fill_value', '_metadata', '__array_struct__',
-                       '__array_interface__']
-    _internal_names_set = set(_internal_names)
+                       '__array_interface__']  # type: List[str]
+    _internal_names_set = set(_internal_names)  # type: Set[str]
     _accessors = set()  # type: Set[str]
-    _deprecations = frozenset(['as_blocks', 'blocks',
-                               'convert_objects', 'is_copy'])
+    _deprecations = frozenset([
+        'as_blocks', 'blocks', 'convert_objects', 'is_copy'
+    ])  # type: FrozenSet[str]
     _metadata = []  # type: List[str]
     _is_copy = None
 
