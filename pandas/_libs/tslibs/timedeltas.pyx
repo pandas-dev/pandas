@@ -24,7 +24,7 @@ PyDateTime_IMPORT
 cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.util cimport (
     is_timedelta64_object, is_datetime64_object, is_integer_object,
-    is_float_object, is_string_object)
+    is_float_object)
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 
@@ -188,7 +188,7 @@ cdef convert_to_timedelta64(object ts, object unit):
         else:
             ts = cast_from_unit(ts, unit)
             ts = np.timedelta64(ts)
-    elif is_string_object(ts):
+    elif isinstance(ts, str):
         if len(ts) > 0 and ts[0] == 'P':
             ts = parse_iso_format_string(ts)
         else:
@@ -539,7 +539,7 @@ cdef bint _validate_ops_compat(other):
         return True
     elif PyDelta_Check(other) or is_timedelta64_object(other):
         return True
-    elif is_string_object(other):
+    elif isinstance(other, str):
         return True
     elif hasattr(other, 'delta'):
         return True
@@ -1206,7 +1206,7 @@ class Timedelta(_Timedelta):
 
         if isinstance(value, Timedelta):
             value = value.value
-        elif is_string_object(value):
+        elif isinstance(value, str):
             if len(value) > 0 and value[0] == 'P':
                 value = parse_iso_format_string(value)
             else:

@@ -30,8 +30,6 @@ from numpy cimport int64_t
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, dtstruct_to_dt64, npy_datetimestruct)
 
-from pandas._libs.tslibs.util cimport is_string_object
-
 from pandas._libs.tslibs.nattype cimport checknull_with_nat, NPY_NAT
 from pandas._libs.tslibs.nattype import nat_strings
 
@@ -136,7 +134,7 @@ def array_strptime(object[:] values, object fmt,
 
     for i in range(n):
         val = values[i]
-        if is_string_object(val):
+        if isinstance(val, str):
             if val in nat_strings:
                 iresult[i] = NPY_NAT
                 continue

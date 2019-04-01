@@ -4,7 +4,7 @@ import re
 cimport numpy as cnp
 cnp.import_array()
 
-from pandas._libs.tslibs.util cimport is_integer_object, is_string_object
+from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 
@@ -316,7 +316,7 @@ cpdef object get_freq(object freq):
     >>> get_freq('3A')
     1000
     """
-    if is_string_object(freq):
+    if isinstance(freq, str):
         base, mult = get_freq_code(freq)
         freq = base
     return freq
