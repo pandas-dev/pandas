@@ -355,7 +355,6 @@ I/O
 - Improved performance in :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` when converting columns that have missing values (:issue:`25772`)
 - Bug in :func:`read_hdf` not properly closing store after a ``KeyError`` is raised (:issue:`25766`)
 - Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
-- Bug in :meth:`DataFrame.to_latex` that would ignore `na_rep` if the `formatters` argument was used (:issue:`9046`)
 - Bug in :meth:`DataFrame.to_latex` that would ignore ``na_rep`` if the ``formatters`` argument was used (:issue:`9046`)
 -
 
