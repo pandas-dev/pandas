@@ -7,9 +7,9 @@ import time
 from io import StringIO
 
 from libc.string cimport strchr
-from cpython.datetime cimport datetime, PyDateTime_IMPORT, PyDateTimeAPI
 
-PyDateTime_IMPORT
+from cpython.datetime cimport datetime, datetime_new, import_datetime
+import_datetime()
 
 import numpy as np
 
@@ -41,7 +41,6 @@ class DateParseError(ValueError):
 
 _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
-_DEFAULT_TZINFO = _DEFAULT_DATETIME.tzinfo
 
 cdef:
     object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
@@ -49,18 +48,21 @@ cdef:
     set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 # ----------------------------------------------------------------------
-DEF delimiters = b' /-\\'
-DEF MAX_DAYS_IN_MONTH = 31
-DEF MAX_MONTH = 12
+cdef:
+    const char* delimiters = " /-\\."
+    int MAX_DAYS_IN_MONTH = 31, MAX_MONTH = 12
+
 
 cdef bint _is_not_delimiter(const char ch):
     return strchr(delimiters, ch) == NULL
+
 
 cdef inline int _parse_2digit(const char* s):
     cdef int result = 0
     result += getdigit_ascii(s[0], -10) * 10
     result += getdigit_ascii(s[1], -100) * 1
     return result
+
 
 cdef inline int _parse_4digit(const char* s):
     cdef int result = 0
@@ -70,14 +72,22 @@ cdef inline int _parse_4digit(const char* s):
     result += getdigit_ascii(s[3], -10000) * 1
     return result
 
-cdef inline object parse_delimited_date(object date_string, bint dayfirst,
-                                        object tzinfo):
+
+cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
+    """
+    Parse special cases of dates: MM/DD/YYYY, DD/MM/YYYY, MM/YYYY
+    Delimiter can be a space or one of ./\-
+
+    Returns one of:
+    ---------------
+    * datetime and resolution
+    * None, None if passed in not a handled date pattern
+    """
     cdef:
         const char* buf
         Py_ssize_t length
         int day = 1, month = 1, year
 
-    assert isinstance(date_string, (str, unicode))
     buf = get_c_string_buf_and_size(date_string, &length)
     if length == 10:
         if _is_not_delimiter(buf[2]) or _is_not_delimiter(buf[5]):
@@ -103,11 +113,9 @@ cdef inline object parse_delimited_date(object date_string, bint dayfirst,
             and (month <= MAX_MONTH or day <= MAX_MONTH):
         if month > MAX_MONTH or (day < MAX_MONTH and dayfirst):
             day, month = month, day
-        return PyDateTimeAPI.DateTime_FromDateAndTime(
-            year, month, day, 0, 0, 0, 0, tzinfo, PyDateTimeAPI.DateTimeType
-        ), reso
+        return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
 
-    raise DateParseError("Invalid date specified (%d/%d)" % (month, day))
+    raise DateParseError("Invalid date specified ({}/{})".format(month, day))
 
 
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
@@ -132,7 +140,7 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
                       yearfirst=yearfirst, **kwargs)
         return dt
 
-    dt, _ = parse_delimited_date(date_string, dayfirst, _DEFAULT_TZINFO)
+    dt, _ = _parse_delimited_date(date_string, dayfirst)
     if dt is not None:
         return dt
 
@@ -216,7 +224,7 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
     if not _does_string_look_like_datetime(date_string):
         raise ValueError('Given date string not likely a datetime.')
 
-    parsed, reso = parse_delimited_date(date_string, dayfirst, _DEFAULT_TZINFO)
+    parsed, reso = _parse_delimited_date(date_string, dayfirst)
     if parsed is not None:
         return parsed, parsed, reso
 
