@@ -2325,9 +2325,10 @@ cdef inline void convert_and_set_item(object item, Py_ssize_t index,
     ----------
     item : object
     index : Py_ssize_t
-    keep_trivial_numbers : bool, default False
-        If `keep_trivial_numbers` is True, then conversion
-        (to string from integer/float zero) is not performed
+    result : memoryview of 1-d ndarray
+    keep_trivial_numbers : bool
+        if True, then conversion (to string from integer/float zero)
+        is not performed
     """
     cdef:
         bint do_convert = 1
@@ -2378,12 +2379,12 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
     rows_count : Py_ssize_t
     col_count : Py_ssize_t
     keep_trivial_numbers : bool, default False
-        If True, then for the case of one sequence in `date_cols`,
+        if True and len(date_cols) == 1, then
         conversion (to string from integer/float zero) is not performed
 
     Returns
     -------
-    arr_of_rows : 1-d numpy array
+    arr_of_rows : ndarray (dtype=object)
     """
     cdef:
         Py_ssize_t col_idx, row_idx
@@ -2439,12 +2440,12 @@ cdef cnp.ndarray[object] _concat_date_cols_sequence(tuple date_cols,
     rows_count : Py_ssize_t
     col_count : Py_ssize_t
     keep_trivial_numbers : bool, default False
-        If True, then for the case of one sequence in `date_cols`,
+        if True and len(date_cols) == 1, then
         conversion (to string from integer/float zero) is not performed
 
     Returns
     -------
-    arr_of_rows : 1-d numpy array
+    arr_of_rows : ndarray (dtype=object)
     """
     cdef:
         Py_ssize_t col_idx, row_idx
@@ -2477,12 +2478,12 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=False):
     ----------
     date_cols : tuple of sequences
     keep_trivial_numbers : bool, default False
-        If True, then for the case of one sequence in `date_cols`,
+        if True and len(date_cols) == 1, then
         conversion (to string from integer/float zero) is not performed
 
     Returns
     -------
-    arr_of_rows : 1-d numpy array
+    arr_of_rows : ndarray (dtype=object)
 
     Examples
     --------
