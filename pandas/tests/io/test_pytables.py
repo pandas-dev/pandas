@@ -1233,6 +1233,19 @@ class TestHDFStore(Base):
             reloaded = read_hdf(path, 'df_with_missing')
             tm.assert_frame_equal(df_with_missing, reloaded)
 
+    def test_read_missing_key_close_store(self):
+        # GH 25766
+        with ensure_clean_path(self.path) as path:
+            df = pd.DataFrame({'a': range(2), 'b': range(2)})
+            df.to_hdf(path, 'k1')
+
+            with pytest.raises(KeyError):
+                pd.read_hdf(path, 'k2')
+
+            # smoke test to test that file is properly closed after
+            # read with KeyError before another write
+            df.to_hdf(path, 'k2')
+
     def test_append_frame_column_oriented(self):
 
         with ensure_clean_store(self.path) as store:

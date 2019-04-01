@@ -27,7 +27,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.util cimport (
-    is_string_object, is_datetime64_object, is_integer_object, is_float_object)
+    is_datetime64_object, is_integer_object, is_float_object)
 
 from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
@@ -287,7 +287,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
 
     obj = _TSObject()
 
-    if is_string_object(ts):
+    if isinstance(ts, str):
         return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
     if ts is None or ts is NaT:
@@ -433,7 +433,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
 
     obj = _TSObject()
 
-    assert is_string_object(ts)
+    assert isinstance(ts, str)
 
     if len(ts) == 0 or ts in nat_strings:
         ts = NaT

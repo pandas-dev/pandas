@@ -16,8 +16,6 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, uint8_t, intp_t
 cnp.import_array()
 
-from pandas._libs.tslibs.util cimport is_string_object
-
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
@@ -98,7 +96,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
         return result
 
-    if is_string_object(ambiguous):
+    if isinsance(ambiguous, str):
         if ambiguous == 'infer':
             infer_dst = True
         elif ambiguous == 'NaT':
