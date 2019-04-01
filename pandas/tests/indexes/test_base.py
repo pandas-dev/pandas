@@ -783,32 +783,38 @@ class TestIndex(Base):
         sorted_ = pd.Index(['a', 'b', 'c'])
         tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [None, True, False])
     def test_chained_union(self, sort):
         # Chained unions handles names correctly
         i1 = Index([1, 2], name='i1')
         i2 = Index([5, 6], name='i2')
         i3 = Index([3, 4], name='i3')
-        union = i1.union(i2.union(i3, sort=sort), sort=sort)
-        expected = i1.union(i2, sort=sort).union(i3, sort=sort)
+
+        warning = FutureWarning if sort is None else None
+        with tm.assert_produces_warning(warning):
+            union = i1.union(i2.union(i3, sort=sort), sort=sort)
+            expected = i1.union(i2, sort=sort).union(i3, sort=sort)
         tm.assert_index_equal(union, expected)
 
         j1 = Index([1, 2], name='j1')
         j2 = Index([], name='j2')
         j3 = Index([], name='j3')
-        union = j1.union(j2.union(j3, sort=sort), sort=sort)
-        expected = j1.union(j2, sort=sort).union(j3, sort=sort)
+        with tm.assert_produces_warning(warning):
+            union = j1.union(j2.union(j3, sort=sort), sort=sort)
+            expected = j1.union(j2, sort=sort).union(j3, sort=sort)
         tm.assert_index_equal(union, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [None, True, False])
     def test_union(self, sort):
         # TODO: Replace with fixturesult
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
         everything = self.strIndex[:20]
 
-        union = first.union(second, sort=sort)
-        if sort is None:
+        warning = FutureWarning if sort is None else None
+        with tm.assert_produces_warning(warning):
+            union = first.union(second, sort=sort)
+        if sort is not False:
             tm.assert_index_equal(union, everything.sort_values())
         assert tm.equalContents(union, everything)
 
@@ -819,21 +825,14 @@ class TestIndex(Base):
         idx = pd.Index([1, 0, 2])
         # default, sort=None
         other = idx[slice_]
-        tm.assert_index_equal(idx.union(other), idx)
-        tm.assert_index_equal(other.union(idx), idx)
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_index_equal(idx.union(other), idx)
+            tm.assert_index_equal(other.union(idx), idx)
 
         # sort=False
         tm.assert_index_equal(idx.union(other, sort=False), idx)
 
-    @pytest.mark.xfail(reason="Not implemented")
-    @pytest.mark.parametrize('slice_', [slice(None), slice(0)])
-    def test_union_sort_special_true(self, slice_):
-        # TODO decide on True behaviour
         # sort=True
-        idx = pd.Index([1, 0, 2])
-        # default, sort=None
-        other = idx[slice_]
-
         result = idx.union(other, sort=True)
         expected = pd.Index([0, 1, 2])
         tm.assert_index_equal(result, expected)
@@ -842,31 +841,29 @@ class TestIndex(Base):
         # https://github.com/pandas-dev/pandas/issues/24959
         idx = pd.Index([1, pd.Timestamp('2000')])
         # default (sort=None)
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning,
+                                        raise_on_extra_warnings=False):
             result = idx.union(idx[:1])
-
         tm.assert_index_equal(result, idx)
 
         # sort=None
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning,
+                                        raise_on_extra_warnings=False):
             result = idx.union(idx[:1], sort=None)
+        tm.assert_index_equal(result, idx)
+
+        # sort=True
+        with tm.assert_produces_warning(RuntimeWarning):
+            result = idx.union(idx[:1], sort=True)
         tm.assert_index_equal(result, idx)
 
         # sort=False
         result = idx.union(idx[:1], sort=False)
         tm.assert_index_equal(result, idx)
 
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_union_sort_other_incomparable_true(self):
-        # TODO decide on True behaviour
-        # sort=True
-        idx = pd.Index([1, pd.Timestamp('2000')])
-        with pytest.raises(TypeError, match='.*'):
-            idx.union(idx[:1], sort=True)
-
     @pytest.mark.parametrize("klass", [
         np.array, Series, list])
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [None, True, False])
     def test_union_from_iterables(self, klass, sort):
         # GH 10149
         # TODO: Replace with fixturesult
@@ -875,53 +872,71 @@ class TestIndex(Base):
         everything = self.strIndex[:20]
 
         case = klass(second.values)
-        result = first.union(case, sort=sort)
-        if sort is None:
+
+        warning = FutureWarning if sort is None else None
+        with tm.assert_produces_warning(warning):
+            result = first.union(case, sort=sort)
+
+        if sort is not False:
             tm.assert_index_equal(result, everything.sort_values())
         assert tm.equalContents(result, everything)
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [None, True, False])
     def test_union_identity(self, sort):
         # TODO: replace with fixturesult
         first = self.strIndex[5:20]
 
-        union = first.union(first, sort=sort)
+        warning = FutureWarning if sort is None else None
+        with tm.assert_produces_warning(warning):
+            union = first.union(first, sort=sort)
+
         # i.e. identity is not preserved when sort is True
         assert (union is first) is (not sort)
 
         # This should no longer be the same object, since [] is not consistent,
         # both objects will be recast to dtype('O')
         union = first.union([], sort=sort)
+        with tm.assert_produces_warning(warning):
+            union = first.union([], sort=sort)
         assert (union is first) is (not sort)
 
-        union = Index([]).union(first, sort=sort)
+        with tm.assert_produces_warning(warning):
+            union = Index([]).union(first, sort=sort)
         assert (union is first) is (not sort)
 
     @pytest.mark.parametrize("first_list", [list('ba'), list()])
     @pytest.mark.parametrize("second_list", [list('ab'), list()])
     @pytest.mark.parametrize("first_name, second_name, expected_name", [
         ('A', 'B', None), (None, 'B', None), ('A', None, None)])
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [None, True, False])
     def test_union_name_preservation(self, first_list, second_list, first_name,
                                      second_name, expected_name, sort):
         first = Index(first_list, name=first_name)
         second = Index(second_list, name=second_name)
-        union = first.union(second, sort=sort)
+
+        warning = FutureWarning if sort is None else None
+        with tm.assert_produces_warning(warning):
+            union = first.union(second, sort=sort)
 
         vals = set(first_list).union(second_list)
 
         if sort is None and len(first_list) > 0 and len(second_list) > 0:
             expected = Index(sorted(vals), name=expected_name)
             tm.assert_index_equal(union, expected)
+        elif sort:
+            expected = Index(sorted(vals), name=expected_name)
+            tm.assert_index_equal(union, expected)
         else:
             expected = Index(vals, name=expected_name)
             assert tm.equalContents(union, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
+    @pytest.mark.parametrize("sort", [None, True, False])
     def test_union_dt_as_obj(self, sort):
         # TODO: Replace with fixturesult
-        firstCat = self.strIndex.union(self.dateIndex)
-        secondCat = self.strIndex.union(self.strIndex)
+        warning = FutureWarning if sort is None else None
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            firstCat = self.strIndex.union(self.dateIndex, sort=sort)
+            secondCat = self.strIndex.union(self.strIndex, sort=sort)
 
         if self.dateIndex.dtype == np.object_:
             appended = np.append(self.strIndex, self.dateIndex)
@@ -933,15 +948,6 @@ class TestIndex(Base):
         tm.assert_contains_all(self.strIndex, firstCat)
         tm.assert_contains_all(self.strIndex, secondCat)
         tm.assert_contains_all(self.dateIndex, firstCat)
-
-    @pytest.mark.parametrize("method", ['union', 'intersection', 'difference',
-                                        'symmetric_difference'])
-    def test_setops_disallow_true(self, method):
-        idx1 = pd.Index(['a', 'b'])
-        idx2 = pd.Index(['b', 'c'])
-
-        with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
-            getattr(idx1, method)(idx2, sort=True)
 
     def test_map_identity_mapping(self):
         # GH 12766
@@ -1712,7 +1718,9 @@ class TestIndex(Base):
                                  (2, 'B'), (1, 'C'), (2, 'C')],
                                 dtype=[('num', int), ('let', 'a1')]))
 
-        result = getattr(index1, method)(index2, sort=sort)
+        warning = FutureWarning if method == 'union' else None
+        with tm.assert_produces_warning(warning):
+            result = getattr(index1, method)(index2, sort=sort)
         assert result.ndim == 1
 
         expected = Index(expected)
@@ -1923,12 +1931,14 @@ class TestIndex(Base):
         left_index = Index(np.random.permutation(15))
         right_index = tm.makeDateIndex(10)
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning,
+                                        raise_on_extra_warnings=False):
             result = left_index.join(right_index, how='outer')
 
         # right_index in this case because DatetimeIndex has join precedence
         # over Int64Index
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning,
+                                        raise_on_extra_warnings=False):
             expected = right_index.astype(object).union(
                 left_index.astype(object))
 
@@ -2239,7 +2249,8 @@ class TestMixedIntIndex(Base):
         first = index[3:]
         second = index[:5]
 
-        result = first.union(second)
+        with tm.assert_produces_warning(FutureWarning):
+            result = first.union(second)
 
         expected = Index([0, 1, 2, 'a', 'b', 'c'])
         tm.assert_index_equal(result, expected)
@@ -2252,7 +2263,8 @@ class TestMixedIntIndex(Base):
         first = index[3:]
         second = index[:5]
 
-        result = first.union(klass(second.values))
+        with tm.assert_produces_warning(FutureWarning):
+            result = first.union(klass(second.values))
 
         assert tm.equalContents(result, index)
 

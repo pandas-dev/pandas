@@ -358,13 +358,3 @@ def test_union_sort_other_incomparable_sort():
     idx = pd.MultiIndex.from_product([[1, pd.Timestamp('2000')], ['a', 'b']])
     with pytest.raises(TypeError, match='Cannot compare'):
         idx.union(idx[:1], sort=True)
-
-
-@pytest.mark.parametrize("method", ['union', 'intersection', 'difference',
-                                    'symmetric_difference'])
-def test_setops_disallow_true(method):
-    idx1 = pd.MultiIndex.from_product([['a', 'b'], [1, 2]])
-    idx2 = pd.MultiIndex.from_product([['b', 'c'], [1, 2]])
-
-    with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
-        getattr(idx1, method)(idx2, sort=True)

@@ -2324,9 +2324,10 @@ class Index(IndexOpsMixin, PandasObject):
                 and is_dtype_equal(self.dtype, other.dtype))
 
     def _validate_sort_keyword(self, sort):
-        if sort not in [None, False]:
+        if sort not in [None, True, False]:
             raise ValueError("The 'sort' keyword only takes the values of "
-                             "None or False; {0} was passed.".format(sort))
+                             "None, True or False; {0} was "
+                             "passed.".format(sort))
 
     def union(self, other, sort=None):
         """
@@ -2349,6 +2350,12 @@ class Index(IndexOpsMixin, PandasObject):
               2. `self` or `other` has length 0.
               3. Some values in `self` or `other` cannot be compared.
                  A RuntimeWarning is issued in this case.
+
+            .. deprecated:: 0.25.0
+
+            * True : Sort the result, except when some values in `self`
+            or `other` cannot be compared. A RuntimeWarning is issued
+            in this case
 
             * False : do not sort the result.
 
@@ -2409,10 +2416,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         if not len(other) or self.equals(other):
-            return self._get_reconciled_name_object(other)
+            res = self._get_reconciled_name_object(other)
+            if sort:
+                res = res.sort_values()
+            return res
 
         if not len(self):
-            return other._get_reconciled_name_object(self)
+            res = other._get_reconciled_name_object(self)
+            if sort:
+                res = res.sort_values()
+            return res
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self) or is_datetime64tz_dtype(self):
@@ -2424,7 +2437,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             rvals = other._values
 
-        if sort is None and self.is_monotonic and other.is_monotonic:
+        if sort is not False and self.is_monotonic and other.is_monotonic:
             try:
                 result = self._outer_indexer(lvals, rvals)[0]
             except TypeError:
@@ -2446,7 +2459,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 result = lvals
 
-            if sort is None:
+            if sort is not False:
                 try:
                     result = sorting.safe_sort(result)
                 except TypeError as e:
