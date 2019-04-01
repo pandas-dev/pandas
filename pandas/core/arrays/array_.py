@@ -7,13 +7,13 @@ from pandas._libs import lib, tslibs
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype, is_extension_array_dtype, is_timedelta64_ns_dtype)
 from pandas.core.dtypes.dtypes import ExtensionDtype, registry
+from pandas.core.dtypes.generic import ABCExtensionArray
 
 
-def array(data,         # type: Sequence[object]
-          dtype=None,   # type: Optional[Union[str, np.dtype, ExtensionDtype]]
-          copy=True,    # type: bool
-          ):
-    # type: (...) -> ExtensionArray
+def array(data: Sequence[object],
+          dtype: Optional[Union[str, np.dtype, ExtensionDtype]] = None,
+          copy: bool = True,
+          ) -> ABCExtensionArray:
     """
     Create an array.
 
