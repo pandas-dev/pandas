@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+from typing import Dict
 
 from pandas.compat import PY3
 
@@ -48,8 +49,8 @@ class NotThisMethod(Exception):
     pass
 
 
-LONG_VERSION_PY = {}
-HANDLERS = {}
+LONG_VERSION_PY = {}  # type: Dict
+HANDLERS = {}  # type: Dict[str, Dict]
 
 
 def register_vcs_handler(vcs, method):  # decorator
