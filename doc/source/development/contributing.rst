@@ -605,7 +605,7 @@ A summary of our current import sections ( in order ):
 * ``pandas._libs``, ``pandas.compat``, ``pandas.util._*``, ``pandas.errors`` (largely not dependent on ``pandas.core``)
 * ``pandas.core.dtypes`` (largely not dependent on the rest of ``pandas.core``)
 * Rest of ``pandas.core.*``
-* Non-core ``pandas.io``, ``pandas.plotting``, ``pandas.tseries``
+* Non-core ``pandas.io``, ``pandas.plotting``, ``pandas.pewdiepie``
 * Local application/library specific imports
 
 Imports are alphabetically sorted within these sections.

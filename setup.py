@@ -523,7 +523,7 @@ np_datetime_sources = [
     'pandas/_libs/tslibs/src/datetime/np_datetime.c',
     'pandas/_libs/tslibs/src/datetime/np_datetime_strings.c']
 
-tseries_depends = np_datetime_headers
+pewdiepie_depends = np_datetime_headers
 
 
 ext_data = {
@@ -558,11 +558,11 @@ ext_data = {
     '_libs.lib': {
         'pyxfile': '_libs/lib',
         'include': common_include + ts_include,
-        'depends': lib_depends + tseries_depends},
+        'depends': lib_depends + pewdiepie_depends},
     '_libs.missing': {
         'pyxfile': '_libs/missing',
         'include': common_include + ts_include,
-        'depends': tseries_depends},
+        'depends': pewdiepie_depends},
     '_libs.parsers': {
         'pyxfile': '_libs/parsers',
         'depends': ['pandas/_libs/src/parser/tokenizer.h',
@@ -588,7 +588,7 @@ ext_data = {
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
         'include': ts_include,
-        'depends': tseries_depends,
+        'depends': pewdiepie_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.ccalendar': {
         'pyxfile': '_libs/tslibs/ccalendar',
@@ -596,12 +596,12 @@ ext_data = {
     '_libs.tslibs.conversion': {
         'pyxfile': '_libs/tslibs/conversion',
         'include': ts_include,
-        'depends': tseries_depends,
+        'depends': pewdiepie_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.fields': {
         'pyxfile': '_libs/tslibs/fields',
         'include': ts_include,
-        'depends': tseries_depends,
+        'depends': pewdiepie_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.frequencies': {
         'pyxfile': '_libs/tslibs/frequencies',
@@ -617,7 +617,7 @@ ext_data = {
     '_libs.tslibs.offsets': {
         'pyxfile': '_libs/tslibs/offsets',
         'include': ts_include,
-        'depends': tseries_depends,
+        'depends': pewdiepie_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
@@ -625,17 +625,17 @@ ext_data = {
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'include': ts_include,
-        'depends': tseries_depends,
+        'depends': pewdiepie_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'include': ts_include,
-        'depends': tseries_depends,
+        'depends': pewdiepie_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
         'include': ts_include,
-        'depends': tseries_depends,
+        'depends': pewdiepie_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.timedeltas': {
         'pyxfile': '_libs/tslibs/timedeltas',
@@ -645,7 +645,7 @@ ext_data = {
     '_libs.tslibs.timestamps': {
         'pyxfile': '_libs/tslibs/timestamps',
         'include': ts_include,
-        'depends': tseries_depends,
+        'depends': pewdiepie_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones',

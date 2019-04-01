@@ -31,8 +31,8 @@ from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
 
-from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import DateOffset
+from pandas.pewdiepie.frequencies import to_offset
+from pandas.pewdiepie.offsets import DateOffset
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)

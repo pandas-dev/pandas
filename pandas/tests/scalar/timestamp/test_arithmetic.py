@@ -7,8 +7,8 @@ import pytest
 from pandas import Timedelta, Timestamp
 import pandas.util.testing as tm
 
-from pandas.tseries import offsets
-from pandas.tseries.frequencies import to_offset
+from pandas.pewdiepie import offsets
+from pandas.pewdiepie.frequencies import to_offset
 
 
 class TestTimestampArithmetic(object):
@@ -86,7 +86,7 @@ class TestTimestampArithmetic(object):
             assert type(ts - 1) == Timestamp
 
         # Timestamp + datetime not supported, though subtraction is supported
-        # and yields timedelta more tests in tseries/base/tests/test_base.py
+        # and yields timedelta more tests in pewdiepie/base/tests/test_base.py
         assert type(ts - dt) == Timedelta
         assert type(ts + td) == Timestamp
         assert type(ts - td) == Timestamp

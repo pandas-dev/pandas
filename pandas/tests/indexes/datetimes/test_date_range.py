@@ -17,7 +17,7 @@ from pandas import DatetimeIndex, Timestamp, bdate_range, date_range, offsets
 from pandas.tests.series.common import TestData
 import pandas.util.testing as tm
 
-from pandas.tseries.offsets import (
+from pandas.pewdiepie.offsets import (
     BDay, CDay, DateOffset, MonthEnd, generate_range, prefix_mapping)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)

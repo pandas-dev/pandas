@@ -17,7 +17,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_index_equal, assert_series_equal)
 
-import pandas.tseries.offsets as offsets
+import pandas.pewdiepie.offsets as offsets
 
 
 @pytest.fixture(params=product([True, False], [True, False]))

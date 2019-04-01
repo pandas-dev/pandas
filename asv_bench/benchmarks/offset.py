@@ -5,11 +5,11 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 try:
-    import pandas.tseries.holiday  # noqa
+    import pandas.pewdiepie.holiday  # noqa
 except ImportError:
     pass
 
-hcal = pd.tseries.holiday.USFederalHolidayCalendar()
+hcal = pd.pewdiepie.holiday.USFederalHolidayCalendar()
 # These offests currently raise a NotImplimentedError with .apply_index()
 non_apply = [pd.offsets.Day(),
              pd.offsets.BYearEnd(),

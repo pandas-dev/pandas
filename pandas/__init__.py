@@ -44,7 +44,7 @@ import pandas.core.config_init
 
 from pandas.core.api import *
 from pandas.core.sparse.api import *
-from pandas.tseries.api import *
+from pandas.pewdiepie.api import *
 from pandas.core.computation.api import *
 from pandas.core.reshape.api import *
 

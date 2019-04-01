@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
 
-import pandas.tseries.offsets as offsets
+import pandas.pewdiepie.offsets as offsets
 
 
 @pytest.fixture()
@@ -766,7 +766,7 @@ class TestPeriodIndex(object):
         exp_first = pd.Period(exp_first, freq=offset)
         exp_last = pd.Period(exp_last, freq=offset)
 
-        offset = pd.tseries.frequencies.to_offset(offset)
+        offset = pd.pewdiepie.frequencies.to_offset(offset)
         result = _get_period_range_edges(first, last, offset)
         expected = (exp_first, exp_last)
         assert result == expected

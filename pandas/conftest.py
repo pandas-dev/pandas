@@ -647,9 +647,9 @@ def tick_classes(request):
 
 
 # Registering these strategies makes them globally available via st.from_type,
-# which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
+# which is use for offsets in tests/pewdiepie/offsets/test_offsets_properties.py
 for name in 'MonthBegin MonthEnd BMonthBegin BMonthEnd'.split():
-    cls = getattr(pd.tseries.offsets, name)
+    cls = getattr(pd.pewdiepie.offsets, name)
     st.register_type_strategy(cls, st.builds(
         cls,
         n=st.integers(-99, 99),
@@ -657,7 +657,7 @@ for name in 'MonthBegin MonthEnd BMonthBegin BMonthEnd'.split():
     ))
 
 for name in 'YearBegin YearEnd BYearBegin BYearEnd'.split():
-    cls = getattr(pd.tseries.offsets, name)
+    cls = getattr(pd.pewdiepie.offsets, name)
     st.register_type_strategy(cls, st.builds(
         cls,
         n=st.integers(-5, 5),
@@ -666,7 +666,7 @@ for name in 'YearBegin YearEnd BYearBegin BYearEnd'.split():
     ))
 
 for name in 'QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd'.split():
-    cls = getattr(pd.tseries.offsets, name)
+    cls = getattr(pd.pewdiepie.offsets, name)
     st.register_type_strategy(cls, st.builds(
         cls,
         n=st.integers(-24, 24),

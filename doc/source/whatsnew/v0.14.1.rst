@@ -53,7 +53,7 @@ API changes
 
   .. code-block:: ipython
 
-    In [6]: from pandas.tseries import offsets
+    In [6]: from pandas.pewdiepie import offsets
 
     In [7]: d = pd.Timestamp('2014-01-01 09:00')
 
@@ -67,7 +67,7 @@ API changes
   .. ipython:: python
      :suppress:
 
-     import pandas.tseries.offsets as offsets
+     import pandas.pewdiepie.offsets as offsets
      d = pd.Timestamp('2014-01-01 09:00')
 
   .. ipython:: python
@@ -97,7 +97,7 @@ Enhancements
 
   .. code-block:: python
 
-     import pandas.tseries.offsets as offsets
+     import pandas.pewdiepie.offsets as offsets
 
      day = offsets.Day()
      day.apply(pd.Timestamp('2014-01-01 09:00'))

@@ -13,8 +13,8 @@ from pandas import (
 from pandas.core.tools.datetimes import to_datetime
 import pandas.util.testing as tm
 
-import pandas.tseries.frequencies as frequencies
-import pandas.tseries.offsets as offsets
+import pandas.pewdiepie.frequencies as frequencies
+import pandas.pewdiepie.offsets as offsets
 
 
 def _check_generated_range(start, periods, freq):

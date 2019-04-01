@@ -27,7 +27,7 @@ from pandas.core.indexes.datetimelike import (
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 
-from pandas.tseries.frequencies import to_offset
+from pandas.pewdiepie.frequencies import to_offset
 
 
 def _make_wrapped_arith_op(opname):

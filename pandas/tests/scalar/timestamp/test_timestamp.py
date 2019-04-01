@@ -21,7 +21,7 @@ import pandas.util._test_decorators as td
 from pandas import NaT, Period, Timedelta, Timestamp
 import pandas.util.testing as tm
 
-from pandas.tseries import offsets
+from pandas.pewdiepie import offsets
 
 
 class TestTimestampProperties(object):

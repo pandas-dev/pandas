@@ -12,7 +12,7 @@ from pandas.compat.numpy import np_datetime64_compat
 from pandas import Index, Period, Series, Timestamp, date_range
 import pandas.util.testing as tm
 
-from pandas.tseries.offsets import Day, Micro, Milli, Second
+from pandas.pewdiepie.offsets import Day, Micro, Milli, Second
 
 converter = pytest.importorskip('pandas.plotting._converter')
 from pandas.plotting import (deregister_matplotlib_converters,  # isort:skip
@@ -135,7 +135,7 @@ class TestRegistration(object):
 
     def test_old_import_warns(self):
         with tm.assert_produces_warning(FutureWarning) as w:
-            from pandas.tseries import converter
+            from pandas.pewdiepie import converter
             converter.register()
 
         assert len(w)

@@ -3,11 +3,11 @@ from datetime import timedelta
 import dateutil
 import numpy as np
 from pandas import to_datetime, date_range, Series, DataFrame, period_range
-from pandas.tseries.frequencies import infer_freq
+from pandas.pewdiepie.frequencies import infer_freq
 try:
     from pandas.plotting._converter import DatetimeConverter
 except ImportError:
-    from pandas.tseries.converter import DatetimeConverter
+    from pandas.pewdiepie.converter import DatetimeConverter
 
 
 class DatetimeIndex(object):

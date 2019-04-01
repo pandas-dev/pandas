@@ -2269,7 +2269,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
 
     def __eq__(self, other):
         if isinstance(other, str):
-            from pandas.tseries.frequencies import to_offset
+            from pandas.pewdiepie.frequencies import to_offset
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
                 #  incomparable type so == is False and != is True
@@ -2290,7 +2290,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
 
     def __ne__(self, other):
         if isinstance(other, str):
-            from pandas.tseries.frequencies import to_offset
+            from pandas.pewdiepie.frequencies import to_offset
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
                 #  incomparable type so == is False and != is True
@@ -2433,7 +2433,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
     -------
     dates : generator object
     """
-    from pandas.tseries.frequencies import to_offset
+    from pandas.pewdiepie.frequencies import to_offset
     offset = to_offset(offset)
 
     start = to_datetime(start)

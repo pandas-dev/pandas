@@ -20,7 +20,7 @@ import pandas.core.sparse.frame as spf
 from pandas.tests.series.test_api import SharedWithSparse
 import pandas.util.testing as tm
 
-from pandas.tseries.offsets import BDay
+from pandas.pewdiepie.offsets import BDay
 
 
 def _test_data1():

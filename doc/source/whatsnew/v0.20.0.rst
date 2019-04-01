@@ -1233,7 +1233,7 @@ If indicated, a deprecation warning will be issued if you reference theses modul
 Some new subpackages are created with public functionality that is not directly
 exposed in the top-level namespace: ``pandas.errors``, ``pandas.plotting`` and
 ``pandas.testing`` (more details below). Together with ``pandas.api.types`` and
-certain functions in the ``pandas.io`` and ``pandas.tseries`` submodules,
+certain functions in the ``pandas.io`` and ``pandas.pewdiepie`` submodules,
 these are now the public subpackages.
 
 Further changes:

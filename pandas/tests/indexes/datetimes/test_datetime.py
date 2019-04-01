@@ -57,7 +57,7 @@ class TestDatetimeIndex(object):
     def test_time_overflow_for_32bit_machines(self):
         # GH8943.  On some machines NumPy defaults to np.int32 (for example,
         # 32-bit Linux machines).  In the function _generate_regular_range
-        # found in tseries/index.py, `periods` gets multiplied by `strides`
+        # found in pewdiepie/index.py, `periods` gets multiplied by `strides`
         # (which has value 1e9) and since the max value for np.int32 is ~2e9,
         # and since those machines won't promote np.int32 to np.int64, we get
         # overflow.

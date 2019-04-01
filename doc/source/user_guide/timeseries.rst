@@ -874,40 +874,40 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :header: "Date Offset", "Frequency String", "Description"
     :widths: 15, 15, 65
 
-    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to 1 calendar day"
-    :class:`~pandas.tseries.offsets.BDay` or :class:`~pandas.tseries.offsets.BusinessDay`, ``'B'``,"business day (weekday)"
-    :class:`~pandas.tseries.offsets.CDay` or :class:`~pandas.tseries.offsets.CustomBusinessDay`, ``'C'``, "custom business day"
-    :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
-    :class:`~pandas.tseries.offsets.WeekOfMonth`, ``'WOM'``, "the x-th day of the y-th week of each month"
-    :class:`~pandas.tseries.offsets.LastWeekOfMonth`, ``'LWOM'``, "the x-th day of the last week of each month"
-    :class:`~pandas.tseries.offsets.MonthEnd`, ``'M'``, "calendar month end"
-    :class:`~pandas.tseries.offsets.MonthBegin`, ``'MS'``, "calendar month begin"
-    :class:`~pandas.tseries.offsets.BMonthEnd` or :class:`~pandas.tseries.offsets.BusinessMonthEnd`, ``'BM'``, "business month end"
-    :class:`~pandas.tseries.offsets.BMonthBegin` or :class:`~pandas.tseries.offsets.BusinessMonthBegin`, ``'BMS'``, "business month begin"
-    :class:`~pandas.tseries.offsets.CBMonthEnd` or :class:`~pandas.tseries.offsets.CustomBusinessMonthEnd`, ``'CBM'``, "custom business month end"
-    :class:`~pandas.tseries.offsets.CBMonthBegin` or :class:`~pandas.tseries.offsets.CustomBusinessMonthBegin`, ``'CBMS'``, "custom business month begin"
-    :class:`~pandas.tseries.offsets.SemiMonthEnd`, ``'SM'``, "15th (or other day_of_month) and calendar month end"
-    :class:`~pandas.tseries.offsets.SemiMonthBegin`, ``'SMS'``, "15th (or other day_of_month) and calendar month begin"
-    :class:`~pandas.tseries.offsets.QuarterEnd`, ``'Q'``, "calendar quarter end"
-    :class:`~pandas.tseries.offsets.QuarterBegin`, ``'QS'``, "calendar quarter begin"
-    :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQ``, "business quarter end"
-    :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
-    :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
-    :class:`~pandas.tseries.offsets.YearEnd`, ``'A'``, "calendar year end"
-    :class:`~pandas.tseries.offsets.YearBegin`, ``'AS'`` or ``'BYS'``,"calendar year begin"
-    :class:`~pandas.tseries.offsets.BYearEnd`, ``'BA'``, "business year end"
-    :class:`~pandas.tseries.offsets.BYearBegin`, ``'BAS'``, "business year begin"
-    :class:`~pandas.tseries.offsets.FY5253`, ``'RE'``, "retail (aka 52-53 week) year"
-    :class:`~pandas.tseries.offsets.Easter`, None, "Easter holiday"
-    :class:`~pandas.tseries.offsets.BusinessHour`, ``'BH'``, "business hour"
-    :class:`~pandas.tseries.offsets.CustomBusinessHour`, ``'CBH'``, "custom business hour"
-    :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one absolute day"
-    :class:`~pandas.tseries.offsets.Hour`, ``'H'``, "one hour"
-    :class:`~pandas.tseries.offsets.Minute`, ``'T'`` or ``'min'``,"one minute"
-    :class:`~pandas.tseries.offsets.Second`, ``'S'``, "one second"
-    :class:`~pandas.tseries.offsets.Milli`, ``'L'`` or ``'ms'``, "one millisecond"
-    :class:`~pandas.tseries.offsets.Micro`, ``'U'`` or ``'us'``, "one microsecond"
-    :class:`~pandas.tseries.offsets.Nano`, ``'N'``, "one nanosecond"
+    :class:`~pandas.pewdiepie.offsets.DateOffset`, None, "Generic offset class, defaults to 1 calendar day"
+    :class:`~pandas.pewdiepie.offsets.BDay` or :class:`~pandas.pewdiepie.offsets.BusinessDay`, ``'B'``,"business day (weekday)"
+    :class:`~pandas.pewdiepie.offsets.CDay` or :class:`~pandas.pewdiepie.offsets.CustomBusinessDay`, ``'C'``, "custom business day"
+    :class:`~pandas.pewdiepie.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
+    :class:`~pandas.pewdiepie.offsets.WeekOfMonth`, ``'WOM'``, "the x-th day of the y-th week of each month"
+    :class:`~pandas.pewdiepie.offsets.LastWeekOfMonth`, ``'LWOM'``, "the x-th day of the last week of each month"
+    :class:`~pandas.pewdiepie.offsets.MonthEnd`, ``'M'``, "calendar month end"
+    :class:`~pandas.pewdiepie.offsets.MonthBegin`, ``'MS'``, "calendar month begin"
+    :class:`~pandas.pewdiepie.offsets.BMonthEnd` or :class:`~pandas.pewdiepie.offsets.BusinessMonthEnd`, ``'BM'``, "business month end"
+    :class:`~pandas.pewdiepie.offsets.BMonthBegin` or :class:`~pandas.pewdiepie.offsets.BusinessMonthBegin`, ``'BMS'``, "business month begin"
+    :class:`~pandas.pewdiepie.offsets.CBMonthEnd` or :class:`~pandas.pewdiepie.offsets.CustomBusinessMonthEnd`, ``'CBM'``, "custom business month end"
+    :class:`~pandas.pewdiepie.offsets.CBMonthBegin` or :class:`~pandas.pewdiepie.offsets.CustomBusinessMonthBegin`, ``'CBMS'``, "custom business month begin"
+    :class:`~pandas.pewdiepie.offsets.SemiMonthEnd`, ``'SM'``, "15th (or other day_of_month) and calendar month end"
+    :class:`~pandas.pewdiepie.offsets.SemiMonthBegin`, ``'SMS'``, "15th (or other day_of_month) and calendar month begin"
+    :class:`~pandas.pewdiepie.offsets.QuarterEnd`, ``'Q'``, "calendar quarter end"
+    :class:`~pandas.pewdiepie.offsets.QuarterBegin`, ``'QS'``, "calendar quarter begin"
+    :class:`~pandas.pewdiepie.offsets.BQuarterEnd`, ``'BQ``, "business quarter end"
+    :class:`~pandas.pewdiepie.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
+    :class:`~pandas.pewdiepie.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
+    :class:`~pandas.pewdiepie.offsets.YearEnd`, ``'A'``, "calendar year end"
+    :class:`~pandas.pewdiepie.offsets.YearBegin`, ``'AS'`` or ``'BYS'``,"calendar year begin"
+    :class:`~pandas.pewdiepie.offsets.BYearEnd`, ``'BA'``, "business year end"
+    :class:`~pandas.pewdiepie.offsets.BYearBegin`, ``'BAS'``, "business year begin"
+    :class:`~pandas.pewdiepie.offsets.FY5253`, ``'RE'``, "retail (aka 52-53 week) year"
+    :class:`~pandas.pewdiepie.offsets.Easter`, None, "Easter holiday"
+    :class:`~pandas.pewdiepie.offsets.BusinessHour`, ``'BH'``, "business hour"
+    :class:`~pandas.pewdiepie.offsets.CustomBusinessHour`, ``'CBH'``, "custom business hour"
+    :class:`~pandas.pewdiepie.offsets.Day`, ``'D'``, "one absolute day"
+    :class:`~pandas.pewdiepie.offsets.Hour`, ``'H'``, "one hour"
+    :class:`~pandas.pewdiepie.offsets.Minute`, ``'T'`` or ``'min'``,"one minute"
+    :class:`~pandas.pewdiepie.offsets.Second`, ``'S'``, "one second"
+    :class:`~pandas.pewdiepie.offsets.Milli`, ``'L'`` or ``'ms'``, "one millisecond"
+    :class:`~pandas.pewdiepie.offsets.Micro`, ``'U'`` or ``'us'``, "one microsecond"
+    :class:`~pandas.pewdiepie.offsets.Nano`, ``'N'``, "one nanosecond"
 
 ``DateOffsets`` additionally have :meth:`rollforward` and :meth:`rollback`
 methods for moving a date forward or backward respectively to a valid offset
@@ -1060,7 +1060,7 @@ Holiday calendars can be used to provide the list of holidays.  See the
 
 .. ipython:: python
 
-    from pandas.tseries.holiday import USFederalHolidayCalendar
+    from pandas.pewdiepie.holiday import USFederalHolidayCalendar
 
     bday_us = pd.offsets.CustomBusinessDay(calendar=USFederalHolidayCalendar())
 
@@ -1208,7 +1208,7 @@ as ``BusinessHour`` except that it skips specified custom holidays.
 
 .. ipython:: python
 
-    from pandas.tseries.holiday import USFederalHolidayCalendar
+    from pandas.pewdiepie.holiday import USFederalHolidayCalendar
     bhour_us = pd.offsets.CustomBusinessHour(calendar=USFederalHolidayCalendar())
     # Friday before MLK Day
     dt = datetime.datetime(2014, 1, 17, 15)
@@ -1413,7 +1413,7 @@ An example of how holidays and holiday calendars are defined:
 
 .. ipython:: python
 
-    from pandas.tseries.holiday import Holiday, USMemorialDay,\
+    from pandas.pewdiepie.holiday import Holiday, USMemorialDay,\
         AbstractHolidayCalendar, nearest_workday, MO
     class ExampleCalendar(AbstractHolidayCalendar):
         rules = [
@@ -1469,7 +1469,7 @@ or calendars with additional rules.
 
 .. ipython:: python
 
-    from pandas.tseries.holiday import get_calendar, HolidayCalendarFactory,\
+    from pandas.pewdiepie.holiday import get_calendar, HolidayCalendarFactory,\
         USLaborDay
     cal = get_calendar('ExampleCalendar')
     cal.rules
@@ -1699,7 +1699,7 @@ We can instead only resample those groups where we have points as follows:
 .. ipython:: python
 
     from functools import partial
-    from pandas.tseries.frequencies import to_offset
+    from pandas.pewdiepie.frequencies import to_offset
 
     def round(t, freq):
         # round a Timestamp to a specified freq

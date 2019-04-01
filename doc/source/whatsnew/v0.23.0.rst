@@ -507,7 +507,7 @@ Other Enhancements
 
 - Unary ``+`` now permitted for ``Series`` and ``DataFrame`` as  numeric operator (:issue:`16073`)
 - Better support for :meth:`~pandas.io.formats.style.Styler.to_excel` output with the ``xlsxwriter`` engine. (:issue:`16149`)
-- :func:`pandas.tseries.frequencies.to_offset` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
+- :func:`pandas.pewdiepie.frequencies.to_offset` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
 - :func:`MultiIndex.unique` now supports the ``level=`` argument, to get unique values from a specific index level (:issue:`17896`)
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_index()`` to determine whether the index will be rendered in output (:issue:`14194`)
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_columns()`` to determine whether columns will be hidden in output (:issue:`14194`)
@@ -550,7 +550,7 @@ Other Enhancements
 - :func:`read_html` now reads all ``<tbody>`` elements in a ``<table>``, not just the first. (:issue:`20690`)
 - :meth:`~pandas.core.window.Rolling.quantile` and :meth:`~pandas.core.window.Expanding.quantile` now accept the ``interpolation`` keyword, ``linear`` by default (:issue:`20497`)
 - zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
-- :class:`~pandas.tseries.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
+- :class:`~pandas.pewdiepie.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
 - :class:`DataFrame` and :class:`Series` now support matrix multiplication (``@``) operator (:issue:`10259`) for Python>=3.5
 - Updated :meth:`DataFrame.to_gbq` and :meth:`pandas.read_gbq` signature and documentation to reflect changes from
   the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
@@ -991,8 +991,8 @@ Datetimelike API Changes
 - Subtraction of :class:`Series` with timezone-aware ``dtype='datetime64[ns]'`` with mis-matched timezones will raise ``TypeError`` instead of ``ValueError`` (:issue:`18817`)
 - :class:`Timestamp` will no longer silently ignore unused or invalid ``tz`` or ``tzinfo`` keyword arguments (:issue:`17690`)
 - :class:`Timestamp` will no longer silently ignore invalid ``freq`` arguments (:issue:`5168`)
-- :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
-- ``pandas.tseries.frequencies.get_freq_group()`` and ``pandas.tseries.frequencies.DAYS`` are removed from the public API (:issue:`18034`)
+- :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.pewdiepie.offsets`` module (:issue:`17830`)
+- ``pandas.pewdiepie.frequencies.get_freq_group()`` and ``pandas.pewdiepie.frequencies.DAYS`` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
 - :attr:`Series.first` and :attr:`DataFrame.first` will now raise a ``TypeError``
   rather than ``NotImplementedError`` when index is not a :class:`DatetimeIndex` (:issue:`20725`).
@@ -1071,7 +1071,7 @@ Deprecations
 - The ``order`` parameter of :func:`factorize` is deprecated and will be removed in a future release (:issue:`19727`)
 - :attr:`Timestamp.weekday_name`, :attr:`DatetimeIndex.weekday_name`, and :attr:`Series.dt.weekday_name` are deprecated in favor of :meth:`Timestamp.day_name`, :meth:`DatetimeIndex.day_name`, and :meth:`Series.dt.day_name` (:issue:`12806`)
 
-- ``pandas.tseries.plotting.tsplot`` is deprecated. Use :func:`Series.plot` instead (:issue:`18627`)
+- ``pandas.pewdiepie.plotting.tsplot`` is deprecated. Use :func:`Series.plot` instead (:issue:`18627`)
 - ``Index.summary()`` is deprecated and will be removed in a future version (:issue:`18217`)
 - ``NDFrame.get_ftype_counts()`` is deprecated and will be removed in a future version (:issue:`18243`)
 - The ``convert_datetime64`` parameter in :func:`DataFrame.to_records` has been deprecated and will be removed in a future version. The NumPy bug motivating this parameter has been resolved. The default value for this parameter has also changed from ``True`` to ``None`` (:issue:`18160`).
@@ -1095,8 +1095,8 @@ Removal of prior version deprecations/changes
 
 - Warnings against the obsolete usage ``Categorical(codes, categories)``, which were emitted for instance when the first two arguments to ``Categorical()`` had different dtypes, and recommended the use of ``Categorical.from_codes``, have now been removed (:issue:`8074`)
 - The ``levels`` and ``labels`` attributes of a ``MultiIndex`` can no longer be set directly (:issue:`4039`).
-- ``pd.tseries.util.pivot_annual`` has been removed (deprecated since v0.19). Use ``pivot_table`` instead (:issue:`18370`)
-- ``pd.tseries.util.isleapyear`` has been removed (deprecated since v0.19). Use ``.is_leap_year`` property in Datetime-likes instead (:issue:`18370`)
+- ``pd.pewdiepie.util.pivot_annual`` has been removed (deprecated since v0.19). Use ``pivot_table`` instead (:issue:`18370`)
+- ``pd.pewdiepie.util.isleapyear`` has been removed (deprecated since v0.19). Use ``.is_leap_year`` property in Datetime-likes instead (:issue:`18370`)
 - ``pd.ordered_merge`` has been removed (deprecated since v0.19). Use ``pd.merge_ordered`` instead (:issue:`18459`)
 - The ``SparseList`` class has been removed (:issue:`14007`)
 - The ``pandas.io.wb`` and ``pandas.io.data`` stub modules have been removed (:issue:`13735`)
@@ -1110,8 +1110,8 @@ Removal of prior version deprecations/changes
 - :func:`read_csv` has dropped the ``compact_ints`` and ``use_unsigned`` parameters (:issue:`13323`)
 - The ``Timestamp`` class has dropped the ``offset`` attribute in favor of ``freq`` (:issue:`13593`)
 - The ``Series``, ``Categorical``, and ``Index`` classes have dropped the ``reshape`` method (:issue:`13012`)
-- ``pandas.tseries.frequencies.get_standard_freq`` has been removed in favor of ``pandas.tseries.frequencies.to_offset(freq).rule_code`` (:issue:`13874`)
-- The ``freqstr`` keyword has been removed from ``pandas.tseries.frequencies.to_offset`` in favor of ``freq`` (:issue:`13874`)
+- ``pandas.pewdiepie.frequencies.get_standard_freq`` has been removed in favor of ``pandas.pewdiepie.frequencies.to_offset(freq).rule_code`` (:issue:`13874`)
+- The ``freqstr`` keyword has been removed from ``pandas.pewdiepie.frequencies.to_offset`` in favor of ``freq`` (:issue:`13874`)
 - The ``Panel4D`` and ``PanelND`` classes have been removed (:issue:`13776`)
 - The ``Panel`` class has dropped the ``to_long`` and ``toLong`` methods (:issue:`19077`)
 - The options ``display.line_with`` and ``display.height`` are removed in favor of ``display.width`` and ``display.max_rows`` respectively (:issue:`4391`, :issue:`19107`)

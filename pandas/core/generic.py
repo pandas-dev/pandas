@@ -49,7 +49,7 @@ from pandas.core.ops import _align_method_FRAME
 
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
-from pandas.tseries.frequencies import to_offset
+from pandas.pewdiepie.frequencies import to_offset
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -8933,8 +8933,8 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         periods : int
             Number of periods to shift. Can be positive or negative.
-        freq : DateOffset, tseries.offsets, timedelta, or str, optional
-            Offset to use from the tseries module or time rule (e.g. 'EOM').
+        freq : DateOffset, pewdiepie.offsets, timedelta, or str, optional
+            Offset to use from the pewdiepie module or time rule (e.g. 'EOM').
             If `freq` is specified then the index values are shifted but the
             data is not realigned. That is, use `freq` if you would like to
             extend the index when shifting and preserve the original data.
@@ -9052,7 +9052,7 @@ class NDFrame(PandasObject, SelectionMixin):
         periods : int
             Number of periods to move, can be positive or negative
         freq : DateOffset, timedelta, or time rule string, default None
-            Increment to use from the tseries module or time rule (e.g. 'EOM')
+            Increment to use from the pewdiepie module or time rule (e.g. 'EOM')
         axis : int or basestring
             Corresponds to the axis that contains the Index
 

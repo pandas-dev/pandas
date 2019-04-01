@@ -16,8 +16,8 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._converter import (
     TimeSeries_DateFormatter, TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter)
-import pandas.tseries.frequencies as frequencies
-from pandas.tseries.offsets import DateOffset
+import pandas.pewdiepie.frequencies as frequencies
+from pandas.pewdiepie.offsets import DateOffset
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches

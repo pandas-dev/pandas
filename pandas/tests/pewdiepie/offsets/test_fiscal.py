@@ -11,8 +11,8 @@ from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 
 from pandas import Timestamp
 
-from pandas.tseries.frequencies import get_offset
-from pandas.tseries.offsets import FY5253, FY5253Quarter
+from pandas.pewdiepie.frequencies import get_offset
+from pandas.pewdiepie.offsets import FY5253, FY5253Quarter
 
 from .common import assert_offset_equal, assert_onOffset
 from .test_offsets import Base, WeekDay

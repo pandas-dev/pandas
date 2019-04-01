@@ -23,7 +23,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
 
-from pandas.tseries.offsets import BDay, BMonthEnd
+from pandas.pewdiepie.offsets import BDay, BMonthEnd
 
 
 def _simple_ts(start, end, freq='D'):

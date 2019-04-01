@@ -5,7 +5,7 @@ import pytest
 from pandas import DatetimeIndex
 import pandas.util.testing as tm
 
-from pandas.tseries.holiday import (
+from pandas.pewdiepie.holiday import (
     AbstractHolidayCalendar, Holiday, Timestamp, USFederalHolidayCalendar,
     USThanksgivingDay, get_calendar)
 

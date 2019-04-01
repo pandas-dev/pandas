@@ -6,7 +6,7 @@ from pandas._libs.tslibs.frequencies import (
     INVALID_FREQ_ERR_MSG, _period_str_to_code, get_rule_month, is_subperiod,
     is_superperiod)
 
-from pandas.tseries import offsets
+from pandas.pewdiepie import offsets
 
 
 @pytest.mark.parametrize("obj,expected", [

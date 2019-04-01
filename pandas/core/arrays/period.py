@@ -27,8 +27,8 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, datetimelike as dtl
 import pandas.core.common as com
 
-from pandas.tseries import frequencies
-from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
+from pandas.pewdiepie import frequencies
+from pandas.pewdiepie.offsets import DateOffset, Tick, _delta_to_tick
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -121,7 +121,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     There are two components to a PeriodArray
 
     - ordinals : integer ndarray
-    - freq : pd.tseries.offsets.Offset
+    - freq : pd.pewdiepie.offsets.Offset
 
     The values are physically stored as a 1-D ndarray of integers. These are
     called "ordinals" and represent some kind of offset from a base.

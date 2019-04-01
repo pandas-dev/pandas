@@ -88,7 +88,7 @@ Other Enhancements
 Deprecations
 ~~~~~~~~~~~~
 
-- ``pandas.tseries.register`` has been renamed to
+- ``pandas.pewdiepie.register`` has been renamed to
   :func:`pandas.plotting.register_matplotlib_converters` (:issue:`18301`)
 
 .. _whatsnew_0211.performance:

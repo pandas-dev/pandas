@@ -4,8 +4,8 @@ import pytest
 
 from pandas import Timedelta
 
-import pandas.tseries.frequencies as frequencies
-import pandas.tseries.offsets as offsets
+import pandas.pewdiepie.frequencies as frequencies
+import pandas.pewdiepie.offsets as offsets
 
 
 @pytest.mark.parametrize("freq_input,expected", [

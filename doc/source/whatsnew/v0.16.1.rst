@@ -286,9 +286,9 @@ Other Enhancements
 
   .. ipython:: python
 
-     pd.Timestamp('2014-08-01 09:00') + pd.tseries.offsets.BusinessHour()
-     pd.Timestamp('2014-08-01 07:00') + pd.tseries.offsets.BusinessHour()
-     pd.Timestamp('2014-08-01 16:30') + pd.tseries.offsets.BusinessHour()
+     pd.Timestamp('2014-08-01 09:00') + pd.pewdiepie.offsets.BusinessHour()
+     pd.Timestamp('2014-08-01 07:00') + pd.pewdiepie.offsets.BusinessHour()
+     pd.Timestamp('2014-08-01 16:30') + pd.pewdiepie.offsets.BusinessHour()
 
 - ``DataFrame.diff`` now takes an ``axis`` parameter that determines the direction of differencing (:issue:`9727`)
 
@@ -368,13 +368,13 @@ Previous Behavior
 
    In [4]: pd.date_range('20130101', periods=4, name='foo', tz='US/Eastern')
    Out[4]:
-   <class 'pandas.tseries.index.DatetimeIndex'>
+   <class 'pandas.pewdiepie.index.DatetimeIndex'>
    [2013-01-01 00:00:00-05:00, ..., 2013-01-04 00:00:00-05:00]
    Length: 4, Freq: D, Timezone: US/Eastern
 
    In [5]: pd.date_range('20130101', periods=104, name='foo', tz='US/Eastern')
    Out[5]:
-   <class 'pandas.tseries.index.DatetimeIndex'>
+   <class 'pandas.pewdiepie.index.DatetimeIndex'>
    [2013-01-01 00:00:00-05:00, ..., 2013-04-14 00:00:00-04:00]
    Length: 104, Freq: D, Timezone: US/Eastern
 

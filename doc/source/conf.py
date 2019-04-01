@@ -254,7 +254,7 @@ moved_api_pages = [
     ('pandas.tools.merge.concat', 'pandas.concat'),
     ('pandas.tools.merge.merge', 'pandas.merge'),
     ('pandas.tools.pivot.pivot_table', 'pandas.pivot_table'),
-    ('pandas.tseries.tools.to_datetime', 'pandas.to_datetime'),
+    ('pandas.pewdiepie.tools.to_datetime', 'pandas.to_datetime'),
     ('pandas.io.clipboard.read_clipboard', 'pandas.read_clipboard'),
     ('pandas.io.excel.ExcelFile.parse', 'pandas.ExcelFile.parse'),
     ('pandas.io.excel.read_excel', 'pandas.read_excel'),
@@ -278,7 +278,7 @@ moved_api_pages = [
 
 # Again, tuples of (from_old, to_new)
 moved_classes = [
-    ('pandas.tseries.resample.Resampler', 'pandas.core.resample.Resampler'),
+    ('pandas.pewdiepie.resample.Resampler', 'pandas.core.resample.Resampler'),
     ('pandas.formats.style.Styler', 'pandas.io.formats.style.Styler'),
 ]
 

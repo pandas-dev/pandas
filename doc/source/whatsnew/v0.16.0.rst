@@ -194,7 +194,7 @@ Other enhancements
 - Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
 - Added time interval selection in ``get_data_yahoo`` (:issue:`9071`)
 - Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
-- ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
+- ``pewdiepie.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
 - Lag parameter was added to the autocorrelation method of ``Series``, defaults to lag-1 autocorrelation (:issue:`9192`)
 - ``Timedelta`` will now accept ``nanoseconds`` keyword in constructor (:issue:`9273`)
 - SQL code now safely escapes table and column names (:issue:`8986`)
@@ -326,7 +326,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
   .. code-block:: ipython
 
      In [4]: df.loc[2:3]
-     TypeError: Cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with <type 'int'> keys
+     TypeError: Cannot do slice indexing on <class 'pandas.pewdiepie.index.DatetimeIndex'> with <type 'int'> keys
 
 
 .. _whatsnew_0160.api_breaking.categorical:

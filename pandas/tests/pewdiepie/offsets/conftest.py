@@ -1,6 +1,6 @@
 import pytest
 
-import pandas.tseries.offsets as offsets
+import pandas.pewdiepie.offsets as offsets
 
 
 @pytest.fixture(params=[getattr(offsets, o) for o in offsets.__all__])

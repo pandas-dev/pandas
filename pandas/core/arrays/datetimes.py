@@ -31,8 +31,8 @@ from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 
-from pandas.tseries.frequencies import get_period_alias, to_offset
-from pandas.tseries.offsets import Day, Tick
+from pandas.pewdiepie.frequencies import get_period_alias, to_offset
+from pandas.pewdiepie.offsets import Day, Tick
 
 _midnight = time(0, 0)
 # TODO(GH-24559): Remove warning, int_as_wall_time parameter.

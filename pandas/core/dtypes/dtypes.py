@@ -777,7 +777,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
                 m = cls._match.search(freq)
                 if m is not None:
                     freq = m.group('freq')
-            from pandas.tseries.frequencies import to_offset
+            from pandas.pewdiepie.frequencies import to_offset
             freq = to_offset(freq)
             if freq is not None:
                 return freq

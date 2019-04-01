@@ -85,12 +85,12 @@ for _d in DAYS:
 
 cdef to_offset(object obj):
     """
-    Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
+    Wrap pandas.pewdiepie.frequencies.to_offset to keep centralize runtime
     imports
     """
     if isinstance(obj, _BaseOffset):
         return obj
-    from pandas.tseries.frequencies import to_offset
+    from pandas.pewdiepie.frequencies import to_offset
     return to_offset(obj)
 
 
@@ -144,7 +144,7 @@ cdef _wrap_timedelta_result(result):
     """
     if PyDelta_Check(result):
         # convert Timedelta back to a Tick
-        from pandas.tseries.offsets import _delta_to_tick
+        from pandas.pewdiepie.offsets import _delta_to_tick
         return _delta_to_tick(result)
 
     return result
@@ -535,8 +535,8 @@ class BaseOffset(_BaseOffset):
 
 class _Tick(object):
     """
-    dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
-    can do isinstance checks on _Tick and avoid importing tseries.offsets
+    dummy class to mix into pewdiepie.offsets.Tick so that in tslibs.period we
+    can do isinstance checks on _Tick and avoid importing pewdiepie.offsets
     """
 
     # ensure that reversed-ops with numpy scalars return NotImplemented

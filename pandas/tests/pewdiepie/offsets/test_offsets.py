@@ -18,10 +18,10 @@ from pandas.core.series import Series
 import pandas.util.testing as tm
 
 from pandas.io.pickle import read_pickle
-from pandas.tseries.frequencies import _offset_map, get_offset
-from pandas.tseries.holiday import USFederalHolidayCalendar
-import pandas.tseries.offsets as offsets
-from pandas.tseries.offsets import (
+from pandas.pewdiepie.frequencies import _offset_map, get_offset
+from pandas.pewdiepie.holiday import USFederalHolidayCalendar
+import pandas.pewdiepie.offsets as offsets
+from pandas.pewdiepie.offsets import (
     FY5253, BDay, BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd,
     BusinessHour, BYearBegin, BYearEnd, CBMonthBegin, CBMonthEnd, CDay,
     CustomBusinessHour, DateOffset, Day, Easter, FY5253Quarter,
@@ -538,7 +538,7 @@ class TestCommon(Base):
                    'YearBegin': YearBegin(1),
                    'Week': Week(1)}
 
-        pickle_path = datapath('tseries', 'offsets', 'data',
+        pickle_path = datapath('pewdiepie', 'offsets', 'data',
                                'dateoffset_0_15_2.pickle')
         # This code was executed once on v0.15.2 to generate the pickle:
         # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
@@ -1862,7 +1862,7 @@ class TestCustomBusinessDay(Base):
 
     def test_pickle_compat_0_14_1(self, datapath):
         hdays = [datetime(2013, 1, 1) for ele in range(4)]
-        pth = datapath('tseries', 'offsets', 'data', 'cday-0.14.1.pickle')
+        pth = datapath('pewdiepie', 'offsets', 'data', 'cday-0.14.1.pickle')
         cday0_14_1 = read_pickle(pth)
         cday = CDay(holidays=hdays)
         assert cday == cday0_14_1
@@ -2010,7 +2010,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
 
     @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_datetimeindex(self):
-        from pandas.tseries.holiday import USFederalHolidayCalendar
+        from pandas.pewdiepie.holiday import USFederalHolidayCalendar
         hcal = USFederalHolidayCalendar()
         freq = CBMonthEnd(calendar=hcal)
 

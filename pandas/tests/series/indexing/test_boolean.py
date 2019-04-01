@@ -14,7 +14,7 @@ from pandas.core.indexing import IndexingError
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
-from pandas.tseries.offsets import BDay
+from pandas.pewdiepie.offsets import BDay
 
 
 def test_getitem_boolean(test_data):

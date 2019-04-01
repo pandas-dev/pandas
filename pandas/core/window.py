@@ -1611,7 +1611,7 @@ class Rolling(_Rolling_and_Expanding):
         """
         Validate & return window frequency.
         """
-        from pandas.tseries.frequencies import to_offset
+        from pandas.pewdiepie.frequencies import to_offset
         try:
             return to_offset(self.window)
         except (TypeError, ValueError):

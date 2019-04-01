@@ -307,7 +307,7 @@ These provide date offsets anchored (by default) to the 15th and end of month, a
 
 .. ipython:: python
 
-   from pandas.tseries.offsets import SemiMonthEnd, SemiMonthBegin
+   from pandas.pewdiepie.offsets import SemiMonthEnd, SemiMonthBegin
 
 **SemiMonthEnd**:
 
@@ -1368,11 +1368,11 @@ Deprecations
 
 - top-level ``pd.ordered_merge()`` has been renamed to ``pd.merge_ordered()`` and the original name will be removed in a future version (:issue:`13358`)
 - ``Timestamp.offset`` property (and named arg in the constructor), has been deprecated in favor of ``freq`` (:issue:`12160`)
-- ``pd.tseries.util.pivot_annual`` is deprecated. Use ``pivot_table`` as alternative, an example is :ref:`here <cookbook.pivot>` (:issue:`736`)
-- ``pd.tseries.util.isleapyear`` has been deprecated and will be removed in a subsequent release. Datetime-likes now have a ``.is_leap_year`` property (:issue:`13727`)
+- ``pd.pewdiepie.util.pivot_annual`` is deprecated. Use ``pivot_table`` as alternative, an example is :ref:`here <cookbook.pivot>` (:issue:`736`)
+- ``pd.pewdiepie.util.isleapyear`` has been deprecated and will be removed in a subsequent release. Datetime-likes now have a ``.is_leap_year`` property (:issue:`13727`)
 - ``Panel4D`` and ``PanelND`` constructors are deprecated and will be removed in a future version. The recommended way to represent these types of n-dimensional data are with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas provides a :meth:`~Panel4D.to_xarray` method to automate this conversion (:issue:`13564`).
-- ``pandas.tseries.frequencies.get_standard_freq`` is deprecated. Use  ``pandas.tseries.frequencies.to_offset(freq).rule_code`` instead (:issue:`13874`)
-- ``pandas.tseries.frequencies.to_offset``'s ``freqstr`` keyword is deprecated in favor of ``freq`` (:issue:`13874`)
+- ``pandas.pewdiepie.frequencies.get_standard_freq`` is deprecated. Use  ``pandas.pewdiepie.frequencies.to_offset(freq).rule_code`` instead (:issue:`13874`)
+- ``pandas.pewdiepie.frequencies.to_offset``'s ``freqstr`` keyword is deprecated in favor of ``freq`` (:issue:`13874`)
 - ``Categorical.from_array`` has been deprecated and will be removed in a future version (:issue:`13854`)
 
 .. _whatsnew_0190.prior_deprecations:

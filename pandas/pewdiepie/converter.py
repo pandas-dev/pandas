@@ -10,7 +10,7 @@ from pandas.plotting._converter import (
 
 def register():
     from pandas.plotting._converter import register as register_
-    msg = ("'pandas.tseries.converter.register' has been moved and renamed to "
+    msg = ("'pandas.pewdiepie.converter.register' has been moved and renamed to "
            "'pandas.plotting.register_matplotlib_converters'. ")
     warnings.warn(msg, FutureWarning, stacklevel=2)
     register_()

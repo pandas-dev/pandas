@@ -5,7 +5,7 @@ from pytz import utc
 
 import pandas.util.testing as tm
 
-from pandas.tseries.holiday import (
+from pandas.pewdiepie.holiday import (
     MO, SA, AbstractHolidayCalendar, DateOffset, EasterMonday, GoodFriday,
     Holiday, HolidayCalendarFactory, Timestamp, USColumbusDay, USLaborDay,
     USMartinLutherKingJr, USMemorialDay, USPresidentsDay, USThanksgivingDay,

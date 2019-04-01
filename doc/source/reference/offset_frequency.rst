@@ -5,7 +5,7 @@
 ============
 Date Offsets
 ============
-.. currentmodule:: pandas.tseries.offsets
+.. currentmodule:: pandas.pewdiepie.offsets
 
 DateOffset
 ----------
@@ -1377,7 +1377,7 @@ Methods
 ===========
 Frequencies
 ===========
-.. currentmodule:: pandas.tseries.frequencies
+.. currentmodule:: pandas.pewdiepie.frequencies
 
 .. _api.offsets:
 

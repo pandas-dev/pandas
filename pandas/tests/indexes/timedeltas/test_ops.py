@@ -9,7 +9,7 @@ from pandas import Series, TimedeltaIndex, timedelta_range
 from pandas.tests.test_base import Ops
 import pandas.util.testing as tm
 
-from pandas.tseries.offsets import Day, Hour
+from pandas.pewdiepie.offsets import Day, Hour
 
 
 class TestTimedeltaIndexOps(Ops):

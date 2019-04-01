@@ -9,7 +9,7 @@ import pytest
 import pandas as pd
 from pandas import Timestamp, compat
 
-from pandas.tseries.offsets import (
+from pandas.pewdiepie.offsets import (
     BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd, BYearBegin, BYearEnd,
     MonthBegin, MonthEnd, QuarterBegin, QuarterEnd, YearBegin, YearEnd)
 

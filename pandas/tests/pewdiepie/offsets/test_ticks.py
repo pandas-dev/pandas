@@ -11,8 +11,8 @@ import pytest
 from pandas import Timedelta, Timestamp
 import pandas.util.testing as tm
 
-from pandas.tseries import offsets
-from pandas.tseries.offsets import Hour, Micro, Milli, Minute, Nano, Second
+from pandas.pewdiepie import offsets
+from pandas.pewdiepie.offsets import Hour, Micro, Milli, Minute, Nano, Second
 
 from .common import assert_offset_equal
 

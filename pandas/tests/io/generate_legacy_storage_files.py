@@ -48,7 +48,7 @@ from pandas import (
     SparseDataFrame, SparseSeries, Timestamp, bdate_range, date_range,
     period_range, timedelta_range, to_msgpack)
 
-from pandas.tseries.offsets import (
+from pandas.pewdiepie.offsets import (
     FY5253, BusinessDay, BusinessHour, CustomBusinessDay, DateOffset, Day,
     Easter, Hour, LastWeekOfMonth, Minute, MonthBegin, MonthEnd, QuarterBegin,
     QuarterEnd, SemiMonthBegin, SemiMonthEnd, Week, WeekOfMonth, YearBegin,

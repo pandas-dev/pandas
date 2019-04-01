@@ -23,7 +23,7 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.algorithms import unique
 
-from pandas.tseries.offsets import (
+from pandas.pewdiepie.offsets import (
     DateOffset, Day, Hour, Micro, Milli, Minute, Nano, Second, prefix_mapping)
 
 _ONE_MICRO = 1000

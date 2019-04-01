@@ -33,8 +33,8 @@ from pandas.core.algorithms import (
     checked_add_with_arr, take, unique1d, value_counts)
 import pandas.core.common as com
 
-from pandas.tseries import frequencies
-from pandas.tseries.offsets import DateOffset, Tick
+from pandas.pewdiepie import frequencies
+from pandas.pewdiepie.offsets import DateOffset, Tick
 
 from .base import ExtensionArray, ExtensionOpsMixin
 

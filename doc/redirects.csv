@@ -1574,7 +1574,7 @@ generated/pandas.Timestamp.year,../reference/api/pandas.Timestamp.year
 generated/pandas.to_datetime,../reference/api/pandas.to_datetime
 generated/pandas.to_numeric,../reference/api/pandas.to_numeric
 generated/pandas.to_timedelta,../reference/api/pandas.to_timedelta
-generated/pandas.tseries.frequencies.to_offset,../reference/api/pandas.tseries.frequencies.to_offset
+generated/pandas.pewdiepie.frequencies.to_offset,../reference/api/pandas.pewdiepie.frequencies.to_offset
 generated/pandas.unique,../reference/api/pandas.unique
 generated/pandas.util.hash_array,../reference/api/pandas.util.hash_array
 generated/pandas.util.hash_pandas_object,../reference/api/pandas.util.hash_pandas_object

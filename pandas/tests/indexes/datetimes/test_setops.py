@@ -11,7 +11,7 @@ from pandas import (
     date_range, to_datetime)
 import pandas.util.testing as tm
 
-from pandas.tseries.offsets import BMonthEnd, Minute, MonthEnd
+from pandas.pewdiepie.offsets import BMonthEnd, Minute, MonthEnd
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 

@@ -18,8 +18,8 @@ import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
 
-import pandas.tseries.offsets as offsets
-from pandas.tseries.offsets import BDay, Minute
+import pandas.pewdiepie.offsets as offsets
+from pandas.pewdiepie.offsets import BDay, Minute
 
 
 @pytest.fixture()
@@ -862,7 +862,7 @@ def test_monthly_resample_error():
 
 def test_nanosecond_resample_error():
     # GH 12307 - Values falls after last bin when
-    # Resampling using pd.tseries.offsets.Nano as period
+    # Resampling using pd.pewdiepie.offsets.Nano as period
     start = 1443707890427
     exp_start = 1443707890400
     indx = pd.date_range(
@@ -871,7 +871,7 @@ def test_nanosecond_resample_error():
         freq='100n'
     )
     ts = Series(range(len(indx)), index=indx)
-    r = ts.resample(pd.tseries.offsets.Nano(100))
+    r = ts.resample(pd.pewdiepie.offsets.Nano(100))
     result = r.agg('mean')
 
     exp_indx = pd.date_range(
@@ -1484,7 +1484,7 @@ def test_get_timestamp_range_edges(first, last, offset,
     exp_first = pd.Timestamp(exp_first, freq=offset)
     exp_last = pd.Timestamp(exp_last, freq=offset)
 
-    offset = pd.tseries.frequencies.to_offset(offset)
+    offset = pd.pewdiepie.frequencies.to_offset(offset)
     result = _get_timestamp_range_edges(first, last, offset)
     expected = (exp_first, exp_last)
     assert result == expected

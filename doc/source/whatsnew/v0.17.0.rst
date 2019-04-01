@@ -487,7 +487,7 @@ Other enhancements
 
 - ``to_datetime`` can now accept the ``yearfirst`` keyword (:issue:`7599`)
 
-- ``pandas.tseries.offsets`` larger than the ``Day`` offset can now be used with a ``Series`` for addition/subtraction (:issue:`10699`).  See the :ref:`docs <timeseries.offsetseries>` for more details.
+- ``pandas.pewdiepie.offsets`` larger than the ``Day`` offset can now be used with a ``Series`` for addition/subtraction (:issue:`10699`).  See the :ref:`docs <timeseries.offsetseries>` for more details.
 
 - ``pd.Timedelta.total_seconds()`` now returns Timedelta duration to ns precision (previously microsecond precision) (:issue:`10939`)
 
@@ -677,11 +677,11 @@ New Behavior:
 
 .. note::
 
-   If you want to perform calculations based on today's date, use ``Timestamp.now()`` and ``pandas.tseries.offsets``.
+   If you want to perform calculations based on today's date, use ``Timestamp.now()`` and ``pandas.pewdiepie.offsets``.
 
    .. ipython:: python
 
-      import pandas.tseries.offsets as offsets
+      import pandas.pewdiepie.offsets as offsets
       pd.Timestamp.now()
       pd.Timestamp.now() + offsets.DateOffset(years=1)
 

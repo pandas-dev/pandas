@@ -19,7 +19,7 @@ from pandas.core.sparse.api import (
 from pandas.tests.frame.test_api import SharedWithSparse
 from pandas.util import testing as tm
 
-from pandas.tseries.offsets import BDay
+from pandas.pewdiepie.offsets import BDay
 
 
 class TestSparseDataFrame(SharedWithSparse):

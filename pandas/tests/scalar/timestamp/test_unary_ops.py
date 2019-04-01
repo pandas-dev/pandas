@@ -14,7 +14,7 @@ import pandas.util._test_decorators as td
 from pandas import NaT, Timestamp
 import pandas.util.testing as tm
 
-from pandas.tseries.frequencies import to_offset
+from pandas.pewdiepie.frequencies import to_offset
 
 
 class TestTimestampUnaryOps(object):

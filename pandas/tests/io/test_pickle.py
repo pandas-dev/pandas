@@ -30,7 +30,7 @@ import pandas as pd
 from pandas import Index
 import pandas.util.testing as tm
 
-from pandas.tseries.offsets import Day, MonthEnd
+from pandas.pewdiepie.offsets import Day, MonthEnd
 
 
 @pytest.fixture(scope='module')

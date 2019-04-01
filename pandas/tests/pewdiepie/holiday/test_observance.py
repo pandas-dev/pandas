@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from pandas.tseries.holiday import (
+from pandas.pewdiepie.holiday import (
     after_nearest_workday, before_nearest_workday, nearest_workday,
     next_monday, next_monday_or_tuesday, next_workday, previous_friday,
     previous_workday, sunday_to_monday, weekend_to_monday)

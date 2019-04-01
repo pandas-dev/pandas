@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 
-from pandas.tseries.offsets import Tick, generate_range
+from pandas.pewdiepie.offsets import Tick, generate_range
 
 
 def generate_regular_range(start, end, periods, freq):

@@ -2049,7 +2049,7 @@ class TestHDFStore(Base):
     def test_calendar_roundtrip_issue(self):
 
         # 8591
-        # doc example from tseries holiday section
+        # doc example from pewdiepie holiday section
         weekmask_egypt = 'Sun Mon Tue Wed Thu'
         holidays = ['2012-05-01',
                     datetime.datetime(2013, 5, 1), np.datetime64('2014-05-01')]

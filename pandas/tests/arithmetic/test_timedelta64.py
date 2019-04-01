@@ -162,7 +162,7 @@ class TestTimedelta64ArithmeticUnsorted(object):
     #  yet sorted/parametrized/de-duplicated
 
     def test_ufunc_coercions(self):
-        # normal ops are also tested in tseries/test_timedeltas.py
+        # normal ops are also tested in pewdiepie/test_timedeltas.py
         idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
                              freq='2H', name='x')
 
@@ -418,14 +418,14 @@ class TestTimedelta64ArithmeticUnsorted(object):
         tm.assert_index_equal(index, back)
 
         if freq == 'D':
-            expected = pd.tseries.offsets.Day(1)
+            expected = pd.pewdiepie.offsets.Day(1)
             assert index.freq == expected
             assert shifted.freq == expected
             assert back.freq == expected
         else:  # freq == 'B'
-            assert index.freq == pd.tseries.offsets.BusinessDay(1)
+            assert index.freq == pd.pewdiepie.offsets.BusinessDay(1)
             assert shifted.freq is None
-            assert back.freq == pd.tseries.offsets.BusinessDay(1)
+            assert back.freq == pd.pewdiepie.offsets.BusinessDay(1)
 
         result = index - timedelta(1)
         expected = index + timedelta(-1)

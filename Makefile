@@ -1,7 +1,7 @@
-tseries: pandas/_libs/lib.pyx pandas/_libs/tslib.pyx pandas/_libs/hashtable.pyx
+pewdiepie: pandas/_libs/lib.pyx pandas/_libs/tslib.pyx pandas/_libs/hashtable.pyx
 	python setup.py build_ext --inplace
 
-.PHONY : develop build clean clean_pyc tseries doc
+.PHONY : develop build clean clean_pyc pewdiepie doc
 
 clean:
 	-python setup.py clean

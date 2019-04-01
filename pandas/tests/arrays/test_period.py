@@ -29,7 +29,7 @@ def test_registered():
     ([pd.Period("2017", "D")], "D", [17167]),
     ([2017], "D", [17167]),
     (["2017"], "D", [17167]),
-    ([pd.Period("2017", "D")], pd.tseries.offsets.Day(), [17167]),
+    ([pd.Period("2017", "D")], pd.pewdiepie.offsets.Day(), [17167]),
     ([pd.Period("2017", "D"), None], None, [17167, iNaT]),
     (pd.Series(pd.date_range("2017", periods=3)), None,
      [17167, 17168, 17169]),
@@ -92,7 +92,7 @@ def test_period_array_freq_mismatch():
         PeriodArray(arr, freq='M')
 
     with pytest.raises(IncompatibleFrequency, match='freq'):
-        PeriodArray(arr, freq=pd.tseries.offsets.MonthEnd())
+        PeriodArray(arr, freq=pd.pewdiepie.offsets.MonthEnd())
 
 
 def test_asi8():

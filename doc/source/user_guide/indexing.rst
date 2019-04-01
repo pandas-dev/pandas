@@ -311,7 +311,7 @@ Selection By Label
   .. code-block:: ipython
 
      In [4]: dfl.loc[2:3]
-     TypeError: cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with these indexers [2] of <type 'int'>
+     TypeError: cannot do slice indexing on <class 'pandas.pewdiepie.index.DatetimeIndex'> with these indexers [2] of <type 'int'>
 
   String likes in slicing *can* be convertible to the type of the index and lead to natural slicing.
 

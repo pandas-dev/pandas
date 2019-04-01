@@ -5,7 +5,7 @@ from pandas._libs.tslibs.frequencies import (
     FreqGroup, _period_code_map, get_freq, get_freq_code)
 import pandas.compat as compat
 
-import pandas.tseries.offsets as offsets
+import pandas.pewdiepie.offsets as offsets
 
 
 @pytest.fixture(params=list(compat.iteritems(_period_code_map)))

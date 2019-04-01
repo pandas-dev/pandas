@@ -40,8 +40,8 @@ see :ref:`Custom Business Hour <timeseries.custombusinesshour>` (:issue:`11514`)
 
 .. ipython:: python
 
-    from pandas.tseries.offsets import CustomBusinessHour
-    from pandas.tseries.holiday import USFederalHolidayCalendar
+    from pandas.pewdiepie.offsets import CustomBusinessHour
+    from pandas.pewdiepie.holiday import USFederalHolidayCalendar
     bhour_us = CustomBusinessHour(calendar=USFederalHolidayCalendar())
 
 Friday before MLK Day

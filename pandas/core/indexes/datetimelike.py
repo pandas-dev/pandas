@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Base and utility classes for tseries type pandas objects.
+Base and utility classes for pewdiepie type pandas objects.
 """
 import operator
 import warnings

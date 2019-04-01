@@ -15,7 +15,7 @@ from pandas import Period, PeriodIndex, Series, period_range
 from pandas.core import ops
 import pandas.util.testing as tm
 
-from pandas.tseries.frequencies import to_offset
+from pandas.pewdiepie.frequencies import to_offset
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -983,10 +983,10 @@ class TestPeriodSeriesArithmetic(object):
         result = pd.Timedelta('1 days') + ser
         tm.assert_series_equal(result, expected)
 
-        result = ser + pd.tseries.offsets.Day()
+        result = ser + pd.pewdiepie.offsets.Day()
         tm.assert_series_equal(result, expected)
 
-        result = pd.tseries.offsets.Day() + ser
+        result = pd.pewdiepie.offsets.Day() + ser
         tm.assert_series_equal(result, expected)
 
     def test_ops_series_period(self):

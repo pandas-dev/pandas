@@ -5,7 +5,7 @@ import pandas as pd
 from pandas import timedelta_range, to_timedelta
 import pandas.util.testing as tm
 
-from pandas.tseries.offsets import Day, Second
+from pandas.pewdiepie.offsets import Day, Second
 
 
 class TestTimedeltas(object):

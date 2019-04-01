@@ -19,7 +19,7 @@ from pandas.core.sorting import safe_sort
 import pandas.core.window as rwindow
 import pandas.util.testing as tm
 
-import pandas.tseries.offsets as offsets
+import pandas.pewdiepie.offsets as offsets
 
 N, K = 100, 10
 

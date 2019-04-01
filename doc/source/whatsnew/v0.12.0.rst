@@ -387,7 +387,7 @@ Experimental Features
 
     .. ipython:: python
 
-      from pandas.tseries.offsets import CustomBusinessDay
+      from pandas.pewdiepie.offsets import CustomBusinessDay
       from datetime import datetime
       # As an interesting example, let's look at Egypt where
       # a Friday-Saturday weekend is observed.

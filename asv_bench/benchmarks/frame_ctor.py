@@ -2,7 +2,7 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Series, MultiIndex, Timestamp, date_range
 try:
-    from pandas.tseries.offsets import Nano, Hour
+    from pandas.pewdiepie.offsets import Nano, Hour
 except ImportError:
     # For compatibility with older versions
     from pandas.core.datetools import * # noqa

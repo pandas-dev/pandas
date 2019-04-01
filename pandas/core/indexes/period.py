@@ -30,8 +30,8 @@ from pandas.core.missing import isna
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.datetimes import DateParseError, parse_time_string
 
-from pandas.tseries import frequencies
-from pandas.tseries.offsets import DateOffset, Tick
+from pandas.pewdiepie import frequencies
+from pandas.pewdiepie.offsets import DateOffset, Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(

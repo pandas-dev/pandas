@@ -18,7 +18,7 @@ from pandas.tests.plotting.common import TestPlotBase
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal, ensure_clean
 
-from pandas.tseries.offsets import DateOffset
+from pandas.pewdiepie.offsets import DateOffset
 
 
 @td.skip_if_no_mpl
@@ -101,7 +101,7 @@ class TestTSPlot(TestPlotBase):
             df['A'].plot()
 
     def test_tsplot_deprecated(self):
-        from pandas.tseries.plotting import tsplot
+        from pandas.pewdiepie.plotting import tsplot
 
         _, ax = self.plt.subplots()
         ts = tm.makeTimeSeries()
@@ -112,7 +112,7 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_tsplot(self):
 
-        from pandas.tseries.plotting import tsplot
+        from pandas.pewdiepie.plotting import tsplot
 
         _, ax = self.plt.subplots()
         ts = tm.makeTimeSeries()
@@ -196,7 +196,7 @@ class TestTSPlot(TestPlotBase):
         tm.close()
 
         # tsplot
-        from pandas.tseries.plotting import tsplot
+        from pandas.pewdiepie.plotting import tsplot
         _, ax = self.plt.subplots()
         with tm.assert_produces_warning(FutureWarning):
             tsplot(annual, self.plt.Axes.plot, ax=ax)
@@ -901,7 +901,7 @@ class TestTSPlot(TestPlotBase):
             assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
 
         _, ax = self.plt.subplots()
-        from pandas.tseries.plotting import tsplot
+        from pandas.pewdiepie.plotting import tsplot
         with tm.assert_produces_warning(FutureWarning):
             tsplot(high, self.plt.Axes.plot, ax=ax)
         with tm.assert_produces_warning(FutureWarning):
@@ -932,7 +932,7 @@ class TestTSPlot(TestPlotBase):
         tm.close()
 
         _, ax = self.plt.subplots()
-        from pandas.tseries.plotting import tsplot
+        from pandas.pewdiepie.plotting import tsplot
         with tm.assert_produces_warning(FutureWarning):
             tsplot(low, self.plt.Axes.plot, ax=ax)
         with tm.assert_produces_warning(FutureWarning):

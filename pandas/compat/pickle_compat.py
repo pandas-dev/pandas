@@ -116,11 +116,11 @@ _class_locations_map = {
         ('pandas.core.indexes.range', 'RangeIndex'),
     ('pandas.indexes.multi', 'MultiIndex'):
         ('pandas.core.indexes.multi', 'MultiIndex'),
-    ('pandas.tseries.index', '_new_DatetimeIndex'):
+    ('pandas.pewdiepie.index', '_new_DatetimeIndex'):
         ('pandas.core.indexes.datetimes', '_new_DatetimeIndex'),
-    ('pandas.tseries.index', 'DatetimeIndex'):
+    ('pandas.pewdiepie.index', 'DatetimeIndex'):
         ('pandas.core.indexes.datetimes', 'DatetimeIndex'),
-    ('pandas.tseries.period', 'PeriodIndex'):
+    ('pandas.pewdiepie.period', 'PeriodIndex'):
         ('pandas.core.indexes.period', 'PeriodIndex'),
 
     # 19269, arrays moving
@@ -128,7 +128,7 @@ _class_locations_map = {
         ('pandas.core.arrays', 'Categorical'),
 
     # 19939, add timedeltaindex, float64index compat from 15998 move
-    ('pandas.tseries.tdi', 'TimedeltaIndex'):
+    ('pandas.pewdiepie.tdi', 'TimedeltaIndex'):
         ('pandas.core.indexes.timedeltas', 'TimedeltaIndex'),
     ('pandas.indexes.numeric', 'Float64Index'):
         ('pandas.core.indexes.numeric', 'Float64Index'),

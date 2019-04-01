@@ -10,7 +10,7 @@ from pandas import (
     interval_range, timedelta_range)
 import pandas.util.testing as tm
 
-from pandas.tseries.offsets import Day
+from pandas.pewdiepie.offsets import Day
 
 
 @pytest.fixture(scope='class', params=[None, 'foo'])

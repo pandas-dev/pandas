@@ -9,7 +9,7 @@ from pandas.errors import PerformanceWarning
 
 from pandas import DateOffset, Series, Timestamp, date_range
 
-from pandas.tseries.offsets import Day, Easter
+from pandas.pewdiepie.offsets import Day, Easter
 
 
 def next_monday(dt):
@@ -135,8 +135,8 @@ class Holiday(object):
         ----------
         name : str
             Name of the holiday , defaults to class name
-        offset : array of pandas.tseries.offsets or
-                class from pandas.tseries.offsets
+        offset : array of pandas.pewdiepie.offsets or
+                class from pandas.pewdiepie.offsets
             computes offset from date
         observance: function
             computes when holiday is given a pandas Timestamp
@@ -146,7 +146,7 @@ class Holiday(object):
 
         Examples
         --------
-        >>> from pandas.tseries.holiday import Holiday, nearest_workday
+        >>> from pandas.pewdiepie.holiday import Holiday, nearest_workday
         >>> from dateutil.relativedelta import MO
         >>> USMemorialDay = Holiday('MemorialDay', month=5, day=24,
                                     offset=pd.DateOffset(weekday=MO(1)))

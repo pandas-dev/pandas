@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pandas.tseries.holiday import (
+from pandas.pewdiepie.holiday import (
     AbstractHolidayCalendar, USMartinLutherKingJr, USMemorialDay)
 
 
