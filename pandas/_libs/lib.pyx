@@ -2318,6 +2318,17 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
 cdef inline void convert_and_set_item(object item, Py_ssize_t index,
                                       object[:] result,
                                       bint keep_trivial_numbers):
+    """
+    Convert `item` to str and set into result[index].
+
+    Parameters
+    ----------
+    item : object
+    index : Py_ssize_t
+    keep_trivial_numbers : bool, default False
+        If `keep_trivial_numbers` is True, then conversion
+        (to string from integer/float zero) is not performed
+    """
     cdef:
         bint do_convert = 1
         float64_t float_item
@@ -2331,7 +2342,7 @@ cdef inline void convert_and_set_item(object item, Py_ssize_t index,
             if float_item == 0.0 or float_item != float_item:
                 do_convert = 0
 
-    if do_convert and not isinstance(item, (str, bytes)):
+    if do_convert and not isinstance(item, str):
         item = PyObject_Str(item)
 
     result[index] = item
@@ -2483,7 +2494,6 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=False):
     """
     cdef:
         Py_ssize_t rows_count = 0, col_count = len(date_cols)
-        cnp.ndarray[object] result
 
     if col_count == 0:
         return np.zeros(0, dtype=object)
@@ -2492,9 +2502,8 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=False):
 
     if all(util.is_array(array) for array in date_cols):
         # call specialized function to increase performance
-        result = _concat_date_cols_numpy(date_cols, rows_count, col_count,
-                                         keep_trivial_numbers)
+        return _concat_date_cols_numpy(date_cols, rows_count, col_count,
+                                       keep_trivial_numbers)
     else:
-        result = _concat_date_cols_sequence(date_cols, rows_count, col_count,
-                                            keep_trivial_numbers)
-    return result
+        return _concat_date_cols_sequence(date_cols, rows_count, col_count,
+                                          keep_trivial_numbers)
