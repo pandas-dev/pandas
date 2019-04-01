@@ -160,7 +160,7 @@ class TestTimestampComparison(object):
 
 def test_rich_comparison_with_unsupported_type():
     # Comparisons with unsupported objects should return NotImplemented
-    # (it previously raised TypeError)
+    # (it previously raised TypeError, see #24011)
 
     class Inf(object):
         def __lt__(self, o):

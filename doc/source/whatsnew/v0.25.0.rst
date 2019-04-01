@@ -45,8 +45,6 @@ Backwards incompatible API changes
 .. _whatsnew_0250.api_breaking.utc_offset_indexing:
 
 
-
-
 Indexing with date strings with UTC offsets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
