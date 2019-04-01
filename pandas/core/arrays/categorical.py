@@ -1,13 +1,16 @@
 # pylint: disable=E1101,W0232
 
+from shutil import get_terminal_size
 import textwrap
 from warnings import warn
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import algos as libalgos, lib
 import pandas.compat as compat
-from pandas.compat import lzip, u
+from pandas.compat import lzip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
@@ -32,12 +35,10 @@ import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import factorize, take, take_1d, unique1d
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
-from pandas.io.formats.terminal import get_terminal_size
 
 from .base import ExtensionArray, _extension_array_shared_docs
 
@@ -100,13 +101,6 @@ def _cat_compare_op(op):
                 ret[na_mask] = False
             return ret
 
-        # Numpy < 1.13 may convert a scalar to a zerodim array during
-        # comparison operation when second arg has higher priority, e.g.
-        #
-        #     cat[0] < cat
-        #
-        # With cat[0], for example, being ``np.int64(1)`` by the time it gets
-        # into this function would become ``np.array(1)``.
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
@@ -1947,12 +1941,12 @@ class Categorical(ExtensionArray, PandasObject):
         head = self[:num]._get_repr(length=False, footer=False)
         tail = self[-(max_vals - num):]._get_repr(length=False, footer=False)
 
-        result = u('{head}, ..., {tail}').format(head=head[:-1], tail=tail[1:])
+        result = '{head}, ..., {tail}'.format(head=head[:-1], tail=tail[1:])
         if footer:
-            result = u('{result}\n{footer}').format(result=result,
-                                                    footer=self._repr_footer())
+            result = '{result}\n{footer}'.format(
+                result=result, footer=self._repr_footer())
 
-        return compat.text_type(result)
+        return str(result)
 
     def _repr_categories(self):
         """
@@ -2008,7 +2002,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def _repr_footer(self):
 
-        return u('Length: {length}\n{info}').format(
+        return 'Length: {length}\n{info}'.format(
             length=len(self), info=self._repr_categories_info())
 
     def _get_repr(self, length=True, na_rep='NaN', footer=True):
@@ -2016,7 +2010,7 @@ class Categorical(ExtensionArray, PandasObject):
         formatter = fmt.CategoricalFormatter(self, length=length,
                                              na_rep=na_rep, footer=footer)
         result = formatter.to_string()
-        return compat.text_type(result)
+        return str(result)
 
     def __unicode__(self):
         """
@@ -2146,7 +2140,7 @@ class Categorical(ExtensionArray, PandasObject):
         Categories (3, object): [a, b, c]
 
         In [3]: c.categories
-        Out[3]: Index([u'a', u'b', u'c'], dtype='object')
+        Out[3]: Index(['a', 'b', 'c'], dtype='object')
 
         In [4]: c.codes
         Out[4]: array([0, 0, 1, 2, 0], dtype=int8)

@@ -23,15 +23,14 @@ import numpy as np
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import (
-    BytesIO, ResourceWarning, lmap, lrange, lzip, range, string_types,
-    text_type, zip)
+from pandas.compat import BytesIO, lmap, lrange, lzip
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype)
 
-from pandas import DatetimeIndex, compat, isna, to_datetime, to_timedelta
+from pandas import (
+    DatetimeIndex, compat, concat, isna, to_datetime, to_timedelta)
 from pandas.core.arrays import Categorical
 from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
@@ -631,7 +630,7 @@ class StataValueLabel(object):
         # Compute lengths and setup lists of offsets and labels
         for vl in self.value_labels:
             category = vl[1]
-            if not isinstance(category, string_types):
+            if not isinstance(category, str):
                 category = str(category)
                 warnings.warn(value_label_mismatch_doc.format(catarray.name),
                               ValueLabelTypeMismatch)
@@ -658,10 +657,7 @@ class StataValueLabel(object):
         """
         Python 3 compatibility shim
         """
-        if compat.PY3:
-            return s.encode(self._encoding)
-        else:
-            return s
+        return s.encode(self._encoding)
 
     def generate_value_label(self, byteorder, encoding):
         """
@@ -766,9 +762,9 @@ class StataMissingValue(StringMixin):
     bases = (101, 32741, 2147483621)
     for b in bases:
         # Conversion to long to avoid hash issues on 32 bit platforms #8968
-        MISSING_VALUES[compat.long(b)] = '.'
+        MISSING_VALUES[b] = '.'
         for i in range(1, 27):
-            MISSING_VALUES[compat.long(i + b)] = '.' + chr(96 + i)
+            MISSING_VALUES[i + b] = '.' + chr(96 + i)
 
     float32_base = b'\x00\x00\x00\x7f'
     increment = struct.unpack('<i', b'\x00\x08\x00\x00')[0]
@@ -777,8 +773,8 @@ class StataMissingValue(StringMixin):
         MISSING_VALUES[value] = '.'
         if i > 0:
             MISSING_VALUES[value] += chr(96 + i)
-        int_value = struct.unpack('<i', struct.pack('<f', value))[
-            0] + increment
+        int_value = struct.unpack('<i',
+                                  struct.pack('<f', value))[0] + increment
         float32_base = struct.pack('<i', int_value)
 
     float64_base = b'\x00\x00\x00\x00\x00\x00\xe0\x7f'
@@ -799,8 +795,8 @@ class StataMissingValue(StringMixin):
 
     def __init__(self, value):
         self._value = value
-        # Conversion to long to avoid hash issues on 32 bit platforms #8968
-        value = compat.long(value) if value < 2147483648 else float(value)
+        # Conversion to int to avoid hash issues on 32 bit platforms #8968
+        value = int(value) if value < 2147483648 else float(value)
         self._str = self.MISSING_VALUES[value]
 
     string = property(lambda self: self._str,
@@ -990,7 +986,7 @@ class StataReader(StataParser, BaseIterator):
             path_or_buf, encoding, _, should_close = get_filepath_or_buffer(
                 path_or_buf)
 
-        if isinstance(path_or_buf, (str, text_type, bytes)):
+        if isinstance(path_or_buf, (str, bytes)):
             self.path_or_buf = open(path_or_buf, 'rb')
         else:
             # Copy to BytesIO, and ensure no encoding
@@ -1231,8 +1227,8 @@ class StataReader(StataParser, BaseIterator):
         if self.format_version not in [104, 105, 108, 111, 113, 114, 115]:
             raise ValueError(_version_error)
         self._set_encoding()
-        self.byteorder = struct.unpack('b', self.path_or_buf.read(1))[
-            0] == 0x1 and '>' or '<'
+        self.byteorder = struct.unpack(
+            'b', self.path_or_buf.read(1))[0] == 0x1 and '>' or '<'
         self.filetype = struct.unpack('b', self.path_or_buf.read(1))[0]
         self.path_or_buf.read(1)  # unused
 
@@ -1256,7 +1252,7 @@ class StataReader(StataParser, BaseIterator):
                 if tp in self.OLD_TYPE_MAPPING:
                     typlist.append(self.OLD_TYPE_MAPPING[tp])
                 else:
-                    typlist.append(tp - 127)  # py2 string, py3 bytes
+                    typlist.append(tp - 127)  # bytes
 
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
@@ -1572,7 +1568,7 @@ class StataReader(StataParser, BaseIterator):
             data = DataFrame.from_dict(OrderedDict(data_formatted))
         del data_formatted
 
-        self._do_convert_missing(data, convert_missing)
+        data = self._do_convert_missing(data, convert_missing)
 
         if convert_dates:
             cols = np.where(lmap(lambda x: any(x.startswith(fmt)
@@ -1616,7 +1612,7 @@ class StataReader(StataParser, BaseIterator):
 
     def _do_convert_missing(self, data, convert_missing):
         # Check for missing values, and replace if found
-
+        replacements = {}
         for i, colname in enumerate(data):
             fmt = self.typlist[i]
             if fmt not in self.VALID_RANGE:
@@ -1646,8 +1642,14 @@ class StataReader(StataParser, BaseIterator):
                     dtype = np.float64
                 replacement = Series(series, dtype=dtype)
                 replacement[missing] = np.nan
-
-            data[colname] = replacement
+            replacements[colname] = replacement
+        if replacements:
+            columns = data.columns
+            replacements = DataFrame(replacements)
+            data = concat([data.drop(replacements.columns, 1),
+                           replacements], 1)
+            data = data[columns]
+        return data
 
     def _insert_strls(self, data):
         if not hasattr(self, 'GSO') or len(self.GSO) == 0:
@@ -1712,7 +1714,7 @@ class StataReader(StataParser, BaseIterator):
                 except ValueError:
                     vc = Series(categories).value_counts()
                     repeats = list(vc.index[vc > 1])
-                    repeats = '\n' + '-' * 80 + '\n'.join(repeats)
+                    repeats = '-' * 80 + '\n' + '\n'.join(repeats)
                     raise ValueError('Value labels for column {col} are not '
                                      'unique. The repeated labels are:\n'
                                      '{repeats}'
@@ -2004,11 +2006,8 @@ class StataWriter(StataParser):
         """
         Helper to call encode before writing to file for Python 3 compat.
         """
-        if compat.PY3:
-            self._file.write(to_write.encode(self._encoding or
-                                             self._default_encoding))
-        else:
-            self._file.write(to_write)
+        self._file.write(to_write.encode(self._encoding or
+                                         self._default_encoding))
 
     def _prepare_categoricals(self, data):
         """Check for categorical columns, retain categorical information for
@@ -2087,8 +2086,8 @@ class StataWriter(StataParser):
         duplicate_var_id = 0
         for j, name in enumerate(columns):
             orig_name = name
-            if not isinstance(name, string_types):
-                name = text_type(name)
+            if not isinstance(name, str):
+                name = str(name)
 
             for c in name:
                 if ((c < 'A' or c > 'Z') and (c < 'a' or c > 'z') and
@@ -2412,12 +2411,12 @@ class StataWriter(StataParser):
 
     def _null_terminate(self, s, as_string=False):
         null_byte = '\x00'
-        if compat.PY3 and not as_string:
-            s += null_byte
-            return s.encode(self._encoding)
-        else:
-            s += null_byte
-            return s
+        s += null_byte
+
+        if not as_string:
+            s = s.encode(self._encoding)
+
+        return s
 
 
 def _dtype_to_stata_type_117(dtype, column, force_strl):
@@ -2462,19 +2461,12 @@ def _dtype_to_stata_type_117(dtype, column, force_strl):
         raise NotImplementedError("Data type %s not supported." % dtype)
 
 
-def _bytes(s, encoding):
-    if compat.PY3:
-        return bytes(s, encoding)
-    else:
-        return bytes(s.encode(encoding))
-
-
 def _pad_bytes_new(name, length):
     """
     Takes a bytes instance and pads it with null bytes until it's length chars.
     """
-    if isinstance(name, string_types):
-        name = _bytes(name, 'utf-8')
+    if isinstance(name, str):
+        name = bytes(name, 'utf-8')
     return name + b'\x00' * (length - len(name))
 
 
@@ -2594,12 +2586,7 @@ class StataStrLWriter(object):
         """
         Python 3 compatibility shim
         """
-        if compat.PY3:
-            return s.encode(self._encoding)
-        else:
-            if isinstance(s, text_type):
-                return s.encode(self._encoding)
-            return s
+        return s.encode(self._encoding)
 
     def generate_blob(self, gso_table):
         """
@@ -2631,7 +2618,7 @@ class StataStrLWriter(object):
         #  3  u4   u8   u1 u4    string + null term
 
         bio = BytesIO()
-        gso = _bytes('GSO', 'ascii')
+        gso = bytes('GSO', 'ascii')
         gso_type = struct.pack(self._byteorder + 'B', 130)
         null = struct.pack(self._byteorder + 'B', 0)
         v_type = self._byteorder + self._gso_v_type
@@ -2655,7 +2642,7 @@ class StataStrLWriter(object):
             bio.write(gso_type)
 
             # llll
-            utf8_string = _bytes(strl, 'utf-8')
+            utf8_string = bytes(strl, 'utf-8')
             bio.write(struct.pack(len_type, len(utf8_string) + 1))
 
             # xxx...xxx
@@ -2761,10 +2748,10 @@ class StataWriter117(StataWriter):
     @staticmethod
     def _tag(val, tag):
         """Surround val with <tag></tag>"""
-        if isinstance(val, str) and compat.PY3:
-            val = _bytes(val, 'utf-8')
-        return (_bytes('<' + tag + '>', 'utf-8') + val +
-                _bytes('</' + tag + '>', 'utf-8'))
+        if isinstance(val, str):
+            val = bytes(val, 'utf-8')
+        return (bytes('<' + tag + '>', 'utf-8') + val +
+                bytes('</' + tag + '>', 'utf-8'))
 
     def _update_map(self, tag):
         """Update map location for tag with file position"""
@@ -2773,10 +2760,10 @@ class StataWriter117(StataWriter):
     def _write_header(self, data_label=None, time_stamp=None):
         """Write the file header"""
         byteorder = self._byteorder
-        self._file.write(_bytes('<stata_dta>', 'utf-8'))
+        self._file.write(bytes('<stata_dta>', 'utf-8'))
         bio = BytesIO()
         # ds_format - 117
-        bio.write(self._tag(_bytes('117', 'utf-8'), 'release'))
+        bio.write(self._tag(bytes('117', 'utf-8'), 'release'))
         # byteorder
         bio.write(self._tag(byteorder == ">" and "MSF" or "LSF", 'byteorder'))
         # number of vars, 2 bytes
@@ -2787,7 +2774,7 @@ class StataWriter117(StataWriter):
         # data label 81 bytes, char, null terminated
         label = data_label[:80] if data_label is not None else ''
         label_len = struct.pack(byteorder + "B", len(label))
-        label = label_len + _bytes(label, 'utf-8')
+        label = label_len + bytes(label, 'utf-8')
         bio.write(self._tag(label, 'label'))
         # time stamp, 18 bytes, char, null terminated
         # format dd Mon yyyy hh:mm
@@ -2803,7 +2790,7 @@ class StataWriter117(StataWriter):
               month_lookup[time_stamp.month] +
               time_stamp.strftime(" %Y %H:%M"))
         # '\x11' added due to inspection of Stata file
-        ts = b'\x11' + _bytes(ts, 'utf8')
+        ts = b'\x11' + bytes(ts, 'utf8')
         bio.write(self._tag(ts, 'timestamp'))
         bio.seek(0)
         self._file.write(self._tag(bio.read(), 'header'))
@@ -2943,7 +2930,7 @@ class StataWriter117(StataWriter):
 
     def _write_file_close_tag(self):
         self._update_map('stata_data_close')
-        self._file.write(_bytes('</stata_dta>', 'utf-8'))
+        self._file.write(bytes('</stata_dta>', 'utf-8'))
         self._update_map('end-of-file')
 
     def _update_strl_names(self):

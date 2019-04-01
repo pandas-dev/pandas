@@ -6,14 +6,12 @@ import numpy as np
 
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-import pandas.compat as compat
-from pandas.compat import range, zip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     ensure_platform_int, is_float, is_integer, is_integer_dtype, is_iterator,
-    is_list_like, is_scalar, is_sequence, is_sparse)
+    is_list_like, is_numeric_dtype, is_scalar, is_sequence, is_sparse)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
@@ -1243,7 +1241,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if missing:
             if missing == len(indexer):
                 raise KeyError(
-                    u"None of [{key}] are in the [{axis}]".format(
+                    "None of [{key}] are in the [{axis}]".format(
                         key=key, axis=self.obj._get_axis_name(axis)))
 
             # We (temporarily) allow for some missing keys with .loc, except in
@@ -1833,8 +1831,7 @@ class _LocIndexer(_LocationIndexer):
         """Translate any partial string timestamp matches in key, returning the
         new key (GH 10331)"""
         if isinstance(labels, MultiIndex):
-            if (isinstance(key, compat.string_types) and
-                    labels.levels[0].is_all_dates):
+            if (isinstance(key, str) and labels.levels[0].is_all_dates):
                 # Convert key '2016-01-01' to
                 # ('2016-01-01'[, slice(None, None, None)]+)
                 key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))
@@ -1844,7 +1841,7 @@ class _LocIndexer(_LocationIndexer):
                 # (..., slice('2016-01-01', '2016-01-01', None), ...)
                 new_key = []
                 for i, component in enumerate(key):
-                    if (isinstance(component, compat.string_types) and
+                    if (isinstance(component, str) and
                             labels.levels[i].is_all_dates):
                         new_key.append(slice(component, component, None))
                     else:
@@ -2075,10 +2072,15 @@ class _iLocIndexer(_LocationIndexer):
             # so don't treat a tuple as a valid indexer
             raise IndexingError('Too many indexers')
         elif is_list_like_indexer(key):
-            # check that the key does not exceed the maximum size of the index
             arr = np.array(key)
             len_axis = len(self.obj._get_axis(axis))
 
+            # check that the key has a numeric dtype
+            if not is_numeric_dtype(arr.dtype):
+                raise IndexError(".iloc requires numeric indexers, got "
+                                 "{arr}".format(arr=arr))
+
+            # check that the key does not exceed the maximum size of the index
             if len(arr) and (arr.max() >= len_axis or arr.min() < -len_axis):
                 raise IndexError("positional indexers are out-of-bounds")
         else:
@@ -2458,7 +2460,7 @@ def convert_to_index_sliceable(obj, key):
     if isinstance(key, slice):
         return idx._convert_slice_indexer(key, kind='getitem')
 
-    elif isinstance(key, compat.string_types):
+    elif isinstance(key, str):
 
         # we are an actual column
         if obj._data.items.contains(key):
@@ -2733,8 +2735,7 @@ def _non_reducing_slice(slice_):
     """
     # default to column slice, like DataFrame
     # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
-    kinds = tuple(list(compat.string_types) + [ABCSeries, np.ndarray, Index,
-                                               list])
+    kinds = (ABCSeries, np.ndarray, Index, list, str)
     if isinstance(slice_, kinds):
         slice_ = IndexSlice[:, slice_]
 

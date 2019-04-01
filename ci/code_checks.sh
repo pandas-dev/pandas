@@ -16,9 +16,10 @@
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh dependencies  # check that dependencies are consistent
+#   $ ./ci/code_checks.sh typing	# run static type analysis
 
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "dependencies" ]] || \
-    { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|dependencies]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "dependencies" || "$1" == "typing" ]] || \
+    { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|dependencies|typing]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
@@ -119,6 +120,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for pytest raises without context' ; echo $MSG
+    invgrep -r -E --include '*.py' "[[:space:]] pytest.raises" pandas/tests/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # Check for the following code in testing: `np.testing` and `np.array_equal`
     MSG='Check for invalid testing' ; echo $MSG
     invgrep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
@@ -175,9 +180,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     set -o pipefail
     if [[ "$AZURE" == "true" ]]; then
         # we exclude all c/cpp files as the c/cpp files of pandas code base are tested when Linting .c and .h files
-        ! grep -n '--exclude=*.'{svg,c,cpp,html} -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
+        ! grep -n '--exclude=*.'{svg,c,cpp,html} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
     else
-        ! grep -n '--exclude=*.'{svg,c,cpp,html}  -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
+        ! grep -n '--exclude=*.'{svg,c,cpp,html} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
@@ -255,5 +260,17 @@ if [[ -z "$CHECK" || "$CHECK" == "dependencies" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
+
+### TYPING ###
+if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
+
+    echo "mypy --version"
+    mypy --version
+
+    MSG='Performing static analysis using mypy' ; echo $MSG
+    mypy pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+fi
+
 
 exit $RET

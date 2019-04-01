@@ -3,8 +3,6 @@
 Module for formatting output data into CSV files.
 """
 
-from __future__ import print_function
-
 import csv as csvlib
 import os
 import warnings
@@ -13,13 +11,11 @@ from zipfile import ZipFile
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas.compat import StringIO, range, zip
+from pandas.compat import StringIO
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex)
 from pandas.core.dtypes.missing import notna
-
-from pandas import compat
 
 from pandas.io.common import (
     UnicodeWriter, _get_handle, _infer_compression, get_filepath_or_buffer)
@@ -53,7 +49,7 @@ class CSVFormatter(object):
         self.index_label = index_label
         self.mode = mode
         if encoding is None:
-            encoding = 'ascii' if compat.PY2 else 'utf-8'
+            encoding = 'utf-8'
         self.encoding = encoding
         self.compression = _infer_compression(self.path_or_buf, compression)
 

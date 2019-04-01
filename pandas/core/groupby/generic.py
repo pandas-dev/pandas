@@ -16,8 +16,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 import pandas.compat as compat
-from pandas.compat import lzip, map
-from pandas.compat.numpy import _np_version_under1p13
+from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
@@ -262,8 +261,13 @@ class NDFrameGroupBy(GroupBy):
                 data = obj[item]
                 colg = SeriesGroupBy(data, selection=item,
                                      grouper=self.grouper)
-                result[item] = self._try_cast(
-                    colg.aggregate(func, *args, **kwargs), data)
+
+                cast = self._transform_should_cast(func)
+
+                result[item] = colg.aggregate(func, *args, **kwargs)
+                if cast:
+                    result[item] = self._try_cast(result[item], data)
+
             except ValueError:
                 cannot_agg.append(item)
                 continue
@@ -532,7 +536,7 @@ class NDFrameGroupBy(GroupBy):
 
         # optimized transforms
         func = self._is_cython_func(func) or func
-        if isinstance(func, compat.string_types):
+        if isinstance(func, str):
             if func in base.cython_transforms:
                 # cythonized transform
                 return getattr(self, func)(*args, **kwargs)
@@ -576,7 +580,7 @@ class NDFrameGroupBy(GroupBy):
                                       index=obj.index)
 
     def _define_paths(self, func, *args, **kwargs):
-        if isinstance(func, compat.string_types):
+        if isinstance(func, str):
             fast_path = lambda group: getattr(group, func)(*args, **kwargs)
             slow_path = lambda group: group.apply(
                 lambda x: getattr(x, func)(*args, **kwargs), axis=self.axis)
@@ -763,7 +767,7 @@ class SeriesGroupBy(GroupBy):
     @Appender(_shared_docs['aggregate'])
     def aggregate(self, func_or_funcs, *args, **kwargs):
         _level = kwargs.pop('_level', None)
-        if isinstance(func_or_funcs, compat.string_types):
+        if isinstance(func_or_funcs, str):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
         if isinstance(func_or_funcs, compat.Iterable):
@@ -823,7 +827,7 @@ class SeriesGroupBy(GroupBy):
             # list of functions / function names
             columns = []
             for f in arg:
-                if isinstance(f, compat.string_types):
+                if isinstance(f, str):
                     columns.append(f)
                 else:
                     # protect against callables without names
@@ -924,7 +928,7 @@ class SeriesGroupBy(GroupBy):
         func = self._is_cython_func(func) or func
 
         # if string function
-        if isinstance(func, compat.string_types):
+        if isinstance(func, str):
             if func in base.cython_transforms:
                 # cythonized transform
                 return getattr(self, func)(*args, **kwargs)
@@ -967,7 +971,7 @@ class SeriesGroupBy(GroupBy):
         fast version of transform, only applicable to
         builtin/cythonizable functions
         """
-        if isinstance(func, compat.string_types):
+        if isinstance(func, str):
             func = getattr(self, func)
 
         ids, _, ngroup = self.grouper.group_info
@@ -1006,7 +1010,7 @@ class SeriesGroupBy(GroupBy):
         -------
         filtered : Series
         """
-        if isinstance(func, compat.string_types):
+        if isinstance(func, str):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
         else:
             wrapper = lambda x: func(x, *args, **kwargs)
@@ -1218,7 +1222,7 @@ class SeriesGroupBy(GroupBy):
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)
-        minlength = ngroups or (None if _np_version_under1p13 else 0)
+        minlength = ngroups or 0
         out = np.bincount(ids[mask], minlength=minlength)
 
         return Series(out,

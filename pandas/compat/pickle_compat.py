@@ -6,8 +6,6 @@ import copy
 import pickle as pkl
 import sys
 
-from pandas.compat import string_types, u  # noqa
-
 import pandas  # noqa
 from pandas import Index, compat
 
@@ -41,7 +39,7 @@ def load_reduce(self):
         # try to re-encode the arguments
         if getattr(self, 'encoding', None) is not None:
             args = tuple(arg.encode(self.encoding)
-                         if isinstance(arg, string_types)
+                         if isinstance(arg, str)
                          else arg for arg in args)
             try:
                 stack[-1] = func(*args)

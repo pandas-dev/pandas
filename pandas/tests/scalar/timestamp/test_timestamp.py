@@ -14,7 +14,6 @@ from pytz import timezone, utc
 
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
-from pandas.compat import PY2, PY3, long
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
@@ -48,8 +47,8 @@ class TestTimestampProperties(object):
 
     def test_fields(self):
         def check(value, equal):
-            # that we are int/long like
-            assert isinstance(value, (int, long))
+            # that we are int like
+            assert isinstance(value, int)
             assert value == equal
 
         # GH 10050
@@ -125,13 +124,11 @@ class TestTimestampProperties(object):
 
         # Work around https://github.com/pandas-dev/pandas/issues/22342
         # different normalizations
+        expected_day = unicodedata.normalize("NFD", expected_day)
+        expected_month = unicodedata.normalize("NFD", expected_month)
 
-        if not PY2:
-            expected_day = unicodedata.normalize("NFD", expected_day)
-            expected_month = unicodedata.normalize("NFD", expected_month)
-
-            result_day = unicodedata.normalize("NFD", result_day,)
-            result_month = unicodedata.normalize("NFD", result_month)
+        result_day = unicodedata.normalize("NFD", result_day,)
+        result_month = unicodedata.normalize("NFD", result_month)
 
         assert result_day == expected_day
         assert result_month == expected_month
@@ -701,39 +698,17 @@ class TestTimestamp(object):
 
     @pytest.mark.parametrize('value, check_kwargs', [
         [946688461000000000, {}],
-        [946688461000000000 / long(1000), dict(unit='us')],
-        [946688461000000000 / long(1000000), dict(unit='ms')],
-        [946688461000000000 / long(1000000000), dict(unit='s')],
+        [946688461000000000 / 1000, dict(unit='us')],
+        [946688461000000000 / 1000000, dict(unit='ms')],
+        [946688461000000000 / 1000000000, dict(unit='s')],
         [10957, dict(unit='D', h=0)],
-        pytest.param((946688461000000000 + 500000) / long(1000000000),
-                     dict(unit='s', us=499, ns=964),
-                     marks=pytest.mark.skipif(not PY3,
-                                              reason='using truediv, so these'
-                                                     ' are like floats')),
-        pytest.param((946688461000000000 + 500000000) / long(1000000000),
-                     dict(unit='s', us=500000),
-                     marks=pytest.mark.skipif(not PY3,
-                                              reason='using truediv, so these'
-                                                     ' are like floats')),
-        pytest.param((946688461000000000 + 500000) / long(1000000),
-                     dict(unit='ms', us=500),
-                     marks=pytest.mark.skipif(not PY3,
-                                              reason='using truediv, so these'
-                                                     ' are like floats')),
-        pytest.param((946688461000000000 + 500000) / long(1000000000),
-                     dict(unit='s'),
-                     marks=pytest.mark.skipif(PY3,
-                                              reason='get chopped in py2')),
-        pytest.param((946688461000000000 + 500000000) / long(1000000000),
-                     dict(unit='s'),
-                     marks=pytest.mark.skipif(PY3,
-                                              reason='get chopped in py2')),
-        pytest.param((946688461000000000 + 500000) / long(1000000),
-                     dict(unit='ms'),
-                     marks=pytest.mark.skipif(PY3,
-                                              reason='get chopped in py2')),
-        [(946688461000000000 + 500000) / long(1000), dict(unit='us', us=500)],
-        [(946688461000000000 + 500000000) / long(1000000),
+        [(946688461000000000 + 500000) / 1000000000,
+         dict(unit='s', us=499, ns=964)],
+        [(946688461000000000 + 500000000) / 1000000000,
+         dict(unit='s', us=500000)],
+        [(946688461000000000 + 500000) / 1000000, dict(unit='ms', us=500)],
+        [(946688461000000000 + 500000) / 1000, dict(unit='us', us=500)],
+        [(946688461000000000 + 500000000) / 1000000,
          dict(unit='ms', us=500000)],
         [946688461000000000 / 1000.0 + 5, dict(unit='us', us=5)],
         [946688461000000000 / 1000.0 + 5000, dict(unit='us', us=5000)],

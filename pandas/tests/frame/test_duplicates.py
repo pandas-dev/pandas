@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, string_types
+from pandas.compat import lrange
 
 from pandas import DataFrame, Series
 import pandas.util.testing as tm
@@ -76,7 +74,7 @@ def test_duplicated_subset(subset, keep):
 
     if subset is None:
         subset = list(df.columns)
-    elif isinstance(subset, string_types):
+    elif isinstance(subset, str):
         # need to have a DataFrame, not a Series
         # -> select columns with singleton list, not string
         subset = [subset]

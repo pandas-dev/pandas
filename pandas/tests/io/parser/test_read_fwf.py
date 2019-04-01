@@ -11,7 +11,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.compat as compat
 from pandas.compat import BytesIO, StringIO
 
 import pandas as pd
@@ -161,9 +160,6 @@ A   B     C            D            E
 
 
 def test_bytes_io_input():
-    if not compat.PY3:
-        pytest.skip("Bytes-related test - only needs to work on Python 3")
-
     result = read_fwf(BytesIO("שלום\nשלום".encode('utf8')),
                       widths=[2, 2], encoding="utf8")
     expected = DataFrame([["של", "ום"]], columns=["של", "ום"])
@@ -441,9 +437,6 @@ col1~~~~~col2  col3++++++++++++++++++col4
 
 
 def test_variable_width_unicode():
-    if not compat.PY3:
-        pytest.skip("Bytes-related test - only needs to work on Python 3")
-
     data = """
 שלום שלום
 ום   שלל
@@ -567,8 +560,7 @@ def test_fwf_compression(compression_only, infer):
     kwargs = dict(widths=[5, 5], names=["one", "two"])
     expected = read_fwf(StringIO(data), **kwargs)
 
-    if compat.PY3:
-        data = bytes(data, encoding="utf-8")
+    data = bytes(data, encoding="utf-8")
 
     with tm.ensure_clean(filename="tmp." + extension) as path:
         tm.write_to_compressed(compression, path, data)
