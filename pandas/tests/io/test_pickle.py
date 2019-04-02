@@ -18,6 +18,7 @@ import glob
 import gzip
 import lzma
 import os
+import pickle
 import shutil
 from warnings import catch_warnings, simplefilter
 import zipfile
@@ -217,16 +218,14 @@ def test_pickles(current_pickle_data, legacy_pickle):
 
 def test_round_trip_current(current_pickle_data):
 
-    import pickle as python_pickle
-
     def python_pickler(obj, path):
         with open(path, 'wb') as fh:
-            python_pickle.dump(obj, fh, protocol=-1)
+            pickle.dump(obj, fh, protocol=-1)
 
     def python_unpickler(path):
         with open(path, 'rb') as fh:
             fh.seek(0)
-            return python_pickle.load(fh)
+            return pickle.load(fh)
 
     data = current_pickle_data
     for typ, dv in data.items():
