@@ -26,7 +26,6 @@ import warnings
 import numpy as np
 import pytest
 
-import pandas.compat as compat
 from pandas.compat import PY36, lrange
 
 from pandas.core.dtypes.common import (

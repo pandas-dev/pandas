@@ -18,7 +18,6 @@ import numpy as np
 from pandas.util._decorators import Appender
 
 import pandas as pd
-from pandas import compat
 
 from pandas.io.common import BaseIterator, get_filepath_or_buffer
 
