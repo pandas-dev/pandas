@@ -225,8 +225,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
             # If data is Iterable but not list-like, consume into list.
-            elif (isinstance(data, compat.Iterable)
-                  and not isinstance(data, compat.Sized)):
+            elif (isinstance(data, abc.Iterable) and
+                  not isinstance(data, abc.Sized)):
                 data = list(data)
             else:
 
@@ -1497,7 +1497,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         into : class, default dict
-            The collections.Mapping subclass to use as the return
+            The collections.abc.Mapping subclass to use as the return
             object. Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
@@ -1506,7 +1506,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        collections.Mapping
+        collections.abc.Mapping
             Key-value representation of Series.
 
         Examples
