@@ -32,12 +32,11 @@ Other Enhancements
 - :meth:`DataFrame.set_index` now works for instances of ``abc.Iterator``, provided their output is of the same length as the calling frame (:issue:`22484`, :issue:`24984`)
 - :meth:`DatetimeIndex.union` now supports the ``sort`` argument. The behaviour of the sort parameter matches that of :meth:`Index.union` (:issue:`24994`)
 - :meth:`RangeIndex.union` now supports the ``sort`` argument. If ``sort=False`` an unsorted ``Int64Index`` is always returned. ``sort=None`` is the default and returns a mononotically increasing ``RangeIndex`` if possible or a sorted ``Int64Index`` if not (:issue:`24471`)
+- :meth:`TimedeltaIndex.intersection` now also supports the ``sort`` keyword (:issue:`24471`)
 - :meth:`DataFrame.rename` now supports the ``errors`` argument to raise errors when attempting to rename nonexistent keys (:issue:`13473`)
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
-- :meth:`DatetimeIndex.intersection` and :meth:`TimedeltaIndex.intersection` have been moved to :meth:`Datetimelike.intersection` (:issue:`24966`)
-- :meth:`TimedeltaIndex.intersection` now also supports the ``sort`` keyword (:issue:`24471`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -249,7 +248,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 
-- Bug in :func:`TimedeltaIndex.intersection` where for non-monotonic indicies in some cases an empty Index was returned when in fact an intersection existed (:issue:`25913`)
+- Bug in :func:`TimedeltaIndex.intersection` where for non-monotonic indicies in some cases an empty ``Index`` was returned when in fact an intersection existed (:issue:`25913`)
 -
 -
 

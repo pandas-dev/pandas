@@ -541,12 +541,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return self._get_reconciled_name_object(other)
 
         if not isinstance(other, type(self)):
-            # try converting other type to own type and ignore Type/ValueErrors
-            # caused e.g. by trying calling TimedeltaIndex on another object
-            try:
-                other = self(other)
-            except (TypeError, ValueError):
-                pass
             result = Index.intersection(self, other, sort=sort)
             if isinstance(result, type(self)):
                 if result.freq is None:
@@ -573,9 +567,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return result
 
         if len(self) == 0:
-            return self
+            return self.copy()
         if len(other) == 0:
-            return other
+            return other.copy()
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -583,6 +577,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         else:
             left, right = other, self
 
+        # after sorting, the intersection always starts with the right index
+        # and ends with the index of which the last elements is smallest
         end = min(left[-1], right[-1])
         start = right[0]
 

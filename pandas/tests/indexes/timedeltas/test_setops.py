@@ -101,23 +101,21 @@ class TestTimedeltaIndex(object):
         inter = index_1.intersection(index_2, sort=sort)
         tm.assert_index_equal(timedelta_range('1 day', periods=0, freq='h'),
                               inter)
+        tm.assert_copy(index_1, inter)
+        tm.assert_copy(index_2, inter)
 
-    @pytest.mark.parametrize("rng, expected",
-                             # if target has the same name, it is preserved
-                             [(timedelta_range('1 day', periods=5,
-                                               freq='h', name='idx'),
-                               timedelta_range('1 day', periods=4,
-                                               freq='h', name='idx')),
-                              # if target name is different, it will be reset
-                              (timedelta_range('1 day', periods=5,
-                                               freq='h', name='other'),
-                               timedelta_range('1 day', periods=4,
-                                               freq='h', name=None)),
-                              # if no overlap exists return empty index
-                              (timedelta_range('1 day', periods=10,
-                                               freq='h', name='idx')[5:],
-                               TimedeltaIndex([], name='idx'))
-                              ])
+    @pytest.mark.parametrize(
+        "rng, expected",
+        # if target has the same name, it is preserved
+        [
+            (timedelta_range('1 day', periods=5, freq='h', name='idx'),
+             timedelta_range('1 day', periods=4, freq='h', name='idx')),
+            # if target name is different, it will be reset
+            (timedelta_range('1 day', periods=5, freq='h', name='other'),
+             timedelta_range('1 day', periods=4, freq='h', name=None)),
+            # if no overlap exists return empty index
+            (timedelta_range('1 day', periods=10, freq='h', name='idx')[5:],
+             TimedeltaIndex([], name='idx'))])
     @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, rng, expected, sort):
         # GH 4690 (with tz)
@@ -129,26 +127,22 @@ class TestTimedeltaIndex(object):
         assert result.name == expected.name
         assert result.freq == expected.freq
 
-    @pytest.mark.parametrize("rng, expected",
-                             # part intersection works
-                             [(TimedeltaIndex(['5 hour', '2 hour',
-                                               '4 hour', '9 hour'],
-                                              name='idx'),
-                               TimedeltaIndex(['2 hour', '4 hour'],
-                                              name='idx')),
-                              # reordered part intersection
-                              (TimedeltaIndex(['2 hour', '5 hour',
-                                               '5 hour', '1 hour'],
-                                              name='other'),
-                               TimedeltaIndex(['1 hour', '2 hour'],
-                                              name=None)),
-                              # reveresed index
-                              (TimedeltaIndex(['1 hour', '2 hour',
-                                               '4 hour', '3 hour'],
-                                              name='idx')[::-1],
-                               TimedeltaIndex(['1 hour', '2 hour',
-                                               '4 hour', '3 hour'],
-                                              name='idx'))])
+    @pytest.mark.parametrize(
+        "rng, expected",
+        # part intersection works
+        [
+            (TimedeltaIndex(['5 hour', '2 hour', '4 hour', '9 hour'],
+                            name='idx'),
+             TimedeltaIndex(['2 hour', '4 hour'], name='idx')),
+            # reordered part intersection
+            (TimedeltaIndex(['2 hour', '5 hour', '5 hour', '1 hour'],
+                            name='other'),
+             TimedeltaIndex(['1 hour', '2 hour'], name=None)),
+            # reveresed index
+            (TimedeltaIndex(['1 hour', '2 hour', '4 hour', '3 hour'],
+                            name='idx')[::-1],
+             TimedeltaIndex(['1 hour', '2 hour', '4 hour', '3 hour'],
+                            name='idx'))])
     @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_non_monotonic(self, rng, expected, sort):
         # 24471 non-monotonic
