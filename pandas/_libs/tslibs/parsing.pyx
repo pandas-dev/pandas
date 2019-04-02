@@ -142,7 +142,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
     raise DateParseError("Invalid date specified ({}/{})".format(month, day))
 
 
-cdef bint does_string_look_like_time(object parse_string):
+cdef inline bint does_string_look_like_time(object parse_string):
     cdef:
         const char* buf
         Py_ssize_t length
