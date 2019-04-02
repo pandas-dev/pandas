@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, timedelta
+from io import StringIO
 import re
 import sys
 import textwrap
@@ -494,7 +495,7 @@ class TestDataFrameReprInfoEtc(TestData):
         df.info(buf=buf)
 
         df2 = df[df['category'] == 'd']
-        buf = compat.StringIO()
+        buf = StringIO()
         df2.info(buf=buf)
 
     def test_repr_categorical_dates_periods(self):

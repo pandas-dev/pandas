@@ -1,9 +1,10 @@
 """ pickle compat """
+from io import BytesIO
 import warnings
 
 from numpy.lib.format import read_array
 
-from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc
+from pandas.compat import cPickle as pkl, pickle_compat as pc
 
 from pandas.io.common import _get_handle, _stringify_path
 

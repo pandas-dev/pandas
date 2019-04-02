@@ -9,6 +9,7 @@ https://support.sas.com/techsup/technote/ts140.pdf
 """
 
 from datetime import datetime
+from io import BytesIO
 import struct
 import warnings
 
@@ -249,7 +250,7 @@ class XportReader(BaseIterator):
                 contents = contents.encode(self._encoding)
             except UnicodeEncodeError:
                 pass
-            self.filepath_or_buffer = compat.BytesIO(contents)
+            self.filepath_or_buffer = BytesIO(contents)
 
         self._read_header()
 

@@ -5,6 +5,7 @@ import codecs
 import csv
 import gzip
 from http.client import HTTPException  # noqa
+from io import BytesIO
 import lzma
 import mmap
 import os
@@ -16,7 +17,6 @@ from urllib.request import pathname2url, urlopen
 import zipfile
 
 import pandas.compat as compat
-from pandas.compat import BytesIO
 from pandas.errors import (  # noqa
     AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
     ParserWarning)

@@ -40,17 +40,10 @@ PYPY = platform.python_implementation() == 'PyPy'
 
 try:
     import __builtin__ as builtins
-    # not writeable when instantiated with string, doesn't handle unicode well
-    from cStringIO import StringIO as cStringIO
-    # always writeable
-    from StringIO import StringIO
-    BytesIO = StringIO
     import cPickle
     import httplib
 except ImportError:
     import builtins
-    from io import StringIO, BytesIO
-    cStringIO = StringIO
     import pickle as cPickle
     import http.client as httplib
 

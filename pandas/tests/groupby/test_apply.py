@@ -1,4 +1,5 @@
 from datetime import datetime
+from io import StringIO
 
 import numpy as np
 import pytest
@@ -24,9 +25,8 @@ def test_apply_issues():
 2011.05.18,04:00,1.40750
 2011.05.18,05:00,1.40649"""
 
-    df = pd.read_csv(
-        compat.StringIO(s), header=None, names=['date', 'time', 'value'],
-        parse_dates=[['date', 'time']])
+    df = pd.read_csv(StringIO(s), header=None, names=['date', 'time', 'value'],
+                     parse_dates=[['date', 'time']])
     df = df.set_index('date_time')
 
     expected = df.groupby(df.index.date).idxmax()
@@ -35,8 +35,7 @@ def test_apply_issues():
 
     # GH 5789
     # don't auto coerce dates
-    df = pd.read_csv(
-        compat.StringIO(s), header=None, names=['date', 'time', 'value'])
+    df = pd.read_csv(StringIO(s), header=None, names=['date', 'time', 'value'])
     exp_idx = pd.Index(
         ['2011.05.16', '2011.05.17', '2011.05.18'
          ], dtype=object, name='date')

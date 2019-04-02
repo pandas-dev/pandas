@@ -1,3 +1,4 @@
+from io import StringIO
 from string import ascii_lowercase
 
 import numpy as np
@@ -494,7 +495,7 @@ def test_max_nan_bug():
 -05-06,2013-05-06 00:00:00,,log.log
 -05-07,2013-05-07 00:00:00,OE,xlsx"""
 
-    df = pd.read_csv(compat.StringIO(raw), parse_dates=[0])
+    df = pd.read_csv(StringIO(raw), parse_dates=[0])
     gb = df.groupby('Date')
     r = gb[['File']].max()
     e = gb['File'].max().to_frame()
