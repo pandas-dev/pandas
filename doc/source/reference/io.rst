@@ -134,6 +134,7 @@ STATA
    :toctree: api/
 
    StataReader.data
+   StataReader.data_label
    StataReader.value_labels
    StataReader.variable_labels
    StataWriter.write_file
