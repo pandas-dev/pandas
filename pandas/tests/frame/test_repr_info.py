@@ -9,7 +9,7 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY, StringIO, lrange
+from pandas.compat import PYPY, lrange
 
 import pandas as pd
 from pandas import (
