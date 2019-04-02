@@ -3,12 +3,12 @@ HTML IO.
 
 """
 
+from collections.abc import Iterable
 from distutils.version import LooseVersion
 import numbers
 import os
 import re
 
-import pandas.compat as compat
 from pandas.compat import iteritems, lmap, lrange, raise_with_traceback
 from pandas.errors import AbstractMethodError, EmptyDataError
 
@@ -857,7 +857,7 @@ def _validate_flavor(flavor):
         flavor = 'lxml', 'bs4'
     elif isinstance(flavor, str):
         flavor = flavor,
-    elif isinstance(flavor, compat.Iterable):
+    elif isinstance(flavor, Iterable):
         if not all(isinstance(flav, str) for flav in flavor):
             raise TypeError('Object of type {typ!r} is not an iterable of '
                             'strings'

@@ -7,6 +7,7 @@ which here returns a DataFrameGroupBy object.
 """
 
 import collections
+from collections.abc import Iterable
 import copy
 from functools import partial
 from textwrap import dedent
@@ -770,7 +771,7 @@ class SeriesGroupBy(GroupBy):
         if isinstance(func_or_funcs, str):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
-        if isinstance(func_or_funcs, compat.Iterable):
+        if isinstance(func_or_funcs, Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             ret = self._aggregate_multiple_funcs(func_or_funcs,

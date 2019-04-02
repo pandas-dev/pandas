@@ -2,14 +2,13 @@
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for numeric dtypes
+from collections.abc import Iterable
 from decimal import Decimal
 from itertools import combinations
 import operator
 
 import numpy as np
 import pytest
-
-from pandas.compat import Iterable
 
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex

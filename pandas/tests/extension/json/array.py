@@ -11,6 +11,7 @@ in that case. We *want* the dictionaries to be treated as scalars, so we
 hack around pandas by using UserDicts.
 """
 import collections
+from collections.abc import Iterable, Mapping, Sequence
 import itertools
 import numbers
 import random
@@ -21,12 +22,11 @@ import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
 
-from pandas import compat
 from pandas.core.arrays import ExtensionArray
 
 
 class JSONDtype(ExtensionDtype):
-    type = compat.Mapping
+    type = Mapping
     name = 'json'
 
     try:
@@ -85,7 +85,7 @@ class JSONArray(ExtensionArray):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
             return self._from_sequence([x for x, m in zip(self, item) if m])
-        elif isinstance(item, compat.Iterable):
+        elif isinstance(item, Iterable):
             # fancy indexing
             return type(self)([self.data[i] for i in item])
         else:
@@ -96,8 +96,7 @@ class JSONArray(ExtensionArray):
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
-            if not isinstance(value, (type(self),
-                                      compat.Sequence)):
+            if not isinstance(value, (type(self), Sequence)):
                 # broadcast value
                 value = itertools.cycle([value])
 

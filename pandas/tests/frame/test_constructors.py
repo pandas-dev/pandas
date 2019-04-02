@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 import functools
 import itertools
@@ -973,7 +974,7 @@ class TestDataFrameConstructors(TestData):
         # GH 3783
         # collections.Squence like
 
-        class DummyContainer(compat.Sequence):
+        class DummyContainer(Sequence):
 
             def __init__(self, lst):
                 self._lst = lst

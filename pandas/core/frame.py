@@ -12,6 +12,7 @@ labeling information
 """
 import collections
 from collections import OrderedDict
+from collections.abc import Iterable, Iterator, Sequence
 import functools
 import itertools
 import sys
@@ -33,8 +34,7 @@ from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
 from pandas import compat
-from pandas.compat import (
-    PY36, Iterator, StringIO, lmap, lzip, raise_with_traceback)
+from pandas.compat import PY36, StringIO, lmap, lzip, raise_with_traceback
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
     maybe_upcast,
@@ -426,9 +426,9 @@ class DataFrame(NDFrame):
                                    copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif (isinstance(data, compat.Iterable) and
+        elif (isinstance(data, Iterable) and
               not isinstance(data, (str, bytes))):
-            if not isinstance(data, compat.Sequence):
+            if not isinstance(data, Sequence):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
@@ -1203,7 +1203,7 @@ class DataFrame(NDFrame):
             indicates `split`.
 
         into : class, default dict
-            The collections.Mapping subclass used for all Mappings
+            The collections.abc.Mapping subclass used for all Mappings
             in the return value.  Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
@@ -1212,8 +1212,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        dict, list or collections.Mapping
-            Return a collections.Mapping object representing the DataFrame.
+        dict, list or collections.abc.Mapping
+            Return a collections.abc.Mapping object representing the DataFrame.
             The resulting transformation depends on the `orient` parameter.
 
         See Also
@@ -4080,7 +4080,7 @@ class DataFrame(NDFrame):
             the same length as the calling DataFrame, or a list containing an
             arbitrary combination of column keys and arrays. Here, "array"
             encompasses :class:`Series`, :class:`Index`, ``np.ndarray``, and
-            instances of :class:`abc.Iterator`.
+            instances of :class:`~collections.abc.Iterator`.
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False

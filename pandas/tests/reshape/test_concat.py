@@ -1,4 +1,5 @@
 from collections import OrderedDict, deque
+from collections.abc import Iterable
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
@@ -10,7 +11,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import Iterable, StringIO, iteritems
+from pandas.compat import StringIO, iteritems
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 

@@ -2,6 +2,7 @@
 
 import collections
 from collections import OrderedDict, defaultdict
+from collections.abc import Mapping
 from datetime import datetime
 
 import numpy as np
@@ -119,7 +120,7 @@ class TestDataFrameConvertTo(TestData):
         import email
         from email.parser import Parser
 
-        compat.Mapping.register(email.message.Message)
+        Mapping.register(email.message.Message)
 
         headers = Parser().parsestr('From: <user@example.com>\n'
                                     'To: <someone_else@example.com>\n'

@@ -1,3 +1,4 @@
+from collections.abc import MutableMapping
 from datetime import datetime, time
 from functools import partial
 
@@ -17,7 +18,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import notna
 
-from pandas import compat
 from pandas.core import algorithms
 
 
@@ -599,7 +599,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         else:
             values = convert_listlike(arg._values, True, format)
             result = arg._constructor(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (ABCDataFrame, compat.MutableMapping)):
+    elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, box, tz)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)

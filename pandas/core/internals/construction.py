@@ -3,13 +3,13 @@ Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
 from collections import OrderedDict
+from collections.abc import Mapping
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
-import pandas.compat as compat
 from pandas.compat import lmap, lrange, raise_with_traceback
 
 from pandas.core.dtypes.cast import (
@@ -395,7 +395,7 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
-    elif isinstance(data[0], compat.Mapping):
+    elif isinstance(data[0], Mapping):
         return _list_of_dict_to_arrays(data, columns,
                                        coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], ABCSeries):
