@@ -1,14 +1,16 @@
 """ pickle compat """
+import pickle
 import warnings
 
 from numpy.lib.format import read_array
 
-from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc
+from pandas.compat import BytesIO
 
 from pandas.io.common import _get_handle, _stringify_path
 
 
-def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
+def to_pickle(obj, path, compression='infer',
+              protocol=pickle.HIGHEST_PROTOCOL):
     """
     Pickle (serialize) object to file.
 
@@ -71,9 +73,9 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
                         compression=compression,
                         is_text=False)
     if protocol < 0:
-        protocol = pkl.HIGHEST_PROTOCOL
+        protocol = pickle.HIGHEST_PROTOCOL
     try:
-        f.write(pkl.dumps(obj, protocol=protocol))
+        f.write(pickle.dumps(obj, protocol=protocol))
     finally:
         f.close()
         for _f in fh:
@@ -140,7 +142,7 @@ def read_pickle(path, compression='infer'):
     path = _stringify_path(path)
     f, fh = _get_handle(path, 'rb', compression=compression, is_text=False)
 
-    # 1) try with cPickle
+    # 1) try with Pickle
     # 2) try with the compat pickle to handle subclass changes
     # 3) pass encoding only if its not None as py2 doesn't handle the param
 
@@ -148,12 +150,12 @@ def read_pickle(path, compression='infer'):
         with warnings.catch_warnings(record=True):
             # We want to silence any warnings about, e.g. moved modules.
             warnings.simplefilter("ignore", Warning)
-            return pkl.load(f)
+            return pickle.load(f)
     except Exception:  # noqa: E722
         try:
-            return pc.load(f, encoding=None)
+            return pickle.load(f, encoding=None)
         except Exception:  # noqa: E722
-            return pc.load(f, encoding='latin1')
+            return pickle.load(f, encoding='latin1')
     finally:
         f.close()
         for _f in fh:
