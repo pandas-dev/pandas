@@ -858,7 +858,7 @@ def test_parse_timezone(all_parsers):
     "13/2019",
     "a3/11/2018",
     "10/11/2o17"
-    ])
+])
 def test_invalid_parse_delimited_date(all_parsers, datestring):
     parser = all_parsers
     expected = DataFrame({0: [datestring]}, dtype="object")
@@ -870,7 +870,7 @@ def test_invalid_parse_delimited_date(all_parsers, datestring):
 @pytest.mark.parametrize("date_format", [
     "%m %d %Y",
     "%m %Y"
-    ])
+])
 def test_parse_delimited_date(all_parsers, date_format):
     parser = all_parsers
     delims = ' -.\\/'
@@ -890,8 +890,9 @@ def test_parse_delimited_date(all_parsers, date_format):
     ("02/13/2019", True, datetime(2019, 2, 13)),
     # DD/MM/YYYY; dayfirst==True thus replacement
     ("04/02/2019", True, datetime(2019, 2, 4))
-    ])
-def test_parse_delimited_date_swap(all_parsers, datestring, dayfirst, expected):
+])
+def test_parse_delimited_date_swap(all_parsers, datestring,
+                                   dayfirst, expected):
     parser = all_parsers
     expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
     result = parser.read_csv(StringIO(datestring), header=None,
