@@ -13,8 +13,7 @@ from pandas.compat import PYPY, lrange
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Series, date_range, option_context,
-    period_range)
+    Categorical, DataFrame, Series, date_range, option_context, period_range)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
