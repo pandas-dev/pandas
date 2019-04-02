@@ -7,7 +7,7 @@ from textwrap import dedent
 import warnings
 
 import numpy as np
-
+import pandas as pd
 from pandas._config import get_option
 
 from pandas._libs import iNaT, index as libindex, lib, tslibs
@@ -3687,7 +3687,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         if len(mapped) and isinstance(mapped[0], Series):
             from pandas.core.frame import DataFrame
-            return DataFrame(mapped.tolist(), index=self.index)
+            # GH 25959 use pd.array instead of tolist
+            # so extension arrays can be used
+            return DataFrame(pd.array(mapped), index=self.index)
         else:
             return self._constructor(mapped,
                                      index=self.index).__finalize__(self)
