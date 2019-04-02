@@ -11,7 +11,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import Iterable, iteritems
+from pandas.compat import iteritems
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
