@@ -66,6 +66,8 @@ class TestStata(object):
         self.dta4_117 = os.path.join(self.dirpath, 'stata4_117.dta')
 
         self.dta_encoding = os.path.join(self.dirpath, 'stata1_encoding.dta')
+        self.dta_encoding_118 = os.path.join(self.dirpath,
+                                             'stata1_encoding_118.dta')
 
         self.csv14 = os.path.join(self.dirpath, 'stata5.csv')
         self.dta14_113 = os.path.join(self.dirpath, 'stata5_113.dta')
@@ -1608,3 +1610,9 @@ class TestStata(object):
                     val = gso.split(b'\x00')[-2]
                     size = gso[gso.find(b'\x82') + 1]
                     assert len(val) == size - 1
+
+    def test_encoding_latin1_118(self):
+        # GH 25960
+        encoded = read_stata(self.dta_encoding_118)
+        expected = pd.DataFrame([['Düsseldorf']] * 151, columns=['kreis1849'])
+        tm.assert_frame_equal(encoded, expected)

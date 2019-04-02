@@ -1327,12 +1327,20 @@ class StataReader(StataParser, BaseIterator):
 
     def _decode(self, s):
         s = s.partition(b"\0")[0]
-        return s.decode('utf-8')
+        try:
+            return s.decode('utf-8')
+        except UnicodeDecodeError:
+            # GH 25960
+            return s.decode('latin-1')
 
     def _null_terminate(self, s):
         # have bytes not strings, so must decode
         s = s.partition(b"\0")[0]
-        return s.decode(self._encoding)
+        try:
+            return s.decode(self._encoding)
+        except UnicodeDecodeError:
+            # GH 25960
+            return s.decode('latin-1')
 
     def _read_value_labels(self):
         if self._value_labels_read:
