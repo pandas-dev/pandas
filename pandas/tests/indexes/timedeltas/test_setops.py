@@ -101,8 +101,14 @@ class TestTimedeltaIndex(object):
         inter = index_1.intersection(index_2, sort=sort)
         tm.assert_index_equal(timedelta_range('1 day', periods=0, freq='h'),
                               inter)
-        tm.assert_copy(index_1, inter)
-        tm.assert_copy(index_2, inter)
+
+    @pytest.mark.parametrize('sort', [None, False])
+    def test_zero_length_input_index(self, sort):
+        index_1 = timedelta_range('1 day', periods=0, freq='h')
+        index_2 = timedelta_range('1 day', periods=3, freq='h')
+        inter = index_1.intersection(index_2, sort=sort)
+        assert index_1 is not inter
+        assert index_2 is not inter
 
     @pytest.mark.parametrize(
         "rng, expected",
