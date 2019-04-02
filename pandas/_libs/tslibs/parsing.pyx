@@ -87,6 +87,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
         const char* buf
         Py_ssize_t length
         int day = 1, month = 1, year
+        bint can_swap = 0
 
     buf = get_c_string_buf_and_size(date_string, &length)
     if length == 10:
@@ -96,6 +97,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
         day = _parse_2digit(buf + 3)
         year = _parse_4digit(buf + 6)
         reso = 'day'
+        can_swap = 1
     elif length == 7:
         if _is_not_delimiter(buf[2]):
             return None, None
@@ -111,7 +113,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
 
     if 1 <= month <= MAX_DAYS_IN_MONTH and 1 <= day <= MAX_DAYS_IN_MONTH \
             and (month <= MAX_MONTH or day <= MAX_MONTH):
-        if month > MAX_MONTH or (day < MAX_MONTH and dayfirst):
+        if (month > MAX_MONTH or (day < MAX_MONTH and dayfirst)) and can_swap:
             day, month = month, day
         return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
 
