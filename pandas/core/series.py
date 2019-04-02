@@ -2,6 +2,7 @@
 Data structure for 1-dimensional cross-sectional and time series data
 """
 from collections import OrderedDict
+from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
 import warnings
@@ -12,7 +13,7 @@ from pandas._config import get_option
 
 from pandas._libs import iNaT, index as libindex, lib, tslibs
 import pandas.compat as compat
-from pandas.compat import PY36, StringIO
+from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg
