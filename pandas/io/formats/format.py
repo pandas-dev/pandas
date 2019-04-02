@@ -1071,6 +1071,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # separate the wheat from the chaff
             values = self.values
+            is_complex = is_complex_dtype(values)
             mask = isna(values)
             if hasattr(values, 'to_dense'):  # sparse numpy ndarray
                 values = values.to_dense()
@@ -1081,7 +1082,10 @@ class FloatArrayFormatter(GenericArrayFormatter):
                                            for val in values.ravel()[imask]])
 
             if self.fixed_width:
-                return _trim_zeros(values, na_rep)
+                if is_complex:
+                    return _trim_zeros_complex(values, na_rep)
+                else:
+                    return _trim_zeros(values, na_rep)
 
             return values
 
@@ -1409,6 +1413,21 @@ def _make_fixed_width(strings, justify='right', minimum=None, adj=None):
     strings = [just(x) for x in strings]
     result = adj.justify(strings, max_len, mode=justify)
     return result
+
+
+def _trim_zeros_complex(str_complexes, na_rep='NaN'):
+    """
+    Separates the real and imaginary parts from the complex number, and
+    executes the _trim_zeros method on each of those.
+    """
+    def separate_and_trim(str_complex, na_rep):
+        num_arr = str_complex.split('+')
+        return (_trim_zeros([num_arr[0]], na_rep) +
+                ['+'] +
+                _trim_zeros([num_arr[1][:-1]], na_rep) +
+                ['j'])
+
+    return [''.join(separate_and_trim(x, na_rep)) for x in str_complexes]
 
 
 def _trim_zeros(str_floats, na_rep='NaN'):
