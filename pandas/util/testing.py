@@ -22,8 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 
 from pandas._libs import testing as _testing
 import pandas.compat as compat
-from pandas.compat import (
-    PY3, httplib, lmap, lrange, lzip, raise_with_traceback)
+from pandas.compat import httplib, lmap, lrange, lzip, raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -2048,10 +2047,7 @@ _network_errno_vals = (
 # servers.
 
 # and conditionally raise on these exception types
-_network_error_classes = (IOError, httplib.HTTPException)
-
-if PY3:
-    _network_error_classes += (TimeoutError,)  # noqa
+_network_error_classes = (IOError, httplib.HTTPException, TimeoutError)
 
 
 def can_connect(url, error_classes=_network_error_classes):

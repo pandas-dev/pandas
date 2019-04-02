@@ -27,7 +27,7 @@ import locale
 
 import pytest
 
-from pandas.compat import PY3, is_platform_32bit, is_platform_windows
+from pandas.compat import is_platform_32bit, is_platform_windows
 from pandas.compat.numpy import _np_version_under1p15
 
 from pandas.core.computation.expressions import (
@@ -141,9 +141,8 @@ skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
                                    reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(),
                                      reason="Running on Windows")
-skip_if_windows_python_3 = pytest.mark.skipif(is_platform_windows() and PY3,
-                                              reason=("not used on python3/"
-                                                      "win32"))
+skip_if_windows_python_3 = pytest.mark.skipif(is_platform_windows(),
+                                              reason="not used on win32")
 skip_if_has_locale = pytest.mark.skipif(_skip_if_has_locale(),
                                         reason="Specific locale is set {lang}"
                                         .format(lang=locale.getlocale()[0]))
