@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from io import StringIO, open
+from io import StringIO
 import re
 
 import numpy as np

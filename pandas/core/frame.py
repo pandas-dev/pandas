@@ -13,6 +13,7 @@ labeling information
 import collections
 from collections import OrderedDict
 import functools
+from io import StringIO
 import itertools
 import sys
 import warnings
@@ -34,7 +35,7 @@ from pandas.util._validators import (validate_bool_kwarg,
 
 from pandas import compat
 from pandas.compat import (
-    PY36, Iterator, StringIO, lmap, lzip, raise_with_traceback)
+    PY36, Iterator, lmap, lzip, raise_with_traceback)
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
     maybe_upcast,
