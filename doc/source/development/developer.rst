@@ -78,22 +78,16 @@ descriptor format for these as is follows:
     'step': index._step}
 
 Other index types must be serialized as data columns along with the other
-DataFrame columns. The metadata for these is a dict with ``kind`` field
-``'serialized'`` and ``'field_name'`` field indicating which data column
-contains the index data. For example,
+DataFrame columns. The metadata for these is a string indicating the name of
+the field in the data columns, for example ``'__index_level_0__'``.
 
-.. code-block:: python
-
-   {'kind': 'serialized',
-    'field_name': '__index_level_0__'}
-
-Every index column is stored with a name matching the pattern
-``__index_level_\d+__``. Following this naming convention isn't strictly
-necessary, but strongly suggested for compatibility with Arrow and
-disambiguation. The ``'field_name'`` is the actual name of the column in the
-serialized Parquet table. If the ``Index`` has a non-None ``name`` attribute,
-then it can be found in the ``name`` field of the metadata for that serialized
-data column as described below.
+If an index has a non-None ``name`` attribute, and there is no other column
+with a name matching that value, then the ``index.name`` value can be used as
+the descriptor. Otherwise (for unnamed indexes and ones with names colliding
+with other column names) a disambiguating name with pattern matching
+``__index_level_\d+__`` should be used. In cases of named indexes as data
+columns, ``name`` attribute is always stored in the column descriptors as
+above.
 
 Column Metadata
 ~~~~~~~~~~~~~~~
@@ -145,8 +139,7 @@ As an example of fully-formed metadata:
 
 .. code-block:: text
 
-   {'index_columns': [{'kind': 'serialized',
-                       'field_name': '__index_level_0__'}],
+   {'index_columns': ['__index_level_0__'],
     'column_indexes': [
         {'name': None,
          'field_name': 'None',
