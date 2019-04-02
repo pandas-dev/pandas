@@ -1,7 +1,7 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
-from collections import OrderedDict
+from collections import OrderedDict, abc
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
