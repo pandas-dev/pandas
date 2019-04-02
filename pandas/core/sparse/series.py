@@ -5,7 +5,7 @@ with float64 data
 
 # pylint: disable=E1101,E1103,W0231
 
-from collections.abc import Mapping
+from collections import abc
 import warnings
 
 import numpy as np
@@ -82,7 +82,7 @@ class SparseSeries(Series):
             if index is not None:
                 data = data.reindex(index)
 
-        elif isinstance(data, Mapping):
+        elif isinstance(data, abc.Mapping):
             data, index = Series()._init_dict(data, index=index)
 
         elif is_scalar(data) and index is not None:

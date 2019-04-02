@@ -1,4 +1,4 @@
-from collections.abc import MutableMapping
+from collections import abc
 from datetime import datetime, time
 from functools import partial
 
@@ -599,7 +599,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         else:
             values = convert_listlike(arg._values, True, format)
             result = arg._constructor(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (ABCDataFrame, MutableMapping)):
+    elif isinstance(arg, (ABCDataFrame, abc.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, box, tz)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)

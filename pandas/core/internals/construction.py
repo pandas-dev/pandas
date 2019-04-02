@@ -2,8 +2,7 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
-from collections import OrderedDict
-from collections.abc import Mapping
+from collections import OrderedDict, abc
 
 import numpy as np
 import numpy.ma as ma
@@ -395,7 +394,7 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
-    elif isinstance(data[0], Mapping):
+    elif isinstance(data[0], abc.Mapping):
         return _list_of_dict_to_arrays(data, columns,
                                        coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], ABCSeries):

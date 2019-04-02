@@ -1,6 +1,6 @@
 """ basic inference routines """
 
-from collections.abc import Iterable, Set
+from collections import abc
 from numbers import Number
 import re
 
@@ -112,7 +112,7 @@ def _iterable_not_string(obj):
     False
     """
 
-    return isinstance(obj, Iterable) and not isinstance(obj, str)
+    return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
 
 
 def is_iterator(obj):
@@ -287,7 +287,7 @@ def is_list_like(obj, allow_sets=True):
     False
     """
 
-    return (isinstance(obj, Iterable) and
+    return (isinstance(obj, abc.Iterable) and
             # we do not count strings/unicode/bytes as list-like
             not isinstance(obj, (str, bytes)) and
 
@@ -295,7 +295,7 @@ def is_list_like(obj, allow_sets=True):
             not (isinstance(obj, np.ndarray) and obj.ndim == 0) and
 
             # exclude sets if allow_sets is False
-            not (allow_sets is False and isinstance(obj, Set)))
+            not (allow_sets is False and isinstance(obj, abc.Set)))
 
 
 def is_array_like(obj):

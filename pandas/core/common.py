@@ -5,8 +5,7 @@ Note: pandas.core.common is *not* part of the public API.
 """
 
 import collections
-from collections import OrderedDict
-from collections.abc import Mapping
+from collections import OrderedDict, abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
@@ -394,7 +393,7 @@ def standardize_mapping(into):
             return partial(
                 collections.defaultdict, into.default_factory)
         into = type(into)
-    if not issubclass(into, Mapping):
+    if not issubclass(into, abc.Mapping):
         raise TypeError('unsupported type: {into}'.format(into=into))
     elif into == collections.defaultdict:
         raise TypeError(
@@ -471,7 +470,7 @@ def _get_rename_function(mapper):
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.
     """
-    if isinstance(mapper, (Mapping, ABCSeries)):
+    if isinstance(mapper, (abc.Mapping, ABCSeries)):
 
         def f(x):
             if x in mapper:

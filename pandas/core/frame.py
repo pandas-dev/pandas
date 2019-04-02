@@ -11,8 +11,7 @@ alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
 import collections
-from collections import OrderedDict
-from collections.abc import Iterable, Iterator, Sequence
+from collections import OrderedDict, abc
 import functools
 import itertools
 import sys
@@ -426,9 +425,9 @@ class DataFrame(NDFrame):
                                    copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif (isinstance(data, Iterable) and
+        elif (isinstance(data, abc.Iterable) and
               not isinstance(data, (str, bytes))):
-            if not isinstance(data, Sequence):
+            if not isinstance(data, abc.Sequence):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
@@ -4166,7 +4165,7 @@ class DataFrame(NDFrame):
         missing = []
         for col in keys:
             if isinstance(col, (ABCIndexClass, ABCSeries, np.ndarray,
-                                list, Iterator)):
+                                list, abc.Iterator)):
                 # arrays are fine as long as they are one-dimensional
                 # iterators get converted to list below
                 if getattr(col, 'ndim', 1) != 1:
@@ -4213,7 +4212,7 @@ class DataFrame(NDFrame):
             elif isinstance(col, (list, np.ndarray)):
                 arrays.append(col)
                 names.append(None)
-            elif isinstance(col, Iterator):
+            elif isinstance(col, abc.Iterator):
                 arrays.append(list(col))
                 names.append(None)
             # from here, col can only be a column label

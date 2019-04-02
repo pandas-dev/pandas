@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import collections
-from collections import OrderedDict, defaultdict
-from collections.abc import Mapping
+from collections import OrderedDict, abc, defaultdict
 from datetime import datetime
 
 import numpy as np
@@ -120,7 +118,7 @@ class TestDataFrameConvertTo(TestData):
         import email
         from email.parser import Parser
 
-        Mapping.register(email.message.Message)
+        abc.Mapping.register(email.message.Message)
 
         headers = Parser().parsestr('From: <user@example.com>\n'
                                     'To: <someone_else@example.com>\n'
@@ -366,10 +364,7 @@ class TestDataFrameConvertTo(TestData):
                                        ("B", "<f4"), ("C", "O")])
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize('mapping', [
-        dict,
-        collections.defaultdict(list),
-        collections.OrderedDict])
+    @pytest.mark.parametrize('mapping', [dict, defaultdict(list), OrderedDict])
     def test_to_dict(self, mapping):
         test_data = {
             'A': {'1': 1, '2': 2},
@@ -425,10 +420,7 @@ class TestDataFrameConvertTo(TestData):
             for k2, v2 in compat.iteritems(v):
                 assert (v2 == recons_data[k2][k])
 
-    @pytest.mark.parametrize('mapping', [
-        list,
-        collections.defaultdict,
-        []])
+    @pytest.mark.parametrize('mapping', [list, defaultdict, []])
     def test_to_dict_errors(self, mapping):
         # GH16122
         df = DataFrame(np.random.randn(3, 3))

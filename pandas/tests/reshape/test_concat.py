@@ -1,5 +1,4 @@
-from collections import OrderedDict, deque
-from collections.abc import Iterable
+from collections import OrderedDict, abc, deque
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
@@ -1743,7 +1742,7 @@ class TestConcatenate(ConcatenateBase):
         assert_frame_equal(pd.concat(CustomIterator1(),
                                      ignore_index=True), expected)
 
-        class CustomIterator2(Iterable):
+        class CustomIterator2(abc.Iterable):
 
             def __iter__(self):
                 yield df1

@@ -1,7 +1,7 @@
 """
 SparseArray data structure
 """
-from collections.abc import Mapping
+from collections import abc
 import numbers
 import operator
 import re
@@ -1378,7 +1378,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if isinstance(mapper, ABCSeries):
             mapper = mapper.to_dict()
 
-        if isinstance(mapper, Mapping):
+        if isinstance(mapper, abc.Mapping):
             fill_value = mapper.get(self.fill_value, self.fill_value)
             sp_values = [mapper.get(x, None) for x in self.sp_values]
         else:

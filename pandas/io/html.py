@@ -3,7 +3,7 @@ HTML IO.
 
 """
 
-from collections.abc import Iterable
+from collections import abc
 from distutils.version import LooseVersion
 import numbers
 import os
@@ -857,7 +857,7 @@ def _validate_flavor(flavor):
         flavor = 'lxml', 'bs4'
     elif isinstance(flavor, str):
         flavor = flavor,
-    elif isinstance(flavor, Iterable):
+    elif isinstance(flavor, abc.Iterable):
         if not all(isinstance(flav, str) for flav in flavor):
             raise TypeError('Object of type {typ!r} is not an iterable of '
                             'strings'
