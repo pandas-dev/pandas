@@ -49,12 +49,11 @@ class NotThisMethod(Exception):
     pass
 
 
-# LONG_VERSION_PY = {}  # type: Dict
 HANDLERS = {}  # type: Dict[str, Dict[str, Callable]]
 
 
 def register_vcs_handler(vcs: str, method: str) -> Callable:  # decorator
-    def decorate(f):
+    def decorate(f: Callable) -> Callable:
         if vcs not in HANDLERS:
             HANDLERS[vcs] = {}
         HANDLERS[vcs][method] = f
