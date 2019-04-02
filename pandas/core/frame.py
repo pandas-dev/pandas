@@ -2545,7 +2545,7 @@ class DataFrame(NDFrame):
                             index=['Index']).append(result)
         return result
 
-    def transpose(self, *args, **kwargs):
+    def transpose(self, copy=False):
         """
         Transpose index and columns.
 
@@ -2558,9 +2558,6 @@ class DataFrame(NDFrame):
         copy : bool, default False
             If True, the underlying data is copied. Otherwise (default), no
             copy is made if possible.
-        *args, **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
 
         Returns
         -------
@@ -2640,8 +2637,7 @@ class DataFrame(NDFrame):
         1    object
         dtype: object
         """
-        nv.validate_transpose(args, dict())
-        return super(DataFrame, self).transpose(1, 0, **kwargs)
+        return super().transpose(copy)
 
     T = property(transpose)
 

@@ -306,9 +306,8 @@ class NDFrame(PandasObject, SelectionMixin):
         supplied; useful to distinguish when a user explicitly passes None
         in scenarios where None has special meaning.
         """
-
-        # construct the args
         args = list(args)
+        # construct the args
         for a in self._AXIS_ORDERS:
 
             # if we have an alias for this axis
@@ -650,6 +649,41 @@ class NDFrame(PandasObject, SelectionMixin):
     def _set_axis(self, axis, labels):
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
+
+    def transpose(self, copy, valid_axes=[1, 0]):
+        """
+        Permute the dimensions of the %(klass)s
+
+        Parameters
+        ----------
+        copy : boolean, default False
+            Make a copy of the underlying data. Mixed-dtype data will
+            always result in a copy
+        valid_axes : list of str or int
+            Names / aliases for axes to be transposed.
+
+        Returns
+        -------
+        y : same as input
+        """
+        # construct the args
+        axes, kwargs = self._construct_axes_from_arguments(valid_axes, dict())
+        axes_names = tuple(self._get_axis_name(axes[a])
+                           for a in self._AXIS_ORDERS)
+        axes_numbers = tuple(self._get_axis_number(axes[a])
+                             for a in self._AXIS_ORDERS)
+
+        # we must have unique axes
+        if len(axes) != len(set(axes)):
+            raise ValueError('Must specify %s unique axes' % self._AXIS_LEN)
+
+        new_axes = self._construct_axes_dict_from(self, [self._get_axis(x)
+                                                         for x in axes_names])
+        new_values = self.values.transpose(axes_numbers)
+        if copy:
+            new_values = new_values.copy()
+
+        return self._constructor(new_values, **new_axes).__finalize__(self)
 
     def swapaxes(self, axis1, axis2, copy=True):
         """
