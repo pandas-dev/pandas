@@ -1054,7 +1054,7 @@ class StataReader(StataParser, BaseIterator):
 
         self.nobs = self._get_nobs()
         self.path_or_buf.read(11)  # </N><label>
-        self.data_label = self._get_data_label()
+        self._data_label = self._get_data_label()
         self.path_or_buf.read(19)  # </label><timestamp>
         self.time_stamp = self._get_time_stamp()
         self.path_or_buf.read(26)  # </timestamp></header><map>
@@ -1734,6 +1734,12 @@ the string values returned are correct."""
                 cat_converted_data.append((col, data[col]))
         data = DataFrame.from_dict(OrderedDict(cat_converted_data))
         return data
+
+    def data_label(self):
+        """
+        Return data label of Stata file.
+        """
+        return self.data_label
 
     def variable_labels(self):
         """
