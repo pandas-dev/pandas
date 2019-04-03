@@ -6,8 +6,7 @@ import builtins
 import re
 
 from pandas.compat import (
-    iteritems, iterkeys, itervalues, lfilter, lmap, lrange, lzip,
-    re_type)
+    iteritems, iterkeys, itervalues, lfilter, lmap, lrange, lzip, re_type)
 
 
 class TestBuiltinIterators(object):

@@ -1,11 +1,11 @@
 import builtins
 from io import StringIO
+from itertools import product
 from string import ascii_lowercase
 
 import numpy as np
 import pytest
 
-from pandas.compat import product as cart_product
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -1079,7 +1079,7 @@ def test_size(df):
         assert result[key] == len(group)
 
     df = DataFrame(np.random.choice(20, (1000, 3)), columns=list('abc'))
-    for sort, key in cart_product((False, True), ('a', 'b', ['a', 'b'])):
+    for sort, key in product((False, True), ('a', 'b', ['a', 'b'])):
         left = df.groupby(key, sort=sort).size()
         right = df.groupby(key, sort=sort)['c'].apply(lambda a: a.shape[0])
         tm.assert_series_equal(left, right, check_names=False)

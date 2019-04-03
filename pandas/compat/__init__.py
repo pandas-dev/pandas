@@ -19,10 +19,7 @@ Other items:
 # flake8: noqa
 
 import re
-import functools
-import itertools
 from distutils.version import LooseVersion
-from itertools import product
 import sys
 import platform
 import types
@@ -37,12 +34,24 @@ PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
 PYPY = platform.python_implementation() == 'PyPy'
 
-try:
-    import httplib
-except ImportError:
-    import http.client as httplib
-
 from pandas.compat.chainmap import DeepChainMap
+
+
+# list-producing versions of the major Python iterating functions
+def lrange(*args, **kwargs):
+    return list(range(*args, **kwargs))
+
+
+def lzip(*args, **kwargs):
+    return list(zip(*args, **kwargs))
+
+
+def lmap(*args, **kwargs):
+    return list(map(*args, **kwargs))
+
+
+def lfilter(*args, **kwargs):
+    return list(filter(*args, **kwargs))
 
 
 if PY3:
@@ -81,19 +90,6 @@ if PY3:
         argspec = namedtuple('Signature', ['args', 'defaults',
                                            'varargs', 'keywords'])
         return argspec(args, defaults, varargs, keywords)
-
-    # list-producing versions of the major Python iterating functions
-    def lrange(*args, **kwargs):
-        return list(range(*args, **kwargs))
-
-    def lzip(*args, **kwargs):
-        return list(zip(*args, **kwargs))
-
-    def lmap(*args, **kwargs):
-        return list(map(*args, **kwargs))
-
-    def lfilter(*args, **kwargs):
-        return list(filter(*args, **kwargs))
 else:
     # Python 2
     _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
@@ -109,12 +105,6 @@ else:
 
     def signature(f):
         return inspect.getargspec(f)
-
-    # Python 2-builtin ranges produce lists
-    lrange = lambda x: list(range(x))
-    lzip = lambda x: list(zip(x))
-    lmap = lambda x: list(map(x))
-    lfilter = lambda x: list(filter(x))
 
 if PY2:
     def iteritems(obj, **kw):
