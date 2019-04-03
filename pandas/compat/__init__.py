@@ -29,7 +29,6 @@ import types
 import struct
 import inspect
 from collections import namedtuple
-import collections
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] >= 3
@@ -45,13 +44,11 @@ try:
     # always writeable
     from StringIO import StringIO
     BytesIO = StringIO
-    import cPickle
     import httplib
 except ImportError:
     import builtins
     from io import StringIO, BytesIO
     cStringIO = StringIO
-    import pickle as cPickle
     import http.client as httplib
 
 from pandas.compat.chainmap import DeepChainMap
@@ -106,16 +103,6 @@ if PY3:
 
     def lfilter(*args, **kwargs):
         return list(filter(*args, **kwargs))
-
-    Hashable = collections.abc.Hashable
-    Iterable = collections.abc.Iterable
-    Iterator = collections.abc.Iterator
-    Mapping = collections.abc.Mapping
-    MutableMapping = collections.abc.MutableMapping
-    Sequence = collections.abc.Sequence
-    Sized = collections.abc.Sized
-    Set = collections.abc.Set
-
 else:
     # Python 2
     _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
@@ -137,15 +124,6 @@ else:
     lzip = builtins.zip
     lmap = builtins.map
     lfilter = builtins.filter
-
-    Hashable = collections.Hashable
-    Iterable = collections.Iterable
-    Iterator = collections.Iterator
-    Mapping = collections.Mapping
-    MutableMapping = collections.MutableMapping
-    Sequence = collections.Sequence
-    Sized = collections.Sized
-    Set = collections.Set
 
 if PY2:
     def iteritems(obj, **kw):
