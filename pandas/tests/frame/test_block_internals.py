@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, timedelta
+from io import StringIO
 import itertools
 
 import numpy as np
 import pytest
-
-from pandas.compat import StringIO
 
 import pandas as pd
 from pandas import (

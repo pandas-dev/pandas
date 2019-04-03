@@ -12,6 +12,7 @@ http://www.statsmodels.org/devel/
 
 from collections import OrderedDict
 import datetime
+from io import BytesIO
 import os
 import struct
 import sys
@@ -23,7 +24,7 @@ import numpy as np
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import BytesIO, lmap, lrange, lzip
+from pandas.compat import lmap, lrange, lzip
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (

@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 from datetime import date, datetime, timedelta
+from io import BytesIO
 import os
 from textwrap import dedent
 import warnings
@@ -46,7 +47,6 @@ import warnings
 from dateutil.parser import parse
 import numpy as np
 
-import pandas.compat as compat
 from pandas.errors import PerformanceWarning
 from pandas.util._move import (
     BadMove as _BadMove, move_into_mutable_buffer as _move_into_mutable_buffer)
@@ -150,7 +150,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
         with open(path_or_buf, mode) as fh:
             writer(fh)
     elif path_or_buf is None:
-        buf = compat.BytesIO()
+        buf = BytesIO()
         writer(buf)
         return buf.getvalue()
     else:
@@ -207,7 +207,7 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
         # treat as a binary-like
         fh = None
         try:
-            fh = compat.BytesIO(path_or_buf)
+            fh = BytesIO(path_or_buf)
             return read(fh)
         finally:
             if fh is not None:
@@ -802,12 +802,12 @@ class Iterator(object):
                 if path_exists:
                     fh = open(self.path, 'rb')
                 else:
-                    fh = compat.BytesIO(self.path)
+                    fh = BytesIO(self.path)
 
             else:
 
                 if not hasattr(self.path, 'read'):
-                    fh = compat.BytesIO(self.path)
+                    fh = BytesIO(self.path)
 
                 else:
 

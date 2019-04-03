@@ -1,6 +1,7 @@
 import datetime
 from distutils.version import LooseVersion
 import glob
+from io import BytesIO
 import os
 from warnings import catch_warnings
 
@@ -113,7 +114,7 @@ class TestAPI(TestPackers):
         tm.assert_frame_equal(result, df)
 
         s = df.to_msgpack()
-        result = read_msgpack(compat.BytesIO(s))
+        result = read_msgpack(BytesIO(s))
         tm.assert_frame_equal(result, df)
 
         s = to_msgpack(None, df)
