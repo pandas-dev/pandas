@@ -7,5 +7,6 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray
 
 ArrayLike = Union[ABCExtensionArray, np.ndarray]
-Dtype = Union[str, np.dtype, ExtensionDtype, Type]
+SparseDtype = Union[str, np.dtype, ExtensionDtype,
+                    Type[float], Type[int], Type[object]]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
