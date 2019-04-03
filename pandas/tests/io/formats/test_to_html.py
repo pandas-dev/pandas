@@ -633,3 +633,13 @@ def test_to_html_invalid_classes_type(classes):
 
     with pytest.raises(TypeError, match=msg):
         df.to_html(classes=classes)
+
+
+def test_to_html_formatters_object_type():
+    # GH 13021
+    def f(x):
+        return x if type(x) is str else '${:,.0f}'.format(x)
+
+    df = pd.DataFrame([['a'], [0], [10.4], [3]], columns=['x'])
+    result = df.to_html(formatters=dict(x=f))
+    assert '$10' in result
