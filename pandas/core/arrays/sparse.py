@@ -80,7 +80,7 @@ class SparseDtype(ExtensionDtype):
 
     def __init__(
             self,
-            dtype: Dtype = np.float64,
+            dtype: SparseDtype = np.float64,
             fill_value: Any = None
     ) -> None:
         from pandas.core.dtypes.missing import na_value_for_dtype
