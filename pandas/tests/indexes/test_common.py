@@ -13,7 +13,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import needs_i8_conversion
 
 import pandas as pd
-from pandas import CategoricalIndex, MultiIndex, RangeIndex, compat
+from pandas import CategoricalIndex, MultiIndex, RangeIndex
 import pandas.util.testing as tm
 
 
@@ -156,7 +156,7 @@ class TestCommon(object):
 
     def test_dtype_str(self, indices):
         dtype = indices.dtype_str
-        assert isinstance(dtype, compat.string_types)
+        assert isinstance(dtype, str)
         assert dtype == str(indices.dtype)
 
     def test_hash_error(self, indices):
