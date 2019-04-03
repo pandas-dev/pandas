@@ -1,3 +1,4 @@
+import builtins
 from io import StringIO
 from string import ascii_lowercase
 
@@ -27,7 +28,7 @@ def test_groupby_bool_aggs(agg_func, skipna, vals):
     df = DataFrame({'key': ['a'] * 3 + ['b'] * 3, 'val': vals * 2})
 
     # Figure out expectation using Python builtin
-    exp = getattr(compat.builtins, agg_func)(vals)
+    exp = getattr(builtins, agg_func)(vals)
 
     # edge case for missing data with skipna and 'any'
     if skipna and all(isna(vals)) and agg_func == 'any':
@@ -62,8 +63,8 @@ def test_intercept_builtin_sum():
     s = Series([1., 2., np.nan, 3.])
     grouped = s.groupby([0, 1, 2, 2])
 
-    result = grouped.agg(compat.builtins.sum)
-    result2 = grouped.apply(compat.builtins.sum)
+    result = grouped.agg(builtins.sum)
+    result2 = grouped.apply(builtins.sum)
     expected = grouped.sum()
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)

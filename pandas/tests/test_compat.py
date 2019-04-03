@@ -2,11 +2,11 @@
 """
 Testing that functions from compat work as expected
 """
-
+import builtins
 import re
 
 from pandas.compat import (
-    builtins, iteritems, iterkeys, itervalues, lfilter, lmap, lrange, lzip,
+    iteritems, iterkeys, itervalues, lfilter, lmap, lrange, lzip,
     re_type)
 
 

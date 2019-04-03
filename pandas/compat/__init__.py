@@ -38,10 +38,8 @@ PY37 = sys.version_info >= (3, 7)
 PYPY = platform.python_implementation() == 'PyPy'
 
 try:
-    import __builtin__ as builtins
     import httplib
 except ImportError:
-    import builtins
     import http.client as httplib
 
 from pandas.compat.chainmap import DeepChainMap
@@ -113,10 +111,10 @@ else:
         return inspect.getargspec(f)
 
     # Python 2-builtin ranges produce lists
-    lrange = builtins.range
-    lzip = builtins.zip
-    lmap = builtins.map
-    lfilter = builtins.filter
+    lrange = lambda x: list(range(x))
+    lzip = lambda x: list(zip(x))
+    lmap = lambda x: list(map(x))
+    lfilter = lambda x: list(filter(x))
 
 if PY2:
     def iteritems(obj, **kw):
