@@ -77,7 +77,8 @@ cdef inline int _parse_4digit(const char* s):
 cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
     """
     Parse special cases of dates: MM/DD/YYYY, DD/MM/YYYY, MM/YYYY
-    Delimiter can be a space or one of ./\-
+    For MM/DD/YYYY, DD/MM/YYYY: delimiter can be a space or one of ./\-
+    For MM/YYYY: delimiter can be a space or one of /\-
 
     Returns one of:
     ---------------
@@ -100,7 +101,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
         reso = 'day'
         can_swap = 1
     elif length == 7:
-        if _is_not_delimiter(buf[2]):
+        if _is_not_delimiter(buf[2]) or buf[2] == b'.':
             return None, None
         month = _parse_2digit(buf)
         year = _parse_4digit(buf + 3)

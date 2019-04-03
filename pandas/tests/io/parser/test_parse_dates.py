@@ -867,17 +867,16 @@ def test_invalid_parse_delimited_date(all_parsers, datestring):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("date_format", [
-    "%m %d %Y",
-    "%m %Y"
+@pytest.mark.parametrize("date_format, delimiters", [
+    ("%m %d %Y", " -.\\/"),
+    ("%m %Y", " -\\/")
 ])
-def test_parse_delimited_date(all_parsers, date_format):
+def test_parse_delimited_date(all_parsers, date_format, delimiters):
     parser = all_parsers
-    delims = ' -.\\/'
     date = datetime(2019, 4, 1)
     data = '\n'.join(date.strftime(date_format.replace(' ', delim))
-                     for delim in delims)
-    expected = DataFrame({0: [date] * len(delims)}, dtype="datetime64[ns]")
+                     for delim in delimiters)
+    expected = DataFrame({0: [date] * len(delimiters)}, dtype="datetime64[ns]")
     result = parser.read_csv(StringIO(data), header=None, parse_dates=[0])
     tm.assert_frame_equal(result, expected)
 
