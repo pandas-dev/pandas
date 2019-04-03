@@ -260,11 +260,12 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep);
 double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
-               int skip_trailing, int *error);
-double precise_xstrtod(const char *p, char **q, char decimal, char sci,
-                       char tsep, int skip_trailing, int *error);
+               int skip_trailing, int *error, int *maybe_int);
+double precise_xstrtod(const char *p, char **q, char decimal,
+                       char sci, char tsep, int skip_trailing,
+                       int *error, int *maybe_int);
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
-                  int skip_trailing);
+                  int skip_trailing, int *error, int *maybe_int);
 int to_boolean(const char *item, uint8_t *val);
 
 #endif  // PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
