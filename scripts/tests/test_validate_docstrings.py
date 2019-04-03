@@ -258,7 +258,7 @@ class GoodDocStrings(object):
 
         Parameters
         ----------
-        method : {'min', 'max'}, default 'min
+        method : {'min', 'max'}, default 'min'
             Parameter introduction:
 
             * 'min': the description for min
@@ -272,7 +272,7 @@ class GoodDocStrings(object):
 
         Parameters
         ----------
-        method : {'min', 'max'}, default 'min
+        method : {'min', 'max'}, default 'min'
             Parameter introduction:
 
             * 'min': the description for min
