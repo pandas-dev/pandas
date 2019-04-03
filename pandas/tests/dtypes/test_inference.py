@@ -9,6 +9,7 @@ import collections
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from fractions import Fraction
+from io import StringIO
 from numbers import Number
 import re
 
@@ -17,7 +18,7 @@ import pytest
 import pytz
 
 from pandas._libs import iNaT, lib, missing as libmissing
-from pandas.compat import StringIO, lrange
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference

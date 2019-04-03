@@ -2,11 +2,12 @@
 from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal
+from io import StringIO
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, lzip
+from pandas.compat import lmap, lrange, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd

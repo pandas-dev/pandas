@@ -8,10 +8,10 @@ and are clearly communicated to the user.
 Ultimately, the goal is to remove test cases from this
 test suite as new feature support is added to the parsers.
 """
+from io import StringIO
 
 import pytest
 
-from pandas.compat import StringIO
 from pandas.errors import ParserError
 
 import pandas.util.testing as tm

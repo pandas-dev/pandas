@@ -2,13 +2,14 @@
 # pylint: disable-msg=W0612,E1101
 from collections import OrderedDict
 from datetime import timedelta
+from io import StringIO
 import json
 import os
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, is_platform_32bit, lrange
+from pandas.compat import is_platform_32bit, lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd

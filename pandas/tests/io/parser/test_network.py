@@ -4,12 +4,12 @@
 Tests parsers ability to read and parse non-local files
 and hence require a network connection to be read.
 """
+from io import BytesIO, StringIO
 import logging
 
 import numpy as np
 import pytest
 
-from pandas.compat import BytesIO, StringIO
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame

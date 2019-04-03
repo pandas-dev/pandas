@@ -5,6 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import defaultdict
 import csv
 import datetime
+from io import StringIO
 import re
 import sys
 from textwrap import fill
@@ -17,7 +18,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
 import pandas.compat as compat
-from pandas.compat import StringIO, lrange, lzip
+from pandas.compat import lrange, lzip
 from pandas.errors import (
     AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender

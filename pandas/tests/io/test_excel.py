@@ -3,6 +3,7 @@ import contextlib
 from datetime import date, datetime, time, timedelta
 from distutils.version import LooseVersion
 from functools import partial
+from io import BytesIO
 import os
 import warnings
 
@@ -10,7 +11,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY36, BytesIO, iteritems
+from pandas.compat import PY36, iteritems
 import pandas.util._test_decorators as td
 
 import pandas as pd

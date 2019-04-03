@@ -5,6 +5,7 @@ Test output formatting for Series/DataFrame, including to_string & reprs
 """
 
 from datetime import datetime
+from io import StringIO
 import itertools
 from operator import methodcaller
 import os
@@ -19,8 +20,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import (
-    StringIO, is_platform_32bit, is_platform_windows, lrange, lzip)
+from pandas.compat import is_platform_32bit, is_platform_windows, lrange, lzip
 
 import pandas as pd
 from pandas import (

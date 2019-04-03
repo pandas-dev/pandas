@@ -5,6 +5,7 @@ and latex files. This module also applies to display formatting.
 """
 
 from functools import partial
+from io import StringIO
 from shutil import get_terminal_size
 from unicodedata import east_asian_width
 
@@ -15,7 +16,7 @@ from pandas._config.config import get_option, set_option
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
-from pandas.compat import StringIO, lzip
+from pandas.compat import lzip
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,

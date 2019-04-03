@@ -2,9 +2,9 @@
 """
 Parsing functions for datetime and datetime-like strings.
 """
-import sys
 import re
 import time
+from io import StringIO
 
 from cpython.datetime cimport datetime
 
@@ -12,13 +12,6 @@ from cpython.datetime cimport datetime
 import numpy as np
 
 import six
-
-# Avoid import from outside _libs
-if sys.version_info.major == 2:
-    from StringIO import StringIO
-else:
-    from io import StringIO
-
 
 # dateutil compat
 from dateutil.tz import (tzoffset,

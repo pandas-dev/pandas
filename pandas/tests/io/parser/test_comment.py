@@ -4,11 +4,10 @@
 Tests that comments are properly handled during parsing
 for all of the parsers defined in parsers.py
 """
+from io import StringIO
 
 import numpy as np
 import pytest
-
-from pandas.compat import StringIO
 
 from pandas import DataFrame
 import pandas.util.testing as tm

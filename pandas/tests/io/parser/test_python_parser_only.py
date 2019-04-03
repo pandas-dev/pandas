@@ -8,10 +8,10 @@ arguments when parsing.
 """
 
 import csv
+from io import BytesIO, StringIO
 
 import pytest
 
-from pandas.compat import BytesIO, StringIO
 from pandas.errors import ParserError
 
 from pandas import DataFrame, Index, MultiIndex

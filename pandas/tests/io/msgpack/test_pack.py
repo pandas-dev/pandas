@@ -1,10 +1,9 @@
 # coding: utf-8
 from collections import OrderedDict
+from io import BytesIO
 import struct
 
 import pytest
-
-from pandas import compat
 
 from pandas.io.msgpack import Packer, Unpacker, packb, unpackb
 
@@ -37,8 +36,7 @@ class TestPack(object):
             assert re == td
             packer = Packer(encoding='utf-8')
             data = packer.pack(td)
-            re = Unpacker(
-                compat.BytesIO(data), encoding='utf-8', use_list=1).unpack()
+            re = Unpacker(BytesIO(data), encoding='utf-8', use_list=1).unpack()
             assert re == td
 
     def testPackUTF32(self):
@@ -93,7 +91,7 @@ class TestPack(object):
             1.0, use_single_float=False) == b'\xcb' + struct.pack('>d', 1.0)
 
     def testArraySize(self, sizes=[0, 5, 50, 1000]):
-        bio = compat.BytesIO()
+        bio = BytesIO()
         packer = Packer()
         for size in sizes:
             bio.write(packer.pack_array_header(size))
@@ -112,7 +110,7 @@ class TestPack(object):
             for i in range(size):
                 packer.pack(i)
 
-        bio = compat.BytesIO(packer.bytes())
+        bio = BytesIO(packer.bytes())
         unpacker = Unpacker(bio, use_list=1)
         for size in sizes:
             assert unpacker.unpack() == list(range(size))
@@ -121,7 +119,7 @@ class TestPack(object):
         assert packer.bytes() == b''
 
     def testMapSize(self, sizes=[0, 5, 50, 1000]):
-        bio = compat.BytesIO()
+        bio = BytesIO()
         packer = Packer()
         for size in sizes:
             bio.write(packer.pack_map_header(size))

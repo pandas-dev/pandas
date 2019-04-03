@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101,W0141
 import datetime
+from io import StringIO
 import itertools
 from warnings import catch_warnings, simplefilter
 
@@ -9,7 +10,7 @@ from numpy.random import randn
 import pytest
 import pytz
 
-from pandas.compat import StringIO, lrange, lzip, product as cart_product
+from pandas.compat import lrange, lzip, product as cart_product
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 

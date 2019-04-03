@@ -4,13 +4,12 @@
 Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
-
+from io import StringIO
 import os
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO
 from pandas.errors import ParserWarning
 
 from pandas.core.dtypes.dtypes import CategoricalDtype

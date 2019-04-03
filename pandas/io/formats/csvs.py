@@ -4,6 +4,7 @@ Module for formatting output data into CSV files.
 """
 
 import csv as csvlib
+from io import StringIO
 import os
 import warnings
 from zipfile import ZipFile
@@ -11,7 +12,6 @@ from zipfile import ZipFile
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas.compat import StringIO
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex)

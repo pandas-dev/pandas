@@ -7,6 +7,7 @@ except ImportError:
 import calendar
 import datetime
 import decimal
+from io import StringIO
 import locale
 import math
 import re
@@ -20,7 +21,6 @@ import pytz
 import pandas._libs.json as ujson
 from pandas._libs.tslib import Timestamp
 import pandas.compat as compat
-from pandas.compat import StringIO
 
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
 import pandas.util.testing as tm

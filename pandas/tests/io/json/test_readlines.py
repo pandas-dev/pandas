@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-import pytest
+from io import StringIO
 
-from pandas.compat import StringIO
+import pytest
 
 import pandas as pd
 from pandas import DataFrame, read_json

@@ -3,13 +3,14 @@
 
 import ast
 from functools import partial, reduce
+from io import StringIO
 import itertools as it
 import operator
 import tokenize
 
 import numpy as np
 
-from pandas.compat import StringIO, lmap
+from pandas.compat import lmap
 
 import pandas as pd
 from pandas import compat

@@ -4,12 +4,12 @@
 Tests the usecols functionality during parsing
 for all of the parsers defined in parsers.py
 """
+from io import StringIO
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import StringIO
 
 from pandas import DataFrame, Index
 import pandas.util.testing as tm

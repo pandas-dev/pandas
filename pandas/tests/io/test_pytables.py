@@ -2,6 +2,7 @@ from contextlib import contextmanager
 import datetime
 from datetime import timedelta
 from distutils.version import LooseVersion
+from io import BytesIO
 import os
 import tempfile
 from warnings import catch_warnings, simplefilter
@@ -10,8 +11,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
-    PY35, PY36, BytesIO, is_platform_little_endian, is_platform_windows,
-    lrange)
+    PY35, PY36, is_platform_little_endian, is_platform_windows, lrange)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
