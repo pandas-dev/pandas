@@ -1136,7 +1136,7 @@ class StataReader(StataParser, BaseIterator):
         elif self.format_version == 118:
             b = 129
 
-        return [self._null_terminate(self.path_or_buf.read(b))
+        return [self._decode(self.path_or_buf.read(b))
                 for i in range(self.nvar)]
 
     # Returns the format list
@@ -1150,7 +1150,7 @@ class StataReader(StataParser, BaseIterator):
         else:
             b = 7
 
-        return [self._null_terminate(self.path_or_buf.read(b))
+        return [self._decode(self.path_or_buf.read(b))
                 for i in range(self.nvar)]
 
     # Returns the label list
@@ -1161,7 +1161,7 @@ class StataReader(StataParser, BaseIterator):
             b = 33
         else:
             b = 9
-        return [self._null_terminate(self.path_or_buf.read(b))
+        return [self._decode(self.path_or_buf.read(b))
                 for i in range(self.nvar)]
 
     def _get_variable_labels(self):
@@ -1169,10 +1169,10 @@ class StataReader(StataParser, BaseIterator):
             vlblist = [self._decode(self.path_or_buf.read(321))
                        for i in range(self.nvar)]
         elif self.format_version > 105:
-            vlblist = [self._null_terminate(self.path_or_buf.read(81))
+            vlblist = [self._decode(self.path_or_buf.read(81))
                        for i in range(self.nvar)]
         else:
-            vlblist = [self._null_terminate(self.path_or_buf.read(32))
+            vlblist = [self._decode(self.path_or_buf.read(32))
                        for i in range(self.nvar)]
         return vlblist
 
@@ -1191,11 +1191,11 @@ class StataReader(StataParser, BaseIterator):
             return self._decode(self.path_or_buf.read(strlen))
         elif self.format_version == 117:
             strlen = struct.unpack('b', self.path_or_buf.read(1))[0]
-            return self._null_terminate(self.path_or_buf.read(strlen))
+            return self._decode(self.path_or_buf.read(strlen))
         elif self.format_version > 105:
-            return self._null_terminate(self.path_or_buf.read(81))
+            return self._decode(self.path_or_buf.read(81))
         else:
-            return self._null_terminate(self.path_or_buf.read(32))
+            return self._decode(self.path_or_buf.read(32))
 
     def _get_time_stamp(self):
         if self.format_version == 118:
@@ -1203,9 +1203,9 @@ class StataReader(StataParser, BaseIterator):
             return self.path_or_buf.read(strlen).decode("utf-8")
         elif self.format_version == 117:
             strlen = struct.unpack('b', self.path_or_buf.read(1))[0]
-            return self._null_terminate(self.path_or_buf.read(strlen))
+            return self._decode(self.path_or_buf.read(strlen))
         elif self.format_version > 104:
-            return self._null_terminate(self.path_or_buf.read(18))
+            return self._decode(self.path_or_buf.read(18))
         else:
             raise ValueError()
 
@@ -1266,10 +1266,10 @@ class StataReader(StataParser, BaseIterator):
                              .format(','.join(str(x) for x in typlist)))
 
         if self.format_version > 108:
-            self.varlist = [self._null_terminate(self.path_or_buf.read(33))
+            self.varlist = [self._decode(self.path_or_buf.read(33))
                             for i in range(self.nvar)]
         else:
-            self.varlist = [self._null_terminate(self.path_or_buf.read(9))
+            self.varlist = [self._decode(self.path_or_buf.read(9))
                             for i in range(self.nvar)]
         self.srtlist = struct.unpack(
             self.byteorder + ('h' * (self.nvar + 1)),
@@ -1326,20 +1326,19 @@ class StataReader(StataParser, BaseIterator):
                 struct.calcsize(self.byteorder + fmt))
 
     def _decode(self, s):
-        s = s.partition(b"\0")[0]
-        try:
-            return s.decode('utf-8')
-        except UnicodeDecodeError:
-            # GH 25960
-            return s.decode('latin-1')
-
-    def _null_terminate(self, s):
         # have bytes not strings, so must decode
         s = s.partition(b"\0")[0]
         try:
             return s.decode(self._encoding)
         except UnicodeDecodeError:
-            # GH 25960
+            # GH 25960, fallback to handle incorrect format produced when 117
+            # files are converted to 118 files in Stata
+            msg = """
+One or more strings in the dta file could not be decoded using {encoding}, and
+so the fallback encoding of latin-1 is being used.  This can happen when a file
+has been incorrectly encoded by Stata or some other software. You should verify
+the string values returned are correct."""
+            warnings.warn(msg.format(encoding=self._encoding), UnicodeWarning)
             return s.decode('latin-1')
 
     def _read_value_labels(self):
@@ -1370,7 +1369,7 @@ class StataReader(StataParser, BaseIterator):
             if not slength:
                 break  # end of value label table (format < 117)
             if self.format_version <= 117:
-                labname = self._null_terminate(self.path_or_buf.read(33))
+                labname = self._decode(self.path_or_buf.read(33))
             else:
                 labname = self._decode(self.path_or_buf.read(129))
             self.path_or_buf.read(3)  # padding
@@ -1392,12 +1391,8 @@ class StataReader(StataParser, BaseIterator):
             self.value_label_dict[labname] = dict()
             for i in range(n):
                 end = off[i + 1] if i < n - 1 else txtlen
-                if self.format_version <= 117:
-                    self.value_label_dict[labname][val[i]] = (
-                        self._null_terminate(txt[off[i]:end]))
-                else:
-                    self.value_label_dict[labname][val[i]] = (
-                        self._decode(txt[off[i]:end]))
+                self.value_label_dict[labname][val[i]] = \
+                    self._decode(txt[off[i]:end])
             if self.format_version >= 117:
                 self.path_or_buf.read(6)  # </lbl>
         self._value_labels_read = True
@@ -1552,7 +1547,7 @@ class StataReader(StataParser, BaseIterator):
         for col, typ in zip(data, self.typlist):
             if type(typ) is int:
                 data[col] = data[col].apply(
-                    self._null_terminate, convert_dtype=True)
+                    self._decode, convert_dtype=True)
 
         data = self._insert_strls(data)
 
