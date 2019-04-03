@@ -4772,7 +4772,7 @@ Parquet supports partitioning of data based on the values of one or more columns
     :okwarning:
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
-    df.to_parquet(fname='test', engine='pyarrow',
+    df.to_parquet(path='test', engine='pyarrow',
                   partition_cols=['a'], compression=None)
 
 The `fname` specifies the parent directory to which data will be saved.

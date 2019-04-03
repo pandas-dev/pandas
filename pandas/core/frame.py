@@ -2076,7 +2076,7 @@ class DataFrame(NDFrame):
         from pandas.io.feather_format import to_feather
         to_feather(self, fname)
 
-    def to_parquet(self, fname, engine='auto', compression='snappy',
+    def to_parquet(self, path, engine='auto', compression='snappy',
                    index=None, partition_cols=None, **kwargs):
         """
         Write a DataFrame to the binary parquet format.
@@ -2090,7 +2090,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        fname : str
+        path : str
             File path or Root Directory path. Will be used as Root Directory
             path while writing a partitioned dataset.
 
@@ -2144,7 +2144,7 @@ class DataFrame(NDFrame):
         1     2     4
         """
         from pandas.io.parquet import to_parquet
-        to_parquet(self, fname, engine,
+        to_parquet(self, path, engine,
                    compression=compression, index=index,
                    partition_cols=partition_cols, **kwargs)
 
