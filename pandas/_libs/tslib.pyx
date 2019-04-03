@@ -792,9 +792,7 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
     # 2) datetime strings, which we return as datetime.datetime
     for i in range(n):
         val = values[i]
-        if checknull_with_nat(val):
-            oresult[i] = val
-        elif isinstance(val, datetime):
+        if checknull_with_nat(val) or isinstance(val, datetime):
             oresult[i] = val
         elif isinstance(val, str):
             if len(val) == 0 or val in nat_strings:
