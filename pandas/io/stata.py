@@ -1241,7 +1241,7 @@ class StataReader(StataParser, BaseIterator):
                                   self.path_or_buf.read(2))[0]
         self.nobs = self._get_nobs()
 
-        self.data_label = self._get_data_label()
+        self._data_label = self._get_data_label()
 
         self.time_stamp = self._get_time_stamp()
 
