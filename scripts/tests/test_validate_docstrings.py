@@ -281,6 +281,33 @@ class GoodDocStrings(object):
         """
         pass
 
+    def parameters_bullet_points_and_directives(self, axis='index',
+                                                method='min'):
+        """
+        Test bullets points and directories.
+
+        Parameters
+        ----------
+        axis : {'index', 'columns'}, default 'index'
+            Parameter introduction and one directive:
+
+            * 'index': the description for index
+            * 'columns': the description for columns
+
+            .. versionchanged:: 0.1.2
+
+        method : {'min', 'max'}, default 'min'
+            Parameter introduction and two directives:
+
+            * 'min': the description for min
+            * 'max': the description for max
+
+            .. versionadded:: 0.1.2
+            .. deprecated:: 0.00.0
+                A description
+        """
+        pass
+
 
 class BadGenericDocStrings(object):
     """Everything here has a bad docstring
@@ -836,7 +863,8 @@ class TestValidator(object):
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains', 'mode', 'good_imports', 'no_returns', 'empty_returns',
-        'parameters_with_bullet_points', 'parameters_with_bullet_points1'])
+        'parameters_with_bullet_points', 'parameters_with_bullet_points1',
+        'parameters_bullet_points_and_directives'])
     def test_good_functions(self, capsys, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
