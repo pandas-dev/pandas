@@ -18,7 +18,7 @@ PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
     is_datetime64_object, is_timedelta64_object, is_integer_object,
-    is_string_object, is_array, is_offset_object)
+    is_array, is_offset_object)
 
 cimport pandas._libs.tslibs.ccalendar as ccalendar
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
@@ -539,7 +539,8 @@ cdef class _Timestamp(datetime):
 
 
 class Timestamp(_Timestamp):
-    """Pandas replacement for datetime.datetime
+    """
+    Pandas replacement for python datetime.datetime object.
 
     Timestamp is the pandas equivalent of python's Datetime
     and is interchangeable with it in most cases. It's the type used
@@ -549,9 +550,9 @@ class Timestamp(_Timestamp):
     Parameters
     ----------
     ts_input : datetime-like, str, int, float
-        Value to be converted to Timestamp
+        Value to be converted to Timestamp.
     freq : str, DateOffset
-        Offset which Timestamp will have
+        Offset which Timestamp will have.
     tz : str, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str
@@ -638,7 +639,7 @@ class Timestamp(_Timestamp):
         tz : str or timezone object, default None
             Timezone to localize to
         """
-        if is_string_object(tz):
+        if isinstance(tz, str):
             tz = maybe_get_tz(tz)
         return cls(datetime.now(tz))
 
@@ -747,7 +748,7 @@ class Timestamp(_Timestamp):
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
 
-        if is_string_object(ts_input):
+        if isinstance(ts_input, str):
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
             if any(arg is not None for arg in _date_attributes):
@@ -1201,7 +1202,7 @@ class Timestamp(_Timestamp):
         if self.tzinfo is None:
             # tz naive, localize
             tz = maybe_get_tz(tz)
-            if not is_string_object(ambiguous):
+            if not isinstance(ambiguous, str):
                 ambiguous = [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous,

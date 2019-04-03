@@ -306,7 +306,7 @@ class SelectionMixin(object):
         - raise
 
         """
-        assert isinstance(arg, compat.string_types)
+        assert isinstance(arg, str)
 
         f = getattr(self, arg, None)
         if f is not None:
@@ -353,7 +353,7 @@ class SelectionMixin(object):
             _axis = getattr(self, 'axis', 0)
         _level = kwargs.pop('_level', None)
 
-        if isinstance(arg, compat.string_types):
+        if isinstance(arg, str):
             return self._try_aggregate_string_function(arg, *args,
                                                        **kwargs), None
 
@@ -554,7 +554,7 @@ class SelectionMixin(object):
                                 name=getattr(self, 'name', None))
 
             return result, True
-        elif is_list_like(arg) and arg not in compat.string_types:
+        elif is_list_like(arg):
             # we require a list, but not an 'str'
             return self._aggregate_multiple_funcs(arg,
                                                   _level=_level,
@@ -786,8 +786,7 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
-    def array(self):
-        # type: () -> ExtensionArray
+    def array(self) -> ExtensionArray:
         """
         The ExtensionArray of the data backing this Series or Index.
 
@@ -962,8 +961,7 @@ class IndexOpsMixin(object):
         return result
 
     @property
-    def _ndarray_values(self):
-        # type: () -> np.ndarray
+    def _ndarray_values(self) -> np.ndarray:
         """
         The data as an ndarray, possibly losing information.
 

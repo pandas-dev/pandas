@@ -22,8 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 
 from pandas._libs import testing as _testing
 import pandas.compat as compat
-from pandas.compat import (
-    PY2, PY3, httplib, lmap, lrange, lzip, raise_with_traceback, string_types)
+from pandas.compat import httplib, lmap, lrange, lzip, raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -822,18 +821,10 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     elif is_categorical_dtype(left):
         left = repr(left)
 
-    if PY2 and isinstance(left, string_types):
-        # left needs to be printable in native text type in python2
-        left = left.encode('utf-8')
-
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
     elif is_categorical_dtype(right):
         right = repr(right)
-
-    if PY2 and isinstance(right, string_types):
-        # right needs to be printable in native text type in python2
-        right = right.encode('utf-8')
 
     msg = """{obj} are different
 
@@ -1782,7 +1773,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         names = None
 
     # make singelton case uniform
-    if isinstance(names, compat.string_types) and nlevels == 1:
+    if isinstance(names, str) and nlevels == 1:
         names = [names]
 
     # specific 1D index type requested?
@@ -2056,10 +2047,7 @@ _network_errno_vals = (
 # servers.
 
 # and conditionally raise on these exception types
-_network_error_classes = (IOError, httplib.HTTPException)
-
-if PY3:
-    _network_error_classes += (TimeoutError,)  # noqa
+_network_error_classes = (IOError, httplib.HTTPException, TimeoutError)
 
 
 def can_connect(url, error_classes=_network_error_classes):
