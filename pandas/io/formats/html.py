@@ -36,7 +36,7 @@ class HTMLFormatter(TableFormatter):
         self.classes = classes
 
         self.frame = self.fmt.frame
-        self.columns = self._get_columns_formatted_values()
+        self.columns = self.fmt.tr_frame.columns
         self.elements = []
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
@@ -295,7 +295,7 @@ class HTMLFormatter(TableFormatter):
                     row.append(self.columns.name or '')
                 else:
                     row.append('')
-            row.extend(self.columns)
+            row.extend(self._get_columns_formatted_values())
             align = self.fmt.justify
 
             if truncate_h:
@@ -494,20 +494,11 @@ class NotebookFormatter(HTMLFormatter):
     DataFrame._repr_html_() and DataFrame.to_html(notebook=True)
     """
 
-    def __init__(self, formatter, classes=None, border=None):
-        super(NotebookFormatter, self).__init__(formatter,
-                                                classes=classes,
-                                                border=border)
-        self.columns = self._get_columns_formatted_values()
-
     def _get_formatted_values(self):
         return {i: self.fmt._format_col(i) for i in range(self.ncols)}
 
     def _get_columns_formatted_values(self):
-        precision = get_option('display.precision')
-        fmt = lambda f: '{float:.{p}f}'.format(float=f, p=precision)
-        fmt_floats = lambda f: fmt(f) if isinstance(f, float) else f
-        return self.fmt.tr_frame.columns.map(fmt_floats)
+        return self.columns.format()
 
     def write_style(self):
         # We use the "scoped" attribute here so that the desired
