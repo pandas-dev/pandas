@@ -9,8 +9,6 @@ from numpy import nan as NA
 from numpy.random import randint
 import pytest
 
-import pandas.compat as compat
-
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
 import pandas.util.testing as tm
@@ -302,7 +300,7 @@ class TestStringMethods(object):
 
             for el in s:
                 # each element of the series is either a basestring/str or nan
-                assert isinstance(el, compat.string_types) or isna(el)
+                assert isinstance(el, str) or isna(el)
 
         # desired behavior is to iterate until everything would be nan on the
         # next iter so make sure the last element of the iterator was 'l' in
@@ -1792,7 +1790,7 @@ class TestStringMethods(object):
 
     def test_empty_str_methods_to_frame(self):
         empty = Series(dtype=str)
-        empty_df = DataFrame([])
+        empty_df = DataFrame()
         tm.assert_frame_equal(empty_df, empty.str.partition('a'))
         tm.assert_frame_equal(empty_df, empty.str.rpartition('a'))
 
@@ -2356,7 +2354,7 @@ class TestStringMethods(object):
         # expand blank split GH 20067
         values = Series([''], name='test')
         result = values.str.split(expand=True)
-        exp = DataFrame([[]])
+        exp = DataFrame([[]])  # NOTE: this is NOT an empty DataFrame
         tm.assert_frame_equal(result, exp)
 
         values = Series(['a b c', 'a b', '', ' '], name='test')

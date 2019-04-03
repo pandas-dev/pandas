@@ -3,9 +3,6 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
-# necessary to enforce truediv in Python 2.X
-from __future__ import division
-
 import datetime
 import operator
 import textwrap
@@ -168,7 +165,7 @@ def rmod(left, right):
     # check if right is a string as % is the string
     # formatting operation; this is a TypeError
     # otherwise perform the op
-    if isinstance(right, compat.string_types):
+    if isinstance(right, str):
         raise TypeError("{typ} cannot perform the operation mod".format(
             typ=type(left).__name__))
 

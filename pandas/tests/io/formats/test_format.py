@@ -4,13 +4,12 @@
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
 
-from __future__ import print_function
-
 from datetime import datetime
 import itertools
 from operator import methodcaller
 import os
 import re
+from shutil import get_terminal_size
 import sys
 import textwrap
 import warnings
@@ -20,7 +19,6 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas.compat as compat
 from pandas.compat import (
     StringIO, is_platform_32bit, is_platform_windows, lrange, lzip)
 
@@ -32,7 +30,6 @@ import pandas.util.testing as tm
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
-from pandas.io.formats.terminal import get_terminal_size
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
@@ -308,8 +305,6 @@ class TestDataFrameFormatting(object):
         # see gh-21180
 
         terminal_size = (118, 96)
-        monkeypatch.setattr('pandas.io.formats.console.get_terminal_size',
-                            lambda: terminal_size)
         monkeypatch.setattr('pandas.io.formats.format.get_terminal_size',
                             lambda: terminal_size)
 
@@ -338,8 +333,7 @@ class TestDataFrameFormatting(object):
         # GH 22984 ensure entire window is filled
         terminal_size = (80, 24)
         df = pd.DataFrame(np.random.rand(1, 7))
-        monkeypatch.setattr('pandas.io.formats.console.get_terminal_size',
-                            lambda: terminal_size)
+
         monkeypatch.setattr('pandas.io.formats.format.get_terminal_size',
                             lambda: terminal_size)
         assert "..." not in str(df)
@@ -487,7 +481,7 @@ class TestDataFrameFormatting(object):
         buf.getvalue()
 
         result = self.frame.to_string()
-        assert isinstance(result, compat.text_type)
+        assert isinstance(result, str)
 
     def test_to_string_utf8_columns(self):
         n = "\u05d0".encode('utf-8')
@@ -958,7 +952,7 @@ class TestDataFrameFormatting(object):
 
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({'c/\u03c3': Series({'test': np.nan})})
-        compat.text_type(dm.to_string())
+        str(dm.to_string())
 
     def test_string_repr_encoding(self, datapath):
         filepath = datapath('io', 'parser', 'data', 'unicode_series.csv')
@@ -1194,7 +1188,7 @@ class TestDataFrameFormatting(object):
         assert retval is None
         assert buf.getvalue() == s
 
-        assert isinstance(s, compat.string_types)
+        assert isinstance(s, str)
 
         # print in right order
         result = biggie.to_string(columns=['B', 'A'], col_space=17,

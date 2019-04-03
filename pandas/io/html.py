@@ -3,14 +3,13 @@ HTML IO.
 
 """
 
+from collections import abc
 from distutils.version import LooseVersion
 import numbers
 import os
 import re
 
-import pandas.compat as compat
-from pandas.compat import (
-    binary_type, iteritems, lmap, lrange, raise_with_traceback, string_types)
+from pandas.compat import iteritems, lmap, lrange, raise_with_traceback
 from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
@@ -62,9 +61,6 @@ def _importers():
 # READ HTML #
 #############
 _RE_WHITESPACE = re.compile(r'[\r\n]+|\s{2,}')
-
-
-char_types = string_types + (binary_type,)
 
 
 def _remove_whitespace(s, regex=_RE_WHITESPACE):
@@ -130,7 +126,7 @@ def _read(obj):
             text = url.read()
     elif hasattr(obj, 'read'):
         text = obj.read()
-    elif isinstance(obj, char_types):
+    elif isinstance(obj, (str, bytes)):
         text = obj
         try:
             if os.path.isfile(text):
@@ -859,15 +855,15 @@ def _print_as_set(s):
 def _validate_flavor(flavor):
     if flavor is None:
         flavor = 'lxml', 'bs4'
-    elif isinstance(flavor, string_types):
+    elif isinstance(flavor, str):
         flavor = flavor,
-    elif isinstance(flavor, compat.Iterable):
-        if not all(isinstance(flav, string_types) for flav in flavor):
+    elif isinstance(flavor, abc.Iterable):
+        if not all(isinstance(flav, str) for flav in flavor):
             raise TypeError('Object of type {typ!r} is not an iterable of '
                             'strings'
                             .format(typ=type(flavor).__name__))
     else:
-        fmt = '{flavor!r}' if isinstance(flavor, string_types) else '{flavor}'
+        fmt = '{flavor!r}' if isinstance(flavor, str) else '{flavor}'
         fmt += ' is not a valid flavor'
         raise ValueError(fmt.format(flavor=flavor))
 

@@ -17,8 +17,6 @@ The SQL tests are broken down in different classes:
 
 """
 
-from __future__ import print_function
-
 import csv
 from datetime import date, datetime, time
 import sqlite3
@@ -28,7 +26,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import PY36, lrange, string_types
+from pandas.compat import PY36, lrange
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype, is_datetime64tz_dtype)
@@ -1394,7 +1392,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         )
         if self.flavor == 'sqlite':
             # read_sql_query does not return datetime type like read_sql_table
-            assert isinstance(result.loc[0, 'A'], string_types)
+            assert isinstance(result.loc[0, 'A'], str)
             result['A'] = to_datetime(result['A'])
         tm.assert_frame_equal(result, expected)
 
@@ -1453,7 +1451,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
         result = result.drop('index', axis=1)
         if self.flavor == 'sqlite':
-            assert isinstance(result.loc[0, 'A'], string_types)
+            assert isinstance(result.loc[0, 'A'], str)
             result['A'] = to_datetime(result['A'])
             tm.assert_frame_equal(result, df)
         else:
@@ -1472,7 +1470,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # with read_sql -> no type information -> sqlite has no native
         result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
         if self.flavor == 'sqlite':
-            assert isinstance(result.loc[0, 'A'], string_types)
+            assert isinstance(result.loc[0, 'A'], str)
             result['A'] = to_datetime(result['A'], errors='coerce')
             tm.assert_frame_equal(result, df)
         else:
@@ -2194,8 +2192,7 @@ _formatters = {
     datetime: lambda dt: "'%s'" % date_format(dt),
     str: lambda x: "'%s'" % x,
     np.str_: lambda x: "'%s'" % x,
-    compat.text_type: lambda x: "'%s'" % x,
-    compat.binary_type: lambda x: "'%s'" % x,
+    bytes: lambda x: "'%s'" % x,
     float: lambda x: "%.8f" % x,
     int: lambda x: "%s" % x,
     type(None): lambda x: "NULL",

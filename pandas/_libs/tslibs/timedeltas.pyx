@@ -24,7 +24,7 @@ PyDateTime_IMPORT
 cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.util cimport (
     is_timedelta64_object, is_datetime64_object, is_integer_object,
-    is_float_object, is_string_object)
+    is_float_object)
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 
@@ -188,7 +188,7 @@ cdef convert_to_timedelta64(object ts, object unit):
         else:
             ts = cast_from_unit(ts, unit)
             ts = np.timedelta64(ts)
-    elif is_string_object(ts):
+    elif isinstance(ts, str):
         if len(ts) > 0 and ts[0] == 'P':
             ts = parse_iso_format_string(ts)
         else:
@@ -539,7 +539,7 @@ cdef bint _validate_ops_compat(other):
         return True
     elif PyDelta_Check(other) or is_timedelta64_object(other):
         return True
-    elif is_string_object(other):
+    elif isinstance(other, str):
         return True
     elif hasattr(other, 'delta'):
         return True
@@ -815,13 +815,29 @@ cdef class _Timedelta(timedelta):
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
-        return an actual datetime.timedelta object
-        note: we lose nanosecond resolution if any
+        Convert a pandas Timedelta object into a python timedelta object.
+
+        Timedelta objects are internally saved as numpy datetime64[ns] dtype.
+        Use to_pytimedelta() to convert to object dtype.
+
+        Returns
+        -------
+        datetime.timedelta or numpy.array of datetime.timedelta
+
+        See Also
+        --------
+        to_timedelta : Convert argument to Timedelta type.
+
+        Notes
+        -----
+        Any nanosecond resolution will be lost.
         """
         return timedelta(microseconds=int(self.value) / 1000)
 
     def to_timedelta64(self):
-        """ Returns a numpy.timedelta64 object with 'ns' precision """
+        """
+        Return a numpy.timedelta64 object with 'ns' precision.
+        """
         return np.timedelta64(self.value, 'ns')
 
     def to_numpy(self, dtype=None, copy=False):
@@ -846,17 +862,21 @@ cdef class _Timedelta(timedelta):
 
     def total_seconds(self):
         """
-        Total duration of timedelta in seconds (to ns precision)
+        Total duration of timedelta in seconds (to ns precision).
         """
         return self.value / 1e9
 
     def view(self, dtype):
-        """ array view compat """
+        """
+        Array view compatibility.
+        """
         return np.timedelta64(self.value).view(dtype)
 
     @property
     def components(self):
-        """ Return a Components NamedTuple-like """
+        """
+        Return a components namedtuple-like.
+        """
         self._ensure_components()
         # return the named tuple
         return Components(self._d, self._h, self._m, self._s,
@@ -1157,6 +1177,7 @@ class Timedelta(_Timedelta):
     -----
     The ``.value`` attribute is always in ns.
     """
+
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
 
@@ -1185,7 +1206,7 @@ class Timedelta(_Timedelta):
 
         if isinstance(value, Timedelta):
             value = value.value
-        elif is_string_object(value):
+        elif isinstance(value, str):
             if len(value) > 0 and value[0] == 'P':
                 value = parse_iso_format_string(value)
             else:

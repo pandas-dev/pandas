@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-
 from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal
@@ -298,7 +296,7 @@ def test_indices_concatenation_order():
         if y.empty:
             multiindex = MultiIndex(levels=[[]] * 2, codes=[[]] * 2,
                                     names=['b', 'c'])
-            res = DataFrame(None, columns=['a'], index=multiindex)
+            res = DataFrame(columns=['a'], index=multiindex)
             return res
         else:
             y = y.set_index(['b', 'c'])
@@ -317,7 +315,7 @@ def test_indices_concatenation_order():
         if y.empty:
             multiindex = MultiIndex(levels=[[]] * 2, codes=[[]] * 2,
                                     names=['foo', 'bar'])
-            res = DataFrame(None, columns=['a', 'b'], index=multiindex)
+            res = DataFrame(columns=['a', 'b'], index=multiindex)
             return res
         else:
             return y
@@ -1721,3 +1719,23 @@ def test_groupby_empty_list_raises():
     msg = "Grouper and axis must be same length"
     with pytest.raises(ValueError, match=msg):
         df.groupby([[]])
+
+
+def test_groupby_multiindex_series_keys_len_equal_group_axis():
+    # GH 25704
+    index_array = [
+        ['x', 'x'],
+        ['a', 'b'],
+        ['k', 'k']
+    ]
+    index_names = ['first', 'second', 'third']
+    ri = pd.MultiIndex.from_arrays(index_array, names=index_names)
+    s = pd.Series(data=[1, 2], index=ri)
+    result = s.groupby(['first', 'third']).sum()
+
+    index_array = [['x'], ['k']]
+    index_names = ['first', 'third']
+    ei = pd.MultiIndex.from_arrays(index_array, names=index_names)
+    expected = pd.Series([3], index=ei)
+
+    assert_series_equal(result, expected)

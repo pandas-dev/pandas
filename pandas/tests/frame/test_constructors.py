@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
-from collections import OrderedDict
+from collections import OrderedDict, abc
 from datetime import datetime, timedelta
 import functools
 import itertools
@@ -18,8 +16,8 @@ from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Index, MultiIndex, Series, Timedelta, Timestamp,
-    compat, date_range, isna)
+    Categorical, DataFrame, Index, MultiIndex, RangeIndex, Series, Timedelta,
+    Timestamp, compat, date_range, isna)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -30,12 +28,36 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
 
 class TestDataFrameConstructors(TestData):
 
-    def test_constructor(self):
-        df = DataFrame()
-        assert len(df.index) == 0
+    @pytest.mark.parametrize('constructor', [
+        lambda: DataFrame(),
+        lambda: DataFrame(None),
+        lambda: DataFrame({}),
+        lambda: DataFrame(()),
+        lambda: DataFrame([]),
+        lambda: DataFrame((x for x in [])),
+        lambda: DataFrame(data=None),
+        lambda: DataFrame(data={}),
+        lambda: DataFrame(data=()),
+        lambda: DataFrame(data=[]),
+        lambda: DataFrame(data=(x for x in []))
+    ])
+    def test_empty_constructor(self, constructor):
+        expected = DataFrame()
+        result = constructor()
+        assert len(result.index) == 0
+        assert len(result.columns) == 0
+        tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(data={})
-        assert len(df.index) == 0
+    @pytest.mark.parametrize('emptylike,expected_index,expected_columns', [
+        ([[]], RangeIndex(1), RangeIndex(0)),
+        ([[], []], RangeIndex(2), RangeIndex(0)),
+        ([(x for x in [])], RangeIndex(1), RangeIndex(0))
+    ])
+    def test_emptylike_constructor(
+            self, emptylike, expected_index, expected_columns):
+        expected = DataFrame(index=expected_index, columns=expected_columns)
+        result = DataFrame(emptylike)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_mixed(self):
         index, data = tm.getMixedTypeDict()
@@ -93,7 +115,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_list_frames(self):
         # see gh-3243
-        result = DataFrame([DataFrame([])])
+        result = DataFrame([DataFrame()])
         assert result.shape == (1, 0)
 
         result = DataFrame([DataFrame(dict(A=lrange(5)))])
@@ -260,7 +282,7 @@ class TestDataFrameConstructors(TestData):
         frame = DataFrame({}, index=idx)
         assert frame.index is idx
 
-        # empty with index and columns
+        # empty dict with index and columns
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx, columns=idx)
         assert frame.index is idx
@@ -951,7 +973,7 @@ class TestDataFrameConstructors(TestData):
         # GH 3783
         # collections.Squence like
 
-        class DummyContainer(compat.Sequence):
+        class DummyContainer(abc.Sequence):
 
             def __init__(self, lst):
                 self._lst = lst
@@ -1107,7 +1129,7 @@ class TestDataFrameConstructors(TestData):
         result2 = DataFrame(data, index=np.arange(6))
         tm.assert_frame_equal(result, result2)
 
-        result = DataFrame([Series({})])
+        result = DataFrame([Series()])
         expected = DataFrame(index=[0])
         tm.assert_frame_equal(result, expected)
 

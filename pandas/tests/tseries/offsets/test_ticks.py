@@ -2,8 +2,6 @@
 """
 Tests for offsets.Tick and subclasses
 """
-from __future__ import division
-
 from datetime import datetime, timedelta
 
 from hypothesis import assume, example, given, settings, strategies as st

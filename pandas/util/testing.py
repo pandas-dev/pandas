@@ -1,17 +1,18 @@
-from __future__ import division
-
+import bz2
 from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
+import gzip
+import lzma
 import os
 import re
 from shutil import rmtree
 import string
-import sys
 import tempfile
 import traceback
 import warnings
+import zipfile
 
 import numpy as np
 from numpy.random import rand, randn
@@ -21,9 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 
 from pandas._libs import testing as _testing
 import pandas.compat as compat
-from pandas.compat import (
-    PY2, PY3, httplib, lmap, lrange, lzip, raise_with_traceback, string_types,
-    unichr)
+from pandas.compat import httplib, lmap, lrange, lzip, raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -179,16 +178,12 @@ def decompress_file(path, compression):
     if compression is None:
         f = open(path, 'rb')
     elif compression == 'gzip':
-        import gzip
         f = gzip.open(path, 'rb')
     elif compression == 'bz2':
-        import bz2
         f = bz2.BZ2File(path, 'rb')
     elif compression == 'xz':
-        lzma = compat.import_lzma()
         f = lzma.LZMAFile(path, 'rb')
     elif compression == 'zip':
-        import zipfile
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
         if len(zip_names) == 1:
@@ -238,7 +233,7 @@ def write_to_compressed(compression, path, data, dest="test"):
         import bz2
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        lzma = compat.import_lzma()
+        import lzma
         compress_method = lzma.LZMAFile
     else:
         msg = "Unrecognized compression type: {}".format(compression)
@@ -369,7 +364,7 @@ def randbool(size=(), p=0.5):
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits),
                        dtype=(np.str_, 1))
-RANDU_CHARS = np.array(list("".join(map(unichr, lrange(1488, 1488 + 26))) +
+RANDU_CHARS = np.array(list("".join(map(chr, lrange(1488, 1488 + 26))) +
                             string.digits), dtype=(np.unicode_, 1))
 
 
@@ -421,32 +416,6 @@ def close(fignum=None):
             _close(fignum)
     else:
         _close(fignum)
-
-
-# -----------------------------------------------------------------------------
-# Stdout / stderr decorators
-
-
-@contextmanager
-def set_defaultencoding(encoding):
-    """
-    Set default encoding (as given by sys.getdefaultencoding()) to the given
-    encoding; restore on exit.
-
-    Parameters
-    ----------
-    encoding : str
-    """
-    if not PY2:
-        raise ValueError("set_defaultencoding context is only available "
-                         "in Python 2.")
-    orig = sys.getdefaultencoding()
-    reload(sys)  # noqa:F821
-    sys.setdefaultencoding(encoding)
-    try:
-        yield
-    finally:
-        sys.setdefaultencoding(orig)
 
 
 # -----------------------------------------------------------------------------
@@ -852,18 +821,10 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     elif is_categorical_dtype(left):
         left = repr(left)
 
-    if PY2 and isinstance(left, string_types):
-        # left needs to be printable in native text type in python2
-        left = left.encode('utf-8')
-
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
     elif is_categorical_dtype(right):
         right = repr(right)
-
-    if PY2 and isinstance(right, string_types):
-        # right needs to be printable in native text type in python2
-        right = right.encode('utf-8')
 
     msg = """{obj} are different
 
@@ -1812,7 +1773,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         names = None
 
     # make singelton case uniform
-    if isinstance(names, compat.string_types) and nlevels == 1:
+    if isinstance(names, str) and nlevels == 1:
         names = [names]
 
     # specific 1D index type requested?
@@ -2086,10 +2047,7 @@ _network_errno_vals = (
 # servers.
 
 # and conditionally raise on these exception types
-_network_error_classes = (IOError, httplib.HTTPException)
-
-if PY3:
-    _network_error_classes += (TimeoutError,)  # noqa
+_network_error_classes = (IOError, httplib.HTTPException, TimeoutError)
 
 
 def can_connect(url, error_classes=_network_error_classes):
@@ -2209,7 +2167,7 @@ def network(t, url="http://www.google.com",
     from pytest import skip
     t.network = True
 
-    @compat.wraps(t)
+    @wraps(t)
     def wrapper(*args, **kwargs):
         if check_before_test and not raise_on_error:
             if not can_connect(url, error_classes):
