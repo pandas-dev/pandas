@@ -8,7 +8,6 @@ import numpy as np
 from pandas._libs.tslibs.frequencies import (
     FreqGroup, get_base_alias, get_freq, is_subperiod, is_superperiod)
 from pandas._libs.tslibs.period import Period
-import pandas.compat as compat
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
@@ -144,7 +143,7 @@ def _replot_ax(ax, freq, kwargs):
             ax._plot_data.append((series, plotf, kwds))
 
             # for tsplot
-            if isinstance(plotf, compat.string_types):
+            if isinstance(plotf, str):
                 from pandas.plotting._core import _plot_klass
                 plotf = _plot_klass[plotf]._plot
 

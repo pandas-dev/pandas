@@ -1,4 +1,4 @@
-from collections import OrderedDict, deque
+from collections import OrderedDict, abc, deque
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import Iterable, StringIO, iteritems
+from pandas.compat import StringIO, iteritems
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -766,7 +766,7 @@ class TestAppend(ConcatenateBase):
             mixed_appended2.reindex(columns=['A', 'B', 'C', 'D']))
 
         # append empty
-        empty = DataFrame({})
+        empty = DataFrame()
 
         appended = self.frame.append(empty)
         tm.assert_frame_equal(self.frame, appended)
@@ -868,7 +868,7 @@ class TestAppend(ConcatenateBase):
 
     def test_append_preserve_index_name(self):
         # #980
-        df1 = DataFrame(data=None, columns=['A', 'B', 'C'])
+        df1 = DataFrame(columns=['A', 'B', 'C'])
         df1 = df1.set_index(['A'])
         df2 = DataFrame(data=[[1, 4, 7], [2, 5, 8], [3, 6, 9]],
                         columns=['A', 'B', 'C'])
@@ -1742,7 +1742,7 @@ class TestConcatenate(ConcatenateBase):
         assert_frame_equal(pd.concat(CustomIterator1(),
                                      ignore_index=True), expected)
 
-        class CustomIterator2(Iterable):
+        class CustomIterator2(abc.Iterable):
 
             def __iter__(self):
                 yield df1

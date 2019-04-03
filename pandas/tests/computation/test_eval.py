@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+from functools import reduce
 from itertools import product
 import operator
 import warnings
@@ -7,7 +8,6 @@ import numpy as np
 from numpy.random import rand, randint, randn
 import pytest
 
-from pandas.compat import reduce
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -339,8 +339,8 @@ class TestEvalNumexprPandas(object):
 
         if (is_scalar(lhs) and is_scalar(rhs) and
                 _is_py3_complex_incompat(result, expected)):
-            pytest.raises(AssertionError, tm.assert_numpy_array_equal,
-                          result, expected)
+            with pytest.raises(AssertionError):
+                tm.assert_numpy_array_equal(result, expected)
         else:
             tm.assert_almost_equal(result, expected)
 

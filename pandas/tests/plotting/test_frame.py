@@ -19,9 +19,7 @@ import pandas as pd
 from pandas import (
     DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range)
 from pandas.core.arrays import integer_array
-from pandas.tests.plotting.common import (
-    TestPlotBase, _check_plot_works, _ok_for_gaussian_kde,
-    _skip_if_no_scipy_gaussian_kde)
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
@@ -1514,8 +1512,6 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_df(self):
-        _skip_if_no_scipy_gaussian_kde()
-
         df = DataFrame(randn(100, 4))
         ax = _check_plot_works(df.plot, kind='kde')
         expected = [pprint_thing(c) for c in df.columns]
@@ -1536,8 +1532,6 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
-        _skip_if_no_scipy_gaussian_kde()
-
         df = DataFrame(np.random.uniform(size=(100, 4)))
         df.loc[0, 0] = np.nan
         _check_plot_works(df.plot, kind='kde')
@@ -1563,11 +1557,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(axes, xrot=40, yrot=0)
         tm.close()
 
-        if plotting._compat._mpl_ge_2_2_0():
-            kwargs = {"density": True}
-        else:
-            kwargs = {"normed": True}
-        ax = series.plot.hist(cumulative=True, bins=4, **kwargs)
+        ax = series.plot.hist(cumulative=True, bins=4, density=True)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
@@ -1707,8 +1697,6 @@ class TestDataFramePlots(TestPlotBase):
         df4 = DataFrame(rand(3, 3), columns=['j', 'k', 'l'])
 
         for kind in kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
 
             ax = df.plot(kind=kind, legend=True)
             self._check_legend_labels(ax, labels=df.columns)
@@ -1797,8 +1785,6 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(rand(3, 3), columns=['a', 'b', 'c'])
 
         for kind in kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
 
             ax = df.plot(kind=kind, legend=False)
             self._check_legend_labels(ax, visible=False)
@@ -2044,8 +2030,6 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_colors(self):
-        _skip_if_no_scipy_gaussian_kde()
-
         from matplotlib import cm
 
         custom_colors = 'rgcby'
@@ -2067,8 +2051,6 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots(self):
-        _skip_if_no_scipy_gaussian_kde()
-
         from matplotlib import cm
         default_colors = self._unpack_cycler(self.plt.rcParams)
 
@@ -2212,11 +2194,11 @@ class TestDataFramePlots(TestPlotBase):
         ydata = ax.lines[0].get_ydata()
         tm.assert_numpy_array_equal(ydata, np.array([1.0, 2.0, 3.0]))
 
+    @td.skip_if_no_scipy
     def test_kind_both_ways(self):
         df = DataFrame({'x': [1, 2, 3]})
         for kind in plotting._core._common_kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
+
             df.plot(kind=kind)
             getattr(df.plot, kind)()
         for kind in ['scatter', 'hexbin']:
@@ -2226,8 +2208,6 @@ class TestDataFramePlots(TestPlotBase):
     def test_all_invalid_plot_data(self):
         df = DataFrame(list('abcd'))
         for kind in plotting._core._common_kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
 
             msg = "no numeric data to plot"
             with pytest.raises(TypeError, match=msg):
@@ -2239,8 +2219,6 @@ class TestDataFramePlots(TestPlotBase):
             df = DataFrame(randn(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = 'a'
             for kind in plotting._core._common_kinds:
-                if not _ok_for_gaussian_kde(kind):
-                    continue
 
                 msg = "no numeric data to plot"
                 with pytest.raises(TypeError, match=msg):
@@ -2569,8 +2547,6 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
 
-    # This XPASSES when tested with mpl == 3.0.1
-    @td.xfail_if_mpl_2_2
     def test_table(self):
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))
@@ -2727,6 +2703,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_visible(ax.get_xticklabels(), visible=True)
             self._check_visible(ax.get_xticklabels(minor=True), visible=True)
 
+    @td.skip_if_no_scipy
     def test_memory_leak(self):
         """ Check that every plot type gets properly collected. """
         import weakref
@@ -2734,8 +2711,7 @@ class TestDataFramePlots(TestPlotBase):
 
         results = {}
         for kind in plotting._core._plot_klass.keys():
-            if not _ok_for_gaussian_kde(kind):
-                continue
+
             args = {}
             if kind in ['hexbin', 'scatter', 'pie']:
                 df = self.hexbin_df

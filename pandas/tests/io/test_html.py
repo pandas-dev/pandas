@@ -1,6 +1,5 @@
-from __future__ import print_function
-
 from functools import partial
+from importlib import reload
 import os
 import re
 import threading
@@ -9,7 +8,7 @@ import numpy as np
 from numpy.random import rand
 import pytest
 
-from pandas.compat import BytesIO, StringIO, is_platform_windows, reload
+from pandas.compat import BytesIO, StringIO, is_platform_windows
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 

@@ -2,14 +2,13 @@
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for numeric dtypes
+from collections import abc
 from decimal import Decimal
 from itertools import combinations
 import operator
 
 import numpy as np
 import pytest
-
-from pandas.compat import Iterable
 
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex
@@ -808,7 +807,7 @@ class TestAdditionSubtraction(object):
     def test_divmod(self):
         def check(series, other):
             results = divmod(series, other)
-            if isinstance(other, Iterable) and len(series) != len(other):
+            if isinstance(other, abc.Iterable) and len(series) != len(other):
                 # if the lengths don't match, this is the test where we use
                 # `tser[::2]`. Pad every other value in `other_np` with nan.
                 other_np = []
@@ -963,8 +962,7 @@ class TestNumericArithmeticUnsorted(object):
         self.check_binop(ops, scalars, idxs)
 
     def test_binops_pow(self):
-        # later versions of numpy don't allow powers of negative integers
-        # so test separately
+        # numpy does not allow powers of negative integers so test separately
         # https://github.com/numpy/numpy/pull/8127
         ops = [pow]
         scalars = [1, 2]
