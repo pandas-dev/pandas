@@ -411,7 +411,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     return f, handles
 
 
-class BytesZipFile(zipfile.ZipFile, BytesIO):
+class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     """
     Wrapper for standard library class ZipFile and allow the returned file-like
     handle to accept byte strings via `write` method.
