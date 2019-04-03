@@ -283,7 +283,7 @@ Timezones
 - Bug in :func:`Timestamp.tz_localize` and :func:`Timestamp.tz_convert` does not propagate ``freq`` (:issue:`25241`)
 - Bug in :func:`Series.at` where setting :class:`Timestamp` with timezone raises ``TypeError`` (:issue:`25506`)
 - Bug in :func:`DataFrame.update` when updating with timezone aware data would return timezone naive data (:issue:`25807`)
-- Bug in :func:`to_datetime` where an uninformative ``RuntimeError`` is raised when passing a native datetime with datetime strings with mixed UTC offsets (:issue:`25978`)
+- Bug in :func:`to_datetime` where an uninformative ``RuntimeError`` was raised when passing a native :class:`Timestamp` with datetime strings with mixed UTC offsets (:issue:`25978`)
 
 Numeric
 ^^^^^^^
