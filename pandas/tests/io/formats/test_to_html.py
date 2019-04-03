@@ -636,6 +636,7 @@ def test_to_html_invalid_classes_type(classes):
 
 
 def test_to_html_round_column_headers():
+    # GH 17280
     df = DataFrame([1], columns=[0.55555])
     with pd.option_context('display.precision', 3):
         html = df.to_html(notebook=False)

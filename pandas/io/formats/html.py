@@ -71,7 +71,7 @@ class HTMLFormatter(TableFormatter):
         return 0
 
     def _get_columns_formatted_values(self):
-        return self.fmt.tr_frame.columns
+        return self.columns
 
     @property
     def is_truncated(self):
