@@ -374,6 +374,15 @@ class TableFormatter(object):
                 i = self.columns[i]
             return self.formatters.get(i, None)
 
+    def _format_col(self, i):
+        frame = self.tr_frame
+        formatter = self._get_formatter(i)
+        values_to_format = frame.iloc[:, i]._formatting_values()
+        return format_array(values_to_format, formatter,
+                            float_format=self.float_format, na_rep=self.na_rep,
+                            space=self.col_space, decimal=self.decimal,
+                            max_colwidth=self.max_colwidth)
+
 
 class DataFrameFormatter(TableFormatter):
     """
@@ -437,6 +446,7 @@ class DataFrameFormatter(TableFormatter):
 
         self._chk_truncate()
         self.adj = _get_adjustment()
+        self.max_colwidth = None  # use display.max_colwidth setting
 
     def _chk_truncate(self):
         """
@@ -712,14 +722,6 @@ class DataFrameFormatter(TableFormatter):
             raise TypeError('buf is not a file name and it has no write '
                             'method')
 
-    def _format_col(self, i):
-        frame = self.tr_frame
-        formatter = self._get_formatter(i)
-        values_to_format = frame.iloc[:, i]._formatting_values()
-        return format_array(values_to_format, formatter,
-                            float_format=self.float_format, na_rep=self.na_rep,
-                            space=self.col_space, decimal=self.decimal)
-
     def to_html(self, classes=None, notebook=False, border=None):
         """
         Render a DataFrame to a html table.
@@ -855,7 +857,7 @@ class DataFrameFormatter(TableFormatter):
 
 def format_array(values, formatter, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right', decimal='.',
-                 leading_space=None):
+                 leading_space=None, max_colwidth=None):
     """
     Format an array for printing.
 
@@ -877,6 +879,11 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         When formatting an Index subclass
         (e.g. IntervalIndex._format_native_types), we don't want the
         leading space since it should be left-aligned.
+    max_colwidth: False, int or None, optional, default None
+        Whether the array should be formatted with strings truncated.
+        * False: do not truncate strings
+        * int: the maximum width of strings
+        * None: use display.max_colwidth setting
 
     Returns
     -------
@@ -907,10 +914,13 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     if digits is None:
         digits = get_option("display.precision")
 
+    if max_colwidth is None:
+        max_colwidth = get_option("display.max_colwidth")
+
     fmt_obj = fmt_klass(values, digits=digits, na_rep=na_rep,
                         float_format=float_format, formatter=formatter,
                         space=space, justify=justify, decimal=decimal,
-                        leading_space=leading_space)
+                        leading_space=leading_space, max_colwidth=max_colwidth)
 
     return fmt_obj.get_result()
 
@@ -919,7 +929,8 @@ class GenericArrayFormatter(object):
 
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
                  space=12, float_format=None, justify='right', decimal='.',
-                 quoting=None, fixed_width=True, leading_space=None):
+                 quoting=None, fixed_width=True, leading_space=None,
+                 max_colwidth=None):
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
@@ -931,10 +942,12 @@ class GenericArrayFormatter(object):
         self.quoting = quoting
         self.fixed_width = fixed_width
         self.leading_space = leading_space
+        self.max_colwidth = max_colwidth
 
     def get_result(self):
         fmt_values = self._format_strings()
-        return _make_fixed_width(fmt_values, self.justify)
+        return _make_fixed_width(fmt_values, self.justify,
+                                 max_colwidth=self.max_colwidth)
 
     def _format_strings(self):
         if self.float_format is None:
@@ -1395,7 +1408,8 @@ def _get_format_timedelta64(values, nat_rep='NaT', box=False):
     return _formatter
 
 
-def _make_fixed_width(strings, justify='right', minimum=None, adj=None):
+def _make_fixed_width(strings, justify='right', minimum=None, adj=None,
+                      max_colwidth=None):
 
     if len(strings) == 0 or justify == 'all':
         return strings
@@ -1408,13 +1422,12 @@ def _make_fixed_width(strings, justify='right', minimum=None, adj=None):
     if minimum is not None:
         max_len = max(minimum, max_len)
 
-    conf_max = get_option("display.max_colwidth")
-    if conf_max is not None and max_len > conf_max:
-        max_len = conf_max
+    if max_colwidth is not None and max_len > max_colwidth:
+        max_len = max_colwidth
 
     def just(x):
-        if conf_max is not None:
-            if (conf_max > 3) & (adj.len(x) > max_len):
+        if max_colwidth is not None:
+            if (max_colwidth > 3) & (adj.len(x) > max_len):
                 x = x[:max_len - 3] + '...'
         return x
 

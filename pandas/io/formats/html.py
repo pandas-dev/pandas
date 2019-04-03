@@ -12,8 +12,6 @@ from pandas.compat import lzip
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas import option_context
-
 from pandas.io.common import _is_url
 from pandas.io.formats.format import TableFormatter, get_level_lengths
 from pandas.io.formats.printing import pprint_thing
@@ -46,6 +44,13 @@ class HTMLFormatter(TableFormatter):
         self.border = border
         self.table_id = self.fmt.table_id
         self.render_links = self.fmt.render_links
+        self.max_colwidth = False  # do not truncate strings
+        self.tr_frame = self.fmt.tr_frame
+        self.formatters = self.fmt.formatters
+        self.float_format = self.fmt.float_format
+        self.na_rep = self.fmt.na_rep
+        self.col_space = self.fmt.col_space
+        self.decimal = self.fmt.decimal
 
     @property
     def show_row_idx_names(self):
@@ -320,10 +325,7 @@ class HTMLFormatter(TableFormatter):
         self.write('</thead>', indent)
 
     def _get_formatted_values(self):
-        with option_context('display.max_colwidth', 999999):
-            fmt_values = {i: self.fmt._format_col(i)
-                          for i in range(self.ncols)}
-        return fmt_values
+        return {i: self._format_col(i) for i in range(self.ncols)}
 
     def _write_body(self, indent):
         self.write('<tbody>', indent)
@@ -491,8 +493,9 @@ class NotebookFormatter(HTMLFormatter):
     DataFrame._repr_html_() and DataFrame.to_html(notebook=True)
     """
 
-    def _get_formatted_values(self):
-        return {i: self.fmt._format_col(i) for i in range(self.ncols)}
+    def __init__(self, formatter, classes=None, border=None):
+        super().__init__(formatter, classes, border)
+        self.max_colwidth = None  # use display.max_colwidth setting
 
     def write_style(self):
         # We use the "scoped" attribute here so that the desired
