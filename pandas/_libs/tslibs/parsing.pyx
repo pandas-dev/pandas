@@ -9,6 +9,7 @@ from io import StringIO
 from libc.string cimport strchr
 
 from cpython.datetime cimport datetime, datetime_new, import_datetime
+from cpython.version cimport PY_VERSION_HEX
 import_datetime()
 
 import numpy as np
@@ -115,7 +116,11 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
             and (month <= MAX_MONTH or day <= MAX_MONTH):
         if (month > MAX_MONTH or (day < MAX_MONTH and dayfirst)) and can_swap:
             day, month = month, day
-        return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
+        if PY_VERSION_HEX >= 0x03060100:
+            # In Python <= 3.6.0 there is no range checking for invalid dates
+            # in C api, thus we call faster C version for 3.6.1 or newer
+            return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
+        return datetime(year, month, day, 0, 0, 0, 0, None), reso
 
     raise DateParseError("Invalid date specified ({}/{})".format(month, day))
 
