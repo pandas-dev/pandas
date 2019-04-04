@@ -235,6 +235,12 @@ date_parser : function, optional
     arguments.
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
+cache_dates : boolean, default True
+    If True, use a cache of unique, converted dates to apply the datetime
+    conversion. May produce significant speed-up when parsing duplicate
+    date strings, especially ones with timezone offsets.
+
+    .. versionadded:: 0.23.0
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
@@ -327,12 +333,6 @@ float_precision : str, optional
     values. The options are `None` for the ordinary converter,
     `high` for the high-precision converter, and `round_trip` for the
     round-trip converter.
-cache_dates : boolean, default True
-    If True, use a cache of unique, converted dates to apply the datetime
-    conversion. May produce significant speed-up when parsing duplicate
-    date strings, especially ones with timezone offsets.
-
-    .. versionadded:: 0.23.0
 
 Returns
 -------
