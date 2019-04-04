@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+from typing import Callable, Dict
 
 from pandas.compat import PY3
 
@@ -48,12 +49,11 @@ class NotThisMethod(Exception):
     pass
 
 
-LONG_VERSION_PY = {}
-HANDLERS = {}
+HANDLERS = {}  # type: Dict[str, Dict[str, Callable]]
 
 
-def register_vcs_handler(vcs, method):  # decorator
-    def decorate(f):
+def register_vcs_handler(vcs: str, method: str) -> Callable:  # decorator
+    def decorate(f: Callable) -> Callable:
         if vcs not in HANDLERS:
             HANDLERS[vcs] = {}
         HANDLERS[vcs][method] = f
