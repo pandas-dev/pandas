@@ -3,13 +3,14 @@
 
 from datetime import datetime, time, timedelta
 from io import StringIO
+from itertools import product
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas.compat import lrange, product
+from pandas.compat import lrange
 from pandas.errors import NullFrequencyError
 import pandas.util._test_decorators as td
 
