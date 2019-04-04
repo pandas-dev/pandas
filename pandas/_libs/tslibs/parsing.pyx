@@ -371,7 +371,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
         except ValueError:
             pass
 
-    for pat in ['%Y-%m', '%m-%Y', '%b %Y', '%b-%Y']:
+    for pat in ['%Y-%m', '%b %Y', '%b-%Y']:
         try:
             ret = datetime.strptime(date_string, pat)
             return ret, ret, 'month'
