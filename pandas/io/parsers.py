@@ -1394,7 +1394,7 @@ class ParserBase:
             date_parser=self.date_parser,
             dayfirst=self.dayfirst,
             infer_datetime_format=self.infer_datetime_format,
-            cache_dates = self.cache_dates
+            cache_dates=self.cache_dates
         )
 
         # validate header options for mi
