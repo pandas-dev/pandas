@@ -327,7 +327,7 @@ float_precision : str, optional
     values. The options are `None` for the ordinary converter,
     `high` for the high-precision converter, and `round_trip` for the
     round-trip converter.
-cache_dates : boolean, default False
+cache_dates : boolean, default True
     If True, use a cache of unique, converted dates to apply the datetime
     conversion. May produce significant speed-up when parsing duplicate
     date strings, especially ones with timezone offsets.
@@ -482,7 +482,7 @@ _parser_defaults = {
     'false_values': None,
     'converters': None,
     'dtype': None,
-    'cache_dates': False,
+    'cache_dates': True,
 
     'thousands': None,
     'comment': None,
@@ -584,7 +584,7 @@ def _make_parser_function(name, default_sep=','):
                  keep_date_col=False,
                  date_parser=None,
                  dayfirst=False,
-                 cache_dates=False,
+                 cache_dates=True,
 
                  # Iteration
                  iterator=False,
@@ -1388,7 +1388,7 @@ class ParserBase:
         self.tupleize_cols = kwds.get('tupleize_cols', False)
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
-        self.cache_dates = kwds.pop('cache_dates', False)
+        self.cache_dates = kwds.pop('cache_dates', True)
 
         self._date_conv = _make_date_converter(
             date_parser=self.date_parser,
@@ -3184,7 +3184,7 @@ class PythonParser(ParserBase):
 
 
 def _make_date_converter(date_parser=None, dayfirst=False,
-                         infer_datetime_format=False, cache_dates=False):
+                         infer_datetime_format=False, cache_dates=True):
     def converter(*date_cols):
         if date_parser is None:
             strs = _concat_date_cols(date_cols)
