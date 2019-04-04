@@ -3,6 +3,7 @@
 
 from datetime import datetime, time, timedelta
 from io import StringIO
+from itertools import product
 
 import numpy as np
 import pytest
