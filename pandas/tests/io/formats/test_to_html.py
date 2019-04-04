@@ -644,3 +644,13 @@ def test_to_html_formatters_object_type(datapath):
     result = df.to_html(formatters=dict(x=f))
     expected = expected_html(datapath, 'gh13021_expected_output')
     assert result == expected
+
+
+def test_to_html_round_column_headers():
+    # GH 17280
+    df = DataFrame([1], columns=[0.55555])
+    with pd.option_context('display.precision', 3):
+        html = df.to_html(notebook=False)
+        notebook = df.to_html(notebook=True)
+    assert "0.55555" in html
+    assert "0.556" in notebook

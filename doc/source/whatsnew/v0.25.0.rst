@@ -283,6 +283,7 @@ Timezones
 - Bug in :func:`Timestamp.tz_localize` and :func:`Timestamp.tz_convert` does not propagate ``freq`` (:issue:`25241`)
 - Bug in :func:`Series.at` where setting :class:`Timestamp` with timezone raises ``TypeError`` (:issue:`25506`)
 - Bug in :func:`DataFrame.update` when updating with timezone aware data would return timezone naive data (:issue:`25807`)
+- Bug in :func:`to_datetime` where an uninformative ``RuntimeError`` was raised when passing a naive :class:`Timestamp` with datetime strings with mixed UTC offsets (:issue:`25978`)
 
 Numeric
 ^^^^^^^
@@ -354,6 +355,7 @@ I/O
 - Bug in :meth:`DataFrame.to_string` and :meth:`DataFrame.to_latex` that would lead to incorrect output when the ``header`` keyword is used (:issue:`16718`)
 - Bug in :func:`read_csv` not properly interpreting the UTF8 encoded filenames on Windows on Python 3.6+ (:issue:`15086`)
 - Improved performance in :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` when converting columns that have missing values (:issue:`25772`)
+- Bug in :meth:`DataFrame.to_html` where header numbers would ignore display options when rounding (:issue:`17280`)
 - Bug in :func:`read_hdf` not properly closing store after a ``KeyError`` is raised (:issue:`25766`)
 - Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
 - Improved :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` to read incorrectly formatted 118 format files saved by Stata (:issue:`25960`)
