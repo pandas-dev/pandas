@@ -635,11 +635,12 @@ def test_to_html_invalid_classes_type(classes):
         df.to_html(classes=classes)
 
 
-def test_to_html_formatters_object_type():
+def test_to_html_formatters_object_type(datapath):
     # GH 13021
     def f(x):
-        return x if type(x) is str else '${:,.0f}'.format(x)
+        return x if isinstance(x, str) else '${:,.0f}'.format(x)
 
     df = pd.DataFrame([['a'], [0], [10.4], [3]], columns=['x'])
     result = df.to_html(formatters=dict(x=f))
-    assert '$10' in result
+    expected = expected_html(datapath, 'gh13021_expected_output')
+    assert result == expected
