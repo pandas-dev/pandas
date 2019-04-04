@@ -33,7 +33,7 @@ cdef extern from "Python.h":
     const char* PyUnicode_AsUTF8AndSize(object obj,
                                         Py_ssize_t* length) except NULL
 
-from numpy cimport int64_t
+from numpy cimport int64_t, float64_t
 
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
@@ -215,7 +215,11 @@ cdef inline bint is_nan(object val):
     -------
     is_nan : bool
     """
-    return (is_float_object(val) or is_complex_object(val)) and val != val
+    cdef float64_t fval
+    if is_float_object(val):
+        fval = val
+        return fval != fval
+    return is_complex_object(val) and val != val
 
 
 cdef inline const char* get_c_string_buf_and_size(object py_string,
