@@ -101,7 +101,9 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
         reso = 'day'
         can_swap = 1
     elif length == 7:
-        if _is_not_delimiter(buf[2]) or buf[2] == b'.':
+        if buf[2] == b'.' or _is_not_delimiter(buf[2]):
+            # we cannot reliably tell whether e.g. 10.2010 is a float
+            # or a date, thus we refuse to parse it here
             return None, None
         month = _parse_2digit(buf)
         year = _parse_4digit(buf + 3)
