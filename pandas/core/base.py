@@ -1,6 +1,7 @@
 """
 Base and utility classes for pandas objects.
 """
+import builtins
 from collections import OrderedDict
 import textwrap
 import warnings
@@ -9,7 +10,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, builtins
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly

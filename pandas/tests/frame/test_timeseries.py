@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, time
+from itertools import product
 
 import numpy as np
 import pytest
 import pytz
-
-from pandas.compat import product
 
 import pandas as pd
 from pandas import (
