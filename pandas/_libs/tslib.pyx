@@ -792,7 +792,8 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
     # 2) datetime strings, which we return as datetime.datetime
     for i in range(n):
         val = values[i]
-        if checknull_with_nat(val) or isinstance(val, datetime):
+        if checknull_with_nat(val) or PyDateTime_Check(val):
+            # GH 25978. No need to parse NaT-like or datetime-like vals
             oresult[i] = val
         elif isinstance(val, str):
             if len(val) == 0 or val in nat_strings:
