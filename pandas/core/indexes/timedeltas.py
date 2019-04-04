@@ -403,7 +403,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
 
             .. versionchanged:: 0.25.0
 
-               The `sort` keyword has been added to TimedeltaIndex as well.
+               The `sort` keyword is added
 
         Returns
         -------

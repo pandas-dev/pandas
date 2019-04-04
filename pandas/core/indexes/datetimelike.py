@@ -540,6 +540,11 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
+        if len(self) == 0:
+            return self.copy()
+        if len(other) == 0:
+            return other.copy()
+
         if not isinstance(other, type(self)):
             result = Index.intersection(self, other, sort=sort)
             if isinstance(result, type(self)):
@@ -565,11 +570,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             if result.freq is None:
                 result.freq = to_offset(result.inferred_freq)
             return result
-
-        if len(self) == 0:
-            return self.copy()
-        if len(other) == 0:
-            return other.copy()
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
