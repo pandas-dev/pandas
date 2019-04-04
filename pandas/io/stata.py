@@ -1735,11 +1735,12 @@ the string values returned are correct."""
         data = DataFrame.from_dict(OrderedDict(cat_converted_data))
         return data
 
+    @property
     def data_label(self):
         """
         Return data label of Stata file.
         """
-        return self.data_label
+        return self._data_label
 
     def variable_labels(self):
         """

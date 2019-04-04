@@ -303,7 +303,7 @@ class TestStata(object):
                            'Floats': 'float data'}
             tm.assert_dict_equal(vl, vl_expected)
 
-            assert rdr._data_label == 'This is a  Ünicode data label'
+            assert rdr.data_label == 'This is a  Ünicode data label'
 
     def test_read_write_dta5(self):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
@@ -501,7 +501,7 @@ class TestStata(object):
 
             with StataReader(path) as reader:
                 assert reader.time_stamp == '29 Feb 2000 14:21'
-                assert reader._data_label == data_label
+                assert reader.data_label == data_label
 
     @pytest.mark.parametrize('version', [114, 117])
     def test_invalid_timestamp(self, version):
