@@ -355,6 +355,7 @@ I/O
 - Improved performance in :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` when converting columns that have missing values (:issue:`25772`)
 - Bug in :func:`read_hdf` not properly closing store after a ``KeyError`` is raised (:issue:`25766`)
 - Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
+- Improved :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` to read incorrectly formatted 118 format files saved by Stata (:issue:`25960`)
 
 Plotting
 ^^^^^^^^
