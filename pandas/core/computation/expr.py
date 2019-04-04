@@ -191,6 +191,17 @@ _is_list = _is_type(list)
 _is_str = _is_type(string_types)
 
 
+def _is_series_of_str(term):
+    """Test whether a ``Term`` holds list-like value of ``string_types``"""
+    return (_is_type(pd.Series)(term) and
+            isinstance(term.value[0], string_types))
+
+
+def _do_partial_str_match(left_term, right_term):
+    """If True execute partial string match instead of membership testing"""
+    return _is_str(left_term) and _is_series_of_str(right_term)
+
+
 # partition all AST nodes
 _all_nodes = frozenset(filter(lambda x: isinstance(x, type) and
                               issubclass(x, ast.AST),
@@ -701,6 +712,19 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         # base case: we have something like a CMP b
         if len(comps) == 1:
+            # partial string match:
+            # when the left node is `Term` with a str value and
+            # right `Term` with a value of Series containing str,
+            # we skip ordinary binary ops and apply `str_contains`.
+            left = self.visit(node.left)
+            right = self.visit(comps[0])
+            if (is_term(left) and is_term(right) and
+                    _do_partial_str_match(left, right)):
+                from pandas.core.strings import str_contains
+                _res = str_contains(right.value, left.value, regex=False)
+                name = self.env.add_tmp(_res)
+                return self.term_type(name, env=self.env)
+
             op = self.translate_In(ops[0])
             binop = ast.BinOp(op=op, left=node.left, right=comps[0])
             return self.visit(binop)
