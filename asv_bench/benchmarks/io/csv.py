@@ -4,7 +4,7 @@ import string
 import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Categorical, date_range, read_csv
-from pandas.compat import cStringIO as StringIO
+from io import StringIO
 
 from ..pandas_vb_common import BaseIO
 

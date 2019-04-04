@@ -1,13 +1,12 @@
 """ test with the TimeGrouper / grouping with datetimes """
 
 from datetime import datetime
+from io import StringIO
 
 import numpy as np
 from numpy import nan
 import pytest
 import pytz
-
-from pandas.compat import StringIO
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range

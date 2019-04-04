@@ -19,13 +19,13 @@ The SQL tests are broken down in different classes:
 
 import csv
 from datetime import date, datetime, time
+from io import StringIO
 import sqlite3
 import warnings
 
 import numpy as np
 import pytest
 
-import pandas.compat as compat
 from pandas.compat import PY36, lrange
 
 from pandas.core.dtypes.common import (
@@ -1939,7 +1939,7 @@ class _TestPostgreSQLAlchemy(object):
             # gets a DBAPI connection that can provide a cursor
             dbapi_conn = conn.connection
             with dbapi_conn.cursor() as cur:
-                s_buf = compat.StringIO()
+                s_buf = StringIO()
                 writer = csv.writer(s_buf)
                 writer.writerows(data_iter)
                 s_buf.seek(0)

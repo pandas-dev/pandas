@@ -4,11 +4,12 @@
 Tests column conversion functionality during parsing
 for all of the parsers defined in parsers.py
 """
+from io import StringIO
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, parse_date
+from pandas.compat import lmap, parse_date
 
 import pandas as pd
 from pandas import DataFrame, Index

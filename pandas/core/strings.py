@@ -2,6 +2,7 @@
 import codecs
 import re
 import textwrap
+from typing import Dict
 import warnings
 
 import numpy as np
@@ -28,7 +29,7 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
     "utf-16", "utf-32"
 )
 
-_shared_docs = dict()
+_shared_docs = dict()  # type: Dict[str, str]
 
 
 def cat_core(list_of_columns, sep):
@@ -623,13 +624,13 @@ def str_repeat(arr, repeats):
     dtype: object
     """
     if is_scalar(repeats):
-        def rep(x):
+        def scalar_rep(x):
             try:
                 return bytes.__mul__(x, repeats)
             except TypeError:
                 return str.__mul__(x, repeats)
 
-        return _na_map(rep, arr)
+        return _na_map(scalar_rep, arr)
     else:
 
         def rep(x, r):
@@ -2989,33 +2990,36 @@ class StringMethods(NoNewAttributesMixin):
     3              sWaPcAsE
     dtype: object
     """)
-    _shared_docs['lower'] = dict(type='lowercase', method='lower', version='')
-    _shared_docs['upper'] = dict(type='uppercase', method='upper', version='')
-    _shared_docs['title'] = dict(type='titlecase', method='title', version='')
-    _shared_docs['capitalize'] = dict(type='be capitalized',
-                                      method='capitalize', version='')
-    _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase',
-                                    version='')
-    _shared_docs['casefold'] = dict(type='be casefolded', method='casefold',
-                                    version='\n    .. versionadded:: 0.25.0\n')
+
+    # _doc_args holds dict of strings to use in substituting casemethod docs
+    _doc_args = {}  # type: Dict[str, Dict[str, str]]
+    _doc_args['lower'] = dict(type='lowercase', method='lower', version='')
+    _doc_args['upper'] = dict(type='uppercase', method='upper', version='')
+    _doc_args['title'] = dict(type='titlecase', method='title', version='')
+    _doc_args['capitalize'] = dict(type='be capitalized', method='capitalize',
+                                   version='')
+    _doc_args['swapcase'] = dict(type='be swapcased', method='swapcase',
+                                 version='')
+    _doc_args['casefold'] = dict(type='be casefolded', method='casefold',
+                                 version='\n    .. versionadded:: 0.25.0\n')
     lower = _noarg_wrapper(lambda x: x.lower(),
                            docstring=_shared_docs['casemethods'] %
-                           _shared_docs['lower'])
+                           _doc_args['lower'])
     upper = _noarg_wrapper(lambda x: x.upper(),
                            docstring=_shared_docs['casemethods'] %
-                           _shared_docs['upper'])
+                           _doc_args['upper'])
     title = _noarg_wrapper(lambda x: x.title(),
                            docstring=_shared_docs['casemethods'] %
-                           _shared_docs['title'])
+                           _doc_args['title'])
     capitalize = _noarg_wrapper(lambda x: x.capitalize(),
                                 docstring=_shared_docs['casemethods'] %
-                                _shared_docs['capitalize'])
+                                _doc_args['capitalize'])
     swapcase = _noarg_wrapper(lambda x: x.swapcase(),
                               docstring=_shared_docs['casemethods'] %
-                              _shared_docs['swapcase'])
+                              _doc_args['swapcase'])
     casefold = _noarg_wrapper(lambda x: x.casefold(),
                               docstring=_shared_docs['casemethods'] %
-                              _shared_docs['casefold'])
+                              _doc_args['casefold'])
 
     _shared_docs['ismethods'] = ("""
     Check whether all characters in each string are %(type)s.
@@ -3157,42 +3161,42 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
     """)
-    _shared_docs['isalnum'] = dict(type='alphanumeric', method='isalnum')
-    _shared_docs['isalpha'] = dict(type='alphabetic', method='isalpha')
-    _shared_docs['isdigit'] = dict(type='digits', method='isdigit')
-    _shared_docs['isspace'] = dict(type='whitespace', method='isspace')
-    _shared_docs['islower'] = dict(type='lowercase', method='islower')
-    _shared_docs['isupper'] = dict(type='uppercase', method='isupper')
-    _shared_docs['istitle'] = dict(type='titlecase', method='istitle')
-    _shared_docs['isnumeric'] = dict(type='numeric', method='isnumeric')
-    _shared_docs['isdecimal'] = dict(type='decimal', method='isdecimal')
+    _doc_args['isalnum'] = dict(type='alphanumeric', method='isalnum')
+    _doc_args['isalpha'] = dict(type='alphabetic', method='isalpha')
+    _doc_args['isdigit'] = dict(type='digits', method='isdigit')
+    _doc_args['isspace'] = dict(type='whitespace', method='isspace')
+    _doc_args['islower'] = dict(type='lowercase', method='islower')
+    _doc_args['isupper'] = dict(type='uppercase', method='isupper')
+    _doc_args['istitle'] = dict(type='titlecase', method='istitle')
+    _doc_args['isnumeric'] = dict(type='numeric', method='isnumeric')
+    _doc_args['isdecimal'] = dict(type='decimal', method='isdecimal')
     isalnum = _noarg_wrapper(lambda x: x.isalnum(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isalnum'])
+                             _doc_args['isalnum'])
     isalpha = _noarg_wrapper(lambda x: x.isalpha(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isalpha'])
+                             _doc_args['isalpha'])
     isdigit = _noarg_wrapper(lambda x: x.isdigit(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isdigit'])
+                             _doc_args['isdigit'])
     isspace = _noarg_wrapper(lambda x: x.isspace(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isspace'])
+                             _doc_args['isspace'])
     islower = _noarg_wrapper(lambda x: x.islower(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['islower'])
+                             _doc_args['islower'])
     isupper = _noarg_wrapper(lambda x: x.isupper(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isupper'])
+                             _doc_args['isupper'])
     istitle = _noarg_wrapper(lambda x: x.istitle(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['istitle'])
+                             _doc_args['istitle'])
     isnumeric = _noarg_wrapper(lambda x: x.isnumeric(),
                                docstring=_shared_docs['ismethods'] %
-                               _shared_docs['isnumeric'])
+                               _doc_args['isnumeric'])
     isdecimal = _noarg_wrapper(lambda x: x.isdecimal(),
                                docstring=_shared_docs['ismethods'] %
-                               _shared_docs['isdecimal'])
+                               _doc_args['isdecimal'])
 
     @classmethod
     def _make_accessor(cls, data):

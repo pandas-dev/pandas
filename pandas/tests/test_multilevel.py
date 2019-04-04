@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101,W0141
 import datetime
+from io import StringIO
 import itertools
+from itertools import product
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -9,7 +11,7 @@ from numpy.random import randn
 import pytest
 import pytz
 
-from pandas.compat import StringIO, lrange, lzip, product as cart_product
+from pandas.compat import lrange, lzip
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
@@ -237,7 +239,7 @@ class TestMultiLevel(Base):
 
     def test_delevel_infer_dtype(self):
         tuples = [tuple
-                  for tuple in cart_product(
+                  for tuple in product(
                       ['foo', 'bar'], [10, 20], [1.0, 1.1])]
         index = MultiIndex.from_tuples(tuples, names=['prm0', 'prm1', 'prm2'])
         df = DataFrame(np.random.randn(8, 3), columns=['A', 'B', 'C'],
