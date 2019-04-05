@@ -2603,26 +2603,20 @@ class TestODFReader(SharedItems):
         tm.assert_equal(sheet, expected)
 
     def test_read_invalid_types_raises(self):
-        """Make sure we throw an exception when encountering a new value-type
-
-        I had to manually create an invalid ods file by directly
-        editing the extracted xml. So it probably won't open in
-        LibreOffice correctly.
-        """
+        # the invalid_value_type.ods required manually editing
+        # of the included content.xml file
         with pytest.raises(ValueError,
                            match="Unrecognized type awesome_new_type"):
             self.get_exceldf(
                 'invalid_value_type', '.ods', header=None, engine='odf')
 
     def test_read_lower_diagonal(self):
-        """TextParser failed when given an irregular list of lists
+        # Make sure we can parse:
+        # 1
+        # 2 3
+        # 4 5 6
+        # 7 8 9 10
 
-        Make sure we can parse:
-        1
-        2 3
-        4 5 6
-        7 8 9 10
-        """
         sheet = self.get_exceldf(
             'lowerdiagonal', '.ods', 'Sheet1',
             index_col=None, header=None, engine='odf')
@@ -2650,10 +2644,9 @@ class TestODFReader(SharedItems):
                 assert pd.isnull(value)
 
     def test_read_writer_table(self):
-        """ODF reuses the same table tags in Writer and Presentation files
+        # Also test reading tables from an text OpenDocument file
+        # (.odt)
 
-        Test reading a table out of a text document
-        """
         table = self.get_exceldf(
             'writertable', '.odt', 'Table1', index_col=0, engine='odf')
 
@@ -2681,8 +2674,6 @@ class TestODFReader(SharedItems):
         assert not pd.isnull(table['value'][11])
 
     def test_runlengthencoding(self):
-        """Calc will use repeat when adjacent columns have the same value.
-        """
         sheet = self.get_exceldf(
             'runlengthencoding', '.ods', 'Sheet1', header=None, engine='odf')
         assert sheet.shape == (5, 3)
