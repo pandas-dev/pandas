@@ -325,6 +325,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/resolution.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
+                 'pandas/_libs/tslibs/tzconversion.pyx',
                  'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
 
@@ -558,7 +559,8 @@ ext_data = {
     '_libs.lib': {
         'pyxfile': '_libs/lib',
         'include': common_include + ts_include,
-        'depends': lib_depends + tseries_depends},
+        'depends': lib_depends + tseries_depends,
+        'sources': ['pandas/_libs/src/parser/tokenizer.c']},
     '_libs.missing': {
         'pyxfile': '_libs/missing',
         'include': common_include + ts_include,
@@ -650,6 +652,11 @@ ext_data = {
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones',
         'include': []},
+    '_libs.tslibs.tzconversion': {
+        'pyxfile': '_libs/tslibs/tzconversion',
+        'include': ts_include,
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.testing': {
         'pyxfile': '_libs/testing'},
     '_libs.window': {

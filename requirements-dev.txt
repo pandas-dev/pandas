@@ -17,6 +17,7 @@ pytest-mock
 sphinx
 numpydoc
 typing_extensions
+pip
 beautifulsoup4>=4.2.1
 blosc
 botocore>=1.11

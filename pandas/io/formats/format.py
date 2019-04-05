@@ -5,6 +5,7 @@ and latex files. This module also applies to display formatting.
 """
 
 from functools import partial
+from io import StringIO
 from shutil import get_terminal_size
 from unicodedata import east_asian_width
 
@@ -15,7 +16,7 @@ from pandas._config.config import get_option, set_option
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
-from pandas.compat import StringIO, lzip
+from pandas.compat import lzip
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -980,6 +981,17 @@ class GenericArrayFormatter(object):
         if leading_space is None:
             leading_space = is_float_type.any()
 
+        if leading_space is False:
+            # False specifically, so that the default is
+            # to include a space if we get here.
+            tpl = '{v}'
+        else:
+            tpl = ' {v}'
+
+        # shortcut
+        if self.formatter is not None:
+            return [tpl.format(v=self.formatter(x)) for x in self.values]
+
         fmt_values = []
         for i, v in enumerate(vals):
             if not is_float_type[i] and leading_space:
@@ -987,12 +999,6 @@ class GenericArrayFormatter(object):
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
-                if leading_space is False:
-                    # False specifically, so that the default is
-                    # to include a space if we get here.
-                    tpl = '{v}'
-                else:
-                    tpl = ' {v}'
                 fmt_values.append(tpl.format(v=_format(v)))
 
         return fmt_values

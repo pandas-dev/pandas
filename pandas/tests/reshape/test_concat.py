@@ -2,6 +2,7 @@ from collections import OrderedDict, abc, deque
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
+from io import StringIO
 from itertools import combinations
 from warnings import catch_warnings
 
@@ -10,7 +11,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import StringIO, iteritems
+from pandas.compat import iteritems
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 

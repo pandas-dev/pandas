@@ -26,6 +26,7 @@ dependencies:
   - sphinx
   - numpydoc
   - typing_extensions
+  - pip
 
   # optional
   - beautifulsoup4>=4.2.1
