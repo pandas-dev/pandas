@@ -1719,10 +1719,19 @@ the string values returned are correct."""
                     vc = Series(categories).value_counts()
                     repeats = list(vc.index[vc > 1])
                     repeats = '-' * 80 + '\n' + '\n'.join(repeats)
-                    raise ValueError('Value labels for column {col} are not '
-                                     'unique. The repeated labels are:\n'
-                                     '{repeats}'
-                                     .format(col=col, repeats=repeats))
+                    # GH 25772
+                    msg = """
+Value labels for column {col} are not unique. These cannot be converted to
+pandas categoricals.
+
+Either read the file with `convert_categoricals` set to False or use the
+low level interface in `StataReader` to separately read the values and the
+value_labels.
+
+The repeated labels are:
+{repeats}
+"""
+                    raise ValueError(msg.format(col=col, repeats=repeats))
                 # TODO: is the next line needed above in the data(...) method?
                 cat_data = Series(cat_data, index=data.index)
                 cat_converted_data.append((col, cat_data))

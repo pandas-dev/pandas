@@ -1311,9 +1311,17 @@ class TestStata(object):
                 original.to_stata(path)
 
     def test_repeated_column_labels(self):
-        # GH 13923
-        msg = (r"Value labels for column ethnicsn are not unique\. The"
-               r" repeated labels are:\n-+\nwolof")
+        # GH 13923, 25772
+        msg = """
+Value labels for column ethnicsn are not unique. These cannot be converted to
+pandas categoricals.
+
+Either read the file with `convert_categoricals` set to False or use the
+low level interface in `StataReader` to separately read the values and the
+value_labels.
+
+The repeated labels are:\n-+\nwolof
+"""
         with pytest.raises(ValueError, match=msg):
             read_stata(self.dta23, convert_categoricals=True)
 
