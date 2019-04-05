@@ -5,10 +5,11 @@ from collections import abc
 import numbers
 import operator
 import re
-from typing import Any, Callable, Type, Union
+from typing import Any, Callable, Union
 import warnings
 
 import numpy as np
+from typing_extensions import Type
 
 from pandas._libs import index as libindex, lib
 import pandas._libs.sparse as splib

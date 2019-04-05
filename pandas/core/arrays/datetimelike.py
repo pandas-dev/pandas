@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Tuple, Type, Union
+from typing import Any, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
+from typing_extensions import Type
 
 from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
 from pandas._libs.tslibs.period import (

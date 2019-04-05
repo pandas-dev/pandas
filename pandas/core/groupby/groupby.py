@@ -12,10 +12,11 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import Optional, Tuple, Type
+from typing import Optional, Tuple
 import warnings
 
 import numpy as np
+from typing_extensions import Type
 
 from pandas._config.config import option_context
 

@@ -1,11 +1,13 @@
 """Extend pandas with custom array types"""
-from typing import List, Optional, Type
+from typing import List, Optional
 
 import numpy as np
 
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+
+from typing_extensions import Type
 
 
 class _DtypeOpsMixin(object):
