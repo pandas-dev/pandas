@@ -717,9 +717,20 @@ class DataFrameFormatter(TableFormatter):
         frame = self.tr_frame
         formatter = self._get_formatter(i)
         values_to_format = frame.iloc[:, i]._formatting_values()
-        return format_array(values_to_format, formatter,
-                            float_format=self.float_format, na_rep=self.na_rep,
-                            space=self.col_space, decimal=self.decimal)
+        if formatter:
+            try:
+                fmt_values = [formatter(x) for x in values_to_format]
+            except AttributeError:
+                #   assume we have np.datetime64 array
+                values_to_format = DatetimeIndex(values_to_format)
+                fmt_values = [formatter(x) for x in values_to_format]
+            return _make_fixed_width(fmt_values, self.justify)
+
+        else:
+            return format_array(
+                values_to_format, formatter=None,
+                float_format=self.float_format, na_rep=self.na_rep,
+                space=self.col_space, decimal=self.decimal)
 
     def to_html(self, classes=None, notebook=False, border=None):
         """
@@ -981,17 +992,6 @@ class GenericArrayFormatter(object):
         if leading_space is None:
             leading_space = is_float_type.any()
 
-        if leading_space is False:
-            # False specifically, so that the default is
-            # to include a space if we get here.
-            tpl = '{v}'
-        else:
-            tpl = ' {v}'
-
-        # shortcut
-        if self.formatter is not None:
-            return [tpl.format(v=self.formatter(x)) for x in self.values]
-
         fmt_values = []
         for i, v in enumerate(vals):
             if not is_float_type[i] and leading_space:
@@ -999,6 +999,12 @@ class GenericArrayFormatter(object):
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
+                if leading_space is False:
+                    # False specifically, so that the default is
+                    # to include a space if we get here.
+                    tpl = '{v}'
+                else:
+                    tpl = ' {v}'
                 fmt_values.append(tpl.format(v=_format(v)))
 
         return fmt_values

@@ -125,11 +125,11 @@ Index: Index([], dtype='object') \\
 
         expected = r"""\begin{tabular}{llrrl}
 \toprule
-{} & datetime64 &  float & int &    object \\
+{} & datetime64 &  float & int &   object \\
 \midrule
-index: 0 &    2016-01 & [ 1.0] & 0x1 &  -(1, 2)- \\
-index: 1 &    2016-02 & [ 2.0] & 0x2 &    -True- \\
-index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
+index: 0 &    2016-01 & [ 1.0] & 0x1 & -(1, 2)- \\
+index: 1 &    2016-02 & [ 2.0] & 0x2 &   -True- \\
+index: 2 &    2016-03 & [ 3.0] & 0x3 &  -False- \\
 \bottomrule
 \end{tabular}
 """
