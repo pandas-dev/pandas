@@ -22,6 +22,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   - isort
+  - typing_extensions
   - pip:
     - python-dateutil==2.5.3
     # universal

@@ -20,5 +20,6 @@ dependencies:
   - s3fs
   - isort
   - pip
+  - typing_extensions
   - pip:
     - moto

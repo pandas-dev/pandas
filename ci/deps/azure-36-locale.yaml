@@ -26,5 +26,6 @@ dependencies:
   - hypothesis>=3.58.0
   - isort
   - pip
+  - typing_extensions
   - pip:
     - html5lib==1.0b2

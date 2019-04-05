@@ -24,6 +24,7 @@ dependencies:
   - pytest-mock
   - isort
   - pip
+  - typing_extensions
   - pip:
     # for python 3.5, pytest>=4.0.2 is not available in conda
     - pytest>=4.0.2
