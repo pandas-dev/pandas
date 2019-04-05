@@ -147,8 +147,10 @@ class TestMultiIndexPartial(object):
         # assert (self.ymd.loc[2000]['A'] == 0).all()
 
         # Pretty sure the second (and maybe even the first) is already wrong.
-        pytest.raises(Exception, ymd.loc.__getitem__, (2000, 6))
-        pytest.raises(Exception, ymd.loc.__getitem__, (2000, 6), 0)
+        with pytest.raises(Exception):
+            ymd.loc[(2000, 6)]
+        with pytest.raises(Exception):
+            ymd.loc[(2000, 6), 0]
 
     # ---------------------------------------------------------------------
 

@@ -8,7 +8,7 @@ from numpy import nan
 import pytest
 
 from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas.compat import PY36, range
+from pandas.compat import PY36
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 

@@ -8,7 +8,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_scalar
 

@@ -1,6 +1,7 @@
 import datetime
 from distutils.version import LooseVersion
 import glob
+from io import BytesIO
 import os
 from warnings import catch_warnings
 
@@ -8,7 +9,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import u
 from pandas.errors import PerformanceWarning
 
 import pandas
@@ -114,7 +114,7 @@ class TestAPI(TestPackers):
         tm.assert_frame_equal(result, df)
 
         s = df.to_msgpack()
-        result = read_msgpack(compat.BytesIO(s))
+        result = read_msgpack(BytesIO(s))
         tm.assert_frame_equal(result, df)
 
         s = to_msgpack(None, df)
@@ -272,7 +272,7 @@ class TestNumpy(TestPackers):
                 x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
-        x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo'), np.bool_(1)]
+        x = [1.0, np.float32(3.5), np.complex128(4.25), 'foo', np.bool_(1)]
         x_rec = self.encode_decode(x)
         # current msgpack cannot distinguish list/tuple
         tm.assert_almost_equal(tuple(x), x_rec)
@@ -732,10 +732,10 @@ class TestCompression(TestPackers):
         # bad state where b'a' points to 98 == ord(b'b').
         char_unpacked[0] = ord(b'b')
 
-        # we compare the ord of bytes b'a' with unicode u'a' because the should
+        # we compare the ord of bytes b'a' with unicode 'a' because the should
         # always be the same (unless we were able to mutate the shared
         # character singleton in which case ord(b'a') == ord(b'b').
-        assert ord(b'a') == ord(u'a')
+        assert ord(b'a') == ord('a')
         tm.assert_numpy_array_equal(
             char_unpacked,
             np.array([ord(b'b')], dtype='uint8'),
@@ -801,7 +801,7 @@ class TestEncoding(TestPackers):
     def setup_method(self, method):
         super(TestEncoding, self).setup_method(method)
         data = {
-            'A': [compat.u('\u2019')] * 1000,
+            'A': ['\u2019'] * 1000,
             'B': np.arange(1000, dtype=np.int32),
             'C': list(100 * 'abcdefghij'),
             'D': date_range(datetime.datetime(2015, 4, 1), periods=1000),

@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from decimal import Decimal
 import operator
 
 import numpy as np
 import pytest
-
-from pandas.compat import range
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, compat

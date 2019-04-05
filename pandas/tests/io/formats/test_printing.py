@@ -2,9 +2,10 @@
 import numpy as np
 import pytest
 
+import pandas._config.config as cf
+
 import pandas as pd
 from pandas import compat
-import pandas.core.config as cf
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
@@ -22,12 +23,11 @@ def test_adjoin():
 def test_repr_binary_type():
     import string
     letters = string.ascii_letters
-    btype = compat.binary_type
     try:
-        raw = btype(letters, encoding=cf.get_option('display.encoding'))
+        raw = bytes(letters, encoding=cf.get_option('display.encoding'))
     except TypeError:
-        raw = btype(letters)
-    b = compat.text_type(compat.bytes_to_str(raw))
+        raw = bytes(letters)
+    b = str(compat.bytes_to_str(raw))
     res = printing.pprint_thing(b, quote_strings=True)
     assert res == repr(b)
     res = printing.pprint_thing(b, quote_strings=False)
@@ -45,14 +45,14 @@ class TestFormattBase(object):
         assert adjoined == expected
 
     def test_adjoin_unicode(self):
-        data = [[u'あ', 'b', 'c'], ['dd', u'ええ', 'ff'], ['ggg', 'hhh', u'いいい']]
-        expected = u'あ  dd  ggg\nb  ええ  hhh\nc  ff  いいい'
+        data = [['あ', 'b', 'c'], ['dd', 'ええ', 'ff'], ['ggg', 'hhh', 'いいい']]
+        expected = 'あ  dd  ggg\nb  ええ  hhh\nc  ff  いいい'
         adjoined = printing.adjoin(2, *data)
         assert adjoined == expected
 
         adj = fmt.EastAsianTextAdjustment()
 
-        expected = u"""あ  dd    ggg
+        expected = """あ  dd    ggg
 b   ええ  hhh
 c   ff    いいい"""
 
@@ -63,7 +63,7 @@ c   ff    いいい"""
         assert adj.len(cols[1]) == 13
         assert adj.len(cols[2]) == 16
 
-        expected = u"""あ       dd         ggg
+        expected = """あ       dd         ggg
 b        ええ       hhh
 c        ff         いいい"""
 
@@ -84,40 +84,40 @@ c        ff         いいい"""
         assert just('abc', 5, mode='left') == 'abc  '
         assert just('abc', 5, mode='center') == ' abc '
         assert just('abc', 5, mode='right') == '  abc'
-        assert just(u'abc', 5, mode='left') == 'abc  '
-        assert just(u'abc', 5, mode='center') == ' abc '
-        assert just(u'abc', 5, mode='right') == '  abc'
+        assert just('abc', 5, mode='left') == 'abc  '
+        assert just('abc', 5, mode='center') == ' abc '
+        assert just('abc', 5, mode='right') == '  abc'
 
-        assert just(u'パンダ', 5, mode='left') == u'パンダ'
-        assert just(u'パンダ', 5, mode='center') == u'パンダ'
-        assert just(u'パンダ', 5, mode='right') == u'パンダ'
+        assert just('パンダ', 5, mode='left') == 'パンダ'
+        assert just('パンダ', 5, mode='center') == 'パンダ'
+        assert just('パンダ', 5, mode='right') == 'パンダ'
 
-        assert just(u'パンダ', 10, mode='left') == u'パンダ    '
-        assert just(u'パンダ', 10, mode='center') == u'  パンダ  '
-        assert just(u'パンダ', 10, mode='right') == u'    パンダ'
+        assert just('パンダ', 10, mode='left') == 'パンダ    '
+        assert just('パンダ', 10, mode='center') == '  パンダ  '
+        assert just('パンダ', 10, mode='right') == '    パンダ'
 
     def test_east_asian_len(self):
         adj = fmt.EastAsianTextAdjustment()
 
         assert adj.len('abc') == 3
-        assert adj.len(u'abc') == 3
+        assert adj.len('abc') == 3
 
-        assert adj.len(u'パンダ') == 6
-        assert adj.len(u'ﾊﾟﾝﾀﾞ') == 5
-        assert adj.len(u'パンダpanda') == 11
-        assert adj.len(u'ﾊﾟﾝﾀﾞpanda') == 10
+        assert adj.len('パンダ') == 6
+        assert adj.len('ﾊﾟﾝﾀﾞ') == 5
+        assert adj.len('パンダpanda') == 11
+        assert adj.len('ﾊﾟﾝﾀﾞpanda') == 10
 
     def test_ambiguous_width(self):
         adj = fmt.EastAsianTextAdjustment()
-        assert adj.len(u'¡¡ab') == 4
+        assert adj.len('¡¡ab') == 4
 
         with cf.option_context('display.unicode.ambiguous_as_wide', True):
             adj = fmt.EastAsianTextAdjustment()
-            assert adj.len(u'¡¡ab') == 6
+            assert adj.len('¡¡ab') == 6
 
-        data = [[u'あ', 'b', 'c'], ['dd', u'ええ', 'ff'],
-                ['ggg', u'¡¡ab', u'いいい']]
-        expected = u'あ  dd    ggg \nb   ええ  ¡¡ab\nc   ff    いいい'
+        data = [['あ', 'b', 'c'], ['dd', 'ええ', 'ff'],
+                ['ggg', '¡¡ab', 'いいい']]
+        expected = 'あ  dd    ggg \nb   ええ  ¡¡ab\nc   ff    いいい'
         adjoined = adj.adjoin(2, *data)
         assert adjoined == expected
 

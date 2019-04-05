@@ -2,13 +2,14 @@
 # pylint: disable-msg=W0612,E1101
 from collections import OrderedDict
 from datetime import timedelta
+from io import StringIO
 import json
 import os
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, is_platform_32bit, lrange, range
+from pandas.compat import is_platform_32bit, lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -54,7 +55,7 @@ class TestPandasContainer(object):
         self.objSeries.name = 'objects'
 
         self.empty_series = Series([], index=[])
-        self.empty_frame = DataFrame({})
+        self.empty_frame = DataFrame()
 
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
@@ -1101,14 +1102,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
         json = StringIO(json)
         result = read_json(json, lines=True)
-        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+        expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]],
                              columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
         # simulate string
         json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
         result = read_json(json, lines=True)
-        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+        expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]],
                              columns=['a', 'b'])
         assert_frame_equal(result, expected)
 

@@ -51,16 +51,24 @@ Implementation
 from collections import namedtuple
 from contextlib import contextmanager
 import re
+from typing import Dict, List
 import warnings
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
 RegisteredOption = namedtuple('RegisteredOption',
                               'key defval doc validator cb')
 
-_deprecated_options = {}  # holds deprecated option metdata
-_registered_options = {}  # holds registered option metdata
-_global_config = {}  # holds the current values for registered options
-_reserved_keys = ['all']  # keys which have a special meaning
+# holds deprecated option metdata
+_deprecated_options = {}  # type: Dict[str, DeprecatedOption]
+
+# holds registered option metdata
+_registered_options = {}  # type: Dict[str, RegisteredOption]
+
+# holds the current values for registered options
+_global_config = {}  # type: Dict[str, str]
+
+# keys which have a special meaning
+_reserved_keys = ['all']  # type: List[str]
 
 
 class OptionError(AttributeError, KeyError):
@@ -695,7 +703,7 @@ def config_prefix(prefix):
 
     Example:
 
-    import pandas.core.config as cf
+    import pandas._config.config as cf
     with cf.config_prefix("display.font"):
         cf.register_option("color", "red")
         cf.register_option("size", " 5 pt")

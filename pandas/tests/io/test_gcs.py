@@ -1,7 +1,7 @@
+from io import StringIO
+
 import numpy as np
 import pytest
-
-from pandas.compat import StringIO
 
 from pandas import DataFrame, date_range, read_csv
 from pandas.util import _test_decorators as td

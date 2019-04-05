@@ -6,8 +6,6 @@ from copy import copy, deepcopy
 import numpy as np
 import pytest
 
-from pandas.compat import range, zip
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd

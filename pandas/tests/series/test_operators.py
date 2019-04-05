@@ -7,8 +7,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import range
-
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, Series, bdate_range, date_range, isna)

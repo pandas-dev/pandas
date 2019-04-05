@@ -1,11 +1,11 @@
 """ test label based indexing with loc """
-
+from io import StringIO
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range

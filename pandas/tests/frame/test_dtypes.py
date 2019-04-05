@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from collections import OrderedDict
 from datetime import timedelta
 
 import numpy as np
 import pytest
-
-from pandas.compat import u
 
 from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype
 
@@ -21,11 +17,6 @@ from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_series_equal, makeCustomDataframe as mkdf)
-
-
-@pytest.fixture(params=[str, compat.text_type])
-def text_dtype(request):
-    return request.param
 
 
 class TestDataFrameDataTypes(TestData):
@@ -358,13 +349,11 @@ class TestDataFrameDataTypes(TestData):
         assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [
-        str, "str", np.string_, "S1", "unicode", np.unicode_, "U1",
-        compat.text_type
-    ])
+        str, "str", np.string_, "S1", "unicode", np.unicode_, "U1"])
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg):
         df = DataFrame({"a": list("abc"),
-                        "g": list(u("abc")),
+                        "g": list("abc"),
                         "b": list(range(1, 4)),
                         "c": np.arange(3, 6).astype("u1"),
                         "d": np.arange(4.0, 7.0, dtype="float64"),
@@ -378,7 +367,7 @@ class TestDataFrameDataTypes(TestData):
 
     def test_select_dtypes_bad_arg_raises(self):
         df = DataFrame({'a': list('abc'),
-                        'g': list(u('abc')),
+                        'g': list('abc'),
                         'b': list(range(1, 4)),
                         'c': np.arange(3, 6).astype('u1'),
                         'd': np.arange(4.0, 7.0, dtype='float64'),
@@ -518,7 +507,7 @@ class TestDataFrameDataTypes(TestData):
         with pytest.raises(ValueError, match=msg):
             df.astype(dtype)
 
-    def test_astype_str(self, text_dtype):
+    def test_astype_str(self):
         # see gh-9757
         a = Series(date_range("2010-01-04", periods=5))
         b = Series(date_range("3/6/2012 00:00", periods=5, tz="US/Eastern"))
@@ -529,29 +518,28 @@ class TestDataFrameDataTypes(TestData):
         df = DataFrame({"a": a, "b": b, "c": c, "d": d, "e": e})
 
         # Datetime-like
-        # Test str and unicode on Python 2.x and just str on Python 3.x
-        result = df.astype(text_dtype)
+        result = df.astype(str)
 
         expected = DataFrame({
-            "a": list(map(text_dtype,
+            "a": list(map(str,
                           map(lambda x: Timestamp(x)._date_repr, a._values))),
-            "b": list(map(text_dtype, map(Timestamp, b._values))),
-            "c": list(map(text_dtype,
+            "b": list(map(str, map(Timestamp, b._values))),
+            "c": list(map(str,
                           map(lambda x: Timedelta(x)._repr_base(format="all"),
                               c._values))),
-            "d": list(map(text_dtype, d._values)),
-            "e": list(map(text_dtype, e._values)),
+            "d": list(map(str, d._values)),
+            "e": list(map(str, e._values)),
         })
 
         assert_frame_equal(result, expected)
 
-    def test_astype_str_float(self, text_dtype):
+    def test_astype_str_float(self):
         # see gh-11302
-        result = DataFrame([np.NaN]).astype(text_dtype)
+        result = DataFrame([np.NaN]).astype(str)
         expected = DataFrame(["nan"])
 
         assert_frame_equal(result, expected)
-        result = DataFrame([1.12345678901234567890]).astype(text_dtype)
+        result = DataFrame([1.12345678901234567890]).astype(str)
 
         # < 1.14 truncates
         # >= 1.14 preserves the full repr
@@ -851,6 +839,20 @@ class TestDataFrameDataTypes(TestData):
             df.astype(np.float64, errors=True)
 
         df.astype(np.int8, errors='ignore')
+
+    def test_arg_for_errors_in_astype_dictlist(self):
+        # GH-25905
+        df = pd.DataFrame([
+            {'a': '1', 'b': '16.5%', 'c': 'test'},
+            {'a': '2.2', 'b': '15.3', 'c': 'another_test'}])
+        expected = pd.DataFrame([
+            {'a': 1.0, 'b': '16.5%', 'c': 'test'},
+            {'a': 2.2, 'b': '15.3', 'c': 'another_test'}])
+        type_dict = {'a': 'float64', 'b': 'float64', 'c': 'object'}
+
+        result = df.astype(dtype=type_dict, errors='ignore')
+
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('input_vals', [
         ([1, 2]),

@@ -5,7 +5,7 @@ Note: pandas.core.common is *not* part of the public API.
 """
 
 import collections
-from collections import OrderedDict
+from collections import OrderedDict, abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
@@ -14,7 +14,6 @@ from typing import Any
 import numpy as np
 
 from pandas._libs import lib, tslibs
-import pandas.compat as compat
 from pandas.compat import PY36, iteritems
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -93,8 +92,7 @@ def maybe_box_datetimelike(value):
 values_from_object = lib.values_from_object
 
 
-def is_bool_indexer(key):
-    # type: (Any) -> bool
+def is_bool_indexer(key: Any) -> bool:
     """
     Check whether `key` is a valid boolean indexer.
 
@@ -246,7 +244,7 @@ def asarray_tuplesafe(values, dtype=None):
 
     result = np.asarray(values, dtype=dtype)
 
-    if issubclass(result.dtype.type, compat.string_types):
+    if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
@@ -271,7 +269,7 @@ def index_labels_to_array(labels, dtype=None):
     -------
     array
     """
-    if isinstance(labels, (compat.string_types, tuple)):
+    if isinstance(labels, (str, tuple)):
         labels = [labels]
 
     if not isinstance(labels, (list, np.ndarray)):
@@ -375,13 +373,13 @@ def standardize_mapping(into):
 
     Parameters
     ----------
-    into : instance or subclass of collections.Mapping
+    into : instance or subclass of collections.abc.Mapping
         Must be a class, an initialized collections.defaultdict,
-        or an instance of a collections.Mapping subclass.
+        or an instance of a collections.abc.Mapping subclass.
 
     Returns
     -------
-    mapping : a collections.Mapping subclass or other constructor
+    mapping : a collections.abc.Mapping subclass or other constructor
         a callable object that can accept an iterator to create
         the desired Mapping.
 
@@ -395,7 +393,7 @@ def standardize_mapping(into):
             return partial(
                 collections.defaultdict, into.default_factory)
         into = type(into)
-    if not issubclass(into, compat.Mapping):
+    if not issubclass(into, abc.Mapping):
         raise TypeError('unsupported type: {into}'.format(into=into))
     elif into == collections.defaultdict:
         raise TypeError(
@@ -472,7 +470,7 @@ def _get_rename_function(mapper):
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.
     """
-    if isinstance(mapper, (compat.Mapping, ABCSeries)):
+    if isinstance(mapper, (abc.Mapping, ABCSeries)):
 
         def f(x):
             if x in mapper:

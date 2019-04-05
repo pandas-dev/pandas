@@ -8,10 +8,10 @@ arguments when parsing.
 """
 
 import csv
+from io import BytesIO, StringIO
 
 import pytest
 
-from pandas.compat import BytesIO, StringIO, u
 from pandas.errors import ParserError
 
 from pandas import DataFrame, Index, MultiIndex
@@ -82,7 +82,7 @@ baz|7|8|9
 
     if encoding is not None:
         from io import TextIOWrapper
-        data = u(data).encode(encoding)
+        data = data.encode(encoding)
         data = BytesIO(data)
         data = TextIOWrapper(data, encoding=encoding)
     else:
