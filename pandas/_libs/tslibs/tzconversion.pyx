@@ -96,7 +96,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
         return result
 
-    if isinsance(ambiguous, str):
+    if isinstance(ambiguous, str):
         if ambiguous == 'infer':
             infer_dst = True
         elif ambiguous == 'NaT':
