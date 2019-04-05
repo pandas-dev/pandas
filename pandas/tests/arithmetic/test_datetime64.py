@@ -2351,3 +2351,22 @@ def test_shift_months(years, months):
            for x in dti]
     expected = DatetimeIndex(raw)
     tm.assert_index_equal(actual, expected)
+
+
+class SubDatetime(datetime):
+    pass
+
+
+@pytest.mark.parametrize("lh,rh", [
+    (SubDatetime(2000, 1, 1),
+     Timedelta(hours=1)),
+    (Timedelta(hours=1),
+     SubDatetime(2000, 1, 1))
+])
+def test_dt_subclass_add_timedelta(lh, rh):
+    # GH 25851
+    # ensure that subclassed datetime works for
+    # Timedelta operations
+    result = lh + rh
+    expected = SubDatetime(2000, 1, 1, 1)
+    assert result == expected

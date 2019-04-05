@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
+
 import numpy as np
 import pytest
 from pytz import UTC
@@ -7,7 +9,7 @@ from pytz import UTC
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs import conversion, timezones
 
-from pandas import date_range
+from pandas import Timestamp, date_range
 import pandas.util.testing as tm
 
 
@@ -66,3 +68,24 @@ def test_length_zero_copy(dtype, copy):
     arr = np.array([], dtype=dtype)
     result = conversion.ensure_datetime64ns(arr, copy=copy)
     assert result.base is (None if copy else arr)
+
+
+class SubDatetime(datetime):
+    pass
+
+
+@pytest.mark.parametrize("dt, expected", [
+    pytest.param(Timestamp("2000-01-01"),
+                 Timestamp("2000-01-01", tz=UTC), id="timestamp"),
+    pytest.param(datetime(2000, 1, 1),
+                 datetime(2000, 1, 1, tzinfo=UTC),
+                 id="datetime"),
+    pytest.param(SubDatetime(2000, 1, 1),
+                 SubDatetime(2000, 1, 1, tzinfo=UTC),
+                 id="subclassed_datetime")])
+def test_localize_pydatetime_dt_types(dt, expected):
+    # GH 25851
+    # ensure that subclassed datetime works with
+    # localize_pydatetime
+    result = conversion.localize_pydatetime(dt, UTC)
+    assert result == expected
