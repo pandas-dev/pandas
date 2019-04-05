@@ -93,6 +93,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
 
     buf = get_c_string_buf_and_size(date_string, &length)
     if length == 10:
+        # parsing MM?DD?YYYY and DD?MM?YYYY dates
         if _is_not_delimiter(buf[2]) or _is_not_delimiter(buf[5]):
             return None, None
         month = _parse_2digit(buf)
@@ -101,6 +102,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
         reso = 'day'
         can_swap = 1
     elif length == 7:
+        # parsing MM?YYYY dates
         if buf[2] == b'.' or _is_not_delimiter(buf[2]):
             # we cannot reliably tell whether e.g. 10.2010 is a float
             # or a date, thus we refuse to parse it here
@@ -112,7 +114,8 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
         return None, None
 
     if month < 0 or day < 0 or year < 0:
-        # some part is not an integer, so it's not a mm/dd/yyyy date
+        # some part is not an integer, so
+        # date_string can't be converted to date, above format
         return None, None
 
     if 1 <= month <= MAX_DAYS_IN_MONTH and 1 <= day <= MAX_DAYS_IN_MONTH \
