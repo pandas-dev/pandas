@@ -22,10 +22,9 @@ from pandas._libs.tslibs.util cimport (
 
 cimport pandas._libs.tslibs.ccalendar as ccalendar
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
-from pandas._libs.tslibs.conversion import (
-    tz_localize_to_utc, normalize_i8_timestamps)
+from pandas._libs.tslibs.conversion import normalize_i8_timestamps
 from pandas._libs.tslibs.conversion cimport (
-    tz_convert_single, _TSObject, convert_to_tsobject,
+    _TSObject, convert_to_tsobject,
     convert_datetime_to_tsobject)
 from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
@@ -39,6 +38,8 @@ from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 from pandas._libs.tslibs.timezones cimport (
     get_timezone, is_utc, maybe_get_tz, treat_tz_as_pytz, tz_compare)
 from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.tzconversion import (
+    tz_localize_to_utc, tz_convert_single)
 
 # ----------------------------------------------------------------------
 # Constants

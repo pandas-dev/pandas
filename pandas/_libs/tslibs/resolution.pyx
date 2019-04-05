@@ -10,8 +10,8 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.frequencies cimport get_freq_code
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
-from pandas._libs.tslibs.conversion cimport tz_convert_utc_to_tzlocal
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
+from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 # ----------------------------------------------------------------------
 # Constants

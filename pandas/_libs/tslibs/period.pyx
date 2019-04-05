@@ -40,7 +40,6 @@ cimport pandas._libs.tslibs.ccalendar as ccalendar
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek, get_day_of_year, is_leapyear)
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
-from pandas._libs.tslibs.conversion cimport tz_convert_utc_to_tzlocal
 from pandas._libs.tslibs.frequencies cimport (
     get_freq_code, get_base_alias, get_to_timestamp_base, get_freq_str,
     get_rule_month)
@@ -51,6 +50,8 @@ from pandas._libs.tslibs.nattype cimport (
     _nat_scalar_rules, NPY_NAT, is_null_datetimelike, c_NaT as NaT)
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.offsets import _Tick
+from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
+
 
 cdef:
     enum:
