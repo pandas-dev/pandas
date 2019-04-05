@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
-from pandas._libs.tslibs import maybe_integer_op_deprecated
+from pandas._libs.tslibs.c_timestamp import maybe_integer_op_deprecated
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds

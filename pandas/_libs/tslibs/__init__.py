@@ -8,4 +8,3 @@ from .period import Period, IncompatibleFrequency
 from .timestamps import Timestamp
 from .timedeltas import delta_to_nanoseconds, ints_to_pytimedelta, Timedelta
 from .tzconversion import tz_convert_single
-from .c_timestamp import maybe_integer_op_deprecated # isort:skip
