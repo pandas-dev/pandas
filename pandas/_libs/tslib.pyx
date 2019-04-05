@@ -2,7 +2,6 @@
 import cython
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
-                               PyDateTime_CheckExact,
                                PyDateTime_IMPORT,
                                timedelta, datetime, date, time)
 # import datetime C API
@@ -19,6 +18,7 @@ import pytz
 from pandas._libs.util cimport (
     is_integer_object, is_float_object, is_datetime64_object)
 
+from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, _string_to_dts, dt64_to_dtstruct,
@@ -31,8 +31,8 @@ from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.conversion cimport (
-    tz_convert_single, _TSObject, convert_datetime_to_tsobject,
-    get_datetime64_nanos, tz_convert_utc_to_tzlocal)
+    _TSObject, convert_datetime_to_tsobject,
+    get_datetime64_nanos)
 
 # many modules still look for NaT and iNaT here despite them not being needed
 from pandas._libs.tslibs.nattype import nat_strings, iNaT  # noqa:F821
@@ -43,6 +43,9 @@ from pandas._libs.tslibs.offsets cimport to_offset
 
 from pandas._libs.tslibs.timestamps cimport create_timestamp_from_ts
 from pandas._libs.tslibs.timestamps import Timestamp
+
+from pandas._libs.tslibs.tzconversion cimport (
+    tz_convert_single, tz_convert_utc_to_tzlocal)
 
 
 cdef inline object create_datetime_from_ts(
@@ -536,8 +539,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                                              'datetime64 unless utc=True')
                     else:
                         iresult[i] = pydatetime_to_dt64(val, &dts)
-                        if not PyDateTime_CheckExact(val):
-                            # i.e. a Timestamp object
+                        if isinstance(val, _Timestamp):
                             iresult[i] += val.nanosecond
                         check_dts_bounds(&dts)
 

@@ -312,6 +312,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/ops.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/c_timestamp.pyx',
                  'pandas/_libs/tslibs/ccalendar.pyx',
                  'pandas/_libs/tslibs/period.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
@@ -325,6 +326,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/resolution.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
+                 'pandas/_libs/tslibs/tzconversion.pyx',
                  'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
 
@@ -591,6 +593,11 @@ ext_data = {
         'include': ts_include,
         'depends': tseries_depends,
         'sources': np_datetime_sources},
+    '_libs.tslibs.c_timestamp': {
+        'pyxfile': '_libs/tslibs/c_timestamp',
+        'include': ts_include,
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.ccalendar': {
         'pyxfile': '_libs/tslibs/ccalendar',
         'include': []},
@@ -651,6 +658,11 @@ ext_data = {
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones',
         'include': []},
+    '_libs.tslibs.tzconversion': {
+        'pyxfile': '_libs/tslibs/tzconversion',
+        'include': ts_include,
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.testing': {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
