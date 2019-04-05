@@ -23,7 +23,6 @@ def test_namespace():
                   'timezones',
                   'tzconversion']
 
-
     api = ['NaT',
            'NaTType',
            'iNaT',
