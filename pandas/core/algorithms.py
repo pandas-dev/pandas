@@ -618,8 +618,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort
         uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
-                                    assume_unique=True,
-                                    check_outofbounds=False)
+                                    assume_unique=True, verify=False)
 
     uniques = _reconstruct_data(uniques, dtype, original)
 
