@@ -192,7 +192,7 @@ default of the index) in a DataFrame.
 .. ipython:: python
    :suppress:
 
-   from pandas.compat import StringIO
+   from io import StringIO
 
 :ref:`Duplicate column names <io.dupe_names>` are now supported in :func:`read_csv` whether
 they are in the file or passed in as the ``names`` parameter (:issue:`7160`, :issue:`9424`)
