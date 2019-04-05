@@ -1,5 +1,3 @@
-from __future__ import division
-
 from itertools import permutations
 
 import numpy as np
@@ -159,7 +157,7 @@ class TestIntervalTree(object):
         left, right = np.arange(3), np.arange(1, 4)
         tree = IntervalTree(left[order], right[order], closed=closed)
         result = tree.is_overlapping
-        expected = closed is 'both'
+        expected = closed == 'both'
         assert result is expected
 
     @pytest.mark.parametrize('left, right', [

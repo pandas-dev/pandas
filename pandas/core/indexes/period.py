@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, is_datetime64_any_dtype, is_float, is_float_dtype,
     is_integer, is_integer_dtype, pandas_dtype)
 
-from pandas import compat
 from pandas.core import common as com
 from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
@@ -400,7 +399,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     # ------------------------------------------------------------------------
     # Rendering Methods
 
-    def _format_native_types(self, na_rep=u'NaT', quoting=None, **kwargs):
+    def _format_native_types(self, na_rep='NaT', quoting=None, **kwargs):
         # just dispatch, return ndarray
         return self._data._format_native_types(na_rep=na_rep,
                                                quoting=quoting,
@@ -538,7 +537,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                                             other_freq=value.freqstr)
                 raise IncompatibleFrequency(msg)
             value = value.ordinal
-        elif isinstance(value, compat.string_types):
+        elif isinstance(value, str):
             try:
                 value = Period(value, freq=self.freq).ordinal
             except DateParseError:
@@ -717,7 +716,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if isinstance(label, datetime):
             return Period(label, freq=self.freq)
-        elif isinstance(label, compat.string_types):
+        elif isinstance(label, str):
             try:
                 _, parsed, reso = parse_time_string(label, self.freq)
                 bounds = self._parsed_string_to_bounds(reso, parsed)

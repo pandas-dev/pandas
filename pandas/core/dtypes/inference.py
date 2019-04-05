@@ -1,15 +1,13 @@
 """ basic inference routines """
 
+from collections import abc
 from numbers import Number
 import re
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import (
-    PY2, Set, re_type, string_and_binary_types, string_types, text_type)
-
-from pandas import compat
+from pandas.compat import PY2, re_type
 
 is_bool = lib.is_bool
 
@@ -88,7 +86,7 @@ def is_string_like(obj):
         Whether `obj` is a string or not.
     """
 
-    return isinstance(obj, (text_type, string_types))
+    return isinstance(obj, str)
 
 
 def _iterable_not_string(obj):
@@ -114,8 +112,7 @@ def _iterable_not_string(obj):
     False
     """
 
-    return (isinstance(obj, compat.Iterable) and
-            not isinstance(obj, string_types))
+    return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
 
 
 def is_iterator(obj):
@@ -290,15 +287,15 @@ def is_list_like(obj, allow_sets=True):
     False
     """
 
-    return (isinstance(obj, compat.Iterable)
+    return (isinstance(obj, abc.Iterable) and
             # we do not count strings/unicode/bytes as list-like
-            and not isinstance(obj, string_and_binary_types)
+            not isinstance(obj, (str, bytes)) and
 
             # exclude zero-dimensional numpy arrays, effectively scalars
-            and not (isinstance(obj, np.ndarray) and obj.ndim == 0)
+            not (isinstance(obj, np.ndarray) and obj.ndim == 0) and
 
             # exclude sets if allow_sets is False
-            and not (allow_sets is False and isinstance(obj, Set)))
+            not (allow_sets is False and isinstance(obj, abc.Set)))
 
 
 def is_array_like(obj):
@@ -438,8 +435,8 @@ def is_named_tuple(obj):
 def is_hashable(obj):
     """Return True if hash(obj) will succeed, False otherwise.
 
-    Some types will pass a test against collections.Hashable but fail when they
-    are actually hashed with hash().
+    Some types will pass a test against collections.abc.Hashable but fail when
+    they are actually hashed with hash().
 
     Distinguish between these and other types by trying the call to hash() and
     seeing if they raise TypeError.
@@ -447,14 +444,14 @@ def is_hashable(obj):
     Examples
     --------
     >>> a = ([],)
-    >>> isinstance(a, collections.Hashable)
+    >>> isinstance(a, collections.abc.Hashable)
     True
     >>> is_hashable(a)
     False
     """
-    # Unfortunately, we can't use isinstance(obj, collections.Hashable), which
-    # can be faster than calling hash. That is because numpy scalars on Python
-    # 3 fail this test.
+    # Unfortunately, we can't use isinstance(obj, collections.abc.Hashable),
+    # which can be faster than calling hash. That is because numpy scalars
+    # fail this test.
 
     # Reconsider this decision once this numpy bug is fixed:
     # https://github.com/numpy/numpy/issues/5562
@@ -494,6 +491,6 @@ def is_sequence(obj):
     try:
         iter(obj)  # Can iterate over it.
         len(obj)   # Has a length associated with it.
-        return not isinstance(obj, string_and_binary_types)
+        return not isinstance(obj, (str, bytes))
     except (TypeError, AttributeError):
         return False

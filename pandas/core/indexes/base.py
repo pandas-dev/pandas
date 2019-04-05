@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import operator
 from textwrap import dedent
+from typing import Union
 import warnings
 
 import numpy as np
@@ -11,7 +12,7 @@ from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
 import pandas.compat as compat
-from pandas.compat import range, set_function_name, u
+from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -930,14 +931,14 @@ class Index(IndexOpsMixin, PandasObject):
         attrs = self._format_attrs()
         space = self._format_space()
 
-        prepr = (u(",%s") %
-                 space).join(u("%s=%s") % (k, v) for k, v in attrs)
+        prepr = (",%s" %
+                 space).join("%s=%s" % (k, v) for k, v in attrs)
 
         # no data provided, just attributes
         if data is None:
             data = ''
 
-        res = u("%s(%s%s)") % (klass, data, prepr)
+        res = "%s(%s%s)" % (klass, data, prepr)
 
         return res
 
@@ -1076,12 +1077,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if len(self) > 0:
             head = self[0]
-            if (hasattr(head, 'format') and
-                    not isinstance(head, compat.string_types)):
+            if hasattr(head, 'format') and not isinstance(head, str):
                 head = head.format()
             tail = self[-1]
-            if (hasattr(tail, 'format') and
-                    not isinstance(tail, compat.string_types)):
+            if hasattr(tail, 'format') and not isinstance(tail, str):
                 tail = tail.format()
             index_summary = ', %s to %s' % (pprint_thing(head),
                                             pprint_thing(tail))
@@ -1207,7 +1206,7 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas import DataFrame
         if name is None:
             name = self.name or 0
-        result = DataFrame({name: self.values.copy()})
+        result = DataFrame({name: self._values.copy()})
 
         if index:
             result.index = self
@@ -2319,7 +2318,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             rvals = other._values
 
-        if self.is_monotonic and other.is_monotonic:
+        if sort is None and self.is_monotonic and other.is_monotonic:
             try:
                 result = self._outer_indexer(lvals, rvals)[0]
             except TypeError:
@@ -3631,8 +3630,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @property
-    def _values(self):
-        # type: () -> Union[ExtensionArray, Index, np.ndarray]
+    def _values(self) -> Union[ExtensionArray, ABCIndexClass, np.ndarray]:
         # TODO(EA): remove index types as they become extension arrays
         """
         The best array representation.
@@ -4870,8 +4868,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH 16785: If start and end happen to be date strings with UTC offsets
         # attempt to parse and check that the offsets are the same
-        if (isinstance(start, (compat.string_types, datetime))
-                and isinstance(end, (compat.string_types, datetime))):
+        if (isinstance(start, (str, datetime))
+                and isinstance(end, (str, datetime))):
             try:
                 ts_start = Timestamp(start)
                 ts_end = Timestamp(end)

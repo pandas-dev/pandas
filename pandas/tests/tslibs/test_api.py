@@ -19,9 +19,11 @@ def test_namespace():
                   'strptime',
                   'timedeltas',
                   'timestamps',
-                  'timezones']
+                  'timezones',
+                  'tzconversion']
 
     api = ['NaT',
+           'NaTType',
            'iNaT',
            'is_null_datetimelike',
            'OutOfBoundsDatetime',

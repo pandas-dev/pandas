@@ -4,12 +4,12 @@
 Tests the usecols functionality during parsing
 for all of the parsers defined in parsers.py
 """
+from io import StringIO
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import StringIO
 
 from pandas import DataFrame, Index
 import pandas.util.testing as tm
@@ -19,6 +19,22 @@ _msg_validate_usecols_arg = ("'usecols' must either be list-like "
                              "integers or a callable.")
 _msg_validate_usecols_names = ("Usecols do not match columns, columns "
                                "expected but not found: {0}")
+
+
+@pytest.mark.parametrize("names,usecols,missing", [
+    (None, [0, 3], r"\[3\]"),
+    (["a", "b", "c"], [0, -1, 2], r"\[-1\]"),
+    (None, [3], r"\[3\]"),
+    (["a"], [3], r"\[3\]")
+])
+def test_usecols_out_of_bounds(all_parsers, names, usecols, missing):
+    # See gh-25623
+    data = "a,b,c\n1,2,3\n4,5,6"
+    parser = all_parsers
+
+    mssg = _msg_validate_usecols_names.format(missing)
+    with pytest.raises(ValueError, match=mssg):
+        parser.read_csv(StringIO(data), usecols=usecols, names=names)
 
 
 def test_raise_on_mixed_dtype_usecols(all_parsers):
@@ -347,7 +363,7 @@ def test_usecols_with_unicode_strings(all_parsers):
     }
     expected = DataFrame(exp_data)
 
-    result = parser.read_csv(StringIO(data), usecols=[u"AAA", u"BBB"])
+    result = parser.read_csv(StringIO(data), usecols=["AAA", "BBB"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -369,11 +385,11 @@ def test_usecols_with_single_byte_unicode_strings(all_parsers):
     }
     expected = DataFrame(exp_data)
 
-    result = parser.read_csv(StringIO(data), usecols=[u"A", u"B"])
+    result = parser.read_csv(StringIO(data), usecols=["A", "B"])
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("usecols", [[u"AAA", b"BBB"], [b"AAA", u"BBB"]])
+@pytest.mark.parametrize("usecols", [["AAA", b"BBB"], [b"AAA", "BBB"]])
 def test_usecols_with_mixed_encoding_strings(all_parsers, usecols):
     data = """AAA,BBB,CCC,DDD
 0.056674973,8,True,a
@@ -387,7 +403,7 @@ def test_usecols_with_mixed_encoding_strings(all_parsers, usecols):
 
 @pytest.mark.parametrize("usecols", [
     ["あああ", "いい"],
-    [u"あああ", u"いい"]
+    ["あああ", "いい"]
 ])
 def test_usecols_with_multi_byte_characters(all_parsers, usecols):
     data = """あああ,いい,ううう,ええええ

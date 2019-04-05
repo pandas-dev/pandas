@@ -8,14 +8,14 @@ dependencies:
   - html5lib
   - jinja2
   - lxml
-  - matplotlib=2.2.0
+  - matplotlib=2.2.3
   - nomkl
   - numexpr
-  - numpy=1.12.0
-  - openpyxl=2.5.5
+  - numpy=1.13.3
+  - openpyxl
   - pyarrow
   - pytables
-  - python=3.5*
+  - python=3.5.*
   - pytz
   - xarray
   - xlrd

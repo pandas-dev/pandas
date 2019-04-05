@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from pandas import (
-    DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series, compat)
+    DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series)
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal, assert_series_equal
 
@@ -137,9 +137,9 @@ class TestFloatIndexers(object):
                     # for idxr in [lambda x: x.ix,
                     #             lambda x: x]:
                     #    s2 = s.copy()
-                    #    def f():
+                    #
+                    #    with pytest.raises(TypeError):
                     #        idxr(s2)[3.0] = 0
-                    #    pytest.raises(TypeError, f)
                     pass
 
                 else:
@@ -542,10 +542,7 @@ class TestFloatIndexers(object):
                       slice(2.0, 4),
                       slice(2.0, 4.0)]:
 
-                if compat.PY2:
-                    klass = Int64Index
-                else:
-                    klass = RangeIndex
+                klass = RangeIndex
                 msg = ("cannot do slice indexing"
                        r" on {klass} with these indexers \[(2|4)\.0\] of"
                        " {kind}"

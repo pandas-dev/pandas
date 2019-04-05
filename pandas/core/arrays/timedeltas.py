@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
-
 from datetime import timedelta
 import textwrap
 import warnings
@@ -38,8 +36,7 @@ _BAD_DTYPE = "dtype {dtype} cannot be converted to timedelta64[ns]"
 
 
 def _is_convertible_to_td(key):
-    return isinstance(key, (Tick, timedelta,
-                            np.timedelta64, compat.string_types))
+    return isinstance(key, (Tick, timedelta, np.timedelta64, str))
 
 
 def _field_accessor(name, alias, docstring=None):

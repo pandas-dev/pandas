@@ -5,7 +5,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import long, lrange
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -253,28 +253,27 @@ class TestGrouping():
         tm.assert_frame_equal(by_levels, by_columns)
 
     def test_groupby_categorical_index_and_columns(self, observed):
-        # GH18432
+        # GH18432, adapted for GH25871
         columns = ['A', 'B', 'A', 'B']
         categories = ['B', 'A']
-        data = np.ones((5, 4), int)
+        data = np.array([[1, 2, 1, 2],
+                         [1, 2, 1, 2],
+                         [1, 2, 1, 2],
+                         [1, 2, 1, 2],
+                         [1, 2, 1, 2]], int)
         cat_columns = CategoricalIndex(columns,
                                        categories=categories,
                                        ordered=True)
         df = DataFrame(data=data, columns=cat_columns)
         result = df.groupby(axis=1, level=0, observed=observed).sum()
-        expected_data = 2 * np.ones((5, 2), int)
-
-        if observed:
-            # if we are not-observed we undergo a reindex
-            # so need to adjust the output as our expected sets us up
-            # to be non-observed
-            expected_columns = CategoricalIndex(['A', 'B'],
-                                                categories=categories,
-                                                ordered=True)
-        else:
-            expected_columns = CategoricalIndex(categories,
-                                                categories=categories,
-                                                ordered=True)
+        expected_data = np.array([[4, 2],
+                                  [4, 2],
+                                  [4, 2],
+                                  [4, 2],
+                                  [4, 2]], int)
+        expected_columns = CategoricalIndex(categories,
+                                            categories=categories,
+                                            ordered=True)
         expected = DataFrame(data=expected_data, columns=expected_columns)
         assert_frame_equal(result, expected)
 
@@ -396,7 +395,7 @@ class TestGrouping():
         lst = [['count', 'values'], ['to filter', '']]
         midx = MultiIndex.from_tuples(lst)
 
-        df = DataFrame([[long(1), 'A']], columns=midx)
+        df = DataFrame([[1, 'A']], columns=midx)
 
         grouped = df.groupby('to filter').groups
         assert grouped['A'] == [0]
@@ -404,13 +403,13 @@ class TestGrouping():
         grouped = df.groupby([('to filter', '')]).groups
         assert grouped['A'] == [0]
 
-        df = DataFrame([[long(1), 'A'], [long(2), 'B']], columns=midx)
+        df = DataFrame([[1, 'A'], [2, 'B']], columns=midx)
 
         expected = df.groupby('to filter').groups
         result = df.groupby([('to filter', '')]).groups
         assert result == expected
 
-        df = DataFrame([[long(1), 'A'], [long(2), 'A']], columns=midx)
+        df = DataFrame([[1, 'A'], [2, 'A']], columns=midx)
 
         expected = df.groupby('to filter').groups
         result = df.groupby([('to filter', '')]).groups
@@ -643,23 +642,23 @@ class TestGetGroup():
         df = pd.DataFrame({'a': list('abssbab')})
         tm.assert_frame_equal(df.groupby('a').get_group('a'), df.iloc[[0, 5]])
         # GH 13530
-        exp = pd.DataFrame([], index=pd.Index(['a', 'b', 's'], name='a'))
+        exp = pd.DataFrame(index=pd.Index(['a', 'b', 's'], name='a'))
         tm.assert_frame_equal(df.groupby('a').count(), exp)
         tm.assert_frame_equal(df.groupby('a').sum(), exp)
         tm.assert_frame_equal(df.groupby('a').nth(1), exp)
 
     def test_gb_key_len_equal_axis_len(self):
-            # GH16843
-            # test ensures that index and column keys are recognized correctly
-            # when number of keys equals axis length of groupby
-            df = pd.DataFrame([['foo', 'bar', 'B', 1],
-                               ['foo', 'bar', 'B', 2],
-                               ['foo', 'baz', 'C', 3]],
-                              columns=['first', 'second', 'third', 'one'])
-            df = df.set_index(['first', 'second'])
-            df = df.groupby(['first', 'second', 'third']).size()
-            assert df.loc[('foo', 'bar', 'B')] == 2
-            assert df.loc[('foo', 'baz', 'C')] == 1
+        # GH16843
+        # test ensures that index and column keys are recognized correctly
+        # when number of keys equals axis length of groupby
+        df = pd.DataFrame([['foo', 'bar', 'B', 1],
+                           ['foo', 'bar', 'B', 2],
+                           ['foo', 'baz', 'C', 3]],
+                          columns=['first', 'second', 'third', 'one'])
+        df = df.set_index(['first', 'second'])
+        df = df.groupby(['first', 'second', 'third']).size()
+        assert df.loc[('foo', 'bar', 'B')] == 2
+        assert df.loc[('foo', 'baz', 'C')] == 1
 
 
 # groups & iteration
