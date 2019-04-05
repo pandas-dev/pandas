@@ -981,6 +981,17 @@ class GenericArrayFormatter(object):
         if leading_space is None:
             leading_space = is_float_type.any()
 
+        if leading_space is False:
+            # False specifically, so that the default is
+            # to include a space if we get here.
+            tpl = '{v}'
+        else:
+            tpl = ' {v}'
+
+        # shortcut
+        if self.formatter is not None:
+            return [tpl.format(v=self.formatter(x)) for x in self.values]
+
         fmt_values = []
         for i, v in enumerate(vals):
             if not is_float_type[i] and leading_space:
@@ -988,12 +999,6 @@ class GenericArrayFormatter(object):
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
-                if leading_space is False:
-                    # False specifically, so that the default is
-                    # to include a space if we get here.
-                    tpl = '{v}'
-                else:
-                    tpl = ' {v}'
                 fmt_values.append(tpl.format(v=_format(v)))
 
         return fmt_values
