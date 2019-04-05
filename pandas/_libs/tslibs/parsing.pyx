@@ -328,8 +328,15 @@ cpdef bint _does_string_look_like_datetime(object date_string):
         elif date_string in _not_datelike_strings:
             return False
         else:
+            # xstrtod with such paramaters copies behavior of python `float`
+            # cast; for example, " 35.e-1 " is valid string for this cast so,
+            # for correctly xstrtod call necessary to pass these params:
+            # b'.' - a dot is used as separator, b'e' - an exponential form of
+            # a float number can be used, b'\0' - not to use a thousand
+            # separator, 1 - skip extra spaces before and after,
             converted_date = xstrtod(buf, &endptr,
                                      b'.', b'e', b'\0', 1, &error, NULL)
+            # if there were no errors and the whole line was parsed, then ...
             if error == 0 and endptr == buf + length:
                 return converted_date >= 1000
 
