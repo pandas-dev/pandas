@@ -531,6 +531,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         if not all_in_columns_index:
             keys = [com.asarray_tuplesafe(keys)]
 
+
     if isinstance(level, (tuple, list)):
         if key is None:
             keys = [None] * len(level)
