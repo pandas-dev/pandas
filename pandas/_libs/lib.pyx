@@ -2315,20 +2315,21 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline void convert_and_set_item(object item, Py_ssize_t index,
-                                      object[:] result,
+cdef inline object convert_to_unicode(object item,
                                       bint keep_trivial_numbers):
     """
-    Convert `item` to str and set into result[index].
+    Convert `item` to str.
 
     Parameters
     ----------
     item : object
-    index : Py_ssize_t
-    result : memoryview of 1-d ndarray
     keep_trivial_numbers : bool
         if True, then conversion (to string from integer/float zero)
         is not performed
+
+    Returns
+    -------
+    str
     """
     cdef:
         bint do_convert = 1
@@ -2346,16 +2347,7 @@ cdef inline void convert_and_set_item(object item, Py_ssize_t index,
     if do_convert and not isinstance(item, str):
         item = PyObject_Str(item)
 
-    result[index] = item
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef inline void put_object_as_unicode(list lst, Py_ssize_t idx,
-                                       object item):
-    if not isinstance(item, str):
-        item = PyObject_Str(item)
-    lst[idx] = item
+    return item
 
 
 @cython.wraparound(False)
@@ -2403,8 +2395,8 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
         it = <flatiter>PyArray_IterNew(array)
         for row_idx in range(rows_count):
             item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-            convert_and_set_item(item, row_idx, result_view,
-                                 keep_trivial_numbers)
+            result_view[row_idx] = convert_to_unicode(item,
+                                                      keep_trivial_numbers)
             PyArray_ITER_NEXT(it)
     else:
         list_to_join = [None] * col_count
@@ -2417,7 +2409,7 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
             for col_idx, array in enumerate(date_cols):
                 it = <flatiter>iters_view[col_idx]
                 item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-                put_object_as_unicode(list_to_join, col_idx, item)
+                list_to_join[col_idx] = convert_to_unicode(item, False)
                 PyArray_ITER_NEXT(it)
             result_view[row_idx] = PyUnicode_Join(' ', list_to_join)
 
@@ -2458,13 +2450,14 @@ cdef cnp.ndarray[object] _concat_date_cols_sequence(tuple date_cols,
 
     if col_count == 1:
         for row_idx, item in enumerate(date_cols[0]):
-            convert_and_set_item(item, row_idx, result_view,
-                                 keep_trivial_numbers)
+            result_view[row_idx] = convert_to_unicode(item,
+                                                      keep_trivial_numbers)
     else:
         list_to_join = [None] * col_count
         for row_idx in range(rows_count):
             for col_idx, array in enumerate(date_cols):
-                put_object_as_unicode(list_to_join, col_idx, array[row_idx])
+                list_to_join[col_idx] = convert_to_unicode(array[row_idx],
+                                                           False)
             result_view[row_idx] = PyUnicode_Join(' ', list_to_join)
 
     return result
