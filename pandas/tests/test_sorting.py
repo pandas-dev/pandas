@@ -384,14 +384,18 @@ class TestSafeSort(object):
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
-    def test_labels_out_of_bound(self):
+    @pytest.mark.parametrize('na_sentinel', [-1, 99])
+    def test_labels_out_of_bound(self, na_sentinel):
         values = [3, 1, 2, 0, 4]
         expected = np.array([0, 1, 2, 3, 4])
 
         # out of bound indices
         labels = [0, 101, 102, 2, 3, 0, 99, 4]
-        result, result_labels = safe_sort(values, labels)
-        expected_labels = np.array([3, -1, -1, 2, 0, 3, -1, 4], dtype=np.intp)
+        result, result_labels = safe_sort(
+            values, labels, na_sentinel=na_sentinel)
+        expected_labels = np.array(
+            [3, na_sentinel, na_sentinel, 2, 0, 3, na_sentinel, 4],
+            dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
