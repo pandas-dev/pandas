@@ -42,6 +42,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.timezones cimport (
     get_timezone, get_utcoffset, is_utc, tz_compare)
 from pandas._libs.tslibs.timezones import UTC
+from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
 
 def maybe_integer_op_deprecated(obj):
@@ -301,24 +302,9 @@ cdef class _Timestamp(datetime):
         """Convert UTC i8 value to local i8 value if tz exists"""
         cdef:
             int64_t val
-            npy_datetimestruct dts
-            int64_t delta
-            datetime dt
-
         val = self.value
         if self.tz is not None and not is_utc(self.tz):
-            # logic copied from _tz_convert_tzlocal_utc
-            # to prevent importing tslibs.conversion
-            dt64_to_dtstruct(val, &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us)
-            # get_utcoffset (tz.utcoffset under the hood) only makes
-            # sense if dt is _wall time_, so convert to wall time
-            dt = dt.replace(tzinfo=tzutc())
-            dt = dt.astimezone(self.tz)
-            delta = (int(get_utcoffset(self.tz, dt).total_seconds())
-                     * 1000000000)
-            val = self.value + delta
+            val = tz_convert_single(self.value, UTC, self.tz)
         return val
 
     cpdef bint _get_start_end_field(self, str field):
