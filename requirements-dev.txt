@@ -16,6 +16,7 @@ pytest>=4.0.2
 pytest-mock
 sphinx
 numpydoc
+pip
 beautifulsoup4>=4.2.1
 blosc
 botocore>=1.11
