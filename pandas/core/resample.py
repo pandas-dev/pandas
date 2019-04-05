@@ -9,7 +9,6 @@ from pandas._libs import lib
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
@@ -884,7 +883,7 @@ def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
     if how is not None:
 
         # .resample(..., how='sum')
-        if isinstance(how, compat.string_types):
+        if isinstance(how, str):
             method = "{0}()".format(how)
 
             # .resample(..., how=lambda x: ....)
@@ -954,7 +953,7 @@ class _GroupByMixin(GroupByMixin):
         def func(x):
             x = self._shallow_copy(x, groupby=self.groupby)
 
-            if isinstance(f, compat.string_types):
+            if isinstance(f, str):
                 return getattr(x, f)(**kwargs)
 
             return x.apply(f, *args, **kwargs)
@@ -1318,7 +1317,7 @@ class TimeGrouper(Grouper):
         self.convention = convention or 'E'
         self.convention = self.convention.lower()
 
-        if isinstance(loffset, compat.string_types):
+        if isinstance(loffset, str):
             loffset = to_offset(loffset)
         self.loffset = loffset
 

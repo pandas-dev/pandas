@@ -1544,7 +1544,7 @@ int main(int argc, char *argv[]) {
 const int max_int_decimal_digits = (sizeof(unsigned int) * 8) / 4;
 
 double xstrtod(const char *str, char **endptr, char decimal, char sci,
-               char tsep, int skip_trailing) {
+               char tsep, int skip_trailing, int *error, int *maybe_int) {
     double number;
     unsigned int i_number = 0;
     int exponent;
@@ -1555,8 +1555,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     int num_digits;
     int num_decimals;
 
-    errno = 0;
-
+    if (maybe_int != NULL) *maybe_int = 1;
     // Skip leading whitespace.
     while (isspace_ascii(*p)) p++;
 
@@ -1596,6 +1595,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     // Process decimal part.
     if (*p == decimal) {
+        if (maybe_int != NULL) *maybe_int = 0;
         p++;
 
         while (isdigit_ascii(*p)) {
@@ -1609,7 +1609,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (num_digits == 0) {
-        errno = ERANGE;
+        *error = ERANGE;
         return 0.0;
     }
 
@@ -1618,6 +1618,8 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     // Process an exponent string.
     if (toupper_ascii(*p) == toupper_ascii(sci)) {
+        if (maybe_int != NULL) *maybe_int = 0;
+
         // Handle optional sign.
         negative = 0;
         switch (*++p) {
@@ -1646,7 +1648,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (exponent < DBL_MIN_EXP || exponent > DBL_MAX_EXP) {
-        errno = ERANGE;
+        *error = ERANGE;
         return HUGE_VAL;
     }
 
@@ -1666,7 +1668,7 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (number == HUGE_VAL) {
-        errno = ERANGE;
+        *error = ERANGE;
     }
 
     if (skip_trailing) {
@@ -1675,12 +1677,12 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (endptr) *endptr = p;
-
     return number;
 }
 
-double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
-                       char tsep, int skip_trailing) {
+double precise_xstrtod(const char *str, char **endptr, char decimal,
+                       char sci, char tsep, int skip_trailing,
+                       int *error, int *maybe_int) {
     double number;
     int exponent;
     int negative;
@@ -1689,6 +1691,8 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     int num_decimals;
     int max_digits = 17;
     int n;
+
+    if (maybe_int != NULL) *maybe_int = 1;
     // Cache powers of 10 in memory.
     static double e[] = {
         1.,    1e1,   1e2,   1e3,   1e4,   1e5,   1e6,   1e7,   1e8,   1e9,
@@ -1722,7 +1726,6 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
         1e280, 1e281, 1e282, 1e283, 1e284, 1e285, 1e286, 1e287, 1e288, 1e289,
         1e290, 1e291, 1e292, 1e293, 1e294, 1e295, 1e296, 1e297, 1e298, 1e299,
         1e300, 1e301, 1e302, 1e303, 1e304, 1e305, 1e306, 1e307, 1e308};
-    errno = 0;
 
     // Skip leading whitespace.
     while (isspace_ascii(*p)) p++;
@@ -1756,6 +1759,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     // Process decimal part
     if (*p == decimal) {
+        if (maybe_int != NULL) *maybe_int = 0;
         p++;
 
         while (num_digits < max_digits && isdigit_ascii(*p)) {
@@ -1772,7 +1776,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (num_digits == 0) {
-        errno = ERANGE;
+        *error = ERANGE;
         return 0.0;
     }
 
@@ -1781,6 +1785,8 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     // Process an exponent string.
     if (toupper_ascii(*p) == toupper_ascii(sci)) {
+        if (maybe_int != NULL) *maybe_int = 0;
+
         // Handle optional sign
         negative = 0;
         switch (*++p) {
@@ -1809,7 +1815,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
 
     if (exponent > 308) {
-        errno = ERANGE;
+        *error = ERANGE;
         return HUGE_VAL;
     } else if (exponent > 0) {
         number *= e[exponent];
@@ -1822,7 +1828,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
         number /= e[-exponent];
     }
 
-    if (number == HUGE_VAL || number == -HUGE_VAL) errno = ERANGE;
+    if (number == HUGE_VAL || number == -HUGE_VAL) *error = ERANGE;
 
     if (skip_trailing) {
         // Skip trailing whitespace.
@@ -1834,8 +1840,11 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 }
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
-                  int skip_trailing) {
+                  int skip_trailing, int *error, int *maybe_int) {
     double r = PyOS_string_to_double(p, q, 0);
+    if (maybe_int != NULL) *maybe_int = 0;
+    if (PyErr_Occurred() != NULL) *error = -1;
+    else if (r == Py_HUGE_VAL) *error = Py_HUGE_VAL;
     PyErr_Clear();
     return r;
 }

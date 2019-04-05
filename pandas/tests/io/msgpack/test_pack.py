@@ -1,12 +1,9 @@
 # coding: utf-8
 from collections import OrderedDict
+from io import BytesIO
 import struct
 
 import pytest
-
-from pandas.compat import u
-
-from pandas import compat
 
 from pandas.io.msgpack import Packer, Unpacker, packb, unpackb
 
@@ -32,24 +29,18 @@ class TestPack(object):
             self.check(td)
 
     def testPackUnicode(self):
-        test_data = [u(""), u("abcd"), [u("defgh")], u("Русский текст"), ]
+        test_data = ["", "abcd", ["defgh"], "Русский текст", ]
         for td in test_data:
             re = unpackb(
                 packb(td, encoding='utf-8'), use_list=1, encoding='utf-8')
             assert re == td
             packer = Packer(encoding='utf-8')
             data = packer.pack(td)
-            re = Unpacker(
-                compat.BytesIO(data), encoding='utf-8', use_list=1).unpack()
+            re = Unpacker(BytesIO(data), encoding='utf-8', use_list=1).unpack()
             assert re == td
 
     def testPackUTF32(self):
-        test_data = [
-            compat.u(""),
-            compat.u("abcd"),
-            [compat.u("defgh")],
-            compat.u("Русский текст"),
-        ]
+        test_data = ["", "abcd", ["defgh"], "Русский текст"]
         for td in test_data:
             re = unpackb(
                 packb(td, encoding='utf-32'), use_list=1, encoding='utf-32')
@@ -76,20 +67,18 @@ class TestPack(object):
         msg = (r"'ascii' codec can't encode character u*'\\xed' in position 3:"
                r" ordinal not in range\(128\)")
         with pytest.raises(UnicodeEncodeError, match=msg):
-            packb(compat.u("abc\xeddef"), encoding='ascii',
-                  unicode_errors='strict')
+            packb("abc\xeddef", encoding='ascii', unicode_errors='strict')
 
     def testIgnoreErrorsPack(self):
         re = unpackb(
-            packb(
-                compat.u("abcФФФdef"), encoding='ascii',
-                unicode_errors='ignore'), encoding='utf-8', use_list=1)
-        assert re == compat.u("abcdef")
+            packb("abcФФФdef", encoding='ascii', unicode_errors='ignore'),
+            encoding='utf-8', use_list=1)
+        assert re == "abcdef"
 
     def testNoEncoding(self):
         msg = "Can't encode unicode string: no encoding is specified"
         with pytest.raises(TypeError, match=msg):
-            packb(compat.u("abc"), encoding=None)
+            packb("abc", encoding=None)
 
     def testDecodeBinary(self):
         re = unpackb(packb("abc"), encoding=None, use_list=1)
@@ -102,7 +91,7 @@ class TestPack(object):
             1.0, use_single_float=False) == b'\xcb' + struct.pack('>d', 1.0)
 
     def testArraySize(self, sizes=[0, 5, 50, 1000]):
-        bio = compat.BytesIO()
+        bio = BytesIO()
         packer = Packer()
         for size in sizes:
             bio.write(packer.pack_array_header(size))
@@ -121,7 +110,7 @@ class TestPack(object):
             for i in range(size):
                 packer.pack(i)
 
-        bio = compat.BytesIO(packer.bytes())
+        bio = BytesIO(packer.bytes())
         unpacker = Unpacker(bio, use_list=1)
         for size in sizes:
             assert unpacker.unpack() == list(range(size))
@@ -130,7 +119,7 @@ class TestPack(object):
         assert packer.bytes() == b''
 
     def testMapSize(self, sizes=[0, 5, 50, 1000]):
-        bio = compat.BytesIO()
+        bio = BytesIO()
         packer = Packer()
         for size in sizes:
             bio.write(packer.pack_map_header(size))

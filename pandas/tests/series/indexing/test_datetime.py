@@ -8,7 +8,7 @@ import pytest
 
 from pandas._libs import iNaT
 import pandas._libs.index as _index
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range

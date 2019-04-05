@@ -9,7 +9,7 @@ import operator as op
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import PY3, string_types, text_type
+from pandas.compat import PY3
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
@@ -50,7 +50,7 @@ class UndefinedVariableError(NameError):
 class Term(StringMixin):
 
     def __new__(cls, name, env, side=None, encoding=None):
-        klass = Constant if not isinstance(name, string_types) else cls
+        klass = Constant if not isinstance(name, str) else cls
         supr_new = super(Term, klass).__new__
         return supr_new(klass)
 
@@ -58,7 +58,7 @@ class Term(StringMixin):
         self._name = name
         self.env = env
         self.side = side
-        tname = text_type(name)
+        tname = str(name)
         self.is_local = (tname.startswith(_LOCAL_TAG) or
                          tname in _DEFAULT_GLOBALS)
         self._value = self._resolve_name()
@@ -99,7 +99,7 @@ class Term(StringMixin):
         key = self.name
 
         # if it's a variable name (otherwise a constant)
-        if isinstance(key, string_types):
+        if isinstance(key, str):
             self.env.swapkey(self.local_name, key, new_value=value)
 
         self.value = value

@@ -1,10 +1,8 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-from __future__ import division
-
 import numpy as np
 
-from pandas.compat import lmap, lrange, range, zip
+from pandas.compat import lmap, lrange
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.missing import notna

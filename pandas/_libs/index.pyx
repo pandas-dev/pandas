@@ -536,7 +536,7 @@ cpdef convert_scalar(ndarray arr, object value):
             return Timestamp(value).value
         elif value is None or value != value:
             return NPY_NAT
-        elif util.is_string_object(value):
+        elif isinstance(value, str):
             return Timestamp(value).value
         raise ValueError("cannot set a Timestamp with a non-timestamp")
 
@@ -547,7 +547,7 @@ cpdef convert_scalar(ndarray arr, object value):
             return Timedelta(value).value
         elif value is None or value != value:
             return NPY_NAT
-        elif util.is_string_object(value):
+        elif isinstance(value, str):
             return Timedelta(value).value
         raise ValueError("cannot set a Timedelta with a non-timedelta")
 

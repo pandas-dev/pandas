@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from distutils.version import LooseVersion
-from itertools import chain
+from itertools import chain, product
 
 import numpy as np
 from numpy import nan
@@ -9,7 +8,6 @@ import pytest
 from pandas._libs.algos import Infinity, NegInfinity
 from pandas._libs.tslib import iNaT
 import pandas.compat as compat
-from pandas.compat import PY2, product
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Series, Timestamp, date_range
@@ -203,7 +201,6 @@ class TestSeriesRank(TestData):
         assert_series_equal(na_ser.rank(na_option='bottom', pct=True), exp_bot)
         assert_series_equal(na_ser.rank(na_option='keep', pct=True), exp_keep)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method='average')
@@ -322,7 +319,6 @@ class TestSeriesRank(TestData):
     def test_rank_methods_series(self):
         pytest.importorskip('scipy.stats.special')
         rankdata = pytest.importorskip('scipy.stats.rankdata')
-        import scipy
 
         xs = np.random.randn(9)
         xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates
@@ -336,10 +332,7 @@ class TestSeriesRank(TestData):
             for m in ['average', 'min', 'max', 'first', 'dense']:
                 result = ts.rank(method=m)
                 sprank = rankdata(vals, m if m != 'first' else 'ordinal')
-                expected = Series(sprank, index=index)
-
-                if LooseVersion(scipy.__version__) >= LooseVersion('0.17.0'):
-                    expected = expected.astype('float64')
+                expected = Series(sprank, index=index).astype('float64')
                 tm.assert_series_equal(result, expected)
 
     def test_rank_dense_method(self):

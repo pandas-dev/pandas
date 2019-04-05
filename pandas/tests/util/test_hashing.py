@@ -118,7 +118,7 @@ def test_hash_tuple(tup):
 
 
 @pytest.mark.parametrize("val", [
-    1, 1.4, "A", b"A", u"A", pd.Timestamp("2012-01-01"),
+    1, 1.4, "A", b"A", pd.Timestamp("2012-01-01"),
     pd.Timestamp("2012-01-01", tz="Europe/Brussels"),
     datetime.datetime(2012, 1, 1),
     pd.Timestamp("2012-01-01", tz="EST").to_pydatetime(),

@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import collections
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, abc, defaultdict
 from datetime import datetime
 
 import numpy as np
 import pytest
 import pytz
-
-from pandas.compat import long
 
 from pandas import (
     CategoricalDtype, DataFrame, MultiIndex, Series, Timestamp, compat,
@@ -121,7 +118,7 @@ class TestDataFrameConvertTo(TestData):
         import email
         from email.parser import Parser
 
-        compat.Mapping.register(email.message.Message)
+        abc.Mapping.register(email.message.Message)
 
         headers = Parser().parsestr('From: <user@example.com>\n'
                                     'To: <someone_else@example.com>\n'
@@ -154,7 +151,7 @@ class TestDataFrameConvertTo(TestData):
     def test_to_records_with_unicode_index(self):
         # GH13172
         # unicode_literals conflict with to_records
-        result = DataFrame([{u'a': u'x', u'b': 'y'}]).set_index(u'a') \
+        result = DataFrame([{'a': 'x', 'b': 'y'}]).set_index('a') \
             .to_records()
         expected = np.rec.array([('x', 'y')], dtype=[('a', 'O'), ('b', 'O')])
         tm.assert_almost_equal(result, expected)
@@ -163,13 +160,13 @@ class TestDataFrameConvertTo(TestData):
         # xref issue: https://github.com/numpy/numpy/issues/2407
         # Issue #11879. to_records used to raise an exception when used
         # with column names containing non-ascii characters in Python 2
-        result = DataFrame(data={u"accented_name_é": [1.0]}).to_records()
+        result = DataFrame(data={"accented_name_é": [1.0]}).to_records()
 
         # Note that numpy allows for unicode field names but dtypes need
         # to be specified using dictionary instead of list of tuples.
         expected = np.rec.array(
             [(0, 1.0)],
-            dtype={"names": ["index", u"accented_name_é"],
+            dtype={"names": ["index", "accented_name_é"],
                    "formats": ['=i8', '=f8']}
         )
         tm.assert_almost_equal(result, expected)
@@ -314,8 +311,8 @@ class TestDataFrameConvertTo(TestData):
                    columns=MultiIndex.from_tuples([("a", "d"), ("b", "e"),
                                                    ("c", "f")])),
          dict(column_dtypes={0: "<U1", 2: "float32"}, index_dtypes="float32"),
-         np.rec.array([(0., u"1", 2, 3.), (1., u"4", 5, 6.),
-                       (2., u"7", 8, 9.)],
+         np.rec.array([(0., "1", 2, 3.), (1., "4", 5, 6.),
+                       (2., "7", 8, 9.)],
                       dtype=[("index", "<f4"),
                              ("('a', 'd')", "<U1"),
                              ("('b', 'e')", "<i8"),
@@ -367,10 +364,7 @@ class TestDataFrameConvertTo(TestData):
                                        ("B", "<f4"), ("C", "O")])
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize('mapping', [
-        dict,
-        collections.defaultdict(list),
-        collections.OrderedDict])
+    @pytest.mark.parametrize('mapping', [dict, defaultdict(list), OrderedDict])
     def test_to_dict(self, mapping):
         test_data = {
             'A': {'1': 1, '2': 2},
@@ -426,10 +420,7 @@ class TestDataFrameConvertTo(TestData):
             for k2, v2 in compat.iteritems(v):
                 assert (v2 == recons_data[k2][k])
 
-    @pytest.mark.parametrize('mapping', [
-        list,
-        collections.defaultdict,
-        []])
+    @pytest.mark.parametrize('mapping', [list, defaultdict, []])
     def test_to_dict_errors(self, mapping):
         # GH16122
         df = DataFrame(np.random.randn(3, 3))
@@ -472,7 +463,7 @@ class TestDataFrameConvertTo(TestData):
         # make sure that we are boxing properly
         df = DataFrame({'a': [1, 2], 'b': [.1, .2]})
         result = df.to_dict(orient=orient)
-        assert isinstance(item_getter(result, 'a', 0), (int, long))
+        assert isinstance(item_getter(result, 'a', 0), int)
         assert isinstance(item_getter(result, 'b', 0), float)
 
     def test_frame_to_dict_tz(self):

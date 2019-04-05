@@ -1,13 +1,10 @@
 from collections import defaultdict
 from datetime import datetime
 from itertools import product
-import warnings
 
 import numpy as np
 from numpy import nan
 import pytest
-
-from pandas.compat import PY2
 
 from pandas import (
     DataFrame, MultiIndex, Series, compat, concat, merge, to_datetime)
@@ -413,22 +410,14 @@ class TestSafeSort(object):
         expected = np.array([0, 0, 1, 'a', 'b', 'b'], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        msg = (r"'(<|>)' not supported between instances of ('"
-               r"datetime\.datetime' and 'int'|'int' and 'datetime\.datetime"
-               r"')|"
-               r"unorderable types: int\(\) > datetime\.datetime\(\)")
-        if compat.PY2:
-            # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
-            with warnings.catch_warnings():
-                with pytest.raises(TypeError, match=msg):
-                    safe_sort(arr)
-        else:
-            with pytest.raises(TypeError, match=msg):
-                safe_sort(arr)
+        msg = ("unorderable types: .* [<>] .*"
+               "|"  # the above case happens for numpy < 1.14
+               "'[<>]' not supported between instances of .*")
+        with pytest.raises(TypeError, match=msg):
+            safe_sort(arr)
 
     def test_exceptions(self):
         with pytest.raises(TypeError,

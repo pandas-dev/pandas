@@ -30,7 +30,7 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
-min_numpy_ver = '1.12.0'
+min_numpy_ver = '1.13.3'
 setuptools_kwargs = {
     'install_requires': [
         'python-dateutil >= 2.5.0',
@@ -325,6 +325,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/resolution.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
+                 'pandas/_libs/tslibs/tzconversion.pyx',
                  'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
 
@@ -413,6 +414,11 @@ else:
 # ----------------------------------------------------------------------
 # Preparation of compiler arguments
 
+debugging_symbols_requested = '--with-debugging-symbols' in sys.argv
+if debugging_symbols_requested:
+    sys.argv.remove('--with-debugging-symbols')
+
+
 if sys.byteorder == 'big':
     endian_macro = [('__BIG_ENDIAN__', '1')]
 else:
@@ -421,10 +427,16 @@ else:
 
 if is_platform_windows():
     extra_compile_args = []
+    extra_link_args = []
+    if debugging_symbols_requested:
+        extra_compile_args.append('/Z7')
+        extra_link_args.append('/DEBUG')
 else:
     # args to ignore warnings
     extra_compile_args = ['-Wno-unused-function']
-
+    extra_link_args = []
+    if debugging_symbols_requested:
+        extra_compile_args.append('-g')
 
 # For mac, ensure extensions are built for macos 10.9 when compiling on a
 # 10.9 system or above, overriding distuitls behaviour which is to target
@@ -547,7 +559,8 @@ ext_data = {
     '_libs.lib': {
         'pyxfile': '_libs/lib',
         'include': common_include + ts_include,
-        'depends': lib_depends + tseries_depends},
+        'depends': lib_depends + tseries_depends,
+        'sources': ['pandas/_libs/src/parser/tokenizer.c']},
     '_libs.missing': {
         'pyxfile': '_libs/missing',
         'include': common_include + ts_include,
@@ -639,6 +652,11 @@ ext_data = {
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones',
         'include': []},
+    '_libs.tslibs.tzconversion': {
+        'pyxfile': '_libs/tslibs/tzconversion',
+        'include': ts_include,
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.testing': {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
@@ -688,7 +706,8 @@ for name, data in ext_data.items():
                     include_dirs=include,
                     language=data.get('language', 'c'),
                     define_macros=data.get('macros', macros),
-                    extra_compile_args=extra_compile_args)
+                    extra_compile_args=extra_compile_args,
+                    extra_link_args=extra_link_args)
 
     extensions.append(obj)
 
@@ -715,6 +734,7 @@ ujson_ext = Extension('pandas._libs.json',
                                     'pandas/_libs/src/datetime'],
                       extra_compile_args=(['-D_GNU_SOURCE'] +
                                           extra_compile_args),
+                      extra_link_args=extra_link_args,
                       define_macros=macros)
 
 
@@ -726,7 +746,9 @@ extensions.append(ujson_ext)
 _move_ext = Extension('pandas.util._move',
                       depends=[],
                       sources=['pandas/util/move.c'],
-                      define_macros=macros)
+                      define_macros=macros,
+                      extra_compile_args=extra_compile_args,
+                      extra_link_args=extra_link_args)
 extensions.append(_move_ext)
 
 # The build cache system does string matching below this point.

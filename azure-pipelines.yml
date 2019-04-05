@@ -39,9 +39,8 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       sudo apt-get install -y libc6-dev-i386
-      ci/incremental/install_miniconda.sh
-      ci/incremental/setup_conda_environment.sh
-    displayName: 'Set up environment'
+      ci/setup_env.sh
+    displayName: 'Setup environment and build pandas'
     condition: true
 
   # Do not require pandas
@@ -57,13 +56,6 @@ jobs:
       source activate pandas-dev
       ci/code_checks.sh dependencies
     displayName: 'Dependencies consistency'
-    condition: true
-
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
-      source activate pandas-dev
-      ci/incremental/build.sh
-    displayName: 'Build'
     condition: true
 
   # Require pandas
@@ -86,6 +78,13 @@ jobs:
       source activate pandas-dev
       ci/code_checks.sh docstrings
     displayName: 'Docstring validation'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
+      ci/code_checks.sh typing
+    displayName: 'Typing validation'
     condition: true
 
   - script: |

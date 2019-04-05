@@ -14,7 +14,7 @@ import pytz
 
 from pandas._libs import tslib
 from pandas._libs.tslibs import iNaT, parsing
-from pandas.compat import PY3, lmap
+from pandas.compat import lmap
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -384,11 +384,8 @@ class TestToDatetime(object):
             assert pdtoday2.tzinfo is None
 
     def test_to_datetime_today_now_unicode_bytes(self):
-        to_datetime([u'now'])
-        to_datetime([u'today'])
-        if not PY3:
-            to_datetime(['now'])
-            to_datetime(['today'])
+        to_datetime(['now'])
+        to_datetime(['today'])
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_dt64s(self, cache):
@@ -765,7 +762,7 @@ class TestToDatetime(object):
                                   NaT], tz='UTC')
         tm.assert_index_equal(result, expected)
 
-    def test_iss8601_strings_mixed_offsets_with_naive(self):
+    def test_iso8601_strings_mixed_offsets_with_naive(self):
         # GH 24992
         result = pd.to_datetime([
             '2018-11-28T00:00:00',
@@ -787,6 +784,18 @@ class TestToDatetime(object):
         result = pd.to_datetime(items, utc=True)
         expected = pd.to_datetime(list(reversed(items)), utc=True)[::-1]
         tm.assert_index_equal(result, expected)
+
+    def test_mixed_offsets_with_native_datetime_raises(self):
+        # GH 25978
+        s = pd.Series([
+            'nan',
+            pd.Timestamp("1990-01-01"),
+            "2015-03-14T16:15:14.123-08:00",
+            "2019-03-04T21:56:32.620-07:00",
+            None,
+        ])
+        with pytest.raises(ValueError, match="Tz-aware datetime.datetime"):
+            pd.to_datetime(s)
 
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(['March 1, 2018 12:00:00+0400'] * 2)

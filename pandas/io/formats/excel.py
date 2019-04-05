@@ -1,13 +1,12 @@
 """Utilities for conversion to writer-agnostic Excel representation
 """
 
+from functools import reduce
 import itertools
 import re
 import warnings
 
 import numpy as np
-
-from pandas.compat import reduce
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
@@ -58,8 +57,7 @@ class CSSToExcelConverter(object):
 
     def __init__(self, inherited=None):
         if inherited is not None:
-            inherited = self.compute_css(inherited,
-                                         self.compute_css.INITIAL_STYLE)
+            inherited = self.compute_css(inherited)
 
         self.inherited = inherited
 
