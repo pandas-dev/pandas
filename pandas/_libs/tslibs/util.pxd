@@ -33,11 +33,10 @@ cdef extern from "Python.h":
     const char* PyUnicode_AsUTF8AndSize(object obj,
                                         Py_ssize_t* length) except NULL
 
-from numpy cimport int64_t
+from numpy cimport int64_t, float64_t
 
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
-    int _import_array() except -1
 
 cdef extern from "numpy/ndarrayobject.h":
     PyTypeObject PyTimedeltaArrType_Type
@@ -56,27 +55,8 @@ cdef inline int64_t get_nat():
     return NPY_MIN_INT64
 
 
-cdef inline int import_array() except -1:
-    _import_array()
-
-
 # --------------------------------------------------------------------
 # Type Checking
-
-cdef inline bint is_string_object(object obj) nogil:
-    """
-    Cython equivalent of `isinstance(val, compat.string_types)`
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    is_string : bool
-    """
-    return PyString_Check(obj) or PyUnicode_Check(obj)
-
 
 cdef inline bint is_integer_object(object obj) nogil:
     """
@@ -235,7 +215,11 @@ cdef inline bint is_nan(object val):
     -------
     is_nan : bool
     """
-    return (is_float_object(val) or is_complex_object(val)) and val != val
+    cdef float64_t fval
+    if is_float_object(val):
+        fval = val
+        return fval != fval
+    return is_complex_object(val) and val != val
 
 
 cdef inline const char* get_c_string_buf_and_size(object py_string,

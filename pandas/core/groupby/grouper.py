@@ -301,6 +301,8 @@ class Grouping(object):
                 if observed:
                     codes = algorithms.unique1d(self.grouper.codes)
                     codes = codes[codes != -1]
+                    if sort or self.grouper.ordered:
+                        codes = np.sort(codes)
                 else:
                     codes = np.arange(len(categories))
 
@@ -524,6 +526,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         if isinstance(obj, DataFrame):
             all_in_columns_index = all(g in obj.columns or g in obj.index.names
                                        for g in keys)
+        elif isinstance(obj, Series):
+            all_in_columns_index = all(g in obj.index.names for g in keys)
         else:
             all_in_columns_index = False
     except Exception:

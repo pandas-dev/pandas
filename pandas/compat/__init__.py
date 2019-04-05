@@ -19,17 +19,13 @@ Other items:
 # flake8: noqa
 
 import re
-import functools
-import itertools
 from distutils.version import LooseVersion
-from itertools import product
 import sys
 import platform
 import types
 import struct
 import inspect
 from collections import namedtuple
-import collections
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] >= 3
@@ -38,23 +34,24 @@ PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
 PYPY = platform.python_implementation() == 'PyPy'
 
-try:
-    import __builtin__ as builtins
-    # not writeable when instantiated with string, doesn't handle unicode well
-    from cStringIO import StringIO as cStringIO
-    # always writeable
-    from StringIO import StringIO
-    BytesIO = StringIO
-    import cPickle
-    import httplib
-except ImportError:
-    import builtins
-    from io import StringIO, BytesIO
-    cStringIO = StringIO
-    import pickle as cPickle
-    import http.client as httplib
-
 from pandas.compat.chainmap import DeepChainMap
+
+
+# list-producing versions of the major Python iterating functions
+def lrange(*args, **kwargs):
+    return list(range(*args, **kwargs))
+
+
+def lzip(*args, **kwargs):
+    return list(zip(*args, **kwargs))
+
+
+def lmap(*args, **kwargs):
+    return list(map(*args, **kwargs))
+
+
+def lfilter(*args, **kwargs):
+    return list(filter(*args, **kwargs))
 
 
 if PY3:
@@ -93,29 +90,6 @@ if PY3:
         argspec = namedtuple('Signature', ['args', 'defaults',
                                            'varargs', 'keywords'])
         return argspec(args, defaults, varargs, keywords)
-
-    # list-producing versions of the major Python iterating functions
-    def lrange(*args, **kwargs):
-        return list(range(*args, **kwargs))
-
-    def lzip(*args, **kwargs):
-        return list(zip(*args, **kwargs))
-
-    def lmap(*args, **kwargs):
-        return list(map(*args, **kwargs))
-
-    def lfilter(*args, **kwargs):
-        return list(filter(*args, **kwargs))
-
-    Hashable = collections.abc.Hashable
-    Iterable = collections.abc.Iterable
-    Iterator = collections.abc.Iterator
-    Mapping = collections.abc.Mapping
-    MutableMapping = collections.abc.MutableMapping
-    Sequence = collections.abc.Sequence
-    Sized = collections.abc.Sized
-    Set = collections.abc.Set
-
 else:
     # Python 2
     _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
@@ -131,21 +105,6 @@ else:
 
     def signature(f):
         return inspect.getargspec(f)
-
-    # Python 2-builtin ranges produce lists
-    lrange = builtins.range
-    lzip = builtins.zip
-    lmap = builtins.map
-    lfilter = builtins.filter
-
-    Hashable = collections.Hashable
-    Iterable = collections.Iterable
-    Iterator = collections.Iterator
-    Mapping = collections.Mapping
-    MutableMapping = collections.MutableMapping
-    Sequence = collections.Sequence
-    Sized = collections.Sized
-    Set = collections.Set
 
 if PY2:
     def iteritems(obj, **kw):

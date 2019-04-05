@@ -13,7 +13,7 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
-    is_integer_object, is_string_object, is_offset_object)
+    is_integer_object, is_offset_object)
 
 from pandas._libs.tslibs._timestamp cimport _Timestamp
 cimport pandas._libs.tslibs.ccalendar as ccalendar
@@ -274,7 +274,7 @@ class Timestamp(_Timestamp):
         tz : str or timezone object, default None
             Timezone to localize to
         """
-        if is_string_object(tz):
+        if isinstance(tz, str):
             tz = maybe_get_tz(tz)
         return cls(datetime.now(tz))
 
@@ -383,7 +383,7 @@ class Timestamp(_Timestamp):
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
 
-        if is_string_object(ts_input):
+        if isinstance(ts_input, str):
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
             if any(arg is not None for arg in _date_attributes):
@@ -846,7 +846,7 @@ class Timestamp(_Timestamp):
         if self.tzinfo is None:
             # tz naive, localize
             tz = maybe_get_tz(tz)
-            if not is_string_object(ambiguous):
+            if not isinstance(ambiguous, str):
                 ambiguous = [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous,

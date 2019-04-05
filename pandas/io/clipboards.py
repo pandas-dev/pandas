@@ -1,8 +1,8 @@
 """ io on the clipboard """
+from io import StringIO
 import warnings
 
 import pandas.compat as compat
-from pandas.compat import StringIO
 
 from pandas.core.dtypes.generic import ABCDataFrame
 

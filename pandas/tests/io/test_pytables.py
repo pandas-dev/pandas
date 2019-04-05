@@ -2,6 +2,7 @@ from contextlib import contextmanager
 import datetime
 from datetime import timedelta
 from distutils.version import LooseVersion
+from io import BytesIO
 import os
 import tempfile
 from warnings import catch_warnings, simplefilter
@@ -10,8 +11,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
-    PY35, PY36, BytesIO, is_platform_little_endian, is_platform_windows,
-    lrange)
+    PY35, PY36, is_platform_little_endian, is_platform_windows, lrange)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -1232,6 +1232,19 @@ class TestHDFStore(Base):
             df_with_missing.to_hdf(path, 'df_with_missing', format='table')
             reloaded = read_hdf(path, 'df_with_missing')
             tm.assert_frame_equal(df_with_missing, reloaded)
+
+    def test_read_missing_key_close_store(self):
+        # GH 25766
+        with ensure_clean_path(self.path) as path:
+            df = pd.DataFrame({'a': range(2), 'b': range(2)})
+            df.to_hdf(path, 'k1')
+
+            with pytest.raises(KeyError):
+                pd.read_hdf(path, 'k2')
+
+            # smoke test to test that file is properly closed after
+            # read with KeyError before another write
+            df.to_hdf(path, 'k2')
 
     def test_append_frame_column_oriented(self):
 
