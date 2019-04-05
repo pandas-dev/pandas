@@ -77,13 +77,22 @@ cdef inline int _parse_4digit(const char* s):
 cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
     """
     Parse special cases of dates: MM/DD/YYYY, DD/MM/YYYY, MM/YYYY
+
+    Note
+    ----
     For MM/DD/YYYY, DD/MM/YYYY: delimiter can be a space or one of ./\-
     For MM/YYYY: delimiter can be a space or one of /\-
+    If `date_string` can't be converted to date, then function returns
+    None, None
 
-    Returns one of:
-    ---------------
-    * datetime and resolution
-    * None, None if passed in not a handled date pattern
+    Parameters
+    ----------
+    date_string : str
+    dayfirst : bint
+
+    Returns:
+    --------
+    datetime, resolution
     """
     cdef:
         const char* buf
