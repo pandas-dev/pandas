@@ -137,7 +137,7 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
-     from pandas.compat import StringIO, BytesIO
+     from io import StringIO, BytesIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
              'a,b,2\n'
