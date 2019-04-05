@@ -2399,14 +2399,19 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
                                                       keep_trivial_numbers)
             PyArray_ITER_NEXT(it)
     else:
+        # create fixed size list - more effecient memory allocation
         list_to_join = [None] * col_count
-        # setup iterators
         iters = np.zeros(col_count, dtype=object)
+        # create memoryview of iters ndarray, that will contain some
+        # flatiter's for each array in `date_cols` - more effecient indexing
         iters_view = iters
         for col_idx, array in enumerate(date_cols):
             iters_view[col_idx] = PyArray_IterNew(array)
+        # array elements that are on the same line are converted to one string
         for row_idx in range(rows_count):
             for col_idx, array in enumerate(date_cols):
+                # this cast is needed, because we did not find a way
+                # to efficiently store `flatiter` type objects in ndarray
                 it = <flatiter>iters_view[col_idx]
                 item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
                 list_to_join[col_idx] = convert_to_unicode(item, False)
@@ -2446,6 +2451,7 @@ cdef cnp.ndarray[object] _concat_date_cols_sequence(tuple date_cols,
         object[:] result_view
 
     result = np.zeros(rows_count, dtype=object)
+    # create memoryview of result ndarray - more effecient indexing
     result_view = result
 
     if col_count == 1:
