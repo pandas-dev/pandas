@@ -16,7 +16,7 @@ pytest>=4.0.2
 pytest-mock
 sphinx
 numpydoc
-typing_extensions
+typing-extensions
 pip
 beautifulsoup4>=4.2.1
 blosc

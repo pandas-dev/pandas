@@ -28,4 +28,4 @@ dependencies:
   - pytest-mock
   - hypothesis>=3.58.0
   - isort
-  - typing_extensions
+  - typing-extensions

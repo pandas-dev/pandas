@@ -25,7 +25,7 @@ dependencies:
   - pytest-mock
   - sphinx
   - numpydoc
-  - typing_extensions
+  - typing-extensions
   - pip
 
   # optional

@@ -44,4 +44,4 @@ dependencies:
   - pytest>=4.0.2
   - pytest-xdist
   - isort
-  - typing_extensions
+  - typing-extensions

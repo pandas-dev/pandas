@@ -32,6 +32,6 @@ dependencies:
   - moto
   - isort
   - pip
-  - typing_extensions
+  - typing-extensions
   - pip:
     - hypothesis>=3.58.0

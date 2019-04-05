@@ -43,7 +43,7 @@ dependencies:
   - hypothesis>=3.58.0
   - isort
   - pip
-  - typing_extensions
+  - typing-extensions
   - pip:
     - brotlipy
     - coverage
