@@ -717,20 +717,11 @@ class DataFrameFormatter(TableFormatter):
         frame = self.tr_frame
         formatter = self._get_formatter(i)
         values_to_format = frame.iloc[:, i]._formatting_values()
-        if formatter:
-            try:
-                fmt_values = [formatter(x) for x in values_to_format]
-            except AttributeError:
-                #   assume we have np.datetime64 array
-                values_to_format = DatetimeIndex(values_to_format)
-                fmt_values = [formatter(x) for x in values_to_format]
-            return _make_fixed_width(fmt_values, self.justify)
-
-        else:
-            return format_array(
-                values_to_format, formatter=None,
-                float_format=self.float_format, na_rep=self.na_rep,
-                space=self.col_space, decimal=self.decimal)
+        shortcut = formatter is not None
+        return format_array(values_to_format, formatter,
+                            float_format=self.float_format, na_rep=self.na_rep,
+                            space=self.col_space, decimal=self.decimal,
+                            shortcut=shortcut)
 
     def to_html(self, classes=None, notebook=False, border=None):
         """
@@ -867,7 +858,7 @@ class DataFrameFormatter(TableFormatter):
 
 def format_array(values, formatter, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right', decimal='.',
-                 leading_space=None):
+                 leading_space=None, shortcut=False):
     """
     Format an array for printing.
 
@@ -889,6 +880,9 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         When formatting an Index subclass
         (e.g. IntervalIndex._format_native_types), we don't want the
         leading space since it should be left-aligned.
+    shortcut : bool, optional, default False
+        Whether to shortcut the formatting options. Used when specifying
+        custom formatters in to_string, to_latex and to_html
 
     Returns
     -------
@@ -922,7 +916,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     fmt_obj = fmt_klass(values, digits=digits, na_rep=na_rep,
                         float_format=float_format, formatter=formatter,
                         space=space, justify=justify, decimal=decimal,
-                        leading_space=leading_space)
+                        leading_space=leading_space, shortcut=shortcut)
 
     return fmt_obj.get_result()
 
@@ -931,7 +925,8 @@ class GenericArrayFormatter(object):
 
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
                  space=12, float_format=None, justify='right', decimal='.',
-                 quoting=None, fixed_width=True, leading_space=None):
+                 quoting=None, fixed_width=True, leading_space=None,
+                 shortcut=False):
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
@@ -943,12 +938,17 @@ class GenericArrayFormatter(object):
         self.quoting = quoting
         self.fixed_width = fixed_width
         self.leading_space = leading_space
+        self.shortcut = shortcut
 
     def get_result(self):
         fmt_values = self._format_strings()
         return _make_fixed_width(fmt_values, self.justify)
 
     def _format_strings(self):
+        # shortcut
+        if self.formatter is not None and self.shortcut:
+            return [self.formatter(x) for x in self.values]
+
         if self.float_format is None:
             float_format = get_option("display.float_format")
             if float_format is None:
