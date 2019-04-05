@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import isidentifier, lzip, range, string_types
+from pandas.compat import isidentifier, lzip
 
 import pandas as pd
 from pandas import (
@@ -281,7 +281,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         dir_s = dir(s)
         for i, x in enumerate(s.index.unique(level=0)):
             if i < 100:
-                assert (not isinstance(x, string_types) or
+                assert (not isinstance(x, str) or
                         not isidentifier(x) or x in dir_s)
             else:
                 assert x not in dir_s
@@ -492,6 +492,13 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         with tm.assert_produces_warning(None):
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('s.', 1))
+
+    def test_integer_series_size(self):
+        # GH 25580
+        s = Series(range(9))
+        assert s.size == 9
+        s = Series(range(9), dtype="Int64")
+        assert s.size == 9
 
 
 class TestCategoricalSeries(object):

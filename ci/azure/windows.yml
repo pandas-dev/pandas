@@ -8,26 +8,19 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      py36_np14:
+      py36_np15:
         ENV_FILE: ci/deps/azure-windows-36.yaml
         CONDA_PY: "36"
 
-      py27_np121:
-        ENV_FILE: ci/deps/azure-windows-27.yaml
-        CONDA_PY: "27"
+      py37_np141:
+        ENV_FILE: ci/deps/azure-windows-37.yaml
+        CONDA_PY: "37"
 
   steps:
     - task: CondaEnvironment@1
       inputs:
         updateConda: no
         packageSpecs: ''
-
-    - powershell: |
-        $wc = New-Object net.webclient
-        $wc.Downloadfile("https://download.microsoft.com/download/7/9/6/796EF2E4-801B-4FC4-AB28-B59FBF6D907B/VCForPython27.msi", "VCForPython27.msi")
-        Start-Process "VCForPython27.msi" /qn -Wait
-      displayName: 'Install VC 9.0 only for Python 2.7'
-      condition: eq(variables.CONDA_PY, '27')
 
     - script: |
         ci\\incremental\\setup_conda_environment.cmd

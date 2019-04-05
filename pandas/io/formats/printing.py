@@ -4,12 +4,9 @@ printing tools
 
 import sys
 
-from pandas.compat import u
+from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
-
-from pandas import compat
-from pandas.core.config import get_option
 
 
 def adjoin(space, *lists, **kwargs):
@@ -63,7 +60,7 @@ def _join_unicode(lines, sep=''):
     try:
         return sep.join(lines)
     except UnicodeDecodeError:
-        sep = compat.text_type(sep)
+        sep = str(sep)
         return sep.join([x.decode('utf-8') if isinstance(x, str) else x
                          for x in lines])
 
@@ -100,9 +97,9 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     bounds length of printed sequence, depending on options
     """
     if isinstance(seq, set):
-        fmt = u("{{{body}}}")
+        fmt = "{{{body}}}"
     else:
-        fmt = u("[{body}]") if hasattr(seq, '__setitem__') else u("({body})")
+        fmt = "[{body}]" if hasattr(seq, '__setitem__') else "({body})"
 
     if max_seq_items is False:
         nitems = len(seq)
@@ -129,10 +126,10 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
     """
-    fmt = u("{{{things}}}")
+    fmt = "{{{things}}}"
     pairs = []
 
-    pfmt = u("{key}: {val}")
+    pfmt = "{key}: {val}"
 
     if max_seq_items is False:
         nitems = len(seq)
@@ -188,7 +185,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         # should deal with it himself.
 
         try:
-            result = compat.text_type(thing)  # we should try this first
+            result = str(thing)  # we should try this first
         except UnicodeDecodeError:
             # either utf-8 or we replace errors
             result = str(thing).decode('utf-8', "replace")
@@ -205,10 +202,10 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         for c in escape_chars:
             result = result.replace(c, translate[c])
 
-        return compat.text_type(result)
+        return str(result)
 
-    if (compat.PY3 and hasattr(thing, '__next__')) or hasattr(thing, 'next'):
-        return compat.text_type(thing)
+    if hasattr(thing, '__next__'):
+        return str(thing)
     elif (isinstance(thing, dict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
         result = _pprint_dict(thing, _nest_lvl, quote_strings=True,
@@ -218,16 +215,12 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
                              quote_strings=quote_strings,
                              max_seq_items=max_seq_items)
-    elif isinstance(thing, compat.string_types) and quote_strings:
-        if compat.PY3:
-            fmt = u("'{thing}'")
-        else:
-            fmt = u("u'{thing}'")
-        result = fmt.format(thing=as_escaped_unicode(thing))
+    elif isinstance(thing, str) and quote_strings:
+        result = "'{thing}'".format(thing=as_escaped_unicode(thing))
     else:
         result = as_escaped_unicode(thing)
 
-    return compat.text_type(result)  # always unicode
+    return str(result)  # always unicode
 
 
 def pprint_thing_encoded(object, encoding='utf-8', errors='replace', **kwds):
@@ -337,17 +330,17 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         else:
             return 0
 
-    close = u', '
+    close = ', '
 
     if n == 0:
-        summary = u'[]{}'.format(close)
+        summary = '[]{}'.format(close)
     elif n == 1:
         first = formatter(obj[0])
-        summary = u'[{}]{}'.format(first, close)
+        summary = '[{}]{}'.format(first, close)
     elif n == 2:
         first = formatter(obj[0])
         last = formatter(obj[-1])
-        summary = u'[{}, {}]{}'.format(first, last, close)
+        summary = '[{}, {}]{}'.format(first, last, close)
     else:
 
         if n > max_seq_items:

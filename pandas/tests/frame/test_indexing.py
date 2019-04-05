@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import date, datetime, time, timedelta
 from warnings import catch_warnings, simplefilter
 
@@ -9,7 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import long, lrange, lzip, map, range, zip
+from pandas.compat import lrange, lzip
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -270,7 +268,7 @@ class TestDataFrameIndexing(TestData):
         # test df[df > 0]
         for df in [self.tsframe, self.mixed_frame,
                    self.mixed_float, self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 continue
 
             data = df._get_numeric_data()
@@ -431,8 +429,9 @@ class TestDataFrameIndexing(TestData):
 
     def test_getattr(self):
         assert_series_equal(self.frame.A, self.frame['A'])
-        pytest.raises(AttributeError, getattr, self.frame,
-                      'NONEXISTENT_NAME')
+        msg = "'DataFrame' object has no attribute 'NONEXISTENT_NAME'"
+        with pytest.raises(AttributeError, match=msg):
+            self.frame.NONEXISTENT_NAME
 
     def test_setattr_column(self):
         df = DataFrame({'foobar': 1}, index=lrange(10))
@@ -793,7 +792,8 @@ class TestDataFrameIndexing(TestData):
         f = self.frame.copy()
         del f['D']
         assert len(f.columns) == 3
-        pytest.raises(KeyError, f.__delitem__, 'D')
+        with pytest.raises(KeyError, match=r"^'D'$"):
+            del f['D']
         del f['B']
         assert len(f.columns) == 2
 
@@ -842,7 +842,9 @@ class TestDataFrameIndexing(TestData):
 
         with catch_warnings(record=True):
             simplefilter("ignore", DeprecationWarning)
-            pytest.raises(ValueError, f.ix.__getitem__, f > 0.5)
+            msg = "Cannot index with multidimensional key"
+            with pytest.raises(ValueError, match=msg):
+                f.ix[f > 0.5]
 
     def test_slice_floats(self):
         index = [52195.504153, 52196.303147, 52198.369883]
@@ -887,8 +889,10 @@ class TestDataFrameIndexing(TestData):
 
         # non-monotonic, raise KeyError
         df2 = df.iloc[lrange(5) + lrange(5, 10)[::-1]]
-        pytest.raises(KeyError, df2.loc.__getitem__, slice(3, 11))
-        pytest.raises(KeyError, df2.loc.__setitem__, slice(3, 11), 0)
+        with pytest.raises(KeyError, match=r"^3$"):
+            df2.loc[3:11]
+        with pytest.raises(KeyError, match=r"^3$"):
+            df2.loc[3:11] = 0
 
     def test_setitem_fancy_2d(self):
 
@@ -1084,14 +1088,18 @@ class TestDataFrameIndexing(TestData):
             simplefilter("ignore", DeprecationWarning)
 
             # labels that aren't contained
-            pytest.raises(KeyError, df.ix.__setitem__,
-                          ([0, 1, 2], [2, 3, 4]), 5)
+            with pytest.raises(KeyError, match=r"\[1\] not in index"):
+                df.ix[[0, 1, 2], [2, 3, 4]] = 5
 
             # try to set indices not contained in frame
-            pytest.raises(KeyError, self.frame.ix.__setitem__,
-                          ['foo', 'bar', 'baz'], 1)
-            pytest.raises(KeyError, self.frame.ix.__setitem__,
-                          (slice(None, None), ['E']), 1)
+            msg = (r"None of \[Index\(\['foo', 'bar', 'baz'\],"
+                   r" dtype='object'\)\] are in the \[index\]")
+            with pytest.raises(KeyError, match=msg):
+                self.frame.ix[['foo', 'bar', 'baz']] = 1
+            msg = (r"None of \[Index\(\['E'\], dtype='object'\)\] are in the"
+                   r" \[columns\]")
+            with pytest.raises(KeyError, match=msg):
+                self.frame.ix[:, ['E']] = 1
 
             # partial setting now allows this GH2578
             # pytest.raises(KeyError, self.frame.ix.__setitem__,
@@ -1537,7 +1545,11 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame(np.random.randn(5, 5), index=index)
 
         # positional slicing only via iloc!
-        pytest.raises(TypeError, lambda: df.iloc[1.0:5])
+        msg = ("cannot do slice indexing on"
+               r" <class 'pandas\.core\.indexes\.numeric\.Float64Index'> with"
+               r" these indexers \[1.0\] of <class 'float'>")
+        with pytest.raises(TypeError, match=msg):
+            df.iloc[1.0:5]
 
         result = df.iloc[4:5]
         expected = df.reindex([5.0])
@@ -1744,11 +1756,16 @@ class TestDataFrameIndexing(TestData):
         # #2199
         df = DataFrame({'a': [1, 2, 3]})
 
-        pytest.raises(KeyError, df.loc.__getitem__, False)
-        pytest.raises(KeyError, df.loc.__getitem__, True)
+        with pytest.raises(KeyError, match=r"^False$"):
+            df.loc[False]
+        with pytest.raises(KeyError, match=r"^True$"):
+            df.loc[True]
 
-        pytest.raises(KeyError, df.loc.__setitem__, False, 0)
-        pytest.raises(KeyError, df.loc.__setitem__, True, 0)
+        msg = "cannot use a single bool to index into setitem"
+        with pytest.raises(KeyError, match=msg):
+            df.loc[False] = 0
+        with pytest.raises(KeyError, match=msg):
+            df.loc[True] = 0
 
     def test_getitem_list_duplicates(self):
         # #1943
@@ -1849,7 +1866,9 @@ class TestDataFrameIndexing(TestData):
         assert isna(res3['baz'].drop(['foobar'])).all()
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            pytest.raises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
+            msg = "could not convert string to float: 'sam'"
+            with pytest.raises(ValueError, match=msg):
+                res3.set_value('foobar', 'baz', 'sam')
 
     def test_set_value_with_index_dtype_change(self):
         df_orig = DataFrame(np.random.randn(3, 3),
@@ -1888,7 +1907,8 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame(index=index, columns=lrange(4))
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            pytest.raises(KeyError, df.get_value, 0, 1)
+            with pytest.raises(KeyError, match=r"^0$"):
+                df.get_value(0, 1)
 
     def test_single_element_ix_dont_upcast(self):
         self.frame['E'] = 1
@@ -2158,10 +2178,15 @@ class TestDataFrameIndexing(TestData):
         df_rev = pd.DataFrame(data, index=dr[[3, 4, 5] + [0, 1, 2]],
                               columns=list('A'))
         # index is not monotonic increasing or decreasing
-        pytest.raises(ValueError, df_rev.reindex, df.index, method='pad')
-        pytest.raises(ValueError, df_rev.reindex, df.index, method='ffill')
-        pytest.raises(ValueError, df_rev.reindex, df.index, method='bfill')
-        pytest.raises(ValueError, df_rev.reindex, df.index, method='nearest')
+        msg = "index must be monotonic increasing or decreasing"
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method='pad')
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method='ffill')
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method='bfill')
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method='nearest')
 
     def test_reindex_level(self):
         from itertools import permutations
@@ -2533,19 +2558,14 @@ class TestDataFrameIndexing(TestData):
 
     def test_boolean_indexing_mixed(self):
         df = DataFrame({
-            long(0): {35: np.nan, 40: np.nan, 43: np.nan,
-                      49: np.nan, 50: np.nan},
-            long(1): {35: np.nan,
-                      40: 0.32632316859446198,
-                      43: np.nan,
-                      49: 0.32632316859446198,
-                      50: 0.39114724480578139},
-            long(2): {35: np.nan, 40: np.nan, 43: 0.29012581014105987,
-                      49: np.nan, 50: np.nan},
-            long(3): {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan,
-                      50: np.nan},
-            long(4): {35: 0.34215328467153283, 40: np.nan, 43: np.nan,
-                      49: np.nan, 50: np.nan},
+            0: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+            1: {35: np.nan, 40: 0.32632316859446198, 43: np.nan,
+                49: 0.32632316859446198, 50: 0.39114724480578139},
+            2: {35: np.nan, 40: np.nan, 43: 0.29012581014105987, 49: np.nan,
+                50: np.nan},
+            3: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+            4: {35: 0.34215328467153283, 40: np.nan, 43: np.nan, 49: np.nan,
+                50: np.nan},
             'y': {35: 0, 40: 0, 43: 0, 49: 0, 50: 1}})
 
         # mixed int/float ok
@@ -2559,11 +2579,9 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(df2, expected)
 
         df['foo'] = 'test'
-        msg = ("boolean setting on mixed-type|"
-               "not supported between|"
-               "unorderable types")
+        msg = "not supported between instances|unorderable types"
+
         with pytest.raises(TypeError, match=msg):
-            # TODO: This message should be the same in PY2/PY3
             df[df > 0.3] = 1
 
     def test_where(self):
@@ -2596,7 +2614,7 @@ class TestDataFrameIndexing(TestData):
         # check getting
         for df in [default_frame, self.mixed_frame,
                    self.mixed_float, self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 with pytest.raises(TypeError):
                     df > 0
                 continue
@@ -2647,7 +2665,7 @@ class TestDataFrameIndexing(TestData):
                 assert (rs.dtypes == df.dtypes).all()
 
         for df in [self.mixed_frame, self.mixed_float, self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 with pytest.raises(TypeError):
                     df > 0
                 continue
@@ -2669,14 +2687,20 @@ class TestDataFrameIndexing(TestData):
         # invalid conditions
         df = default_frame
         err1 = (df + 1).values[0:2, :]
-        pytest.raises(ValueError, df.where, cond, err1)
+        msg = "other must be the same shape as self when an ndarray"
+        with pytest.raises(ValueError, match=msg):
+            df.where(cond, err1)
 
         err2 = cond.iloc[:2, :].values
         other1 = _safe_add(df)
-        pytest.raises(ValueError, df.where, err2, other1)
+        msg = "Array conditional must be same shape as self"
+        with pytest.raises(ValueError, match=msg):
+            df.where(err2, other1)
 
-        pytest.raises(ValueError, df.mask, True)
-        pytest.raises(ValueError, df.mask, 0)
+        with pytest.raises(ValueError, match=msg):
+            df.mask(True)
+        with pytest.raises(ValueError, match=msg):
+            df.mask(0)
 
         # where inplace
         def _check_set(df, cond, check_dtypes=True):
@@ -2696,7 +2720,7 @@ class TestDataFrameIndexing(TestData):
 
         for df in [default_frame, self.mixed_frame, self.mixed_float,
                    self.mixed_int]:
-            if compat.PY3 and df is self.mixed_frame:
+            if df is self.mixed_frame:
                 with pytest.raises(TypeError):
                     df > 0
                 continue

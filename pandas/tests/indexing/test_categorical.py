@@ -3,8 +3,6 @@
 import numpy as np
 import pytest
 
-import pandas.compat as compat
-
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -152,7 +150,7 @@ class TestCategoricalIndex(object):
         # row
         res_row = df.iloc[2, :]
         tm.assert_series_equal(res_row, exp_row)
-        assert isinstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], str)
 
         # col
         res_col = df.iloc[:, 0]
@@ -172,7 +170,7 @@ class TestCategoricalIndex(object):
         # row
         res_row = df.loc["j", :]
         tm.assert_series_equal(res_row, exp_row)
-        assert isinstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], str)
 
         # col
         res_col = df.loc[:, "cats"]
@@ -193,7 +191,7 @@ class TestCategoricalIndex(object):
         # row
         res_row = df.loc["j", :]
         tm.assert_series_equal(res_row, exp_row)
-        assert isinstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], str)
 
         # col
         res_col = df.loc[:, "cats"]
@@ -227,7 +225,7 @@ class TestCategoricalIndex(object):
         # i : int, slice, or sequence of integers
         res_row = df.iloc[2]
         tm.assert_series_equal(res_row, exp_row)
-        assert isinstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], str)
 
         res_df = df.iloc[slice(2, 4)]
         tm.assert_frame_equal(res_df, exp_df)
@@ -668,7 +666,7 @@ class TestCategoricalIndex(object):
         # CategoricalIndex([1, 1, 2, 1, 3, 2],
         #         categories=[3, 2, 1],
         #         ordered=True,
-        #         name=u'B')
+        #         name='B')
         result = df3[df3.index < 2]
         expected = df3.iloc[[4]]
         assert_frame_equal(result, expected)
@@ -683,7 +681,7 @@ class TestCategoricalIndex(object):
         # CategoricalIndex([1, 1, 2, 1, 3, 2],
         #         categories=[3, 2, 1],
         #         ordered=False,
-        #         name=u'B')
+        #         name='B')
         msg = "Unordered Categoricals can only compare equality or not"
         with pytest.raises(TypeError, match=msg):
             df4[df4.index < 2]

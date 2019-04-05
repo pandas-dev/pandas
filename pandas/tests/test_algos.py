@@ -11,7 +11,7 @@ import pytest
 
 from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
-from pandas.compat import PY2, lrange, range
+from pandas.compat import lrange
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -224,14 +224,13 @@ class TestFactorize(object):
                                                      dtype=object)
         tm.assert_numpy_array_equal(result[1], expected_level_array)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        msg = (r"'(<|>)' not supported between instances of 'complex' and"
-               r" 'complex'|"
-               r"unorderable types: complex\(\) > complex\(\)")
+        msg = ("unorderable types: .* [<>] .*"
+               "|"  # the above case happens for numpy < 1.14
+               "'[<>]' not supported between instances of .*")
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
 
@@ -325,6 +324,21 @@ class TestFactorize(object):
         expected_labels = np.array([-1, 0, -1, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(l, expected_labels)
         tm.assert_numpy_array_equal(u, expected_uniques)
+
+    @pytest.mark.parametrize('sort', [True, False])
+    @pytest.mark.parametrize('na_sentinel', [-1, -10, 100])
+    def test_factorize_na_sentinel(self, sort, na_sentinel):
+        data = np.array(['b', 'a', None, 'b'], dtype=object)
+        labels, uniques = algos.factorize(data, sort=sort,
+                                          na_sentinel=na_sentinel)
+        if sort:
+            expected_labels = np.array([1, 0, na_sentinel, 1], dtype=np.intp)
+            expected_uniques = np.array(['a', 'b'], dtype=object)
+        else:
+            expected_labels = np.array([0, 1, na_sentinel, 0], dtype=np.intp)
+            expected_uniques = np.array(['b', 'a'], dtype=object)
+        tm.assert_numpy_array_equal(labels, expected_labels)
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
 
 
 class TestUnique(object):

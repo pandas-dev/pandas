@@ -229,7 +229,7 @@ cdef class _NaT(datetime):
 
     def total_seconds(self):
         """
-        Total duration of timedelta in seconds (to ns precision)
+        Total duration of timedelta in seconds (to ns precision).
         """
         # GH#10939
         return np.nan
@@ -353,7 +353,7 @@ class NaTType(_NaT):
 
         .. versionadded:: 0.23.0
         """)
-    day_name = _make_nan_func('day_name', # noqa:E128
+    day_name = _make_nan_func('day_name',  # noqa:E128
         """
         Return the day name of the Timestamp with specified locale.
 

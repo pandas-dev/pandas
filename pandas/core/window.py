@@ -2,8 +2,6 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
-from __future__ import division
-
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
@@ -12,7 +10,6 @@ import warnings
 import numpy as np
 
 import pandas._libs.window as libwindow
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -602,7 +599,7 @@ class Window(_Window):
                 raise ImportError('Please install scipy to generate window '
                                   'weight')
 
-            if not isinstance(self.win_type, compat.string_types):
+            if not isinstance(self.win_type, str):
                 raise ValueError('Invalid win_type {0}'.format(self.win_type))
             if getattr(sig, self.win_type, None) is None:
                 raise ValueError('Invalid win_type {0}'.format(self.win_type))
@@ -792,7 +789,7 @@ class _GroupByMixin(GroupByMixin):
         def f(x, name=name, *args):
             x = self._shallow_copy(x)
 
-            if isinstance(name, compat.string_types):
+            if isinstance(name, str):
                 return getattr(x, name)(*args, **kwargs)
 
             return x.apply(name, *args, **kwargs)
@@ -845,7 +842,7 @@ class _Rolling(_Window):
                 continue
 
             # if we have a string function name, wrap it
-            if isinstance(func, compat.string_types):
+            if isinstance(func, str):
                 cfunc = getattr(libwindow, func, None)
                 if cfunc is None:
                     raise ValueError("we do not support this function "
@@ -953,7 +950,7 @@ class _Rolling_and_Expanding(_Rolling):
     ----------
     func : function
         Must produce a single value from an ndarray input if ``raw=True``
-        or a Series if ``raw=False``.
+        or a single value from a Series if ``raw=False``.
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
@@ -1572,8 +1569,7 @@ class Rolling(_Rolling_and_Expanding):
 
         # we allow rolling on a datetimelike index
         if ((self.obj.empty or self.is_datetimelike) and
-                isinstance(self.window, (compat.string_types, ABCDateOffset,
-                                         timedelta))):
+                isinstance(self.window, (str, ABCDateOffset, timedelta))):
 
             self._validate_monotonic()
             freq = self._validate_freq()
@@ -2303,7 +2299,7 @@ class EWM(_Rolling):
                 continue
 
             # if we have a string function name, wrap it
-            if isinstance(func, compat.string_types):
+            if isinstance(func, str):
                 cfunc = getattr(libwindow, func, None)
                 if cfunc is None:
                     raise ValueError("we do not support this function "

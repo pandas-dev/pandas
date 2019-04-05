@@ -5,17 +5,17 @@ channels:
 dependencies:
   - beautifulsoup4
   - bottleneck
-  - dateutil
   - gcsfs
   - html5lib
-  - jinja2=2.8
+  - jinja2
   - lxml
-  - matplotlib=2.0.1
+  - matplotlib=2.2.*
   - numexpr
-  - numpy=1.12*
+  - numpy=1.14.*
   - openpyxl
   - pytables
-  - python=2.7.*
+  - python=3.7.*
+  - python-dateutil
   - pytz
   - s3fs
   - scipy

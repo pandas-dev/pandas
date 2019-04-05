@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+from functools import reduce
 from itertools import product
 import operator
 import warnings
@@ -7,14 +8,13 @@ import numpy as np
 from numpy.random import rand, randint, randn
 import pytest
 
-from pandas.compat import PY3, reduce
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 
 import pandas as pd
-from pandas import DataFrame, Panel, Series, date_range
+from pandas import DataFrame, Series, date_range
 from pandas.core.computation import pytables
 from pandas.core.computation.check import _NUMEXPR_VERSION
 from pandas.core.computation.engines import NumExprClobberingError, _engines
@@ -23,15 +23,12 @@ from pandas.core.computation.expr import PandasExprVisitor, PythonExprVisitor
 from pandas.core.computation.expressions import (
     _NUMEXPR_INSTALLED, _USE_NUMEXPR)
 from pandas.core.computation.ops import (
-    _arith_ops_syms, _binary_math_ops, _binary_ops_dict, _bool_ops_syms,
+    _arith_ops_syms, _binary_math_ops, _binary_ops_dict,
     _special_case_arith_ops_syms, _unary_math_ops)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_frame_equal, assert_numpy_array_equal, assert_produces_warning,
     assert_series_equal, makeCustomDataframe as mkdf, randbool)
-
-_series_frame_incompatible = _bool_ops_syms
-_scalar_skip = 'in', 'not in'
 
 
 @pytest.fixture(params=(
@@ -105,7 +102,7 @@ def _bool_and_frame(lhs, rhs):
 
 
 def _is_py3_complex_incompat(result, expected):
-    return (PY3 and isinstance(expected, (complex, np.complexfloating)) and
+    return (isinstance(expected, (complex, np.complexfloating)) and
             np.isnan(result))
 
 
@@ -162,13 +159,21 @@ class TestEvalNumexprPandas(object):
         del self.pandas_rhses, self.pandas_lhses, self.current_engines
 
     @pytest.mark.slow
-    def test_complex_cmp_ops(self):
-        cmp_ops = ('!=', '==', '<=', '>=', '<', '>')
-        cmp2_ops = ('>', '<')
-        for lhs, cmp1, rhs, binop, cmp2 in product(self.lhses, cmp_ops,
-                                                   self.rhses, self.bin_ops,
-                                                   cmp2_ops):
-            self.check_complex_cmp_op(lhs, cmp1, rhs, binop, cmp2)
+    @pytest.mark.parametrize('cmp1', ['!=', '==', '<=', '>=', '<', '>'],
+                             ids=['ne', 'eq', 'le', 'ge', 'lt', 'gt'])
+    @pytest.mark.parametrize('cmp2', ['>', '<'], ids=['gt', 'lt'])
+    def test_complex_cmp_ops(self, cmp1, cmp2):
+        for lhs, rhs, binop in product(
+                self.lhses, self.rhses, self.bin_ops):
+            lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
+            rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
+            expected = _eval_single_bin(
+                lhs_new, binop, rhs_new, self.engine)
+
+            ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(
+                cmp1=cmp1, binop=binop, cmp2=cmp2)
+            result = pd.eval(ex, engine=self.engine, parser=self.parser)
+            self.check_equal(result, expected)
 
     def test_simple_cmp_ops(self):
         bool_lhses = (DataFrame(randbool(size=(10, 5))),
@@ -224,44 +229,6 @@ class TestEvalNumexprPandas(object):
             tm.assert_numpy_array_equal(result, expected)
         else:
             assert result == expected
-
-    def check_complex_cmp_op(self, lhs, cmp1, rhs, binop, cmp2):
-        skip_these = _scalar_skip
-        ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(cmp1=cmp1,
-                                                                binop=binop,
-                                                                cmp2=cmp2)
-        scalar_with_in_notin = (is_scalar(rhs) and (cmp1 in skip_these or
-                                                    cmp2 in skip_these))
-        if scalar_with_in_notin:
-            with pytest.raises(TypeError):
-                pd.eval(ex, engine=self.engine, parser=self.parser)
-            with pytest.raises(TypeError):
-                pd.eval(ex, engine=self.engine, parser=self.parser,
-                        local_dict={'lhs': lhs, 'rhs': rhs})
-        else:
-            lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
-            rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
-            if (isinstance(lhs_new, Series) and
-                    isinstance(rhs_new, DataFrame) and
-                    binop in _series_frame_incompatible):
-                pass
-                # TODO: the code below should be added back when left and right
-                # hand side bool ops are fixed.
-                #
-                # try:
-                #     pytest.raises(Exception, pd.eval, ex,
-                #                   local_dict={'lhs': lhs, 'rhs': rhs},
-                #                   engine=self.engine, parser=self.parser)
-                # except AssertionError:
-                #     import ipdb
-                #
-                #     ipdb.set_trace()
-                #     raise
-            else:
-                expected = _eval_single_bin(
-                    lhs_new, binop, rhs_new, self.engine)
-                result = pd.eval(ex, engine=self.engine, parser=self.parser)
-                self.check_equal(result, expected)
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
 
@@ -372,8 +339,8 @@ class TestEvalNumexprPandas(object):
 
         if (is_scalar(lhs) and is_scalar(rhs) and
                 _is_py3_complex_incompat(result, expected)):
-            pytest.raises(AssertionError, tm.assert_numpy_array_equal,
-                          result, expected)
+            with pytest.raises(AssertionError):
+                tm.assert_numpy_array_equal(result, expected)
         else:
             tm.assert_almost_equal(result, expected)
 
@@ -1145,14 +1112,6 @@ class TestOperationsNumExprPandas(object):
             exp = eval(ex)
             assert res == exp
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_panel_fails(self):
-        x = Panel(randn(3, 4, 5))
-        y = Series(randn(10))
-        with pytest.raises(NotImplementedError):
-            self.eval('x + y',
-                      local_dict={'x': x, 'y': y})
-
     def test_4d_ndarray_fails(self):
         x = randn(3, 4, 5, 6)
         y = Series(randn(10))
@@ -1174,50 +1133,27 @@ class TestOperationsNumExprPandas(object):
         ex = 's / 1'
         d = {'s': s}  # noqa
 
-        if PY3:
-            res = self.eval(ex, truediv=False)
-            tm.assert_numpy_array_equal(res, np.array([1.0]))
+        res = self.eval(ex, truediv=False)
+        tm.assert_numpy_array_equal(res, np.array([1.0]))
 
-            res = self.eval(ex, truediv=True)
-            tm.assert_numpy_array_equal(res, np.array([1.0]))
+        res = self.eval(ex, truediv=True)
+        tm.assert_numpy_array_equal(res, np.array([1.0]))
 
-            res = self.eval('1 / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('1 / 2', truediv=True)
+        expec = 0.5
+        assert res == expec
 
-            res = self.eval('1 / 2', truediv=False)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('1 / 2', truediv=False)
+        expec = 0.5
+        assert res == expec
 
-            res = self.eval('s / 2', truediv=False)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('s / 2', truediv=False)
+        expec = 0.5
+        assert res == expec
 
-            res = self.eval('s / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
-        else:
-            res = self.eval(ex, truediv=False)
-            tm.assert_numpy_array_equal(res, np.array([1]))
-
-            res = self.eval(ex, truediv=True)
-            tm.assert_numpy_array_equal(res, np.array([1.0]))
-
-            res = self.eval('1 / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
-
-            res = self.eval('1 / 2', truediv=False)
-            expec = 0
-            assert res == expec
-
-            res = self.eval('s / 2', truediv=False)
-            expec = 0
-            assert res == expec
-
-            res = self.eval('s / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('s / 2', truediv=True)
+        expec = 0.5
+        assert res == expec
 
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa

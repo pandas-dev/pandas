@@ -1,10 +1,11 @@
 """ miscellaneous sorting / groupby utilities """
+import warnings
 
 import numpy as np
 
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
-from pandas.compat import PY3, long, string_types
+from pandas.compat import PY3
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
@@ -44,9 +45,9 @@ def get_group_index(labels, shape, sort, xnull):
     labels are equal at all location.
     """
     def _int64_cut_off(shape):
-        acc = long(1)
+        acc = 1
         for i, mul in enumerate(shape):
-            acc *= long(mul)
+            acc *= int(mul)
             if not acc < _INT64_MAX:
                 return i
         return len(shape)
@@ -121,9 +122,9 @@ def get_compressed_ids(labels, sizes):
 
 
 def is_int64_overflow_possible(shape):
-    the_prod = long(1)
+    the_prod = 1
     for x in shape:
-        the_prod *= long(x)
+        the_prod *= int(x)
 
     return the_prod >= _INT64_MAX
 
@@ -254,7 +255,13 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
             sorted_idx = np.roll(sorted_idx, cnt_null)
         return sorted_idx
 
-    items = np.asanyarray(items)
+    with warnings.catch_warnings():
+        # https://github.com/pandas-dev/pandas/issues/25439
+        # can be removed once ExtensionArrays are properly handled by nargsort
+        warnings.filterwarnings(
+            "ignore", category=FutureWarning,
+            message="Converting timezone-aware DatetimeArray to")
+        items = np.asanyarray(items)
     idx = np.arange(len(items))
     mask = isna(items)
     non_nans = items[~mask]
@@ -447,7 +454,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
 
     def sort_mixed(values):
         # order ints before strings, safe in py3
-        str_pos = np.array([isinstance(x, string_types) for x in values],
+        str_pos = np.array([isinstance(x, str) for x in values],
                            dtype=bool)
         nums = np.sort(values[~str_pos])
         strs = np.sort(values[str_pos])

@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
+from itertools import product
 
 import numpy as np
 import pytest
-
-from pandas.compat import product as cart_product, range
 
 from pandas import DataFrame, MultiIndex, Period, Series, Timedelta, Timestamp
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -169,7 +167,7 @@ class TestCounting(object):
 
     def test_ngroup_cumcount_pair(self):
         # brute force comparison for all small series
-        for p in cart_product(range(3), repeat=4):
+        for p in product(range(3), repeat=4):
             df = DataFrame({'a': p})
             g = df.groupby(['a'])
 
