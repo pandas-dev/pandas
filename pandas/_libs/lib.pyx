@@ -2469,14 +2469,14 @@ cdef cnp.ndarray[object] _concat_date_cols_sequence(tuple date_cols,
     return result
 
 
-def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=False):
+def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
     """
     Concatenates elements from sequences in `date_cols` into strings.
 
     Parameters
     ----------
     date_cols : tuple of sequences
-    keep_trivial_numbers : bool, default False
+    keep_trivial_numbers : bool, default True
         if True and len(date_cols) == 1, then
         conversion (to string from integer/float zero) is not performed
 

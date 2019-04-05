@@ -3187,7 +3187,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                          infer_datetime_format=False, cache_dates=True):
     def converter(*date_cols):
         if date_parser is None:
-            strs = _concat_date_cols(date_cols, keep_trivial_numbers=True)
+            strs = _concat_date_cols(date_cols)
 
             try:
                 return tools.to_datetime(
