@@ -9,6 +9,7 @@ https://support.sas.com/techsup/technote/ts140.pdf
 """
 
 from datetime import datetime
+from io import BytesIO
 import struct
 import warnings
 
@@ -17,7 +18,6 @@ import numpy as np
 from pandas.util._decorators import Appender
 
 import pandas as pd
-from pandas import compat
 
 from pandas.io.common import BaseIterator, get_filepath_or_buffer
 
@@ -249,7 +249,7 @@ class XportReader(BaseIterator):
                 contents = contents.encode(self._encoding)
             except UnicodeEncodeError:
                 pass
-            self.filepath_or_buffer = compat.BytesIO(contents)
+            self.filepath_or_buffer = BytesIO(contents)
 
         self._read_header()
 

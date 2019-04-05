@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
+from io import StringIO
 import re
 import sys
 
@@ -7,7 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import PYPY, StringIO
+from pandas.compat import PYPY
 from pandas.compat.numpy import np_array_datetime64_compat
 
 from pandas.core.dtypes.common import (

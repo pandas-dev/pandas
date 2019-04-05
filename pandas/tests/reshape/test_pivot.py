@@ -2,11 +2,10 @@
 
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
+from itertools import product
 
 import numpy as np
 import pytest
-
-from pandas.compat import product
 
 import pandas as pd
 from pandas import (

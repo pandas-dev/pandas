@@ -7,7 +7,7 @@ import pickle as pkl
 import sys
 
 import pandas  # noqa
-from pandas import Index, compat
+from pandas import Index
 
 
 def load_reduce(self):
@@ -138,27 +138,14 @@ _class_locations_map = {
 # our Unpickler sub-class to override methods and some dispatcher
 # functions for compat
 
-if compat.PY3:
-    class Unpickler(pkl._Unpickler):
+class Unpickler(pkl._Unpickler):  # type: ignore
 
-        def find_class(self, module, name):
-            # override superclass
-            key = (module, name)
-            module, name = _class_locations_map.get(key, key)
-            return super(Unpickler, self).find_class(module, name)
+    def find_class(self, module, name):
+        # override superclass
+        key = (module, name)
+        module, name = _class_locations_map.get(key, key)
+        return super(Unpickler, self).find_class(module, name)
 
-else:
-
-    class Unpickler(pkl.Unpickler):
-
-        def find_class(self, module, name):
-            # override superclass
-            key = (module, name)
-            module, name = _class_locations_map.get(key, key)
-            __import__(module)
-            mod = sys.modules[module]
-            klass = getattr(mod, name)
-            return klass
 
 Unpickler.dispatch = copy.copy(Unpickler.dispatch)
 Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce

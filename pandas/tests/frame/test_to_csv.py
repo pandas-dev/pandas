@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import csv
+from io import StringIO
 import os
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange
+from pandas.compat import lmap, lrange
 from pandas.errors import ParserError
 
 import pandas as pd

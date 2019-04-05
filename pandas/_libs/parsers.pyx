@@ -187,9 +187,11 @@ cdef extern from "parser/tokenizer.h":
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
         float64_t (*double_converter_nogil)(const char *, char **,
-                                            char, char, char, int, int *) nogil
+                                            char, char, char,
+                                            int, int *, int *) nogil
         float64_t (*double_converter_withgil)(const char *, char **,
-                                              char, char, char, int)
+                                              char, char, char,
+                                              int, int *, int *)
 
         #  error handling
         char *warn_msg
@@ -237,12 +239,15 @@ cdef extern from "parser/tokenizer.h":
     uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
                            uint64_t uint_max, int *error, char tsep) nogil
 
-    float64_t xstrtod(const char *p, char **q, char decimal, char sci,
-                      char tsep, int skip_trailing, int *error) nogil
-    float64_t precise_xstrtod(const char *p, char **q, char decimal, char sci,
-                              char tsep, int skip_trailing, int *error) nogil
-    float64_t round_trip(const char *p, char **q, char decimal, char sci,
-                         char tsep, int skip_trailing) nogil
+    float64_t xstrtod(const char *p, char **q, char decimal,
+                      char sci, char tsep, int skip_trailing,
+                      int *error, int *maybe_int) nogil
+    float64_t precise_xstrtod(const char *p, char **q, char decimal,
+                              char sci, char tsep, int skip_trailing,
+                              int *error, int *maybe_int) nogil
+    float64_t round_trip(const char *p, char **q, char decimal,
+                         char sci, char tsep, int skip_trailing,
+                         int *error, int *maybe_int) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
@@ -1737,7 +1742,8 @@ cdef _try_double(parser_t *parser, int64_t col,
         assert parser.double_converter_withgil != NULL
         error = _try_double_nogil(parser,
                                   <float64_t (*)(const char *, char **,
-                                                 char, char, char, int, int *)
+                                                 char, char, char,
+                                                 int, int *, int *)
                                   nogil>parser.double_converter_withgil,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
@@ -1751,7 +1757,7 @@ cdef _try_double(parser_t *parser, int64_t col,
 cdef inline int _try_double_nogil(parser_t *parser,
                                   float64_t (*double_converter)(
                                       const char *, char **, char,
-                                      char, char, int, int *) nogil,
+                                      char, char, int, int *, int *) nogil,
                                   int col, int line_start, int line_end,
                                   bint na_filter, kh_str_starts_t *na_hashset,
                                   bint use_na_flist,
@@ -1780,7 +1786,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
             else:
                 data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands,
-                                           1, &error)
+                                           1, &error, NULL)
                 if error != 0 or p_end == word or p_end[0]:
                     error = 0
                     if (strcasecmp(word, cinf) == 0 or
@@ -1800,7 +1806,8 @@ cdef inline int _try_double_nogil(parser_t *parser,
         for i in range(lines):
             COLITER_NEXT(it, word)
             data[0] = double_converter(word, &p_end, parser.decimal,
-                                       parser.sci, parser.thousands, 1, &error)
+                                       parser.sci, parser.thousands,
+                                       1, &error, NULL)
             if error != 0 or p_end == word or p_end[0]:
                 error = 0
                 if (strcasecmp(word, cinf) == 0 or
