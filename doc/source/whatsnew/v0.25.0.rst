@@ -44,6 +44,7 @@ Backwards incompatible API changes
 
 .. _whatsnew_0250.api_breaking.utc_offset_indexing:
 
+
 Indexing with date strings with UTC offsets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -215,6 +216,7 @@ Other API Changes
 - :class:`DatetimeTZDtype` will now standardize pytz timezones to a common timezone instance (:issue:`24713`)
 - ``Timestamp`` and ``Timedelta`` scalars now implement the :meth:`to_numpy` method as aliases to :meth:`Timestamp.to_datetime64` and :meth:`Timedelta.to_timedelta64`, respectively. (:issue:`24653`)
 - :meth:`Timestamp.strptime` will now rise a ``NotImplementedError`` (:issue:`25016`)
+- Comparing :class:`Timestamp` with unsupported objects now returns :py:obj:`NotImplemented` instead of raising ``TypeError``. This implies that unsupported rich comparisons are delegated to the other object, and are now consistent with Python 3 behavior for ``datetime`` objects (:issue:`24011`)
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
 
 .. _whatsnew_0250.deprecations:
@@ -316,7 +318,7 @@ Interval
 ^^^^^^^^
 
 - Construction of :class:`Interval` is restricted to numeric, :class:`Timestamp` and :class:`Timedelta` endpoints (:issue:`23013`)
--
+- Fixed bug in :class:`Series`/:class:`DataFrame` not displaying ``NaN`` in :class:`IntervalIndex` with missing values (:issue:`25984`)
 -
 
 Indexing
@@ -379,9 +381,9 @@ Groupby/Resample/Rolling
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
 - Bug in :func:`Series.groupby` where using ``groupby`` with a :class:`MultiIndex` Series with a list of labels equal to the length of the series caused incorrect grouping (:issue:`25704`)
 - Ensured that ordering of outputs in ``groupby`` aggregation functions is consistent across all versions of Python (:issue:`25692`)
+- Ensured that result group order is correct when grouping on an ordered ``Categorical`` and specifying ``observed=True`` (:issue:`25871`, :issue:`25167`)
 - Bug in :meth:`pandas.core.window.Rolling.min` and :meth:`pandas.core.window.Rolling.max` that caused a memory leak (:issue:`25893`)
 - Bug in :func:`idxmax` and :func:`idxmin` on :meth:`DataFrame.groupby` with datetime column would return incorrect dtype (:issue:`25444`, :issue:`15306`)
-
 
 Reshaping
 ^^^^^^^^^
@@ -392,6 +394,7 @@ Reshaping
 - Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
 - Bug in :func:`concat` where the resulting ``freq`` of two :class:`DatetimeIndex` with the same ``freq`` would be dropped (:issue:`3232`).
 - Bug in :func:`merge` where merging with equivalent Categorical dtypes was raising an error (:issue:`22501`)
+- Bug in :class:`DataFrame` constructor when passing non-empty tuples would cause a segmentation fault (:issue:`25691`)
 
 Sparse
 ^^^^^^
