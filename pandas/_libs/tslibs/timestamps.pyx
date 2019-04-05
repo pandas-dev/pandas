@@ -15,7 +15,7 @@ PyDateTime_IMPORT
 from pandas._libs.tslibs.util cimport (
     is_integer_object, is_offset_object)
 
-from pandas._libs.tslibs._timestamp cimport _Timestamp
+from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 cimport pandas._libs.tslibs.ccalendar as ccalendar
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 from pandas._libs.tslibs.conversion import (

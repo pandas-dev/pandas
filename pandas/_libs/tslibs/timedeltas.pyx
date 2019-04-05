@@ -25,7 +25,7 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object, is_datetime64_object, is_integer_object,
     is_float_object)
 
-from pandas._libs.tslibs._timestamp cimport _Timestamp
+from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 

@@ -16,7 +16,7 @@ from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_IMPORT, PyDelta_Check)
 PyDateTime_IMPORT
 
-from pandas._libs.tslibs._timestamp cimport _Timestamp
+from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
 
