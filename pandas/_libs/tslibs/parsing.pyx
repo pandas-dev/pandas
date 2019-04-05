@@ -33,7 +33,7 @@ cdef extern from "../src/headers/portable.h":
 
 cdef extern from "../src/parser/tokenizer.h":
     double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
-                   int skip_trailing, int *error)
+                   int skip_trailing, int *error, int *maybe_int)
 
 
 # ----------------------------------------------------------------------
@@ -329,7 +329,7 @@ cpdef bint _does_string_look_like_datetime(object date_string):
             return False
         else:
             converted_date = xstrtod(buf, &endptr,
-                                     b'.', b'e', b'\0', 1, &error)
+                                     b'.', b'e', b'\0', 1, &error, NULL)
             if error == 0 and endptr == buf + length:
                 return converted_date >= 1000
 
