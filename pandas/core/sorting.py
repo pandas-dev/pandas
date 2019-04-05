@@ -430,7 +430,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False,
     verify : bool, default True
         Check if labels are out of bound for the values and put out of bound
         labels equal to na_sentinel. If ``verify=False``, it is assumed there
-        are no out of bound labels.
+        are no out of bound labels. Ignored when ``labels`` is None.
 
         .. versionadded:: 0.25.0
 

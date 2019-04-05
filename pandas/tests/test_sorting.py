@@ -7,7 +7,7 @@ from numpy import nan
 import pytest
 
 from pandas import (
-    DataFrame, MultiIndex, Series, compat, concat, merge, to_datetime)
+    DataFrame, MultiIndex, Series, array, compat, concat, merge, to_datetime)
 from pandas.core import common as com
 from pandas.core.sorting import (
     decons_group_index, get_group_index, is_int64_overflow_possible,
@@ -359,34 +359,39 @@ class TestSafeSort(object):
         expected = np.array([])
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_labels(self):
+    @pytest.mark.parametrize('verify', [True, False])
+    def test_labels(self, verify):
         values = [3, 1, 2, 0, 4]
         expected = np.array([0, 1, 2, 3, 4])
 
         labels = [0, 1, 1, 2, 3, 0, -1, 4]
-        result, result_labels = safe_sort(values, labels)
+        result, result_labels = safe_sort(values, labels, verify=verify)
         expected_labels = np.array([3, 1, 1, 2, 0, 3, -1, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
         # na_sentinel
         labels = [0, 1, 1, 2, 3, 0, 99, 4]
-        result, result_labels = safe_sort(values, labels,
-                                          na_sentinel=99)
+        result, result_labels = safe_sort(values, labels, na_sentinel=99,
+                                          verify=verify)
         expected_labels = np.array([3, 1, 1, 2, 0, 3, 99, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+        labels = []
+        result, result_labels = safe_sort(values, labels, verify=verify)
+        expected_labels = np.array([], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_labels, expected_labels)
+
+    def test_labels_out_of_bound(self):
+        values = [3, 1, 2, 0, 4]
+        expected = np.array([0, 1, 2, 3, 4])
 
         # out of bound indices
         labels = [0, 101, 102, 2, 3, 0, 99, 4]
         result, result_labels = safe_sort(values, labels)
         expected_labels = np.array([3, -1, -1, 2, 0, 3, -1, 4], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-        tm.assert_numpy_array_equal(result_labels, expected_labels)
-
-        labels = []
-        result, result_labels = safe_sort(values, labels)
-        expected_labels = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
@@ -431,3 +436,19 @@ class TestSafeSort(object):
         with pytest.raises(ValueError,
                            match="values should be unique"):
             safe_sort(values=[0, 1, 2, 1], labels=[0, 1])
+
+    @pytest.mark.parametrize('verify', [True, False])
+    def test_extension_array(self, verify):
+        # a = array([1, 3, np.nan, 2], dtype='Int64')
+        a = array([1, 3, 2], dtype='Int64')
+        result = safe_sort(a)
+        # expected = array([1, 2, 3, np.nan], dtype='Int64')
+        expected = array([1, 2, 3], dtype='Int64')
+        tm.assert_extension_array_equal(result, expected)
+
+        a = array([1, 3, 2], dtype='Int64')
+        result, labels = safe_sort(a, [0, 1, 2], verify=verify)
+        expected_values = array([1, 2, 3], dtype='Int64')
+        expected_labels = np.array([0, 2, 1], dtype=np.intp)
+        tm.assert_extension_array_equal(result, expected_values)
+        tm.assert_numpy_array_equal(labels, expected_labels)
