@@ -441,8 +441,7 @@ class TestSafeSort(object):
                            match="values should be unique"):
             safe_sort(values=[0, 1, 2, 1], labels=[0, 1])
 
-    @pytest.mark.parametrize('verify', [True, False])
-    def test_extension_array(self, verify):
+    def test_extension_array(self):
         # a = array([1, 3, np.nan, 2], dtype='Int64')
         a = array([1, 3, 2], dtype='Int64')
         result = safe_sort(a)
@@ -450,9 +449,13 @@ class TestSafeSort(object):
         expected = array([1, 2, 3], dtype='Int64')
         tm.assert_extension_array_equal(result, expected)
 
+    @pytest.mark.parametrize('verify', [True, False])
+    @pytest.mark.parametrize('na_sentinel', [-1, 99])
+    def test_extension_array_labels(self, verify, na_sentinel):
         a = array([1, 3, 2], dtype='Int64')
-        result, labels = safe_sort(a, [0, 1, 2], verify=verify)
+        result, labels = safe_sort(a, [0, 1, na_sentinel, 2],
+                                   na_sentinel=na_sentinel, verify=verify)
         expected_values = array([1, 2, 3], dtype='Int64')
-        expected_labels = np.array([0, 2, 1], dtype=np.intp)
+        expected_labels = np.array([0, 2, na_sentinel, 1], dtype=np.intp)
         tm.assert_extension_array_equal(result, expected_values)
         tm.assert_numpy_array_equal(labels, expected_labels)
