@@ -378,6 +378,23 @@ class TestIntervalIndex(Base):
         )
         assert result == expected
 
+    @pytest.mark.parametrize('constructor,expected', [
+        (pd.Series, ('(0.0, 1.0]    a\n'
+                     'NaN           b\n'
+                     '(2.0, 3.0]    c\n'
+                     'dtype: object')),
+        (pd.DataFrame, ('            0\n'
+                        '(0.0, 1.0]  a\n'
+                        'NaN         b\n'
+                        '(2.0, 3.0]  c'))
+    ])
+    def test_repr_missing(self, constructor, expected):
+        # GH 25984
+        index = IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)])
+        obj = constructor(list('abc'), index=index)
+        result = repr(obj)
+        assert result == expected
+
         # TODO: check this behavior is consistent with test_interval_new.py
     def test_get_item(self, closed):
         i = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan),

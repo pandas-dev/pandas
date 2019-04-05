@@ -318,7 +318,7 @@ Interval
 ^^^^^^^^
 
 - Construction of :class:`Interval` is restricted to numeric, :class:`Timestamp` and :class:`Timedelta` endpoints (:issue:`23013`)
--
+- Fixed bug in :class:`Series`/:class:`DataFrame` not displaying ``NaN`` in :class:`IntervalIndex` with missing values (:issue:`25984`)
 -
 
 Indexing

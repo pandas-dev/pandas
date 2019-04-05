@@ -1015,7 +1015,7 @@ class IntervalIndex(IntervalMixin, Index):
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
 
-    def _format_native_types(self, na_rep='', quoting=None, **kwargs):
+    def _format_native_types(self, na_rep='NaN', quoting=None, **kwargs):
         """ actually format my specific types """
         from pandas.io.formats.format import ExtensionArrayFormatter
         return ExtensionArrayFormatter(values=self,
