@@ -71,8 +71,7 @@ class FrameApply(object):
         self.result_type = result_type
 
         # curry if needed
-        if ((kwds or args) and
-                not isinstance(func, (np.ufunc, compat.string_types))):
+        if (kwds or args) and not isinstance(func, (np.ufunc, str)):
 
             def f(x):
                 return func(x, *args, **kwds)
@@ -119,7 +118,7 @@ class FrameApply(object):
             return self.apply_empty_result()
 
         # string dispatch
-        if isinstance(self.f, compat.string_types):
+        if isinstance(self.f, str):
             # Support for `frame.transform('method')`
             # Some methods (shift, etc.) require the axis argument, others
             # don't, so inspect and insert if necessary.

@@ -6,7 +6,7 @@ These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
 
-import collections
+from collections import OrderedDict, abc
 import copy
 from functools import partial
 from textwrap import dedent
@@ -16,8 +16,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, lib
 import pandas.compat as compat
-from pandas.compat import lzip, map
-from pandas.compat.numpy import _np_version_under1p13
+from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
@@ -227,7 +226,7 @@ class NDFrameGroupBy(GroupBy):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result = collections.OrderedDict()
+        result = OrderedDict()
         if axis != obj._info_axis_number:
             try:
                 for name, data in self:
@@ -254,7 +253,7 @@ class NDFrameGroupBy(GroupBy):
         # only for axis==0
 
         obj = self._obj_with_exclusions
-        result = collections.OrderedDict()
+        result = OrderedDict()
         cannot_agg = []
         errors = None
         for item in obj:
@@ -262,8 +261,13 @@ class NDFrameGroupBy(GroupBy):
                 data = obj[item]
                 colg = SeriesGroupBy(data, selection=item,
                                      grouper=self.grouper)
-                result[item] = self._try_cast(
-                    colg.aggregate(func, *args, **kwargs), data)
+
+                cast = self._transform_should_cast(func)
+
+                result[item] = colg.aggregate(func, *args, **kwargs)
+                if cast:
+                    result[item] = self._try_cast(result[item], data)
+
             except ValueError:
                 cannot_agg.append(item)
                 continue
@@ -532,7 +536,7 @@ class NDFrameGroupBy(GroupBy):
 
         # optimized transforms
         func = self._is_cython_func(func) or func
-        if isinstance(func, compat.string_types):
+        if isinstance(func, str):
             if func in base.cython_transforms:
                 # cythonized transform
                 return getattr(self, func)(*args, **kwargs)
@@ -576,7 +580,7 @@ class NDFrameGroupBy(GroupBy):
                                       index=obj.index)
 
     def _define_paths(self, func, *args, **kwargs):
-        if isinstance(func, compat.string_types):
+        if isinstance(func, str):
             fast_path = lambda group: getattr(group, func)(*args, **kwargs)
             slow_path = lambda group: group.apply(
                 lambda x: getattr(x, func)(*args, **kwargs), axis=self.axis)
@@ -763,10 +767,10 @@ class SeriesGroupBy(GroupBy):
     @Appender(_shared_docs['aggregate'])
     def aggregate(self, func_or_funcs, *args, **kwargs):
         _level = kwargs.pop('_level', None)
-        if isinstance(func_or_funcs, compat.string_types):
+        if isinstance(func_or_funcs, str):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
-        if isinstance(func_or_funcs, compat.Iterable):
+        if isinstance(func_or_funcs, abc.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             ret = self._aggregate_multiple_funcs(func_or_funcs,
@@ -823,14 +827,14 @@ class SeriesGroupBy(GroupBy):
             # list of functions / function names
             columns = []
             for f in arg:
-                if isinstance(f, compat.string_types):
+                if isinstance(f, str):
                     columns.append(f)
                 else:
                     # protect against callables without names
                     columns.append(com.get_callable_name(f))
             arg = lzip(columns, arg)
 
-        results = collections.OrderedDict()
+        results = OrderedDict()
         for name, func in arg:
             obj = self
             if name in results:
@@ -907,7 +911,7 @@ class SeriesGroupBy(GroupBy):
                           name=self._selection_name)
 
     def _aggregate_named(self, func, *args, **kwargs):
-        result = collections.OrderedDict()
+        result = OrderedDict()
 
         for name, group in self:
             group.name = name
@@ -924,7 +928,7 @@ class SeriesGroupBy(GroupBy):
         func = self._is_cython_func(func) or func
 
         # if string function
-        if isinstance(func, compat.string_types):
+        if isinstance(func, str):
             if func in base.cython_transforms:
                 # cythonized transform
                 return getattr(self, func)(*args, **kwargs)
@@ -967,7 +971,7 @@ class SeriesGroupBy(GroupBy):
         fast version of transform, only applicable to
         builtin/cythonizable functions
         """
-        if isinstance(func, compat.string_types):
+        if isinstance(func, str):
             func = getattr(self, func)
 
         ids, _, ngroup = self.grouper.group_info
@@ -1006,7 +1010,7 @@ class SeriesGroupBy(GroupBy):
         -------
         filtered : Series
         """
-        if isinstance(func, compat.string_types):
+        if isinstance(func, str):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
         else:
             wrapper = lambda x: func(x, *args, **kwargs)
@@ -1218,7 +1222,7 @@ class SeriesGroupBy(GroupBy):
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)
-        minlength = ngroups or (None if _np_version_under1p13 else 0)
+        minlength = ngroups or 0
         out = np.bincount(ids[mask], minlength=minlength)
 
         return Series(out,
@@ -1503,7 +1507,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def _fill(self, direction, limit=None):
         """Overridden method to join grouped columns in output"""
         res = super(DataFrameGroupBy, self)._fill(direction, limit=limit)
-        output = collections.OrderedDict(
+        output = OrderedDict(
             (grp.name, grp.grouper) for grp in self.grouper.groupings)
 
         from pandas import concat

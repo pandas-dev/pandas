@@ -10,8 +10,6 @@ import numpy as np
 
 from pandas._libs import internals as libinternals, lib, tslib, tslibs
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
-import pandas.compat as compat
-from pandas.compat import range, zip
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -603,8 +601,7 @@ class Block(PandasObject):
                 if self.is_extension:
                     values = self.values.astype(dtype)
                 else:
-                    if issubclass(dtype.type,
-                                  (compat.text_type, compat.string_types)):
+                    if issubclass(dtype.type, str):
 
                         # use native type formatting for datetime/tz/timedelta
                         if self.is_datelike:
@@ -673,7 +670,7 @@ class Block(PandasObject):
         elif self.is_float and result.dtype == self.dtype:
 
             # protect against a bool/object showing up here
-            if isinstance(dtype, compat.string_types) and dtype == 'infer':
+            if isinstance(dtype, str) and dtype == 'infer':
                 return result
             if not isinstance(dtype, type):
                 dtype = dtype.type
@@ -739,7 +736,7 @@ class Block(PandasObject):
         values = self.values
         if deep:
             values = values.copy()
-        return self.make_block_same_class(values)
+        return self.make_block_same_class(values, ndim=self.ndim)
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True):
@@ -1828,10 +1825,9 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             placement=self.mgr_locs)
 
     def shift(self,
-              periods,                  # type: int
-              axis=0,                   # type: libinternals.BlockPlacement
-              fill_value=None):         # type: Any
-        # type: (...) -> List[ExtensionBlock]
+              periods: int,
+              axis: libinternals.BlockPlacement = 0,
+              fill_value: Any = None) -> List['ExtensionBlock']:
         """
         Shift the block by `periods`.
 
@@ -1960,9 +1956,9 @@ class FloatBlock(FloatOrComplexBlock):
                     not issubclass(tipo.type, (np.datetime64, np.timedelta64)))
         return (
             isinstance(
-                element, (float, int, np.floating, np.int_, compat.long))
-            and not isinstance(element, (bool, np.bool_, datetime, timedelta,
-                                         np.datetime64, np.timedelta64)))
+                element, (float, int, np.floating, np.int_)) and
+            not isinstance(element, (bool, np.bool_, datetime, timedelta,
+                                     np.datetime64, np.timedelta64)))
 
     def to_native_types(self, slicer=None, na_rep='', float_format=None,
                         decimal='.', quoting=None, **kwargs):
@@ -2012,8 +2008,8 @@ class ComplexBlock(FloatOrComplexBlock):
         return (
             isinstance(
                 element,
-                (float, int, complex, np.float_, np.int_, compat.long))
-            and not isinstance(element, (bool, np.bool_)))
+                (float, int, complex, np.float_, np.int_)) and
+            not isinstance(element, (bool, np.bool_)))
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.complexfloating)
@@ -2601,7 +2597,7 @@ class ObjectBlock(Block):
     _can_hold_na = True
 
     def __init__(self, values, placement=None, ndim=2):
-        if issubclass(values.dtype.type, compat.string_types):
+        if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
 
         super(ObjectBlock, self).__init__(values, ndim=ndim,
@@ -2830,7 +2826,7 @@ class ObjectBlock(Block):
 
         # deal with replacing values with objects (strings) that match but
         # whose replacement is not a string (numeric, nan, object)
-        if isna(value) or not isinstance(value, compat.string_types):
+        if isna(value) or not isinstance(value, str):
 
             def re_replacer(s):
                 try:

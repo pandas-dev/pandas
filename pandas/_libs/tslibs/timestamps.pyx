@@ -18,7 +18,7 @@ PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
     is_datetime64_object, is_timedelta64_object, is_integer_object,
-    is_string_object, is_array, is_offset_object)
+    is_array, is_offset_object)
 
 cimport pandas._libs.tslibs.ccalendar as ccalendar
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
@@ -129,18 +129,6 @@ class RoundTo(object):
         return 4
 
 
-cdef inline _npdivmod(x1, x2):
-    """implement divmod for numpy < 1.13"""
-    return np.floor_divide(x1, x2), np.remainder(x1, x2)
-
-
-try:
-    from numpy import divmod as npdivmod
-except ImportError:
-    # numpy < 1.13
-    npdivmod = _npdivmod
-
-
 cdef inline _floor_int64(values, unit):
     return values - np.remainder(values, unit)
 
@@ -183,7 +171,7 @@ def round_nsint64(values, mode, freq):
         # for odd unit there is no need of a tie break
         if unit % 2:
             return _rounddown_int64(values, unit)
-        quotient, remainder = npdivmod(values, unit)
+        quotient, remainder = np.divmod(values, unit)
         mask = np.logical_or(
             remainder > (unit // 2),
             np.logical_and(remainder == (unit // 2), quotient % 2)
@@ -239,26 +227,13 @@ cdef class _Timestamp(datetime):
                     if is_datetime64_object(other):
                         other = Timestamp(other)
                     else:
-                        if op == Py_EQ:
-                            return False
-                        elif op == Py_NE:
-                            return True
-
-                        # only allow ==, != ops
-                        raise TypeError('Cannot compare type %r with type %r' %
-                                        (type(self).__name__,
-                                         type(other).__name__))
+                        return NotImplemented
                 elif is_array(other):
                     # avoid recursion error GH#15183
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
-                if op == Py_EQ:
-                    return False
-                elif op == Py_NE:
-                    return True
-                raise TypeError('Cannot compare type %r with type %r' %
-                                (type(self).__name__, type(other).__name__))
+                return NotImplemented
 
         self._assert_tzawareness_compat(other)
         return cmp_scalar(self.value, ots.value, op)
@@ -551,7 +526,8 @@ cdef class _Timestamp(datetime):
 
 
 class Timestamp(_Timestamp):
-    """Pandas replacement for datetime.datetime
+    """
+    Pandas replacement for python datetime.datetime object.
 
     Timestamp is the pandas equivalent of python's Datetime
     and is interchangeable with it in most cases. It's the type used
@@ -561,9 +537,9 @@ class Timestamp(_Timestamp):
     Parameters
     ----------
     ts_input : datetime-like, str, int, float
-        Value to be converted to Timestamp
+        Value to be converted to Timestamp.
     freq : str, DateOffset
-        Offset which Timestamp will have
+        Offset which Timestamp will have.
     tz : str, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str
@@ -650,7 +626,7 @@ class Timestamp(_Timestamp):
         tz : str or timezone object, default None
             Timezone to localize to
         """
-        if is_string_object(tz):
+        if isinstance(tz, str):
             tz = maybe_get_tz(tz)
         return cls(datetime.now(tz))
 
@@ -759,7 +735,7 @@ class Timestamp(_Timestamp):
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
 
-        if is_string_object(ts_input):
+        if isinstance(ts_input, str):
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
             if any(arg is not None for arg in _date_attributes):
@@ -1213,7 +1189,7 @@ class Timestamp(_Timestamp):
         if self.tzinfo is None:
             # tz naive, localize
             tz = maybe_get_tz(tz)
-            if not is_string_object(ambiguous):
+            if not isinstance(ambiguous, str):
                 ambiguous = [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous,

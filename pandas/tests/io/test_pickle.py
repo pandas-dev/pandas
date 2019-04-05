@@ -12,16 +12,20 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+import bz2
 from distutils.version import LooseVersion
 import glob
+import gzip
+import lzma
 import os
+import pickle
 import shutil
 from warnings import catch_warnings, simplefilter
+import zipfile
 
 import pytest
 
-from pandas.compat import PY3, is_platform_little_endian
-import pandas.util._test_decorators as td
+from pandas.compat import is_platform_little_endian
 
 import pandas as pd
 from pandas import Index
@@ -214,37 +218,20 @@ def test_pickles(current_pickle_data, legacy_pickle):
 
 def test_round_trip_current(current_pickle_data):
 
-    try:
-        import cPickle as c_pickle
-
-        def c_pickler(obj, path):
-            with open(path, 'wb') as fh:
-                c_pickle.dump(obj, fh, protocol=-1)
-
-        def c_unpickler(path):
-            with open(path, 'rb') as fh:
-                fh.seek(0)
-                return c_pickle.load(fh)
-    except ImportError:
-        c_pickler = None
-        c_unpickler = None
-
-    import pickle as python_pickle
-
     def python_pickler(obj, path):
         with open(path, 'wb') as fh:
-            python_pickle.dump(obj, fh, protocol=-1)
+            pickle.dump(obj, fh, protocol=-1)
 
     def python_unpickler(path):
         with open(path, 'rb') as fh:
             fh.seek(0)
-            return python_pickle.load(fh)
+            return pickle.load(fh)
 
     data = current_pickle_data
     for typ, dv in data.items():
         for dt, expected in dv.items():
 
-            for writer in [pd.to_pickle, c_pickler, python_pickler]:
+            for writer in [pd.to_pickle, python_pickler]:
                 if writer is None:
                     continue
 
@@ -256,10 +243,6 @@ def test_round_trip_current(current_pickle_data):
                     # test reading with each unpickler
                     result = pd.read_pickle(path)
                     compare_element(result, expected, typ)
-
-                    if c_unpickler is not None:
-                        result = c_unpickler(path)
-                        compare_element(result, expected, typ)
 
                     result = python_unpickler(path)
                     compare_element(result, expected, typ)
@@ -313,7 +296,7 @@ def test_pickle_path_localpath():
 
 @pytest.fixture
 def get_random_path():
-    return u'__%s__.pickle' % tm.rands(10)
+    return '__%s__.pickle' % tm.rands(10)
 
 
 class TestCompression(object):
@@ -332,18 +315,14 @@ class TestCompression(object):
             return
 
         if compression == 'gzip':
-            import gzip
             f = gzip.open(dest_path, "w")
         elif compression == 'bz2':
-            import bz2
             f = bz2.BZ2File(dest_path, "w")
         elif compression == 'zip':
-            import zipfile
             with zipfile.ZipFile(dest_path, "w",
                                  compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == 'xz':
-            lzma = pd.compat.import_lzma()
             f = lzma.LZMAFile(dest_path, "w")
         else:
             msg = 'Unrecognized compression type: {}'.format(compression)
@@ -381,10 +360,7 @@ class TestCompression(object):
                 df = tm.makeDataFrame()
                 df.to_pickle(path, compression=compression)
 
-    @pytest.mark.parametrize('ext', [
-        '', '.gz', '.bz2', '.no_compress',
-        pytest.param('.xz', marks=td.skip_if_no_lzma)
-    ])
+    @pytest.mark.parametrize('ext', ['', '.gz', '.bz2', '.no_compress', '.xz'])
     def test_write_infer(self, ext, get_random_path):
         base = get_random_path
         path1 = base + ext
@@ -431,9 +407,7 @@ class TestCompression(object):
             tm.assert_frame_equal(df, df2)
 
     @pytest.mark.parametrize('ext', [
-        '', '.gz', '.bz2', '.zip', '.no_compress',
-        pytest.param('.xz', marks=td.skip_if_no_lzma)
-    ])
+        '', '.gz', '.bz2', '.zip', '.no_compress', '.xz'])
     def test_read_infer(self, ext, get_random_path):
         base = get_random_path
         path1 = base + ".raw"
@@ -472,14 +446,3 @@ class TestProtocol(object):
             df.to_pickle(path, protocol=protocol)
             df2 = pd.read_pickle(path)
             tm.assert_frame_equal(df, df2)
-
-    @pytest.mark.parametrize('protocol', [3, 4])
-    @pytest.mark.skipif(PY3, reason="Testing invalid parameters for Python 2")
-    def test_read_bad_versions(self, protocol, get_random_path):
-        # For Python 2, HIGHEST_PROTOCOL should be 2.
-        msg = ("pickle protocol {protocol} asked for; the highest available "
-               "protocol is 2").format(protocol=protocol)
-        with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean(get_random_path) as path:
-                df = tm.makeDataFrame()
-                df.to_pickle(path, protocol=protocol)

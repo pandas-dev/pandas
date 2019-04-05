@@ -33,8 +33,6 @@ From the bash command line with $GITHUB token.
     $ ./scripts/announce.py $GITHUB v1.11.0..v1.11.1 > announce.rst
 
 """
-from __future__ import division, print_function
-
 import codecs
 import os
 import re
@@ -56,7 +54,7 @@ A total of %d pull requests were merged for this release.
 
 
 def get_authors(revision_range):
-    pat = u'^.*\\t(.*)$'
+    pat = '^.*\\t(.*)$'
     lst_release, cur_release = [r.strip() for r in revision_range.split('..')]
 
     # authors, in current release and previous to current release.
@@ -70,7 +68,7 @@ def get_authors(revision_range):
     pre.discard('Homu')
 
     # Append '+' to new authors.
-    authors = [s + u' +' for s in cur - pre] + [s for s in cur & pre]
+    authors = [s + ' +' for s in cur - pre] + [s for s in cur & pre]
     authors.sort()
     return authors
 
@@ -81,17 +79,17 @@ def get_pull_requests(repo, revision_range):
     # From regular merges
     merges = this_repo.git.log(
         '--oneline', '--merges', revision_range)
-    issues = re.findall(u"Merge pull request \\#(\\d*)", merges)
+    issues = re.findall("Merge pull request \\#(\\d*)", merges)
     prnums.extend(int(s) for s in issues)
 
     # From Homu merges (Auto merges)
-    issues = re. findall(u"Auto merge of \\#(\\d*)", merges)
+    issues = re. findall("Auto merge of \\#(\\d*)", merges)
     prnums.extend(int(s) for s in issues)
 
     # From fast forward squash-merges
     commits = this_repo.git.log(
         '--oneline', '--no-merges', '--first-parent', revision_range)
-    issues = re.findall(u'^.*\\(\\#(\\d+)\\)$', commits, re.M)
+    issues = re.findall('^.*\\(\\#(\\d+)\\)$', commits, re.M)
     prnums.extend(int(s) for s in issues)
 
     # get PR data from github repo

@@ -1,3 +1,4 @@
+from collections import abc
 from datetime import datetime, time
 from functools import partial
 
@@ -8,7 +9,6 @@ from pandas._libs.tslibs import Timestamp, conversion, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError, _format_is_iso, _guess_datetime_format, parse_time_string)
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas.compat import zip
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import notna
 
-from pandas import compat
 from pandas.core import algorithms
 
 
@@ -600,7 +599,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         else:
             values = convert_listlike(arg._values, True, format)
             result = arg._constructor(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (ABCDataFrame, compat.MutableMapping)):
+    elif isinstance(arg, (ABCDataFrame, abc.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, box, tz)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)

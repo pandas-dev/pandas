@@ -3,9 +3,6 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
-# necessary to enforce truediv in Python 2.X
-from __future__ import division
-
 import datetime
 import operator
 import textwrap
@@ -168,7 +165,7 @@ def rmod(left, right):
     # check if right is a string as % is the string
     # formatting operation; this is a TypeError
     # otherwise perform the op
-    if isinstance(right, compat.string_types):
+    if isinstance(right, str):
         raise TypeError("{typ} cannot perform the operation mod".format(
             typ=type(left).__name__))
 
@@ -1660,7 +1657,7 @@ def _construct_result(left, result, index, name, dtype=None):
     not be enough; we still need to override the name attribute.
     """
     out = left._constructor(result, index=index, dtype=dtype)
-
+    out = out.__finalize__(left)
     out.name = name
     return out
 
@@ -1668,10 +1665,11 @@ def _construct_result(left, result, index, name, dtype=None):
 def _construct_divmod_result(left, result, index, name, dtype=None):
     """divmod returns a tuple of like indexed series instead of a single series.
     """
-    constructor = left._constructor
     return (
-        constructor(result[0], index=index, name=name, dtype=dtype),
-        constructor(result[1], index=index, name=name, dtype=dtype),
+        _construct_result(left, result[0], index=index, name=name,
+                          dtype=dtype),
+        _construct_result(left, result[1], index=index, name=name,
+                          dtype=dtype),
     )
 
 

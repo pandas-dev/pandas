@@ -29,7 +29,7 @@ cdef extern from "src/datetime/np_datetime.h":
                                            npy_datetimestruct *d) nogil
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.util cimport is_period_object, is_string_object
+from pandas._libs.tslibs.util cimport is_period_object
 
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
@@ -53,7 +53,6 @@ from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.offsets import _Tick
 
 cdef:
-    bint PY2 = str == bytes
     enum:
         INT32_MIN = -2147483648
 
@@ -1287,9 +1286,6 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 
             result = result.replace(str_extra_fmts[i], repl)
 
-    if PY2:
-        result = result.decode('utf-8', 'ignore')
-
     return result
 
 
@@ -2394,7 +2390,7 @@ class Period(_Period):
 
     Parameters
     ----------
-    value : Period or compat.string_types, default None
+    value : Period or str, default None
         The time period represented (e.g., '4Q2005')
     freq : str, default None
         One of pandas period strings or corresponding objects
@@ -2461,7 +2457,7 @@ class Period(_Period):
         elif is_null_datetimelike(value) or value in nat_strings:
             ordinal = NPY_NAT
 
-        elif is_string_object(value) or util.is_integer_object(value):
+        elif isinstance(value, str) or util.is_integer_object(value):
             if util.is_integer_object(value):
                 value = str(value)
             value = value.upper()

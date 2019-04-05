@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 import numpy as np
 import pytest
-
-from pandas.compat import PY2
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
@@ -73,7 +69,6 @@ class TestDataFrameQuantile(TestData):
         with pytest.raises(TypeError):
             df.quantile(.5, axis=1, numeric_only=False)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_quantile_axis_parameter(self):
         # GH 9543/9544
 

@@ -9,6 +9,7 @@ import collections
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from fractions import Fraction
+from io import StringIO
 from numbers import Number
 import re
 
@@ -17,7 +18,7 @@ import pytest
 import pytz
 
 from pandas._libs import iNaT, lib, missing as libmissing
-from pandas.compat import PY2, StringIO, lrange, u
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
@@ -30,7 +31,7 @@ from pandas.core.dtypes.common import (
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Period,
-    Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna)
+    Series, Timedelta, TimedeltaIndex, Timestamp, isna)
 from pandas.util import testing as tm
 
 
@@ -108,7 +109,6 @@ def test_is_sequence():
     assert (is_seq((1, 2)))
     assert (is_seq([1, 2]))
     assert (not is_seq("abcd"))
-    assert (not is_seq(u("abcd")))
     assert (not is_seq(np.int64))
 
     class A(object):
@@ -281,22 +281,10 @@ def test_is_hashable():
     for i in abc_hashable_not_really_hashable:
         assert not inference.is_hashable(i)
 
-    # numpy.array is no longer collections.Hashable as of
+    # numpy.array is no longer collections.abc.Hashable as of
     # https://github.com/numpy/numpy/pull/5326, just test
     # is_hashable()
     assert not inference.is_hashable(np.array([]))
-
-    # old-style classes in Python 2 don't appear hashable to
-    # collections.Hashable but also seem to support hash() by default
-    if PY2:
-
-        class OldStyleClass():
-            pass
-
-        c = OldStyleClass()
-        assert not isinstance(c, compat.Hashable)
-        assert inference.is_hashable(c)
-        hash(c)  # this will not raise
 
 
 @pytest.mark.parametrize(
@@ -312,10 +300,10 @@ def test_is_re_fails(ll):
 
 
 @pytest.mark.parametrize(
-    "ll", [r'a', u('x'),
+    "ll", [r'a', 'x',
            r'asdf',
            re.compile('adsf'),
-           u(r'\u2233\s*'),
+           r'\u2233\s*',
            re.compile(r'')])
 def test_is_recompilable_passes(ll):
     assert inference.is_re_compilable(ll)
@@ -330,7 +318,7 @@ def test_is_recompilable_fails(ll):
 class TestInference(object):
 
     def test_infer_dtype_bytes(self):
-        compare = 'string' if PY2 else 'bytes'
+        compare = 'bytes'
 
         # string array of bytes
         arr = np.array(list('abc'), dtype='S1')
@@ -381,7 +369,7 @@ class TestInference(object):
                 tm.assert_numpy_array_equal(out, neg)
 
                 out = lib.maybe_convert_numeric(
-                    np.array([u(infinity)], dtype=object),
+                    np.array([infinity], dtype=object),
                     na_values, maybe_int)
                 tm.assert_numpy_array_equal(out, pos)
 
@@ -652,13 +640,13 @@ class TestTypeInference(object):
         pass
 
     def test_unicode(self):
-        arr = [u'a', np.nan, u'c']
+        arr = ['a', np.nan, 'c']
         result = lib.infer_dtype(arr, skipna=False)
         assert result == 'mixed'
 
-        arr = [u'a', np.nan, u'c']
+        arr = ['a', np.nan, 'c']
         result = lib.infer_dtype(arr, skipna=True)
-        expected = 'unicode' if PY2 else 'string'
+        expected = 'string'
         assert result == expected
 
     @pytest.mark.parametrize('dtype, missing, skipna, expected', [
@@ -1251,7 +1239,6 @@ class TestIsScalar(object):
         assert is_scalar(np.nan)
         assert is_scalar('foobar')
         assert is_scalar(b'foobar')
-        assert is_scalar(u('efoobar'))
         assert is_scalar(datetime(2014, 1, 1))
         assert is_scalar(date(2014, 1, 1))
         assert is_scalar(time(12, 0))
@@ -1273,7 +1260,7 @@ class TestIsScalar(object):
         assert is_scalar(np.int32(1))
         assert is_scalar(np.object_('foobar'))
         assert is_scalar(np.str_('foobar'))
-        assert is_scalar(np.unicode_(u('foobar')))
+        assert is_scalar(np.unicode_('foobar'))
         assert is_scalar(np.bytes_(b'foobar'))
         assert is_scalar(np.datetime64('2014-01-01'))
         assert is_scalar(np.timedelta64(1, 'h'))

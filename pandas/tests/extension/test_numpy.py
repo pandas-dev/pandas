@@ -4,7 +4,6 @@ import pytest
 from pandas.compat.numpy import _np_version_under1p16
 
 import pandas as pd
-from pandas import compat
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
 import pandas.util.testing as tm
 
@@ -276,21 +275,11 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
         pass
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        if (compat.PY2 and
-                all_arithmetic_operators in {'__div__', '__rdiv__'}):
-            raise pytest.skip(
-                "Matching NumPy int / int -> float behavior."
-            )
         super(TestArithmetics, self).test_arith_series_with_scalar(
             data, all_arithmetic_operators
         )
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        if (compat.PY2 and
-                all_arithmetic_operators in {'__div__', '__rdiv__'}):
-            raise pytest.skip(
-                "Matching NumPy int / int -> float behavior."
-            )
         super(TestArithmetics, self).test_arith_series_with_array(
             data, all_arithmetic_operators
         )
