@@ -1045,7 +1045,7 @@ Option 1: pass rows explicitly to skip rows
 
 .. ipython:: python
 
-    from pandas.compat import StringIO
+    from io import StringIO
 
     pd.read_csv(StringIO(data), sep=';', skiprows=[11, 12],
                 index_col=0, parse_dates=True, header=10)
