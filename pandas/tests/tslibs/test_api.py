@@ -20,7 +20,8 @@ def test_namespace():
                   'strptime',
                   'timedeltas',
                   'timestamps',
-                  'timezones']
+                  'timezones',
+                  'tzconversion']
 
     api = ['NaT',
            'NaTType',
