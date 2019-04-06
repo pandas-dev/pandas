@@ -643,3 +643,13 @@ def test_to_html_round_column_headers():
         notebook = df.to_html(notebook=True)
     assert "0.55555" in html
     assert "0.556" in notebook
+
+
+def test_to_html_with_col_space_percent():
+    # GH 25941
+    df = DataFrame(np.random.random(size=(1, 3)))
+    result = df.to_html(col_space='100%')
+    result = result.split('tbody')[0]
+    hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
+    for h in hdrs:
+        assert "min-width: 100%" in h

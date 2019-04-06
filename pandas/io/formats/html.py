@@ -85,8 +85,11 @@ class HTMLFormatter(TableFormatter):
         rs = pprint_thing(s)
         self.elements.append(' ' * indent + rs)
 
-    def write_th(self, s, indent=0, tags=None):
-        if self.fmt.col_space is not None and self.fmt.col_space > 0:
+    def write_th(self, s, header=False, indent=0, tags=None):
+        if header and self.fmt.col_space is not None:
+            if isinstance(self.fmt.col_space, int):
+                self.fmt.col_space = ('{colspace}px'
+                                      .format(colspace=self.fmt.col_space))
             tags = (tags or "")
             tags += ('style="min-width: {colspace};"'
                      .format(colspace=self.fmt.col_space))
@@ -137,7 +140,7 @@ class HTMLFormatter(TableFormatter):
         for i, s in enumerate(line):
             val_tag = tags.get(i, None)
             if header or (self.bold_rows and i < nindex_levels):
-                self.write_th(s, indent, tags=val_tag)
+                self.write_th(s, header=header, indent=indent, tags=val_tag)
             else:
                 self.write_td(s, indent, tags=val_tag)
 
