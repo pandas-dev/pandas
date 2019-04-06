@@ -4,7 +4,6 @@ from textwrap import dedent
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
-from pandas.compat import signature
 
 
 def deprecate(name, alternative, version, alt_name=None,
