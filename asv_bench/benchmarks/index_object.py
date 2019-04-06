@@ -183,13 +183,14 @@ class Float64IndexMethod(object):
 
 class IntervalIndexMethod(object):
     # GH 24813
-    def setup(self):
-        N = 10**5
+    params = [10**3, 10**5]
+
+    def setup(self, N):
         left = np.append(np.arange(N), np.array(0))
         right = np.append(np.arange(1, N + 1), np.array(1))
         self.intv = IntervalIndex.from_arrays(left, right)
 
-    def time_monotonic_inc(self):
+    def time_monotonic_inc(self, N):
         self.intv.is_monotonic_increasing
 
 
