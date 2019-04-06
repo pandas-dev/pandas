@@ -644,6 +644,7 @@ def test_to_html_round_column_headers():
     assert "0.55555" in html
     assert "0.556" in notebook
 
+
 @pytest.mark.parametrize("unit", ['100px', '10%', '5em', 150])
 def test_to_html_with_col_space_units(unit):
     # GH 25941
