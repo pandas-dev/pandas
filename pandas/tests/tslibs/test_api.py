@@ -6,7 +6,8 @@ from pandas._libs import tslibs
 
 def test_namespace():
 
-    submodules = ['ccalendar',
+    submodules = ['c_timestamp',
+                  'ccalendar',
                   'conversion',
                   'fields',
                   'frequencies',
