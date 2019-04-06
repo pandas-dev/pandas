@@ -2,8 +2,6 @@
 from io import StringIO
 import warnings
 
-import pandas.compat as compat
-
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas import get_option, option_context

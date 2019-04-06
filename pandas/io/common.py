@@ -16,7 +16,6 @@ from urllib.parse import (  # noqa
 from urllib.request import pathname2url, urlopen
 import zipfile
 
-import pandas.compat as compat
 from pandas.errors import (  # noqa
     AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
     ParserWarning)
