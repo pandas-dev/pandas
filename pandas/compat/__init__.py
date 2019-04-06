@@ -8,7 +8,6 @@ Key items to import for 2/3 compatible code:
 * lists: lrange(), lmap(), lzip(), lfilter()
 * iterable method compatibility: iteritems, iterkeys, itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
-* bind_method: binds functions to classes
 * add_metaclass(metaclass) - class decorator that recreates class with with the
   given metaclass instead (and avoids intermediary class creation)
 

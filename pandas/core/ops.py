@@ -13,7 +13,6 @@ import numpy as np
 
 from pandas._libs import algos as libalgos, lib, ops as libops
 import pandas.compat as compat
-from pandas.compat import bind_method
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
