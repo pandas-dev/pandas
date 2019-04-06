@@ -4,7 +4,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, Index, Series

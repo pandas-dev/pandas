@@ -77,7 +77,7 @@ class Registry(object):
         -------
         return the first matching dtype, otherwise return None
         """
-        if not isinstance(dtype, compat.string_types):
+        if not isinstance(dtype, str):
             dtype_type = dtype
             if not isinstance(dtype, type):
                 dtype_type = type(dtype)
@@ -138,7 +138,7 @@ class PandasExtensionDtype(_DtypeOpsMixin):
         Invoked by bytes(obj) in py3 only.
         Yields a bytestring in both py2/py3.
         """
-        from pandas.core.config import get_option
+        from pandas._config import get_option
 
         encoding = get_option("display.encoding")
         return self.__unicode__().encode(encoding, 'replace')
@@ -305,7 +305,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         if dtype is not None:
             # The dtype argument takes precedence over values.dtype (if any)
-            if isinstance(dtype, compat.string_types):
+            if isinstance(dtype, str):
                 if dtype == 'category':
                     dtype = CategoricalDtype(categories, ordered)
                 else:
@@ -367,7 +367,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
            not required. There is no distinction between False/None.
         6) Any other comparison returns False
         """
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             return other == self.name
         elif other is self:
             return True
@@ -393,9 +393,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return hash(self) == hash(other)
 
     def __repr__(self):
-        tpl = u'CategoricalDtype(categories={}ordered={})'
+        tpl = 'CategoricalDtype(categories={}ordered={})'
         if self.categories is None:
-            data = u"None, "
+            data = "None, "
         else:
             data = self.categories._format_data(name=self.__class__.__name__)
         return tpl.format(data, self.ordered)
@@ -532,7 +532,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         -------
         new_dtype : CategoricalDtype
         """
-        if isinstance(dtype, compat.string_types) and dtype == 'category':
+        if isinstance(dtype, str) and dtype == 'category':
             # dtype='category' should not change anything
             return self
         elif not self.is_dtype(dtype):
@@ -623,7 +623,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
             unit, tz = unit.unit, unit.tz
 
         if unit != 'ns':
-            if isinstance(unit, compat.string_types) and tz is None:
+            if isinstance(unit, str) and tz is None:
                 # maybe a string like datetime64[ns, tz], which we support for
                 # now.
                 result = type(self).construct_from_string(unit)
@@ -688,7 +688,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
         >>> DatetimeTZDtype.construct_from_string('datetime64[ns, UTC]')
         datetime64[ns, UTC]
         """
-        if isinstance(string, compat.string_types):
+        if isinstance(string, str):
             msg = "Could not construct DatetimeTZDtype from '{}'"
             try:
                 match = cls._match.match(string)
@@ -716,7 +716,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
         return hash(str(self))
 
     def __eq__(self, other):
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             return other == self.name
 
         return (isinstance(other, DatetimeTZDtype) and
@@ -772,7 +772,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
 
     @classmethod
     def _parse_dtype_strict(cls, freq):
-        if isinstance(freq, compat.string_types):
+        if isinstance(freq, str):
             if freq.startswith('period[') or freq.startswith('Period['):
                 m = cls._match.search(freq)
                 if m is not None:
@@ -790,7 +790,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
         Strict construction from a string, raise a TypeError if not
         possible
         """
-        if (isinstance(string, compat.string_types) and
+        if (isinstance(string, str) and
             (string.startswith('period[') or
              string.startswith('Period[')) or
                 isinstance(string, ABCDateOffset)):
@@ -803,7 +803,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
         raise TypeError("could not construct PeriodDtype")
 
     def __unicode__(self):
-        return compat.text_type(self.name)
+        return str(self.name)
 
     @property
     def name(self):
@@ -818,7 +818,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
         return hash(str(self))
 
     def __eq__(self, other):
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             return other == self.name or other == self.name.title()
 
         return isinstance(other, PeriodDtype) and self.freq == other.freq
@@ -830,7 +830,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
         can match (via string or type)
         """
 
-        if isinstance(dtype, compat.string_types):
+        if isinstance(dtype, str):
             # PeriodDtype can be instantiated from freq string like "U",
             # but doesn't regard freq str like "U" as dtype.
             if dtype.startswith('period[') or dtype.startswith('Period['):
@@ -885,11 +885,11 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
             u = object.__new__(cls)
             u.subtype = None
             return u
-        elif (isinstance(subtype, compat.string_types) and
+        elif (isinstance(subtype, str) and
               subtype.lower() == 'interval'):
             subtype = None
         else:
-            if isinstance(subtype, compat.string_types):
+            if isinstance(subtype, str):
                 m = cls._match.search(subtype)
                 if m is not None:
                     subtype = m.group('subtype')
@@ -931,13 +931,13 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         attempt to construct this type from a string, raise a TypeError
         if its not possible
         """
-        if not isinstance(string, compat.string_types):
+        if not isinstance(string, str):
             msg = "a string needs to be passed, got type {typ}"
             raise TypeError(msg.format(typ=type(string)))
 
         if (string.lower() == 'interval' or
            cls._match.search(string) is not None):
-                return cls(string)
+            return cls(string)
 
         msg = ('Incorrectly formatted string passed to constructor. '
                'Valid formats include Interval or Interval[dtype] '
@@ -958,7 +958,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         return hash(str(self))
 
     def __eq__(self, other):
-        if isinstance(other, compat.string_types):
+        if isinstance(other, str):
             return other.lower() in (self.name.lower(), str(self).lower())
         elif not isinstance(other, IntervalDtype):
             return False
@@ -976,7 +976,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         can match (via string or type)
         """
 
-        if isinstance(dtype, compat.string_types):
+        if isinstance(dtype, str):
             if dtype.lower().startswith('interval'):
                 try:
                     if cls.construct_from_string(dtype) is not None:

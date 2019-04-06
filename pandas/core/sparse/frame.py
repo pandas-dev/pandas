@@ -2,8 +2,6 @@
 Data structures for sparse float data. Life is made simpler by dealing only
 with float64 data
 """
-from __future__ import division
-
 import warnings
 
 import numpy as np

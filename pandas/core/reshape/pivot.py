@@ -1,14 +1,13 @@
 # pylint: disable=E1103
 import numpy as np
 
-from pandas.compat import lrange, range, zip
+from pandas.compat import lrange
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas import compat
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
 from pandas.core.groupby import Grouper
@@ -151,10 +150,10 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
 def _add_margins(table, data, values, rows, cols, aggfunc,
                  observed=None, margins_name='All', fill_value=None):
-    if not isinstance(margins_name, compat.string_types):
+    if not isinstance(margins_name, str):
         raise ValueError('margins_name argument must be a string')
 
-    msg = u'Conflicting name "{name}" in margins'.format(name=margins_name)
+    msg = 'Conflicting name "{name}" in margins'.format(name=margins_name)
     for level in table.index.names:
         if margins_name in table.index.get_level_values(level):
             raise ValueError(msg)
@@ -195,7 +194,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
     # populate grand margin
     for k in margin_keys:
-        if isinstance(k, compat.string_types):
+        if isinstance(k, str):
             row_margin[k] = grand_margin[k]
         else:
             row_margin[k] = grand_margin[k[0]]
@@ -226,10 +225,10 @@ def _compute_grand_margin(data, values, aggfunc,
         grand_margin = {}
         for k, v in data[values].iteritems():
             try:
-                if isinstance(aggfunc, compat.string_types):
+                if isinstance(aggfunc, str):
                     grand_margin[k] = getattr(v, aggfunc)()
                 elif isinstance(aggfunc, dict):
-                    if isinstance(aggfunc[k], compat.string_types):
+                    if isinstance(aggfunc[k], str):
                         grand_margin[k] = getattr(v, aggfunc[k])()
                     else:
                         grand_margin[k] = aggfunc[k](v)
@@ -530,8 +529,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
 
 def _normalize(table, normalize, margins, margins_name='All'):
 
-    if not isinstance(normalize, bool) and not isinstance(normalize,
-                                                          compat.string_types):
+    if not isinstance(normalize, (bool, str)):
         axis_subs = {0: 'index', 1: 'columns'}
         try:
             normalize = axis_subs[normalize]

@@ -946,23 +946,6 @@ that is itself a series, and possibly upcast the result to a DataFrame:
    So depending on the path taken, and exactly what you are grouping. Thus the grouped columns(s) may be included in
    the output as well as set the indices.
 
-.. warning::
-
-    In the current implementation apply calls func twice on the
-    first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if func has
-    side-effects, as they will take effect twice for the first
-    group.
-
-    .. ipython:: python
-
-        d = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
-        def identity(df):
-            print(df)
-            return df
-
-        d.groupby("a").apply(identity)
-
 
 Other useful features
 ---------------------

@@ -259,7 +259,7 @@ Every period in a ``PeriodArray`` must have the same ``freq``.
 .. autosummary::
    :toctree: api/
 
-   arrays.DatetimeArray
+   arrays.PeriodArray
    PeriodDtype
 
 .. _api.arrays.interval:

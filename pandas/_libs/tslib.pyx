@@ -2,7 +2,6 @@
 import cython
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
-                               PyDateTime_CheckExact,
                                PyDateTime_IMPORT,
                                timedelta, datetime, date, time)
 # import datetime C API
@@ -17,8 +16,9 @@ cnp.import_array()
 import pytz
 
 from pandas._libs.util cimport (
-    is_integer_object, is_float_object, is_string_object, is_datetime64_object)
+    is_integer_object, is_float_object, is_datetime64_object)
 
+from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, _string_to_dts, dt64_to_dtstruct,
@@ -31,8 +31,8 @@ from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.conversion cimport (
-    tz_convert_single, _TSObject, convert_datetime_to_tsobject,
-    get_datetime64_nanos, tz_convert_utc_to_tzlocal)
+    _TSObject, convert_datetime_to_tsobject,
+    get_datetime64_nanos)
 
 # many modules still look for NaT and iNaT here despite them not being needed
 from pandas._libs.tslibs.nattype import nat_strings, iNaT  # noqa:F821
@@ -44,8 +44,8 @@ from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.timestamps cimport create_timestamp_from_ts
 from pandas._libs.tslibs.timestamps import Timestamp
 
-
-cdef bint PY2 = str == bytes
+from pandas._libs.tslibs.tzconversion cimport (
+    tz_convert_single, tz_convert_utc_to_tzlocal)
 
 
 cdef inline object create_datetime_from_ts(
@@ -114,7 +114,7 @@ def ints_to_pydatetime(int64_t[:] arr, object tz=None, object freq=None,
     elif box == "timestamp":
         func_create = create_timestamp_from_ts
 
-        if is_string_object(freq):
+        if isinstance(freq, str):
             freq = to_offset(freq)
     elif box == "time":
         func_create = create_time_from_ts
@@ -275,7 +275,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
                                                    dts.sec)
 
             if show_ns:
-                ns = dts.ps / 1000
+                ns = dts.ps // 1000
                 res += '.%.9d' % (ns + 1000 * dts.us)
             elif show_us:
                 res += '.%.6d' % dts.us
@@ -386,7 +386,7 @@ def array_with_unit_to_datetime(ndarray values, object unit,
                             raise AssertionError
                         iresult[i] = NPY_NAT
 
-            elif is_string_object(val):
+            elif isinstance(val, str):
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
 
@@ -445,7 +445,7 @@ def array_with_unit_to_datetime(ndarray values, object unit,
                 except:
                     oresult[i] = val
 
-        elif is_string_object(val):
+        elif isinstance(val, str):
             if len(val) == 0 or val in nat_strings:
                 oresult[i] = NaT
 
@@ -539,8 +539,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                                              'datetime64 unless utc=True')
                     else:
                         iresult[i] = pydatetime_to_dt64(val, &dts)
-                        if not PyDateTime_CheckExact(val):
-                            # i.e. a Timestamp object
+                        if isinstance(val, _Timestamp):
                             iresult[i] += val.nanosecond
                         check_dts_bounds(&dts)
 
@@ -572,15 +571,13 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                         except:
                             iresult[i] = NPY_NAT
 
-                elif is_string_object(val):
+                elif isinstance(val, str):
                     # string
                     seen_string = 1
 
                     if len(val) == 0 or val in nat_strings:
                         iresult[i] = NPY_NAT
                         continue
-                    if isinstance(val, unicode) and PY2:
-                        val = val.encode('utf-8')
 
                     try:
                         _string_to_dts(val, &dts, &out_local, &out_tzoffset)
@@ -665,7 +662,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                elif require_iso8601 and is_string_object(val):
+                elif require_iso8601 and isinstance(val, str):
                     # GH#19382 for just-barely-OutOfBounds falling back to
                     # dateutil parser will return incorrect result because
                     # it will ignore nanoseconds
@@ -797,9 +794,10 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
     # 2) datetime strings, which we return as datetime.datetime
     for i in range(n):
         val = values[i]
-        if checknull_with_nat(val):
+        if checknull_with_nat(val) or PyDateTime_Check(val):
+            # GH 25978. No need to parse NaT-like or datetime-like vals
             oresult[i] = val
-        elif is_string_object(val):
+        elif isinstance(val, str):
             if len(val) == 0 or val in nat_strings:
                 oresult[i] = 'NaT'
                 continue

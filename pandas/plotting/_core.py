@@ -1,16 +1,15 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-from __future__ import division
-
 from collections import namedtuple
-from distutils.version import LooseVersion
 import re
 import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 import pandas.compat as compat
-from pandas.compat import lrange, map, range, string_types, zip
+from pandas.compat import lrange
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -22,7 +21,6 @@ from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing
@@ -724,7 +722,7 @@ class MPLPlot(object):
             err = np.tile(err, (self.nseries, 1))
 
         # errors are a column in the dataframe
-        elif isinstance(err, string_types):
+        elif isinstance(err, str):
             evalues = self.data[err].values
             self.data = self.data[self.data.columns.drop(err)]
             err = np.atleast_2d(evalues)
@@ -1475,18 +1473,9 @@ class KdePlot(HistPlot):
     def _plot(cls, ax, y, style=None, bw_method=None, ind=None,
               column_num=None, stacking_id=None, **kwds):
         from scipy.stats import gaussian_kde
-        from scipy import __version__ as spv
 
         y = remove_na_arraylike(y)
-
-        if LooseVersion(spv) >= '0.11.0':
-            gkde = gaussian_kde(y, bw_method=bw_method)
-        else:
-            gkde = gaussian_kde(y)
-            if bw_method is not None:
-                msg = ('bw_method was added in Scipy 0.11.0.' +
-                       ' Scipy version in use is {spv}.'.format(spv=spv))
-                warnings.warn(msg)
+        gkde = gaussian_kde(y, bw_method=bw_method)
 
         y = gkde.evaluate(ind)
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
@@ -1787,7 +1776,7 @@ def _plot(data, x=None, y=None, subplots=False,
                 label_kw = kwds['label'] if 'label' in kwds else False
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
-                        (isinstance(kwds[kw], string_types) or
+                        (isinstance(kwds[kw], str) or
                             is_integer(kwds[kw])):
                         try:
                             kwds[kw] = data[kwds[kw]]

@@ -6,9 +6,8 @@ import warnings
 
 import numpy as np
 from numpy import random
-import pytest
 
-from pandas.compat import iteritems, zip
+from pandas.compat import iteritems
 from pandas.util._decorators import cache_readonly
 import pandas.util._test_decorators as td
 
@@ -28,23 +27,6 @@ This is a common base class used for various plotting tests
 """
 
 
-def _skip_if_no_scipy_gaussian_kde():
-    try:
-        from scipy.stats import gaussian_kde  # noqa
-    except ImportError:
-        pytest.skip("scipy version doesn't support gaussian_kde")
-
-
-def _ok_for_gaussian_kde(kind):
-    if kind in ['kde', 'density']:
-        try:
-            from scipy.stats import gaussian_kde  # noqa
-        except ImportError:
-            return False
-
-    return True
-
-
 @td.skip_if_no_mpl
 class TestPlotBase(object):
 
@@ -53,10 +35,7 @@ class TestPlotBase(object):
         import matplotlib as mpl
         mpl.rcdefaults()
 
-        self.mpl_ge_2_0_1 = plotting._compat._mpl_ge_2_0_1()
-        self.mpl_ge_2_1_0 = plotting._compat._mpl_ge_2_1_0()
-        self.mpl_ge_2_2_0 = plotting._compat._mpl_ge_2_2_0()
-        self.mpl_ge_2_2_2 = plotting._compat._mpl_ge_2_2_2()
+        self.mpl_ge_2_2_3 = plotting._compat._mpl_ge_2_2_3()
         self.mpl_ge_3_0_0 = plotting._compat._mpl_ge_3_0_0()
 
         self.bp_n_objects = 7
@@ -470,8 +449,6 @@ class TestPlotBase(object):
 
         spndx = 1
         for kind in kinds:
-            if not _ok_for_gaussian_kde(kind):
-                continue
 
             self.plt.subplot(1, 4 * len(kinds), spndx)
             spndx += 1

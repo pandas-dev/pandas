@@ -1,9 +1,11 @@
+import builtins
+from io import StringIO
+from itertools import product
 from string import ascii_lowercase
 
 import numpy as np
 import pytest
 
-from pandas.compat import product as cart_product
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -26,7 +28,7 @@ def test_groupby_bool_aggs(agg_func, skipna, vals):
     df = DataFrame({'key': ['a'] * 3 + ['b'] * 3, 'val': vals * 2})
 
     # Figure out expectation using Python builtin
-    exp = getattr(compat.builtins, agg_func)(vals)
+    exp = getattr(builtins, agg_func)(vals)
 
     # edge case for missing data with skipna and 'any'
     if skipna and all(isna(vals)) and agg_func == 'any':
@@ -61,8 +63,8 @@ def test_intercept_builtin_sum():
     s = Series([1., 2., np.nan, 3.])
     grouped = s.groupby([0, 1, 2, 2])
 
-    result = grouped.agg(compat.builtins.sum)
-    result2 = grouped.apply(compat.builtins.sum)
+    result = grouped.agg(builtins.sum)
+    result2 = grouped.apply(builtins.sum)
     expected = grouped.sum()
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
@@ -400,6 +402,25 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
         assert res.iloc[0].b == data["expected"]
 
 
+@pytest.mark.parametrize("func, values", [
+    ("idxmin", {'c_int': [0, 2], 'c_float': [1, 3], 'c_date': [1, 2]}),
+    ("idxmax", {'c_int': [1, 3], 'c_float': [0, 2], 'c_date': [0, 3]})
+])
+def test_idxmin_idxmax_returns_int_types(func, values):
+    # GH 25444
+    df = pd.DataFrame({'name': ['A', 'A', 'B', 'B'],
+                       'c_int': [1, 2, 3, 4],
+                       'c_float': [4.02, 3.03, 2.04, 1.05],
+                       'c_date': ['2019', '2018', '2016', '2017']})
+    df['c_date'] = pd.to_datetime(df['c_date'])
+
+    result = getattr(df.groupby('name'), func)()
+
+    expected = pd.DataFrame(values, index=Index(['A', 'B'], name="name"))
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_fill_consistency():
 
     # GH9221
@@ -475,7 +496,7 @@ def test_max_nan_bug():
 -05-06,2013-05-06 00:00:00,,log.log
 -05-07,2013-05-07 00:00:00,OE,xlsx"""
 
-    df = pd.read_csv(compat.StringIO(raw), parse_dates=[0])
+    df = pd.read_csv(StringIO(raw), parse_dates=[0])
     gb = df.groupby('Date')
     r = gb[['File']].max()
     e = gb['File'].max().to_frame()
@@ -1058,14 +1079,14 @@ def test_size(df):
         assert result[key] == len(group)
 
     df = DataFrame(np.random.choice(20, (1000, 3)), columns=list('abc'))
-    for sort, key in cart_product((False, True), ('a', 'b', ['a', 'b'])):
+    for sort, key in product((False, True), ('a', 'b', ['a', 'b'])):
         left = df.groupby(key, sort=sort).size()
         right = df.groupby(key, sort=sort)['c'].apply(lambda a: a.shape[0])
         tm.assert_series_equal(left, right, check_names=False)
 
     # GH11699
-    df = DataFrame([], columns=['A', 'B'])
-    out = Series([], dtype='int64', index=Index([], name='A'))
+    df = DataFrame(columns=['A', 'B'])
+    out = Series(dtype='int64', index=Index([], name='A'))
     tm.assert_series_equal(df.groupby('A').size(), out)
 
 
@@ -1145,7 +1166,7 @@ def test_pipe():
     # NDFrame.pipe methods
     result = df.groupby('A').pipe(f).pipe(square)
 
-    index = Index([u'bar', u'foo'], dtype='object', name=u'A')
+    index = Index(['bar', 'foo'], dtype='object', name='A')
     expected = pd.Series([8.99110003361, 8.17516964785], name='B',
                          index=index)
 

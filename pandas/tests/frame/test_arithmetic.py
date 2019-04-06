@@ -6,8 +6,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import range
-
 import pandas as pd
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 import pandas.util.testing as tm
@@ -437,7 +435,7 @@ class TestFrameFlexArithmetic(object):
         # GH 19522 passing fill_value to frame flex arith methods should
         # raise even in the zero-length special cases
         ser_len0 = pd.Series([])
-        df_len0 = pd.DataFrame([], columns=['A', 'B'])
+        df_len0 = pd.DataFrame(columns=['A', 'B'])
         df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
 
         with pytest.raises(NotImplementedError, match='fill_value'):

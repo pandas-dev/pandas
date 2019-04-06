@@ -4,16 +4,19 @@ Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
 
-from __future__ import print_function
-
 from functools import partial
+from io import StringIO
+from shutil import get_terminal_size
+from unicodedata import east_asian_width
 
 import numpy as np
+
+from pandas._config.config import get_option, set_option
 
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
-from pandas.compat import StringIO, lzip, map, u, zip
+from pandas.compat import lzip
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -24,16 +27,13 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCMultiIndex, ABCSeries, ABCSparseArray)
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas import compat
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.config import get_option, set_option
 from pandas.core.index import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
-from pandas.io.formats.terminal import get_terminal_size
 
 # pylint: disable=W0141
 
@@ -111,7 +111,7 @@ class CategoricalFormatter(object):
     def __init__(self, categorical, buf=None, length=True, na_rep='NaN',
                  footer=True):
         self.categorical = categorical
-        self.buf = buf if buf is not None else StringIO(u(""))
+        self.buf = buf if buf is not None else StringIO("")
         self.na_rep = na_rep
         self.length = length
         self.footer = footer
@@ -131,7 +131,7 @@ class CategoricalFormatter(object):
             footer += '\n'
         footer += level_info
 
-        return compat.text_type(footer)
+        return str(footer)
 
     def _get_formatted_values(self):
         return format_array(self.categorical.get_values(), None,
@@ -144,20 +144,20 @@ class CategoricalFormatter(object):
             if self.footer:
                 return self._get_footer()
             else:
-                return u('')
+                return ''
 
         fmt_values = self._get_formatted_values()
 
-        result = [u('{i}').format(i=i) for i in fmt_values]
+        result = ['{i}'.format(i=i) for i in fmt_values]
         result = [i.strip() for i in result]
-        result = u(', ').join(result)
-        result = [u('[') + result + u(']')]
+        result = ', '.join(result)
+        result = ['[' + result + ']']
         if self.footer:
             footer = self._get_footer()
             if footer:
                 result.append(footer)
 
-        return compat.text_type(u('\n').join(result))
+        return str('\n'.join(result))
 
 
 class SeriesFormatter(object):
@@ -201,7 +201,7 @@ class SeriesFormatter(object):
 
     def _get_footer(self):
         name = self.series.name
-        footer = u('')
+        footer = ''
 
         if getattr(self.series.index, 'freq', None) is not None:
             footer += 'Freq: {freq}'.format(freq=self.series.index.freqstr)
@@ -212,7 +212,7 @@ class SeriesFormatter(object):
 
             series_name = pprint_thing(name,
                                        escape_chars=('\t', '\r', '\n'))
-            footer += ((u"Name: {sname}".format(sname=series_name))
+            footer += (("Name: {sname}".format(sname=series_name))
                        if name is not None else "")
 
         if (self.length is True or
@@ -226,7 +226,7 @@ class SeriesFormatter(object):
             if name:
                 if footer:
                     footer += ', '
-                footer += u'dtype: {typ}'.format(typ=pprint_thing(name))
+                footer += 'dtype: {typ}'.format(typ=pprint_thing(name))
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
@@ -236,7 +236,7 @@ class SeriesFormatter(object):
                 footer += "\n"
             footer += level_info
 
-        return compat.text_type(footer)
+        return str(footer)
 
     def _get_formatted_index(self):
         index = self.tr_series.index
@@ -290,7 +290,7 @@ class SeriesFormatter(object):
         if footer:
             result += '\n' + footer
 
-        return compat.text_type(u('').join(result))
+        return str(''.join(result))
 
 
 class TextAdjustment(object):
@@ -299,7 +299,7 @@ class TextAdjustment(object):
         self.encoding = get_option("display.encoding")
 
     def len(self, text):
-        return compat.strlen(text, encoding=self.encoding)
+        return len(text)
 
     def justify(self, texts, max_len, mode='right'):
         return justify(texts, max_len, mode=mode)
@@ -318,9 +318,20 @@ class EastAsianTextAdjustment(TextAdjustment):
         else:
             self.ambiguous_width = 1
 
+        # Definition of East Asian Width
+        # http://unicode.org/reports/tr11/
+        # Ambiguous width can be changed by option
+        self._EAW_MAP = {'Na': 1, 'N': 1, 'W': 2, 'F': 2, 'H': 1}
+
     def len(self, text):
-        return compat.east_asian_len(text, encoding=self.encoding,
-                                     ambiguous_width=self.ambiguous_width)
+        """
+        Calculate display width considering unicode East Asian Width
+        """
+        if not isinstance(text, str):
+            return len(text)
+
+        return sum(self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width)
+                   for c in text)
 
     def justify(self, texts, max_len, mode='right'):
         # re-calculate padding space per str considering East Asian Width
@@ -440,7 +451,6 @@ class DataFrameFormatter(TableFormatter):
         max_rows = self.max_rows
 
         if max_cols == 0 or max_rows == 0:  # assume we are in the terminal
-                                            # (why else = 0)
             (w, h) = get_terminal_size()
             self.w = w
             self.h = h
@@ -592,10 +602,10 @@ class DataFrameFormatter(TableFormatter):
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = (u('Empty {name}\nColumns: {col}\nIndex: {idx}')
+            info_line = ('Empty {name}\nColumns: {col}\nIndex: {idx}'
                          .format(name=type(self.frame).__name__,
-                         col=pprint_thing(frame.columns),
-                         idx=pprint_thing(frame.index)))
+                                 col=pprint_thing(frame.columns),
+                                 idx=pprint_thing(frame.index)))
             text = info_line
         else:
 
@@ -691,11 +701,11 @@ class DataFrameFormatter(TableFormatter):
                                         multirow=multirow)
 
         if encoding is None:
-            encoding = 'ascii' if compat.PY2 else 'utf-8'
+            encoding = 'utf-8'
 
         if hasattr(self.buf, 'write'):
             latex_renderer.write_result(self.buf)
-        elif isinstance(self.buf, compat.string_types):
+        elif isinstance(self.buf, str):
             import codecs
             with codecs.open(self.buf, 'w', encoding=encoding) as f:
                 latex_renderer.write_result(f)
@@ -733,7 +743,7 @@ class DataFrameFormatter(TableFormatter):
         html = Klass(self, classes=classes, border=border).render()
         if hasattr(self.buf, 'write'):
             buffer_put_lines(self.buf, html)
-        elif isinstance(self.buf, compat.string_types):
+        elif isinstance(self.buf, str):
             with open(self.buf, 'w') as f:
                 buffer_put_lines(f, html)
         else:
@@ -943,16 +953,22 @@ class GenericArrayFormatter(object):
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                if x is None:
-                    return 'None'
-                elif x is NaT:
-                    return 'NaT'
+                try:
+                    # try block for np.isnat specifically
+                    # determine na_rep if x is None or NaT-like
+                    if x is None:
+                        return 'None'
+                    elif x is NaT or np.isnat(x):
+                        return 'NaT'
+                except (TypeError, ValueError):
+                    # np.isnat only handles datetime or timedelta objects
+                    pass
                 return self.na_rep
             elif isinstance(x, PandasObject):
-                return u'{x}'.format(x=x)
+                return '{x}'.format(x=x)
             else:
                 # object dtype
-                return u'{x}'.format(x=formatter(x))
+                return '{x}'.format(x=formatter(x))
 
         vals = self.values
         if isinstance(vals, Index):
@@ -968,16 +984,16 @@ class GenericArrayFormatter(object):
         fmt_values = []
         for i, v in enumerate(vals):
             if not is_float_type[i] and leading_space:
-                fmt_values.append(u' {v}'.format(v=_format(v)))
+                fmt_values.append(' {v}'.format(v=_format(v)))
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
                 if leading_space is False:
                     # False specifically, so that the default is
                     # to include a space if we get here.
-                    tpl = u'{v}'
+                    tpl = '{v}'
                 else:
-                    tpl = u' {v}'
+                    tpl = ' {v}'
                 fmt_values.append(tpl.format(v=_format(v)))
 
         return fmt_values
@@ -1526,9 +1542,9 @@ class EngFormatter(object):
         mant = sign * dnum / (10**pow10)
 
         if self.accuracy is None:  # pragma: no cover
-            format_str = u("{mant: g}{prefix}")
+            format_str = "{mant: g}{prefix}"
         else:
-            format_str = (u("{{mant: .{acc:d}f}}{{prefix}}")
+            format_str = ("{{mant: .{acc:d}f}}{{prefix}}"
                           .format(acc=self.accuracy))
 
         formatted = format_str.format(mant=mant, prefix=prefix)
@@ -1620,6 +1636,6 @@ def buffer_put_lines(buf, lines):
     lines
         The lines to append.
     """
-    if any(isinstance(x, compat.text_type) for x in lines):
-        lines = [compat.text_type(x) for x in lines]
+    if any(isinstance(x, str) for x in lines):
+        lines = [str(x) for x in lines]
     buf.write('\n'.join(lines))

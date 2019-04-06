@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-
 import operator
 import re
 
@@ -8,7 +6,6 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas import _np_version_under1p13, compat
 from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
 import pandas.util.testing as tm
@@ -57,8 +54,6 @@ class TestExpressions(object):
                        test_flex=True):
         expr._MIN_ELEMENTS = 0
         operations = ['add', 'sub', 'mul', 'mod', 'truediv', 'floordiv']
-        if not compat.PY3:
-            operations.append('div')
         for arith in operations:
 
             operator_name = arith
@@ -324,31 +319,30 @@ class TestExpressions(object):
     def test_bool_ops_raise_on_arithmetic(self):
         df = DataFrame({'a': np.random.rand(10) > 0.5,
                         'b': np.random.rand(10) > 0.5})
-        names = 'div', 'truediv', 'floordiv', 'pow'
-        ops = '/', '/', '//', '**'
+        names = 'truediv', 'floordiv', 'pow'
+        ops = '/', '//', '**'
         msg = 'operator %r not implemented for bool dtypes'
         for op, name in zip(ops, names):
-            if not compat.PY3 or name != 'div':
-                f = getattr(operator, name)
-                err_msg = re.escape(msg % op)
+            f = getattr(operator, name)
+            err_msg = re.escape(msg % op)
 
-                with pytest.raises(NotImplementedError, match=err_msg):
-                    f(df, df)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(df, df)
 
-                with pytest.raises(NotImplementedError, match=err_msg):
-                    f(df.a, df.b)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(df.a, df.b)
 
-                with pytest.raises(NotImplementedError, match=err_msg):
-                    f(df.a, True)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(df.a, True)
 
-                with pytest.raises(NotImplementedError, match=err_msg):
-                    f(False, df.a)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(False, df.a)
 
-                with pytest.raises(NotImplementedError, match=err_msg):
-                    f(False, df)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(False, df)
 
-                with pytest.raises(NotImplementedError, match=err_msg):
-                    f(df, True)
+            with pytest.raises(NotImplementedError, match=err_msg):
+                f(df, True)
 
     def test_bool_ops_warn_on_arithmetic(self):
         n = 10
@@ -362,8 +356,8 @@ class TestExpressions(object):
             f = getattr(operator, name)
             fe = getattr(operator, sub_funcs[subs[op]])
 
-            # >= 1.13.0 these are now TypeErrors
-            if op == '-' and not _np_version_under1p13:
+            if op == '-':
+                # raises TypeError
                 continue
 
             with tm.use_numexpr(True, min_elements=5):

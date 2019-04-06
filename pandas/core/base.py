@@ -1,6 +1,7 @@
 """
 Base and utility classes for pandas objects.
 """
+import builtins
 from collections import OrderedDict
 import textwrap
 import warnings
@@ -9,7 +10,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, builtins, map, range
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -24,6 +25,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
+from pandas.core.arrays import ExtensionArray
 import pandas.core.nanops as nanops
 
 _shared_docs = dict()
@@ -65,7 +67,7 @@ class StringMixin(object):
         Invoked by bytes(obj) in py3 only.
         Yields a bytestring in both py2/py3.
         """
-        from pandas.core.config import get_option
+        from pandas._config import get_option
 
         encoding = get_option("display.encoding")
         return self.__unicode__().encode(encoding, 'replace')
@@ -305,7 +307,7 @@ class SelectionMixin(object):
         - raise
 
         """
-        assert isinstance(arg, compat.string_types)
+        assert isinstance(arg, str)
 
         f = getattr(self, arg, None)
         if f is not None:
@@ -352,7 +354,7 @@ class SelectionMixin(object):
             _axis = getattr(self, 'axis', 0)
         _level = kwargs.pop('_level', None)
 
-        if isinstance(arg, compat.string_types):
+        if isinstance(arg, str):
             return self._try_aggregate_string_function(arg, *args,
                                                        **kwargs), None
 
@@ -553,7 +555,7 @@ class SelectionMixin(object):
                                 name=getattr(self, 'name', None))
 
             return result, True
-        elif is_list_like(arg) and arg not in compat.string_types:
+        elif is_list_like(arg):
             # we require a list, but not an 'str'
             return self._aggregate_multiple_funcs(arg,
                                                   _level=_level,
@@ -785,8 +787,7 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
-    def array(self):
-        # type: () -> ExtensionArray
+    def array(self) -> ExtensionArray:
         """
         The ExtensionArray of the data backing this Series or Index.
 
@@ -961,8 +962,7 @@ class IndexOpsMixin(object):
         return result
 
     @property
-    def _ndarray_values(self):
-        # type: () -> np.ndarray
+    def _ndarray_values(self) -> np.ndarray:
         """
         The data as an ndarray, possibly losing information.
 

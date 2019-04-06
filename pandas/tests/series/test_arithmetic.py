@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, compat
+from pandas import Series
 from pandas.core.indexes.period import IncompatibleFrequency
 import pandas.util.testing as tm
 
@@ -35,7 +35,7 @@ class TestSeriesFlexArithmetic(object):
         other = ts[1](tser)
         check_reverse = ts[2]
 
-        if opname == 'div' and compat.PY3:
+        if opname == 'div':
             pytest.skip('div test only for Py3')
 
         op = getattr(Series, opname)

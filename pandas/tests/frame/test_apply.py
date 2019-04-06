@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
