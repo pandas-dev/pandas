@@ -22,7 +22,6 @@ import re
 from distutils.version import LooseVersion
 import sys
 import platform
-import types
 import struct
 import inspect
 from collections import namedtuple
@@ -33,8 +32,6 @@ PY35 = sys.version_info >= (3, 5)
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
 PYPY = platform.python_implementation() == 'PyPy'
-
-from pandas.compat.chainmap import DeepChainMap
 
 
 # list-producing versions of the major Python iterating functions
@@ -55,15 +52,6 @@ def lfilter(*args, **kwargs):
 
 
 if PY3:
-    def isidentifier(s):
-        return s.isidentifier()
-
-    def str_to_bytes(s, encoding=None):
-        return s.encode(encoding or 'ascii')
-
-    def bytes_to_str(b, encoding=None):
-        return b.decode(encoding or 'utf-8')
-
     # The signature version below is directly copied from Django,
     # https://github.com/django/django/pull/4846
     def signature(f):
@@ -92,17 +80,6 @@ if PY3:
         return argspec(args, defaults, varargs, keywords)
 else:
     # Python 2
-    _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
-
-    def isidentifier(s, dotted=False):
-        return bool(_name_re.match(s))
-
-    def str_to_bytes(s, encoding='ascii'):
-        return s
-
-    def bytes_to_str(b, encoding='ascii'):
-        return b
-
     def signature(f):
         return inspect.getargspec(f)
 
@@ -126,30 +103,6 @@ else:
     def itervalues(obj, **kw):
         return iter(obj.values(**kw))
 
-
-def bind_method(cls, name, func):
-    """Bind a method to class, python 2 and python 3 compatible.
-
-    Parameters
-    ----------
-
-    cls : type
-        class to receive bound method
-    name : basestring
-        name of method on class instance
-    func : function
-        function to be bound as method
-
-
-    Returns
-    -------
-    None
-    """
-    # only python 2 has bound/unbound method issue
-    if not PY3:
-        setattr(cls, name, types.MethodType(func, None, cls))
-    else:
-        setattr(cls, name, func)
 # ----------------------------------------------------------------------------
 # functions largely based / taken from the six module
 
@@ -164,7 +117,7 @@ if PY3:
         Convert bytes and non-string into Python 3 str
         """
         if isinstance(s, bytes):
-            s = bytes_to_str(s)
+            s = s.decode('utf-8')
         elif not isinstance(s, str):
             s = str(s)
         return s

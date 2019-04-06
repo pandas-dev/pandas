@@ -6,6 +6,7 @@ This is not a public API.
 import datetime
 import operator
 import textwrap
+import types
 import warnings
 
 import numpy as np
@@ -1545,7 +1546,7 @@ def add_methods(cls, new_methods):
         force = not (issubclass(cls, ABCSparseArray) and
                      name.startswith('__i'))
         if force or name not in cls.__dict__:
-            bind_method(cls, name, method)
+            setattr(cls, name, types.MethodType(method, None, cls))
 
 
 # ----------------------------------------------------------------------

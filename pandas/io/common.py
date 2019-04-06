@@ -460,7 +460,7 @@ class MMapWrapper(BaseIterator):
 
         # readline returns bytes, not str, but Python's CSV reader
         # expects str, so convert the output to str before continuing
-        newline = compat.bytes_to_str(newline)
+        newline = newline.decode('utf-8')
 
         # mmap doesn't raise if reading past the allocated
         # data but instead returns an empty string, so raise

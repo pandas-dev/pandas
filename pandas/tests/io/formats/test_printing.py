@@ -27,7 +27,7 @@ def test_repr_binary_type():
         raw = bytes(letters, encoding=cf.get_option('display.encoding'))
     except TypeError:
         raw = bytes(letters)
-    b = str(compat.bytes_to_str(raw))
+    b = str(raw.decode('utf-8'))
     res = printing.pprint_thing(b, quote_strings=True)
     assert res == repr(b)
     res = printing.pprint_thing(b, quote_strings=False)
