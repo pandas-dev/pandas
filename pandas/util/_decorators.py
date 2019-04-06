@@ -335,7 +335,7 @@ def make_signature(func):
     (['a', 'b', 'c=2'], ['a', 'b', 'c'])
     """
 
-    spec = signature(func)
+    spec = inspect.getfullargspec(func)
     if spec.defaults is None:
         n_wo_defaults = len(spec.args)
         defaults = ('',) * n_wo_defaults
@@ -348,5 +348,5 @@ def make_signature(func):
     if spec.varargs:
         args.append('*' + spec.varargs)
     if spec.keywords:
-        args.append('**' + spec.keywords)
+        args.append('**' + spec.varkw)
     return args, spec.args
