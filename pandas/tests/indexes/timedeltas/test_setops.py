@@ -81,16 +81,19 @@ class TestTimedeltaIndex(object):
          pd.to_timedelta(range(3), unit='s')),
         (pd.to_timedelta(range(6, 3, -1), unit='s'),
          pd.to_timedelta(range(5, 1, -1), unit='s'),
-         TimedeltaIndex(['00:00:04', '00:00:05'])),
+         TimedeltaIndex(['00:00:05', '00:00:04'])),
         (pd.to_timedelta(range(5, 1, -1), unit='s'),
          pd.to_timedelta(range(6, 3, -1), unit='s'),
-         TimedeltaIndex(['00:00:04', '00:00:05'])),
+         TimedeltaIndex(['00:00:05', '00:00:04'])),
         (pd.to_timedelta(range(1, 20), unit='s'),
          pd.to_timedelta((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20), unit='s'),
          pd.to_timedelta(range(1, 11), unit='s')),
         (pd.to_timedelta((1, 2, 5, 6, 7), unit='s'),
          pd.to_timedelta((3, 5, 6, 7), unit='s'),
-         pd.to_timedelta((5, 6, 7), unit='s'))
+         pd.to_timedelta((5, 6, 7), unit='s')),
+        (pd.TimedeltaIndex(['00:00:09', '00:00:09', '00:00:07']),
+         pd.to_timedelta(range(10), unit='s'),
+         pd.TimedeltaIndex(['00:00:09', '00:00:07']))
     ])
     def test_intersect(self, left, right, expected):
         # GH 17391
