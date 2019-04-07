@@ -86,8 +86,16 @@ class HTMLFormatter(TableFormatter):
         self.elements.append(' ' * indent + rs)
 
     def write_th(self, s, header=False, indent=0, tags=None):
-        # header=False is for use of this function inside <tbody>
-        # header is set to True for use inside <thead>
+        """
+        Return a formatted <th> cell.
+
+        Most tags are passed in as a parameter, but if col_space is set
+        then that value is used for min-width.
+
+        Since min-width is only set inside <thead>, this function also takes
+        the 'header' parameter.  If 'header' is True, min-width needs to be
+        set as it is for use inside <thead>
+        """
         if header and self.fmt.col_space is not None:
             if isinstance(self.fmt.col_space, int):
                 self.fmt.col_space = ('{colspace}px'
