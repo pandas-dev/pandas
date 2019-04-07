@@ -2149,12 +2149,9 @@ Time Zone Handling
 ------------------
 
 pandas provides rich support for working with timestamps in different time
-zones using the ``pytz`` and ``dateutil`` libraries.
+zones using the ``pytz`` and ``dateutil`` libraries or class:`datetime.timezone`
+objects from the standard library.
 
-.. note::
-
-    pandas does not yet support ``datetime.timezone`` objects from the standard
-    library.
 
 Working with Time Zones
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -2195,6 +2192,15 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
    # dateutil - utc special case
    rng_utc = pd.date_range('3/6/2012 00:00', periods=3, freq='D',
                            tz=dateutil.tz.tzutc())
+   rng_utc.tz
+
+.. versionadded:: 0.25.0
+
+.. ipython:: python
+
+   # datetime.timezone
+   rng_utc = pd.date_range('3/6/2012 00:00', periods=3, freq='D',
+                           tz=datetime.timezone.utc)
    rng_utc.tz
 
 Note that the ``UTC`` time zone is a special case in ``dateutil`` and should be constructed explicitly

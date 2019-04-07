@@ -89,8 +89,7 @@ def _get_frame_result_type(result, objs):
     """
 
     if (result.blocks and (
-            all(is_sparse(b) for b in result.blocks) or
-            all(isinstance(obj, ABCSparseDataFrame) for obj in objs))):
+            any(isinstance(obj, ABCSparseDataFrame) for obj in objs))):
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:

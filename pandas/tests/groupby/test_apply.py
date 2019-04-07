@@ -9,7 +9,7 @@ from pandas.util import testing as tm
 
 
 def test_apply_issues():
-        # GH 5788
+    # GH 5788
 
     s = """2011.05.16,00:00,1.40893
 2011.05.16,01:00,1.40760
@@ -102,7 +102,78 @@ def test_fast_apply():
     group_keys = grouper._get_group_keys()
 
     values, mutated = splitter.fast_apply(f, group_keys)
+
     assert not mutated
+
+
+@pytest.mark.parametrize(
+    "df, group_names",
+    [
+        (DataFrame({"a": [1, 1, 1, 2, 3],
+                    "b": ["a", "a", "a", "b", "c"]}),
+         [1, 2, 3]),
+        (DataFrame({"a": [0, 0, 1, 1],
+                    "b": [0, 1, 0, 1]}),
+         [0, 1]),
+        (DataFrame({"a": [1]}),
+         [1]),
+        (DataFrame({"a": [1, 1, 1, 2, 2, 1, 1, 2],
+                    "b": range(8)}),
+         [1, 2]),
+        (DataFrame({"a": [1, 2, 3, 1, 2, 3],
+                    "two": [4, 5, 6, 7, 8, 9]}),
+         [1, 2, 3]),
+        (DataFrame({"a": list("aaabbbcccc"),
+                    "B": [3, 4, 3, 6, 5, 2, 1, 9, 5, 4],
+                    "C": [4, 0, 2, 2, 2, 7, 8, 6, 2, 8]}),
+         ["a", "b", "c"]),
+        (DataFrame([[1, 2, 3], [2, 2, 3]], columns=["a", "b", "c"]),
+         [1, 2]),
+    ], ids=['GH2936', 'GH7739 & GH10519', 'GH10519',
+            'GH2656', 'GH12155', 'GH20084', 'GH21417'])
+def test_group_apply_once_per_group(df, group_names):
+    # GH2936, GH7739, GH10519, GH2656, GH12155, GH20084, GH21417
+
+    # This test should ensure that a function is only evaluted
+    # once per group. Previously the function has been evaluated twice
+    # on the first group to check if the Cython index slider is safe to use
+    # This test ensures that the side effect (append to list) is only triggered
+    # once per group
+
+    names = []
+    # cannot parameterize over the functions since they need external
+    # `names` to detect side effects
+
+    def f_copy(group):
+        # this takes the fast apply path
+        names.append(group.name)
+        return group.copy()
+
+    def f_nocopy(group):
+        # this takes the slow apply path
+        names.append(group.name)
+        return group
+
+    def f_scalar(group):
+        # GH7739, GH2656
+        names.append(group.name)
+        return 0
+
+    def f_none(group):
+        # GH10519, GH12155, GH21417
+        names.append(group.name)
+        return None
+
+    def f_constant_df(group):
+        # GH2936, GH20084
+        names.append(group.name)
+        return DataFrame({"a": [1], "b": [1]})
+
+    for func in [f_copy, f_nocopy, f_scalar, f_none, f_constant_df]:
+        del names[:]
+
+        df.groupby("a").apply(func)
+        assert names == group_names
 
 
 def test_apply_with_mixed_dtype():

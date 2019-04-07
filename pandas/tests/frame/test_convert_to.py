@@ -8,8 +8,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import long
-
 from pandas import (
     CategoricalDtype, DataFrame, MultiIndex, Series, Timestamp, compat,
     date_range)
@@ -75,11 +73,15 @@ class TestDataFrameConvertTo(TestData):
         # GH22801
         # Data loss when indexes are not unique. Raise ValueError.
         df = DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
-        pytest.raises(ValueError, df.to_dict, orient='index')
+        msg = "DataFrame index must be unique for orient='index'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_dict(orient='index')
 
     def test_to_dict_invalid_orient(self):
         df = DataFrame({'A': [0, 1]})
-        pytest.raises(ValueError, df.to_dict, orient='xinvalid')
+        msg = "orient 'xinvalid' not understood"
+        with pytest.raises(ValueError, match=msg):
+            df.to_dict(orient='xinvalid')
 
     def test_to_records_dt64(self):
         df = DataFrame([["one", "two", "three"],
@@ -150,7 +152,7 @@ class TestDataFrameConvertTo(TestData):
     def test_to_records_with_unicode_index(self):
         # GH13172
         # unicode_literals conflict with to_records
-        result = DataFrame([{u'a': u'x', u'b': 'y'}]).set_index(u'a') \
+        result = DataFrame([{'a': 'x', 'b': 'y'}]).set_index('a') \
             .to_records()
         expected = np.rec.array([('x', 'y')], dtype=[('a', 'O'), ('b', 'O')])
         tm.assert_almost_equal(result, expected)
@@ -159,13 +161,13 @@ class TestDataFrameConvertTo(TestData):
         # xref issue: https://github.com/numpy/numpy/issues/2407
         # Issue #11879. to_records used to raise an exception when used
         # with column names containing non-ascii characters in Python 2
-        result = DataFrame(data={u"accented_name_é": [1.0]}).to_records()
+        result = DataFrame(data={"accented_name_é": [1.0]}).to_records()
 
         # Note that numpy allows for unicode field names but dtypes need
         # to be specified using dictionary instead of list of tuples.
         expected = np.rec.array(
             [(0, 1.0)],
-            dtype={"names": ["index", u"accented_name_é"],
+            dtype={"names": ["index", "accented_name_é"],
                    "formats": ['=i8', '=f8']}
         )
         tm.assert_almost_equal(result, expected)
@@ -310,8 +312,8 @@ class TestDataFrameConvertTo(TestData):
                    columns=MultiIndex.from_tuples([("a", "d"), ("b", "e"),
                                                    ("c", "f")])),
          dict(column_dtypes={0: "<U1", 2: "float32"}, index_dtypes="float32"),
-         np.rec.array([(0., u"1", 2, 3.), (1., u"4", 5, 6.),
-                       (2., u"7", 8, 9.)],
+         np.rec.array([(0., "1", 2, 3.), (1., "4", 5, 6.),
+                       (2., "7", 8, 9.)],
                       dtype=[("index", "<f4"),
                              ("('a', 'd')", "<U1"),
                              ("('b', 'e')", "<i8"),
@@ -468,7 +470,7 @@ class TestDataFrameConvertTo(TestData):
         # make sure that we are boxing properly
         df = DataFrame({'a': [1, 2], 'b': [.1, .2]})
         result = df.to_dict(orient=orient)
-        assert isinstance(item_getter(result, 'a', 0), (int, long))
+        assert isinstance(item_getter(result, 'a', 0), int)
         assert isinstance(item_getter(result, 'b', 0), float)
 
     def test_frame_to_dict_tz(self):

@@ -8,7 +8,7 @@ from pytz import utc
 
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
-from pandas.compat import PY3, PY36
+from pandas.compat import PY36
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Timestamp
@@ -281,10 +281,9 @@ class TestTimestampUnaryOps(object):
         result_dt = dt.replace(tzinfo=tzinfo)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
 
-        if PY3:
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-                assert result_dt.timestamp() == result_pd.timestamp()
+        # datetime.timestamp() converts in the local timezone
+        with tm.set_timezone('UTC'):
+            assert result_dt.timestamp() == result_pd.timestamp()
 
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
@@ -292,10 +291,9 @@ class TestTimestampUnaryOps(object):
         result_dt = dt.replace(tzinfo=tzinfo).replace(tzinfo=None)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
 
-        if PY3:
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-                assert result_dt.timestamp() == result_pd.timestamp()
+        # datetime.timestamp() converts in the local timezone
+        with tm.set_timezone('UTC'):
+            assert result_dt.timestamp() == result_pd.timestamp()
 
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
@@ -369,9 +367,8 @@ class TestTimestampUnaryOps(object):
         # utsc is a different representation of the same time
         assert tsc.timestamp() == utsc.timestamp()
 
-        if PY3:
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-                # should agree with datetime.timestamp method
-                dt = ts.to_pydatetime()
-                assert dt.timestamp() == ts.timestamp()
+        # datetime.timestamp() converts in the local timezone
+        with tm.set_timezone('UTC'):
+            # should agree with datetime.timestamp method
+            dt = ts.to_pydatetime()
+            assert dt.timestamp() == ts.timestamp()

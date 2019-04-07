@@ -169,7 +169,10 @@ def maybe_downcast_to_dtype(result, dtype):
 
 def maybe_upcast_putmask(result, mask, other):
     """
-    A safe version of putmask that potentially upcasts the result
+    A safe version of putmask that potentially upcasts the result.
+    The result is replaced with the first N elements of other,
+    where N is the number of True values in mask.
+    If the length of other is shorter than N, other will be repeated.
 
     Parameters
     ----------
@@ -185,7 +188,17 @@ def maybe_upcast_putmask(result, mask, other):
     result : ndarray
     changed : boolean
         Set to true if the result array was upcasted
+
+    Examples
+    --------
+    >>> result, _ = maybe_upcast_putmask(np.arange(1,6),
+    np.array([False, True, False, True, True]), np.arange(21,23))
+    >>> result
+    array([1, 21, 3, 22, 21])
     """
+
+    if not isinstance(result, np.ndarray):
+        raise ValueError("The result input must be a ndarray.")
 
     if mask.any():
         # Two conversions for date-like dtypes that can't be done automatically
@@ -241,7 +254,7 @@ def maybe_upcast_putmask(result, mask, other):
             # we have an ndarray and the masking has nans in it
             else:
 
-                if isna(other[mask]).any():
+                if isna(other).any():
                     return changeit()
 
         try:
@@ -794,10 +807,10 @@ def soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
         # Immediate return if coerce
         if datetime:
             from pandas import to_datetime
-            return to_datetime(values, errors='coerce', box=False)
+            return to_datetime(values, errors='coerce').to_numpy()
         elif timedelta:
             from pandas import to_timedelta
-            return to_timedelta(values, errors='coerce', box=False)
+            return to_timedelta(values, errors='coerce').to_numpy()
         elif numeric:
             from pandas import to_numeric
             return to_numeric(values, errors='coerce')

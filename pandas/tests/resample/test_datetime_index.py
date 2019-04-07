@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import StringIO, range
+from pandas.compat import StringIO
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -98,6 +98,18 @@ def test_resample_basic(series, closed, expected):
     s = series
     expected = expected(s)
     result = s.resample('5min', closed=closed, label='right').mean()
+    assert_series_equal(result, expected)
+
+
+def test_resample_integerarray():
+    # GH 25580, resample on IntegerArray
+    ts = pd.Series(range(9),
+                   index=pd.date_range('1/1/2000', periods=9, freq='T'),
+                   dtype='Int64')
+    result = ts.resample('3T').sum()
+    expected = Series([3, 12, 21],
+                      index=pd.date_range('1/1/2000', periods=3, freq='3T'),
+                      dtype="Int64")
     assert_series_equal(result, expected)
 
 

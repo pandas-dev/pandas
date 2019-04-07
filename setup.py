@@ -34,7 +34,7 @@ min_numpy_ver = '1.12.0'
 setuptools_kwargs = {
     'install_requires': [
         'python-dateutil >= 2.5.0',
-        'pytz >= 2011k',
+        'pytz >= 2015.4',
         'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
     ],
     'setup_requires': ['numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver)],
@@ -413,6 +413,11 @@ else:
 # ----------------------------------------------------------------------
 # Preparation of compiler arguments
 
+debugging_symbols_requested = '--with-debugging-symbols' in sys.argv
+if debugging_symbols_requested:
+    sys.argv.remove('--with-debugging-symbols')
+
+
 if sys.byteorder == 'big':
     endian_macro = [('__BIG_ENDIAN__', '1')]
 else:
@@ -421,10 +426,16 @@ else:
 
 if is_platform_windows():
     extra_compile_args = []
+    extra_link_args = []
+    if debugging_symbols_requested:
+        extra_compile_args.append('/Z7')
+        extra_link_args.append('/DEBUG')
 else:
     # args to ignore warnings
     extra_compile_args = ['-Wno-unused-function']
-
+    extra_link_args = []
+    if debugging_symbols_requested:
+        extra_compile_args.append('-g')
 
 # For mac, ensure extensions are built for macos 10.9 when compiling on a
 # 10.9 system or above, overriding distuitls behaviour which is to target
@@ -451,7 +462,7 @@ if '--with-cython-coverage' in sys.argv:
 # pinning `ext.cython_directives = directives` to each ext in extensions.
 # github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
 directives = {'linetrace': False,
-              'language_level': 2}
+              'language_level': 3}
 macros = []
 if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py
@@ -477,6 +488,11 @@ def maybe_cythonize(extensions, *args, **kwargs):
         # Avoid running cythonize on `python setup.py clean`
         # See https://github.com/cython/cython/issues/1495
         return extensions
+    if not cython:
+        # Avoid trying to look up numpy when installing from sdist
+        # https://github.com/pandas-dev/pandas/issues/25193
+        # TODO: See if this can be removed after pyproject.toml added.
+        return extensions
 
     numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
     # TODO: Is this really necessary here?
@@ -485,11 +501,8 @@ def maybe_cythonize(extensions, *args, **kwargs):
                 numpy_incl not in ext.include_dirs):
             ext.include_dirs.append(numpy_incl)
 
-    if cython:
-        build_ext.render_templates(_pxifiles)
-        return cythonize(extensions, *args, **kwargs)
-    else:
-        return extensions
+    build_ext.render_templates(_pxifiles)
+    return cythonize(extensions, *args, **kwargs)
 
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
@@ -686,7 +699,8 @@ for name, data in ext_data.items():
                     include_dirs=include,
                     language=data.get('language', 'c'),
                     define_macros=data.get('macros', macros),
-                    extra_compile_args=extra_compile_args)
+                    extra_compile_args=extra_compile_args,
+                    extra_link_args=extra_link_args)
 
     extensions.append(obj)
 
@@ -713,6 +727,7 @@ ujson_ext = Extension('pandas._libs.json',
                                     'pandas/_libs/src/datetime'],
                       extra_compile_args=(['-D_GNU_SOURCE'] +
                                           extra_compile_args),
+                      extra_link_args=extra_link_args,
                       define_macros=macros)
 
 
@@ -724,7 +739,9 @@ extensions.append(ujson_ext)
 _move_ext = Extension('pandas.util._move',
                       depends=[],
                       sources=['pandas/util/move.c'],
-                      define_macros=macros)
+                      define_macros=macros,
+                      extra_compile_args=extra_compile_args,
+                      extra_link_args=extra_link_args)
 extensions.append(_move_ext)
 
 # The build cache system does string matching below this point.

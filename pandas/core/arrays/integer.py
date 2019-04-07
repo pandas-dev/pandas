@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import range, set_function_name, string_types
+from pandas.compat import set_function_name, string_types
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -510,7 +510,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return Series(array, index=index)
 
     def _values_for_argsort(self):
-        # type: () -> ndarray
+        # type: () -> np.ndarray
         """Return values for sorting.
 
         Returns

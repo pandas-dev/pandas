@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import u, zip
-
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
@@ -156,18 +154,10 @@ def test_frame_getitem_toplevel(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize('unicode_strings', [True, False])
-def test_frame_mixed_depth_get(unicode_strings):
-    # If unicode_strings is True, the column labels in dataframe
-    # construction will use unicode strings in Python 2 (pull request
-    # #17099).
-
+def test_frame_mixed_depth_get():
     arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
               ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
               ['', 'wx', 'wy', '', '', '']]
-
-    if unicode_strings:
-        arrays = [[u(s) for s in arr] for arr in arrays]
 
     tuples = sorted(zip(*arrays))
     index = MultiIndex.from_tuples(tuples)

@@ -46,8 +46,8 @@ Since ``df.columns`` is an Index object, we can use the ``.str`` accessor
    df.columns.str.lower()
 
 These string methods can then be used to clean up the columns as needed.
-Here we are removing leading and trailing white spaces, lower casing all names,
-and replacing any remaining white spaces with underscores:
+Here we are removing leading and trailing whitespaces, lower casing all names,
+and replacing any remaining whitespaces with underscores:
 
 .. ipython:: python
 
@@ -65,7 +65,7 @@ and replacing any remaining white spaces with underscores:
     ``Series``.
 
     Please note that a ``Series`` of type ``category`` with string ``.categories`` has
-    some limitations in comparison of ``Series`` of type string (e.g. you can't add strings to
+    some limitations in comparison to ``Series`` of type string (e.g. you can't add strings to
     each other: ``s + " " + s`` won't work if ``s`` is a ``Series`` of type ``category``). Also,
     ``.str`` methods which operate on elements of type ``list`` are not available on such a
     ``Series``.

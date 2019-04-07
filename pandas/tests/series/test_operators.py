@@ -7,9 +7,6 @@ import operator
 import numpy as np
 import pytest
 
-import pandas.compat as compat
-from pandas.compat import range
-
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, Series, bdate_range, date_range, isna)
@@ -665,7 +662,8 @@ class TestSeriesOperators(TestData):
                           index=self.ts.index[:-5], name='ts')
         tm.assert_series_equal(added[:-5], expected)
 
-    pairings = []
+    pairings = [(Series.div, operator.truediv, 1),
+                (Series.rdiv, lambda x, y: operator.truediv(y, x), 1)]
     for op in ['add', 'sub', 'mul', 'pow', 'truediv', 'floordiv']:
         fv = 0
         lop = getattr(Series, op)
@@ -675,12 +673,6 @@ class TestSeriesOperators(TestData):
         requiv = lambda x, y, op=op: getattr(operator, op)(y, x)
         pairings.append((lop, lequiv, fv))
         pairings.append((rop, requiv, fv))
-    if compat.PY3:
-        pairings.append((Series.div, operator.truediv, 1))
-        pairings.append((Series.rdiv, lambda x, y: operator.truediv(y, x), 1))
-    else:
-        pairings.append((Series.div, operator.div, 1))
-        pairings.append((Series.rdiv, lambda x, y: operator.div(y, x), 1))
 
     @pytest.mark.parametrize('op, equiv_op, fv', pairings)
     def test_operators_combine(self, op, equiv_op, fv):
@@ -740,6 +732,21 @@ class TestSeriesOperators(TestData):
         result = s1 + s2
         expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
         assert_series_equal(result, expected)
+
+    def test_divmod(self):
+        # GH25557
+        a = Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+        b = Series([2, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+
+        result = a.divmod(b)
+        expected = divmod(a, b)
+        assert_series_equal(result[0], expected[0])
+        assert_series_equal(result[1], expected[1])
+
+        result = a.rdivmod(b)
+        expected = divmod(b, a)
+        assert_series_equal(result[0], expected[0])
+        assert_series_equal(result[1], expected[1])
 
 
 class TestSeriesUnaryOps(object):

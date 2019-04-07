@@ -12,7 +12,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
-from pandas.compat import PY3, lrange, zip
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1084,7 +1084,6 @@ class TestDatetimeIndexTimezones(object):
     @pytest.mark.parametrize('tz', [None, 'UTC', "US/Central",
                                     dateutil.tz.tzoffset(None, -28800)])
     @pytest.mark.usefixtures("datetime_tz_utc")
-    @pytest.mark.skipif(not PY3, reason="datetime.timezone not in PY2")
     def test_iteration_preserves_nanoseconds(self, tz):
         # GH 19603
         index = DatetimeIndex(["2018-02-08 15:00:00.168456358",

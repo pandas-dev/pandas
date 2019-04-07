@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, u
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
@@ -162,7 +162,7 @@ class TestDataFrameNonuniqueIndexes(TestData):
 
         df5 = DataFrame({'RPT_Date': [20120930, 20121231, 20130331],
                          'STK_ID': [600809] * 3,
-                         'STK_Name': [u('饡驦'), u('饡驦'), u('饡驦')],
+                         'STK_Name': ['饡驦', '饡驦', '饡驦'],
                          'TClose': [38.05, 41.66, 30.01]},
                         index=MultiIndex.from_tuples(
                             [(600809, 20120930),
@@ -177,7 +177,7 @@ class TestDataFrameNonuniqueIndexes(TestData):
         result.dtypes
 
         expected = (DataFrame([[0.0454, 22.02, 0.0422, 20130331, 600809,
-                                u('饡驦'), 30.01]],
+                                '饡驦', 30.01]],
                               columns=['RT', 'TClose', 'TExg',
                                        'RPT_Date', 'STK_ID', 'STK_Name',
                                        'QT_Close'])
@@ -187,8 +187,11 @@ class TestDataFrameNonuniqueIndexes(TestData):
         # reindex is invalid!
         df = DataFrame([[1, 5, 7.], [1, 5, 7.], [1, 5, 7.]],
                        columns=['bar', 'a', 'a'])
-        pytest.raises(ValueError, df.reindex, columns=['bar'])
-        pytest.raises(ValueError, df.reindex, columns=['bar', 'foo'])
+        msg = "cannot reindex from a duplicate axis"
+        with pytest.raises(ValueError, match=msg):
+            df.reindex(columns=['bar'])
+        with pytest.raises(ValueError, match=msg):
+            df.reindex(columns=['bar', 'foo'])
 
         # drop
         df = DataFrame([[1, 5, 7.], [1, 5, 7.], [1, 5, 7.]],
@@ -306,7 +309,9 @@ class TestDataFrameNonuniqueIndexes(TestData):
         # boolean with the duplicate raises
         df = DataFrame(np.arange(12).reshape(3, 4),
                        columns=dups, dtype='float64')
-        pytest.raises(ValueError, lambda: df[df.A > 6])
+        msg = "cannot reindex from a duplicate axis"
+        with pytest.raises(ValueError, match=msg):
+            df[df.A > 6]
 
         # dup aligining operations should work
         # GH 5185
@@ -323,7 +328,9 @@ class TestDataFrameNonuniqueIndexes(TestData):
                         columns=['A', 'A'])
 
         # not-comparing like-labelled
-        pytest.raises(ValueError, lambda: df1 == df2)
+        msg = "Can only compare identically-labeled DataFrame objects"
+        with pytest.raises(ValueError, match=msg):
+            df1 == df2
 
         df1r = df1.reindex_like(df2)
         result = df1r == df2

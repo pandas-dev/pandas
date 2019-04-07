@@ -15,8 +15,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas.compat import (
-    map, raise_with_traceback, string_types, text_type, zip)
+from pandas.compat import raise_with_traceback, string_types, text_type
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype, is_dict_like, is_list_like)
@@ -1319,7 +1318,7 @@ class SQLiteTable(SQLTable):
         col_names = ','.join(bracketed_names)
         wildcards = ','.join([wld] * len(names))
         insert_statement = \
-            u'INSERT INTO {table} ({columns}) VALUES ({wld})'.format(
+            'INSERT INTO {table} ({columns}) VALUES ({wld})'.format(
                 table=escape(self.name), columns=col_names, wld=wildcards)
         return insert_statement
 

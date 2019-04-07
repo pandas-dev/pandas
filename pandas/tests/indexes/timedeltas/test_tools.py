@@ -19,15 +19,18 @@ class TestTimedeltas(object):
 
         d1 = np.timedelta64(1, 'D')
 
-        assert (to_timedelta('1 days 06:05:01.00003', box=False) ==
-                conv(d1 + np.timedelta64(6 * 3600 + 5 * 60 + 1, 's') +
-                     np.timedelta64(30, 'us')))
-        assert (to_timedelta('15.5us', box=False) ==
-                conv(np.timedelta64(15500, 'ns')))
+        with tm.assert_produces_warning(FutureWarning):
+            assert (to_timedelta('1 days 06:05:01.00003', box=False) ==
+                    conv(d1 + np.timedelta64(6 * 3600 + 5 * 60 + 1, 's') +
+                         np.timedelta64(30, 'us')))
 
-        # empty string
-        result = to_timedelta('', box=False)
-        assert result.astype('int64') == iNaT
+        with tm.assert_produces_warning(FutureWarning):
+            assert (to_timedelta('15.5us', box=False) ==
+                    conv(np.timedelta64(15500, 'ns')))
+
+            # empty string
+            result = to_timedelta('', box=False)
+            assert result.astype('int64') == iNaT
 
         result = to_timedelta(['', ''])
         assert isna(result).all()
@@ -37,10 +40,11 @@ class TestTimedeltas(object):
         expected = pd.Index(np.array([np.timedelta64(1, 's')]))
         tm.assert_index_equal(result, expected)
 
-        # ints
-        result = np.timedelta64(0, 'ns')
-        expected = to_timedelta(0, box=False)
-        assert result == expected
+        with tm.assert_produces_warning(FutureWarning):
+            # ints
+            result = np.timedelta64(0, 'ns')
+            expected = to_timedelta(0, box=False)
+            assert result == expected
 
         # Series
         expected = Series([timedelta(days=1), timedelta(days=1, seconds=1)])
@@ -53,16 +57,18 @@ class TestTimedeltas(object):
         expected = to_timedelta([0, 10], unit='s')
         tm.assert_index_equal(result, expected)
 
-        # single element conversion
-        v = timedelta(seconds=1)
-        result = to_timedelta(v, box=False)
-        expected = np.timedelta64(timedelta(seconds=1))
-        assert result == expected
+        with tm.assert_produces_warning(FutureWarning):
+            # single element conversion
+            v = timedelta(seconds=1)
+            result = to_timedelta(v, box=False)
+            expected = np.timedelta64(timedelta(seconds=1))
+            assert result == expected
 
-        v = np.timedelta64(timedelta(seconds=1))
-        result = to_timedelta(v, box=False)
-        expected = np.timedelta64(timedelta(seconds=1))
-        assert result == expected
+        with tm.assert_produces_warning(FutureWarning):
+            v = np.timedelta64(timedelta(seconds=1))
+            result = to_timedelta(v, box=False)
+            expected = np.timedelta64(timedelta(seconds=1))
+            assert result == expected
 
         # arrays of various dtypes
         arr = np.array([1] * 5, dtype='int64')
@@ -90,22 +96,27 @@ class TestTimedeltas(object):
         expected = TimedeltaIndex([np.timedelta64(1, 'D')] * 5)
         tm.assert_index_equal(result, expected)
 
-        # Test with lists as input when box=false
-        expected = np.array(np.arange(3) * 1000000000, dtype='timedelta64[ns]')
-        result = to_timedelta(range(3), unit='s', box=False)
-        tm.assert_numpy_array_equal(expected, result)
+        with tm.assert_produces_warning(FutureWarning):
+            # Test with lists as input when box=false
+            expected = np.array(np.arange(3) * 1000000000,
+                                dtype='timedelta64[ns]')
+            result = to_timedelta(range(3), unit='s', box=False)
+            tm.assert_numpy_array_equal(expected, result)
 
-        result = to_timedelta(np.arange(3), unit='s', box=False)
-        tm.assert_numpy_array_equal(expected, result)
+        with tm.assert_produces_warning(FutureWarning):
+            result = to_timedelta(np.arange(3), unit='s', box=False)
+            tm.assert_numpy_array_equal(expected, result)
 
-        result = to_timedelta([0, 1, 2], unit='s', box=False)
-        tm.assert_numpy_array_equal(expected, result)
+        with tm.assert_produces_warning(FutureWarning):
+            result = to_timedelta([0, 1, 2], unit='s', box=False)
+            tm.assert_numpy_array_equal(expected, result)
 
-        # Tests with fractional seconds as input:
-        expected = np.array(
-            [0, 500000000, 800000000, 1200000000], dtype='timedelta64[ns]')
-        result = to_timedelta([0., 0.5, 0.8, 1.2], unit='s', box=False)
-        tm.assert_numpy_array_equal(expected, result)
+        with tm.assert_produces_warning(FutureWarning):
+            # Tests with fractional seconds as input:
+            expected = np.array(
+                [0, 500000000, 800000000, 1200000000], dtype='timedelta64[ns]')
+            result = to_timedelta([0., 0.5, 0.8, 1.2], unit='s', box=False)
+            tm.assert_numpy_array_equal(expected, result)
 
     def test_to_timedelta_invalid(self):
 
@@ -181,3 +192,20 @@ class TestTimedeltas(object):
 
         actual = pd.to_timedelta(pd.NaT)
         assert actual.value == timedelta_NaT.astype('int64')
+
+    def test_to_timedelta_float(self):
+        # https://github.com/pandas-dev/pandas/issues/25077
+        arr = np.arange(0, 1, 1e-6)[-10:]
+        result = pd.to_timedelta(arr, unit='s')
+        expected_asi8 = np.arange(999990000, int(1e9), 1000, dtype='int64')
+        tm.assert_numpy_array_equal(result.asi8, expected_asi8)
+
+    def test_to_timedelta_box_deprecated(self):
+        result = np.timedelta64(0, 'ns')
+
+        # Deprecated - see GH24416
+        with tm.assert_produces_warning(FutureWarning):
+            to_timedelta(0, box=False)
+
+        expected = to_timedelta(0).to_timedelta64()
+        assert result == expected

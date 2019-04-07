@@ -9,20 +9,20 @@ jobs:
   strategy:
     matrix:
       ${{ if eq(parameters.name, 'macOS') }}:
-        py35_np_120:
+        py35_macos:
           ENV_FILE: ci/deps/azure-macos-35.yaml
           CONDA_PY: "35"
           PATTERN: "not slow and not network"
 
       ${{ if eq(parameters.name, 'Linux') }}:
-        py27_np_120:
-          ENV_FILE: ci/deps/azure-27-compat.yaml
-          CONDA_PY: "27"
+        py35_compat:
+          ENV_FILE: ci/deps/azure-35-compat.yaml
+          CONDA_PY: "35"
           PATTERN: "not slow and not network"
 
-        py27_locale_slow_old_np:
-          ENV_FILE: ci/deps/azure-27-locale.yaml
-          CONDA_PY: "27"
+        py36_locale_slow_old_np:
+          ENV_FILE: ci/deps/azure-36-locale.yaml
+          CONDA_PY: "36"
           PATTERN: "slow"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
           EXTRA_APT: "language-pack-zh-hans"

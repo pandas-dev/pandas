@@ -1,7 +1,7 @@
 # pylint: disable=E1103
 import numpy as np
 
-from pandas.compat import lrange, range, zip
+from pandas.compat import lrange
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -154,7 +154,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     if not isinstance(margins_name, compat.string_types):
         raise ValueError('margins_name argument must be a string')
 
-    msg = u'Conflicting name "{name}" in margins'.format(name=margins_name)
+    msg = 'Conflicting name "{name}" in margins'.format(name=margins_name)
     for level in table.index.names:
         if margins_name in table.index.get_level_values(level):
             raise ValueError(msg)

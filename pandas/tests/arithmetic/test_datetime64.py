@@ -2137,7 +2137,8 @@ class TestDatetimeIndexArithmetic(object):
         #                   'us': 1}
 
         def timedelta64(*args):
-            return sum(starmap(np.timedelta64, zip(args, intervals)))
+            # see casting notes in NumPy gh-12927
+            return np.sum(list(starmap(np.timedelta64, zip(args, intervals))))
 
         for d, h, m, s, us in product(*([range(2)] * 5)):
             nptd = timedelta64(d, h, m, s, us)

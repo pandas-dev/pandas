@@ -6,6 +6,7 @@
    without warning.
 """
 import operator
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -15,6 +16,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -365,7 +367,7 @@ class ExtensionArray(object):
         raise AbstractMethodError(self)
 
     def _values_for_argsort(self):
-        # type: () -> ndarray
+        # type: () -> np.ndarray
         """
         Return values for sorting.
 
@@ -597,7 +599,7 @@ class ExtensionArray(object):
         return arr.searchsorted(value, side=side, sorter=sorter)
 
     def _values_for_factorize(self):
-        # type: () -> Tuple[ndarray, Any]
+        # type: () -> Tuple[np.ndarray, Any]
         """
         Return an array and missing value suitable for factorization.
 
@@ -622,7 +624,7 @@ class ExtensionArray(object):
         return self.astype(object), np.nan
 
     def factorize(self, na_sentinel=-1):
-        # type: (int) -> Tuple[ndarray, ExtensionArray]
+        # type: (int) -> Tuple[np.ndarray, ExtensionArray]
         """
         Encode the extension array as an enumerated type.
 
@@ -837,16 +839,16 @@ class ExtensionArray(object):
         from pandas.io.formats.printing import format_object_summary
 
         template = (
-            u'{class_name}'
-            u'{data}\n'
-            u'Length: {length}, dtype: {dtype}'
+            '{class_name}'
+            '{data}\n'
+            'Length: {length}, dtype: {dtype}'
         )
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
         data = format_object_summary(self, self._formatter(),
                                      indent_for_name=False).rstrip(', \n')
-        class_name = u'<{}>\n'.format(self.__class__.__name__)
+        class_name = '<{}>\n'.format(self.__class__.__name__)
         return template.format(class_name=class_name, data=data,
                                length=len(self),
                                dtype=self.dtype)

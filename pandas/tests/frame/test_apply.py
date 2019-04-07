@@ -74,8 +74,10 @@ class TestDataFrameApply():
         result = df.apply(lambda x: x, axis=1)
         assert_frame_equal(result, df)
 
-    def test_apply_empty(self, float_frame, empty_frame):
+    def test_apply_empty(self, float_frame):
         # empty
+        empty_frame = DataFrame()
+
         applied = empty_frame.apply(np.sqrt)
         assert applied.empty
 
@@ -97,8 +99,10 @@ class TestDataFrameApply():
         result = expected.apply(lambda x: x['a'], axis=1)
         assert_frame_equal(expected, result)
 
-    def test_apply_with_reduce_empty(self, empty_frame):
+    def test_apply_with_reduce_empty(self):
         # reduce with an empty DataFrame
+        empty_frame = DataFrame()
+
         x = []
         result = empty_frame.apply(x.append, axis=1, result_type='expand')
         assert_frame_equal(result, empty_frame)
@@ -116,7 +120,9 @@ class TestDataFrameApply():
         # Ensure that x.append hasn't been called
         assert x == []
 
-    def test_apply_deprecate_reduce(self, empty_frame):
+    def test_apply_deprecate_reduce(self):
+        empty_frame = DataFrame()
+
         x = []
         with tm.assert_produces_warning(FutureWarning):
             empty_frame.apply(x.append, axis=1, reduce=True)
