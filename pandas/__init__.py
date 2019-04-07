@@ -48,6 +48,12 @@ from pandas.tseries.api import *
 from pandas.core.computation.api import *
 from pandas.core.reshape.api import *
 
+
+from pandas.core.index import DatetimeIndex
+from pandas.core.missing import isna
+from pandas.core.reshape.concat import concat
+from pandas.core.tools.datetimes import to_datetime
+from pandas.core.tools.timedeltas import to_timedelta
 from pandas.util._print_versions import show_versions
 from pandas.io.api import *
 from pandas.util._tester import test
