@@ -871,14 +871,15 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 
 class TestDataFrameQueryStrings(object):
 
-    def test_str_query_method(self, parser, engine):
-        df = DataFrame(np.random.randn(10, 1), columns=['b'])
-        df['strings'] = Series(list('aabbccddee'))
-        expect = df[df.strings == 'a']
+    def test_str_query_method(self, parser, engine, partial_str_match):
+        df = DataFrame(np.random.randn(6, 1), columns=['b'])
+        df['strings'] = Series(['ann', 'a_ann', 'a_ann_a', 'ann_a',
+                                'Ann', 'bob'])
+        expect = df[df.strings == 'ann']
 
         if parser != 'pandas':
             col = 'strings'
-            lst = '"a"'
+            lst = '"ann"'
 
             lhs = [col] * 2 + [lst] * 2
             rhs = lhs[::-1]
@@ -891,27 +892,49 @@ class TestDataFrameQueryStrings(object):
                 msg = r"'(Not)?In' nodes are not implemented"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(ex, engine=engine, parser=parser,
+                             partial_str_match=partial_str_match,
                              local_dict={'strings': df.strings})
         else:
-            res = df.query('"a" == strings', engine=engine, parser=parser)
+            kwargs = {'engine': engine, 'parser': parser,
+                      'partial_str_match': partial_str_match}
+            res = df.query('"ann" == strings', **kwargs)
             assert_frame_equal(res, expect)
 
-            res = df.query('strings == "a"', engine=engine, parser=parser)
+            res = df.query('strings == "ann"', **kwargs)
             assert_frame_equal(res, expect)
-            assert_frame_equal(res, df[df.strings.isin(['a'])])
+            assert_frame_equal(res, df[df.strings.isin(['ann'])])
 
-            expect = df[df.strings != 'a']
-            res = df.query('strings != "a"', engine=engine, parser=parser)
+            expect = df[df.strings != 'ann']
+            res = df.query('strings != "ann"', **kwargs)
             assert_frame_equal(res, expect)
 
-            res = df.query('"a" != strings', engine=engine, parser=parser)
+            res = df.query('"ann" != strings', **kwargs)
             assert_frame_equal(res, expect)
-            assert_frame_equal(res, df[~df.strings.isin(['a'])])
+            assert_frame_equal(res, df[~df.strings.isin(['ann'])])
 
-    def test_str_list_query_method(self, parser, engine):
+            # in/not in ops
+            res = df.query('"ann" in strings', **kwargs)
+            if partial_str_match:
+                expect = df[df.strings.isin(['ann', 'a_ann',
+                                             'a_ann_a', 'ann_a'])]
+            else:
+                expect = df[df.strings == 'ann']
+            assert_frame_equal(res, expect)
+
+            res = df.query('"ann" not in strings', **kwargs)
+            if partial_str_match:
+                expect = df[~df.strings.isin(['ann', 'a_ann',
+                                              'a_ann_a', 'ann_a'])]
+            else:
+                expect = df[df.strings != 'ann']
+            assert_frame_equal(res, expect)
+
+    def test_str_list_query_method(self, parser, engine, partial_str_match):
         df = DataFrame(np.random.randn(10, 1), columns=['b'])
         df['strings'] = Series(list('aabbccddee'))
         expect = df[df.strings.isin(['a', 'b'])]
+        kwargs = {'engine': engine, 'parser': parser,
+                  'partial_str_match': partial_str_match}
 
         if parser != 'pandas':
             col = 'strings'
@@ -926,24 +949,32 @@ class TestDataFrameQueryStrings(object):
             for lhs, op, rhs in zip(lhs, ops, rhs):
                 ex = '{lhs} {op} {rhs}'.format(lhs=lhs, op=op, rhs=rhs)
                 with pytest.raises(NotImplementedError):
-                    df.query(ex, engine=engine, parser=parser)
+                    df.query(ex, **kwargs)
         else:
-            res = df.query('strings == ["a", "b"]', engine=engine,
-                           parser=parser)
+            res = df.query('strings == ["a", "b"]', **kwargs)
             assert_frame_equal(res, expect)
 
-            res = df.query('["a", "b"] == strings', engine=engine,
-                           parser=parser)
+            res = df.query('["a", "b"] == strings', **kwargs)
+            assert_frame_equal(res, expect)
+
+            res = df.query('strings in ["a", "b"]', **kwargs)
+            assert_frame_equal(res, expect)
+
+            res = df.query('["a", "b"] in strings', **kwargs)
             assert_frame_equal(res, expect)
 
             expect = df[~df.strings.isin(['a', 'b'])]
 
-            res = df.query('strings != ["a", "b"]', engine=engine,
-                           parser=parser)
+            res = df.query('strings != ["a", "b"]', **kwargs)
             assert_frame_equal(res, expect)
 
-            res = df.query('["a", "b"] != strings', engine=engine,
-                           parser=parser)
+            res = df.query('["a", "b"] != strings', **kwargs)
+            assert_frame_equal(res, expect)
+
+            res = df.query('strings not in ["a", "b"]', **kwargs)
+            assert_frame_equal(res, expect)
+
+            res = df.query('["a", "b"] not in strings', **kwargs)
             assert_frame_equal(res, expect)
 
     def test_query_with_string_columns(self, parser, engine):
