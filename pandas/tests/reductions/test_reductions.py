@@ -276,7 +276,9 @@ class TestIndexReductions(object):
 
         # invalid ops
         for op in ['skew', 'kurt', 'sem', 'prod']:
-            pytest.raises(TypeError, getattr(td, op))
+            msg = "reduction operation '{}' not allowed for this dtype"
+            with pytest.raises(TypeError, match=msg.format(op)):
+                getattr(td, op)()
 
         # GH#10040
         # make sure NaT is properly handled by median()

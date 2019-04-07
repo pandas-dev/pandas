@@ -267,7 +267,7 @@ class Docstring(object):
             else:
                 continue
 
-        if 'module' not in locals():
+        if 'obj' not in locals():
             raise ImportError('No module can be imported '
                               'from "{}"'.format(name))
 

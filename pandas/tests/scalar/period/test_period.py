@@ -8,6 +8,7 @@ from pandas._libs.tslibs import iNaT, period as libperiod
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas._libs.tslibs.parsing import DateParseError
+from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
 from pandas.compat import iteritems, text_type
 from pandas.compat.numpy import np_datetime64_compat
@@ -35,7 +36,9 @@ class TestPeriodConstruction(object):
         i4 = Period('2005', freq='M')
         i5 = Period('2005', freq='m')
 
-        pytest.raises(ValueError, i1.__ne__, i4)
+        msg = r"Input has different freq=M from Period\(freq=A-DEC\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            i1 != i4
         assert i4 == i5
 
         i1 = Period.now('Q')
@@ -74,9 +77,12 @@ class TestPeriodConstruction(object):
                           freq='U')
         assert i1 == expected
 
-        pytest.raises(ValueError, Period, ordinal=200701)
+        msg = "Must supply freq for ordinal value"
+        with pytest.raises(ValueError, match=msg):
+            Period(ordinal=200701)
 
-        pytest.raises(ValueError, Period, '2007-1-1', freq='X')
+        with pytest.raises(ValueError, match="Invalid frequency: X"):
+            Period('2007-1-1', freq='X')
 
     def test_construction_bday(self):
 
@@ -232,10 +238,6 @@ class TestPeriodConstruction(object):
         expected = Period(np_datetime64_compat('2007-01-01 09:00:00.00101Z'),
                           freq='U')
         assert i1 == expected
-
-        pytest.raises(ValueError, Period, ordinal=200701)
-
-        pytest.raises(ValueError, Period, '2007-1-1', freq='X')
 
     def test_invalid_arguments(self):
         with pytest.raises(ValueError):
@@ -925,8 +927,9 @@ class TestPeriodProperties(object):
 class TestPeriodField(object):
 
     def test_get_period_field_array_raises_on_out_of_range(self):
-        pytest.raises(ValueError, libperiod.get_period_field_arr, -1,
-                      np.empty(1), 0)
+        msg = "Buffer dtype mismatch, expected 'int64_t' but got 'double'"
+        with pytest.raises(ValueError, match=msg):
+            libperiod.get_period_field_arr(-1, np.empty(1), 0)
 
 
 class TestComparisons(object):

@@ -332,12 +332,17 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_grouped_hist_layout(self):
         df = self.hist_df
-        pytest.raises(ValueError, df.hist, column='weight', by=df.gender,
-                      layout=(1, 1))
-        pytest.raises(ValueError, df.hist, column='height', by=df.category,
-                      layout=(1, 3))
-        pytest.raises(ValueError, df.hist, column='height', by=df.category,
-                      layout=(-1, -1))
+        msg = "Layout of 1x1 must be larger than required size 2"
+        with pytest.raises(ValueError, match=msg):
+            df.hist(column='weight', by=df.gender, layout=(1, 1))
+
+        msg = "Layout of 1x3 must be larger than required size 4"
+        with pytest.raises(ValueError, match=msg):
+            df.hist(column='height', by=df.category, layout=(1, 3))
+
+        msg = "At least one dimension of layout must be positive"
+        with pytest.raises(ValueError, match=msg):
+            df.hist(column='height', by=df.category, layout=(-1, -1))
 
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(df.hist, column='height', by=df.gender,

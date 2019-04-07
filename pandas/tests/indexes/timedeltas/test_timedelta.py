@@ -264,9 +264,13 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_index_equal(rng.nanoseconds,
                               Index([456, 456], dtype='int64'))
 
-        pytest.raises(AttributeError, lambda: rng.hours)
-        pytest.raises(AttributeError, lambda: rng.minutes)
-        pytest.raises(AttributeError, lambda: rng.milliseconds)
+        msg = "'TimedeltaIndex' object has no attribute '{}'"
+        with pytest.raises(AttributeError, match=msg.format('hours')):
+            rng.hours
+        with pytest.raises(AttributeError, match=msg.format('minutes')):
+            rng.minutes
+        with pytest.raises(AttributeError, match=msg.format('milliseconds')):
+            rng.milliseconds
 
         # with nat
         s = Series(rng)
