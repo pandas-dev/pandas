@@ -31,6 +31,11 @@ def engine(request):
     return request.param
 
 
+@pytest.fixture(params=[False, True])
+def partial_str_match(request):
+    return request.param
+
+
 def skip_if_no_pandas_parser(parser):
     if parser != 'pandas':
         pytest.skip("cannot evaluate with parser {0!r}".format(parser))
@@ -162,144 +167,175 @@ class TestDataFrameEval(TestData):
 
 class TestDataFrameQueryWithMultiIndex(object):
 
-    def test_query_with_named_multiindex(self, parser, engine):
+    def test_query_with_named_multiindex(self, parser, engine,
+                                         partial_str_match):
         skip_if_no_pandas_parser(parser)
-        a = np.random.choice(['red', 'green'], size=10)
-        b = np.random.choice(['eggs', 'ham'], size=10)
+        a = np.random.choice(['red', 'a_red', 'a_red_a',
+                              'red_a', 'Red', 'green'], size=30)
+        b = np.random.choice(['eggs', 'ham'], size=30)
         index = MultiIndex.from_arrays([a, b], names=['color', 'food'])
-        df = DataFrame(np.random.randn(10, 2), index=index)
+        df = DataFrame(np.random.randn(30, 2), index=index)
         ind = Series(df.index.get_level_values('color').values, index=index,
                      name='color')
+        kwargs = {'parser': parser, 'engine': engine,
+                  'partial_str_match': partial_str_match}
 
         # equality
-        res1 = df.query('color == "red"', parser=parser, engine=engine)
-        res2 = df.query('"red" == color', parser=parser, engine=engine)
+        res1 = df.query('color == "red"', **kwargs)
+        res2 = df.query('"red" == color', **kwargs)
         exp = df[ind == 'red']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # inequality
-        res1 = df.query('color != "red"', parser=parser, engine=engine)
-        res2 = df.query('"red" != color', parser=parser, engine=engine)
+        res1 = df.query('color != "red"', **kwargs)
+        res2 = df.query('"red" != color', **kwargs)
         exp = df[ind != 'red']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # list equality (really just set membership)
-        res1 = df.query('color == ["red"]', parser=parser, engine=engine)
-        res2 = df.query('["red"] == color', parser=parser, engine=engine)
+        res1 = df.query('color == ["red"]', **kwargs)
+        res2 = df.query('["red"] == color', **kwargs)
         exp = df[ind.isin(['red'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
-        res1 = df.query('color != ["red"]', parser=parser, engine=engine)
-        res2 = df.query('["red"] != color', parser=parser, engine=engine)
+        res1 = df.query('color != ["red"]', **kwargs)
+        res2 = df.query('["red"] != color', **kwargs)
         exp = df[~ind.isin(['red'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # in/not in ops
-        res1 = df.query('["red"] in color', parser=parser, engine=engine)
-        res2 = df.query('"red" in color', parser=parser, engine=engine)
-        exp = df[ind.isin(['red'])]
-        assert_frame_equal(res1, exp)
-        assert_frame_equal(res2, exp)
+        res1 = df.query('["red"] in color', **kwargs)
+        res2 = df.query('"red" in color', **kwargs)
+        exp1 = df[ind.isin(['red'])]
+        if partial_str_match:
+            exp2 = df[ind.isin(['red', 'a_red', 'a_red_a', 'red_a'])]
+        else:
+            exp2 = df[ind.isin(['red'])]
+        assert_frame_equal(res1, exp1)
+        assert_frame_equal(res2, exp2)
 
-        res1 = df.query('["red"] not in color', parser=parser, engine=engine)
-        res2 = df.query('"red" not in color', parser=parser, engine=engine)
-        exp = df[~ind.isin(['red'])]
-        assert_frame_equal(res1, exp)
-        assert_frame_equal(res2, exp)
+        res1 = df.query('["red"] not in color', **kwargs)
+        res2 = df.query('"red" not in color', **kwargs)
+        exp1 = df[~ind.isin(['red'])]
+        if partial_str_match:
+            exp2 = df[~ind.isin(['red', 'a_red', 'a_red_a', 'red_a'])]
+        else:
+            exp2 = df[~ind.isin(['red'])]
+        assert_frame_equal(res1, exp1)
+        assert_frame_equal(res2, exp2)
 
-    def test_query_with_unnamed_multiindex(self, parser, engine):
+    def test_query_with_unnamed_multiindex(self, parser, engine,
+                                           partial_str_match):
         skip_if_no_pandas_parser(parser)
-        a = np.random.choice(['red', 'green'], size=10)
-        b = np.random.choice(['eggs', 'ham'], size=10)
+        a = np.random.choice(['red', 'a_red', 'a_red_a',
+                              'red_a', 'Red', 'green'], size=30)
+        b = np.random.choice(['eggs', 'a_eggs', 'a_eggs_a',
+                              'eggs_a', 'Eggs' 'ham'], size=30)
         index = MultiIndex.from_arrays([a, b])
-        df = DataFrame(np.random.randn(10, 2), index=index)
+        df = DataFrame(np.random.randn(30, 2), index=index)
         ind = Series(df.index.get_level_values(0).values, index=index)
+        kwargs = {'parser': parser, 'engine': engine,
+                  'partial_str_match': partial_str_match}
 
-        res1 = df.query('ilevel_0 == "red"', parser=parser, engine=engine)
-        res2 = df.query('"red" == ilevel_0', parser=parser, engine=engine)
+        res1 = df.query('ilevel_0 == "red"', **kwargs)
+        res2 = df.query('"red" == ilevel_0', **kwargs)
         exp = df[ind == 'red']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # inequality
-        res1 = df.query('ilevel_0 != "red"', parser=parser, engine=engine)
-        res2 = df.query('"red" != ilevel_0', parser=parser, engine=engine)
+        res1 = df.query('ilevel_0 != "red"', **kwargs)
+        res2 = df.query('"red" != ilevel_0', **kwargs)
         exp = df[ind != 'red']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # list equality (really just set membership)
-        res1 = df.query('ilevel_0 == ["red"]', parser=parser, engine=engine)
-        res2 = df.query('["red"] == ilevel_0', parser=parser, engine=engine)
+        res1 = df.query('ilevel_0 == ["red"]', **kwargs)
+        res2 = df.query('["red"] == ilevel_0', **kwargs)
         exp = df[ind.isin(['red'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
-        res1 = df.query('ilevel_0 != ["red"]', parser=parser, engine=engine)
-        res2 = df.query('["red"] != ilevel_0', parser=parser, engine=engine)
+        res1 = df.query('ilevel_0 != ["red"]', **kwargs)
+        res2 = df.query('["red"] != ilevel_0', **kwargs)
         exp = df[~ind.isin(['red'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # in/not in ops
-        res1 = df.query('["red"] in ilevel_0', parser=parser, engine=engine)
-        res2 = df.query('"red" in ilevel_0', parser=parser, engine=engine)
-        exp = df[ind.isin(['red'])]
-        assert_frame_equal(res1, exp)
-        assert_frame_equal(res2, exp)
+        res1 = df.query('["red"] in ilevel_0', **kwargs)
+        res2 = df.query('"red" in ilevel_0', **kwargs)
+        exp1 = df[ind.isin(['red'])]
+        if partial_str_match:
+            exp2 = df[ind.isin(['red', 'a_red', 'a_red_a', 'red_a'])]
+        else:
+            exp2 = df[ind.isin(['red'])]
+        assert_frame_equal(res1, exp1)
+        assert_frame_equal(res2, exp2)
 
-        res1 = df.query('["red"] not in ilevel_0', parser=parser,
-                        engine=engine)
-        res2 = df.query('"red" not in ilevel_0', parser=parser, engine=engine)
-        exp = df[~ind.isin(['red'])]
-        assert_frame_equal(res1, exp)
-        assert_frame_equal(res2, exp)
+        res1 = df.query('["red"] not in ilevel_0', **kwargs)
+        res2 = df.query('"red" not in ilevel_0', **kwargs)
+        exp1 = df[~ind.isin(['red'])]
+        if partial_str_match:
+            exp2 = df[~ind.isin(['red', 'a_red', 'a_red_a', 'red_a'])]
+        else:
+            exp2 = df[~ind.isin(['red'])]
+        assert_frame_equal(res1, exp1)
+        assert_frame_equal(res2, exp2)
 
         # ## LEVEL 1
         ind = Series(df.index.get_level_values(1).values, index=index)
-        res1 = df.query('ilevel_1 == "eggs"', parser=parser, engine=engine)
-        res2 = df.query('"eggs" == ilevel_1', parser=parser, engine=engine)
+        res1 = df.query('ilevel_1 == "eggs"', **kwargs)
+        res2 = df.query('"eggs" == ilevel_1', **kwargs)
         exp = df[ind == 'eggs']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # inequality
-        res1 = df.query('ilevel_1 != "eggs"', parser=parser, engine=engine)
-        res2 = df.query('"eggs" != ilevel_1', parser=parser, engine=engine)
+        res1 = df.query('ilevel_1 != "eggs"', **kwargs)
+        res2 = df.query('"eggs" != ilevel_1', **kwargs)
         exp = df[ind != 'eggs']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # list equality (really just set membership)
-        res1 = df.query('ilevel_1 == ["eggs"]', parser=parser, engine=engine)
-        res2 = df.query('["eggs"] == ilevel_1', parser=parser, engine=engine)
+        res1 = df.query('ilevel_1 == ["eggs"]', **kwargs)
+        res2 = df.query('["eggs"] == ilevel_1', **kwargs)
         exp = df[ind.isin(['eggs'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
-        res1 = df.query('ilevel_1 != ["eggs"]', parser=parser, engine=engine)
-        res2 = df.query('["eggs"] != ilevel_1', parser=parser, engine=engine)
+        res1 = df.query('ilevel_1 != ["eggs"]', **kwargs)
+        res2 = df.query('["eggs"] != ilevel_1', **kwargs)
         exp = df[~ind.isin(['eggs'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # in/not in ops
-        res1 = df.query('["eggs"] in ilevel_1', parser=parser, engine=engine)
-        res2 = df.query('"eggs" in ilevel_1', parser=parser, engine=engine)
-        exp = df[ind.isin(['eggs'])]
-        assert_frame_equal(res1, exp)
-        assert_frame_equal(res2, exp)
+        res1 = df.query('["eggs"] in ilevel_1', **kwargs)
+        res2 = df.query('"eggs" in ilevel_1', **kwargs)
+        exp1 = df[ind.isin(['eggs'])]
+        if partial_str_match:
+            exp2 = df[ind.isin(['eggs', 'a_eggs', 'a_eggs_a', 'eggs_a'])]
+        else:
+            exp2 = df[ind.isin(['eggs'])]
+        assert_frame_equal(res1, exp1)
+        assert_frame_equal(res2, exp2)
 
-        res1 = df.query('["eggs"] not in ilevel_1', parser=parser,
-                        engine=engine)
-        res2 = df.query('"eggs" not in ilevel_1', parser=parser, engine=engine)
-        exp = df[~ind.isin(['eggs'])]
-        assert_frame_equal(res1, exp)
-        assert_frame_equal(res2, exp)
+        res1 = df.query('["eggs"] not in ilevel_1', **kwargs)
+        res2 = df.query('"eggs" not in ilevel_1', **kwargs)
+        exp1 = df[~ind.isin(['eggs'])]
+        if partial_str_match:
+            exp2 = df[~ind.isin(['eggs', 'a_eggs', 'a_eggs_a', 'eggs_a'])]
+        else:
+            exp2 = df[~ind.isin(['eggs'])]
+        assert_frame_equal(res1, exp1)
+        assert_frame_equal(res2, exp2)
 
     def test_query_with_partially_named_multiindex(self, parser, engine):
         skip_if_no_pandas_parser(parser)
