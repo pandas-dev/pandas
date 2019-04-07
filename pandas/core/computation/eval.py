@@ -155,7 +155,7 @@ def _check_for_locals(expr, stack_level, parser):
 
 def eval(expr, parser='pandas', engine=None, truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
-         target=None, inplace=False):
+         target=None, inplace=False, partial_str_match=False):
     """Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
@@ -221,6 +221,10 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         If `target` is provided, and the expression mutates `target`, whether
         to modify `target` inplace. Otherwise, return a copy of `target` with
         the mutation.
+    partial_str_match : bool, optional, default False
+        If this is True, an `expr` like "string_query in list_like_of_strings"
+        is interpreted as partial string match (the default behavior is exact
+        matching).
 
     Returns
     -------
@@ -291,7 +295,8 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
                             target=target)
 
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env,
-                           truediv=truediv)
+                           truediv=truediv,
+                           partial_str_match=partial_str_match)
 
         # construct the engine and evaluate the parsed expression
         eng = _engines[engine]

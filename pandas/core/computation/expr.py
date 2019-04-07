@@ -197,9 +197,11 @@ def _is_series_of_str(term):
             isinstance(term.value[0], string_types))
 
 
-def _do_partial_str_match(left_term, right_term):
+def _do_partial_str_match(op, left_term, right_term):
     """If True execute partial string match instead of membership testing"""
-    return _is_str(left_term) and _is_series_of_str(right_term)
+    return (is_term(left_term) and is_term(right_term) and
+            op.__class__.__name__ in ['In', 'NotIn'] and
+            _is_str(left_term) and _is_series_of_str(right_term))
 
 
 # partition all AST nodes
@@ -714,24 +716,21 @@ class BaseExprVisitor(ast.NodeVisitor):
         if len(comps) == 1:
             op = self.translate_In(ops[0])
 
-            # partial string match (case sensitive):
-            # when the left node is `Term` with a str value,
-            # right `Term` with a value of Series containing str
-            # and `op` is `In` or `NotIn`,
-            # we skip ordinary binary ops and apply `str_contains`.
-            left = self.visit(node.left)
-            right = self.visit(comps[0])
-            op_cls_name = op.__class__.__name__
-            if (is_term(left) and is_term(right) and
-                    op_cls_name in ['In', 'NotIn'] and
-                    _do_partial_str_match(left, right)):
-                from pandas.core.strings import str_contains
-
-                _res = str_contains(right.value, left.value, regex=False)
-                if op_cls_name == "NotIn":
-                    _res = ~_res
-                name = self.env.add_tmp(_res)
-                return self.term_type(name, env=self.env)
+            if kwargs.get('partial_str_match'):
+                # partial string match (case sensitive):
+                # when the left node is `Term` with a str value,
+                # right `Term` with a value of Series containing str
+                # and `op` is `In` or `NotIn`,
+                # we skip ordinary binary ops and apply `str_contains`.
+                left = self.visit(node.left)
+                right = self.visit(comps[0])
+                if _do_partial_str_match(op, left, right):
+                    from pandas.core.strings import str_contains
+                    _res = str_contains(right.value, left.value, regex=False)
+                    if op.__class__.__name__ == "NotIn":
+                        _res = ~_res
+                    name = self.env.add_tmp(_res)
+                    return self.term_type(name, env=self.env)
 
             binop = ast.BinOp(op=op, left=node.left, right=comps[0])
             return self.visit(binop)
@@ -808,17 +807,18 @@ class Expr(StringMixin):
     env : Scope, optional, default None
     truediv : bool, optional, default True
     level : int, optional, default 2
+    partial_str_match : bool, optional, default False
     """
 
     def __init__(self, expr, engine='numexpr', parser='pandas', env=None,
-                 truediv=True, level=0):
+                 truediv=True, level=0, partial_str_match=False):
         self.expr = expr
         self.env = env or Scope(level=level + 1)
         self.engine = engine
         self.parser = parser
         self.env.scope['truediv'] = truediv
         self._visitor = _parsers[parser](self.env, self.engine, self.parser)
-        self.terms = self.parse()
+        self.terms = self.parse(partial_str_match)
 
     @property
     def assigner(self):
@@ -833,9 +833,10 @@ class Expr(StringMixin):
     def __len__(self):
         return len(self.expr)
 
-    def parse(self):
+    def parse(self, partial_str_match):
         """Parse an expression"""
-        return self._visitor.visit(self.expr)
+        return self._visitor.visit(self.expr,
+                                   partial_str_match=partial_str_match)
 
     @property
     def names(self):
