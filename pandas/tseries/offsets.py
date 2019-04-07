@@ -2,6 +2,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
+from typing import Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -1582,8 +1583,8 @@ class QuarterOffset(DateOffset):
     """
     Quarter representation - doesn't call super.
     """
-    _default_startingMonth = None
-    _from_name_startingMonth = None
+    _default_startingMonth = None  # type: Optional[int]
+    _from_name_startingMonth = None   # type: Optional[int]
     _adjust_dst = True
     _attributes = frozenset(['n', 'normalize', 'startingMonth'])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
