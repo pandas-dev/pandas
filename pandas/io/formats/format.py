@@ -1192,10 +1192,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
         if isinstance(values, (ABCIndexClass, ABCSeries)):
             values = values._values
 
-        if self.formatter is None:
-            formatter = values._formatter(boxed=True)
-        elif self.formatter is False:
-            formatter = None
+        formatter = values._formatter(boxed=True)
 
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo

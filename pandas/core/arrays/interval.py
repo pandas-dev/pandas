@@ -804,6 +804,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     # Formatting
 
+    def _formatter(self, boxed=False):
+        # Defer to GenericArrayFormatter's formatter.
+        return None
+
     def _format_data(self):
 
         # TODO: integrate with categorical and make generic
