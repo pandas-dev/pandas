@@ -42,20 +42,57 @@ from pandas._config import (get_option, set_option, reset_option,
 # let init-time option registration happen
 import pandas.core.config_init
 
-from pandas.core.api import *
-from pandas.core.sparse.api import *
-from pandas.tseries.api import *
-from pandas.core.computation.api import *
-from pandas.core.reshape.api import *
-
-
-from pandas.core.index import DatetimeIndex
-from pandas.core.missing import isna
+from pandas.core.panel import Panel
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.sparse.frame import SparseDataFrame
+from pandas.core.sparse.series import SparseSeries
+from pandas.core.computation.eval import eval
 from pandas.core.reshape.concat import concat
+from pandas.core.reshape.melt import lreshape, melt, wide_to_long
+from pandas.core.reshape.merge import merge, merge_asof, merge_ordered
+from pandas.core.reshape.pivot import crosstab, pivot, pivot_table
+from pandas.core.reshape.reshape import get_dummies
+from pandas.core.reshape.tile import cut, qcut
+from pandas.core.internals import BlockManager, _safe_reshape, make_block
+
+from pandas.core.index import (
+    Float64Index, Index, DatetimeIndex, Int64Index, MultiIndex, PeriodIndex, RangeIndex,
+    TimedeltaIndex, CategoricalIndex)
+from pandas.core.arrays import DatetimeArray, IntervalArray, PeriodArray
+from pandas.core.arrays.sparse import BlockIndex, IntIndex
+from pandas.core.arrays.categorical import Categorical
+from pandas.core.arrays.interval import Interval
+from pandas.core.indexes.interval import IntervalIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.missing import isna
 from pandas.core.tools.datetimes import to_datetime
 from pandas.core.tools.timedeltas import to_timedelta
+from pandas._libs.tslibs.timedeltas import Timedelta
+from pandas._libs.tslibs.timestamps import Timestamp
+from pandas._libs import NaT, Period, join
+from pandas.io.clipboards import read_clipboard
+from pandas.io.excel import ExcelFile, ExcelWriter, read_excel
+from pandas.io.feather_format import read_feather
+from pandas.io.gbq import read_gbq
+from pandas.io.html import read_html
+from pandas.io.json import read_json
+from pandas.io.packers import read_msgpack, to_msgpack
+from pandas.io.parquet import read_parquet
+from pandas.io.parsers import read_csv, read_fwf, read_table
+from pandas.io.pickle import read_pickle, to_pickle
+from pandas.io.pytables import HDFStore, read_hdf
+from pandas.io.sas import read_sas
+from pandas.io.sql import read_sql, read_sql_query, read_sql_table
+from pandas.io.stata import read_stata
+from pandas.io.msgpack import ExtType, Packer as _Packer, Unpacker as _Unpacker
+from pandas.io.formats.printing import pprint_thing
+from pandas.io.parsers import TextParser
+from pandas.io.common import _stringify_path, get_filepath_or_buffer, is_s3_url
+
+from pandas.tseries.frequencies import infer_freq
+from pandas.tseries import offsets
+
 from pandas.util._print_versions import show_versions
-from pandas.io.api import *
 from pandas.util._tester import test
 import pandas.testing
 import pandas.arrays
