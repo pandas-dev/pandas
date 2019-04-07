@@ -1,9 +1,9 @@
+import inspect
 import warnings
 
 import numpy as np
 
 from pandas._libs import reduction
-import pandas.compat as compat
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -123,7 +123,7 @@ class FrameApply(object):
             # Some methods (shift, etc.) require the axis argument, others
             # don't, so inspect and insert if necessary.
             func = getattr(self.obj, self.f)
-            sig = compat.signature(func)
+            sig = inspect.getfullargspec(func)
             if 'axis' in sig.args:
                 self.kwds['axis'] = self.axis
             return func(*self.args, **self.kwds)

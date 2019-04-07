@@ -50,7 +50,6 @@ BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_PATH))
 import pandas
-from pandas.compat import signature
 
 sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
@@ -420,7 +419,7 @@ class Docstring(object):
                 # accessor classes have a signature but don't want to show this
                 return tuple()
         try:
-            sig = signature(self.obj)
+            sig = inspect.getfullargspec(self.obj)
         except (TypeError, ValueError):
             # Some objects, mainly in C extensions do not support introspection
             # of the signature
@@ -428,8 +427,8 @@ class Docstring(object):
         params = sig.args
         if sig.varargs:
             params.append("*" + sig.varargs)
-        if sig.keywords:
-            params.append("**" + sig.keywords)
+        if sig.varkw:
+            params.append("**" + sig.varkw)
         params = tuple(params)
         if params and params[0] in ('self', 'cls'):
             return params[1:]
