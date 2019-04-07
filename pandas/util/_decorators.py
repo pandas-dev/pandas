@@ -346,6 +346,6 @@ def make_signature(func):
         args.append(var if default == '' else var + '=' + repr(default))
     if spec.varargs:
         args.append('*' + spec.varargs)
-    if spec.keywords:
+    if spec.varkw:
         args.append('**' + spec.varkw)
     return args, spec.args
