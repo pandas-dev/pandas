@@ -16,6 +16,7 @@ import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
+from pandas.core.algorithms import unique1d
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray, _is_convertible_to_td
 from pandas.core.base import _shared_docs
@@ -475,27 +476,33 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if len(other) == 0:
             return other
 
-        self = self.sort_values()
-        other = other.sort_values()
+        if self.is_monotonic:
+            other = other.sort_values()
+            # to make our life easier, "sort" the two ranges
+            if self[0] <= other[0]:
+                left, right = self, other
+            else:
+                left, right = other, self
 
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        else:
-            left, right = other, self
+            end = min(left[-1], right[-1])
+            start = right[0]
 
-        end = min(left[-1], right[-1])
-        start = right[0]
+            if end < start:
+                return type(self)(data=[])
+            else:
+                lstart, lend = left.slice_locs(start, end)
+                lslice = np.arange(lstart, lend)
+                mask = [left_elem in right for left_elem in left[lstart: lend]]
+                lslice = lslice[mask]
+                left_chunk = left.values[lslice]
+                return self._shallow_copy(left_chunk)
 
-        if end < start:
-            return type(self)(data=[])
-        else:
-            lstart, lend = left.slice_locs(start, end)
-            lslice = np.arange(lstart, lend)
-            mask = [left_elem in right for left_elem in left[lstart: lend]]
-            lslice = lslice[mask]
-            left_chunk = left.values[lslice]
-            return self._shallow_copy(left_chunk)
+        indexer = other.get_indexer(self)
+        indexer = indexer.take((indexer != -1).nonzero()[0])
+        indexer = unique1d(indexer)
+
+        taken = other.take(indexer).values
+        return self._shallow_copy(taken)
 
     def _maybe_promote(self, other):
         if other.inferred_type == 'timedelta':
