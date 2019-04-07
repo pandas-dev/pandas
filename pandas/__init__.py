@@ -42,6 +42,8 @@ from pandas._config import (get_option, set_option, reset_option,
 # let init-time option registration happen
 import pandas.core.config_init
 
+from pandas.core.frame import DataFrame
+from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 from pandas.core.sparse.frame import SparseDataFrame
