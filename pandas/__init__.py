@@ -56,8 +56,8 @@ from pandas.core.reshape.tile import cut, qcut
 from pandas.core.internals import BlockManager, _safe_reshape, make_block
 
 from pandas.core.index import (
-    Float64Index, Index, DatetimeIndex, Int64Index, MultiIndex, PeriodIndex, RangeIndex,
-    TimedeltaIndex, CategoricalIndex)
+    Float64Index, Index, DatetimeIndex, Int64Index, MultiIndex,
+    PeriodIndex, RangeIndex, TimedeltaIndex, CategoricalIndex)
 from pandas.core.arrays import DatetimeArray, IntervalArray, PeriodArray
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.arrays.categorical import Categorical
