@@ -8774,22 +8774,22 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.18.1
                 A callable can be used as other.
 
-        inplace : boolean, default False
+        inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None
             Alignment axis if needed.
         level : int, default None
             Alignment level if needed.
-        errors : str, {'raise', 'ignore'}, default `raise`
+        errors : str, {'raise', 'ignore'}, default 'raise'
             Note that currently this parameter won't affect
             the results and will always coerce to a suitable dtype.
 
-            - `raise` : allow exceptions to be raised.
-            - `ignore` : suppress exceptions. On error return original object.
+            - 'raise' : allow exceptions to be raised.
+            - 'ignore' : suppress exceptions. On error return original object.
 
-        try_cast : boolean, default False
+        try_cast : bool, default False
             Try to cast the result back to the input type (if possible).
-        raise_on_error : boolean, default True
+        raise_on_error : bool, default True
             Whether to raise on invalid data types (e.g. trying to where on
             strings).
 
@@ -8799,7 +8799,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        wh : same type as caller
+        Same type as caller
 
         See Also
         --------
@@ -8848,6 +8848,13 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype: int64
 
         >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
+        >>> df
+           A  B
+        0  0  1
+        1  2  3
+        2  4  5
+        3  6  7
+        4  8  9
         >>> m = df %% 3 == 0
         >>> df.where(m, -df)
            A  B
