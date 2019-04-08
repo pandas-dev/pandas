@@ -194,8 +194,7 @@ _is_str = _is_type(str)
 
 def _is_series_of_str(term):
     """Test whether a ``Term`` holds list-like value of ``string_types``"""
-    return (_is_type(pd.Series)(term) and
-            isinstance(term.value[0], string_types))
+    return _is_type(pd.Series)(term) and isinstance(term.value[0], str)
 
 
 def _do_partial_str_match(op, left_term, right_term):
