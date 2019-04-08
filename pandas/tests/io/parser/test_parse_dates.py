@@ -6,6 +6,10 @@ parsers defined in parsers.py
 """
 
 from datetime import date, datetime
+from dateutil.parser import parse as du_parse
+
+from hypothesis import given, strategies as st
+
 from io import StringIO
 
 from dateutil.parser import parse
@@ -15,7 +19,8 @@ import pytz
 
 from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs import parsing
-from pandas.compat import lrange
+from pandas._libs.tslibs.parsing import parse_datetime_string
+from pandas.compat import lrange, parse_date
 from pandas.compat.numpy import np_array_datetime64_compat
 
 import pandas as pd
@@ -897,3 +902,30 @@ def test_parse_delimited_date_swap(all_parsers, datestring,
     result = parser.read_csv(StringIO(datestring), header=None,
                              dayfirst=dayfirst, parse_dates=[0])
     tm.assert_frame_equal(result, expected)
+
+
+gen_random_datetime = st.dates(
+    min_value=date(1000, 1, 1),
+    max_value=date(9999, 12, 31)
+)
+_DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
+                                              second=0, microsecond=0)
+
+
+@given(gen_random_datetime)
+@pytest.mark.parametrize("date_format, delimiters, dayfirst", [
+    ("%m %d %Y", " -./", False),
+    ("%m %d %Y", " -./", True),
+    ("%d %m %Y", " -./", True),
+    ("%d %m %Y", " -./", False),
+    ("%m %Y", " -/", False),
+    ("%m %Y", " -/", True)
+])
+def test_hypothesis_delimited_date(date_format, delimiters, dayfirst, date):
+    date_strings = [date.strftime(date_format.replace(' ', delim))
+                    for delim in delimiters]
+    for date_string in date_strings:
+        result = parse_datetime_string(date_string, dayfirst=dayfirst)
+        expected = du_parse(date_string, default=_DEFAULT_DATETIME,
+                            dayfirst=dayfirst, yearfirst=False)
+        assert result == expected
