@@ -1,5 +1,7 @@
 """ define extension dtypes """
+import builtins
 import re
+from typing import Any, Dict, Optional, Tuple, Type
 import warnings
 
 import numpy as np
@@ -104,17 +106,23 @@ class PandasExtensionDtype(_DtypeOpsMixin):
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
-    type = None
+    type = None  # type: Any
+    kind = None  # type: Any
+    """
+    The Any type annotations above are here only because mypy seems to have a
+    problem dealing with with multiple inheritance from PandasExtensionDtype
+    and ExtensionDtype's @properties in the subclasses below. Those subclasses
+    are explicitly typed, as appropriate.
+    """
     subdtype = None
-    kind = None
-    str = None
+    str = None  # type: Optional[builtins.str]
     num = 100
-    shape = tuple()
+    shape = tuple()  # type: Tuple[int, ...]
     itemsize = 8
     base = None
     isbuiltin = 0
     isnative = 0
-    _cache = {}
+    _cache = {}  # type: Dict[builtins.str, object]
 
     def __unicode__(self):
         return self.name
@@ -217,12 +225,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     # TODO: Document public vs. private API
     name = 'category'
-    type = CategoricalDtypeType
-    kind = 'O'
+    type = CategoricalDtypeType  # type: Type[CategoricalDtypeType]
+    kind = 'O'  # type: builtins.str
     str = '|O08'
     base = np.dtype('O')
     _metadata = ('categories', 'ordered')
-    _cache = {}
+    _cache = {}  # type: Dict[builtins.str, object]
 
     def __init__(self, categories=None, ordered=None):
         self._finalize(categories, ordered, fastpath=False)
@@ -584,15 +592,15 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of
     np.datetime64[ns]
     """
-    type = Timestamp
-    kind = 'M'
+    type = Timestamp  # type: Type[Timestamp]
+    kind = 'M'  # type: builtins.str
     str = '|M8[ns]'
     num = 101
     base = np.dtype('M8[ns]')
     na_value = NaT
     _metadata = ('unit', 'tz')
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
-    _cache = {}
+    _cache = {}  # type: Dict[builtins.str, object]
 
     def __init__(self, unit="ns", tz=None):
         """
@@ -736,14 +744,14 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
 
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.int64.
     """
-    type = Period
-    kind = 'O'
+    type = Period  # type: Type[Period]
+    kind = 'O'  # type: builtins.str
     str = '|O08'
     base = np.dtype('O')
     num = 102
     _metadata = ('freq',)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
-    _cache = {}
+    _cache = {}  # type: Dict[builtins.str, object]
 
     def __new__(cls, freq=None):
         """
@@ -860,13 +868,13 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     THIS IS NOT A REAL NUMPY DTYPE
     """
     name = 'interval'
-    kind = None
+    kind = None  # type: Optional[builtins.str]
     str = '|O08'
     base = np.dtype('O')
     num = 103
     _metadata = ('subtype',)
     _match = re.compile(r"(I|i)nterval\[(?P<subtype>.+)\]")
-    _cache = {}
+    _cache = {}  # type: Dict[builtins.str, object]
 
     def __new__(cls, subtype=None):
         """
