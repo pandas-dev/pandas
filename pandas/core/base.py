@@ -1183,15 +1183,14 @@ class IndexOpsMixin:
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
+            if is_categorical_dtype(self._values):
+                # use the built in categorical series mapper which saves
+                # time by mapping the categories instead of all values
+                return self._values.map(mapper)
             if is_extension_type(self.dtype):
                 values = self._values
             else:
                 values = self.values
-
-            if is_categorical_dtype(values):
-                # use the built in categorical series mapper which saves
-                # time by mapping the categories instead of all values
-                return values.map(mapper)
 
             indexer = mapper.index.get_indexer(values)
             new_values = algorithms.take_1d(mapper._values, indexer)

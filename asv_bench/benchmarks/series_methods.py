@@ -157,9 +157,11 @@ class Map:
             self.map_data = map_data
         elif mapper == 'dict':
             self.map_data = map_data.to_dict()
-        else:
+        elif mapper == 'lambda':
             map_dict = map_data.to_dict()
             self.map_data = lambda x: map_dict[x]
+        else:
+            raise NotImplementedError
 
         self.s = Series(np.random.randint(0, map_size, 10000), dtype=dtype)
 
