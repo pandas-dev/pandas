@@ -129,7 +129,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
 
     if 1 <= month <= MAX_DAYS_IN_MONTH and 1 <= day <= MAX_DAYS_IN_MONTH \
             and (month <= MAX_MONTH or day <= MAX_MONTH):
-        if (month > MAX_MONTH or (day < MAX_MONTH and dayfirst)) and can_swap:
+        if (month > MAX_MONTH or (day <= MAX_MONTH and dayfirst)) and can_swap:
             day, month = month, day
         if PY_VERSION_HEX >= 0x03060100:
             # In Python <= 3.6.0 there is no range checking for invalid dates
