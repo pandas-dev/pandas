@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import date, datetime, time, timedelta
 from warnings import catch_warnings, simplefilter
 

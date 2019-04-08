@@ -119,7 +119,7 @@ fixed-width text files and :func:`read_excel` for parsing Excel files, now accep
 .. ipython:: python
    :suppress:
 
-   from pandas.compat import StringIO
+   from io import StringIO
 
 .. ipython:: python
 

@@ -14,14 +14,17 @@ dependencies:
   - matplotlib
   - nomkl
   - numexpr
-  - numpy
+  - numpy=1.15.*
   - openpyxl
+  - pandas-gbq
+  # https://github.com/pydata/pandas-gbq/issues/271
+  - google-cloud-bigquery<=1.11
   - psycopg2
   - pyarrow=0.9.0
   - pymysql
   - pytables
   - python-snappy
-  - python=3.6.6
+  - python=3.6.*
   - pytz
   - s3fs
   - scikit-learn
@@ -39,6 +42,7 @@ dependencies:
   - pytest-mock
   - hypothesis>=3.58.0
   - isort
+  - pip
   - pip:
     - brotlipy
     - coverage

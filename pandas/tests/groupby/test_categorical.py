@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-
 from datetime import datetime
 
 import numpy as np
@@ -451,6 +449,38 @@ def test_dataframe_categorical_with_nan(observed):
                               categories=['a', 'b', 'c']),
                               's2': [2, np.nan, np.nan]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("ordered", [True, False])
+@pytest.mark.parametrize("observed", [True, False])
+@pytest.mark.parametrize("sort", [True, False])
+def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
+    # GH 25871: Fix groupby sorting on ordered Categoricals
+    # GH 25167: Groupby with observed=True doesn't sort
+
+    # Build a dataframe with cat having one unobserved category ('missing'),
+    # and a Series with identical values
+    label = pd.Categorical(['d', 'a', 'b', 'a', 'd', 'b'],
+                           categories=['a', 'b', 'missing', 'd'],
+                           ordered=ordered)
+    val = pd.Series(['d', 'a', 'b', 'a', 'd', 'b'])
+    df = pd.DataFrame({'label': label, 'val': val})
+
+    # aggregate on the Categorical
+    result = (df.groupby('label', observed=observed, sort=sort)['val']
+                .aggregate('first'))
+
+    # If ordering works, we expect index labels equal to aggregation results,
+    # except for 'observed=False': label 'missing' has aggregation None
+    label = pd.Series(result.index.array, dtype='object')
+    aggr = pd.Series(result.array)
+    if not observed:
+        aggr[aggr.isna()] = 'missing'
+    if not all(label == aggr):
+        msg = ('Labels and aggregation results not consistently sorted\n' +
+               'for (ordered={}, observed={}, sort={})\n' +
+               'Result:\n{}').format(ordered, observed, sort, result)
+        assert False, msg
 
 
 def test_datetime():

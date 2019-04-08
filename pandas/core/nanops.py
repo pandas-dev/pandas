@@ -23,7 +23,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 import pandas.core.common as com
 
 _BOTTLENECK_INSTALLED = False
-_MIN_BOTTLENECK_VERSION = '1.0.0'
+_MIN_BOTTLENECK_VERSION = '1.2.1'
 
 try:
     import bottleneck as bn

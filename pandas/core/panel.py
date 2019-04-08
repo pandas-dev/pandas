@@ -2,8 +2,6 @@
 Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
-from __future__ import division
-
 from collections import OrderedDict
 import warnings
 
@@ -453,7 +451,7 @@ class Panel(NDFrame):
         """
         from pandas.io.excel import ExcelWriter
 
-        if isinstance(path, compat.string_types):
+        if isinstance(path, str):
             writer = ExcelWriter(path, engine=engine)
         else:
             writer = path
@@ -1468,7 +1466,7 @@ class Panel(NDFrame):
         if not isinstance(values, np.ndarray):
             values = np.asarray(values)
             # NumPy strings are a pain, convert to object
-            if issubclass(values.dtype.type, compat.string_types):
+            if issubclass(values.dtype.type, str):
                 values = np.array(values, dtype=object, copy=True)
         else:
             if copy:

@@ -22,14 +22,11 @@
 #   usage: ./apache-pr-merge.py    (see config env vars below)
 #
 # Lightly modified from version of this script in incubator-parquet-format
-from __future__ import print_function
-
 from subprocess import check_output
 from requests.auth import HTTPBasicAuth
 import requests
 
 import os
-import six
 import sys
 import textwrap
 
@@ -82,12 +79,12 @@ def fail(msg):
 
 
 def run_cmd(cmd):
-    if isinstance(cmd, six.string_types):
+    if isinstance(cmd, str):
         cmd = cmd.split(' ')
 
     output = check_output(cmd)
 
-    if isinstance(output, six.binary_type):
+    if isinstance(output, bytes):
         output = output.decode('utf-8')
     return output
 

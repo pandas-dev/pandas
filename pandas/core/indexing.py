@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-import pandas.compat as compat
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
@@ -1832,8 +1831,7 @@ class _LocIndexer(_LocationIndexer):
         """Translate any partial string timestamp matches in key, returning the
         new key (GH 10331)"""
         if isinstance(labels, MultiIndex):
-            if (isinstance(key, compat.string_types) and
-                    labels.levels[0].is_all_dates):
+            if (isinstance(key, str) and labels.levels[0].is_all_dates):
                 # Convert key '2016-01-01' to
                 # ('2016-01-01'[, slice(None, None, None)]+)
                 key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))
@@ -1843,7 +1841,7 @@ class _LocIndexer(_LocationIndexer):
                 # (..., slice('2016-01-01', '2016-01-01', None), ...)
                 new_key = []
                 for i, component in enumerate(key):
-                    if (isinstance(component, compat.string_types) and
+                    if (isinstance(component, str) and
                             labels.levels[i].is_all_dates):
                         new_key.append(slice(component, component, None))
                     else:
@@ -2462,7 +2460,7 @@ def convert_to_index_sliceable(obj, key):
     if isinstance(key, slice):
         return idx._convert_slice_indexer(key, kind='getitem')
 
-    elif isinstance(key, compat.string_types):
+    elif isinstance(key, str):
 
         # we are an actual column
         if obj._data.items.contains(key):
@@ -2737,8 +2735,7 @@ def _non_reducing_slice(slice_):
     """
     # default to column slice, like DataFrame
     # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
-    kinds = tuple(list(compat.string_types) + [ABCSeries, np.ndarray, Index,
-                                               list])
+    kinds = (ABCSeries, np.ndarray, Index, list, str)
     if isinstance(slice_, kinds):
         slice_ = IndexSlice[:, slice_]
 

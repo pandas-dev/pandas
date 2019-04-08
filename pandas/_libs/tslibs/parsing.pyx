@@ -2,9 +2,9 @@
 """
 Parsing functions for datetime and datetime-like strings.
 """
-import sys
 import re
 import time
+from io import StringIO
 
 from cpython.datetime cimport datetime
 
@@ -12,14 +12,6 @@ from cpython.datetime cimport datetime
 import numpy as np
 
 import six
-from six import binary_type, text_type
-
-# Avoid import from outside _libs
-if sys.version_info.major == 2:
-    from StringIO import StringIO
-else:
-    from io import StringIO
-
 
 # dateutil compat
 from dateutil.tz import (tzoffset,
@@ -102,7 +94,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
     Parameters
     ----------
-    arg : compat.string_types
+    arg : str
     freq : str or DateOffset, default None
         Helps with interpreting time string if supplied
     dayfirst : bool, default None
@@ -537,13 +529,13 @@ class _timelex(object):
         if six.PY2:
             # In Python 2, we can't duck type properly because unicode has
             # a 'decode' function, and we'd be double-decoding
-            if isinstance(instream, (binary_type, bytearray)):
+            if isinstance(instream, (bytes, bytearray)):
                 instream = instream.decode()
         else:
             if getattr(instream, 'decode', None) is not None:
                 instream = instream.decode()
 
-        if isinstance(instream, text_type):
+        if isinstance(instream, str):
             self.stream = instream
         elif getattr(instream, 'read', None) is None:
             raise TypeError(

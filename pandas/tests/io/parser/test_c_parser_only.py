@@ -7,7 +7,7 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
-from io import TextIOWrapper
+from io import BytesIO, StringIO, TextIOWrapper
 import mmap
 import os
 import tarfile
@@ -15,7 +15,7 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import BytesIO, StringIO, lrange
+from pandas.compat import lrange
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 

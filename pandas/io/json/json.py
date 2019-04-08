@@ -1,4 +1,5 @@
 # pylint: disable-msg=E1101,W0613,W0603
+from io import StringIO
 from itertools import islice
 import os
 
@@ -6,7 +7,7 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas.compat import StringIO, to_str
+from pandas.compat import to_str
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_period_dtype
@@ -64,7 +65,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
     if lines:
         s = _convert_to_line_delimits(s)
 
-    if isinstance(path_or_buf, compat.string_types):
+    if isinstance(path_or_buf, str):
         fh, handles = _get_handle(path_or_buf, 'w', compression=compression)
         try:
             fh.write(s)
@@ -522,7 +523,7 @@ class JsonReader(BaseIterator):
         data = filepath_or_buffer
 
         exists = False
-        if isinstance(data, compat.string_types):
+        if isinstance(data, str):
             try:
                 exists = os.path.exists(filepath_or_buffer)
             # gh-5874: if the filepath is too long will raise here
@@ -956,7 +957,7 @@ class FrameParser(Parser):
             """
             Return if this col is ok to try for a date parse.
             """
-            if not isinstance(col, compat.string_types):
+            if not isinstance(col, str):
                 return False
 
             col_lower = col.lower()

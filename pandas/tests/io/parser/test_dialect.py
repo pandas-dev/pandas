@@ -6,10 +6,10 @@ for all of the parsers defined in parsers.py
 """
 
 import csv
+from io import StringIO
 
 import pytest
 
-from pandas.compat import StringIO
 from pandas.errors import ParserWarning
 
 from pandas import DataFrame

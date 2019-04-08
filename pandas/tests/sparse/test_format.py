@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-
 import numpy as np
 
 from pandas.compat import is_platform_32bit, is_platform_windows

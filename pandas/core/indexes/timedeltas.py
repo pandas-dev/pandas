@@ -585,7 +585,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         """
         assert kind in ['ix', 'loc', 'getitem', None]
 
-        if isinstance(label, compat.string_types):
+        if isinstance(label, str):
             parsed = Timedelta(label)
             lbound = parsed.round(parsed.resolution)
             if side == 'left':
@@ -608,7 +608,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     def _partial_td_slice(self, key):
 
         # given a key, try to figure out a location for a partial slice
-        if not isinstance(key, compat.string_types):
+        if not isinstance(key, str):
             return key
 
         raise NotImplementedError
@@ -679,7 +679,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         except (AttributeError, TypeError):
 
             # fall back to object index
-            if isinstance(item, compat.string_types):
+            if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
             raise TypeError(
                 "cannot insert TimedeltaIndex with incompatible label")
