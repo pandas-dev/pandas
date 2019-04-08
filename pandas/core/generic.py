@@ -3012,8 +3012,11 @@ class NDFrame(PandasObject, SelectionMixin):
             Character recognized as decimal separator. E.g. use ',' for
             European data.
         arcname : str, default None
-            Name of file within a ZIP archive. Only used when `path_or_buf` is
-            a path and `compression` is set to or inferred as 'zip'.
+            Name of CSV-formatted file within a ZIP archive. Only used when
+            `path_or_buf` is a path and `compression` is set to or inferred
+            as 'zip'. Uses `path_or_buf` if None.
+
+            .. versionadded:: 0.25.0
 
         Returns
         -------
