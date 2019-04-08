@@ -551,5 +551,7 @@ z
                       arcname=arcname)
             zp = ZipFile(path)
             expected_arcname = path if arcname is None else arcname
+            expected_arcname = os.path.basename(expected_arcname)
             assert len(zp.filelist) == 1
-            assert zp.filelist[0].filename == expected_arcname
+            archived_file = os.path.basename(zp.filelist[0].filename)
+            assert archived_file == expected_arcname
