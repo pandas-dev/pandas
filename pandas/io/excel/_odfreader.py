@@ -1,5 +1,4 @@
 import pandas as pd
-from pandas import compat
 
 from pandas.io.parsers import TextParser
 
@@ -39,7 +38,7 @@ class _ODFReader(object):
     def _get_sheet(self, name):
         """Given a sheet name or index, return the root ODF Table node
         """
-        if isinstance(name, compat.string_types):
+        if isinstance(name, str):
             return self.get_sheet_by_name(name)
         elif isinstance(name, int):
             return self.get_sheet_by_index(name)
