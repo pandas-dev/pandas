@@ -420,7 +420,8 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     bytes strings into a member of the archive.
     """
     # GH 17778
-    def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED, arcname=None, **kwargs):
+    def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED,
+                 arcname=None, **kwargs):
         if mode in ['wb', 'rb']:
             mode = mode.replace('b', '')
         self.arcname = arcname
