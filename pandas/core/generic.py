@@ -2921,7 +2921,7 @@ class NDFrame(PandasObject, SelectionMixin):
                mode='w', encoding=None, compression='infer', quoting=None,
                quotechar='"', line_terminator=None, chunksize=None,
                tupleize_cols=None, date_format=None, doublequote=True,
-               escapechar=None, decimal='.'):
+               escapechar=None, decimal='.', arcname=None):
         r"""
         Write object to a comma-separated values (csv) file.
 
@@ -3011,6 +3011,9 @@ class NDFrame(PandasObject, SelectionMixin):
         decimal : str, default '.'
             Character recognized as decimal separator. E.g. use ',' for
             European data.
+        arcname : str, default None
+            Name of file within a ZIP archive. Only used when `path_or_buf` is
+            a path and `compression` is set to or inferred as 'zip'.
 
         Returns
         -------
@@ -3053,7 +3056,8 @@ class NDFrame(PandasObject, SelectionMixin):
                                  tupleize_cols=tupleize_cols,
                                  date_format=date_format,
                                  doublequote=doublequote,
-                                 escapechar=escapechar, decimal=decimal)
+                                 escapechar=escapechar, decimal=decimal,
+                                 arcname=arcname)
         formatter.save()
 
         if path_or_buf is None:

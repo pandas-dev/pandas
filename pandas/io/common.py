@@ -288,7 +288,7 @@ def _infer_compression(filepath_or_buffer, compression):
 
 
 def _get_handle(path_or_buf, mode, encoding=None, compression=None,
-                memory_map=False, is_text=True):
+                memory_map=False, is_text=True, arcname=None):
     """
     Get file handle for given path/buffer and mode.
 
@@ -350,7 +350,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
         # ZIP Compression
         elif compression == 'zip':
-            zf = BytesZipFile(path_or_buf, mode)
+            zf = BytesZipFile(path_or_buf, mode, arcname=arcname)
             # Ensure the container is closed as well.
             handles.append(zf)
             if zf.mode == 'w':
@@ -420,13 +420,15 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     bytes strings into a member of the archive.
     """
     # GH 17778
-    def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED, **kwargs):
+    def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED, arcname=None, **kwargs):
         if mode in ['wb', 'rb']:
             mode = mode.replace('b', '')
+        self.arcname = arcname
         super(BytesZipFile, self).__init__(file, mode, compression, **kwargs)
 
     def write(self, data):
-        super(BytesZipFile, self).writestr(self.filename, data)
+        arcname = self.filename if self.arcname is None else self.arcname
+        super(BytesZipFile, self).writestr(arcname, data)
 
     @property
     def closed(self):

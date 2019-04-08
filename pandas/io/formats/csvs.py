@@ -29,7 +29,7 @@ class CSVFormatter(object):
                  compression='infer', quoting=None, line_terminator='\n',
                  chunksize=None, tupleize_cols=False, quotechar='"',
                  date_format=None, doublequote=True, escapechar=None,
-                 decimal='.'):
+                 decimal='.', arcname=None):
 
         self.obj = obj
 
@@ -123,6 +123,8 @@ class CSVFormatter(object):
         if not index:
             self.nlevels = 0
 
+        self.arcname = arcname
+
     def save(self):
         """
         Create the writer & save
@@ -176,7 +178,8 @@ class CSVFormatter(object):
                 else:
                     f, handles = _get_handle(self.path_or_buf, self.mode,
                                              encoding=self.encoding,
-                                             compression=self.compression)
+                                             compression=self.compression,
+                                             arcname=self.arcname)
                     f.write(buf)
                     close = True
             if close:

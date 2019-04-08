@@ -537,3 +537,19 @@ z
             result = pd.read_csv(path, index_col=0,
                                  compression=read_compression)
             tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("compression", ["zip", "infer"])
+    @pytest.mark.parametrize("arcname", [None, "test_to_csv.csv",
+                                         "test_to_csv.zip"])
+    def test_to_csv_zip_arcname(self, compression, arcname):
+        # GH 26023
+        from zipfile import ZipFile
+
+        df = DataFrame({"ABC": [1]})
+        with tm.ensure_clean("to_csv_arcname.zip") as path:
+            df.to_csv(path, compression=compression,
+                      arcname=arcname)
+            zp = ZipFile(path)
+            expected_arcname = path if arcname is None else arcname
+            assert len(zp.filelist) == 1
+            assert zp.filelist[0].filename == expected_arcname
