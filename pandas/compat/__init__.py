@@ -121,6 +121,7 @@ def add_metaclass(metaclass):
         return metaclass(cls.__name__, cls.__bases__, orig_vars)
     return wrapper
 
+
 if PY3:
     def raise_with_traceback(exc, traceback=Ellipsis):
         if traceback == Ellipsis:
