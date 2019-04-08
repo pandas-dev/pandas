@@ -96,6 +96,7 @@ class HTMLFormatter(TableFormatter):
         the 'header' parameter.  If 'header' is True, min-width needs to be
         set as it is for use inside <thead>
         """
+        
         if header and self.fmt.col_space is not None:
             if isinstance(self.fmt.col_space, int):
                 self.fmt.col_space = ('{colspace}px'
