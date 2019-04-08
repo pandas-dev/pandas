@@ -6,12 +6,10 @@ parsers defined in parsers.py
 """
 
 from datetime import date, datetime
-from dateutil.parser import parse as du_parse
-
-from hypothesis import given, strategies as st
-
 from io import StringIO
 
+from dateutil.parser import parse as du_parse
+from hypothesis import given, strategies as st
 from dateutil.parser import parse
 import numpy as np
 import pytest
