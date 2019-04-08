@@ -339,6 +339,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     engine : str
     parser : str
     preparser : callable
+    partial_str_match : bool
     """
     const_type = Constant
     term_type = Term
@@ -360,12 +361,14 @@ class BaseExprVisitor(ast.NodeVisitor):
         ast.NotIn: ast.NotIn
     }
 
-    def __init__(self, env, engine, parser, preparser=_preparse):
+    def __init__(self, env, engine, parser, preparser=_preparse,
+                 partial_str_match=False):
         self.env = env
         self.engine = engine
         self.parser = parser
         self.preparser = preparser
         self.assigner = None
+        self.partial_str_match = partial_str_match
 
     def visit(self, node, **kwargs):
         if isinstance(node, string_types):
@@ -716,7 +719,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         if len(comps) == 1:
             op = self.translate_In(ops[0])
 
-            if kwargs.get('partial_str_match'):
+            if self.partial_str_match:
                 # partial string match (case sensitive):
                 # when the left node is `Term` with a str value,
                 # right `Term` with a value of Series containing str
@@ -783,16 +786,20 @@ class PandasExprVisitor(BaseExprVisitor):
     def __init__(self, env, engine, parser,
                  preparser=partial(_preparse, f=_compose(
                      _replace_locals, _replace_booleans,
-                     _clean_spaces_backtick_quoted_names))):
-        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
+                     _clean_spaces_backtick_quoted_names)),
+                 partial_str_match=False):
+        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser,
+                                                partial_str_match)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
 class PythonExprVisitor(BaseExprVisitor):
 
-    def __init__(self, env, engine, parser, preparser=lambda x: x):
-        super(PythonExprVisitor, self).__init__(env, engine, parser,
-                                                preparser=preparser)
+    def __init__(self, env, engine, parser, preparser=lambda x: x,
+                 partial_str_match=False):
+        super(PythonExprVisitor, self).__init__(
+            env, engine, parser, preparser=preparser,
+            partial_str_match=partial_str_match)
 
 
 class Expr(StringMixin):
@@ -817,8 +824,9 @@ class Expr(StringMixin):
         self.engine = engine
         self.parser = parser
         self.env.scope['truediv'] = truediv
-        self._visitor = _parsers[parser](self.env, self.engine, self.parser)
-        self.terms = self.parse(partial_str_match)
+        self._visitor = _parsers[parser](self.env, self.engine, self.parser,
+                                         partial_str_match=partial_str_match)
+        self.terms = self.parse()
 
     @property
     def assigner(self):
@@ -833,10 +841,9 @@ class Expr(StringMixin):
     def __len__(self):
         return len(self.expr)
 
-    def parse(self, partial_str_match):
+    def parse(self):
         """Parse an expression"""
-        return self._visitor.visit(self.expr,
-                                   partial_str_match=partial_str_match)
+        return self._visitor.visit(self.expr)
 
     @property
     def names(self):
