@@ -21,8 +21,9 @@ del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
 from pandas.compat.numpy import (
-    LooseVersion, tz_replacer, _tz_regex, np_datetime64_compat,
-    np_array_datetime64_compat, function)
+    np_datetime64_compat, np_array_datetime64_compat, _nlv, _np_version,
+    _np_version_under1p14, _np_version_under1p15, _np_version_under1p16,
+    _np_version_under1p17, LooseVersion, tz_replacer, _tz_regex, function)
 
 try:
     from pandas._libs import (hashtable as _hashtable,
