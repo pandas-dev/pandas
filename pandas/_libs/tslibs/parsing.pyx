@@ -126,7 +126,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
     else:
         return None, None
 
-    if month < 0 or day < 0 or year < 0:
+    if month < 0 or day < 0 or year < 1000:
         # some part is not an integer, so
         # date_string can't be converted to date, above format
         return None, None

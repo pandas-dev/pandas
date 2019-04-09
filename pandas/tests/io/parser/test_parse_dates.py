@@ -9,7 +9,7 @@ from datetime import date, datetime
 from io import StringIO
 
 from dateutil.parser import parse as du_parse
-from hypothesis import given, strategies as st
+from hypothesis import given, settings, strategies as st
 from dateutil.parser import parse
 import numpy as np
 import pytest
@@ -18,7 +18,7 @@ import pytz
 from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
-from pandas.compat import lrange, parse_date, is_platform_windows
+from pandas.compat import is_platform_windows, lrange
 from pandas.compat.numpy import np_array_datetime64_compat
 
 import pandas as pd
@@ -909,6 +909,7 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 
 
 @given(date_strategy)
+@settings(deadline=None)
 @pytest.mark.parametrize("delimiter", list(" -./"))
 @pytest.mark.parametrize("dayfirst", [True, False])
 @pytest.mark.parametrize("date_format", [
