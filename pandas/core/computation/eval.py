@@ -224,6 +224,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         If this is True, an `expr` like "string_query in list_like_of_strings"
         is interpreted as partial string match (the default behavior is exact
         matching).
+        .. versionadded:: 0.25.0
 
     Returns
     -------
