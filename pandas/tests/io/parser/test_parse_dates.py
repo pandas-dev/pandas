@@ -18,7 +18,7 @@ import pytz
 from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
-from pandas.compat import lrange, parse_date
+from pandas.compat import lrange, parse_date, is_platform_windows
 from pandas.compat.numpy import np_array_datetime64_compat
 
 import pandas as pd
@@ -33,10 +33,10 @@ import pandas.io.parsers as parsers
 _DEFAULT_DATETIME = datetime(1, 1, 1)
 
 # Strategy for hypothesis
-gen_random_datetime = st.dates(
-    min_value=date(1900, 1, 1),  # on Windows for %y need: year > 1900
-    max_value=date(9999, 12, 31)
-)
+if is_platform_windows():
+    date_strategy = st.datetimes(min_value=datetime(1900, 1, 1))
+else:
+    date_strategy = st.datetimes()
 
 
 def test_separator_date_conflict(all_parsers):
@@ -908,7 +908,7 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     return msg, result
 
 
-@given(gen_random_datetime)
+@given(date_strategy)
 @pytest.mark.parametrize("delimiter", list(" -./"))
 @pytest.mark.parametrize("dayfirst", [True, False])
 @pytest.mark.parametrize("date_format", [
@@ -920,13 +920,14 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     "%Y%m%d",
     "%y%m%d",
 ])
-def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, date):
+def test_hypothesis_delimited_date(date_format, dayfirst,
+                                   delimiter, test_datetime):
     if date_format == "%m %Y" and delimiter == ".":
         pytest.skip("parse_datetime_string cannot reliably tell whether \
         e.g. %m.%Y is a float or a date, thus we skip it")
     result, expected = None, None
     except_in_dateutil, except_out_dateutil = None, None
-    date_string = date.strftime(date_format.replace(' ', delimiter))
+    date_string = test_datetime.strftime(date_format.replace(' ', delimiter))
 
     except_out_dateutil, result = _helper_hypothesis_delimited_date(
         parse_datetime_string, date_string,
