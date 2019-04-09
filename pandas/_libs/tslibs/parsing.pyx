@@ -50,7 +50,7 @@ cdef:
 
 # ----------------------------------------------------------------------
 cdef:
-    const char* delimiters = " /-\\."
+    const char* delimiters = " /-."
     int MAX_DAYS_IN_MONTH = 31, MAX_MONTH = 12
 
 
@@ -84,8 +84,8 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
 
     Note
     ----
-    For MM/DD/YYYY, DD/MM/YYYY: delimiter can be a space or one of ./-\\
-    For MM/YYYY: delimiter can be a space or one of /-\\
+    For MM/DD/YYYY, DD/MM/YYYY: delimiter can be a space or one of /-.
+    For MM/YYYY: delimiter can be a space or one of /-
     If `date_string` can't be converted to date, then function returns
     None, None
 

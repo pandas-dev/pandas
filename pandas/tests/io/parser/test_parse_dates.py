@@ -881,13 +881,13 @@ def test_invalid_parse_delimited_date(all_parsers, date_string):
 
 @pytest.mark.parametrize("date_string,dayfirst,expected", [
     # %d/%m/%Y; month > 12 thus replacement
-    ("13\\02\\2019", False, datetime(2019, 2, 13)),
-    ("13\\02\\2019", True, datetime(2019, 2, 13)),
+    ("13/02/2019", False, datetime(2019, 2, 13)),
+    ("13/02/2019", True, datetime(2019, 2, 13)),
     # %m/%d/%Y; day > 12 thus there will be no replacement
-    ("02\\13\\2019", False, datetime(2019, 2, 13)),
-    ("02\\13\\2019", True, datetime(2019, 2, 13)),
+    ("02/13/2019", False, datetime(2019, 2, 13)),
+    ("02/13/2019", True, datetime(2019, 2, 13)),
     # %d/%m/%Y; dayfirst==True thus replacement
-    ("04\\02\\2019", True, datetime(2019, 2, 4))
+    ("04/02/2019", True, datetime(2019, 2, 4))
 ])
 def test_parse_delimited_date_swap(all_parsers, date_string,
                                    dayfirst, expected):
