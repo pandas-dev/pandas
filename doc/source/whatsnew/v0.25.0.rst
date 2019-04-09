@@ -361,6 +361,7 @@ I/O
 - Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
 - Improved the explanation for the failure when value labels are repeated in Stata dta files and suggested work-arounds (:issue:`25772`)
 - Improved :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` to read incorrectly formatted 118 format files saved by Stata (:issue:`25960`)
+- Fixed bug in loading objects from S3 that contain ``#`` characters in the URL (:issue:`25945`)
 
 Plotting
 ^^^^^^^^
@@ -407,6 +408,7 @@ Sparse
 Other
 ^^^^^
 
+- Improved :class:`Timestamp` type checking in various datetime functions to prevent exceptions when using a subclassed `datetime` (:issue:`25851`)
 - Bug in :class:`Series` and :class:`DataFrame` repr where ``np.datetime64('NaT')`` and ``np.timedelta64('NaT')`` with ``dtype=object`` would be represented as ``NaN`` (:issue:`25445`)
 -
 -

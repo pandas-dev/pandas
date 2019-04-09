@@ -8,7 +8,6 @@ Key items to import for 2/3 compatible code:
 * lists: lrange(), lmap(), lzip(), lfilter()
 * iterable method compatibility: iteritems, iterkeys, itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
-* bind_method: binds functions to classes
 * add_metaclass(metaclass) - class decorator that recreates class with with the
   given metaclass instead (and avoids intermediary class creation)
 
@@ -22,10 +21,7 @@ import re
 from distutils.version import LooseVersion
 import sys
 import platform
-import types
 import struct
-import inspect
-from collections import namedtuple
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] >= 3
@@ -33,8 +29,6 @@ PY35 = sys.version_info >= (3, 5)
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
 PYPY = platform.python_implementation() == 'PyPy'
-
-from pandas.compat.chainmap import DeepChainMap
 
 
 # list-producing versions of the major Python iterating functions
@@ -53,58 +47,6 @@ def lmap(*args, **kwargs):
 def lfilter(*args, **kwargs):
     return list(filter(*args, **kwargs))
 
-
-if PY3:
-    def isidentifier(s):
-        return s.isidentifier()
-
-    def str_to_bytes(s, encoding=None):
-        return s.encode(encoding or 'ascii')
-
-    def bytes_to_str(b, encoding=None):
-        return b.decode(encoding or 'utf-8')
-
-    # The signature version below is directly copied from Django,
-    # https://github.com/django/django/pull/4846
-    def signature(f):
-        sig = inspect.signature(f)
-        args = [
-            p.name for p in sig.parameters.values()
-            if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
-        ]
-        varargs = [
-            p.name for p in sig.parameters.values()
-            if p.kind == inspect.Parameter.VAR_POSITIONAL
-        ]
-        varargs = varargs[0] if varargs else None
-        keywords = [
-            p.name for p in sig.parameters.values()
-            if p.kind == inspect.Parameter.VAR_KEYWORD
-        ]
-        keywords = keywords[0] if keywords else None
-        defaults = [
-            p.default for p in sig.parameters.values()
-            if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
-            and p.default is not p.empty
-        ] or None
-        argspec = namedtuple('Signature', ['args', 'defaults',
-                                           'varargs', 'keywords'])
-        return argspec(args, defaults, varargs, keywords)
-else:
-    # Python 2
-    _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
-
-    def isidentifier(s, dotted=False):
-        return bool(_name_re.match(s))
-
-    def str_to_bytes(s, encoding='ascii'):
-        return s
-
-    def bytes_to_str(b, encoding='ascii'):
-        return b
-
-    def signature(f):
-        return inspect.getargspec(f)
 
 if PY2:
     def iteritems(obj, **kw):
@@ -126,30 +68,6 @@ else:
     def itervalues(obj, **kw):
         return iter(obj.values(**kw))
 
-
-def bind_method(cls, name, func):
-    """Bind a method to class, python 2 and python 3 compatible.
-
-    Parameters
-    ----------
-
-    cls : type
-        class to receive bound method
-    name : basestring
-        name of method on class instance
-    func : function
-        function to be bound as method
-
-
-    Returns
-    -------
-    None
-    """
-    # only python 2 has bound/unbound method issue
-    if not PY3:
-        setattr(cls, name, types.MethodType(func, None, cls))
-    else:
-        setattr(cls, name, func)
 # ----------------------------------------------------------------------------
 # functions largely based / taken from the six module
 
@@ -164,7 +82,7 @@ if PY3:
         Convert bytes and non-string into Python 3 str
         """
         if isinstance(s, bytes):
-            s = bytes_to_str(s)
+            s = s.decode('utf-8')
         elif not isinstance(s, str):
             s = str(s)
         return s
@@ -203,6 +121,7 @@ def add_metaclass(metaclass):
         return metaclass(cls.__name__, cls.__bases__, orig_vars)
     return wrapper
 
+
 if PY3:
     def raise_with_traceback(exc, traceback=Ellipsis):
         if traceback == Ellipsis:
@@ -237,6 +156,7 @@ if PY36:
     re_type = typing.re.Pattern
 else:
     re_type = type(re.compile(''))
+
 
 # https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():
