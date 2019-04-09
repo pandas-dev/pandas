@@ -87,14 +87,26 @@ class HTMLFormatter(TableFormatter):
 
     def write_th(self, s, header=False, indent=0, tags=None):
         """
-        Return a formatted <th> cell.
+        Method for writting a formatted <th> cell.
 
-        Most tags are passed in as a parameter, but if col_space is set
-        then that value is used for min-width.
+        If col_space is set on the formatter then that is used for
+        the value of min-width.
 
-        Since min-width is only set inside <thead>, this function also takes
-        the 'header' parameter.  If 'header' is True, min-width needs to be
-        set as it is for use inside <thead>
+        Parameters
+        ----------
+        s : object
+            The data to be written inside the cell.
+        header : boolean, default False
+            Set to True if the <th> is for use inside <thead>.  This will
+            cause min-width to be set if there is one.
+        indent : int, default 0
+            The indentation level of the cell.
+        tags : string, default None
+            Tags to include in the cell.
+
+        Returns
+        -------
+        A written <th> cell.
         """
         if header and self.fmt.col_space is not None:
             if isinstance(self.fmt.col_space, int):
