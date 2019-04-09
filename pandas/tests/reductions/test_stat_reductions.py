@@ -2,6 +2,7 @@
 """
 Tests for statistical reductions of 2nd moment or higher: var, skew, kurt, ...
 """
+import inspect
 
 import numpy as np
 import pytest
@@ -10,7 +11,7 @@ from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, compat
+from pandas import DataFrame, Series
 import pandas.util.testing as tm
 
 
@@ -75,7 +76,7 @@ class TestSeriesStatReductions(object):
                 f(string_series_, axis=1)
 
             # Unimplemented numeric_only parameter.
-            if 'numeric_only' in compat.signature(f).args:
+            if 'numeric_only' in inspect.getfullargspec(f).args:
                 with pytest.raises(NotImplementedError, match=name):
                     f(string_series_, numeric_only=True)
 
