@@ -76,12 +76,16 @@ cdef inline int _parse_4digit(const char* s):
 
 cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
     """
-    Parse special cases of dates: MM/DD/YYYY, DD/MM/YYYY, MM/YYYY
+    Parse special cases of dates: MM/DD/YYYY, DD/MM/YYYY, MM/YYYY.
+    At the beginning function tries to parse date in MM/DD/YYYY format, but
+    if month > 12 - in DD/MM/YYYY (`dayfirst == False`).
+    With `dayfirst == True` function makes an attempt to parse date in
+    DD/MM/YYYY, if an attemp is wrong - in DD/MM/YYYY
 
     Note
     ----
-    For MM/DD/YYYY, DD/MM/YYYY: delimiter can be a space or one of ./\-
-    For MM/YYYY: delimiter can be a space or one of /\-
+    For MM/DD/YYYY, DD/MM/YYYY: delimiter can be a space or one of ./-\\
+    For MM/YYYY: delimiter can be a space or one of /-\\
     If `date_string` can't be converted to date, then function returns
     None, None
 

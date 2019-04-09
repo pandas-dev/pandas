@@ -31,6 +31,7 @@ import pandas.io.parsers as parsers
 
 # constant
 _DEFAULT_DATETIME = datetime(1, 1, 1)
+
 # Strategy for hypothesis
 gen_random_datetime = st.dates(
     min_value=date(1900, 1, 1),  # on Windows for %y need: year > 1900
@@ -921,9 +922,8 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 ])
 def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, date):
     if date_format == "%m %Y" and delimiter == ".":
-        # parse_datetime_string cannot reliably tell whether e.g. %m.%Y
-        # is a float or a date, thus we skip it
-        pytest.skip()
+        pytest.skip("parse_datetime_string cannot reliably tell whether \
+        e.g. %m.%Y is a float or a date, thus we skip it")
     result, expected = None, None
     except_in_dateutil, except_out_dateutil = None, None
     date_string = date.strftime(date_format.replace(' ', delimiter))
