@@ -12,7 +12,6 @@ import numpy as np
 
 from pandas._libs import algos as libalgos, lib, ops as libops
 import pandas.compat as compat
-from pandas.compat import bind_method
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -1545,7 +1544,7 @@ def add_methods(cls, new_methods):
         force = not (issubclass(cls, ABCSparseArray) and
                      name.startswith('__i'))
         if force or name not in cls.__dict__:
-            bind_method(cls, name, method)
+            setattr(cls, name, method)
 
 
 # ----------------------------------------------------------------------

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import isidentifier, lzip
+from pandas.compat import lzip
 
 import pandas as pd
 from pandas import (
@@ -282,7 +282,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         for i, x in enumerate(s.index.unique(level=0)):
             if i < 100:
                 assert (not isinstance(x, str) or
-                        not isidentifier(x) or x in dir_s)
+                        not x.isidentifier() or x in dir_s)
             else:
                 assert x not in dir_s
 

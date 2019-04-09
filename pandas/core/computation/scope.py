@@ -13,7 +13,7 @@ import sys
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import DeepChainMap
+from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.base import StringMixin
 import pandas.core.computation as compu

@@ -654,7 +654,7 @@ class TestUltraJSONTests(object):
         # Make sure no Exception is raised.
         for _ in range(10):
             base = '\u00e5'.encode("utf-8")
-            quote = compat.str_to_bytes("\"")
+            quote = b'"'
 
             escape_input = quote + (base * 1024 * 1024 * 2) + quote
             ujson.decode(escape_input)
