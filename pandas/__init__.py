@@ -45,30 +45,30 @@ from pandas._config import (get_option, set_option, reset_option,
 import pandas.core.config_init
 
 from pandas.core.api import (
-    #dtype
+    # dtype
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype,
     UInt16Dtype, UInt32Dtype, UInt64Dtype, CategoricalDtype,
     PeriodDtype, IntervalDtype, DatetimeTZDtype,
 
-    #missing
+    # missing
     isna, isnull, notna, notnull,
 
-    #indexes
+    # indexes
     Index, CategoricalIndex, Int64Index, UInt64Index, RangeIndex,
     Float64Index, MultiIndex, IntervalIndex, TimedeltaIndex,
     DatetimeIndex, PeriodIndex, IndexSlice,
 
-    #tseries
+    # tseries
     NaT, Period, period_range, Timedelta, timedelta_range,
     Timestamp, date_range, bdate_range, Interval, interval_range,
     DateOffset,
 
-    #conversion
+    # conversion
     to_numeric, to_datetime, to_timedelta,
 
-    #misc
+    # misc
     np, TimeGrouper, Grouper, factorize, unique, value_counts,
-    array, Categorical, set_eng_float_format,  Series, DataFrame,
+    array, Categorical, set_eng_float_format, Series, DataFrame,
     Panel)
 
 from pandas.core.sparse.api import (
@@ -87,26 +87,26 @@ from pandas.core.reshape.api import (
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
-    #excel
+    # excel
     ExcelFile, ExcelWriter, read_excel,
 
-    #packers
+    # packers
     read_msgpack, to_msgpack,
 
-    #parsers
+    # parsers
     read_csv, read_fwf, read_table,
 
-    #pickle
+    # pickle
     read_pickle, to_pickle,
 
-    #pytables
+    # pytables
     HDFStore, read_hdf,
 
-    #sql
+    # sql
     read_sql, read_sql_query,
     read_sql_table,
 
-    #misc
+    # misc
     read_clipboard, read_parquet, read_feather, read_gbq,
     read_html, read_json, read_stata, read_sas)
 
