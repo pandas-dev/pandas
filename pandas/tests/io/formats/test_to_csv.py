@@ -538,9 +538,9 @@ z
                                  compression=read_compression)
             tm.assert_frame_equal(result, df)
 
-    @pytest.mark.parametrize("method", ["gzip", "bz2", "zip", "xz"])
-    def test_to_csv_compression_dict(self, method):
+    def test_to_csv_compression_dict(self, compression_only):
         # GH 26023
+        method = compression_only
         df = DataFrame({"ABC": [1]})
         filename = "to_csv_compress_as_dict."
         filename += "gz" if method == "gzip" else method
