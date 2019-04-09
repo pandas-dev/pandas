@@ -59,6 +59,7 @@ def s3_resource(tips_file, jsonl_file):
         moto = pytest.importorskip('moto')
 
         test_s3_files = [
+            ('tips#1.csv', tips_file),
             ('tips.csv', tips_file),
             ('tips.csv.gz', tips_file + '.gz'),
             ('tips.csv.bz2', tips_file + '.bz2'),
