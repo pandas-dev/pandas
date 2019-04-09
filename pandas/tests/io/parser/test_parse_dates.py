@@ -29,6 +29,14 @@ import pandas.util.testing as tm
 import pandas.io.date_converters as conv
 import pandas.io.parsers as parsers
 
+# constant
+_DEFAULT_DATETIME = datetime(1, 1, 1)
+# Strategy for hypothesis
+gen_random_datetime = st.dates(
+    min_value=date(1900, 1, 1),  # on Windows for %y need: year > 1900
+    max_value=date(9999, 12, 31)
+)
+
 
 def test_separator_date_conflict(all_parsers):
     # Regression test for gh-4678
@@ -854,7 +862,7 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("datestring", [
+@pytest.mark.parametrize("date_string", [
     "32/32/2019",
     "02/30/2019",
     "13/13/2019",
@@ -862,69 +870,71 @@ def test_parse_timezone(all_parsers):
     "a3/11/2018",
     "10/11/2o17"
 ])
-def test_invalid_parse_delimited_date(all_parsers, datestring):
+def test_invalid_parse_delimited_date(all_parsers, date_string):
     parser = all_parsers
-    expected = DataFrame({0: [datestring]}, dtype="object")
-    result = parser.read_csv(StringIO(datestring),
+    expected = DataFrame({0: [date_string]}, dtype="object")
+    result = parser.read_csv(StringIO(date_string),
                              header=None, parse_dates=[0])
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("date_format, delimiters", [
-    ("%m %d %Y", " -.\\/"),
-    ("%m %Y", " -\\/")
+@pytest.mark.parametrize("date_string,dayfirst,expected", [
+    # %d/%m/%Y; month > 12 thus replacement
+    ("13\\02\\2019", False, datetime(2019, 2, 13)),
+    ("13\\02\\2019", True, datetime(2019, 2, 13)),
+    # %m/%d/%Y; day > 12 thus there will be no replacement
+    ("02\\13\\2019", False, datetime(2019, 2, 13)),
+    ("02\\13\\2019", True, datetime(2019, 2, 13)),
+    # %d/%m/%Y; dayfirst==True thus replacement
+    ("04\\02\\2019", True, datetime(2019, 2, 4))
 ])
-def test_parse_delimited_date(all_parsers, date_format, delimiters):
-    parser = all_parsers
-    date = datetime(2019, 4, 1)
-    data = '\n'.join(date.strftime(date_format.replace(' ', delim))
-                     for delim in delimiters)
-    expected = DataFrame({0: [date] * len(delimiters)}, dtype="datetime64[ns]")
-    result = parser.read_csv(StringIO(data), header=None, parse_dates=[0])
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("datestring,dayfirst,expected", [
-    # DD/MM/YYYY; month > 12 thus replacement
-    ("13/02/2019", False, datetime(2019, 2, 13)),
-    ("13/02/2019", True, datetime(2019, 2, 13)),
-    ("02/13/2019", False, datetime(2019, 2, 13)),
-    ("02/13/2019", True, datetime(2019, 2, 13)),
-    # DD/MM/YYYY; dayfirst==True thus replacement
-    ("04/02/2019", True, datetime(2019, 2, 4))
-])
-def test_parse_delimited_date_swap(all_parsers, datestring,
+def test_parse_delimited_date_swap(all_parsers, date_string,
                                    dayfirst, expected):
     parser = all_parsers
     expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
-    result = parser.read_csv(StringIO(datestring), header=None,
+    result = parser.read_csv(StringIO(date_string), header=None,
                              dayfirst=dayfirst, parse_dates=[0])
     tm.assert_frame_equal(result, expected)
 
 
-gen_random_datetime = st.dates(
-    min_value=date(1000, 1, 1),
-    max_value=date(9999, 12, 31)
-)
-_DEFAULT_DATETIME = datetime(1, 1, 1)
+def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
+    msg, result = None, None
+    try:
+        result = call(date_string, **kwargs)
+    except ValueError as er:
+        msg = str(er)
+        pass
+    return msg, result
 
 
 @given(gen_random_datetime)
 @pytest.mark.parametrize("delimiter", list(" -./"))
 @pytest.mark.parametrize("dayfirst", [True, False])
 @pytest.mark.parametrize("date_format", [
-    "%m %d %Y",
     "%d %m %Y",
+    "%m %d %Y",
     "%m %Y",
-    "%Y %m %d"
+    "%Y %m %d",
+    "%y %m %d",
+    "%Y%m%d",
+    "%y%m%d",
 ])
 def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, date):
     if date_format == "%m %Y" and delimiter == ".":
         # parse_datetime_string cannot reliably tell whether e.g. %m.%Y
         # is a float or a date, thus we skip it
         pytest.skip()
+    result, expected = None, None
+    except_in_dateutil, except_out_dateutil = None, None
     date_string = date.strftime(date_format.replace(' ', delimiter))
-    result = parse_datetime_string(date_string, dayfirst=dayfirst)
-    expected = du_parse(date_string, default=_DEFAULT_DATETIME,
-                        dayfirst=dayfirst, yearfirst=False)
+
+    except_out_dateutil, result = _helper_hypothesis_delimited_date(
+        parse_datetime_string, date_string,
+        dayfirst=dayfirst)
+    except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+        du_parse, date_string,
+        default=_DEFAULT_DATETIME,
+        dayfirst=dayfirst, yearfirst=False)
+
+    assert except_out_dateutil == except_in_dateutil
     assert result == expected
