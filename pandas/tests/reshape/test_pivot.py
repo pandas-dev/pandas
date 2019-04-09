@@ -1288,9 +1288,6 @@ class TestPivotTable(object):
             df.pivot_table(index='ind1', columns='ind2',
                            values='count', aggfunc='count')
 
-    @pytest.mark.parametrize('dropna', [
-        True, False
-    ])
     def test_pivot_table_aggfunc_dropna(self, dropna):
         # GH 22159
         df = pd.DataFrame({'fruit': ['apple', 'peach', 'apple'],
