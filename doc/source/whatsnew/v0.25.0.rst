@@ -36,7 +36,7 @@ Other Enhancements
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
-- :meth:`NDFrame.to_csv` now supports the ``arcname`` argument to specify the written CSV file name when inside a ZIP archive. Default ``arcname=None`` maintains previous behavior where the CSV name matches given ZIP path ``path_or_buf`` (:issue:`26023`)
+- :meth:`NDFrame.to_csv` now supports dicts as ``compression`` argument with key ``'method'`` being the compression method and optional key ``'arcname'`` specifying the archived CSV file name when the compression method is ``'zip'``. If key ``'arcname'`` unspecified or ``compression='zip'``, maintains previous behavior. (:issue:`26023`)
 
 .. _whatsnew_0250.api_breaking:
 

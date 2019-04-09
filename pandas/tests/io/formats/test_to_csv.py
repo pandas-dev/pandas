@@ -538,6 +538,17 @@ z
                                  compression=read_compression)
             tm.assert_frame_equal(result, df)
 
+    @pytest.mark.parametrize("method", ["gzip", "bz2", "zip", "xz"])
+    def test_to_csv_compression_dict(self, method):
+        # GH 26023
+        df = DataFrame({"ABC": [1]})
+        filename = "to_csv_compress_as_dict."
+        filename += "gz" if method == "gzip" else method
+        with tm.ensure_clean(filename) as path:
+            df.to_csv(path, compression={"method": method})
+            read_df = pd.read_csv(path, index_col=0)
+            tm.assert_frame_equal(read_df, df)
+
     @pytest.mark.parametrize("compression", ["zip", "infer"])
     @pytest.mark.parametrize("arcname", [None, "test_to_csv.csv",
                                          "test_to_csv.zip"])
@@ -547,8 +558,8 @@ z
 
         df = DataFrame({"ABC": [1]})
         with tm.ensure_clean("to_csv_arcname.zip") as path:
-            df.to_csv(path, compression=compression,
-                      arcname=arcname)
+            df.to_csv(path, compression={"method": compression,
+                                         "arcname": arcname})
             zp = ZipFile(path)
             expected_arcname = path if arcname is None else arcname
             expected_arcname = os.path.basename(expected_arcname)

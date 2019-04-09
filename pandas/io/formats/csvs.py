@@ -29,15 +29,27 @@ class CSVFormatter(object):
                  compression='infer', quoting=None, line_terminator='\n',
                  chunksize=None, tupleize_cols=False, quotechar='"',
                  date_format=None, doublequote=True, escapechar=None,
-                 decimal='.', arcname=None):
+                 decimal='.'):
 
         self.obj = obj
 
         if path_or_buf is None:
             path_or_buf = StringIO()
 
+        self._compression_arg = compression
+        compression_mode = compression
+
+        # Extract compression mode as given, if dict
+        if isinstance(compression, dict):
+            try:
+                compression_mode = compression['method']
+            except KeyError:
+                raise ValueError("If dict, compression must have key "
+                                 "'method'")
+
         self.path_or_buf, _, _, _ = get_filepath_or_buffer(
-            path_or_buf, encoding=encoding, compression=compression, mode=mode
+            path_or_buf, encoding=encoding,
+            compression=compression_mode, mode=mode
         )
         self.sep = sep
         self.na_rep = na_rep
@@ -123,8 +135,6 @@ class CSVFormatter(object):
         if not index:
             self.nlevels = 0
 
-        self.arcname = arcname
-
     def save(self):
         """
         Create the writer & save
@@ -152,7 +162,7 @@ class CSVFormatter(object):
         else:
             f, handles = _get_handle(self.path_or_buf, self.mode,
                                      encoding=self.encoding,
-                                     compression=self.compression)
+                                     compression=self._compression_arg)
             close = True
 
         try:
@@ -178,8 +188,7 @@ class CSVFormatter(object):
                 else:
                     f, handles = _get_handle(self.path_or_buf, self.mode,
                                              encoding=self.encoding,
-                                             compression=self.compression,
-                                             arcname=self.arcname)
+                                             compression=self._compression_arg)
                     f.write(buf)
                     close = True
             if close:

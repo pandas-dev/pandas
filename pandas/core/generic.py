@@ -2921,7 +2921,7 @@ class NDFrame(PandasObject, SelectionMixin):
                mode='w', encoding=None, compression='infer', quoting=None,
                quotechar='"', line_terminator=None, chunksize=None,
                tupleize_cols=None, date_format=None, doublequote=True,
-               escapechar=None, decimal='.', arcname=None):
+               escapechar=None, decimal='.'):
         r"""
         Write object to a comma-separated values (csv) file.
 
@@ -2968,16 +2968,21 @@ class NDFrame(PandasObject, SelectionMixin):
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        compression : str, default 'infer'
-            Compression mode among the following possible values: {'infer',
-            'gzip', 'bz2', 'zip', 'xz', None}. If 'infer' and `path_or_buf`
-            is path-like, then detect compression from the following
-            extensions: '.gz', '.bz2', '.zip' or '.xz'. (otherwise no
-            compression).
+        compression : str or dict, default 'infer'
+            If str, represents compression mode. If dict, value at 'method' is
+            the compression mode. Compression mode may be any of the following
+            possible values: {'infer', 'gzip', 'bz2', 'zip', 'xz', None}. If
+            compression mode is 'infer' and `path_or_buf` is path-like, then
+            detect compression mode from the following extensions: '.gz',
+            '.bz2', '.zip' or '.xz'. (otherwise no compression). If dict given
+            and mode is 'zip' or inferred as 'zip', optional value at 'arcname'
+            specifies name of file within ZIP archive, assuming equal to
+            `path_or_buf` if not specified or None.
 
-            .. versionchanged:: 0.24.0
+            .. versionchanged:: 0.25.0
 
-               'infer' option added and set to default.
+               May now be a dict with key 'method' as compression mode
+               and 'arcname' as CSV file name if mode is 'zip'
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
@@ -3011,12 +3016,6 @@ class NDFrame(PandasObject, SelectionMixin):
         decimal : str, default '.'
             Character recognized as decimal separator. E.g. use ',' for
             European data.
-        arcname : str, default None
-            Name of CSV-formatted file within a ZIP archive. Only used when
-            `path_or_buf` is a path and `compression` is set to or inferred
-            as 'zip'. Uses `path_or_buf` if None.
-
-            .. versionadded:: 0.25.0
 
         Returns
         -------
@@ -3059,8 +3058,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                  tupleize_cols=tupleize_cols,
                                  date_format=date_format,
                                  doublequote=doublequote,
-                                 escapechar=escapechar, decimal=decimal,
-                                 arcname=arcname)
+                                 escapechar=escapechar, decimal=decimal)
         formatter.save()
 
         if path_or_buf is None:
