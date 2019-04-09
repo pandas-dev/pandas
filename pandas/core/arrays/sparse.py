@@ -30,7 +30,7 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
-from pandas._typing import SparseDtype
+from pandas._typing import Dtype
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
@@ -80,7 +80,7 @@ class SparseDtype(ExtensionDtype):
 
     def __init__(
             self,
-            dtype: SparseDtype = np.float64,
+            dtype: Dtype = np.float64,
             fill_value: Any = None
     ) -> None:
         from pandas.core.dtypes.missing import na_value_for_dtype
