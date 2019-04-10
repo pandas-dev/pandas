@@ -244,7 +244,7 @@ class ReadCSVCachedParseDates(StringIORewind):
 
     def time_read_csv_cached(self, do_cache):
         # kwds setting here is used to avoid breaking tests in
-        # previuos version of pandas, because this is api changes
+        # previous version of pandas, because this is api changes
         kwds = {}
         if 'cache_dates' in _parser_defaults:
             kwds['cache_dates'] = do_cache
