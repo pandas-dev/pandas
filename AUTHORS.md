@@ -55,4 +55,3 @@ license. Parts of NumPy, SciPy, numpydoc, bottleneck, which all have
 BSD-compatible licenses, are included. Their licenses follow the pandas
 license.
 
-asdf
