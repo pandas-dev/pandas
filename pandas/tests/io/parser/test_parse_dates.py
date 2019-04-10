@@ -6,6 +6,7 @@ parsers defined in parsers.py
 """
 
 from datetime import date, datetime
+from io import StringIO
 
 import numpy as np
 import pytest
@@ -13,7 +14,7 @@ import pytz
 
 from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs import parsing
-from pandas.compat import StringIO, lrange, parse_date
+from pandas.compat import lrange, parse_date
 from pandas.compat.numpy import np_array_datetime64_compat
 
 import pandas as pd

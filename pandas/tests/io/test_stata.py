@@ -66,6 +66,8 @@ class TestStata(object):
         self.dta4_117 = os.path.join(self.dirpath, 'stata4_117.dta')
 
         self.dta_encoding = os.path.join(self.dirpath, 'stata1_encoding.dta')
+        self.dta_encoding_118 = os.path.join(self.dirpath,
+                                             'stata1_encoding_118.dta')
 
         self.csv14 = os.path.join(self.dirpath, 'stata5.csv')
         self.dta14_113 = os.path.join(self.dirpath, 'stata5_113.dta')
@@ -1309,9 +1311,17 @@ class TestStata(object):
                 original.to_stata(path)
 
     def test_repeated_column_labels(self):
-        # GH 13923
-        msg = (r"Value labels for column ethnicsn are not unique\. The"
-               r" repeated labels are:\n-+\nwolof")
+        # GH 13923, 25772
+        msg = """
+Value labels for column ethnicsn are not unique. These cannot be converted to
+pandas categoricals.
+
+Either read the file with `convert_categoricals` set to False or use the
+low level interface in `StataReader` to separately read the values and the
+value_labels.
+
+The repeated labels are:\n-+\nwolof
+"""
         with pytest.raises(ValueError, match=msg):
             read_stata(self.dta23, convert_categoricals=True)
 
@@ -1608,3 +1618,18 @@ class TestStata(object):
                     val = gso.split(b'\x00')[-2]
                     size = gso[gso.find(b'\x82') + 1]
                     assert len(val) == size - 1
+
+    def test_encoding_latin1_118(self):
+        # GH 25960
+        msg = """
+One or more strings in the dta file could not be decoded using utf-8, and
+so the fallback encoding of latin-1 is being used.  This can happen when a file
+has been incorrectly encoded by Stata or some other software. You should verify
+the string values returned are correct."""
+        with tm.assert_produces_warning(UnicodeWarning) as w:
+            encoded = read_stata(self.dta_encoding_118)
+            assert len(w) == 151
+            assert w[0].message.args[0] == msg
+
+        expected = pd.DataFrame([['Düsseldorf']] * 151, columns=['kreis1849'])
+        tm.assert_frame_equal(encoded, expected)

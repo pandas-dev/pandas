@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
+from collections import OrderedDict, abc
 from datetime import datetime, timedelta
 import functools
 import itertools
@@ -973,7 +973,7 @@ class TestDataFrameConstructors(TestData):
         # GH 3783
         # collections.Squence like
 
-        class DummyContainer(compat.Sequence):
+        class DummyContainer(abc.Sequence):
 
             def __init__(self, lst):
                 self._lst = lst
@@ -1209,12 +1209,26 @@ class TestDataFrameConstructors(TestData):
         expected = DataFrame([[1, 2], [3, 4]])
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_tuples(self):
+    @pytest.mark.parametrize("tuples,lists", [
+        ((), []),
+        ((()), []),
+        (((), ()), [(), ()]),
+        (((), ()), [[], []]),
+        (([], []), [[], []]),
+        (([1, 2, 3], [4, 5, 6]), [[1, 2, 3], [4, 5, 6]])
+    ])
+    def test_constructor_tuple(self, tuples, lists):
+        # GH 25691
+        result = DataFrame(tuples)
+        expected = DataFrame(lists)
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_tuples(self):
         result = DataFrame({'A': [(1, 2), (3, 4)]})
         expected = DataFrame({'A': Series([(1, 2), (3, 4)])})
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_namedtuples(self):
+    def test_constructor_list_of_namedtuples(self):
         # GH11181
         from collections import namedtuple
         named_tuple = namedtuple("Pandas", list('ab'))

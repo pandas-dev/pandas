@@ -5,6 +5,7 @@ import functools
 import gc
 import json
 import operator
+import pickle
 from textwrap import dedent
 import warnings
 import weakref
@@ -15,8 +16,7 @@ from pandas._config import config
 
 from pandas._libs import Timestamp, iNaT, properties
 import pandas.compat as compat
-from pandas.compat import (
-    cPickle as pkl, isidentifier, lrange, lzip, set_function_name, to_str)
+from pandas.compat import lrange, lzip, set_function_name, to_str
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -2564,7 +2564,7 @@ class NDFrame(PandasObject, SelectionMixin):
                    dtype=dtype, method=method)
 
     def to_pickle(self, path, compression='infer',
-                  protocol=pkl.HIGHEST_PROTOCOL):
+                  protocol=pickle.HIGHEST_PROTOCOL):
         """
         Pickle (serialize) object to file.
 
@@ -5150,7 +5150,7 @@ class NDFrame(PandasObject, SelectionMixin):
         If info_axis is a MultiIndex, it's first level values are used.
         """
         additions = {c for c in self._info_axis.unique(level=0)[:100]
-                     if isinstance(c, str) and isidentifier(c)}
+                     if isinstance(c, str) and c.isidentifier()}
         return super(NDFrame, self)._dir_additions().union(additions)
 
     # ----------------------------------------------------------------------
@@ -5715,7 +5715,8 @@ class NDFrame(PandasObject, SelectionMixin):
             results = []
             for col_name, col in self.iteritems():
                 if col_name in dtype:
-                    results.append(col.astype(dtype[col_name], copy=copy))
+                    results.append(col.astype(dtype=dtype[col_name], copy=copy,
+                                              errors=errors, **kwargs))
                 else:
                     results.append(results.append(col.copy() if copy else col))
 
@@ -8773,22 +8774,22 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.18.1
                 A callable can be used as other.
 
-        inplace : boolean, default False
+        inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None
             Alignment axis if needed.
         level : int, default None
             Alignment level if needed.
-        errors : str, {'raise', 'ignore'}, default `raise`
+        errors : str, {'raise', 'ignore'}, default 'raise'
             Note that currently this parameter won't affect
             the results and will always coerce to a suitable dtype.
 
-            - `raise` : allow exceptions to be raised.
-            - `ignore` : suppress exceptions. On error return original object.
+            - 'raise' : allow exceptions to be raised.
+            - 'ignore' : suppress exceptions. On error return original object.
 
-        try_cast : boolean, default False
+        try_cast : bool, default False
             Try to cast the result back to the input type (if possible).
-        raise_on_error : boolean, default True
+        raise_on_error : bool, default True
             Whether to raise on invalid data types (e.g. trying to where on
             strings).
 
@@ -8798,7 +8799,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        wh : same type as caller
+        Same type as caller
 
         See Also
         --------
@@ -8847,6 +8848,13 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype: int64
 
         >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
+        >>> df
+           A  B
+        0  0  1
+        1  2  3
+        2  4  5
+        3  6  7
+        4  8  9
         >>> m = df %% 3 == 0
         >>> df.where(m, -df)
            A  B

@@ -2,6 +2,7 @@
 # pylint: disable=E1101
 from collections import namedtuple
 import re
+from typing import List, Optional, Type
 import warnings
 
 import numpy as np
@@ -78,7 +79,7 @@ class MPLPlot(object):
 
     _layout_type = 'vertical'
     _default_rot = 0
-    orientation = None
+    orientation = None  # type: Optional[str]
     _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
                        'mark_right', 'stacked']
     _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
@@ -1723,7 +1724,8 @@ _series_kinds = ['pie']
 _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 
 _klasses = [LinePlot, BarPlot, BarhPlot, KdePlot, HistPlot, BoxPlot,
-            ScatterPlot, HexBinPlot, AreaPlot, PiePlot]
+            ScatterPlot, HexBinPlot, AreaPlot, PiePlot] \
+    # type: List[Type[MPLPlot]]
 
 _plot_klass = {klass._kind: klass for klass in _klasses}
 

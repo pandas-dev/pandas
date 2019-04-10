@@ -18,6 +18,7 @@ import glob
 import gzip
 import lzma
 import os
+import pickle
 import shutil
 from warnings import catch_warnings, simplefilter
 import zipfile
@@ -217,37 +218,20 @@ def test_pickles(current_pickle_data, legacy_pickle):
 
 def test_round_trip_current(current_pickle_data):
 
-    try:
-        import cPickle as c_pickle
-
-        def c_pickler(obj, path):
-            with open(path, 'wb') as fh:
-                c_pickle.dump(obj, fh, protocol=-1)
-
-        def c_unpickler(path):
-            with open(path, 'rb') as fh:
-                fh.seek(0)
-                return c_pickle.load(fh)
-    except ImportError:
-        c_pickler = None
-        c_unpickler = None
-
-    import pickle as python_pickle
-
     def python_pickler(obj, path):
         with open(path, 'wb') as fh:
-            python_pickle.dump(obj, fh, protocol=-1)
+            pickle.dump(obj, fh, protocol=-1)
 
     def python_unpickler(path):
         with open(path, 'rb') as fh:
             fh.seek(0)
-            return python_pickle.load(fh)
+            return pickle.load(fh)
 
     data = current_pickle_data
     for typ, dv in data.items():
         for dt, expected in dv.items():
 
-            for writer in [pd.to_pickle, c_pickler, python_pickler]:
+            for writer in [pd.to_pickle, python_pickler]:
                 if writer is None:
                     continue
 
@@ -259,10 +243,6 @@ def test_round_trip_current(current_pickle_data):
                     # test reading with each unpickler
                     result = pd.read_pickle(path)
                     compare_element(result, expected, typ)
-
-                    if c_unpickler is not None:
-                        result = c_unpickler(path)
-                        compare_element(result, expected, typ)
 
                     result = python_unpickler(path)
                     compare_element(result, expected, typ)

@@ -1,7 +1,8 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
-from collections import OrderedDict
+from collections import OrderedDict, abc
+from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
 import warnings
@@ -12,7 +13,7 @@ from pandas._config import get_option
 
 from pandas._libs import iNaT, index as libindex, lib, tslibs
 import pandas.compat as compat
-from pandas.compat import PY36, StringIO
+from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg
@@ -224,8 +225,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
             # If data is Iterable but not list-like, consume into list.
-            elif (isinstance(data, compat.Iterable)
-                  and not isinstance(data, compat.Sized)):
+            elif (isinstance(data, abc.Iterable) and
+                  not isinstance(data, abc.Sized)):
                 data = list(data)
             else:
 
@@ -1496,7 +1497,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         into : class, default dict
-            The collections.Mapping subclass to use as the return
+            The collections.abc.Mapping subclass to use as the return
             object. Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
@@ -1505,7 +1506,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        collections.Mapping
+        collections.abc.Mapping
             Key-value representation of Series.
 
         Examples

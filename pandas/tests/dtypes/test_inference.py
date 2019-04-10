@@ -9,6 +9,7 @@ import collections
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from fractions import Fraction
+from io import StringIO
 from numbers import Number
 import re
 
@@ -17,7 +18,7 @@ import pytest
 import pytz
 
 from pandas._libs import iNaT, lib, missing as libmissing
-from pandas.compat import StringIO, lrange
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
@@ -280,7 +281,7 @@ def test_is_hashable():
     for i in abc_hashable_not_really_hashable:
         assert not inference.is_hashable(i)
 
-    # numpy.array is no longer collections.Hashable as of
+    # numpy.array is no longer collections.abc.Hashable as of
     # https://github.com/numpy/numpy/pull/5326, just test
     # is_hashable()
     assert not inference.is_hashable(np.array([]))

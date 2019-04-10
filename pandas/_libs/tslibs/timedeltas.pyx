@@ -15,7 +15,6 @@ from numpy cimport int64_t
 cnp.import_array()
 
 from cpython.datetime cimport (datetime, timedelta,
-                               PyDateTime_CheckExact,
                                PyDateTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
@@ -24,7 +23,9 @@ PyDateTime_IMPORT
 cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.util cimport (
     is_timedelta64_object, is_datetime64_object, is_integer_object,
-    is_float_object, is_string_object)
+    is_float_object)
+
+from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 
@@ -188,7 +189,7 @@ cdef convert_to_timedelta64(object ts, object unit):
         else:
             ts = cast_from_unit(ts, unit)
             ts = np.timedelta64(ts)
-    elif is_string_object(ts):
+    elif isinstance(ts, str):
         if len(ts) > 0 and ts[0] == 'P':
             ts = parse_iso_format_string(ts)
         else:
@@ -539,7 +540,7 @@ cdef bint _validate_ops_compat(other):
         return True
     elif PyDelta_Check(other) or is_timedelta64_object(other):
         return True
-    elif is_string_object(other):
+    elif isinstance(other, str):
         return True
     elif hasattr(other, 'delta'):
         return True
@@ -572,9 +573,10 @@ def _binary_op_method_timedeltalike(op, name):
             # has-dtype check before then
             pass
 
-        elif is_datetime64_object(other) or PyDateTime_CheckExact(other):
-            # the PyDateTime_CheckExact case is for a datetime object that
-            # is specifically *not* a Timestamp, as the Timestamp case will be
+        elif is_datetime64_object(other) or (
+           PyDateTime_Check(other) and not isinstance(other, _Timestamp)):
+            # this case is for a datetime object that is specifically
+            # *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
             from pandas._libs.tslibs.timestamps import Timestamp
             return op(self, Timestamp(other))
@@ -1206,7 +1208,7 @@ class Timedelta(_Timedelta):
 
         if isinstance(value, Timedelta):
             value = value.value
-        elif is_string_object(value):
+        elif isinstance(value, str):
             if len(value) > 0 and value[0] == 'P':
                 value = parse_iso_format_string(value)
             else:

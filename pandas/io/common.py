@@ -5,6 +5,7 @@ import codecs
 import csv
 import gzip
 from http.client import HTTPException  # noqa
+from io import BytesIO
 import lzma
 import mmap
 import os
@@ -15,8 +16,6 @@ from urllib.parse import (  # noqa
 from urllib.request import pathname2url, urlopen
 import zipfile
 
-import pandas.compat as compat
-from pandas.compat import BytesIO
 from pandas.errors import (  # noqa
     AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
     ParserWarning)
@@ -411,7 +410,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     return f, handles
 
 
-class BytesZipFile(zipfile.ZipFile, BytesIO):
+class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     """
     Wrapper for standard library class ZipFile and allow the returned file-like
     handle to accept byte strings via `write` method.
@@ -460,7 +459,7 @@ class MMapWrapper(BaseIterator):
 
         # readline returns bytes, not str, but Python's CSV reader
         # expects str, so convert the output to str before continuing
-        newline = compat.bytes_to_str(newline)
+        newline = newline.decode('utf-8')
 
         # mmap doesn't raise if reading past the allocated
         # data but instead returns an empty string, so raise

@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
 import gzip
+import http.client
 import lzma
 import os
 import re
@@ -22,8 +23,7 @@ from pandas._config.localization import (  # noqa:F401
 
 from pandas._libs import testing as _testing
 import pandas.compat as compat
-from pandas.compat import (
-    PY3, httplib, lmap, lrange, lzip, raise_with_traceback)
+from pandas.compat import lmap, lrange, lzip, raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -1170,18 +1170,21 @@ def assert_frame_equal(left, right, check_dtype=True,
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 
     df1 equals itself.
+
     >>> assert_frame_equal(df1, df1)
 
     df1 differs from df2 as column 'b' is of a different type.
+
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
     AssertionError: Attributes are different
-
+    ...
     Attribute "dtype" are different
     [left]:  int64
     [right]: float64
 
     Ignore differing dtypes in columns with check_dtype.
+
     >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
     __tracebackhide__ = True
@@ -2048,10 +2051,7 @@ _network_errno_vals = (
 # servers.
 
 # and conditionally raise on these exception types
-_network_error_classes = (IOError, httplib.HTTPException)
-
-if PY3:
-    _network_error_classes += (TimeoutError,)  # noqa
+_network_error_classes = (IOError, http.client.HTTPException, TimeoutError)
 
 
 def can_connect(url, error_classes=_network_error_classes):

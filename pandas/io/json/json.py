@@ -1,4 +1,5 @@
 # pylint: disable-msg=E1101,W0613,W0603
+from io import StringIO
 from itertools import islice
 import os
 
@@ -6,7 +7,7 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas.compat import StringIO, to_str
+from pandas.compat import to_str
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_period_dtype

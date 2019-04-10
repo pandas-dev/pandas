@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from datetime import datetime, timedelta
+from io import StringIO
 import math
 import operator
 import re
@@ -13,7 +14,7 @@ import pytest
 import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import PY36, StringIO, lrange, lzip
+from pandas.compat import PY36, lrange, lzip
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype

@@ -253,28 +253,27 @@ class TestGrouping():
         tm.assert_frame_equal(by_levels, by_columns)
 
     def test_groupby_categorical_index_and_columns(self, observed):
-        # GH18432
+        # GH18432, adapted for GH25871
         columns = ['A', 'B', 'A', 'B']
         categories = ['B', 'A']
-        data = np.ones((5, 4), int)
+        data = np.array([[1, 2, 1, 2],
+                         [1, 2, 1, 2],
+                         [1, 2, 1, 2],
+                         [1, 2, 1, 2],
+                         [1, 2, 1, 2]], int)
         cat_columns = CategoricalIndex(columns,
                                        categories=categories,
                                        ordered=True)
         df = DataFrame(data=data, columns=cat_columns)
         result = df.groupby(axis=1, level=0, observed=observed).sum()
-        expected_data = 2 * np.ones((5, 2), int)
-
-        if observed:
-            # if we are not-observed we undergo a reindex
-            # so need to adjust the output as our expected sets us up
-            # to be non-observed
-            expected_columns = CategoricalIndex(['A', 'B'],
-                                                categories=categories,
-                                                ordered=True)
-        else:
-            expected_columns = CategoricalIndex(categories,
-                                                categories=categories,
-                                                ordered=True)
+        expected_data = np.array([[4, 2],
+                                  [4, 2],
+                                  [4, 2],
+                                  [4, 2],
+                                  [4, 2]], int)
+        expected_columns = CategoricalIndex(categories,
+                                            categories=categories,
+                                            ordered=True)
         expected = DataFrame(data=expected_data, columns=expected_columns)
         assert_frame_equal(result, expected)
 

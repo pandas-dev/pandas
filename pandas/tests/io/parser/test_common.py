@@ -9,6 +9,7 @@ import codecs
 from collections import OrderedDict
 import csv
 from datetime import datetime
+from io import BytesIO, StringIO
 import os
 import platform
 from tempfile import TemporaryFile
@@ -17,7 +18,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import BytesIO, StringIO, lrange
+from pandas.compat import lrange
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat

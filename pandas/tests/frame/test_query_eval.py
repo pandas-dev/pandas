@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-
+from io import StringIO
 import operator
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
