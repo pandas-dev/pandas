@@ -21,6 +21,7 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import ArrayLike
 from pandas.core import ops
 
 _not_implemented_message = "{} does not implement {}."
@@ -338,7 +339,7 @@ class ExtensionArray(object):
         """
         return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self) -> Union[ABCExtensionArray, np.ndarray]:
+    def isna(self) -> ArrayLike:
         """
         A 1-D array indicating if each value is missing.
 
