@@ -448,7 +448,7 @@ def _adjust_to_origin(arg, origin, unit):
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='unix',
-                cache=False):
+                cache=True):
     """
     Convert argument to datetime.
 
@@ -529,12 +529,12 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
           origin.
 
         .. versionadded:: 0.20.0
-    cache : boolean, default False
+    cache : boolean, default True
         If True, use a cache of unique, converted dates to apply the datetime
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
 
-        .. versionadded:: 0.23.0
+        .. versionchanged:: 0.25.0
 
     Returns
     -------
