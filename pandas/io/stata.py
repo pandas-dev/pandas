@@ -30,13 +30,11 @@ from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype)
 
 from pandas import (
-    compat, Categorical, DatetimeIndex, isna, concat,
-    to_datetime, to_timedelta, NaT, Timestamp)
-
+    Categorical, DatetimeIndex, NaT, Timestamp, compat, concat, isna,
+    to_datetime, to_timedelta)
 from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
-
 
 from pandas.io.common import (
     BaseIterator, _stringify_path, get_filepath_or_buffer)
