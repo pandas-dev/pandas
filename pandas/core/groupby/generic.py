@@ -1181,7 +1181,9 @@ class SeriesGroupBy(GroupBy):
         return Series(out, index=mi, name=self._selection_name)
 
     def count(self):
-        """ Compute count of group, excluding missing values """
+        """
+        Compute count of group, excluding missing values
+        """
         ids, _, ngroups = self.grouper.group_info
         val = self.obj.get_values()
 
@@ -1479,7 +1481,9 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return concat((self._wrap_transformed_output(output), res), axis=1)
 
     def count(self):
-        """ Compute count of group, excluding missing values """
+        """
+        Compute count of group, excluding missing values
+        """
         from pandas.core.dtypes.missing import _isna_ndarraylike as _isna
 
         data, _ = self._get_data_to_aggregate()
