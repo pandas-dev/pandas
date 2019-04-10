@@ -22,8 +22,7 @@ from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
     is_categorical_dtype, is_datetime64_dtype, is_datetimelike, is_dict_like,
     is_extension_array_dtype, is_extension_type, is_hashable, is_integer,
-    is_iterator, is_list_like, is_scalar, is_sparse, is_string_like,
-    is_timedelta64_dtype)
+    is_iterator, is_list_like, is_scalar, is_string_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeArray, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries)
@@ -2635,6 +2634,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 rv = other.get(idx, fill_value)
                 with np.errstate(all='ignore'):
                     new_values.append(func(lv, rv))
+            new_dtype = type(func(lv, rv))
         else:
             # Assume that other is a scalar, so apply the function for
             # each element in the Series
@@ -2642,23 +2642,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             with np.errstate(all='ignore'):
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
+            new_dtype = type(func(self._values[0], other))
 
         if is_categorical_dtype(self.values):
-            pass
-        elif is_bool(new_values[0]) and not is_sparse(self.values):
             pass
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
             try:
-                new_values = self._values._from_sequence(new_values)
+                new_values = self._values._from_sequence(new_values, dtype=new_dtype)
             except Exception:
                 # https://github.com/pandas-dev/pandas/issues/22850
                 # pandas has no control over what 3rd-party ExtensionArrays
                 # do in _values_from_sequence. We still want ops to work
                 # though, so we catch any regular Exception.
                 pass
-
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):
