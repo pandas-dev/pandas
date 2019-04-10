@@ -9,13 +9,13 @@ from io import BytesIO
 import lzma
 import mmap
 import os
+from typing import Dict, Union
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode, urljoin, urlparse as parse_url, uses_netloc, uses_params,
     uses_relative)
 from urllib.request import pathname2url, urlopen
 import zipfile
-from typing import Dict
 
 import pandas.compat as compat
 from pandas.errors import (  # noqa
@@ -234,7 +234,7 @@ _compression_to_extension = {
 }
 
 
-def _get_compression_method(compression: (str, Dict)):
+def _get_compression_method(compression: Union[str, Dict, None]):
     """
     Simplifies a compression argument to a compression method string and
     a dict containing additional arguments.
@@ -247,14 +247,14 @@ def _get_compression_method(compression: (str, Dict)):
 
     Returns
     -------
-    tuple of ({compression method}, str
+    tuple of ({compression method}, any
               {compression arguments}, dict)
 
     Raises
     ------
     ValueError on dict missing 'method' key
     """
-    compression_args = {}
+    compression_args = {}  # type: Dict
     # Handle dict
     if isinstance(compression, dict):
         compression_args = compression.copy()
@@ -331,8 +331,9 @@ def _infer_compression(filepath_or_buffer, compression):
     raise ValueError(msg)
 
 
-def _get_handle(path_or_buf, mode, encoding=None, compression=None,
-                memory_map=False, is_text=True):
+def _get_handle(path_or_buf, mode, encoding=None,
+                compression: Union[str, Dict, None] = None, memory_map=False,
+                is_text=True):
     """
     Get file handle for given path/buffer and mode.
 
@@ -480,7 +481,7 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     """
     # GH 17778
     def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED,
-                 arcname: (str, zipfile.ZipInfo) = None, **kwargs):
+                 arcname: Union[str, zipfile.ZipInfo, None] = None, **kwargs):
         if mode in ['wb', 'rb']:
             mode = mode.replace('b', '')
         self.arcname = arcname

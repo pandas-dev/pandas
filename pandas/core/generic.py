@@ -7,6 +7,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
+from typing import Dict, Union
 import warnings
 import weakref
 
@@ -2918,7 +2919,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
-               mode='w', encoding=None, compression='infer', quoting=None,
+               mode='w', encoding=None,
+               compression: Union[str, Dict, None] = 'infer', quoting=None,
                quotechar='"', line_terminator=None, chunksize=None,
                tupleize_cols=None, date_format=None, doublequote=True,
                escapechar=None, decimal='.'):

@@ -6,9 +6,9 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO
 import os
+from typing import Dict, Union
 import warnings
 from zipfile import ZipFile
-from typing import Dict
 
 import numpy as np
 
@@ -19,8 +19,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import notna
 
 from pandas.io.common import (
-    UnicodeWriter, _get_handle, _infer_compression, get_filepath_or_buffer,
-    _get_compression_method)
+    UnicodeWriter, _get_compression_method, _get_handle, _infer_compression,
+    get_filepath_or_buffer)
 
 
 class CSVFormatter(object):
@@ -28,7 +28,7 @@ class CSVFormatter(object):
     def __init__(self, obj, path_or_buf=None, sep=",", na_rep='',
                  float_format=None, cols=None, header=True, index=True,
                  index_label=None, mode='w', nanRep=None, encoding=None,
-                 compression: (str, Dict) = 'infer', quoting=None,
+                 compression: Union[str, Dict, None] = 'infer', quoting=None,
                  line_terminator='\n', chunksize=None, tupleize_cols=False,
                  quotechar='"', date_format=None, doublequote=True,
                  escapechar=None, decimal='.'):
