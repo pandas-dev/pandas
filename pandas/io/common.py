@@ -15,6 +15,7 @@ from urllib.parse import (  # noqa
     uses_relative)
 from urllib.request import pathname2url, urlopen
 import zipfile
+from typing import Dict
 
 import pandas.compat as compat
 from pandas.errors import (  # noqa
@@ -233,6 +234,39 @@ _compression_to_extension = {
 }
 
 
+def _get_compression_method(compression: (str, Dict)):
+    """
+    Simplifies a compression argument to a compression method string and
+    a dict containing additional arguments.
+
+    Parameters
+    ----------
+    compression : str or dict
+        If string, specifies the compression method. If dict, value at key
+        'method' specifies compression method.
+
+    Returns
+    -------
+    tuple of ({compression method}, str
+              {compression arguments}, dict)
+
+    Raises
+    ------
+    ValueError on dict missing 'method' key
+    """
+    compression_args = {}
+    # Handle dict
+    if isinstance(compression, dict):
+        compression_args = compression.copy()
+        try:
+            compression = compression['method']
+            compression_args.pop('method')
+        except KeyError:
+            raise ValueError("If dict, compression "
+                             "must have key 'method'")
+    return compression, compression_args
+
+
 def _infer_compression(filepath_or_buffer, compression):
     """
     Get the compression method for filepath_or_buffer. If compression mode is
@@ -266,13 +300,8 @@ def _infer_compression(filepath_or_buffer, compression):
     ValueError on invalid compression specified
     """
 
-    # Handle compression method as dict
-    if isinstance(compression, dict):
-        try:
-            compression = compression['method']
-        except KeyError:
-            raise ValueError("Compression dict must have key "
-                             "'method'")
+    # Handle compression as dict
+    compression, _ = _get_compression_method(compression)
 
     # No compression has been explicitly specified
     if compression is None:
@@ -355,31 +384,31 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     path_or_buf = _stringify_path(path_or_buf)
     is_path = isinstance(path_or_buf, str)
 
-    compression_method = None
+    compression, compression_args = _get_compression_method(compression)
     if is_path:
-        compression_method = _infer_compression(path_or_buf, compression)
+        compression = _infer_compression(path_or_buf, compression)
 
-    if compression_method:
+    if compression:
 
         # GZ Compression
-        if compression_method == 'gzip':
+        if compression == 'gzip':
             if is_path:
                 f = gzip.open(path_or_buf, mode)
             else:
                 f = gzip.GzipFile(fileobj=path_or_buf)
 
         # BZ Compression
-        elif compression_method == 'bz2':
+        elif compression == 'bz2':
             if is_path:
                 f = bz2.BZ2File(path_or_buf, mode)
             else:
                 f = bz2.BZ2File(path_or_buf)
 
         # ZIP Compression
-        elif compression_method == 'zip':
+        elif compression == 'zip':
             arcname = None
-            if isinstance(compression, dict) and 'arcname' in compression:
-                arcname = compression['arcname']
+            if 'arcname' in compression_args:
+                arcname = compression_args['arcname']
             zf = BytesZipFile(path_or_buf, mode, arcname=arcname)
             # Ensure the container is closed as well.
             handles.append(zf)
@@ -398,8 +427,13 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
                                      .format(zip_names))
 
         # XZ Compression
-        elif compression_method == 'xz':
+        elif compression == 'xz':
             f = lzma.LZMAFile(path_or_buf, mode)
+
+        # Unrecognized Compression
+        else:
+            msg = 'Unrecognized compression type: {}'.format(compression)
+            raise ValueError(msg)
 
         handles.append(f)
 
@@ -416,7 +450,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         handles.append(f)
 
     # Convert BytesIO or file objects passed with an encoding
-    if is_text and (compression_method or isinstance(f, need_text_wrapping)):
+    if is_text and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
         f = TextIOWrapper(f, encoding=encoding, newline='')
         handles.append(f)
@@ -446,15 +480,15 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     """
     # GH 17778
     def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED,
-                 arcname=None, **kwargs):
+                 arcname: (str, zipfile.ZipInfo) = None, **kwargs):
         if mode in ['wb', 'rb']:
             mode = mode.replace('b', '')
         self.arcname = arcname
-        super(BytesZipFile, self).__init__(file, mode, compression, **kwargs)
+        super().__init__(file, mode, compression, **kwargs)
 
     def write(self, data):
         arcname = self.filename if self.arcname is None else self.arcname
-        super(BytesZipFile, self).writestr(arcname, data)
+        super().writestr(arcname, data)
 
     @property
     def closed(self):

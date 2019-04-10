@@ -8,6 +8,7 @@ from io import StringIO
 import os
 import warnings
 from zipfile import ZipFile
+from typing import Dict
 
 import numpy as np
 
@@ -18,7 +19,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import notna
 
 from pandas.io.common import (
-    UnicodeWriter, _get_handle, _infer_compression, get_filepath_or_buffer)
+    UnicodeWriter, _get_handle, _infer_compression, get_filepath_or_buffer,
+    _get_compression_method)
 
 
 class CSVFormatter(object):
@@ -26,30 +28,23 @@ class CSVFormatter(object):
     def __init__(self, obj, path_or_buf=None, sep=",", na_rep='',
                  float_format=None, cols=None, header=True, index=True,
                  index_label=None, mode='w', nanRep=None, encoding=None,
-                 compression='infer', quoting=None, line_terminator='\n',
-                 chunksize=None, tupleize_cols=False, quotechar='"',
-                 date_format=None, doublequote=True, escapechar=None,
-                 decimal='.'):
+                 compression: (str, Dict) = 'infer', quoting=None,
+                 line_terminator='\n', chunksize=None, tupleize_cols=False,
+                 quotechar='"', date_format=None, doublequote=True,
+                 escapechar=None, decimal='.'):
 
         self.obj = obj
 
         if path_or_buf is None:
             path_or_buf = StringIO()
 
-        self._compression_arg = compression
-        compression_mode = compression
-
         # Extract compression mode as given, if dict
-        if isinstance(compression, dict):
-            try:
-                compression_mode = compression['method']
-            except KeyError:
-                raise ValueError("If dict, compression must have key "
-                                 "'method'")
+        compression, self.compression_args \
+            = _get_compression_method(compression)
 
         self.path_or_buf, _, _, _ = get_filepath_or_buffer(
             path_or_buf, encoding=encoding,
-            compression=compression_mode, mode=mode
+            compression=compression, mode=mode
         )
         self.sep = sep
         self.na_rep = na_rep
@@ -162,7 +157,8 @@ class CSVFormatter(object):
         else:
             f, handles = _get_handle(self.path_or_buf, self.mode,
                                      encoding=self.encoding,
-                                     compression=self._compression_arg)
+                                     compression=dict(self.compression_args,
+                                                      method=self.compression))
             close = True
 
         try:
@@ -186,9 +182,11 @@ class CSVFormatter(object):
                 if hasattr(self.path_or_buf, 'write'):
                     self.path_or_buf.write(buf)
                 else:
+                    compression = dict(self.compression_args,
+                                       method=self.compression)
                     f, handles = _get_handle(self.path_or_buf, self.mode,
                                              encoding=self.encoding,
-                                             compression=self._compression_arg)
+                                             compression=compression)
                     f.write(buf)
                     close = True
             if close:
