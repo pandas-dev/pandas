@@ -34,6 +34,11 @@ def data(request):
     return res
 
 
+@pytest.fixture
+def data_for_twos(request):
+    return SparseArray(np.ones(100) * 2)
+
+
 @pytest.fixture(params=[0, np.nan])
 def data_missing(request):
     """Length 2 array with [NA, Valid]"""
@@ -287,11 +292,10 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
             pytest.skip("TODO(SparseArray.__setitem__ will preserve dtype.")
         super(TestMethods, self).test_combine_first(data)
 
-    @pytest.mark.parametrize("as_series", [True, False])
     def test_searchsorted(self, data_for_sorting, as_series):
         with tm.assert_produces_warning(PerformanceWarning):
             super(TestMethods, self).test_searchsorted(data_for_sorting,
-                                                       as_series=as_series)
+                                                       as_series)
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):

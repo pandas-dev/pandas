@@ -339,7 +339,7 @@ class TestComparisonOps(BaseOpsUtil):
         expected = pd.Series(op(data._data, other))
 
         # fill the nan locations
-        expected[data._mask] = True if op_name == '__ne__' else False
+        expected[data._mask] = op_name == '__ne__'
 
         tm.assert_series_equal(result, expected)
 
@@ -351,7 +351,7 @@ class TestComparisonOps(BaseOpsUtil):
         expected = op(expected, other)
 
         # fill the nan locations
-        expected[data._mask] = True if op_name == '__ne__' else False
+        expected[data._mask] = op_name == '__ne__'
 
         tm.assert_series_equal(result, expected)
 
@@ -509,7 +509,6 @@ def test_conversions(data_missing):
         if pd.isnull(r):
             assert pd.isnull(e)
         elif is_integer(r):
-            # PY2 can be int or long
             assert r == e
             assert is_integer(e)
         else:

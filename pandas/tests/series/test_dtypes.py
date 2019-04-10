@@ -10,7 +10,7 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 import pandas.compat as compat
-from pandas.compat import lrange, range, u
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -74,7 +74,7 @@ class TestSeriesDtypes(object):
     @pytest.mark.parametrize("dtype", [int, np.int8, np.int64])
     def test_astype_cast_object_int_fail(self, dtype):
         arr = Series(["car", "house", "tree", "1"])
-        msg = r"invalid literal for (int|long)\(\) with base 10: 'car'"
+        msg = r"invalid literal for int\(\) with base 10: 'car'"
         with pytest.raises(ValueError, match=msg):
             arr.astype(dtype)
 
@@ -172,19 +172,13 @@ class TestSeriesDtypes(object):
         digits = string.digits
         test_series = [
             Series([digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
-            Series([u('データーサイエンス、お前はもう死んでいる')]),
+            Series(['データーサイエンス、お前はもう死んでいる']),
         ]
 
         former_encoding = None
 
-        if not compat.PY3:
-            # In Python, we can force the default encoding for this test
-            former_encoding = sys.getdefaultencoding()
-            reload(sys)  # noqa
-
-            sys.setdefaultencoding("utf-8")
         if sys.getdefaultencoding() == "utf-8":
-            test_series.append(Series([u('野菜食べないとやばい')
+            test_series.append(Series(['野菜食べないとやばい'
                                        .encode("utf-8")]))
 
         for s in test_series:
@@ -291,8 +285,8 @@ class TestSeriesDtypes(object):
         expected = s
         tm.assert_series_equal(s.astype('category'), expected)
         tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
-        msg = (r"could not convert string to float: '(0 - 499|9500 - 9999)'|"
-               r"invalid literal for float\(\): (0 - 499|9500 - 9999)")
+        msg = (r"could not convert string to float|"
+               r"invalid literal for float\(\)")
         with pytest.raises(ValueError, match=msg):
             s.astype('float64')
 
@@ -415,7 +409,9 @@ class TestSeriesDtypes(object):
         data = [1]
         s = Series(data)
 
-        msg = "dtype has no unit. Please pass in"
+        msg = ((r"The '{dtype}' dtype has no unit\. "
+                r"Please pass in '{dtype}\[ns\]' instead.")
+               .format(dtype=dtype.__name__))
         with pytest.raises(ValueError, match=msg):
             s.astype(dtype)
 

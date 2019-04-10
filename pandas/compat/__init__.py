@@ -5,11 +5,8 @@ compat
 Cross-compatible functions for Python 2 and 3.
 
 Key items to import for 2/3 compatible code:
-* iterators: range(), map(), zip(), filter(), reduce()
+* iterators: reduce()
 * lists: lrange(), lmap(), lzip(), lfilter()
-* unicode: u() [no unicode builtin in Python 3]
-* longs: long (int in Python 3)
-* callable
 * iterable method compatibility: iteritems, iterkeys, itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
 * types:
@@ -108,18 +105,9 @@ if PY3:
         return data.start, data.stop, data.step
 
     # have to explicitly put builtins into the namespace
-    range = range
-    map = map
-    zip = zip
-    filter = filter
     intern = sys.intern
     reduce = functools.reduce
-    long = int
     unichr = chr
-
-    # This was introduced in Python 3.3, but we don't support
-    # Python 3.x < 3.5, so checking PY3 is safe.
-    FileNotFoundError = FileNotFoundError
 
     # list-producing versions of the major Python iterating functions
     def lrange(*args, **kwargs):
@@ -138,6 +126,7 @@ if PY3:
     reload = reload
     Hashable = collections.abc.Hashable
     Iterable = collections.abc.Iterable
+    Iterator = collections.abc.Iterator
     Mapping = collections.abc.Mapping
     MutableMapping = collections.abc.MutableMapping
     Sequence = collections.abc.Sequence
@@ -147,8 +136,6 @@ if PY3:
 else:
     # Python 2
     _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
-
-    FileNotFoundError = IOError
 
     def isidentifier(s, dotted=False):
         return bool(_name_re.match(s))
@@ -181,13 +168,8 @@ else:
         return start, stop, step
 
     # import iterator versions of these functions
-    range = xrange
     intern = intern
-    zip = itertools.izip
-    filter = itertools.ifilter
-    map = itertools.imap
     reduce = reduce
-    long = long
     unichr = unichr
 
     # Python 2-builtin ranges produce lists
@@ -200,6 +182,7 @@ else:
 
     Hashable = collections.Hashable
     Iterable = collections.Iterable
+    Iterator = collections.Iterator
     Mapping = collections.Mapping
     MutableMapping = collections.MutableMapping
     Sequence = collections.Sequence
@@ -216,7 +199,6 @@ if PY2:
     def itervalues(obj, **kw):
         return obj.itervalues(**kw)
 
-    next = lambda it: it.next()
 else:
     def iteritems(obj, **kw):
         return iter(obj.items(**kw))
@@ -226,8 +208,6 @@ else:
 
     def itervalues(obj, **kw):
         return iter(obj.values(**kw))
-
-    next = next
 
 
 def bind_method(cls, name, func):
@@ -267,16 +247,9 @@ _EAW_MAP = {'Na': 1, 'N': 1, 'W': 2, 'F': 2, 'H': 1}
 
 if PY3:
     string_types = str,
-    integer_types = int,
     class_types = type,
     text_type = str
     binary_type = bytes
-
-    def u(s):
-        return s
-
-    def u_safe(s):
-        return s
 
     def to_str(s):
         """
@@ -314,24 +287,11 @@ if PY3:
             name=name)
         f.__module__ = cls.__module__
         return f
-
-    ResourceWarning = ResourceWarning
-
 else:
     string_types = basestring,
-    integer_types = (int, long)
     class_types = (type, types.ClassType)
     text_type = unicode
     binary_type = str
-
-    def u(s):
-        return unicode(s, "unicode_escape")
-
-    def u_safe(s):
-        try:
-            return unicode(s, "unicode_escape")
-        except:
-            return s
 
     def to_str(s):
         """
@@ -372,18 +332,7 @@ else:
         f.__name__ = name
         return f
 
-    class ResourceWarning(Warning):
-        pass
-
 string_and_binary_types = string_types + (binary_type,)
-
-
-try:
-    # callable reintroduced in later versions of Python
-    callable = callable
-except NameError:
-    def callable(obj):
-        return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
 
 
 if PY2:
@@ -410,8 +359,6 @@ def add_metaclass(metaclass):
             orig_vars.pop(slots_var)
         return metaclass(cls.__name__, cls.__bases__, orig_vars)
     return wrapper
-
-from collections import OrderedDict, Counter
 
 if PY3:
     def raise_with_traceback(exc, traceback=Ellipsis):

@@ -14,7 +14,7 @@ import pytest
 import pandas._libs.parsers as parser
 from pandas._libs.parsers import TextReader
 import pandas.compat as compat
-from pandas.compat import BytesIO, StringIO, map
+from pandas.compat import BytesIO, StringIO
 
 from pandas import DataFrame
 import pandas.util.testing as tm

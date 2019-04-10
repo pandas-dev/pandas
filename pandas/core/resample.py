@@ -20,7 +20,7 @@ import pandas as pd
 import pandas.core.algorithms as algos
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
-from pandas.core.groupby.generic import PanelGroupBy, SeriesGroupBy
+from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     GroupBy, _GroupBy, _pipe_template, groupby)
 from pandas.core.groupby.grouper import Grouper
@@ -36,7 +36,6 @@ _shared_docs_kwargs = dict()
 
 
 class Resampler(_GroupBy):
-
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -84,9 +83,9 @@ class Resampler(_GroupBy):
         """
         Provide a nice str repr of our rolling object.
         """
-        attrs = ["{k}={v}".format(k=k, v=getattr(self.groupby, k))
+        attrs = ("{k}={v}".format(k=k, v=getattr(self.groupby, k))
                  for k in self._attributes if
-                 getattr(self.groupby, k, None) is not None]
+                 getattr(self.groupby, k, None) is not None)
         return "{klass} [{attrs}]".format(klass=self.__class__.__name__,
                                           attrs=', '.join(attrs))
 
@@ -107,7 +106,7 @@ class Resampler(_GroupBy):
         Returns
         -------
         Generator yielding sequence of (name, subsetted object)
-        for each group
+        for each group.
 
         See Also
         --------
@@ -214,9 +213,9 @@ class Resampler(_GroupBy):
     _agg_see_also_doc = dedent("""
     See Also
     --------
-    pandas.DataFrame.groupby.aggregate
-    pandas.DataFrame.resample.transform
-    pandas.DataFrame.aggregate
+    DataFrame.groupby.aggregate
+    DataFrame.resample.transform
+    DataFrame.aggregate
     """)
 
     _agg_examples_doc = dedent("""
@@ -286,8 +285,8 @@ class Resampler(_GroupBy):
 
         Parameters
         ----------
-        func : function
-            To apply to each group. Should return a Series with the same index
+        arg : function
+            To apply to each group. Should return a Series with the same index.
 
         Returns
         -------
@@ -341,15 +340,10 @@ class Resampler(_GroupBy):
 
         obj = self._selected_obj
 
-        try:
-            grouped = groupby(obj, by=None, grouper=grouper, axis=self.axis)
-        except TypeError:
-
-            # panel grouper
-            grouped = PanelGroupBy(obj, grouper=grouper, axis=self.axis)
+        grouped = groupby(obj, by=None, grouper=grouper, axis=self.axis)
 
         try:
-            if isinstance(obj, ABCDataFrame) and compat.callable(how):
+            if isinstance(obj, ABCDataFrame) and callable(how):
                 # Check if the function is reducing or not.
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
@@ -423,7 +417,7 @@ class Resampler(_GroupBy):
 
         Returns
         -------
-        an upsampled Series
+        An upsampled Series.
 
         See Also
         --------
@@ -523,9 +517,9 @@ class Resampler(_GroupBy):
             'backfill'.
         nearest : Fill NaN values with nearest neighbor starting from center.
         pad : Forward fill NaN values.
-        pandas.Series.fillna : Fill NaN values in the Series using the
+        Series.fillna : Fill NaN values in the Series using the
             specified method, which can be 'backfill'.
-        pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
+        DataFrame.fillna : Fill NaN values in the DataFrame using the
             specified method, which can be 'backfill'.
 
         References
@@ -636,9 +630,9 @@ class Resampler(_GroupBy):
         nearest : Fill NaN values in the resampled data
             with nearest neighbor starting from center.
         interpolate : Fill NaN values using interpolation.
-        pandas.Series.fillna : Fill NaN values in the Series using the
+        Series.fillna : Fill NaN values in the Series using the
             specified method, which can be 'bfill' and 'ffill'.
-        pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
+        DataFrame.fillna : Fill NaN values in the DataFrame using the
             specified method, which can be 'bfill' and 'ffill'.
 
         References
@@ -801,7 +795,7 @@ class Resampler(_GroupBy):
         Parameters
         ----------
         ddof : integer, default 1
-        degrees of freedom
+            Degrees of freedom.
         """
         nv.validate_resampler_func('std', args, kwargs)
         return self._downsample('std', ddof=ddof)

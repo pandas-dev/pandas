@@ -10,7 +10,6 @@ from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, concat, date_range
-from pandas.core.config import option_context
 from pandas.core.groupby.groupby import DataError
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -445,7 +444,7 @@ def test_transform_mixed_type():
     assert result['d'].dtype == np.float64
 
     # this is by definition a mutating operation!
-    with option_context('mode.chained_assignment', None):
+    with pd.option_context('mode.chained_assignment', None):
         for key, group in grouped:
             res = f(group)
             assert_frame_equal(res, result.loc[key])
@@ -834,3 +833,14 @@ def test_groupby_transform_rename():
     tm.assert_frame_equal(result, expected)
     result_single = df.groupby('group').value.transform(demean_rename)
     tm.assert_series_equal(result_single, expected['value'])
+
+
+@pytest.mark.parametrize('func', [min, max, np.min, np.max, 'first', 'last'])
+def test_groupby_transform_timezone_column(func):
+    # GH 24198
+    ts = pd.to_datetime('now', utc=True).tz_convert('Asia/Singapore')
+    result = pd.DataFrame({'end_time': [ts], 'id': [1]})
+    result['max_end_time'] = result.groupby('id').end_time.transform(func)
+    expected = pd.DataFrame([[ts, 1, ts]], columns=['end_time', 'id',
+                                                    'max_end_time'])
+    tm.assert_frame_equal(result, expected)

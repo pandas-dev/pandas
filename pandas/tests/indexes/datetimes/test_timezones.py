@@ -12,7 +12,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
-from pandas.compat import PY3, lrange, zip
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -434,24 +434,19 @@ class TestDatetimeIndexTimezones(object):
         with pytest.raises(pytz.NonExistentTimeError):
             rng.tz_localize(tz)
 
-    @pytest.mark.parametrize('idx', [
-        date_range(start='2014-01-01', end='2014-12-31', freq='M'),
-        date_range(start='2014-01-01', end='2014-12-31', freq='D'),
-        date_range(start='2014-01-01', end='2014-03-01', freq='H'),
-        date_range(start='2014-08-01', end='2014-10-31', freq='T')
-    ])
-    def test_dti_tz_localize_roundtrip(self, tz_aware_fixture, idx):
+    def test_dti_tz_localize_roundtrip(self, tz_aware_fixture):
+        # note: this tz tests that a tz-naive index can be localized
+        # and de-localized successfully, when there are no DST transitions
+        # in the range.
+        idx = date_range(start='2014-06-01', end='2014-08-30', freq='15T')
         tz = tz_aware_fixture
         localized = idx.tz_localize(tz)
-        expected = date_range(start=idx[0], end=idx[-1], freq=idx.freq,
-                              tz=tz)
-        tm.assert_index_equal(localized, expected)
+        # cant localize a tz-aware object
         with pytest.raises(TypeError):
             localized.tz_localize(tz)
-
         reset = localized.tz_localize(None)
-        tm.assert_index_equal(reset, idx)
         assert reset.tzinfo is None
+        tm.assert_index_equal(reset, idx)
 
     def test_dti_tz_localize_naive(self):
         rng = date_range('1/1/2011', periods=100, freq='H')
@@ -830,6 +825,13 @@ class TestDatetimeIndexTimezones(object):
 
         assert ind.tz is not None
 
+    def test_dti_tz_conversion_freq(self, tz_naive_fixture):
+        # GH25241
+        t3 = DatetimeIndex(['2019-01-01 10:00'], freq='H')
+        assert t3.tz_localize(tz=tz_naive_fixture).freq == t3.freq
+        t4 = DatetimeIndex(['2019-01-02 12:00'], tz='UTC', freq='T')
+        assert t4.tz_convert(tz='UTC').freq == t4.freq
+
     def test_drop_dst_boundary(self):
         # see gh-18031
         tz = "Europe/Brussels"
@@ -1082,7 +1084,6 @@ class TestDatetimeIndexTimezones(object):
     @pytest.mark.parametrize('tz', [None, 'UTC', "US/Central",
                                     dateutil.tz.tzoffset(None, -28800)])
     @pytest.mark.usefixtures("datetime_tz_utc")
-    @pytest.mark.skipif(not PY3, reason="datetime.timezone not in PY2")
     def test_iteration_preserves_nanoseconds(self, tz):
         # GH 19603
         index = DatetimeIndex(["2018-02-08 15:00:00.168456358",

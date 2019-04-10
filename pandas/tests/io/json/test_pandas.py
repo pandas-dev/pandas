@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
+from collections import OrderedDict
 from datetime import timedelta
 import json
 import os
@@ -7,8 +8,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    OrderedDict, StringIO, is_platform_32bit, lrange, range)
+from pandas.compat import StringIO, is_platform_32bit, lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -194,7 +194,7 @@ class TestPandasContainer(object):
             else:
                 unser = unser.sort_index()
 
-            if dtype is False:
+            if not dtype:
                 check_dtype = False
 
             if not convert_axes and df.index.dtype.type == np.datetime64:
@@ -540,10 +540,7 @@ class TestPandasContainer(object):
 
             def __init__(self, hexed):
                 self.hexed = hexed
-                if compat.PY2:
-                    self.binary = hexed.decode('hex')
-                else:
-                    self.binary = bytes.fromhex(hexed)
+                self.binary = bytes.fromhex(hexed)
 
             def __str__(self):
                 return self.hexed
@@ -1104,14 +1101,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
         json = StringIO(json)
         result = read_json(json, lines=True)
-        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+        expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]],
                              columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
         # simulate string
         json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
         result = read_json(json, lines=True)
-        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+        expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]],
                              columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
@@ -1152,9 +1149,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert_frame_equal(pd.read_json(result, lines=True), df)
 
     def test_latin_encoding(self):
-        if compat.PY2:
-            pytest.skip("[unicode] is not implemented as a table column")
-
         # GH 13774
         pytest.skip("encoding not implemented in .to_json(), "
                     "xref #13774")
@@ -1201,6 +1195,40 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         size_after = df.memory_usage(index=True, deep=True).sum()
 
         assert size_before == size_after
+
+    @pytest.mark.parametrize('index', [None, [1, 2], [1., 2.], ['a', 'b'],
+                                       ['1', '2'], ['1.', '2.']])
+    @pytest.mark.parametrize('columns', [['a', 'b'], ['1', '2'], ['1.', '2.']])
+    def test_from_json_to_json_table_index_and_columns(self, index, columns):
+        # GH25433 GH25435
+        expected = DataFrame([[1, 2], [3, 4]], index=index, columns=columns)
+        dfjson = expected.to_json(orient='table')
+        result = pd.read_json(dfjson, orient='table')
+        assert_frame_equal(result, expected)
+
+    def test_from_json_to_json_table_dtypes(self):
+        # GH21345
+        expected = pd.DataFrame({'a': [1, 2], 'b': [3., 4.], 'c': ['5', '6']})
+        dfjson = expected.to_json(orient='table')
+        result = pd.read_json(dfjson, orient='table')
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [True, {'b': int, 'c': int}])
+    def test_read_json_table_dtype_raises(self, dtype):
+        # GH21345
+        df = pd.DataFrame({'a': [1, 2], 'b': [3., 4.], 'c': ['5', '6']})
+        dfjson = df.to_json(orient='table')
+        msg = "cannot pass both dtype and orient='table'"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(dfjson, orient='table', dtype=dtype)
+
+    def test_read_json_table_convert_axes_raises(self):
+        # GH25433 GH25435
+        df = DataFrame([[1, 2], [3, 4]], index=[1., 2.], columns=['1.', '2.'])
+        dfjson = df.to_json(orient='table')
+        msg = "cannot pass both convert_axes and orient='table'"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(dfjson, orient='table', convert_axes=True)
 
     @pytest.mark.parametrize('data, expected', [
         (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']),
@@ -1262,3 +1290,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
                "'orient' is 'split' or 'table'")
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient, index=False)
+
+    @pytest.mark.parametrize('orient', ['split', 'table'])
+    @pytest.mark.parametrize('index', [True, False])
+    def test_index_false_from_json_to_json(self, orient, index):
+        # GH25170
+        # Test index=False in from_json to_json
+        expected = DataFrame({'a': [1, 2], 'b': [3, 4]})
+        dfjson = expected.to_json(orient=orient, index=index)
+        result = read_json(dfjson, orient=orient)
+        assert_frame_equal(result, expected)

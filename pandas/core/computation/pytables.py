@@ -5,7 +5,8 @@ from functools import partial
 
 import numpy as np
 
-from pandas.compat import DeepChainMap, string_types, u
+from pandas._libs.tslibs import Timedelta, Timestamp
+from pandas.compat import DeepChainMap, string_types
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -181,18 +182,18 @@ class BinOp(ops.BinOp):
 
         kind = _ensure_decoded(self.kind)
         meta = _ensure_decoded(self.meta)
-        if kind == u('datetime64') or kind == u('datetime'):
+        if kind == 'datetime64' or kind == 'datetime':
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = _ensure_decoded(v)
-            v = pd.Timestamp(v)
+            v = Timestamp(v)
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
-        elif kind == u('timedelta64') or kind == u('timedelta'):
-            v = pd.Timedelta(v, unit='s').value
+        elif kind == 'timedelta64' or kind == 'timedelta':
+            v = Timedelta(v, unit='s').value
             return TermValue(int(v), v, kind)
-        elif meta == u('category'):
+        elif meta == 'category':
             metadata = com.values_from_object(self.metadata)
             result = metadata.searchsorted(v, side='left')
 
@@ -200,24 +201,24 @@ class BinOp(ops.BinOp):
             # check that metadata contains v
             if not result and v not in metadata:
                 result = -1
-            return TermValue(result, result, u('integer'))
-        elif kind == u('integer'):
+            return TermValue(result, result, 'integer')
+        elif kind == 'integer':
             v = int(float(v))
             return TermValue(v, v, kind)
-        elif kind == u('float'):
+        elif kind == 'float':
             v = float(v)
             return TermValue(v, v, kind)
-        elif kind == u('bool'):
+        elif kind == 'bool':
             if isinstance(v, string_types):
-                v = not v.strip().lower() in [u('false'), u('f'), u('no'),
-                                              u('n'), u('none'), u('0'),
-                                              u('[]'), u('{}'), u('')]
+                v = not v.strip().lower() in ['false', 'f', 'no',
+                                              'n', 'none', '0',
+                                              '[]', '{}', '']
             else:
                 v = bool(v)
             return TermValue(v, v, kind)
         elif isinstance(v, string_types):
             # string quoting
-            return TermValue(v, stringify(v), u('string'))
+            return TermValue(v, stringify(v), 'string')
         else:
             raise TypeError("Cannot compare {v} of type {typ} to {kind} column"
                             .format(v=v, typ=type(v), kind=kind))
@@ -251,7 +252,7 @@ class FilterBinOp(BinOp):
                              .format(slf=self))
 
         rhs = self.conform(self.rhs)
-        values = [TermValue(v, v, self.kind) for v in rhs]
+        values = [TermValue(v, v, self.kind).value for v in rhs]
 
         if self.is_in_table:
 
@@ -262,7 +263,7 @@ class FilterBinOp(BinOp):
                 self.filter = (
                     self.lhs,
                     filter_op,
-                    pd.Index([v.value for v in values]))
+                    pd.Index(values))
 
                 return self
             return None
@@ -274,7 +275,7 @@ class FilterBinOp(BinOp):
             self.filter = (
                 self.lhs,
                 filter_op,
-                pd.Index([v.value for v in values]))
+                pd.Index(values))
 
         else:
             raise TypeError("passing a filterable condition to a non-table "
@@ -583,11 +584,11 @@ class TermValue(object):
     def tostring(self, encoding):
         """ quote the string if not encoded
             else encode and return """
-        if self.kind == u'string':
+        if self.kind == 'string':
             if encoding is not None:
                 return self.converted
             return '"{converted}"'.format(converted=self.converted)
-        elif self.kind == u'float':
+        elif self.kind == 'float':
             # python 2 str(float) is not always
             # round-trippable so use repr()
             return repr(self.converted)

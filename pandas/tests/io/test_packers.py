@@ -8,14 +8,12 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY3, u
 from pandas.errors import PerformanceWarning
 
 import pandas
 from pandas import (
-    Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Panel, Period,
-    Series, Timestamp, bdate_range, compat, date_range, period_range)
-from pandas.tests.test_panel import assert_panel_equal
+    Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Period, Series,
+    Timestamp, bdate_range, compat, date_range, period_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_categorical_equal, assert_frame_equal, assert_index_equal,
@@ -62,8 +60,6 @@ def check_arbitrary(a, b):
         assert(len(a) == len(b))
         for a_, b_ in zip(a, b):
             check_arbitrary(a_, b_)
-    elif isinstance(a, Panel):
-        assert_panel_equal(a, b)
     elif isinstance(a, DataFrame):
         assert_frame_equal(a, b)
     elif isinstance(a, Series):
@@ -74,7 +70,7 @@ def check_arbitrary(a, b):
         # Temp,
         # Categorical.categories is changed from str to bytes in PY3
         # maybe the same as GH 13591
-        if PY3 and b.categories.inferred_type == 'string':
+        if b.categories.inferred_type == 'string':
             pass
         else:
             tm.assert_categorical_equal(a, b)
@@ -275,7 +271,7 @@ class TestNumpy(TestPackers):
                 x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
-        x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo'), np.bool_(1)]
+        x = [1.0, np.float32(3.5), np.complex128(4.25), 'foo', np.bool_(1)]
         x_rec = self.encode_decode(x)
         # current msgpack cannot distinguish list/tuple
         tm.assert_almost_equal(tuple(x), x_rec)
@@ -490,22 +486,11 @@ class TestNDFrame(TestPackers):
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
             'mixed': DataFrame(data)}
 
-        self.panel = {
-            'float': Panel(dict(ItemA=self.frame['float'],
-                                ItemB=self.frame['float'] + 1))}
-
     def test_basic_frame(self):
 
         for s, i in self.frame.items():
             i_rec = self.encode_decode(i)
             assert_frame_equal(i, i_rec)
-
-    def test_basic_panel(self):
-
-        with catch_warnings(record=True):
-            for s, i in self.panel.items():
-                i_rec = self.encode_decode(i)
-                assert_panel_equal(i, i_rec)
 
     def test_multi(self):
 
@@ -746,10 +731,10 @@ class TestCompression(TestPackers):
         # bad state where b'a' points to 98 == ord(b'b').
         char_unpacked[0] = ord(b'b')
 
-        # we compare the ord of bytes b'a' with unicode u'a' because the should
+        # we compare the ord of bytes b'a' with unicode 'a' because the should
         # always be the same (unless we were able to mutate the shared
         # character singleton in which case ord(b'a') == ord(b'b').
-        assert ord(b'a') == ord(u'a')
+        assert ord(b'a') == ord('a')
         tm.assert_numpy_array_equal(
             char_unpacked,
             np.array([ord(b'b')], dtype='uint8'),
@@ -815,7 +800,7 @@ class TestEncoding(TestPackers):
     def setup_method(self, method):
         super(TestEncoding, self).setup_method(method)
         data = {
-            'A': [compat.u('\u2019')] * 1000,
+            'A': ['\u2019'] * 1000,
             'B': np.arange(1000, dtype=np.int32),
             'C': list(100 * 'abcdefghij'),
             'D': date_range(datetime.datetime(2015, 4, 1), periods=1000),
@@ -876,6 +861,10 @@ TestPackers
 
     def check_min_structure(self, data, version):
         for typ, v in self.minimum_structure.items():
+            if typ == "panel":
+                # FIXME: kludge; get this key out of the legacy file
+                continue
+
             assert typ in data, '"{0}" not found in unpacked data'.format(typ)
             for kind in v:
                 msg = '"{0}" not found in data["{1}"]'.format(kind, typ)
@@ -887,6 +876,11 @@ TestPackers
             data = read_msgpack(vf, encoding='latin-1')
         else:
             data = read_msgpack(vf)
+
+        if "panel" in data:
+            # FIXME: kludge; get the key out of the stored file
+            del data["panel"]
+
         self.check_min_structure(data, version)
         for typ, dv in data.items():
             assert typ in all_data, ('unpacked data contains '
@@ -935,7 +929,7 @@ TestPackers
         version = os.path.basename(os.path.dirname(legacy_packer))
 
         # GH12142 0.17 files packed in P2 can't be read in P3
-        if (compat.PY3 and version.startswith('0.17.') and
+        if (version.startswith('0.17.') and
                 legacy_packer.split('.')[-4][-1] == '2'):
             msg = "Files packed in Py2 can't be read in Py3 ({})"
             pytest.skip(msg.format(version))

@@ -114,7 +114,7 @@ class TestTimedeltaIndex(object):
         tm.assert_index_equal(result, expected)
 
         # unicode
-        result = TimedeltaIndex([u'1 days', '1 days, 00:00:05', np.timedelta64(
+        result = TimedeltaIndex(['1 days', '1 days, 00:00:05', np.timedelta64(
             2, 'D'), timedelta(days=2, seconds=2), pd.offsets.Second(3)])
 
         expected = TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01',
@@ -168,10 +168,15 @@ class TestTimedeltaIndex(object):
         tm.assert_index_equal(from_ints, expected)
 
         # non-conforming freq
-        pytest.raises(ValueError, TimedeltaIndex,
-                      ['1 days', '2 days', '4 days'], freq='D')
+        msg = ("Inferred frequency None from passed values does not conform to"
+               " passed frequency D")
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaIndex(['1 days', '2 days', '4 days'], freq='D')
 
-        pytest.raises(ValueError, timedelta_range, periods=10, freq='D')
+        msg = ("Of the four parameters: start, end, periods, and freq, exactly"
+               " three must be specified")
+        with pytest.raises(ValueError, match=msg):
+            timedelta_range(periods=10, freq='D')
 
     def test_constructor_name(self):
         idx = timedelta_range(start='1 days', periods=1, freq='D', name='TEST')

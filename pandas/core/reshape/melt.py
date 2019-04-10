@@ -230,7 +230,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     -------
     DataFrame
         A DataFrame that contains each stub name as a variable, with new index
-        (i, j)
+        (i, j).
 
     Notes
     -----

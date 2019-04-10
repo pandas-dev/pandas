@@ -3,7 +3,7 @@ import json
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, compat
+from pandas import DataFrame, Index
 import pandas.util.testing as tm
 
 from pandas.io.json import json_normalize
@@ -66,6 +66,25 @@ def author_missing_data():
          }]
 
 
+@pytest.fixture
+def missing_metadata():
+    return [
+        {'name': 'Alice',
+         'addresses': [{'number': 9562,
+                        'street': 'Morris St.',
+                        'city': 'Massillon',
+                        'state': 'OH',
+                        'zip': 44646}]
+         },
+        {'addresses': [{'number': 8449,
+                        'street': 'Spring St.',
+                        'city': 'Elizabethton',
+                        'state': 'TN',
+                        'zip': 37643}]
+         }
+    ]
+
+
 class TestJSONNormalize(object):
 
     def test_simple_records(self):
@@ -113,8 +132,8 @@ class TestJSONNormalize(object):
         expected = DataFrame([[1, 2]], columns=['A_A', 'A_B'])
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
-        result = json_normalize({'A': {'A': 1, 'B': 2}}, sep=u'\u03c3')
-        expected = DataFrame([[1, 2]], columns=[u'A\u03c3A', u'A\u03c3B'])
+        result = json_normalize({'A': {'A': 1, 'B': 2}}, sep='\u03c3')
+        expected = DataFrame([[1, 2]], columns=['A\u03c3A', 'A\u03c3B'])
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         result = json_normalize(deep_nested, ['states', 'cities'],
@@ -242,18 +261,14 @@ class TestJSONNormalize(object):
         tm.assert_frame_equal(result, expected)
 
     def test_non_ascii_key(self):
-        if compat.PY3:
-            testjson = (
-                b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' +
-                b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
-            ).decode('utf8')
-        else:
-            testjson = ('[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},'
-                        '{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]')
+        testjson = (
+            b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' +
+            b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
+        ).decode('utf8')
 
         testdata = {
-            u'sub.A': [1, 3],
-            u'sub.B': [2, 4],
+            'sub.A': [1, 3],
+            'sub.B': [2, 4],
             b"\xc3\x9cnic\xc3\xb8de".decode('utf8'): [0, 1]
         }
         expected = DataFrame(testdata)
@@ -318,65 +333,50 @@ class TestNestedToRecord(object):
 
         assert result == expected
 
-    def test_json_normalize_errors(self):
-        # GH14583: If meta keys are not always present
-        # a new option to set errors='ignore' has been implemented
-        i = {
-            "Trades": [{
-                "general": {
-                    "tradeid": 100,
-                    "trade_version": 1,
-                    "stocks": [{
+    def test_json_normalize_errors(self, missing_metadata):
+        # GH14583:
+        # If meta keys are not always present a new option to set
+        # errors='ignore' has been implemented
 
-                        "symbol": "AAPL",
-                        "name": "Apple",
-                        "price": "0"
-                    }, {
-                        "symbol": "GOOG",
-                        "name": "Google",
-                        "price": "0"
-                    }
-                    ]
-                }
-            }, {
-                "general": {
-                    "tradeid": 100,
-                    "stocks": [{
-                        "symbol": "AAPL",
-                        "name": "Apple",
-                        "price": "0"
-                    }, {
-                        "symbol": "GOOG",
-                        "name": "Google",
-                        "price": "0"
-                    }
-                    ]
-                }
-            }
-            ]
-        }
-        j = json_normalize(data=i['Trades'],
-                           record_path=[['general', 'stocks']],
-                           meta=[['general', 'tradeid'],
-                                 ['general', 'trade_version']],
-                           errors='ignore')
-        expected = {'general.trade_version': {0: 1.0, 1: 1.0, 2: '', 3: ''},
-                    'general.tradeid': {0: 100, 1: 100, 2: 100, 3: 100},
-                    'name': {0: 'Apple', 1: 'Google', 2: 'Apple', 3: 'Google'},
-                    'price': {0: '0', 1: '0', 2: '0', 3: '0'},
-                    'symbol': {0: 'AAPL', 1: 'GOOG', 2: 'AAPL', 3: 'GOOG'}}
-
-        assert j.fillna('').to_dict() == expected
-
-        msg = ("Try running with errors='ignore' as key 'trade_version'"
+        msg = ("Try running with errors='ignore' as key 'name'"
                " is not always present")
         with pytest.raises(KeyError, match=msg):
             json_normalize(
-                data=i['Trades'],
-                record_path=[['general', 'stocks']],
-                meta=[['general', 'tradeid'],
-                      ['general', 'trade_version']],
+                data=missing_metadata,
+                record_path='addresses',
+                meta='name',
                 errors='raise')
+
+    def test_missing_meta(self, missing_metadata):
+        # GH25468
+        # If metadata is nullable with errors set to ignore, the null values
+        # should be numpy.nan values
+        result = json_normalize(
+            data=missing_metadata,
+            record_path='addresses',
+            meta='name',
+            errors='ignore')
+        ex_data = [
+            {'city': 'Massillon',
+             'number': 9562,
+             'state': 'OH',
+             'street': 'Morris St.',
+             'zip': 44646,
+             'name': 'Alice'},
+            {'city': 'Elizabethton',
+             'number': 8449,
+             'state': 'TN',
+             'street': 'Spring St.',
+             'zip': 37643,
+             'name': np.nan}
+        ]
+        ex_data = [
+            ['Massillon', 9562, 'OH', 'Morris St.', 44646, 'Alice'],
+            ['Elizabethton', 8449, 'TN', 'Spring St.', 37643, np.nan]
+        ]
+        columns = ['city', 'number', 'state', 'street', 'zip', 'name']
+        expected = DataFrame(ex_data, columns=columns)
+        tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
         # GH21356

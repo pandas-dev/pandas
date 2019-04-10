@@ -39,6 +39,54 @@ def get_test_data(ngroups=NGROUPS, n=N):
     return arr
 
 
+def get_series():
+    return [
+        pd.Series([1], dtype='int64'),
+        pd.Series([1], dtype='Int64'),
+        pd.Series([1.23]),
+        pd.Series(['foo']),
+        pd.Series([True]),
+        pd.Series([pd.Timestamp('2018-01-01')]),
+        pd.Series([pd.Timestamp('2018-01-01', tz='US/Eastern')]),
+    ]
+
+
+def get_series_na():
+    return [
+        pd.Series([np.nan], dtype='Int64'),
+        pd.Series([np.nan], dtype='float'),
+        pd.Series([np.nan], dtype='object'),
+        pd.Series([pd.NaT]),
+    ]
+
+
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+def series_of_dtype(request):
+    """
+    A parametrized fixture returning a variety of Series of different
+    dtypes
+    """
+    return request.param
+
+
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+def series_of_dtype2(request):
+    """
+    A duplicate of the series_of_dtype fixture, so that it can be used
+    twice by a single function
+    """
+    return request.param
+
+
+@pytest.fixture(params=get_series_na(), ids=lambda x: x.dtype.name)
+def series_of_dtype_all_na(request):
+    """
+    A parametrized fixture returning a variety of Series with all NA
+    values
+    """
+    return request.param
+
+
 class TestMerge(object):
 
     def setup_method(self, method):
@@ -427,6 +475,36 @@ class TestMerge(object):
                           dict(left_on='a', right_on='x')]:
                 check1(exp_in, kwarg)
                 check2(exp_out, kwarg)
+
+    def test_merge_empty_frame(self, series_of_dtype, series_of_dtype2):
+        # GH 25183
+        df = pd.DataFrame({'key': series_of_dtype, 'value': series_of_dtype2},
+                          columns=['key', 'value'])
+        df_empty = df[:0]
+        expected = pd.DataFrame({
+            'value_x': pd.Series(dtype=df.dtypes['value']),
+            'key': pd.Series(dtype=df.dtypes['key']),
+            'value_y': pd.Series(dtype=df.dtypes['value']),
+        }, columns=['value_x', 'key', 'value_y'])
+        actual = df_empty.merge(df, on='key')
+        assert_frame_equal(actual, expected)
+
+    def test_merge_all_na_column(self, series_of_dtype,
+                                 series_of_dtype_all_na):
+        # GH 25183
+        df_left = pd.DataFrame(
+            {'key': series_of_dtype, 'value': series_of_dtype_all_na},
+            columns=['key', 'value'])
+        df_right = pd.DataFrame(
+            {'key': series_of_dtype, 'value': series_of_dtype_all_na},
+            columns=['key', 'value'])
+        expected = pd.DataFrame({
+            'key': series_of_dtype,
+            'value_x': series_of_dtype_all_na,
+            'value_y': series_of_dtype_all_na,
+        }, columns=['key', 'value_x', 'value_y'])
+        actual = df_left.merge(df_right, on='key')
+        assert_frame_equal(actual, expected)
 
     def test_merge_nosort(self):
         # #2098, anything to do?
@@ -1152,7 +1230,7 @@ class TestMergeDtypes(object):
         (Series([1, 2], dtype='int32'), ["a", "b", "c"]),
         ([0, 1, 2], ["0", "1", "2"]),
         ([0.0, 1.0, 2.0], ["0", "1", "2"]),
-        ([0, 1, 2], [u"0", u"1", u"2"]),
+        ([0, 1, 2], ["0", "1", "2"]),
         (pd.date_range('1/1/2011', periods=2, freq='D'), ['2011-01-01',
                                                           '2011-01-02']),
         (pd.date_range('1/1/2011', periods=2, freq='D'), [0, 1]),
@@ -1526,3 +1604,65 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
         with pytest.raises(ValueError, match=msg):
             result = pd.merge(a, b, on=on, left_on=left_on, right_on=right_on,
                               left_index=left_index, right_index=right_index)
+
+
+@pytest.mark.parametrize("col1, col2, kwargs, expected_cols", [
+    (0, 0, dict(suffixes=("", "_dup")), ["0", "0_dup"]),
+    (0, 0, dict(suffixes=(None, "_dup")), [0, "0_dup"]),
+    (0, 0, dict(suffixes=("_x", "_y")), ["0_x", "0_y"]),
+    ("a", 0, dict(suffixes=(None, "_y")), ["a", 0]),
+    (0.0, 0.0, dict(suffixes=("_x", None)), ["0.0_x", 0.0]),
+    ("b", "b", dict(suffixes=(None, "_y")), ["b", "b_y"]),
+    ("a", "a", dict(suffixes=("_x", None)), ["a_x", "a"]),
+    ("a", "b", dict(suffixes=("_x", None)), ["a", "b"]),
+    ("a", "a", dict(suffixes=[None, "_x"]), ["a", "a_x"]),
+    (0, 0, dict(suffixes=["_a", None]), ["0_a", 0]),
+    ("a", "a", dict(), ["a_x", "a_y"]),
+    (0, 0, dict(), ["0_x", "0_y"])
+])
+def test_merge_suffix(col1, col2, kwargs, expected_cols):
+    # issue: 24782
+    a = pd.DataFrame({col1: [1, 2, 3]})
+    b = pd.DataFrame({col2: [4, 5, 6]})
+
+    expected = pd.DataFrame([[1, 4], [2, 5], [3, 6]],
+                            columns=expected_cols)
+
+    result = a.merge(b, left_index=True, right_index=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+    result = pd.merge(a, b, left_index=True, right_index=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("col1, col2, suffixes", [
+    ("a", "a", [None, None]),
+    ("a", "a", (None, None)),
+    ("a", "a", ("", None)),
+    (0, 0, [None, None]),
+    (0, 0, (None, ""))
+])
+def test_merge_suffix_error(col1, col2, suffixes):
+    # issue: 24782
+    a = pd.DataFrame({col1: [1, 2, 3]})
+    b = pd.DataFrame({col2: [3, 4, 5]})
+
+    # TODO: might reconsider current raise behaviour, see issue 24782
+    msg = "columns overlap but no suffix specified"
+    with pytest.raises(ValueError, match=msg):
+        pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+
+
+@pytest.mark.parametrize("col1, col2, suffixes", [
+    ("a", "a", None),
+    (0, 0, None)
+])
+def test_merge_suffix_none_error(col1, col2, suffixes):
+    # issue: 24782
+    a = pd.DataFrame({col1: [1, 2, 3]})
+    b = pd.DataFrame({col2: [3, 4, 5]})
+
+    # TODO: might reconsider current raise behaviour, see GH24782
+    msg = "iterable"
+    with pytest.raises(TypeError, match=msg):
+        pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)

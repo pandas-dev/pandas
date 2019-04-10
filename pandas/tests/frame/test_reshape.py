@@ -4,12 +4,9 @@ from __future__ import print_function
 
 from datetime import datetime
 import itertools
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
-
-from pandas.compat import u
 
 import pandas as pd
 from pandas import (
@@ -49,14 +46,6 @@ class TestDataFrameReshape(TestData):
         assert pivoted.index.name == 'index'
         assert pivoted.columns.names == (None, 'columns')
 
-        with catch_warnings(record=True):
-            # pivot multiple columns
-            simplefilter("ignore", FutureWarning)
-            wp = tm.makePanel()
-            lp = wp.to_frame()
-            df = lp.reset_index()
-            tm.assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
-
     def test_pivot_duplicates(self):
         data = DataFrame({'a': ['bar', 'bar', 'foo', 'foo', 'foo'],
                           'b': ['one', 'two', 'one', 'one', 'two'],
@@ -67,7 +56,7 @@ class TestDataFrameReshape(TestData):
     def test_pivot_empty(self):
         df = DataFrame({}, columns=['a', 'b', 'c'])
         result = df.pivot('a', 'b', 'c')
-        expected = DataFrame({})
+        expected = DataFrame()
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_pivot_integer_bug(self):
@@ -403,7 +392,10 @@ class TestDataFrameReshape(TestData):
 
         # When mixed types are passed and the ints are not level
         # names, raise
-        pytest.raises(ValueError, df2.stack, level=['animal', 0])
+        msg = ("level should contain all level names or all level numbers, not"
+               " a mixture of the two")
+        with pytest.raises(ValueError, match=msg):
+            df2.stack(level=['animal', 0])
 
         # GH #8584: Having 0 in the level names could raise a
         # strange error about lexsort depth
@@ -458,10 +450,10 @@ class TestDataFrameReshape(TestData):
     def test_unstack_level_binding(self):
         # GH9856
         mi = pd.MultiIndex(
-            levels=[[u('foo'), u('bar')], [u('one'), u('two')],
-                    [u('a'), u('b')]],
+            levels=[['foo', 'bar'], ['one', 'two'],
+                    ['a', 'b']],
             codes=[[0, 0, 1, 1], [0, 1, 0, 1], [1, 0, 1, 0]],
-            names=[u('first'), u('second'), u('third')])
+            names=['first', 'second', 'third'])
         s = pd.Series(0, index=mi)
         result = s.unstack([1, 2]).stack(0)
 

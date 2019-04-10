@@ -12,13 +12,16 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
+from typing import Optional, Type
 import warnings
 
 import numpy as np
 
+from pandas._config.config import option_context
+
 from pandas._libs import Timestamp, groupby as libgroupby
 import pandas.compat as compat
-from pandas.compat import callable, range, set_function_name, zip
+from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -26,14 +29,16 @@ from pandas.util._validators import validate_kwargs
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    ensure_float, is_extension_array_dtype, is_numeric_dtype, is_scalar)
+    ensure_float, is_datetime64tz_dtype, is_extension_array_dtype,
+    is_numeric_dtype, is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.api.types import (
+    is_datetime64_dtype, is_integer_dtype, is_object_dtype)
 import pandas.core.algorithms as algorithms
 from pandas.core.base import (
     DataError, GroupByError, PandasObject, SelectionMixin, SpecificationError)
 import pandas.core.common as com
-from pandas.core.config import option_context
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
@@ -44,9 +49,9 @@ from pandas.core.sorting import get_group_index_sorter
 _common_see_also = """
         See Also
         --------
-        pandas.Series.%(name)s
-        pandas.DataFrame.%(name)s
-        pandas.Panel.%(name)s
+        Series.%(name)s
+        DataFrame.%(name)s
+        Panel.%(name)s
 """
 
 _apply_docs = dict(
@@ -206,8 +211,8 @@ object : the return type of `func`.
 
 See Also
 --------
-pandas.Series.pipe : Apply a function with arguments to a series.
-pandas.DataFrame.pipe: Apply a function with arguments to a dataframe.
+Series.pipe : Apply a function with arguments to a series.
+DataFrame.pipe: Apply a function with arguments to a dataframe.
 apply : Apply function to each group instead of to the
     full %(klass)s object.
 
@@ -218,8 +223,7 @@ See more `here
 
 Examples
 --------
-%(examples)s
-"""
+%(examples)s"""
 
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
@@ -443,12 +447,12 @@ class _GroupBy(PandasObject, SelectionMixin):
                     raise ValueError(msg)
 
             converters = [get_converter(s) for s in index_sample]
-            names = [tuple(f(n) for f, n in zip(converters, name))
-                     for name in names]
+            names = (tuple(f(n) for f, n in zip(converters, name))
+                     for name in names)
 
         else:
             converter = get_converter(index_sample)
-            names = [converter(name) for name in names]
+            names = (converter(name) for name in names)
 
         return [self.indices.get(name, []) for name in names]
 
@@ -625,7 +629,7 @@ b  2""")
 
     def get_group(self, name, obj=None):
         """
-        Constructs NDFrame from group with provided name.
+        Construct NDFrame from group with provided name.
 
         Parameters
         ----------
@@ -764,7 +768,21 @@ b  2""")
             dtype = obj.dtype
 
         if not is_scalar(result):
-            if is_extension_array_dtype(dtype):
+            if is_datetime64tz_dtype(dtype):
+                # GH 23683
+                # Prior results _may_ have been generated in UTC.
+                # Ensure we localize to UTC first before converting
+                # to the target timezone
+                try:
+                    result = obj._values._from_sequence(
+                        result, dtype='datetime64[ns, UTC]'
+                    )
+                    result = result.astype(dtype)
+                except TypeError:
+                    # _try_cast was called at a point where the result
+                    # was already tz-aware
+                    pass
+            elif is_extension_array_dtype(dtype):
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
                 try:
@@ -1024,15 +1042,17 @@ class GroupBy(_GroupBy):
         """
 
         def objs_to_bool(vals):
-            try:
-                vals = vals.astype(np.bool)
-            except ValueError:  # for objects
+            # type: (np.ndarray) -> (np.ndarray, Type)
+            if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
+            else:
+                vals = vals.astype(np.bool)
 
-            return vals.view(np.uint8)
+            return vals.view(np.uint8), np.bool
 
-        def result_to_bool(result):
-            return result.astype(np.bool, copy=False)
+        def result_to_bool(result, inference):
+            # type: (np.ndarray, Type) -> np.ndarray
+            return result.astype(inference, copy=False)
 
         return self._get_cythonized_result('group_any_all', self.grouper,
                                            aggregate=True,
@@ -1047,7 +1067,7 @@ class GroupBy(_GroupBy):
     @Appender(_common_see_also)
     def any(self, skipna=True):
         """
-        Returns True if any value in the group is truthful, else False.
+        Return True if any value in the group is truthful, else False.
 
         Parameters
         ----------
@@ -1060,7 +1080,7 @@ class GroupBy(_GroupBy):
     @Appender(_common_see_also)
     def all(self, skipna=True):
         """
-        Returns True if all values in the group are truthful, else False.
+        Return True if all values in the group are truthful, else False.
 
         Parameters
         ----------
@@ -1087,9 +1107,7 @@ class GroupBy(_GroupBy):
         Returns
         -------
         pandas.Series or pandas.DataFrame
-
         %(see_also)s
-
         Examples
         --------
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
@@ -1351,7 +1369,7 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        pandas.Grouper : Specify a frequency to resample with when
+        Grouper : Specify a frequency to resample with when
             grouping by a key.
         DatetimeIndex.resample : Frequency conversion and resampling of
             time series.
@@ -1545,9 +1563,7 @@ class GroupBy(_GroupBy):
         dropna : None or str, optional
             apply the specified dropna operation before counting which row is
             the nth row. Needs to be None, 'any' or 'all'
-
         %(see_also)s
-
         Examples
         --------
 
@@ -1688,6 +1704,75 @@ class GroupBy(_GroupBy):
 
         return result
 
+    def quantile(self, q=0.5, interpolation='linear'):
+        """
+        Return group values at the given quantile, a la numpy.percentile.
+
+        Parameters
+        ----------
+        q : float or array-like, default 0.5 (50% quantile)
+            Value(s) between 0 and 1 providing the quantile(s) to compute.
+        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+            Method to use when the desired quantile falls between two points.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type determined by caller of GroupBy object.
+
+        See Also
+        --------
+        Series.quantile : Similar method for Series.
+        DataFrame.quantile : Similar method for DataFrame.
+        numpy.percentile : NumPy method to compute qth percentile.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([
+        ...     ['a', 1], ['a', 2], ['a', 3],
+        ...     ['b', 1], ['b', 3], ['b', 5]
+        ... ], columns=['key', 'val'])
+        >>> df.groupby('key').quantile()
+            val
+        key
+        a    2.0
+        b    3.0
+        """
+
+        def pre_processor(vals):
+            # type: (np.ndarray) -> (np.ndarray, Optional[Type])
+            if is_object_dtype(vals):
+                raise TypeError("'quantile' cannot be performed against "
+                                "'object' dtypes!")
+
+            inference = None
+            if is_integer_dtype(vals):
+                inference = np.int64
+            elif is_datetime64_dtype(vals):
+                inference = 'datetime64[ns]'
+                vals = vals.astype(np.float)
+
+            return vals, inference
+
+        def post_processor(vals, inference):
+            # type: (np.ndarray, Optional[Type]) -> np.ndarray
+            if inference:
+                # Check for edge case
+                if not (is_integer_dtype(inference) and
+                        interpolation in {'linear', 'midpoint'}):
+                    vals = vals.astype(inference)
+
+            return vals
+
+        return self._get_cythonized_result('group_quantile', self.grouper,
+                                           aggregate=True,
+                                           needs_values=True,
+                                           needs_mask=True,
+                                           cython_dtype=np.float64,
+                                           pre_processing=pre_processor,
+                                           post_processing=post_processor,
+                                           q=q, interpolation=interpolation)
+
     @Substitution(name='groupby')
     def ngroup(self, ascending=True):
         """
@@ -1813,7 +1898,7 @@ class GroupBy(_GroupBy):
     def rank(self, method='average', ascending=True, na_option='keep',
              pct=False, axis=0):
         """
-        Provides the rank of values within each group.
+        Provide the rank of values within each group.
 
         Parameters
         ----------
@@ -1835,7 +1920,7 @@ class GroupBy(_GroupBy):
             The axis of the object over which to compute the rank.
 
         Returns
-        -----
+        -------
         DataFrame with ranking of values within each group
         """
         if na_option not in {'keep', 'top', 'bottom'}:
@@ -1924,10 +2009,16 @@ class GroupBy(_GroupBy):
             Whether the result of the Cython operation is an index of
             values to be retrieved, instead of the actual values themselves
         pre_processing : function, default None
-            Function to be applied to `values` prior to passing to Cython
-            Raises if `needs_values` is False
+            Function to be applied to `values` prior to passing to Cython.
+            Function should return a tuple where the first element is the
+            values to be passed to Cython and the second element is an optional
+            type which the values should be converted to after being returned
+            by the Cython operation. Raises if `needs_values` is False.
         post_processing : function, default None
-            Function to be applied to result of Cython function
+            Function to be applied to result of Cython function. Should accept
+            an array of values as the first argument and type inferences as its
+            second argument, i.e. the signature should be
+            (ndarray, Type).
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -1963,10 +2054,12 @@ class GroupBy(_GroupBy):
 
             result = np.zeros(result_sz, dtype=cython_dtype)
             func = partial(base_func, result, labels)
+            inferences = None
+
             if needs_values:
                 vals = obj.values
                 if pre_processing:
-                    vals = pre_processing(vals)
+                    vals, inferences = pre_processing(vals)
                 func = partial(func, vals)
 
             if needs_mask:
@@ -1982,7 +2075,7 @@ class GroupBy(_GroupBy):
                 result = algorithms.take_nd(obj.values, result)
 
             if post_processing:
-                result = post_processing(result)
+                result = post_processing(result, inferences)
 
             output[name] = result
 
@@ -2039,13 +2132,11 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby', see_also=_common_see_also)
     def head(self, n=5):
         """
-        Returns first n rows of each group.
+        Return first n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
-
         %(see_also)s
-
         Examples
         --------
 
@@ -2067,13 +2158,11 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby', see_also=_common_see_also)
     def tail(self, n=5):
         """
-        Returns last n rows of each group.
+        Return last n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
-
         %(see_also)s
-
         Examples
         --------
 

@@ -17,15 +17,14 @@ This module provides a set of commonly used default arguments for functions
 and methods that are spread throughout the codebase. This module will make it
 easier to adjust to future upstream changes in the analogous numpy signatures.
 """
+from collections import OrderedDict
 
 from numpy import ndarray
 
-from pandas.compat import OrderedDict
+from pandas._libs.lib import is_bool, is_integer
 from pandas.errors import UnsupportedFunctionCall
 from pandas.util._validators import (
     validate_args, validate_args_and_kwargs, validate_kwargs)
-
-from pandas.core.dtypes.common import is_bool, is_integer
 
 
 class CompatValidator(object):

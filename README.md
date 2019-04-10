@@ -26,8 +26,9 @@
   <td>Package Status</td>
   <td>
 		<a href="https://pypi.org/project/pandas/">
-		<img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" /></td>
+		<img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" />
 		</a>
+  </td>
 </tr>
 <tr>
   <td>License</td>
@@ -73,8 +74,8 @@
 	<td>Gitter</td>
 	<td>
 		<a href="https://gitter.im/pydata/pandas">
-		<img src="https://badges.gitter.im/Join%20Chat.svg"
-	</a>
+		<img src="https://badges.gitter.im/Join%20Chat.svg" />
+		</a>
 	</td>
 </tr>
 </table>
@@ -165,7 +166,7 @@ pip install pandas
 ## Dependencies
 - [NumPy](https://www.numpy.org): 1.12.0 or higher
 - [python-dateutil](https://labix.org/python-dateutil): 2.5.0 or higher
-- [pytz](https://pythonhosted.org/pytz): 2011k or higher
+- [pytz](https://pythonhosted.org/pytz): 2015.4 or higher
 
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
 for recommended and optional dependencies.

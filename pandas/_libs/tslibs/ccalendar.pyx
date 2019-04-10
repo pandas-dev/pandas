@@ -9,6 +9,8 @@ import cython
 from numpy cimport int64_t, int32_t
 
 from locale import LC_TIME
+
+from pandas._config.localization import set_locale
 from pandas._libs.tslibs.strptime import LocaleTime
 
 # ----------------------------------------------------------------------
@@ -159,7 +161,7 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
     # estimate
     woy = (doy - 1) - dow + 3
     if woy >= 0:
-        woy = woy / 7 + 1
+        woy = woy // 7 + 1
 
     # verify
     if woy < 0:
@@ -206,7 +208,7 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
     return day_of_year
 
 
-cpdef get_locale_names(object name_type, object locale=None):
+def get_locale_names(name_type: object, locale: object=None):
     """Returns an array of localized day or month names
 
     Parameters
@@ -218,9 +220,6 @@ cpdef get_locale_names(object name_type, object locale=None):
     Returns
     -------
     list of locale names
-
     """
-    from pandas.util.testing import set_locale
-
     with set_locale(locale, LC_TIME):
         return getattr(LocaleTime(), name_type)

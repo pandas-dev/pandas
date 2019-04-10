@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Panel, Series
+from pandas import DataFrame, Series
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.resample import TimeGrouper
 import pandas.util.testing as tm
@@ -77,27 +77,6 @@ def test_apply_iteration():
     # it works!
     result = grouped.apply(f)
     tm.assert_index_equal(result.index, df.index)
-
-
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-def test_panel_aggregation():
-    ind = pd.date_range('1/1/2000', periods=100)
-    data = np.random.randn(2, len(ind), 4)
-
-    wp = Panel(data, items=['Item1', 'Item2'], major_axis=ind,
-               minor_axis=['A', 'B', 'C', 'D'])
-
-    tg = TimeGrouper('M', axis=1)
-    _, grouper, _ = tg._get_grouper(wp)
-    bingrouped = wp.groupby(grouper)
-    binagg = bingrouped.mean()
-
-    def f(x):
-        assert (isinstance(x, Panel))
-        return x.mean(1)
-
-    result = bingrouped.agg(f)
-    tm.assert_panel_equal(result, binagg)
 
 
 @pytest.mark.parametrize('name, func', [

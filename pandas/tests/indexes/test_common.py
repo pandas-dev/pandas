@@ -3,6 +3,8 @@ Collection of tests asserting things that should be true for
 any index subclass. Makes use of the `indices` fixture defined
 in pandas/tests/indexes/conftest.py.
 """
+import re
+
 import numpy as np
 import pytest
 
@@ -189,8 +191,14 @@ class TestCommon(object):
             result = indices.unique(level=level)
             tm.assert_index_equal(result, expected)
 
-        for level in 3, 'wrong':
-            pytest.raises((IndexError, KeyError), indices.unique, level=level)
+        msg = "Too many levels: Index has only 1 level, not 4"
+        with pytest.raises(IndexError, match=msg):
+            indices.unique(level=3)
+
+        msg = r"Level wrong must be same as name \({}\)".format(
+            re.escape(indices.name.__repr__()))
+        with pytest.raises(KeyError, match=msg):
+            indices.unique(level='wrong')
 
     def test_get_unique_index(self, indices):
         # MultiIndex tested separately
@@ -239,12 +247,16 @@ class TestCommon(object):
                 tm.assert_index_equal(result, expected)
 
     def test_sort(self, indices):
-        pytest.raises(TypeError, indices.sort)
+        msg = "cannot sort an Index object in-place, use sort_values instead"
+        with pytest.raises(TypeError, match=msg):
+            indices.sort()
 
     def test_mutability(self, indices):
         if not len(indices):
             pytest.skip('Skip check for empty Index')
-        pytest.raises(TypeError, indices.__setitem__, 0, indices[0])
+        msg = "Index does not support mutable operations"
+        with pytest.raises(TypeError, match=msg):
+            indices[0] = indices[0]
 
     def test_view(self, indices):
         assert indices.view().name == indices.name

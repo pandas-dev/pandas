@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import algos as _algos, reshape as _reshape
 from pandas._libs.sparse import IntIndex
-from pandas.compat import PY2, range, text_type, u, zip
+from pandas.compat import PY2, text_type
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -701,19 +701,20 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
                 columns=None, sparse=False, drop_first=False, dtype=None):
     """
-    Convert categorical variable into dummy/indicator variables
+    Convert categorical variable into dummy/indicator variables.
 
     Parameters
     ----------
     data : array-like, Series, or DataFrame
-    prefix : string, list of strings, or dict of strings, default None
+        Data of which to get dummy indicators.
+    prefix : str, list of str, or dict of str, default None
         String to append DataFrame column names.
         Pass a list with length equal to the number of columns
         when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
-    prefix_sep : string, default '_'
+    prefix_sep : str, default '_'
         If appending prefix, separator/delimiter to use. Or pass a
-        list or dictionary as with `prefix.`
+        list or dictionary as with `prefix`.
     dummy_na : bool, default False
         Add a column to indicate NaNs, if False NaNs are ignored.
     columns : list-like, default None
@@ -736,11 +737,12 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     Returns
     -------
-    dummies : DataFrame
+    DataFrame
+        Dummy-coded data.
 
     See Also
     --------
-    Series.str.get_dummies
+    Series.str.get_dummies : Convert Series to dummy codes.
 
     Examples
     --------
@@ -912,7 +914,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             if PY2 and (isinstance(prefix, text_type) or
                         isinstance(prefix_sep, text_type) or
                         isinstance(level, text_type)):
-                fstr = u(fstr)
+                fstr = fstr
             return fstr.format(prefix=prefix,
                                prefix_sep=prefix_sep,
                                level=level)
