@@ -108,12 +108,10 @@ class PandasExtensionDtype(_DtypeOpsMixin):
     """
     type = None  # type: Any
     kind = None  # type: Any
-    """
-    The Any type annotations above are here only because mypy seems to have a
-    problem dealing with with multiple inheritance from PandasExtensionDtype
-    and ExtensionDtype's @properties in the subclasses below. Those subclasses
-    are explicitly typed, as appropriate.
-    """
+    # The Any type annotations above are here only because mypy seems to have a
+    # problem dealing with with multiple inheritance from PandasExtensionDtype
+    # and ExtensionDtype's @properties in the subclasses below. The kind and
+    # type variables in those subclasses are explicitly typed below.
     subdtype = None
     str = None  # type: Optional[builtins.str]
     num = 100
@@ -122,7 +120,7 @@ class PandasExtensionDtype(_DtypeOpsMixin):
     base = None
     isbuiltin = 0
     isnative = 0
-    _cache = {}  # type: Dict[builtins.str, object]
+    _cache = {}  # type: Dict[builtins.str, 'PandasExtensionDtype']
 
     def __unicode__(self):
         return self.name
@@ -230,7 +228,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     str = '|O08'
     base = np.dtype('O')
     _metadata = ('categories', 'ordered')
-    _cache = {}  # type: Dict[builtins.str, object]
+    _cache = {}  # type: Dict[builtins.str, PandasExtensionDtype]
 
     def __init__(self, categories=None, ordered=None):
         self._finalize(categories, ordered, fastpath=False)
@@ -600,7 +598,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
     na_value = NaT
     _metadata = ('unit', 'tz')
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
-    _cache = {}  # type: Dict[builtins.str, object]
+    _cache = {}  # type: Dict[builtins.str, PandasExtensionDtype]
 
     def __init__(self, unit="ns", tz=None):
         """
@@ -751,7 +749,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
     num = 102
     _metadata = ('freq',)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
-    _cache = {}  # type: Dict[builtins.str, object]
+    _cache = {}  # type: Dict[builtins.str, PandasExtensionDtype]
 
     def __new__(cls, freq=None):
         """
@@ -874,7 +872,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     num = 103
     _metadata = ('subtype',)
     _match = re.compile(r"(I|i)nterval\[(?P<subtype>.+)\]")
-    _cache = {}  # type: Dict[builtins.str, object]
+    _cache = {}  # type: Dict[builtins.str, PandasExtensionDtype]
 
     def __new__(cls, subtype=None):
         """
