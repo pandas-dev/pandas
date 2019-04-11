@@ -786,7 +786,8 @@ cdef class _Timedelta(timedelta):
                         return False
                     elif op == Py_NE:
                         return True
-                    raise TypeError('Cannot compare type {cls} with type {other}'
+                    raise TypeError('Cannot compare type {cls} with '
+                                    'type {other}'
                                     .format(cls=type(self).__name__,
                                             other=type(other).__name__))
 
