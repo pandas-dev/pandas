@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
-    PY35, PY36, is_platform_little_endian, is_platform_windows, lrange)
+    PY36, is_platform_little_endian, is_platform_windows, lrange)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -4027,8 +4027,8 @@ class TestHDFStore(Base):
             d2 = store['detector/readout']
             assert isinstance(d2, DataFrame)
 
-    @pytest.mark.skipif(PY35 and is_platform_windows(),
-                        reason="native2 read fails oddly on windows / 3.5")
+    @pytest.mark.skipif(is_platform_windows(),
+                        reason="native2 read fails oddly on windows")
     def test_pytables_native2_read(self, datapath):
         with ensure_clean_store(
                 datapath('io', 'data', 'legacy_hdf', 'pytables_native2.h5'),
