@@ -689,3 +689,37 @@ class TestTimedeltaMultiplicationDivision(object):
     def test_td_op_timedelta_timedeltalike_array(self, op, arr):
         with pytest.raises(TypeError):
             op(arr, Timedelta('1D'))
+
+
+class TestTimedeltaCompare():
+    """
+    Tests for Timedelta comparisons.
+    """
+
+    def test_timedelta_nat_comparisons(self):
+        # GH 26039
+        td = pd.Timedelta(0)
+
+        result = td > NaT
+        assert result is False
+
+        result = td >= NaT
+        assert result is False
+
+        result = td < NaT
+        assert result is False
+
+        result = td <= NaT
+        assert result is False
+
+        result = NaT > td
+        assert result is False
+
+        result = NaT >= td
+        assert result is False
+
+        result = NaT < td
+        assert result is False
+
+        result = NaT <= td
+        assert result is False
