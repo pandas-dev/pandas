@@ -939,6 +939,7 @@ class _Rolling_and_Expanding(_Rolling):
             result = self._constructor(result, window=window, min_periods=0,
                                        axis=self.axis,
                                        center=self.center,
+                                       axis=self.axis,
                                        closed=self.closed).sum()
             results.append(result)
 
