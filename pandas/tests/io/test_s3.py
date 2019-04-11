@@ -1,6 +1,6 @@
-import pytest
+from io import BytesIO
 
-from pandas.compat import BytesIO
+import pytest
 
 from pandas import read_csv
 

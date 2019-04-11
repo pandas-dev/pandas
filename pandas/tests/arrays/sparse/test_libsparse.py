@@ -157,7 +157,7 @@ class TestSparseIndexUnion(object):
         elen = [3, 2, 3, 2]
         _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
-    def test_intindex_make_union(self):
+    def test_int_index_make_union(self):
         a = IntIndex(5, np.array([0, 3, 4], dtype=np.int32))
         b = IntIndex(5, np.array([0, 2], dtype=np.int32))
         res = a.make_union(b)
@@ -184,7 +184,9 @@ class TestSparseIndexUnion(object):
 
         a = IntIndex(5, np.array([0, 1], dtype=np.int32))
         b = IntIndex(4, np.array([0, 1], dtype=np.int32))
-        with pytest.raises(ValueError):
+
+        msg = "Indices must reference same underlying length"
+        with pytest.raises(ValueError, match=msg):
             a.make_union(b)
 
 
@@ -197,7 +199,9 @@ class TestSparseIndexIntersect(object):
             assert (result.equals(expected))
 
         def _check_length_exc(a, longer):
-            pytest.raises(Exception, a.intersect, longer)
+            msg = "Indices must reference same underlying length"
+            with pytest.raises(Exception, match=msg):
+                a.intersect(longer)
 
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
@@ -449,11 +453,13 @@ class TestBlockIndex(object):
         # also OK even though empty
         index = BlockIndex(1, locs, lengths)  # noqa
 
-        # block extend beyond end
-        pytest.raises(Exception, BlockIndex, 10, [5], [10])
+        msg = "Block 0 extends beyond end"
+        with pytest.raises(ValueError, match=msg):
+            BlockIndex(10, [5], [10])
 
-        # block overlap
-        pytest.raises(Exception, BlockIndex, 10, [2, 5], [5, 3])
+        msg = "Block 0 overlaps"
+        with pytest.raises(ValueError, match=msg):
+            BlockIndex(10, [2, 5], [5, 3])
 
     def test_to_int_index(self):
         locs = [0, 10]

@@ -1,6 +1,6 @@
-import pytest
+from io import StringIO
 
-from pandas.compat import StringIO
+import pytest
 
 from pandas import read_sas
 import pandas.util.testing as tm

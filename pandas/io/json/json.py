@@ -1,4 +1,5 @@
 # pylint: disable-msg=E1101,W0613,W0603
+from io import StringIO
 from itertools import islice
 import os
 
@@ -6,7 +7,7 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas.compat import StringIO, long, to_str, u
+from pandas.compat import to_str
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_period_dtype
@@ -64,7 +65,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
     if lines:
         s = _convert_to_line_delimits(s)
 
-    if isinstance(path_or_buf, compat.string_types):
+    if isinstance(path_or_buf, str):
         fh, handles = _get_handle(path_or_buf, 'w', compression=compression)
         try:
             fh.write(s)
@@ -227,7 +228,7 @@ class JSONTableWriter(FrameWriter):
 
 
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
-              convert_axes=True, convert_dates=True, keep_default_dates=True,
+              convert_axes=None, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
               lines=False, chunksize=None, compression='infer'):
     """
@@ -277,18 +278,25 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
            'table' as an allowed value for the ``orient`` argument
 
     typ : type of object to recover (series or frame), default 'frame'
-    dtype : boolean or dict, default True
+    dtype : boolean or dict, default None
         If True, infer dtypes; if a dict of column to dtype, then use those;
         if False, then don't infer dtypes at all, applies only to the data.
 
-        Not applicable with ``orient='table'``.
+        For all ``orient`` values except ``'table'``, default is True.
 
-        .. versionchanged:: 0.25
+        .. versionchanged:: 0.25.0
 
-           Not applicable with ``orient='table'``.
+           Not applicable for ``orient='table'``.
 
-    convert_axes : boolean, default True
+    convert_axes : boolean, default None
         Try to convert the axes to the proper dtypes.
+
+        For all ``orient`` values except ``'table'``, default is True.
+
+        .. versionchanged:: 0.25.0
+
+           Not applicable for ``orient='table'``.
+
     convert_dates : boolean, default True
         List of columns to parse for dates; If True, then try to parse
         datelike columns default is True; a column label is datelike if
@@ -417,8 +425,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
 
     if orient == 'table' and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
+    if orient == 'table' and convert_axes:
+        raise ValueError("cannot pass both convert_axes and orient='table'")
 
-    dtype = orient != 'table' if dtype is None else dtype
+    if dtype is None and orient != 'table':
+        dtype = True
+    if convert_axes is None and orient != 'table':
+        convert_axes = True
 
     compression = _infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
@@ -510,7 +523,7 @@ class JsonReader(BaseIterator):
         data = filepath_or_buffer
 
         exists = False
-        if isinstance(data, compat.string_types):
+        if isinstance(data, str):
             try:
                 exists = os.path.exists(filepath_or_buffer)
             # gh-5874: if the filepath is too long will raise here
@@ -607,10 +620,10 @@ class Parser(object):
 
     _STAMP_UNITS = ('s', 'ms', 'us', 'ns')
     _MIN_STAMPS = {
-        's': long(31536000),
-        'ms': long(31536000000),
-        'us': long(31536000000000),
-        'ns': long(31536000000000000)}
+        's': 31536000,
+        'ms': 31536000000,
+        'us': 31536000000000,
+        'ns': 31536000000000000}
 
     def __init__(self, json, orient, dtype=None, convert_axes=True,
                  convert_dates=True, keep_default_dates=False, numpy=False,
@@ -650,7 +663,7 @@ class Parser(object):
         bad_keys = set(decoded.keys()).difference(set(self._split_keys))
         if bad_keys:
             bad_keys = ", ".join(bad_keys)
-            raise ValueError(u("JSON data had unexpected key(s): {bad_keys}")
+            raise ValueError("JSON data had unexpected key(s): {bad_keys}"
                              .format(bad_keys=pprint_thing(bad_keys)))
 
     def parse(self):
@@ -692,7 +705,7 @@ class Parser(object):
 
         # don't try to coerce, unless a force conversion
         if use_dtypes:
-            if self.dtype is False:
+            if not self.dtype:
                 return data, False
             elif self.dtype is True:
                 pass
@@ -944,7 +957,7 @@ class FrameParser(Parser):
             """
             Return if this col is ok to try for a date parse.
             """
-            if not isinstance(col, compat.string_types):
+            if not isinstance(col, str):
                 return False
 
             col_lower = col.lower()

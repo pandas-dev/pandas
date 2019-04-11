@@ -2,15 +2,12 @@
 Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
-from __future__ import division
-
 from collections import OrderedDict
 import warnings
 
 import numpy as np
 
 import pandas.compat as compat
-from pandas.compat import map, range, u, zip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_axis_style_args
@@ -356,18 +353,18 @@ class Panel(NDFrame):
 
         class_name = str(self.__class__)
 
-        dims = u('Dimensions: {dimensions}'.format(dimensions=' x '.join(
+        dims = 'Dimensions: {dimensions}'.format(dimensions=' x '.join(
             ["{shape} ({axis})".format(shape=shape, axis=axis) for axis, shape
-             in zip(self._AXIS_ORDERS, self.shape)])))
+             in zip(self._AXIS_ORDERS, self.shape)]))
 
         def axis_pretty(a):
             v = getattr(self, a)
             if len(v) > 0:
-                return u('{ax} axis: {x} to {y}'.format(ax=a.capitalize(),
-                                                        x=pprint_thing(v[0]),
-                                                        y=pprint_thing(v[-1])))
+                return '{ax} axis: {x} to {y}'.format(ax=a.capitalize(),
+                                                      x=pprint_thing(v[0]),
+                                                      y=pprint_thing(v[-1]))
             else:
-                return u('{ax} axis: None'.format(ax=a.capitalize()))
+                return '{ax} axis: None'.format(ax=a.capitalize())
 
         output = '\n'.join(
             [class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
@@ -454,7 +451,7 @@ class Panel(NDFrame):
         """
         from pandas.io.excel import ExcelWriter
 
-        if isinstance(path, compat.string_types):
+        if isinstance(path, str):
             writer = ExcelWriter(path, engine=engine)
         else:
             writer = path
@@ -1469,7 +1466,7 @@ class Panel(NDFrame):
         if not isinstance(values, np.ndarray):
             values = np.asarray(values)
             # NumPy strings are a pain, convert to object
-            if issubclass(values.dtype.type, compat.string_types):
+            if issubclass(values.dtype.type, str):
                 values = np.array(values, dtype=object, copy=True)
         else:
             if copy:

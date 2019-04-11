@@ -5,8 +5,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-import pandas.compat as compat
-from pandas.compat import lrange, range, u
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -81,11 +80,11 @@ class TestSeriesRepr(TestData):
         repr(ots)
 
         # various names
-        for name in ['', 1, 1.2, 'foo', u('\u03B1\u03B2\u03B3'),
+        for name in ['', 1, 1.2, 'foo', '\u03B1\u03B2\u03B3',
                      'loooooooooooooooooooooooooooooooooooooooooooooooooooong',
                      ('foo', 'bar', 'baz'), (1, 2), ('foo', 1, 2.3),
-                     (u('\u03B1'), u('\u03B2'), u('\u03B3')),
-                     (u('\u03B1'), 'bar')]:
+                     ('\u03B1', '\u03B2', '\u03B3'),
+                     ('\u03B1', 'bar')]:
             self.series.name = name
             repr(self.series)
 
@@ -116,7 +115,7 @@ class TestSeriesRepr(TestData):
         assert repr(s) == 'Series([], dtype: int64)'
 
     def test_tidy_repr(self):
-        a = Series([u("\u05d0")] * 1000)
+        a = Series(["\u05d0"] * 1000)
         a.name = 'title1'
         repr(a)  # should not raise exception
 
@@ -135,7 +134,7 @@ class TestSeriesRepr(TestData):
         # it works!
         repr(s)
 
-        s.name = (u("\u05d0"), ) * 2
+        s.name = ("\u05d0", ) * 2
         repr(s)
 
     def test_repr_should_return_str(self):
@@ -145,7 +144,7 @@ class TestSeriesRepr(TestData):
         # (str on py2.x, str (unicode) on py3)
 
         data = [8, 5, 3, 5]
-        index1 = [u("\u03c3"), u("\u03c4"), u("\u03c5"), u("\u03c6")]
+        index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
         df = Series(data, index=index1)
         assert type(df.__repr__() == str)  # both py2 / 3
 
@@ -155,18 +154,12 @@ class TestSeriesRepr(TestData):
             str(Series(range(1001)))  # should not raise exception
 
     def test_unicode_string_with_unicode(self):
-        df = Series([u("\u05d0")], name=u("\u05d1"))
-        if compat.PY3:
-            str(df)
-        else:
-            compat.text_type(df)
+        df = Series(["\u05d0"], name="\u05d1")
+        str(df)
 
     def test_bytestring_with_unicode(self):
-        df = Series([u("\u05d0")], name=u("\u05d1"))
-        if compat.PY3:
-            bytes(df)
-        else:
-            str(df)
+        df = Series(["\u05d0"], name="\u05d1")
+        bytes(df)
 
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
@@ -210,51 +203,39 @@ class TestSeriesRepr(TestData):
 class TestCategoricalRepr(object):
 
     def test_categorical_repr_unicode(self):
-        # GH#21002 if len(index) > 60, sys.getdefaultencoding()=='ascii',
-        # and we are working in PY2, then rendering a Categorical could raise
-        # UnicodeDecodeError by trying to decode when it shouldn't
+        # see gh-21002
 
         class County(StringMixin):
-            name = u'San Sebastián'
-            state = u'PR'
+            name = 'San Sebastián'
+            state = 'PR'
 
             def __unicode__(self):
-                return self.name + u', ' + self.state
+                return self.name + ', ' + self.state
 
-        cat = pd.Categorical([County() for n in range(61)])
+        cat = pd.Categorical([County() for _ in range(61)])
         idx = pd.Index(cat)
         ser = idx.to_series()
 
-        if compat.PY3:
-            # no reloading of sys, just check that the default (utf8) works
-            # as expected
-            repr(ser)
-            str(ser)
-
-        else:
-            # set sys.defaultencoding to ascii, then change it back after
-            # the test
-            with tm.set_defaultencoding('ascii'):
-                repr(ser)
-                str(ser)
+        repr(ser)
+        str(ser)
 
     def test_categorical_repr(self):
         a = Series(Categorical([1, 2, 3, 4]))
-        exp = u("0    1\n1    2\n2    3\n3    4\n" +
-                "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
+        exp = ("0    1\n1    2\n2    3\n3    4\n" +
+               "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
 
         assert exp == a.__unicode__()
 
         a = Series(Categorical(["a", "b"] * 25))
-        exp = u("0     a\n1     b\n" + "     ..\n" + "48    a\n49    b\n" +
-                "Length: 50, dtype: category\nCategories (2, object): [a, b]")
+        exp = ("0     a\n1     b\n" + "     ..\n" + "48    a\n49    b\n" +
+               "Length: 50, dtype: category\nCategories (2, object): [a, b]")
         with option_context("display.max_rows", 5):
             assert exp == repr(a)
 
         levs = list("abcdefghijklmnopqrstuvwxyz")
         a = Series(Categorical(["a", "b"], categories=levs, ordered=True))
-        exp = u("0    a\n1    b\n" + "dtype: category\n"
-                "Categories (26, object): [a < b < c < d ... w < x < y < z]")
+        exp = ("0    a\n1    b\n" + "dtype: category\n"
+               "Categories (26, object): [a < b < c < d ... w < x < y < z]")
         assert exp == a.__unicode__()
 
     def test_categorical_series_repr(self):

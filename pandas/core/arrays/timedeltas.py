@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
-
 from datetime import timedelta
 import textwrap
 import warnings
@@ -11,7 +9,7 @@ from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
-    array_to_timedelta64, parse_timedelta_unit)
+    array_to_timedelta64, parse_timedelta_unit, precision_from_unit)
 import pandas.compat as compat
 from pandas.util._decorators import Appender
 
@@ -38,8 +36,7 @@ _BAD_DTYPE = "dtype {dtype} cannot be converted to timedelta64[ns]"
 
 
 def _is_convertible_to_td(key):
-    return isinstance(key, (Tick, timedelta,
-                            np.timedelta64, compat.string_types))
+    return isinstance(key, (Tick, timedelta, np.timedelta64, str))
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -918,12 +915,15 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         copy = copy and not copy_made
 
     elif is_float_dtype(data.dtype):
-        # treat as multiples of the given unit.  If after converting to nanos,
-        #  there are fractional components left, these are truncated
-        #  (i.e. NOT rounded)
+        # cast the unit, multiply base/frace separately
+        # to avoid precision issues from float -> int
         mask = np.isnan(data)
-        coeff = np.timedelta64(1, unit) / np.timedelta64(1, 'ns')
-        data = (coeff * data).astype(np.int64).view('timedelta64[ns]')
+        m, p = precision_from_unit(unit)
+        base = data.astype(np.int64)
+        frac = data - base
+        if p:
+            frac = np.round(frac, p)
+        data = (base * m + (frac * m).astype(np.int64)).view('timedelta64[ns]')
         data[mask] = iNaT
         copy = False
 

@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from pandas.compat import PY3, PY36, string_types
+from pandas.compat import PY3, PY36
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, IntervalDtype,
@@ -1954,7 +1954,7 @@ def infer_dtype_from_object(dtype):
 
     if is_extension_array_dtype(dtype):
         return dtype.type
-    elif isinstance(dtype, string_types):
+    elif isinstance(dtype, str):
 
         # TODO(jreback)
         # should deprecate these
@@ -2037,7 +2037,7 @@ def pandas_dtype(dtype):
         npdtype = np.dtype(dtype)
     except Exception:
         # we don't want to force a repr of the non-string
-        if not isinstance(dtype, string_types):
+        if not isinstance(dtype, str):
             raise TypeError("data type not understood")
         raise TypeError("data type '{}' not understood".format(
             dtype))

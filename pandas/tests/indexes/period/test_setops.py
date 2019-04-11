@@ -43,7 +43,12 @@ class TestPeriodIndex(object):
         # union
         other1 = pd.period_range('1/1/2000', freq='D', periods=5)
         rng1 = pd.period_range('1/6/2000', freq='D', periods=5)
-        expected1 = pd.period_range('1/1/2000', freq='D', periods=10)
+        expected1 = pd.PeriodIndex(['2000-01-06', '2000-01-07',
+                                    '2000-01-08', '2000-01-09',
+                                    '2000-01-10', '2000-01-01',
+                                    '2000-01-02', '2000-01-03',
+                                    '2000-01-04', '2000-01-05'],
+                                   freq='D')
 
         rng2 = pd.period_range('1/1/2000', freq='D', periods=5)
         other2 = pd.period_range('1/4/2000', freq='D', periods=5)
@@ -77,7 +82,9 @@ class TestPeriodIndex(object):
 
         rng7 = pd.period_range('2003-01-01', freq='A', periods=5)
         other7 = pd.period_range('1998-01-01', freq='A', periods=8)
-        expected7 = pd.period_range('1998-01-01', freq='A', periods=10)
+        expected7 = pd.PeriodIndex(['2003', '2004', '2005', '2006', '2007',
+                                    '1998', '1999', '2000', '2001', '2002'],
+                                   freq='A')
 
         rng8 = pd.PeriodIndex(['1/3/2000', '1/2/2000', '1/1/2000',
                                '1/5/2000', '1/4/2000'], freq='D')

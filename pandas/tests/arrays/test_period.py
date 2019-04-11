@@ -41,6 +41,22 @@ def test_period_array_ok(data, freq, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_period_array_readonly_object():
+    # https://github.com/pandas-dev/pandas/issues/25403
+    pa = period_array([pd.Period('2019-01-01')])
+    arr = np.asarray(pa, dtype='object')
+    arr.setflags(write=False)
+
+    result = period_array(arr)
+    tm.assert_period_array_equal(result, pa)
+
+    result = pd.Series(arr)
+    tm.assert_series_equal(result, pd.Series(pa))
+
+    result = pd.DataFrame({"A": arr})
+    tm.assert_frame_equal(result, pd.DataFrame({"A": pa}))
+
+
 def test_from_datetime64_freq_changes():
     # https://github.com/pandas-dev/pandas/issues/23438
     arr = pd.date_range("2017", periods=3, freq="D")

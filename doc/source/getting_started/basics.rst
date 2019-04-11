@@ -16,9 +16,6 @@ the previous section:
    s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
    df = pd.DataFrame(np.random.randn(8, 3), index=index,
                      columns=['A', 'B', 'C'])
-   wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
-                 major_axis=pd.date_range('1/1/2000', periods=5),
-                 minor_axis=['A', 'B', 'C', 'D'])
 
 .. _basics.head_tail:
 
@@ -46,7 +43,6 @@ pandas objects have a number of attributes enabling you to access the metadata
 * Axis labels
     * **Series**: *index* (only axis)
     * **DataFrame**: *index* (rows) and *columns*
-    * **Panel**: *items*, *major_axis*, and *minor_axis*
 
 Note, **these attributes can be safely assigned to**!
 
@@ -118,7 +114,7 @@ columns, :meth:`DataFrame.to_numpy` will return the underlying data:
 
    df.to_numpy()
 
-If a DataFrame or Panel contains homogeneously-typed data, the ndarray can
+If a DataFrame contains homogeneously-typed data, the ndarray can
 actually be modified in-place, and the changes will be reflected in the data
 structure. For heterogeneous data (e.g. some of the DataFrame's columns are not
 all the same dtype), this will not be the case. The values attribute itself,
@@ -238,26 +234,6 @@ Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
                                            (1, 'c'), (2, 'a')],
                                           names=['first', 'second'])
    dfmi.sub(column, axis=0, level='second')
-
-With Panel, describing the matching behavior is a bit more difficult, so
-the arithmetic methods instead (and perhaps confusingly?) give you the option
-to specify the *broadcast axis*. For example, suppose we wished to demean the
-data over a particular axis. This can be accomplished by taking the mean over
-an axis and broadcasting over the same axis:
-
-.. ipython:: python
-
-   major_mean = wp.mean(axis='major')
-   major_mean
-   wp.sub(major_mean, axis='major')
-
-And similarly for ``axis="items"`` and ``axis="minor"``.
-
-.. note::
-
-   I could be convinced to make the **axis** argument in the DataFrame methods
-   match the broadcasting behavior of Panel. Though it would require a
-   transition period so users can change their code...
 
 Series and Index also support the :func:`divmod` builtin. This function takes
 the floor division and modulo operation at the same time returning a two-tuple
@@ -407,7 +383,7 @@ This is because NaNs do not compare as equals:
 
    np.nan == np.nan
 
-So, NDFrames (such as Series, DataFrames, and Panels)
+So, NDFrames (such as Series and DataFrames)
 have an :meth:`~DataFrame.equals` method for testing equality, with NaNs in
 corresponding locations treated as equal.
 
@@ -515,7 +491,7 @@ Descriptive statistics
 
 There exists a large number of methods for computing descriptive statistics and
 other related operations on :ref:`Series <api.series.stats>`, :ref:`DataFrame
-<api.dataframe.stats>`, and :ref:`Panel <api.panel.stats>`. Most of these
+<api.dataframe.stats>`. Most of these
 are aggregations (hence producing a lower-dimensional result) like
 :meth:`~DataFrame.sum`, :meth:`~DataFrame.mean`, and :meth:`~DataFrame.quantile`,
 but some of them, like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`,
@@ -525,8 +501,6 @@ specified by name or integer:
 
 * **Series**: no axis argument needed
 * **DataFrame**: "index" (axis=0, default), "columns" (axis=1)
-* **Panel**: "items" (axis=0), "major" (axis=1, default), "minor"
-  (axis=2)
 
 For example:
 
@@ -1481,7 +1455,7 @@ Iteration
 
 The behavior of basic iteration over pandas objects depends on the type.
 When iterating over a Series, it is regarded as array-like, and basic iteration
-produces the values. Other data structures, like DataFrame and Panel,
+produces the values. Other data structures, like DataFrame,
 follow the dict-like convention of iterating over the "keys" of the
 objects.
 
@@ -1489,7 +1463,6 @@ In short, basic iteration (``for i in object``) produces:
 
 * **Series**: values
 * **DataFrame**: column labels
-* **Panel**: item labels
 
 Thus, for example, iterating over a DataFrame gives you the column names:
 
@@ -1559,13 +1532,12 @@ through key-value pairs:
 
 * **Series**: (index, scalar value) pairs
 * **DataFrame**: (column, Series) pairs
-* **Panel**: (item, DataFrame) pairs
 
 For example:
 
 .. ipython:: python
 
-   for item, frame in wp.iteritems():
+   for item, frame in df.iteritems():
        print(item)
        print(frame)
 

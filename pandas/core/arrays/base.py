@@ -6,6 +6,7 @@
    without warning.
 """
 import operator
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -15,9 +16,12 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import ArrayLike
 from pandas.core import ops
 
 _not_implemented_message = "{} does not implement {}."
@@ -212,8 +216,7 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
-    def __setitem__(self, key, value):
-        # type: (Union[int, np.ndarray], Any) -> None
+    def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
         """
         Set one or more values inplace.
 
@@ -260,8 +263,7 @@ class ExtensionArray(object):
             type(self), '__setitem__')
         )
 
-    def __len__(self):
-        # type: () -> int
+    def __len__(self) -> int:
         """
         Length of this array
 
@@ -285,32 +287,28 @@ class ExtensionArray(object):
     # Required attributes
     # ------------------------------------------------------------------------
     @property
-    def dtype(self):
-        # type: () -> ExtensionDtype
+    def dtype(self) -> ExtensionDtype:
         """
         An instance of 'ExtensionDtype'.
         """
         raise AbstractMethodError(self)
 
     @property
-    def shape(self):
-        # type: () -> Tuple[int, ...]
+    def shape(self) -> Tuple[int, ...]:
         """
         Return a tuple of the array dimensions.
         """
         return (len(self),)
 
     @property
-    def ndim(self):
-        # type: () -> int
+    def ndim(self) -> int:
         """
         Extension Arrays are only allowed to be 1-dimensional.
         """
         return 1
 
     @property
-    def nbytes(self):
-        # type: () -> int
+    def nbytes(self) -> int:
         """
         The number of bytes needed to store this object in memory.
         """
@@ -341,8 +339,7 @@ class ExtensionArray(object):
         """
         return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self):
-        # type: () -> Union[ExtensionArray, np.ndarray]
+    def isna(self) -> ArrayLike:
         """
         A 1-D array indicating if each value is missing.
 
@@ -364,8 +361,7 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
-    def _values_for_argsort(self):
-        # type: () -> ndarray
+    def _values_for_argsort(self) -> np.ndarray:
         """
         Return values for sorting.
 
@@ -480,8 +476,11 @@ class ExtensionArray(object):
         """
         return self[~self.isna()]
 
-    def shift(self, periods=1, fill_value=None):
-        # type: (int, object) -> ExtensionArray
+    def shift(
+            self,
+            periods: int = 1,
+            fill_value: object = None,
+    ) -> ABCExtensionArray:
         """
         Shift values by desired number.
 
@@ -596,8 +595,7 @@ class ExtensionArray(object):
         arr = self.astype(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
 
-    def _values_for_factorize(self):
-        # type: () -> Tuple[ndarray, Any]
+    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """
         Return an array and missing value suitable for factorization.
 
@@ -621,8 +619,10 @@ class ExtensionArray(object):
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel=-1):
-        # type: (int) -> Tuple[ndarray, ExtensionArray]
+    def factorize(
+            self,
+            na_sentinel: int = -1,
+    ) -> Tuple[np.ndarray, ABCExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
@@ -724,8 +724,12 @@ class ExtensionArray(object):
     # Indexing methods
     # ------------------------------------------------------------------------
 
-    def take(self, indices, allow_fill=False, fill_value=None):
-        # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
+    def take(
+            self,
+            indices: Sequence[int],
+            allow_fill: bool = False,
+            fill_value: Any = None
+    ) -> ABCExtensionArray:
         """
         Take elements from an array.
 
@@ -814,8 +818,7 @@ class ExtensionArray(object):
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self, deep=False):
-        # type: (bool) -> ExtensionArray
+    def copy(self, deep: bool = False) -> ABCExtensionArray:
         """
         Return a copy of the array.
 
@@ -837,22 +840,24 @@ class ExtensionArray(object):
         from pandas.io.formats.printing import format_object_summary
 
         template = (
-            u'{class_name}'
-            u'{data}\n'
-            u'Length: {length}, dtype: {dtype}'
+            '{class_name}'
+            '{data}\n'
+            'Length: {length}, dtype: {dtype}'
         )
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
         data = format_object_summary(self, self._formatter(),
                                      indent_for_name=False).rstrip(', \n')
-        class_name = u'<{}>\n'.format(self.__class__.__name__)
+        class_name = '<{}>\n'.format(self.__class__.__name__)
         return template.format(class_name=class_name, data=data,
                                length=len(self),
                                dtype=self.dtype)
 
-    def _formatter(self, boxed=False):
-        # type: (bool) -> Callable[[Any], Optional[str]]
+    def _formatter(
+            self,
+            boxed: bool = False,
+    ) -> Callable[[Any], Optional[str]]:
         """Formatting function for scalar values.
 
         This is used in the default '__repr__'. The returned formatting
@@ -879,8 +884,7 @@ class ExtensionArray(object):
             return str
         return repr
 
-    def _formatting_values(self):
-        # type: () -> np.ndarray
+    def _formatting_values(self) -> np.ndarray:
         # At the moment, this has to be an array since we use result.dtype
         """
         An array of values to be printed in, e.g. the Series repr
@@ -896,8 +900,10 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
-        # type: (Sequence[ExtensionArray]) -> ExtensionArray
+    def _concat_same_type(
+            cls,
+            to_concat: Sequence[ABCExtensionArray]
+    ) -> ABCExtensionArray:
         """
         Concatenate multiple array
 
@@ -919,8 +925,7 @@ class ExtensionArray(object):
     _can_hold_na = True
 
     @property
-    def _ndarray_values(self):
-        # type: () -> np.ndarray
+    def _ndarray_values(self) -> np.ndarray:
         """
         Internal pandas method for lossy conversion to a NumPy ndarray.
 
