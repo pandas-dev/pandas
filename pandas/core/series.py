@@ -2634,7 +2634,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 rv = other.get(idx, fill_value)
                 with np.errstate(all='ignore'):
                     new_values.append(func(lv, rv))
-            new_dtype = type(func(lv, rv))
         else:
             # Assume that other is a scalar, so apply the function for
             # each element in the Series
@@ -2642,13 +2641,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             with np.errstate(all='ignore'):
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
-            new_dtype = type(func(self._values[0], other))
 
         if is_categorical_dtype(self.values):
             pass
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
+            non_na_values = [v for v in new_values if notna(v)]
+            new_dtype, _ = infer_dtype_from(non_na_values, pandas_dtype=True)
             try:
                 new_values = self._values._from_sequence(new_values, dtype=new_dtype)
             except Exception:
