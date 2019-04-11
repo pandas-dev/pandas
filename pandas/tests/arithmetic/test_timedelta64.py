@@ -441,6 +441,34 @@ class TestTimedelta64ArithmeticUnsorted(object):
         tm.assert_index_equal(result1, result4)
         tm.assert_index_equal(result2, result3)
 
+    def test_timedelta_nat_comparisons(self):
+        # GH 26039
+        td = pd.Timedelta(0)
+
+        result = td > NaT
+        assert result == False
+
+        result = td >= NaT
+        assert result == False
+
+        result = td < NaT
+        assert result == False
+
+        result = td <= NaT
+        assert result == False
+
+        result = NaT > td
+        assert result == False
+
+        result = NaT >= td
+        assert result == False
+
+        result = NaT < td
+        assert result == False
+
+        result = NaT <= td
+        assert result == False
+
 
 class TestAddSubNaTMasking(object):
     # TODO: parametrize over boxes
