@@ -10,7 +10,7 @@ from urllib.parse import urlparse as parse_url
 
 def _strip_schema(url):
     """Returns the url without the s3:// part"""
-    result = parse_url(url)
+    result = parse_url(url, allow_fragments=False)
     return result.netloc + result.path
 
 

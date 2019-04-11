@@ -603,6 +603,18 @@ class TestTimestampConstructors(object):
         expected = Timestamp(datetime(2018, 1, 1)).tz_localize(tzutc())
         assert result == expected
 
+    def test_constructor_subclassed_datetime(self):
+        # GH 25851
+        # ensure that subclassed datetime works for
+        # Timestamp creation
+        class SubDatetime(datetime):
+            pass
+
+        data = SubDatetime(2000, 1, 1)
+        result = Timestamp(data)
+        expected = Timestamp(2000, 1, 1)
+        assert result == expected
+
 
 class TestTimestamp(object):
 

@@ -1170,18 +1170,21 @@ def assert_frame_equal(left, right, check_dtype=True,
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 
     df1 equals itself.
+
     >>> assert_frame_equal(df1, df1)
 
     df1 differs from df2 as column 'b' is of a different type.
+
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
     AssertionError: Attributes are different
-
+    ...
     Attribute "dtype" are different
     [left]:  int64
     [right]: float64
 
     Ignore differing dtypes in columns with check_dtype.
+
     >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
     __tracebackhide__ = True
