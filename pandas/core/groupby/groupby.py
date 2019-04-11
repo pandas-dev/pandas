@@ -1260,6 +1260,7 @@ class GroupBy(_GroupBy):
 
             _local_template = """
             Compute %(f)s of group values
+
             """
 
             @Substitution(name='groupby', f=name)
