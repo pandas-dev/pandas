@@ -446,28 +446,28 @@ class TestTimedelta64ArithmeticUnsorted(object):
         td = pd.Timedelta(0)
 
         result = td > NaT
-        assert result == False
+        assert result is False
 
         result = td >= NaT
-        assert result == False
+        assert result is False
 
         result = td < NaT
-        assert result == False
+        assert result is False
 
         result = td <= NaT
-        assert result == False
+        assert result is False
 
         result = NaT > td
-        assert result == False
+        assert result is False
 
         result = NaT >= td
-        assert result == False
+        assert result is False
 
         result = NaT < td
-        assert result == False
+        assert result is False
 
         result = NaT <= td
-        assert result == False
+        assert result is False
 
 
 class TestAddSubNaTMasking(object):
