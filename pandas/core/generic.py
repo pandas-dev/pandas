@@ -2786,8 +2786,7 @@ class NDFrame(PandasObject, SelectionMixin):
                  multicolumn_format=None, multirow=None, caption=None,
                  label=None):
         r"""
-        Render an object to a LaTeX tabular, longtable, or nested
-        table/tabular environment.
+        Render object to a LaTeX tabular, longtable, or nested table/tabular.
 
         Render an object to a tabular environment table. You can splice
         this into a LaTeX document. Requires \usepackage{booktabs}.
