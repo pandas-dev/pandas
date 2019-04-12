@@ -112,6 +112,14 @@ def test_bins_not_monotonic():
         cut(data, [0.1, 1.5, 1, 10])
 
 
+def test_bins_monotic_not_overflowing():
+    data = date_range("2017-12-31", periods=3)
+
+    result = cut(data, [Timestamp.min, Timestamp('2018-01-01'), Timestamp.max])
+    tm.assert_numpy_array_equal(result.codes,
+                                np.array([0, 0, 1], dtype="int8"))
+
+
 def test_wrong_num_labels():
     msg = "Bin labels must be one fewer than the number of bin edges"
     data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
