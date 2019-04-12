@@ -348,3 +348,16 @@ def test_to_numpy_alias():
     result = NaT.to_numpy()
 
     assert isna(expected) and isna(result)
+
+
+@pytest.mark.parametrize("op", [
+    lambda a, b: a > b, lambda a, b: a >= b,
+    lambda a, b: a < b, lambda a, b: a <= b
+])
+@pytest.mark.parametrize("other", [
+    Timedelta(0), Timestamp(0)
+])
+def test_nat_comparisons(op, other):
+    # GH 26039
+    assert op(NaT, other) is False
+    assert op(other, NaT) is False
