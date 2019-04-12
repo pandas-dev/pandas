@@ -624,7 +624,7 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
         If True parses dates with the day first, eg 20/01/2005
         Warning: dayfirst=True is not strict, but will prefer to parse
         with day first (this is a known bug).
-    dt_str_parse : function, defaults to `compat.parse_date` (dateutil)
+    dt_str_parse : function, defaults to `dateutil.parser.parse`
         This function should take in a datetime string and return
         a `datetime.datetime` guess that the datetime string represents
     dt_str_split : function, defaults to `_DATEUTIL_LEXER_SPLIT` (dateutil)

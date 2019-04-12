@@ -6,10 +6,11 @@ for all of the parsers defined in parsers.py
 """
 from io import StringIO
 
+from dateutil.parser import parse
 import numpy as np
 import pytest
 
-from pandas.compat import lmap, parse_date
+from pandas.compat import lmap
 
 import pandas as pd
 from pandas import DataFrame, Index
@@ -28,7 +29,7 @@ foo,2,3,4,5
 
 @pytest.mark.parametrize("column", [3, "D"])
 @pytest.mark.parametrize("converter", [
-    parse_date,
+    parse,
     lambda x: int(x.split("/")[2])  # Produce integer.
 ])
 def test_converters(all_parsers, column, converter):
