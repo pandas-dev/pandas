@@ -287,8 +287,10 @@ class MPLPlot(object):
             if not self._has_plotted_object(orig_ax):  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
 
-            if self.logy or self.loglog:
+            if self.logy is True or self.loglog is True:
                 new_ax.set_yscale('log')
+            elif self.logy == 'sym' or self.loglog == 'sym':
+                new_ax.set_yscale('symlog')
             return new_ax
 
     def _setup_subplots(self):
@@ -310,10 +312,24 @@ class MPLPlot(object):
 
         axes = _flatten(axes)
 
-        if self.logx or self.loglog:
+        valid_log = {False, True, 'sym', None}
+        input_log = {self.logx, self.logy, self.loglog}
+        if input_log - valid_log:
+            invalid_log = next(iter((input_log - valid_log)))
+            raise ValueError(
+                "Boolean, None and 'sym' are valid options,"
+                " '{}' is given.".format(invalid_log)
+            )
+
+        if self.logx is True or self.loglog is True:
             [a.set_xscale('log') for a in axes]
-        if self.logy or self.loglog:
+        elif self.logx == 'sym' or self.loglog == 'sym':
+            [a.set_xscale('symlog') for a in axes]
+
+        if self.logy is True or self.loglog is True:
             [a.set_yscale('log') for a in axes]
+        elif self.logy == 'sym' or self.loglog == 'sym':
+            [a.set_yscale('symlog') for a in axes]
 
         self.fig = fig
         self.axes = axes
@@ -1900,12 +1916,18 @@ _shared_docs['plot'] = """
         Place legend on axis subplots
     style : list or dict
         matplotlib line style per column
-    logx : bool, default False
-        Use log scaling on x axis
-    logy : bool, default False
-        Use log scaling on y axis
-    loglog : bool, default False
-        Use log scaling on both x and y axes
+    logx : bool or 'sym', default False
+        Use log scaling or symlog scaling on x axis
+        .. versionchanged:: 0.25.0
+
+    logy : bool or 'sym' default False
+        Use log scaling or symlog scaling on y axis
+        .. versionchanged:: 0.25.0
+
+    loglog : bool or 'sym', default False
+        Use log scaling or symlog scaling on both x and y axes
+        .. versionchanged:: 0.25.0
+
     xticks : sequence
         Values to use for the xticks
     yticks : sequence

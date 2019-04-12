@@ -23,7 +23,7 @@ including other versions of pandas.
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
-
+- :func:`DataFrame.plot` keywords ``logy``, ``logx`` and ``loglog`` can now accept the value ``'sym'`` for symlog scaling. (:issue:`24867`)
 - Added support for ISO week year format ('%G-%V-%u') when parsing datetimes using :meth: `to_datetime` (:issue:`16607`)
 - Indexing of ``DataFrame`` and ``Series`` now accepts zerodim ``np.ndarray`` (:issue:`24919`)
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)

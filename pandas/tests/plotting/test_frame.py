@@ -245,16 +245,34 @@ class TestDataFramePlots(TestPlotBase):
         # TODO add MultiIndex test
 
     @pytest.mark.slow
-    def test_logscales(self):
+    @pytest.mark.parametrize("input_log, expected_log", [
+        (True, 'log'),
+        ('sym', 'symlog')
+    ])
+    def test_logscales(self, input_log, expected_log):
         df = DataFrame({'a': np.arange(100)}, index=np.arange(100))
-        ax = df.plot(logy=True)
-        self._check_ax_scales(ax, yaxis='log')
 
-        ax = df.plot(logx=True)
-        self._check_ax_scales(ax, xaxis='log')
+        ax = df.plot(logy=input_log)
+        self._check_ax_scales(ax, yaxis=expected_log)
+        assert ax.get_yscale() == expected_log
 
-        ax = df.plot(loglog=True)
-        self._check_ax_scales(ax, xaxis='log', yaxis='log')
+        ax = df.plot(logx=input_log)
+        self._check_ax_scales(ax, xaxis=expected_log)
+        assert ax.get_xscale() == expected_log
+
+        ax = df.plot(loglog=input_log)
+        self._check_ax_scales(ax, xaxis=expected_log, yaxis=expected_log)
+        assert ax.get_xscale() == expected_log
+        assert ax.get_yscale() == expected_log
+
+    @pytest.mark.parametrize("input_param", ["logx", "logy", "loglog"])
+    def test_invalid_logscale(self, input_param):
+        # GH: 24867
+        df = DataFrame({'a': np.arange(100)}, index=np.arange(100))
+
+        msg = "Boolean, None and 'sym' are valid options, 'sm' is given."
+        with pytest.raises(ValueError, match=msg):
+            df.plot(**{input_param: "sm"})
 
     @pytest.mark.slow
     def test_xcompat(self):
