@@ -175,7 +175,7 @@ class CategoricalDtypeType(type):
 @register_extension_dtype
 class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
-    Type for categorical data with the categories and orderedness
+    Type for categorical data with the categories and orderedness.
 
     .. versionchanged:: 0.21.0
 
@@ -583,6 +583,15 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of
     np.datetime64[ns]
+
+    Attributes
+    ----------
+    unit
+    tz
+
+    Methods
+    -------
+    None
     """
     type = Timestamp
     kind = 'M'
@@ -735,6 +744,14 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
     A Period duck-typed class, suitable for holding a period with freq dtype.
 
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.int64.
+
+    Attributes
+    ----------
+    freq
+
+    Methods
+    -------
+    None
     """
     type = Period
     kind = 'O'
@@ -858,6 +875,14 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     A Interval duck-typed class, suitable for holding an interval
 
     THIS IS NOT A REAL NUMPY DTYPE
+
+    Attributes
+    ----------
+    subdtype
+
+    Methods
+    -------
+    None
     """
     name = 'interval'
     kind = None
