@@ -16,7 +16,11 @@ import re
 import os
 import argparse
 from collections import namedtuple
-from pandas.compat import lrange, parse_date
+
+from dateutil.parser import parse
+
+from pandas.compat import lrange
+
 try:
     import sh
 except ImportError:
@@ -107,7 +111,7 @@ def get_commit_info(c, fmt, sep='\t'):
 
 def get_commit_vitals(c, hlen=HASH_LEN):
     h, s, d = get_commit_info(c, '%H\t%s\t%ci', "\t")
-    return h[:hlen], s, parse_date(d)
+    return h[:hlen], s, parse(d)
 
 
 def file_filter(state, dirname, fnames):
