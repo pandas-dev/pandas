@@ -138,16 +138,6 @@ def raise_with_traceback(exc, traceback=Ellipsis):
 raise_with_traceback.__doc__ = """Raise exception with existing traceback.
 If traceback is not passed, uses sys.exc_info() to get traceback."""
 
-
-# dateutil minimum version
-import dateutil
-
-if LooseVersion(dateutil.__version__) < LooseVersion('2.5'):
-    raise ImportError('dateutil 2.5.0 is the minimum required version')
-from dateutil import parser as _date_parser
-parse_date = _date_parser.parse
-
-
 # In Python 3.7, the private re._pattern_type is removed.
 # Python 3.5+ have typing.re.Pattern
 if PY36:
