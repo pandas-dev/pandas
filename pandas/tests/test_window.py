@@ -667,6 +667,18 @@ class TestRolling(Base):
         result = df.rolling(3, axis=axis_frame).sum()
         tm.assert_frame_equal(result, expected)
 
+    def test_count_axis(self):
+        # see gh-26055
+        df = pd.DataFrame({'x':range(5), 'y':range(5)})
+
+        df_correct_row_count = pd.DataFrame({'x':[1.0, 2.0, 2.0, 2.0, 2.0], 'y': [1.0, 2.0, 2.0, 2.0, 2.0]})
+
+        assert_equal(df.rolling(2).count(), df_correct_row_count)
+        assert_equal(df.rolling(2, axis='rows').count(), df_correct_row_count)
+
+        df_correct_column_count = pd.DataFrame({'x':[1.0, 1.0, 1.0, 1.0, 1.0], 'y': [2.0, 2.0, 2.0, 2.0, 2.0]})
+        assert_equal(df.rolling(2, axis='columns').count(), df_correct_column_count)
+
 
 class TestExpanding(Base):
 
