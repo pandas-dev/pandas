@@ -1371,6 +1371,7 @@ class TestDataFrameFormatting(object):
         assert result == expected
 
     def test_to_string_complex_float_formatting(self):
+        # GH #25514
         with pd.option_context('display.precision', 5):
             df = DataFrame({'x': [
                 (0.4467846931321966 + 0.0715185102060818j),
