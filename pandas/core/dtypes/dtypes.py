@@ -576,13 +576,31 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
 @register_extension_dtype
 class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
-
     """
-    A np.dtype duck-typed class, suitable for holding a custom datetime with tz
-    dtype.
+    An ExtensionDtype for timezone-aware datetime data.
 
-    THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of
-    np.datetime64[ns]
+    **This is not an actual numpy dtype**, but a duck type.
+
+    Parameters
+    ----------
+    unit : str, default "ns"
+        The precision of the datetime data. Currently limited
+        to ``"ns"``.
+    tz : str, int, or datetime.tzinfo
+        The timezone.
+
+    Raises
+    ------
+    pytz.UnknownTimeZoneError
+        When the requested timezone cannot be found.
+
+    Examples
+    --------
+    >>> pd.DatetimeTZDtype(tz='UTC')
+    datetime64[ns, UTC]
+
+    >>> pd.DatetimeTZDtype(tz='dateutil/US/Central')
+    datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
 
     Attributes
     ----------
@@ -604,30 +622,6 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
     _cache = {}
 
     def __init__(self, unit="ns", tz=None):
-        """
-        An ExtensionDtype for timezone-aware datetime data.
-
-        Parameters
-        ----------
-        unit : str, default "ns"
-            The precision of the datetime data. Currently limited
-            to ``"ns"``.
-        tz : str, int, or datetime.tzinfo
-            The timezone.
-
-        Raises
-        ------
-        pytz.UnknownTimeZoneError
-            When the requested timezone cannot be found.
-
-        Examples
-        --------
-        >>> pd.core.dtypes.dtypes.DatetimeTZDtype(tz='UTC')
-        datetime64[ns, UTC]
-
-        >>> pd.core.dtypes.dtypes.DatetimeTZDtype(tz='dateutil/US/Central')
-        datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
-        """
         if isinstance(unit, DatetimeTZDtype):
             unit, tz = unit.unit, unit.tz
 
@@ -741,9 +735,22 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 @register_extension_dtype
 class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
     """
-    A Period duck-typed class, suitable for holding a period with freq dtype.
+    An ExtensionDtype for Period data.
 
-    THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.int64.
+    **This is not an actual numpy dtype**, but a duck type.
+
+    Parameters
+    ----------
+    freq : str or DateOffset
+        The frequency of this PeriodDtype
+
+    Examples
+    --------
+    >>> pd.PeriodDtype(freq='D')
+    period[D]
+
+    >>> pd.PeriodDtype(freq=pd.offsets.MonthEnd())
+    period[M]
 
     Attributes
     ----------
@@ -877,9 +884,22 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
 @register_extension_dtype
 class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     """
-    A Interval duck-typed class, suitable for holding an interval
+    An ExtensionDtype for Interval data.
 
-    THIS IS NOT A REAL NUMPY DTYPE
+    **This is not an actual numpy dtype**, but a duck type.
+
+    Parameters
+    ----------
+    subtype : str, np.dtype
+        The dtype of the Interval bounds.
+
+    Examples
+    --------
+    >>> pd.PeriodDtype(freq='D')
+    period[D]
+
+    >>> pd.PeriodDtype(freq=pd.offsets.MonthEnd())
+    period[M]
 
     Attributes
     ----------
@@ -899,11 +919,6 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     _cache = {}
 
     def __new__(cls, subtype=None):
-        """
-        Parameters
-        ----------
-        subtype : the dtype of the Interval
-        """
         from pandas.core.dtypes.common import (
             is_categorical_dtype, is_string_dtype, pandas_dtype)
 
@@ -978,7 +993,11 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                'Valid formats include Interval or Interval[dtype] '
                'where dtype is numeric, datetime, or timedelta')
         raise TypeError(msg)
-
+        """
+        Parameters
+        ----------
+        subtype : the dtype of the Interval
+        """
     @property
     def type(self):
         return Interval

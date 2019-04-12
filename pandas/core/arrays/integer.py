@@ -683,7 +683,7 @@ IntegerArray._add_comparison_ops()
 module = sys.modules[__name__]
 
 _dtype_docstring = """
-An ExtensionDtype to hold a single size & kind of integer dtype.
+An ExtensionDtype for {dtype} integer data.
 
 Attributes
 ----------
@@ -707,7 +707,7 @@ for dtype in ['int8', 'int16', 'int32', 'int64',
     numpy_dtype = getattr(np, dtype)
     attributes_dict = {'type': numpy_dtype,
                        'name': name,
-                       '__doc__': _dtype_docstring}
+                       '__doc__': _dtype_docstring.format(dtype=dtype)}
     dtype_type = register_extension_dtype(
         type(classname, (_IntegerDtype, ), attributes_dict)
     )
