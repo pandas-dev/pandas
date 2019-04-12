@@ -191,7 +191,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     ) -> ABCPeriodArray:
         if dtype:
             freq = dtype.freq  # type: ignore
-            # freq is generated dynamically in PeriodDtype's __new__ method
+            # freq is set in PeriodDtype's __new__ method, so mypy doesn't
+            # recognize it
         else:
             freq = None
 
@@ -552,8 +553,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
-            res_values = algos.checked_add_with_arr(self.asi8, other,
-                                                    arr_mask=self._isnan)
+        res_values = algos.checked_add_with_arr(self.asi8, other,
+                                                arr_mask=self._isnan)
         res_values = res_values.view('i8')
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
