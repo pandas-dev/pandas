@@ -255,7 +255,6 @@ Bug Fixes
 ~~~~~~~~~
 
 -
--
 
 Categorical
 ^^^^^^^^^^^
