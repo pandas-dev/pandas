@@ -2,9 +2,9 @@
 compat
 ======
 
-Cross-compatible functions for Python 2 and 3.
+Cross-compatible functions for different versions of Python.
 
-Key items to import for 2/3 compatible code:
+Key items to import for compatible code:
 * lists: lrange(), lmap(), lzip(), lfilter()
 * iterable method compatibility: iteritems, iterkeys, itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
