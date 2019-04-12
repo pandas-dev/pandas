@@ -783,9 +783,14 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
             return cls._cache[freq.freqstr]
         except KeyError:
             u = object.__new__(cls)
-            u.freq = freq
+            u._freq = freq
             cls._cache[freq.freqstr] = u
             return u
+
+    @property
+    def freq(self):
+        """The frequency object of this PeriodDtype."""
+        return self._freq
 
     @classmethod
     def _parse_dtype_strict(cls, freq):
@@ -934,9 +939,14 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
             return cls._cache[str(subtype)]
         except KeyError:
             u = object.__new__(cls)
-            u.subtype = subtype
+            u._subtype = subtype
             cls._cache[str(subtype)] = u
             return u
+
+    @property
+    def subdtype(self):
+        """The dtype of the Interval bounds."""
+        return self._subtype
 
     @classmethod
     def construct_array_type(cls):
