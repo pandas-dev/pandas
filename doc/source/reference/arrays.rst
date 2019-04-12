@@ -439,4 +439,4 @@ and methods if the :class:`Series` contains sparse values. See
       DatetimeTZDtype.unit
       DatetimeTZDtype.tz
       PeriodDtype.freq
-      IntervalDtype.subdtype
+      IntervalDtype.subtype

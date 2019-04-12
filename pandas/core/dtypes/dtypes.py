@@ -895,15 +895,12 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
 
     Examples
     --------
-    >>> pd.PeriodDtype(freq='D')
-    period[D]
-
-    >>> pd.PeriodDtype(freq=pd.offsets.MonthEnd())
-    period[M]
+    >>> pd.IntervalDtype(subtype='int64')
+    interval[int64]
 
     Attributes
     ----------
-    subdtype
+    subtype
 
     Methods
     -------
@@ -928,7 +925,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
             # we are called as an empty constructor
             # generally for pickle compat
             u = object.__new__(cls)
-            u.subtype = None
+            u._subtype = None
             return u
         elif (isinstance(subtype, str) and
               subtype.lower() == 'interval'):
@@ -959,7 +956,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
             return u
 
     @property
-    def subdtype(self):
+    def subtype(self):
         """The dtype of the Interval bounds."""
         return self._subtype
 
@@ -993,11 +990,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                'Valid formats include Interval or Interval[dtype] '
                'where dtype is numeric, datetime, or timedelta')
         raise TypeError(msg)
-        """
-        Parameters
-        ----------
-        subtype : the dtype of the Interval
-        """
+
     @property
     def type(self):
         return Interval
