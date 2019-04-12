@@ -667,15 +667,14 @@ class SQLTable(PandasObject):
             raise ValueError('chunksize argument should be non-zero')
 
         chunks = int(nrows / chunksize) + 1
+        for i in range(chunks):
+            start_i = i * chunksize
+            end_i = min((i + 1) * chunksize, nrows)
+            if start_i >= end_i:
+                break
 
-        with self.pd_sql.run_transaction() as conn:
-            for i in range(chunks):
-                start_i = i * chunksize
-                end_i = min((i + 1) * chunksize, nrows)
-                if start_i >= end_i:
-                    break
-
-                chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
+            chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
+            with self.pd_sql.run_transaction() as conn:
                 exec_insert(conn, keys, chunk_iter)
 
     def _query_iterator(self, result, chunksize, columns, coerce_float=True,
