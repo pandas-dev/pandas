@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 import operator
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray, datetimelike as dtl
+from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
@@ -95,7 +95,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     Parameters
     ----------
-    values : Union[PeriodArray, Series[period], ndarary[int], PeriodIndex]
+    values : Union[PeriodArray, Series[period], ndarray[int], PeriodIndex]
         The data to store. These should be arrays that can be directly
         converted to ordinals without inference or copy (PeriodArray,
         ndarray[int64]), or a box around such an array (Series[period],
@@ -136,7 +136,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     _scalar_type = Period
 
     # Names others delegate to us
-    _other_ops = []
+    _other_ops = []  # type: List[str]
     _bool_ops = ['is_leap_year']
     _object_ops = ['start_time', 'end_time', 'freq']
     _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
@@ -190,7 +190,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             copy: bool = False,
     ) -> ABCPeriodArray:
         if dtype:
-            freq = dtype.freq
+            freq = dtype.freq  # type: ignore
+            # freq is generated dynamically in PeriodDtype's __new__ method
         else:
             freq = None
 
@@ -277,7 +278,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def dtype(self):
         return self._dtype
 
-    @property
+    @property  # type: ignore # read-only property overwriting read/write
     def freq(self):
         """
         Return the frequency object for this PeriodArray.
@@ -539,17 +540,20 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         return new_data
 
+    Other_types = Union[ABCPeriodArray, ABCSeries, ABCPeriodIndex,
+                        np.ndarray]
+
     @Appender(dtl.DatetimeLikeArrayMixin._addsub_int_array.__doc__)
     def _addsub_int_array(
             self,
-            other: Union[ExtensionArray, np.ndarray, ABCIndexClass],
+            other: Other_types,
             op: Callable[[Any], Any]
     ) -> ABCPeriodArray:
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
-        res_values = algos.checked_add_with_arr(self.asi8, other,
-                                                arr_mask=self._isnan)
+            res_values = algos.checked_add_with_arr(self.asi8, other,
+                                                    arr_mask=self._isnan)
         res_values = res_values.view('i8')
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
@@ -782,7 +786,7 @@ def period_array(
     data = np.asarray(data)
 
     if freq:
-        dtype = PeriodDtype(freq)
+        dtype = PeriodDtype(freq)  # type: Optional[PeriodDtype]
     else:
         dtype = None
 

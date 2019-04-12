@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Tuple, Type, Union
+from typing import Any, Sequence, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -40,6 +40,7 @@ from .base import ExtensionArray, ExtensionOpsMixin
 
 
 class AttributesMixin(object):
+    _data = None  # type: np.ndarray
 
     @property
     def _attributes(self):
@@ -57,7 +58,8 @@ class AttributesMixin(object):
         return {k: getattr(self, k, None) for k in self._attributes}
 
     @property
-    def _scalar_type(self) -> Union[Type, Tuple[Type]]:
+    def _scalar_type(self) -> Union[Type[Period], Type[Timestamp],
+                                    Type[Timedelta]]:
         """The scalar associated with this datelike
 
         * PeriodArray : Period
@@ -479,12 +481,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
                 raise ValueError("setting an array element with a sequence.")
 
             if (not is_slice
-                    and len(key) != len(value)
+                    and len(cast(Sequence, key)) != len(value)
                     and not com.is_bool_indexer(key)):
                 msg = ("shape mismatch: value array of length '{}' does not "
                        "match indexing result of length '{}'.")
-                raise ValueError(msg.format(len(key), len(value)))
-            if not is_slice and len(key) == 0:
+                raise ValueError(msg.format(
+                    len(cast(Sequence, key)), len(value)))
+            if not is_slice and len(cast(Sequence, key)) == 0:
                 return
 
             value = type(self)._from_sequence(value, dtype=self.dtype)
