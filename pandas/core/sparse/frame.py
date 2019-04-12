@@ -430,8 +430,8 @@ class SparseDataFrame(DataFrame):
 
         elif isinstance(value, SparseArray):
             if len(value) != len(self.index):
-                raise AssertionError('Length of values does not match '
-                                     'length of index')
+                raise ValueError('Length of values does not match '
+                                 'length of index')
             clean = value
 
         elif hasattr(value, '__iter__'):
@@ -441,8 +441,8 @@ class SparseDataFrame(DataFrame):
                     clean = sp_maker(clean)
             else:
                 if len(value) != len(self.index):
-                    raise AssertionError('Length of values does not match '
-                                         'length of index')
+                    raise ValueError('Length of values does not match '
+                                     'length of index')
                 clean = sp_maker(value)
 
         # Scalar

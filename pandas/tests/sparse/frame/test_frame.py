@@ -568,8 +568,9 @@ class TestSparseDataFrame(SharedWithSparse):
             assert len(frame['I'].sp_values) == N // 2
 
             # insert ndarray wrong size
-            msg = "Length of values does not match length of index"
-            with pytest.raises(AssertionError, match=msg):
+            # GH 25484
+            msg = 'Length of values does not match length of index'
+            with pytest.raises(ValueError, match=msg):
                 frame['foo'] = np.random.randn(N - 1)
 
             # scalar value
