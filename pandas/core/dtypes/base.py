@@ -1,5 +1,5 @@
 """Extend pandas with custom array types"""
-from typing import List, Optional, Type
+from typing import List, Optional, Tuple, Type
 
 import numpy as np
 
@@ -24,7 +24,7 @@ class _DtypeOpsMixin(object):
     # of the NA value, not the physical NA vaalue for storage.
     # e.g. for JSONArray, this is an empty dictionary.
     na_value = np.nan
-    _metadata = ()
+    _metadata = ()  # type: Tuple[str, ...]
 
     def __eq__(self, other):
         """Check whether 'other' is equal to self.
@@ -219,8 +219,7 @@ class ExtensionDtype(_DtypeOpsMixin):
         raise AbstractMethodError(self)
 
     @property
-    def kind(self):
-        # type () -> str
+    def kind(self) -> str:
         """
         A character code (one of 'biufcmMOSUV'), default 'O'
 

@@ -23,7 +23,7 @@ including other versions of pandas.
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
-
+- :func:`DataFrame.plot` keywords ``logy``, ``logx`` and ``loglog`` can now accept the value ``'sym'`` for symlog scaling. (:issue:`24867`)
 - Added support for ISO week year format ('%G-%V-%u') when parsing datetimes using :meth: `to_datetime` (:issue:`16607`)
 - Indexing of ``DataFrame`` and ``Series`` now accepts zerodim ``np.ndarray`` (:issue:`24919`)
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
@@ -257,6 +257,7 @@ Bug Fixes
 ~~~~~~~~~
 
 
+
 Categorical
 ^^^^^^^^^^^
 
@@ -297,7 +298,7 @@ Numeric
 - Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
 - Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
 - Raises a helpful exception when a non-numeric index is sent to :meth:`interpolate` with methods which require numeric index. (:issue:`21662`)
--
+- Bug in :meth:`~pandas.eval` when comparing floats with scalar operators, for example: ``x < -0.1`` (:issue:`25928`)
 -
 
 
@@ -320,7 +321,7 @@ Interval
 ^^^^^^^^
 
 - Construction of :class:`Interval` is restricted to numeric, :class:`Timestamp` and :class:`Timedelta` endpoints (:issue:`23013`)
--
+- Fixed bug in :class:`Series`/:class:`DataFrame` not displaying ``NaN`` in :class:`IntervalIndex` with missing values (:issue:`25984`)
 -
 
 Indexing
@@ -363,6 +364,7 @@ I/O
 - Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
 - Improved the explanation for the failure when value labels are repeated in Stata dta files and suggested work-arounds (:issue:`25772`)
 - Improved :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` to read incorrectly formatted 118 format files saved by Stata (:issue:`25960`)
+- Fixed bug in loading objects from S3 that contain ``#`` characters in the URL (:issue:`25945`)
 
 Plotting
 ^^^^^^^^
@@ -402,12 +404,13 @@ Sparse
 
 - Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
 - Bug in :class:`SparseFrame` constructor where passing ``None`` as the data would cause ``default_fill_value`` to be ignored (:issue:`16807`)
--
+- Bug in `SparseDataFrame` when adding a column in which the length of values does not match length of index, ``AssertionError`` is raised instead of raising ``ValueError`` (:issue:`25484`)
 
 
 Other
 ^^^^^
 
+- Improved :class:`Timestamp` type checking in various datetime functions to prevent exceptions when using a subclassed `datetime` (:issue:`25851`)
 - Bug in :class:`Series` and :class:`DataFrame` repr where ``np.datetime64('NaT')`` and ``np.timedelta64('NaT')`` with ``dtype=object`` would be represented as ``NaN`` (:issue:`25445`)
 -
 -
