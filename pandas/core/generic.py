@@ -2781,9 +2781,10 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
                  sparsify=None, index_names=True, bold_rows=False,
-                 column_format=None, longtable=None, caption=None,
-                 label=None, escape=None, encoding=None, decimal='.',
-                 multicolumn=None, multicolumn_format=None, multirow=None):
+                 column_format=None, longtable=None, escape=None,
+                 encoding=None, decimal='.', multicolumn=None,
+                 multicolumn_format=None, multirow=None, caption=None,
+                 label=None):
         r"""
         Render an object to a LaTeX tabular, longtable, or nested
         table/tabular environment.
@@ -2793,6 +2794,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         .. versionchanged:: 0.20.2
            Added to Series.
+
         .. versionchanged:: 0.25.0
            Added caption and label arguments.
 
@@ -2834,13 +2836,6 @@ class NDFrame(PandasObject, SelectionMixin):
             By default, the value will be read from the pandas config
             module. Use a longtable environment instead of tabular. Requires
             adding a \usepackage{longtable} to your LaTeX preamble.
-        caption : str, optional
-            The LaTeX caption to be placed inside \caption{} in the output.
-            .. versionadded:: 0.25.0
-        label : str, optional
-            The LaTeX label to be placed inside \label{} in the output.
-            This is used with \ref{} in the main .tex file.
-            .. versionadded:: 0.25.0
         escape : bool, optional
             By default, the value will be read from the pandas config
             module. When set to False prevents from escaping latex special
@@ -2870,6 +2865,17 @@ class NDFrame(PandasObject, SelectionMixin):
             from the pandas config module.
 
             .. versionadded:: 0.20.0
+
+        caption : str, optional
+            The LaTeX caption to be placed inside ``\caption{}`` in the output.
+
+            .. versionadded:: 0.25.0
+
+        label : str, optional
+            The LaTeX label to be placed inside ``\label{}`` in the output.
+            This is used with ``\ref{}`` in the main ``.tex`` file.
+
+            .. versionadded:: 0.25.0
 
         Returns
         -------

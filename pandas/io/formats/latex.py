@@ -110,10 +110,7 @@ class LatexFormatter(TableFormatter):
             raise AssertionError('column_format must be str or unicode, '
                                  'not {typ}'.format(typ=type(column_format)))
 
-        if self.longtable:
-            self._write_longtable_begin(buf, column_format)
-        else:
-            self._write_tabular_begin(buf, column_format)
+        buf.write(self._build_latex_begin_env(column_format))
 
         buf.write('\\toprule\n')
 
@@ -166,10 +163,7 @@ class LatexFormatter(TableFormatter):
             if self.multirow and i < len(strrows) - 1:
                 self._print_cline(buf, i, len(strcols))
 
-        if self.longtable:
-            self._write_longtable_end(buf)
-        else:
-            self._write_tabular_end(buf)
+        buf.write(self._build_latex_end_env())
 
     def _format_multicolumn(self, row, ilevels):
         r"""
@@ -246,73 +240,81 @@ class LatexFormatter(TableFormatter):
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
 
-    def _write_tabular_begin(self, buf, column_format):
+    def _build_latex_begin_env(self, column_format):
         """
-        write the beginning of a tabular environment or
-        nested table/tabular environments including caption and label
+        Write the beginning of the latex environment.
+
+        This can be a tabular environment or nested table/tabular environments
+        including caption/label depending on the arguments passed to
+        ``LatexFormatter.__init__()``.
+
+        :return: string to be written to ``buf``
         """
-        if self.caption is None and self.label is None:
-            # then write output only in a tabular environment
-            pass
-        else:
-            # then write output in a nested table/tabular environment
-            if self.caption is None:
-                caption_ = ''
-            else:
-                caption_ = '\n\\caption{{{}}}'.format(self.caption)
+        str_ = ''
+        if self.longtable:
+            str_ += '\\begin{{longtable}}{{{fmt}}}\n'.format(fmt=column_format)
 
-            if self.label is None:
-                label_ = ''
-            else:
-                label_ = '\n\\label{{{}}}'.format(self.label)
-
-            buf.write('\\begin{{table}}\n\\centering{}{}\n'.format(
-                caption_,
-                label_
-            ))
-
-        buf.write('\\begin{{tabular}}{{{fmt}}}\n'.format(fmt=column_format))
-
-    def _write_longtable_begin(self, buf, column_format):
-        """
-        write the beginning of a longtable environment including caption and
-        label if provided by user
-        """
-        buf.write('\\begin{{longtable}}{{{fmt}}}\n'.format(fmt=column_format))
-
-        if self.caption is None and self.label is None:
-            pass
-        else:
-            if self.caption is None:
+            if self.caption is None and self.label is None:
                 pass
             else:
-                buf.write('\\caption{{{}}}'.format(self.caption))
+                if self.caption is None:
+                    pass
+                else:
+                    str_ += '\\caption{{{}}}'.format(self.caption)
 
-            if self.label is None:
+                if self.label is None:
+                    pass
+                else:
+                    str_ += '\\label{{{}}}'.format(self.label)
+
+                # a double-backslash is required at the end of the line
+                # as discussed here:
+                # https://tex.stackexchange.com/questions/219138
+                str_ += '\\\\\n'
+        else:
+            if self.caption is None and self.label is None:
+                # then write output only in a tabular environment
                 pass
             else:
-                buf.write('\\label{{{}}}'.format(self.label))
+                # then write output in a nested table/tabular environment
+                if self.caption is None:
+                    caption_ = ''
+                else:
+                    caption_ = '\n\\caption{{{}}}'.format(self.caption)
 
-            # a double-backslash is required at the end of the line
-            # as discussed here:
-            # https://tex.stackexchange.com/questions/219138
-            buf.write('\\\\\n')
+                if self.label is None:
+                    label_ = ''
+                else:
+                    label_ = '\n\\label{{{}}}'.format(self.label)
 
-    def _write_tabular_end(self, buf):
+                str_ += '\\begin{{table}}\n\\centering{}{}\n'.format(
+                    caption_,
+                    label_
+                )
+
+            str_ += '\\begin{{tabular}}{{{fmt}}}\n'.format(fmt=column_format)
+
+        return str_
+
+    def _build_latex_end_env(self):
         """
-        write the end of a tabular environment or nested table/tabular
-        environment
+        Write the end of the latex environment.
+
+        This can be a tabular environment or nested table/tabular environments
+        depending on the arguments passed to ``LatexFormatter.__init__()``.
+
+        :return: string to be written to ``buf``
         """
-        buf.write('\\bottomrule\n')
-        buf.write('\\end{tabular}\n')
-        if self.caption is None and self.label is None:
-            pass
+        str_ = ''
+
+        if self.longtable:
+            str_ += '\\end{longtable}\n'
         else:
-            buf.write('\\end{table}\n')
+            str_ += '\\bottomrule\n'
+            str_ += '\\end{tabular}\n'
+            if self.caption is None and self.label is None:
+                pass
+            else:
+                str_ += '\\end{table}\n'
 
-    @staticmethod
-    def _write_longtable_end(buf):
-        """
-        write the end of a longtable environment
-        """
-        buf.write('\\end{longtable}\n')
+        return str_
