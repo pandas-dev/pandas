@@ -1260,12 +1260,11 @@ class GroupBy(_GroupBy):
 
             _local_template = """
             Compute %(f)s of group values
-
             """
 
             @Substitution(name='groupby', f=name)
             @Appender(_common_see_also)
-            @Appender(_local_template)
+            @Appender(_local_template, join='\n')
             def f(self, **kwargs):
                 if 'numeric_only' not in kwargs:
                     kwargs['numeric_only'] = numeric_only
