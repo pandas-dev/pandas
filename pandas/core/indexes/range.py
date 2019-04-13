@@ -726,9 +726,6 @@ class RangeIndex(Int64Index):
                                                step=operator.truediv)
         cls.__rtruediv__ = _make_evaluate_binop(ops.rtruediv,
                                                 step=ops.rtruediv)
-        if not compat.PY3:
-            cls.__div__ = _make_evaluate_binop(operator.div, step=operator.div)
-            cls.__rdiv__ = _make_evaluate_binop(ops.rdiv, step=ops.rdiv)
 
 
 RangeIndex._add_numeric_methods()

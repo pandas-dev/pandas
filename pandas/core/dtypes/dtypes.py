@@ -12,8 +12,6 @@ from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex, ABCDateOffset, ABCIndexClass)
 
-from pandas import compat
-
 from .base import ExtensionDtype, _DtypeOpsMixin
 from .inference import is_list_like
 
@@ -129,21 +127,12 @@ class PandasExtensionDtype(_DtypeOpsMixin):
     def __str__(self):
         """
         Return a string representation for a particular Object
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
         """
-
-        if compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
+        return self.__unicode__()
 
     def __bytes__(self):
         """
         Return a string representation for a particular object.
-
-        Invoked by bytes(obj) in py3 only.
-        Yields a bytestring in both py2/py3.
         """
         from pandas._config import get_option
 
@@ -153,8 +142,6 @@ class PandasExtensionDtype(_DtypeOpsMixin):
     def __repr__(self):
         """
         Return a string representation for a particular object.
-
-        Yields Bytestring in Py2, Unicode String in py3.
         """
         return str(self)
 
