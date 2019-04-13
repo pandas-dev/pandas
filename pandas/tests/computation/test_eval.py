@@ -1757,6 +1757,29 @@ class TestScope(object):
         assert gbls == gbls2
 
 
+class TestEvalNamedKWargs(object):
+    # xref https://github.com/pandas-dev/pandas/issues/25813
+
+    def test_eval_with_kwargs(self, engine, parser):
+        def fn(x):
+            return 2 * x
+        result = pd.eval("fn(x=2)", engine=engine, parser=parser)
+        assert result == 4
+
+    def test_query_str_contains(self, parser):
+        df = pd.DataFrame([["I", "XYZ"], ["IJ", None]], columns=['A', 'B'])
+
+        expected = df[df["A"].str.contains("J")]
+        result = df.query("A.str.contains('J')", engine="python",
+                          parser=parser)
+        tm.assert_frame_equal(result, expected)
+
+        expected = df[df["B"].str.contains("Z", na=False)]
+        result = df.query("B.str.contains('Z', na=False)", engine="python",
+                          parser=parser)
+        tm.assert_frame_equal(result, expected)
+
+
 @td.skip_if_no_ne
 def test_invalid_engine():
     msg = 'Invalid engine \'asdf\' passed'
@@ -1890,15 +1913,3 @@ class TestValidate(object):
         for value in invalid_values:
             with pytest.raises(ValueError):
                 pd.eval("2+2", inplace=value)
-
-
-def test_query_str_contains():
-    df = pd.DataFrame([["I", "XYZ"], ["IJ", None]], columns=['A', 'B'])
-
-    expected = df[df["A"].str.contains("J")]
-    result = df.query("A.str.contains('J')", engine="python")
-    tm.assert_frame_equal(result, expected)
-
-    expected = df[df["B"].str.contains("Z", na=False)]
-    result = df.query("B.str.contains('Z', na=False)", engine="python")
-    tm.assert_frame_equal(result, expected)
