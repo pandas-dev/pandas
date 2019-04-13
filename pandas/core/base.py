@@ -33,6 +33,10 @@ _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
                             unique='IndexOpsMixin', duplicated='IndexOpsMixin')
 
 
+class InvalidIndexError(Exception):
+    pass
+
+
 class StringMixin(object):
     """implements string methods so long as object defines a `__unicode__`
     method.
