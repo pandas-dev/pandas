@@ -37,7 +37,7 @@ from pandas.core import ops
 from pandas.core.accessor import CachedAccessor, DirNamesMixin
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import IndexOpsMixin, PandasObject, InvalidIndexError
+from pandas.core.base import IndexOpsMixin, InvalidIndexError, PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
