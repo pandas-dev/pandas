@@ -34,16 +34,16 @@ def _simple_ts(start, end, freq='D'):
 
 
 def test_NA_values_with_cache():
-        # GH 22305
-        na_values = [None, np.nan, pd.NaT]
-        # check pairwise, that no pair of na values
-        # is mangled
-        for f in na_values:
-            for s in na_values:
-                if f is not s:  # otherwise not unique
-                    expected = Index([NaT, NaT], dtype='datetime64[ns]')
-                    result = to_datetime([f, s], cache=True)
-                    tm.assert_index_equal(result, expected)
+    # GH 22305
+    na_values = [None, np.nan, pd.NaT]
+    # check pairwise, that no pair of na values
+    # is mangled
+    for f in na_values:
+        for s in na_values:
+            if f is not s:  # otherwise not unique
+                expected = Index([NaT, NaT], dtype='datetime64[ns]')
+                result = to_datetime([f, s], cache=True)
+                tm.assert_index_equal(result, expected)
 
 
 def assert_range_equal(left, right):
