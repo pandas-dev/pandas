@@ -12,14 +12,16 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import Optional, Type
+from typing import Optional, Tuple, Type
 import warnings
 
 import numpy as np
 
+from pandas._config.config import option_context
+
 from pandas._libs import Timestamp, groupby as libgroupby
 import pandas.compat as compat
-from pandas.compat import range, set_function_name, zip
+from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -37,7 +39,6 @@ import pandas.core.algorithms as algorithms
 from pandas.core.base import (
     DataError, GroupByError, PandasObject, SelectionMixin, SpecificationError)
 import pandas.core.common as com
-from pandas.core.config import option_context
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
@@ -1040,8 +1041,7 @@ class GroupBy(_GroupBy):
         Shared func to call any / all Cython GroupBy implementations.
         """
 
-        def objs_to_bool(vals):
-            # type: (np.ndarray) -> (np.ndarray, Type)
+        def objs_to_bool(vals: np.ndarray) -> Tuple[np.ndarray, Type]:
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
             else:
@@ -1049,8 +1049,7 @@ class GroupBy(_GroupBy):
 
             return vals.view(np.uint8), np.bool
 
-        def result_to_bool(result, inference):
-            # type: (np.ndarray, Type) -> np.ndarray
+        def result_to_bool(result: np.ndarray, inference: Type) -> np.ndarray:
             return result.astype(inference, copy=False)
 
         return self._get_cythonized_result('group_any_all', self.grouper,
@@ -1098,7 +1097,8 @@ class GroupBy(_GroupBy):
         # defined here for API doc
         raise NotImplementedError
 
-    @Substitution(name='groupby', see_also=_common_see_also)
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
     def mean(self, *args, **kwargs):
         """
         Compute mean of groups, excluding missing values.
@@ -1544,7 +1544,8 @@ class GroupBy(_GroupBy):
         return self._fill('bfill', limit=limit)
     bfill = backfill
 
-    @Substitution(name='groupby', see_also=_common_see_also)
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
     def nth(self, n, dropna=None):
         """
         Take the nth row from each group if n is an int, or a subset of rows
@@ -1738,8 +1739,9 @@ class GroupBy(_GroupBy):
         b    3.0
         """
 
-        def pre_processor(vals):
-            # type: (np.ndarray) -> (np.ndarray, Optional[Type])
+        def pre_processor(
+                vals: np.ndarray
+        ) -> Tuple[np.ndarray, Optional[Type]]:
             if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
@@ -1753,8 +1755,10 @@ class GroupBy(_GroupBy):
 
             return vals, inference
 
-        def post_processor(vals, inference):
-            # type: (np.ndarray, Optional[Type]) -> np.ndarray
+        def post_processor(
+                vals: np.ndarray,
+                inference: Optional[Type]
+        ) -> np.ndarray:
             if inference:
                 # Check for edge case
                 if not (is_integer_dtype(inference) and
@@ -2128,7 +2132,8 @@ class GroupBy(_GroupBy):
         shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
 
-    @Substitution(name='groupby', see_also=_common_see_also)
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
     def head(self, n=5):
         """
         Return first n rows of each group.
@@ -2154,7 +2159,8 @@ class GroupBy(_GroupBy):
         mask = self._cumcount_array() < n
         return self._selected_obj[mask]
 
-    @Substitution(name='groupby', see_also=_common_see_also)
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
     def tail(self, n=5):
         """
         Return last n rows of each group.

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 import re
+from typing import Dict
 
 import numpy as np
 from pytz import AmbiguousTimeError
@@ -15,8 +16,6 @@ from pandas._libs.tslibs.offsets import _offset_to_period_map
 import pandas._libs.tslibs.resolution as libresolution
 from pandas._libs.tslibs.resolution import Resolution
 from pandas._libs.tslibs.timezones import UTC
-import pandas.compat as compat
-from pandas.compat import zip
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -39,7 +38,7 @@ _ONE_DAY = (24 * _ONE_HOUR)
 # Offset names ("time rules") and related functions
 
 #: cache of previously seen offsets
-_offset_map = {}
+_offset_map = {}  # type: Dict[str, DateOffset]
 
 
 def get_period_alias(offset_str):
@@ -108,7 +107,7 @@ def to_offset(freq):
     if isinstance(freq, tuple):
         name = freq[0]
         stride = freq[1]
-        if isinstance(stride, compat.string_types):
+        if isinstance(stride, str):
             name, stride = stride, name
         name, _ = libfreqs._base_and_stride(name)
         delta = get_offset(name) * stride

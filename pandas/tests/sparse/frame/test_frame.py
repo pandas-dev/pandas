@@ -7,7 +7,7 @@ from numpy import nan
 import pytest
 
 from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas.compat import PY2, lrange
+from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -568,8 +568,9 @@ class TestSparseDataFrame(SharedWithSparse):
             assert len(frame['I'].sp_values) == N // 2
 
             # insert ndarray wrong size
-            msg = "Length of values does not match length of index"
-            with pytest.raises(AssertionError, match=msg):
+            # GH 25484
+            msg = 'Length of values does not match length of index'
+            with pytest.raises(ValueError, match=msg):
                 frame['foo'] = np.random.randn(N - 1)
 
             # scalar value
@@ -881,7 +882,6 @@ class TestSparseDataFrame(SharedWithSparse):
         str(float_frame)
         desc = float_frame.describe()  # noqa
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_join(self, float_frame):
         left = float_frame.loc[:, ['A', 'B']]
         right = float_frame.loc[:, ['C', 'D']]

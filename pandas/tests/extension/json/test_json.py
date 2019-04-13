@@ -3,15 +3,13 @@ import operator
 
 import pytest
 
-from pandas.compat import PY2, PY36
+from pandas.compat import PY36
 
 import pandas as pd
 from pandas.tests.extension import base
 import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
-
-pytestmark = pytest.mark.skipif(PY2, reason="Py2 doesn't have a UserDict")
 
 
 @pytest.fixture

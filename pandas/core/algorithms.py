@@ -2,8 +2,6 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
-from __future__ import division
-
 from textwrap import dedent
 from warnings import catch_warnings, simplefilter, warn
 

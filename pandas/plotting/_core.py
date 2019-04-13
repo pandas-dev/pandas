@@ -1,16 +1,16 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-from __future__ import division
-
 from collections import namedtuple
-from distutils.version import LooseVersion
 import re
+from typing import List, Optional, Type
 import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 import pandas.compat as compat
-from pandas.compat import lrange, map, range, string_types, zip
+from pandas.compat import lrange
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -22,7 +22,6 @@ from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing
@@ -80,7 +79,7 @@ class MPLPlot(object):
 
     _layout_type = 'vertical'
     _default_rot = 0
-    orientation = None
+    orientation = None  # type: Optional[str]
     _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
                        'mark_right', 'stacked']
     _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
@@ -288,8 +287,10 @@ class MPLPlot(object):
             if not self._has_plotted_object(orig_ax):  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
 
-            if self.logy or self.loglog:
+            if self.logy is True or self.loglog is True:
                 new_ax.set_yscale('log')
+            elif self.logy == 'sym' or self.loglog == 'sym':
+                new_ax.set_yscale('symlog')
             return new_ax
 
     def _setup_subplots(self):
@@ -311,10 +312,24 @@ class MPLPlot(object):
 
         axes = _flatten(axes)
 
-        if self.logx or self.loglog:
+        valid_log = {False, True, 'sym', None}
+        input_log = {self.logx, self.logy, self.loglog}
+        if input_log - valid_log:
+            invalid_log = next(iter((input_log - valid_log)))
+            raise ValueError(
+                "Boolean, None and 'sym' are valid options,"
+                " '{}' is given.".format(invalid_log)
+            )
+
+        if self.logx is True or self.loglog is True:
             [a.set_xscale('log') for a in axes]
-        if self.logy or self.loglog:
+        elif self.logx == 'sym' or self.loglog == 'sym':
+            [a.set_xscale('symlog') for a in axes]
+
+        if self.logy is True or self.loglog is True:
             [a.set_yscale('log') for a in axes]
+        elif self.logy == 'sym' or self.loglog == 'sym':
+            [a.set_yscale('symlog') for a in axes]
 
         self.fig = fig
         self.axes = axes
@@ -724,7 +739,7 @@ class MPLPlot(object):
             err = np.tile(err, (self.nseries, 1))
 
         # errors are a column in the dataframe
-        elif isinstance(err, string_types):
+        elif isinstance(err, str):
             evalues = self.data[err].values
             self.data = self.data[self.data.columns.drop(err)]
             err = np.atleast_2d(evalues)
@@ -1475,18 +1490,9 @@ class KdePlot(HistPlot):
     def _plot(cls, ax, y, style=None, bw_method=None, ind=None,
               column_num=None, stacking_id=None, **kwds):
         from scipy.stats import gaussian_kde
-        from scipy import __version__ as spv
 
         y = remove_na_arraylike(y)
-
-        if LooseVersion(spv) >= '0.11.0':
-            gkde = gaussian_kde(y, bw_method=bw_method)
-        else:
-            gkde = gaussian_kde(y)
-            if bw_method is not None:
-                msg = ('bw_method was added in Scipy 0.11.0.' +
-                       ' Scipy version in use is {spv}.'.format(spv=spv))
-                warnings.warn(msg)
+        gkde = gaussian_kde(y, bw_method=bw_method)
 
         y = gkde.evaluate(ind)
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
@@ -1734,7 +1740,8 @@ _series_kinds = ['pie']
 _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 
 _klasses = [LinePlot, BarPlot, BarhPlot, KdePlot, HistPlot, BoxPlot,
-            ScatterPlot, HexBinPlot, AreaPlot, PiePlot]
+            ScatterPlot, HexBinPlot, AreaPlot, PiePlot] \
+    # type: List[Type[MPLPlot]]
 
 _plot_klass = {klass._kind: klass for klass in _klasses}
 
@@ -1787,7 +1794,7 @@ def _plot(data, x=None, y=None, subplots=False,
                 label_kw = kwds['label'] if 'label' in kwds else False
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
-                        (isinstance(kwds[kw], string_types) or
+                        (isinstance(kwds[kw], str) or
                             is_integer(kwds[kw])):
                         try:
                             kwds[kw] = data[kwds[kw]]
@@ -1909,12 +1916,18 @@ _shared_docs['plot'] = """
         Place legend on axis subplots
     style : list or dict
         matplotlib line style per column
-    logx : bool, default False
-        Use log scaling on x axis
-    logy : bool, default False
-        Use log scaling on y axis
-    loglog : bool, default False
-        Use log scaling on both x and y axes
+    logx : bool or 'sym', default False
+        Use log scaling or symlog scaling on x axis
+        .. versionchanged:: 0.25.0
+
+    logy : bool or 'sym' default False
+        Use log scaling or symlog scaling on y axis
+        .. versionchanged:: 0.25.0
+
+    loglog : bool or 'sym', default False
+        Use log scaling or symlog scaling on both x and y axes
+        .. versionchanged:: 0.25.0
+
     xticks : sequence
         Values to use for the xticks
     yticks : sequence

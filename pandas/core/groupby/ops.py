@@ -11,7 +11,7 @@ import collections
 import numpy as np
 
 from pandas._libs import NaT, groupby as libgroupby, iNaT, lib, reduction
-from pandas.compat import lzip, range, zip
+from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -165,25 +165,44 @@ class BaseGrouper(object):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
+        result_values = None
 
         # oh boy
         f_name = com.get_callable_name(f)
         if (f_name not in base.plotting_methods and
                 hasattr(splitter, 'fast_apply') and axis == 0):
             try:
-                values, mutated = splitter.fast_apply(f, group_keys)
-                return group_keys, values, mutated
+                result_values, mutated = splitter.fast_apply(f, group_keys)
+
+                # If the fast apply path could be used we can return here.
+                # Otherwise we need to fall back to the slow implementation.
+                if len(result_values) == len(group_keys):
+                    return group_keys, result_values, mutated
+
             except reduction.InvalidApply:
-                # we detect a mutation of some kind
-                # so take slow path
+                # Cannot fast apply on MultiIndex (_has_complex_internals).
+                # This Exception is also raised if `f` triggers an exception
+                # but it is preferable to raise the exception in Python.
                 pass
             except Exception:
                 # raise this error to the caller
                 pass
 
-        result_values = []
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, 'name', key)
+
+            # result_values is None if fast apply path wasn't taken
+            # or fast apply aborted with an unexpected exception.
+            # In either case, initialize the result list and perform
+            # the slow iteration.
+            if result_values is None:
+                result_values = []
+
+            # If result_values is not None we're in the case that the
+            # fast apply loop was broken prematurely but we have
+            # already the result for the first group which we can reuse.
+            elif i == 0:
+                continue
 
             # group might be modified
             group_axes = _get_axes(group)
@@ -854,10 +873,7 @@ class FrameSplitter(DataSplitter):
             return [], True
 
         sdata = self._get_sorted_data()
-        results, mutated = reduction.apply_frame_axis0(sdata, f, names,
-                                                       starts, ends)
-
-        return results, mutated
+        return reduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata, slice_obj):
         if self.axis == 0:

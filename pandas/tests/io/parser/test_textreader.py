@@ -4,7 +4,7 @@
 Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
-
+from io import BytesIO, StringIO
 import os
 
 import numpy as np
@@ -14,7 +14,6 @@ import pytest
 import pandas._libs.parsers as parser
 from pandas._libs.parsers import TextReader
 import pandas.compat as compat
-from pandas.compat import BytesIO, StringIO, map
 
 from pandas import DataFrame
 import pandas.util.testing as tm

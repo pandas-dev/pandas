@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+from functools import reduce
 from itertools import product
 import operator
 import warnings
@@ -7,7 +8,6 @@ import numpy as np
 from numpy.random import rand, randint, randn
 import pytest
 
-from pandas.compat import PY3, reduce
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -102,7 +102,7 @@ def _bool_and_frame(lhs, rhs):
 
 
 def _is_py3_complex_incompat(result, expected):
-    return (PY3 and isinstance(expected, (complex, np.complexfloating)) and
+    return (isinstance(expected, (complex, np.complexfloating)) and
             np.isnan(result))
 
 
@@ -339,8 +339,8 @@ class TestEvalNumexprPandas(object):
 
         if (is_scalar(lhs) and is_scalar(rhs) and
                 _is_py3_complex_incompat(result, expected)):
-            pytest.raises(AssertionError, tm.assert_numpy_array_equal,
-                          result, expected)
+            with pytest.raises(AssertionError):
+                tm.assert_numpy_array_equal(result, expected)
         else:
             tm.assert_almost_equal(result, expected)
 
@@ -607,6 +607,16 @@ class TestEvalNumexprPandas(object):
             np.array([-True, True, ~True, +True,
                       -False, False, ~False, +False,
                       -37, 37, ~37, +37], dtype=np.object_))
+
+    @pytest.mark.parametrize('dtype', [np.float32, np.float64])
+    def test_float_comparison_bin_op(self, dtype):
+        # GH 16363
+        df = pd.DataFrame({'x': np.array([0], dtype=dtype)})
+        res = df.eval('x < -0.1')
+        assert res.values == np.array([False])
+
+        res = df.eval('-5 > x')
+        assert res.values == np.array([False])
 
     def test_disallow_scalar_bool_ops(self):
         exprs = '1 or 2', '1 and 2'
@@ -1133,50 +1143,27 @@ class TestOperationsNumExprPandas(object):
         ex = 's / 1'
         d = {'s': s}  # noqa
 
-        if PY3:
-            res = self.eval(ex, truediv=False)
-            tm.assert_numpy_array_equal(res, np.array([1.0]))
+        res = self.eval(ex, truediv=False)
+        tm.assert_numpy_array_equal(res, np.array([1.0]))
 
-            res = self.eval(ex, truediv=True)
-            tm.assert_numpy_array_equal(res, np.array([1.0]))
+        res = self.eval(ex, truediv=True)
+        tm.assert_numpy_array_equal(res, np.array([1.0]))
 
-            res = self.eval('1 / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('1 / 2', truediv=True)
+        expec = 0.5
+        assert res == expec
 
-            res = self.eval('1 / 2', truediv=False)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('1 / 2', truediv=False)
+        expec = 0.5
+        assert res == expec
 
-            res = self.eval('s / 2', truediv=False)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('s / 2', truediv=False)
+        expec = 0.5
+        assert res == expec
 
-            res = self.eval('s / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
-        else:
-            res = self.eval(ex, truediv=False)
-            tm.assert_numpy_array_equal(res, np.array([1]))
-
-            res = self.eval(ex, truediv=True)
-            tm.assert_numpy_array_equal(res, np.array([1.0]))
-
-            res = self.eval('1 / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
-
-            res = self.eval('1 / 2', truediv=False)
-            expec = 0
-            assert res == expec
-
-            res = self.eval('s / 2', truediv=False)
-            expec = 0
-            assert res == expec
-
-            res = self.eval('s / 2', truediv=True)
-            expec = 0.5
-            assert res == expec
+        res = self.eval('s / 2', truediv=True)
+        expec = 0.5
+        assert res == expec
 
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa

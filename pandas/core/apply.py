@@ -1,9 +1,9 @@
+import inspect
 import warnings
 
 import numpy as np
 
 from pandas._libs import reduction
-import pandas.compat as compat
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -71,8 +71,7 @@ class FrameApply(object):
         self.result_type = result_type
 
         # curry if needed
-        if ((kwds or args) and
-                not isinstance(func, (np.ufunc, compat.string_types))):
+        if (kwds or args) and not isinstance(func, (np.ufunc, str)):
 
             def f(x):
                 return func(x, *args, **kwds)
@@ -119,12 +118,12 @@ class FrameApply(object):
             return self.apply_empty_result()
 
         # string dispatch
-        if isinstance(self.f, compat.string_types):
+        if isinstance(self.f, str):
             # Support for `frame.transform('method')`
             # Some methods (shift, etc.) require the axis argument, others
             # don't, so inspect and insert if necessary.
             func = getattr(self.obj, self.f)
-            sig = compat.signature(func)
+            sig = inspect.getfullargspec(func)
             if 'axis' in sig.args:
                 self.kwds['axis'] = self.axis
             return func(*self.args, **self.kwds)

@@ -7,8 +7,6 @@ import warnings
 
 import numpy as np
 
-import pandas.compat as compat
-from pandas.compat import zip
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -303,6 +301,8 @@ class Grouping(object):
                 if observed:
                     codes = algorithms.unique1d(self.grouper.codes)
                     codes = codes[codes != -1]
+                    if sort or self.grouper.ordered:
+                        codes = np.sort(codes)
                 else:
                     codes = np.arange(len(categories))
 
@@ -463,7 +463,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
                     raise ValueError('multiple levels only valid with '
                                      'MultiIndex')
 
-            if isinstance(level, compat.string_types):
+            if isinstance(level, str):
                 if obj.index.name != level:
                     raise ValueError('level name {} is not the name of the '
                                      'index'.format(level))
@@ -526,6 +526,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         if isinstance(obj, DataFrame):
             all_in_columns_index = all(g in obj.columns or g in obj.index.names
                                        for g in keys)
+        elif isinstance(obj, Series):
+            all_in_columns_index = all(g in obj.index.names for g in keys)
         else:
             all_in_columns_index = False
     except Exception:
@@ -615,7 +617,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
 
 def _is_label_like(val):
-    return (isinstance(val, (compat.string_types, tuple)) or
+    return (isinstance(val, (str, tuple)) or
             (val is not None and is_scalar(val)))
 
 

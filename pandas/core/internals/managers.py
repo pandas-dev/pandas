@@ -9,7 +9,6 @@ from typing import List, Optional, Union
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas.compat import map, range, zip
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -297,12 +296,12 @@ class BlockManager(PandasObject):
         output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
-                output += u'\nItems: {ax}'.format(ax=ax)
+                output += '\nItems: {ax}'.format(ax=ax)
             else:
-                output += u'\nAxis {i}: {ax}'.format(i=i, ax=ax)
+                output += '\nAxis {i}: {ax}'.format(i=i, ax=ax)
 
         for block in self.blocks:
-            output += u'\n{block}'.format(block=pprint_thing(block))
+            output += '\n{block}'.format(block=pprint_thing(block))
         return output
 
     def _verify_integrity(self):
@@ -1863,8 +1862,9 @@ def _stack_arrays(tuples, dtype):
     return stacked, placement
 
 
-def _interleaved_dtype(blocks):
-    # type: (List[Block]) -> Optional[Union[np.dtype, ExtensionDtype]]
+def _interleaved_dtype(
+        blocks: List[Block]
+) -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 
     Parameters

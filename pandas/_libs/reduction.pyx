@@ -509,17 +509,6 @@ def apply_frame_axis0(object frame, object f, object names,
 
     results = []
 
-    # Need to infer if our low-level mucking is going to cause a segfault
-    if n > 0:
-        chunk = frame.iloc[starts[0]:ends[0]]
-        object.__setattr__(chunk, 'name', names[0])
-        try:
-            result = f(chunk)
-            if result is chunk:
-                raise InvalidApply('Function unsafe for fast apply')
-        except:
-            raise InvalidApply('Let this error raise above us')
-
     slider = BlockSlider(frame)
 
     mutated = False
@@ -529,13 +518,18 @@ def apply_frame_axis0(object frame, object f, object names,
             slider.move(starts[i], ends[i])
 
             item_cache.clear()  # ugh
+            chunk = slider.dummy
+            object.__setattr__(chunk, 'name', names[i])
 
-            object.__setattr__(slider.dummy, 'name', names[i])
-            piece = f(slider.dummy)
-
-            # I'm paying the price for index-sharing, ugh
             try:
-                if piece.index is slider.dummy.index:
+                piece = f(chunk)
+            except:
+                raise InvalidApply('Let this error raise above us')
+
+            # Need to infer if low level index slider will cause segfaults
+            require_slow_apply = i == 0 and piece is chunk
+            try:
+                if piece.index is chunk.index:
                     piece = piece.copy(deep='all')
                 else:
                     mutated = True
@@ -543,6 +537,12 @@ def apply_frame_axis0(object frame, object f, object names,
                 pass
 
             results.append(piece)
+
+            # If the data was modified inplace we need to
+            # take the slow path to not risk segfaults
+            # we have already computed the first piece
+            if require_slow_apply:
+                break
     finally:
         slider.reset()
 

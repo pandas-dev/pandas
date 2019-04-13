@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
-from pandas.compat import PY3, u
+from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -218,8 +218,7 @@ def all_compare_operators(request):
     return request.param
 
 
-@pytest.fixture(params=[None, 'gzip', 'bz2', 'zip',
-                        pytest.param('xz', marks=td.skip_if_no_lzma)])
+@pytest.fixture(params=[None, 'gzip', 'bz2', 'zip', 'xz'])
 def compression(request):
     """
     Fixture for trying common compression types in compression tests
@@ -227,8 +226,7 @@ def compression(request):
     return request.param
 
 
-@pytest.fixture(params=['gzip', 'bz2', 'zip',
-                        pytest.param('xz', marks=td.skip_if_no_lzma)])
+@pytest.fixture(params=['gzip', 'bz2', 'zip', 'xz'])
 def compression_only(request):
     """
     Fixture for trying common compression types in compression tests excluding
@@ -561,7 +559,7 @@ def any_numpy_dtype(request):
 # categoricals are handled separately
 _any_skipna_inferred_dtype = [
     ('string', ['a', np.nan, 'c']),
-    ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
+    ('unicode' if not PY3 else 'string', ['a', np.nan, 'c']),
     ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
     ('empty', [np.nan, np.nan, np.nan]),
     ('empty', []),

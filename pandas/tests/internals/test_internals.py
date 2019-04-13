@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.internals import BlockPlacement
-from pandas.compat import lrange, u, zip
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -784,12 +784,12 @@ class TestBlockManager(object):
                                     np.array([True, False, True]))
 
     def test_unicode_repr_doesnt_raise(self):
-        repr(create_mgr(u('b,\u05d0: object')))
+        repr(create_mgr('b,\u05d0: object'))
 
     def test_missing_unicode_key(self):
         df = DataFrame({"a": [1]})
         try:
-            df.loc[:, u("\u05d0")]  # should not raise UnicodeEncodeError
+            df.loc[:, "\u05d0"]  # should not raise UnicodeEncodeError
         except KeyError:
             pass  # this is the expected exception
 

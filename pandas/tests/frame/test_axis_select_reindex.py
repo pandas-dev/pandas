@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import datetime
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange, lzip, u
+from pandas.compat import lrange, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -848,7 +846,7 @@ class TestDataFrameSelectReindex(TestData):
         assert 'foo' in filtered
 
         # unicode columns, won't ascii-encode
-        df = self.frame.rename(columns={'B': u('\u2202')})
+        df = self.frame.rename(columns={'B': '\u2202'})
         filtered = df.filter(like='C')
         assert 'C' in filtered
 
@@ -872,18 +870,18 @@ class TestDataFrameSelectReindex(TestData):
         assert_frame_equal(result, exp)
 
     @pytest.mark.parametrize('name,expected', [
-        ('a', DataFrame({u'a': [1, 2]})),
-        (u'a', DataFrame({u'a': [1, 2]})),
-        (u'あ', DataFrame({u'あ': [3, 4]}))
+        ('a', DataFrame({'a': [1, 2]})),
+        ('a', DataFrame({'a': [1, 2]})),
+        ('あ', DataFrame({'あ': [3, 4]}))
     ])
     def test_filter_unicode(self, name, expected):
         # GH13101
-        df = DataFrame({u'a': [1, 2], u'あ': [3, 4]})
+        df = DataFrame({'a': [1, 2], 'あ': [3, 4]})
 
         assert_frame_equal(df.filter(like=name), expected)
         assert_frame_equal(df.filter(regex=name), expected)
 
-    @pytest.mark.parametrize('name', ['a', u'a'])
+    @pytest.mark.parametrize('name', ['a', 'a'])
     def test_filter_bytestring(self, name):
         # GH13101
         df = DataFrame({b'a': [1, 2], b'b': [3, 4]})
@@ -1051,7 +1049,6 @@ class TestDataFrameSelectReindex(TestData):
         smaller = self.intframe.reindex(columns=['A', 'B', 'E'])
         assert smaller['E'].dtype == np.float64
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_reindex_axis(self):
         cols = ['A', 'B', 'E']
         with tm.assert_produces_warning(FutureWarning) as m:

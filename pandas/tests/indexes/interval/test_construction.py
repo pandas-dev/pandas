@@ -1,5 +1,3 @@
-from __future__ import division
-
 from functools import partial
 
 import numpy as np
@@ -313,6 +311,12 @@ class TestClassConstructors(Base):
         override the base class implementation since errors are handled
         differently; checks unnecessary since caught at the Interval level
         """
+        pass
+
+    def test_constructor_string(self):
+        # GH23013
+        # When forming the interval from breaks,
+        # the interval of strings is already forbidden.
         pass
 
     def test_constructor_errors(self, constructor):
