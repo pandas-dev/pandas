@@ -98,18 +98,19 @@ class TestTimedeltaIndex(object):
         # GH 24471 test for non overlap the intersection should be zero length
         index_1 = timedelta_range('1 day', periods=period_1, freq='h')
         index_2 = timedelta_range('1 day', periods=period_2, freq='h')
-        inter = index_1.intersection(index_2, sort=sort)
-        tm.assert_index_equal(inter,
-                              timedelta_range('1 day', periods=0, freq='h'))
+        expected = timedelta_range('1 day', periods=0, freq='h')
+        result = index_1.intersection(index_2, sort=sort)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('sort', [None, False])
     def test_zero_length_input_index(self, sort):
+        # GH 24966 test for 0-len intersections are copied
         index_1 = timedelta_range('1 day', periods=0, freq='h')
         index_2 = timedelta_range('1 day', periods=3, freq='h')
-        inter = index_1.intersection(index_2, sort=sort)
-        assert index_1 is not inter
-        assert index_2 is not inter
-        tm.assert_copy(inter, index_1)
+        result = index_1.intersection(index_2, sort=sort)
+        assert index_1 is not result
+        assert index_2 is not result
+        tm.assert_copy(result, index_1)
 
     @pytest.mark.parametrize(
         "rng, expected",
