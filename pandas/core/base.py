@@ -1205,7 +1205,13 @@ class IndexOpsMixin(object):
             else:
                 values = self.values
 
-            indexer = mapper.index.get_indexer(values)
+            try:
+                indexer = mapper.index.get_indexer(values)
+            except InvalidIndexError:
+                from pandas import Series
+                mapper = Series(algorithms.unique(mapper))
+                indexer = mapper.index.get_indexer(values)
+
             new_values = algorithms.take_1d(mapper._values, indexer)
 
             return new_values
