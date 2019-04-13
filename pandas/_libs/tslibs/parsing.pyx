@@ -11,8 +11,6 @@ from cpython.datetime cimport datetime
 
 import numpy as np
 
-import six
-
 # dateutil compat
 from dateutil.tz import (tzoffset,
                          tzlocal as _dateutil_tzlocal,
@@ -526,14 +524,8 @@ def try_parse_datetime_components(object[:] years,
 # Copyright (c) 2017 - dateutil contributors
 class _timelex(object):
     def __init__(self, instream):
-        if six.PY2:
-            # In Python 2, we can't duck type properly because unicode has
-            # a 'decode' function, and we'd be double-decoding
-            if isinstance(instream, (bytes, bytearray)):
-                instream = instream.decode()
-        else:
-            if getattr(instream, 'decode', None) is not None:
-                instream = instream.decode()
+        if getattr(instream, 'decode', None) is not None:
+            instream = instream.decode()
 
         if isinstance(instream, str):
             self.stream = instream

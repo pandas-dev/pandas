@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas._libs import (
     NaT, Timedelta, index as libindex, join as libjoin, lib)
-import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import (
@@ -299,9 +298,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
     __truediv__ = _make_wrapped_arith_op("__truediv__")
     __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
-    if compat.PY2:
-        __div__ = __truediv__
-        __rdiv__ = __rtruediv__
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing

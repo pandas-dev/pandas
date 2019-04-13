@@ -9,7 +9,6 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
-import pandas.compat as compat
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -75,11 +74,8 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
             # The user may want to be warned by this, instead of getting NaN
-            if compat.PY2:
-                p_err = r'takes (no|(exactly|at (least|most)) ?\d+) arguments?'
-            else:
-                p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
-                         r'(?(3)required )positional arguments?')
+            p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
+                     r'(?(3)required )positional arguments?')
 
             if len(e.args) >= 1 and re.search(p_err, e.args[0]):
                 raise e
@@ -1598,42 +1594,24 @@ def str_wrap(arr, width, **kwargs):
     return _na_map(lambda s: '\n'.join(tw.wrap(s)), arr)
 
 
-def str_translate(arr, table, deletechars=None):
+def str_translate(arr, table):
     """
     Map all characters in the string through the given mapping table.
-    Equivalent to standard :meth:`str.translate`. Note that the optional
-    argument deletechars is only valid if you are using python 2. For python 3,
-    character deletion should be specified via the table argument.
+    Equivalent to standard :meth:`str.translate`.
 
     Parameters
     ----------
-    table : dict (python 3), str or None (python 2)
-        In python 3, table is a mapping of Unicode ordinals to Unicode
-        ordinals, strings, or None. Unmapped characters are left untouched.
+    table : dict
+        table is a mapping of Unicode ordinals to Unicode ordinals, strings, or
+        None. Unmapped characters are left untouched.
         Characters mapped to None are deleted. :meth:`str.maketrans` is a
         helper function for making translation tables.
-        In python 2, table is either a string of length 256 or None. If the
-        table argument is None, no translation is applied and the operation
-        simply removes the characters in deletechars. :func:`string.maketrans`
-        is a helper function for making translation tables.
-    deletechars : str, optional (python 2)
-        A string of characters to delete. This argument is only valid
-        in python 2.
 
     Returns
     -------
     Series or Index
     """
-    if deletechars is None:
-        f = lambda x: x.translate(table)
-    else:
-        if compat.PY3:
-            raise ValueError("deletechars is not a valid argument for "
-                             "str.translate in python 3. You should simply "
-                             "specify character deletions in the table "
-                             "argument")
-        f = lambda x: x.translate(table, deletechars)
-    return _na_map(f, arr)
+    return _na_map(lambda x: x.translate(table), arr)
 
 
 def str_get(arr, i):
@@ -2763,8 +2741,8 @@ class StringMethods(NoNewAttributesMixin):
                                  name=name, expand=True)
 
     @copy(str_translate)
-    def translate(self, table, deletechars=None):
-        result = str_translate(self._parent, table, deletechars)
+    def translate(self, table):
+        result = str_translate(self._parent, table)
         return self._wrap_result(result)
 
     count = _pat_wrapper(str_count, flags=True)

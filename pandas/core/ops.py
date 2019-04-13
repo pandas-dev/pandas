@@ -11,7 +11,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import algos as libalgos, lib, ops as libops
-import pandas.compat as compat
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -1591,8 +1590,6 @@ def add_special_arithmetic_methods(cls):
              __ifloordiv__=_wrap_inplace_method(new_methods["__floordiv__"]),
              __imod__=_wrap_inplace_method(new_methods["__mod__"]),
              __ipow__=_wrap_inplace_method(new_methods["__pow__"])))
-    if not compat.PY3:
-        new_methods["__idiv__"] = _wrap_inplace_method(new_methods["__div__"])
 
     new_methods.update(
         dict(__iand__=_wrap_inplace_method(new_methods["__and__"]),

@@ -5,7 +5,6 @@ import numpy as np
 
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
-from pandas.compat import PY3
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
@@ -461,7 +460,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
         return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
     sorter = None
-    if PY3 and lib.infer_dtype(values, skipna=False) == 'mixed-integer':
+    if lib.infer_dtype(values, skipna=False) == 'mixed-integer':
         # unorderable in py3 if mixed str/int
         ordered = sort_mixed(values)
     else:

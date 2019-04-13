@@ -5042,9 +5042,6 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__rfloordiv__ = make_invalid_op('__rfloordiv__')
         cls.__truediv__ = make_invalid_op('__truediv__')
         cls.__rtruediv__ = make_invalid_op('__rtruediv__')
-        if not compat.PY3:
-            cls.__div__ = make_invalid_op('__div__')
-            cls.__rdiv__ = make_invalid_op('__rdiv__')
         cls.__mod__ = make_invalid_op('__mod__')
         cls.__divmod__ = make_invalid_op('__divmod__')
         cls.__neg__ = make_invalid_op('__neg__')
@@ -5126,9 +5123,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
         cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
-        if not compat.PY3:
-            cls.__div__ = _make_arithmetic_op(operator.div, cls)
-            cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
 
         # TODO: rmod? rdivmod?
         cls.__mod__ = _make_arithmetic_op(operator.mod, cls)
