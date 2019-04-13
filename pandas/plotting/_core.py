@@ -9,7 +9,6 @@ import numpy as np
 
 from pandas._config import get_option
 
-import pandas.compat as compat
 from pandas.compat import lrange
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
@@ -1627,7 +1626,7 @@ class BoxPlot(LinePlot):
 
             if isinstance(self.color, dict):
                 valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
-                for key, values in compat.iteritems(self.color):
+                for key, values in self.color.items():
                     if key not in valid_keys:
                         raise ValueError("color dict contains invalid "
                                          "key '{0}' "

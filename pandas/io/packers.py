@@ -462,7 +462,7 @@ def encode(obj):
             # for f in ['default_fill_value', 'default_kind']:
             #    d[f] = getattr(obj, f, None)
             # d['data'] = dict([(name, ss)
-            #                 for name, ss in compat.iteritems(obj)])
+            #                 for name, ss in obj.items()])
             # return d
         else:
 

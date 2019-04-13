@@ -12,7 +12,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import iNaT, index as libindex, lib, tslibs
-import pandas.compat as compat
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
@@ -291,7 +290,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
         if data:
-            keys, values = zip(*compat.iteritems(data))
+            keys, values = zip(*data.items())
             values = list(values)
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
@@ -1523,7 +1522,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # GH16122
         into_c = com.standardize_mapping(into)
-        return into_c(compat.iteritems(self))
+        return into_c(self.items())
 
     def to_frame(self, name=None):
         """
