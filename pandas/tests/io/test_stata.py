@@ -11,8 +11,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import iterkeys
-
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
@@ -755,7 +753,7 @@ class TestStata(object):
     def test_missing_value_conversion(self, file):
         columns = ['int8_', 'int16_', 'int32_', 'float32_', 'float64_']
         smv = StataMissingValue(101)
-        keys = [key for key in iterkeys(smv.MISSING_VALUES)]
+        keys = [key for key in smv.MISSING_VALUES.keys()]
         keys.sort()
         data = []
         for i in range(27):
