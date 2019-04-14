@@ -6,7 +6,11 @@ import pytest
 import numpy as np
 import pandas as pd
 
+<<<<<<< HEAD
 from scripts import validate_docstrings
+=======
+import validate_docstrings
+>>>>>>> upstream/master
 validate_one = validate_docstrings.validate_one
 
 
@@ -1052,11 +1056,14 @@ class TestDocstringClass(object):
         with pytest.raises(AttributeError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 
+<<<<<<< HEAD
     @pytest.mark.parametrize('name', ['pandas.Series.str.isdecimal'])
     def test_encode_content_write_to_file(self, name):
         docstr = validate_docstrings.Docstring(name).validate_pep8()
         assert len(list(docstr)) == 0
 
+=======
+>>>>>>> upstream/master
 
 class TestMainFunction(object):
     def test_exit_status_for_validate_one(self, monkeypatch):

@@ -3,15 +3,13 @@ import operator
 
 import pytest
 
-from pandas.compat import PY2, PY36
+from pandas.compat import PY36
 
 import pandas as pd
 from pandas.tests.extension import base
 import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
-
-pytestmark = pytest.mark.skipif(PY2, reason="Py2 doesn't have a UserDict")
 
 
 @pytest.fixture
@@ -289,6 +287,11 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
         ser = pd.Series(data)
         with pytest.raises(TypeError, match="unsupported"):
             ser + data
+
+    def test_divmod_series_array(self):
+        # GH 23287
+        # skipping because it is not implemented
+        pass
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
         return super(TestArithmeticOps, self)._check_divmod_op(

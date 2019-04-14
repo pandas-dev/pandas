@@ -238,7 +238,7 @@ class _Concatenator(object):
                  keys=None, levels=None, names=None,
                  ignore_index=False, verify_integrity=False, copy=True,
                  sort=False):
-        if isinstance(objs, (NDFrame, compat.string_types)):
+        if isinstance(objs, (NDFrame, str)):
             raise TypeError('first argument must be an iterable of pandas '
                             'objects, you passed an object of type '
                             '"{name}"'.format(name=type(objs).__name__))
@@ -253,7 +253,7 @@ class _Concatenator(object):
 
         if isinstance(objs, dict):
             if keys is None:
-                keys = sorted(objs)
+                keys = com.dict_keys_to_ordered_list(objs)
             objs = [objs[k] for k in keys]
         else:
             objs = list(objs)
@@ -282,10 +282,10 @@ class _Concatenator(object):
         # consolidate data & figure out what our result ndim is going to be
         ndims = set()
         for obj in objs:
-            if not isinstance(obj, NDFrame):
-                msg = ('cannot concatenate object of type "{0}";'
-                       ' only pd.Series, pd.DataFrame, and pd.Panel'
-                       ' (deprecated) objs are valid'.format(type(obj)))
+            if not isinstance(obj, (Series, DataFrame)):
+                msg = ("cannot concatenate object of type '{}';"
+                       ' only Series and DataFrame objs are valid'
+                       .format(type(obj)))
                 raise TypeError(msg)
 
             # consolidate

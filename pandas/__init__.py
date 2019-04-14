@@ -20,7 +20,9 @@ if missing_dependencies:
 del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
-from pandas.compat.numpy import *
+from pandas.compat.numpy import (
+    _np_version_under1p14, _np_version_under1p15, _np_version_under1p16,
+    _np_version_under1p17)
 
 try:
     from pandas._libs import (hashtable as _hashtable,
@@ -36,17 +38,78 @@ except ImportError as e:  # pragma: no cover
 
 from datetime import datetime
 
+from pandas._config import (get_option, set_option, reset_option,
+                            describe_option, option_context, options)
+
 # let init-time option registration happen
 import pandas.core.config_init
 
-from pandas.core.api import *
-from pandas.core.sparse.api import *
-from pandas.tseries.api import *
-from pandas.core.computation.api import *
-from pandas.core.reshape.api import *
+from pandas.core.api import (
+    # dtype
+    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype,
+    UInt16Dtype, UInt32Dtype, UInt64Dtype, CategoricalDtype,
+    PeriodDtype, IntervalDtype, DatetimeTZDtype,
+
+    # missing
+    isna, isnull, notna, notnull,
+
+    # indexes
+    Index, CategoricalIndex, Int64Index, UInt64Index, RangeIndex,
+    Float64Index, MultiIndex, IntervalIndex, TimedeltaIndex,
+    DatetimeIndex, PeriodIndex, IndexSlice,
+
+    # tseries
+    NaT, Period, period_range, Timedelta, timedelta_range,
+    Timestamp, date_range, bdate_range, Interval, interval_range,
+    DateOffset,
+
+    # conversion
+    to_numeric, to_datetime, to_timedelta,
+
+    # misc
+    np, TimeGrouper, Grouper, factorize, unique, value_counts,
+    array, Categorical, set_eng_float_format, Series, DataFrame,
+    Panel)
+
+from pandas.core.sparse.api import (
+    SparseArray, SparseDataFrame, SparseSeries, SparseDtype)
+
+from pandas.tseries.api import infer_freq
+from pandas.tseries import offsets
+
+from pandas.core.computation.api import eval
+
+from pandas.core.reshape.api import (
+    concat, lreshape, melt, wide_to_long, merge, merge_asof,
+    merge_ordered, crosstab, pivot, pivot_table, get_dummies,
+    cut, qcut)
 
 from pandas.util._print_versions import show_versions
-from pandas.io.api import *
+
+from pandas.io.api import (
+    # excel
+    ExcelFile, ExcelWriter, read_excel,
+
+    # packers
+    read_msgpack, to_msgpack,
+
+    # parsers
+    read_csv, read_fwf, read_table,
+
+    # pickle
+    read_pickle, to_pickle,
+
+    # pytables
+    HDFStore, read_hdf,
+
+    # sql
+    read_sql, read_sql_query,
+    read_sql_table,
+
+    # misc
+    read_clipboard, read_parquet, read_feather, read_gbq,
+    read_html, read_json, read_stata, read_sas)
+
 from pandas.util._tester import test
 import pandas.testing
 import pandas.arrays

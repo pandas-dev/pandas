@@ -2,15 +2,9 @@
 """
 Module for formatting output data in Latex.
 """
-from __future__ import print_function
-
 import numpy as np
 
-from pandas.compat import map, range, u, zip
-
 from pandas.core.dtypes.generic import ABCMultiIndex
-
-from pandas import compat
 
 from pandas.io.formats.format import TableFormatter
 
@@ -51,7 +45,7 @@ class LatexFormatter(TableFormatter):
 
         # string representation of the columns
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
-            info_line = (u('Empty {name}\nColumns: {col}\nIndex: {idx}')
+            info_line = ('Empty {name}\nColumns: {col}\nIndex: {idx}'
                          .format(name=type(self.frame).__name__,
                                  col=self.frame.columns,
                                  idx=self.frame.index))
@@ -101,8 +95,7 @@ class LatexFormatter(TableFormatter):
             if self.fmt.index:
                 index_format = 'l' * self.frame.index.nlevels
                 column_format = index_format + column_format
-        elif not isinstance(column_format,
-                            compat.string_types):  # pragma: no cover
+        elif not isinstance(column_format, str):  # pragma: no cover
             raise AssertionError('column_format must be str or unicode, '
                                  'not {typ}'.format(typ=type(column_format)))
 

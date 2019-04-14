@@ -294,14 +294,16 @@ def main():
                            help='number of jobs used by sphinx-build')
     argparser.add_argument('--no-api',
                            default=False,
-                           help='ommit api and autosummary',
+                           help='omit api and autosummary',
                            action='store_true')
     argparser.add_argument('--single',
                            metavar='FILENAME',
                            type=str,
                            default=None,
-                           help=('filename of section or method name to '
-                                 'compile, e.g. "indexing", "DataFrame.join"'))
+                           help=('filename (relative to the "source" folder)'
+                                 ' of section or method name to compile, e.g. '
+                                 '"development/contributing.rst",'
+                                 ' "ecosystem.rst", "pandas.DataFrame.join"'))
     argparser.add_argument('--python-path',
                            type=str,
                            default=os.path.dirname(DOC_PATH),
@@ -323,7 +325,7 @@ def main():
     # the import of `python_path` correctly. The latter is used to resolve
     # the import within the module, injecting it into the global namespace
     os.environ['PYTHONPATH'] = args.python_path
-    sys.path.append(args.python_path)
+    sys.path.insert(0, args.python_path)
     globals()['pandas'] = importlib.import_module('pandas')
 
     # Set the matplotlib backend to the non-interactive Agg backend for all

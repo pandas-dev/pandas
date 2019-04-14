@@ -284,7 +284,7 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
         else:
             # calculate a pivot so we can create child nodes
             self.is_leaf_node = False
-            self.pivot = np.median(left + right) / 2
+            self.pivot = np.median(left / 2 + right / 2)
             left_set, right_set, center_set = self.classify_intervals(
                 left, right)
 

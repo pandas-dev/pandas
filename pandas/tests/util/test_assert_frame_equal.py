@@ -185,14 +185,14 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
 
 
 @pytest.mark.parametrize("df1,df2,msg", [
-    (DataFrame({"A": [u"á", u"à", u"ä"], "E": [u"é", u"è", u"ë"]}),
-     DataFrame({"A": [u"á", u"à", u"ä"], "E": [u"é", u"è", u"e̊"]}),
+    (DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
+     DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "e̊"]}),
      """DataFrame\\.iloc\\[:, 1\\] are different
 
 DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[é, è, ë\\]
 \\[right\\]: \\[é, è, e̊\\]"""),
-    (DataFrame({"A": [u"á", u"à", u"ä"], "E": [u"é", u"è", u"ë"]}),
+    (DataFrame({"A": ["á", "à", "ä"], "E": ["é", "è", "ë"]}),
      DataFrame({"A": ["a", "a", "a"], "E": ["e", "e", "e"]}),
      """DataFrame\\.iloc\\[:, 0\\] are different
 

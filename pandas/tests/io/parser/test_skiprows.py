@@ -6,11 +6,12 @@ parsing for all of the parsers defined in parsers.py
 """
 
 from datetime import datetime
+from io import StringIO
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange, range
+from pandas.compat import lrange
 from pandas.errors import EmptyDataError
 
 from pandas import DataFrame, Index

@@ -1,6 +1,7 @@
 """
 Base and utility classes for pandas objects.
 """
+import builtins
 from collections import OrderedDict
 import textwrap
 import warnings
@@ -9,7 +10,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.compat import PYPY, builtins, map, range
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -24,6 +25,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
+from pandas.core.arrays import ExtensionArray
 import pandas.core.nanops as nanops
 
 _shared_docs = dict()
@@ -32,10 +34,8 @@ _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
 
 
 class StringMixin(object):
-    """implements string methods so long as object defines a `__unicode__`
-    method.
-
-    Handles Python2/3 compatibility transparently.
+    """
+    Implements string methods so long as object defines a `__unicode__` method.
     """
     # side note - this could be made into a metaclass if more than one
     #             object needs
@@ -49,23 +49,14 @@ class StringMixin(object):
     def __str__(self):
         """
         Return a string representation for a particular Object
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
         """
-
-        if compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
+        return self.__unicode__()
 
     def __bytes__(self):
         """
         Return a string representation for a particular object.
-
-        Invoked by bytes(obj) in py3 only.
-        Yields a bytestring in both py2/py3.
         """
-        from pandas.core.config import get_option
+        from pandas._config import get_option
 
         encoding = get_option("display.encoding")
         return self.__unicode__().encode(encoding, 'replace')
@@ -73,8 +64,6 @@ class StringMixin(object):
     def __repr__(self):
         """
         Return a string representation for a particular object.
-
-        Yields Bytestring in Py2, Unicode String in py3.
         """
         return str(self)
 
@@ -91,9 +80,6 @@ class PandasObject(StringMixin, DirNamesMixin):
     def __unicode__(self):
         """
         Return a string representation for a particular object.
-
-        Invoked by unicode(obj) in py2 only. Yields a Unicode String in both
-        py2/py3.
         """
         # Should be overwritten by base classes
         return object.__repr__(self)
@@ -305,7 +291,7 @@ class SelectionMixin(object):
         - raise
 
         """
-        assert isinstance(arg, compat.string_types)
+        assert isinstance(arg, str)
 
         f = getattr(self, arg, None)
         if f is not None:
@@ -352,7 +338,7 @@ class SelectionMixin(object):
             _axis = getattr(self, 'axis', 0)
         _level = kwargs.pop('_level', None)
 
-        if isinstance(arg, compat.string_types):
+        if isinstance(arg, str):
             return self._try_aggregate_string_function(arg, *args,
                                                        **kwargs), None
 
@@ -553,7 +539,7 @@ class SelectionMixin(object):
                                 name=getattr(self, 'name', None))
 
             return result, True
-        elif is_list_like(arg) and arg not in compat.string_types:
+        elif is_list_like(arg):
             # we require a list, but not an 'str'
             return self._aggregate_multiple_funcs(arg,
                                                   _level=_level,
@@ -762,7 +748,7 @@ class IndexOpsMixin(object):
         """
         Return the number of elements in the underlying data.
         """
-        return self._values.size
+        return len(self._values)
 
     @property
     def flags(self):
@@ -785,8 +771,7 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
-    def array(self):
-        # type: () -> ExtensionArray
+    def array(self) -> ExtensionArray:
         """
         The ExtensionArray of the data backing this Series or Index.
 
@@ -869,7 +854,6 @@ class IndexOpsMixin(object):
         A NumPy ndarray representing the values in this Series or Index.
 
         .. versionadded:: 0.24.0
-
 
         Parameters
         ----------
@@ -962,8 +946,7 @@ class IndexOpsMixin(object):
         return result
 
     @property
-    def _ndarray_values(self):
-        # type: () -> np.ndarray
+    def _ndarray_values(self) -> np.ndarray:
         """
         The data as an ndarray, possibly losing information.
 

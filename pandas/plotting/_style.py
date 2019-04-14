@@ -1,13 +1,10 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-from __future__ import division
-
 from contextlib import contextmanager
 import warnings
 
 import numpy as np
 
-import pandas.compat as compat
 from pandas.compat import lmap, lrange
 
 from pandas.core.dtypes.common import is_list_like
@@ -18,7 +15,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
     import matplotlib.pyplot as plt
 
     if color is None and colormap is not None:
-        if isinstance(colormap, compat.string_types):
+        if isinstance(colormap, str):
             import matplotlib.cm as cm
             cmap = colormap
             colormap = cm.get_cmap(colormap)
@@ -40,7 +37,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             except KeyError:
                 colors = list(plt.rcParams.get('axes.color_cycle',
                                                list('bgrcmyk')))
-            if isinstance(colors, compat.string_types):
+            if isinstance(colors, str):
                 colors = list(colors)
 
             colors = colors[0:num_colors]
@@ -57,7 +54,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
         else:
             raise ValueError("color_type must be either 'default' or 'random'")
 
-    if isinstance(colors, compat.string_types):
+    if isinstance(colors, str):
         import matplotlib.colors
         conv = matplotlib.colors.ColorConverter()
 

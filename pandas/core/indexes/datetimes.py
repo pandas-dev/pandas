@@ -1,6 +1,4 @@
 # pylint: disable=E1101
-from __future__ import division
-
 from datetime import datetime, time, timedelta
 import operator
 import warnings
@@ -10,7 +8,6 @@ import numpy as np
 from pandas._libs import (
     Timestamp, index as libindex, join as libjoin, lib, tslib as libts)
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
-import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -787,8 +784,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             snapped[i] = s
 
         # we know it conforms; skip check
-        return DatetimeIndex._simple_new(snapped, freq=freq)
-        # TODO: what about self.name?  tz? if so, use shallow_copy?
+        return DatetimeIndex._simple_new(snapped, name=self.name, tz=self.tz,
+                                         freq=freq)
 
     def join(self, other, how='left', level=None, return_indexers=False,
              sort=False):
@@ -1080,7 +1077,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if is_float(label) or isinstance(label, time) or is_integer(label):
             self._invalid_indexer('slice', label)
 
-        if isinstance(label, compat.string_types):
+        if isinstance(label, str):
             freq = getattr(self, 'freqstr',
                            getattr(self, 'inferred_freq', None))
             _, parsed, reso = parsing.parse_time_string(label, freq)
@@ -1136,8 +1133,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             # For historical reasons DatetimeIndex by default supports
             # value-based partial (aka string) slices on non-monotonic arrays,
             # let's try that.
-            if ((start is None or isinstance(start, compat.string_types)) and
-                    (end is None or isinstance(end, compat.string_types))):
+            if ((start is None or isinstance(start, str)) and
+                    (end is None or isinstance(end, str))):
                 mask = True
                 if start is not None:
                     start_casted = self._maybe_cast_slice_bound(
@@ -1276,7 +1273,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         except (AttributeError, TypeError):
 
             # fall back to object index
-            if isinstance(item, compat.string_types):
+            if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
             raise TypeError(
                 "cannot insert DatetimeIndex with incompatible label")
@@ -1333,7 +1330,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
 
-        if isinstance(time, compat.string_types):
+        if isinstance(time, str):
             from dateutil.parser import parse
             time = parse(time).time()
 

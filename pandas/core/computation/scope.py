@@ -4,6 +4,7 @@ Module for scope operations
 
 import datetime
 import inspect
+from io import StringIO
 import itertools
 import pprint
 import struct
@@ -12,7 +13,7 @@ import sys
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import DeepChainMap, StringIO, map
+from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.base import StringMixin
 import pandas.core.computation as compu
@@ -160,7 +161,7 @@ class Scope(StringMixin):
 
         Parameters
         ----------
-        key : text_type
+        key : str
             A variable name
         is_local : bool
             Flag indicating whether the variable is local or not (prefixed with

@@ -509,7 +509,6 @@ def test_conversions(data_missing):
         if pd.isnull(r):
             assert pd.isnull(e)
         elif is_integer(r):
-            # PY2 can be int or long
             assert r == e
             assert is_integer(e)
         else:
