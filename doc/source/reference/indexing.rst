@@ -352,7 +352,7 @@ Time/Date Components
    DatetimeIndex.dayofyear
    DatetimeIndex.weekofyear
    DatetimeIndex.week
-   DatetimeIndex.dayofweek
+   DatetimeIndex.day_of_week
    DatetimeIndex.weekday
    DatetimeIndex.quarter
    DatetimeIndex.tz
@@ -451,7 +451,7 @@ Properties
     :toctree: api/
 
     PeriodIndex.day
-    PeriodIndex.dayofweek
+    PeriodIndex.day_of_week
     PeriodIndex.dayofyear
     PeriodIndex.days_in_month
     PeriodIndex.daysinmonth
