@@ -20,11 +20,6 @@ from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
-@pytest.fixture(params=[True, False, None])
-def ordered(request):
-    return request.param
-
-
 class Base(object):
 
     def setup_method(self, method):
