@@ -623,27 +623,10 @@ class TestFancy(Base):
                     idxr(s2)['0'] = 0
                     assert s2.index.is_object()
 
-    @pytest.mark.parametrize('idx', [
-        Index([1, 1, 3]),
-        Index(['a', 'a', 'b', 'c', 'c', 'd']),
-        Index([1, 1, 1, 2, 2, 3]),
-        Index([1, 1, 2, 3, 1, 2, 3, 3])
-    ])
-    def test_duplicate_int_indexing(self, idx):
+    def test_duplicate_int_indexing(self):
         # GH 17347
-        s = pd.Series(range(len(idx)), idx)
-        dup_idx_filter = s.index.duplicated(keep=False)
-
-        # Check if s contains duplicated idx
-        if not dup_idx_filter.any:
-            pass
-        # Find the duplicate indexes
-        dup_idxes = s[dup_idx_filter].index.unique()
-
-        # Assert the duplicate indexes
-        for idx in dup_idxes:
-            assert s[idx].equals(s[[idx]])
-
+        s = pd.Series(range(3), index=[1, 1, 3])
+        tm.assert_series_equal(s[1],s[[1]])
 
 class TestMisc(Base):
 
