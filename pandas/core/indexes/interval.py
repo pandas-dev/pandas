@@ -7,7 +7,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import Timedelta, Timestamp
-from pandas._libs.algos import is_monotonic
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas.compat import add_metaclass
 from pandas.util._decorators import Appender, cache_readonly
@@ -450,10 +449,7 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic increasing (only equal or
         increasing values), else False
         """
-        values = [self.right, self.left]
-
-        sort_order = np.lexsort(values)
-        return is_monotonic(sort_order, False)[0]
+        return self._engine.is_monotonic_increasing
 
     @cache_readonly
     def is_monotonic_decreasing(self):
