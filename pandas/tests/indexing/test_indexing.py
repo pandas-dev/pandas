@@ -626,7 +626,7 @@ class TestFancy(Base):
     def test_duplicate_int_indexing(self):
         # GH 17347
         s = pd.Series(range(3), index=[1, 1, 3])
-        tm.assert_series_equal(s[1],s[[1]])
+        tm.assert_series_equal(s[1], s[[1]])
 
 class TestMisc(Base):
 
