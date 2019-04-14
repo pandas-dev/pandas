@@ -1052,20 +1052,10 @@ class TestDocstringClass(object):
         with pytest.raises(AttributeError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 
-    def missing_encoding_write_to_file(self):
-        """
-        Examples
-        --------
-        >>> try:
-        ...   docstr = validate_docstrings.Docstring('pandas.Series.str.isdecimal')
-        ...   result = docstr.validate_pep8()
-        ...   next(result)
-        ...   print(1)
-        ... except:
-        ...   0
-        1
-        """
-        pass
+    @pytest.mark.parametrize('name', ['pandas.Series.str.isdecimal'])
+    def test_encode_content_write_to_file(self, name):
+        docstr = validate_docstrings.Docstring(name).validate_pep8()
+        assert len(list(docstr)) == 0
 
 
 class TestMainFunction(object):
