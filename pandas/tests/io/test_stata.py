@@ -753,8 +753,7 @@ class TestStata(object):
     def test_missing_value_conversion(self, file):
         columns = ['int8_', 'int16_', 'int32_', 'float32_', 'float64_']
         smv = StataMissingValue(101)
-        keys = [key for key in smv.MISSING_VALUES.keys()]
-        keys.sort()
+        keys = sorted(smv.MISSING_VALUES.keys())
         data = []
         for i in range(27):
             row = [StataMissingValue(keys[i + (j * 27)]) for j in range(5)]
