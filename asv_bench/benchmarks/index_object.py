@@ -189,6 +189,7 @@ class IntervalIndexMethod(object):
         left = np.append(np.arange(N), np.array(0))
         right = np.append(np.arange(1, N + 1), np.array(1))
         self.intv = IntervalIndex.from_arrays(left, right)
+        self.intv._engine
 
     def time_monotonic_inc(self, N):
         self.intv.is_monotonic_increasing
