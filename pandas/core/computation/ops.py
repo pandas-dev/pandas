@@ -9,7 +9,6 @@ import operator as op
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import PY3
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
@@ -272,8 +271,8 @@ _bool_ops_funcs = op.and_, op.or_, op.and_, op.or_
 _bool_ops_dict = dict(zip(_bool_ops_syms, _bool_ops_funcs))
 
 _arith_ops_syms = '+', '-', '*', '/', '**', '//', '%'
-_arith_ops_funcs = (op.add, op.sub, op.mul, op.truediv if PY3 else op.div,
-                    op.pow, op.floordiv, op.mod)
+_arith_ops_funcs = (op.add, op.sub, op.mul, op.truediv, op.pow, op.floordiv,
+                    op.mod)
 _arith_ops_dict = dict(zip(_arith_ops_syms, _arith_ops_funcs))
 
 _special_case_arith_ops_syms = '**', '//', '%'
@@ -471,10 +470,9 @@ class Div(BinOp):
                                                       lhs.return_type,
                                                       rhs.return_type))
 
-        if truediv or PY3:
-            # do not upcast float32s to float64 un-necessarily
-            acceptable_dtypes = [np.float32, np.float_]
-            _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
+        # do not upcast float32s to float64 un-necessarily
+        acceptable_dtypes = [np.float32, np.float_]
+        _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
 
 
 _unary_ops_syms = '+', '-', '~', 'not'
