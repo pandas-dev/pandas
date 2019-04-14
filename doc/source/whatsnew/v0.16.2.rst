@@ -138,7 +138,7 @@ Bug Fixes
 - Bug where ``Panel.from_dict`` does not set dtype when specified (:issue:`10058`)
 - Bug in ``Index.union`` raises ``AttributeError`` when passing array-likes. (:issue:`10149`)
 - Bug in ``Timestamp``'s' ``microsecond``, ``quarter``, ``dayofyear``, ``week`` and ``daysinmonth`` properties return ``np.int`` type, not built-in ``int``. (:issue:`10050`)
-- Bug in ``NaT`` raises ``AttributeError`` when accessing to ``daysinmonth``, ``dayofweek`` properties. (:issue:`10096`)
+- Bug in ``NaT`` raises ``AttributeError`` when accessing to ``daysinmonth``, ``dayofweek``, ``day_of_week`` properties. (:issue:`10096`)
 - Bug in Index repr when using the ``max_seq_items=None`` setting (:issue:`10182`).
 - Bug in getting timezone data with ``dateutil`` on various platforms ( :issue:`9059`, :issue:`8639`, :issue:`9663`, :issue:`10121`)
 - Bug in displaying datetimes with mixed frequencies; display 'ms' datetimes to the proper precision. (:issue:`10170`)
