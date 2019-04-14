@@ -569,6 +569,7 @@ class Generic(object):
         (-1, "bfill", None, [0, 0, -.5, -.5, -.6, np.nan, np.nan, np.nan]),
         (-1, "bfill", 1, [np.nan, 0, -.5, -.5, -.6, np.nan, np.nan, np.nan])
     ])
+
     def test_pct_change(self, periods, fill_method, limit, exp):
         vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
         obj = self._typ(vals)
@@ -582,6 +583,16 @@ class Generic(object):
 
 class TestNDFrame(object):
     # tests that don't fit elsewhere
+
+    def test_to_excel_size(self):
+        BREAKING_SHAPE = (2**20 + 1, 2**14 + 1)
+        arr = np.zeros(shape=BREAKING_SHAPE)
+        df = pd.DataFrame(arr)
+        filepath = 'test.xlsx'
+
+        with pytest.raises(ValueError) as error_info:
+            df.to_excel(filepath)
+
 
     def test_sample(sel):
         # Fixes issue: 2419
