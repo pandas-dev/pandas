@@ -622,7 +622,7 @@ class TestFancy(Base):
                     s2 = s.copy()
                     idxr(s2)['0'] = 0
                     assert s2.index.is_object()
-                    
+
     @pytest.mark.parametrize('idx', [
         Index([1, 1, 3]),
         Index(['a', 'a', 'b', 'c', 'c', 'd']),
@@ -633,7 +633,7 @@ class TestFancy(Base):
         # GH 17347
         s = pd.Series(range(len(idx)), idx)
         dup_idx_filter = s.index.duplicated(keep=False)
-        
+
         # Check if s contains duplicated idx
         if not dup_idx_filter.any:
             pass
