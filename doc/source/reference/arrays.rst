@@ -60,6 +60,7 @@ Properties
    Timestamp.asm8
    Timestamp.day
    Timestamp.dayofweek
+   Timestamp.day_of_week
    Timestamp.dayofyear
    Timestamp.days_in_month
    Timestamp.daysinmonth
@@ -223,6 +224,7 @@ Properties
 
    Period.day
    Period.dayofweek
+   Period.day_of_week
    Period.dayofyear
    Period.days_in_month
    Period.daysinmonth
