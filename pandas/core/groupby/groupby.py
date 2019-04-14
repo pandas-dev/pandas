@@ -378,24 +378,15 @@ class _GroupBy(PandasObject, SelectionMixin):
         # TODO: Better unicode/repr for GroupBy object
         return object.__repr__(self)
 
-    def _assure_grouper(self):
-        """
-        We create the grouper on instantiation sub-classes may have a
-        different policy.
-        """
-        pass
-
     @property
     def groups(self):
         """
         Dict {group name -> group labels}.
         """
-        self._assure_grouper()
         return self.grouper.groups
 
     @property
     def ngroups(self):
-        self._assure_grouper()
         return self.grouper.ngroups
 
     @property
@@ -403,7 +394,6 @@ class _GroupBy(PandasObject, SelectionMixin):
         """
         Dict {group name -> group indices}.
         """
-        self._assure_grouper()
         return self.grouper.indices
 
     def _get_indices(self, names):
