@@ -44,7 +44,10 @@ class TimestampProperties(object):
         self.ts.tz
 
     def time_dayofweek(self, tz, freq):
-        self.ts.dayofweek
+        self.ts.day_of_week
+
+    def time_day_of_week(self, tz, freq):
+            self.ts.day_of_week
 
     def time_weekday_name(self, tz, freq):
         self.ts.day_name
