@@ -2984,7 +2984,8 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionchanged:: 0.25.0
 
                May now be a dict with key 'method' as compression mode
-               and 'arcname' as CSV file name if mode is 'zip'
+               and other entries as ByteZipFile kwargs if compression mode
+               is 'zip'
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`

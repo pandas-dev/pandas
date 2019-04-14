@@ -9,7 +9,7 @@ from io import BytesIO
 import lzma
 import mmap
 import os
-from typing import Dict, Union
+from typing import Dict, Tuple, Union
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode, urljoin, urlparse as parse_url, uses_netloc, uses_params,
@@ -269,39 +269,26 @@ def _get_compression_method(compression: Union[str, Dict, None]):
 
 def _infer_compression(filepath_or_buffer, compression):
     """
-    Get the compression method for filepath_or_buffer. If compression mode is
-    'infer', the inferred compression method is returned. Otherwise, the input
+    Get the compression method for filepath_or_buffer. If compression='infer',
+    the inferred compression method is returned. Otherwise, the input
     compression method is returned unchanged, unless it's invalid, in which
     case an error is raised.
-
     Parameters
     ----------
     filepath_or_buffer :
         a path (str) or buffer
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None} or dict
-        If string, specifies compression mode. If dict, value at key 'method'
-        specifies compression mode. If compression mode is 'infer' and
-        `filepath_or_buffer` is path-like, then detect compression from the
-        following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-        compression).
-
-        .. versionchanged 0.25.0
-
-        May now be a dict with required key 'method' specifying compression
-        mode
-
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
+        If 'infer' and `filepath_or_buffer` is path-like, then detect
+        compression from the following extensions: '.gz', '.bz2', '.zip',
+        or '.xz' (otherwise no compression).
     Returns
     -------
     string or None :
         compression method
-
     Raises
     ------
     ValueError on invalid compression specified
     """
-
-    # Handle compression as dict
-    compression, _ = _get_compression_method(compression)
 
     # No compression has been explicitly specified
     if compression is None:
@@ -357,7 +344,8 @@ def _get_handle(path_or_buf, mode, encoding=None,
         .. versionchanged:: 0.25.0
 
            May now be a dict with key 'method' as compression mode
-           and 'arcname' as CSV file name if mode is 'zip'
+           and other keys as kwargs for ByteZipFile if compression
+           mode is 'zip'.
 
     memory_map : boolean, default False
         See parsers._parser_params for more information.
@@ -374,7 +362,7 @@ def _get_handle(path_or_buf, mode, encoding=None,
     """
     try:
         from s3fs import S3File
-        need_text_wrapping = (BytesIO, S3File)
+        need_text_wrapping = (BytesIO, S3File)  # type: Tuple
     except ImportError:
         need_text_wrapping = (BytesIO,)
 
@@ -407,10 +395,7 @@ def _get_handle(path_or_buf, mode, encoding=None,
 
         # ZIP Compression
         elif compression == 'zip':
-            arcname = None
-            if 'arcname' in compression_args:
-                arcname = compression_args['arcname']
-            zf = BytesZipFile(path_or_buf, mode, arcname=arcname)
+            zf = BytesZipFile(path_or_buf, mode, **compression_args)
             # Ensure the container is closed as well.
             handles.append(zf)
             if zf.mode == 'w':
