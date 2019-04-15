@@ -6,7 +6,7 @@ Cross-compatible functions for different versions of Python.
 
 Key items to import for compatible code:
 * lists: lrange(), lmap(), lzip(), lfilter()
-* iterable method compatibility: iteritems, iterkeys, itervalues
+* iterable method compatibility: iterkeys, itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
 * add_metaclass(metaclass) - class decorator that recreates class with with the
   given metaclass instead (and avoids intermediary class creation)
@@ -40,10 +40,6 @@ def lmap(*args, **kwargs):
 
 def lfilter(*args, **kwargs):
     return list(filter(*args, **kwargs))
-
-
-def iteritems(obj, **kw):
-    return iter(obj.items(**kw))
 
 
 def iterkeys(obj, **kw):

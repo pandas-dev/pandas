@@ -13,8 +13,7 @@ from pandas.compat import is_platform_32bit, lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json)
+from pandas import DataFrame, DatetimeIndex, Series, Timestamp, read_json
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_index_equal,
@@ -26,7 +25,7 @@ _tsd = tm.getTimeSeriesData()
 _frame = DataFrame(_seriesd)
 _frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
 _intframe = DataFrame({k: v.astype(np.int64)
-                       for k, v in compat.iteritems(_seriesd)})
+                       for k, v in _seriesd.items()})
 
 _tsframe = DataFrame(_tsd)
 _cat_frame = _frame.copy()

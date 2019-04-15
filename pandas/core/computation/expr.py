@@ -10,7 +10,7 @@ import tokenize
 
 import numpy as np
 
-from pandas.compat import iteritems, lmap
+from pandas.compat import lmap
 
 import pandas as pd
 from pandas.core import common as com
@@ -300,7 +300,7 @@ _op_classes = {'binary': BinOp, 'unary': UnaryOp}
 def add_ops(op_classes):
     """Decorator to add default implementation of ops."""
     def f(cls):
-        for op_attr_name, op_class in iteritems(op_classes):
+        for op_attr_name, op_class in op_classes.items():
             ops = getattr(cls, '{name}_ops'.format(name=op_attr_name))
             ops_map = getattr(cls, '{name}_op_nodes_map'.format(
                 name=op_attr_name))
