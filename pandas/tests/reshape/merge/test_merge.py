@@ -1,5 +1,3 @@
-# pylint: disable=E1103
-
 from collections import OrderedDict
 from datetime import date, datetime
 import random

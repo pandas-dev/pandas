@@ -10,7 +10,6 @@ from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
-from pandas.compat import iteritems
 from pandas.compat.numpy import np_datetime64_compat
 
 import pandas as pd
@@ -708,7 +707,7 @@ class TestPeriodProperties(object):
                  "N": ["NANOSECOND", "NANOSECONDLY", "nanosecond"]}
 
         msg = INVALID_FREQ_ERR_MSG
-        for exp, freqs in iteritems(cases):
+        for exp, freqs in cases.items():
             for freq in freqs:
                 with pytest.raises(ValueError, match=msg):
                     Period('2016-03-01 09:00', freq=freq)

@@ -14,7 +14,7 @@ from typing import Any
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas.compat import PY36, iteritems
+from pandas.compat import PY36
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -362,7 +362,7 @@ def dict_compat(d):
     dict
 
     """
-    return {maybe_box_datetimelike(key): value for key, value in iteritems(d)}
+    return {maybe_box_datetimelike(key): value for key, value in d.items()}
 
 
 def standardize_mapping(into):

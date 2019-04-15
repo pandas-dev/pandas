@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101,W0141
 import datetime
 from io import StringIO
 import itertools

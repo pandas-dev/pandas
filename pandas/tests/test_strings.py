@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, timedelta
 import re
 
@@ -2160,10 +2158,6 @@ class TestStringMethods(object):
             result = s.str.translate(table)
             expected = klass(['cdedefg', 'cdee', 'edddfg', 'edefggg'])
             _check(result, expected)
-
-            msg = "deletechars is not a valid argument"
-            with pytest.raises(ValueError, match=msg):
-                result = s.str.translate(table, deletechars='fg')
 
         # Series with non-string values
         s = Series(['a', 'b', 'c', 1.2])

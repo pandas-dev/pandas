@@ -2,37 +2,24 @@
 compat
 ======
 
-Cross-compatible functions for Python 2 and 3.
+Cross-compatible functions for different versions of Python.
 
-Key items to import for 2/3 compatible code:
+Key items to import for compatible code:
 * lists: lrange(), lmap(), lzip(), lfilter()
-* iterable method compatibility: iteritems, iterkeys, itervalues
-  * Uses the original method if available, otherwise uses items, keys, values.
-* bind_method: binds functions to classes
 * add_metaclass(metaclass) - class decorator that recreates class with with the
   given metaclass instead (and avoids intermediary class creation)
 
 Other items:
 * platform checker
 """
-# pylint disable=W0611
-# flake8: noqa
-
-import re
-from distutils.version import LooseVersion
-import sys
 import platform
-import types
+import re
 import struct
+import sys
 
-PY2 = sys.version_info[0] == 2
-PY3 = sys.version_info[0] >= 3
-PY35 = sys.version_info >= (3, 5)
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
 PYPY = platform.python_implementation() == 'PyPy'
-
-from pandas.compat.chainmap import DeepChainMap
 
 
 # list-producing versions of the major Python iterating functions
@@ -52,73 +39,6 @@ def lfilter(*args, **kwargs):
     return list(filter(*args, **kwargs))
 
 
-if PY3:
-    def isidentifier(s):
-        return s.isidentifier()
-
-    def str_to_bytes(s, encoding=None):
-        return s.encode(encoding or 'ascii')
-
-    def bytes_to_str(b, encoding=None):
-        return b.decode(encoding or 'utf-8')
-
-else:
-    # Python 2
-    _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
-
-    def isidentifier(s, dotted=False):
-        return bool(_name_re.match(s))
-
-    def str_to_bytes(s, encoding='ascii'):
-        return s
-
-    def bytes_to_str(b, encoding='ascii'):
-        return b
-
-if PY2:
-    def iteritems(obj, **kw):
-        return obj.iteritems(**kw)
-
-    def iterkeys(obj, **kw):
-        return obj.iterkeys(**kw)
-
-    def itervalues(obj, **kw):
-        return obj.itervalues(**kw)
-
-else:
-    def iteritems(obj, **kw):
-        return iter(obj.items(**kw))
-
-    def iterkeys(obj, **kw):
-        return iter(obj.keys(**kw))
-
-    def itervalues(obj, **kw):
-        return iter(obj.values(**kw))
-
-
-def bind_method(cls, name, func):
-    """Bind a method to class, python 2 and python 3 compatible.
-
-    Parameters
-    ----------
-
-    cls : type
-        class to receive bound method
-    name : basestring
-        name of method on class instance
-    func : function
-        function to be bound as method
-
-
-    Returns
-    -------
-    None
-    """
-    # only python 2 has bound/unbound method issue
-    if not PY3:
-        setattr(cls, name, types.MethodType(func, None, cls))
-    else:
-        setattr(cls, name, func)
 # ----------------------------------------------------------------------------
 # functions largely based / taken from the six module
 
@@ -127,42 +47,33 @@ def bind_method(cls, name, func):
 # found at https://bitbucket.org/gutworth/six
 
 
-if PY3:
-    def to_str(s):
-        """
-        Convert bytes and non-string into Python 3 str
-        """
-        if isinstance(s, bytes):
-            s = bytes_to_str(s)
-        elif not isinstance(s, str):
-            s = str(s)
-        return s
+def to_str(s):
+    """
+    Convert bytes and non-string into Python 3 str
+    """
+    if isinstance(s, bytes):
+        s = s.decode('utf-8')
+    elif not isinstance(s, str):
+        s = str(s)
+    return s
 
-    def set_function_name(f, name, cls):
-        """ Bind the name/qualname attributes of the function """
-        f.__name__ = name
-        f.__qualname__ = '{klass}.{name}'.format(
-            klass=cls.__name__,
-            name=name)
-        f.__module__ = cls.__module__
-        return f
-else:
-    def to_str(s):
-        """
-        Convert unicode and non-string into Python 2 str
-        """
-        if not isinstance(s, basestring):
-            s = str(s)
-        return s
 
-    def set_function_name(f, name, cls):
-        """ Bind the name attributes of the function """
-        f.__name__ = name
-        return f
+def set_function_name(f, name, cls):
+    """
+    Bind the name/qualname attributes of the function
+    """
+    f.__name__ = name
+    f.__qualname__ = '{klass}.{name}'.format(
+        klass=cls.__name__,
+        name=name)
+    f.__module__ = cls.__module__
+    return f
 
 
 def add_metaclass(metaclass):
-    """Class decorator for creating a class with a metaclass."""
+    """
+    Class decorator for creating a class with a metaclass.
+    """
     def wrapper(cls):
         orig_vars = cls.__dict__.copy()
         orig_vars.pop('__dict__', None)
@@ -172,31 +83,15 @@ def add_metaclass(metaclass):
         return metaclass(cls.__name__, cls.__bases__, orig_vars)
     return wrapper
 
-if PY3:
-    def raise_with_traceback(exc, traceback=Ellipsis):
-        if traceback == Ellipsis:
-            _, _, traceback = sys.exc_info()
-        raise exc.with_traceback(traceback)
-else:
-    # this version of raise is a syntax error in Python 3
-    exec("""
+
 def raise_with_traceback(exc, traceback=Ellipsis):
+    """
+    Raise exception with existing traceback.
+    If traceback is not passed, uses sys.exc_info() to get traceback.
+    """
     if traceback == Ellipsis:
         _, _, traceback = sys.exc_info()
-    raise exc, None, traceback
-""")
-
-raise_with_traceback.__doc__ = """Raise exception with existing traceback.
-If traceback is not passed, uses sys.exc_info() to get traceback."""
-
-
-# dateutil minimum version
-import dateutil
-
-if LooseVersion(dateutil.__version__) < LooseVersion('2.5'):
-    raise ImportError('dateutil 2.5.0 is the minimum required version')
-from dateutil import parser as _date_parser
-parse_date = _date_parser.parse
+    raise exc.with_traceback(traceback)
 
 
 # In Python 3.7, the private re._pattern_type is removed.
@@ -206,6 +101,7 @@ if PY36:
     re_type = typing.re.Pattern
 else:
     re_type = type(re.compile(''))
+
 
 # https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():

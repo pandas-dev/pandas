@@ -2,9 +2,6 @@
 Data structures for sparse float data. Life is made simpler by dealing only
 with float64 data
 """
-
-# pylint: disable=E1101,E1103,W0231
-
 from collections import abc
 import warnings
 
