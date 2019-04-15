@@ -1601,8 +1601,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
                    'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
-        if compat.PY2:
-            special.add('div')
         aliases = {
             'subtract': 'sub',
             'multiply': 'mul',

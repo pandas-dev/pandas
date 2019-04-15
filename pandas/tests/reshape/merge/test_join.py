@@ -1,11 +1,8 @@
-# pylint: disable=E1103
-
 import numpy as np
 from numpy.random import randn
 import pytest
 
 from pandas._libs import join as libjoin
-import pandas.compat as compat
 from pandas.compat import lrange
 
 import pandas as pd
@@ -783,6 +780,6 @@ def _join_by_hand(a, b, how='left'):
 
     result_columns = a.columns.append(b.columns)
 
-    for col, s in compat.iteritems(b_re):
+    for col, s in b_re.items():
         a_re[col] = s
     return a_re.reindex(columns=result_columns)

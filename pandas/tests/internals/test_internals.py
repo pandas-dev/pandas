@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=W0102
 from collections import OrderedDict
 from datetime import date, datetime
 from distutils.version import LooseVersion

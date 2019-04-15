@@ -7,7 +7,6 @@ import warnings
 import numpy as np
 from numpy import random
 
-from pandas.compat import iteritems
 from pandas.util._decorators import cache_readonly
 import pandas.util._test_decorators as td
 
@@ -416,7 +415,7 @@ class TestPlotBase(object):
             assert isinstance(returned, Series)
 
             assert sorted(returned.keys()) == sorted(expected_keys)
-            for key, value in iteritems(returned):
+            for key, value in returned.items():
                 assert isinstance(value, types[return_type])
                 # check returned dict has correct mapping
                 if return_type == 'axes':

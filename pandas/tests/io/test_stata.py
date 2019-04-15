@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=E1101
-
 from collections import OrderedDict
 import datetime as dt
 from datetime import datetime
@@ -13,7 +11,6 @@ import warnings
 import numpy as np
 import pytest
 
-import pandas.compat as compat
 from pandas.compat import iterkeys
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -685,7 +682,7 @@ class TestStata(object):
             sr_117 = rdr.variable_labels()
         keys = ('var1', 'var2', 'var3')
         labels = ('label1', 'label2', 'label3')
-        for k, v in compat.iteritems(sr_115):
+        for k, v in sr_115.items():
             assert k in sr_117
             assert v == sr_117[k]
             assert k in keys

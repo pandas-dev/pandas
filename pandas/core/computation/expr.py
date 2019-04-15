@@ -10,7 +10,7 @@ import tokenize
 
 import numpy as np
 
-from pandas.compat import iteritems, lmap
+from pandas.compat import lmap
 
 import pandas as pd
 from pandas.core import common as com
@@ -300,7 +300,7 @@ _op_classes = {'binary': BinOp, 'unary': UnaryOp}
 def add_ops(op_classes):
     """Decorator to add default implementation of ops."""
     def f(cls):
-        for op_attr_name, op_class in iteritems(op_classes):
+        for op_attr_name, op_class in op_classes.items():
             ops = getattr(cls, '{name}_ops'.format(name=op_attr_name))
             ops_map = getattr(cls, '{name}_op_nodes_map'.format(
                 name=op_attr_name))
@@ -418,11 +418,13 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     def _maybe_downcast_constants(self, left, right):
         f32 = np.dtype(np.float32)
-        if left.is_scalar and not right.is_scalar and right.return_type == f32:
+        if (left.is_scalar and hasattr(left, 'value') and
+                not right.is_scalar and right.return_type == f32):
             # right is a float32 array, left is a scalar
             name = self.env.add_tmp(np.float32(left.value))
             left = self.term_type(name, self.env)
-        if right.is_scalar and not left.is_scalar and left.return_type == f32:
+        if (right.is_scalar and hasattr(right, 'value') and
+                not left.is_scalar and left.return_type == f32):
             # left is a float32 array, right is a scalar
             name = self.env.add_tmp(np.float32(right.value))
             right = self.term_type(name, self.env)

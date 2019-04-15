@@ -34,10 +34,8 @@ _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
 
 
 class StringMixin(object):
-    """implements string methods so long as object defines a `__unicode__`
-    method.
-
-    Handles Python2/3 compatibility transparently.
+    """
+    Implements string methods so long as object defines a `__unicode__` method.
     """
     # side note - this could be made into a metaclass if more than one
     #             object needs
@@ -51,21 +49,12 @@ class StringMixin(object):
     def __str__(self):
         """
         Return a string representation for a particular Object
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
         """
-
-        if compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
+        return self.__unicode__()
 
     def __bytes__(self):
         """
         Return a string representation for a particular object.
-
-        Invoked by bytes(obj) in py3 only.
-        Yields a bytestring in both py2/py3.
         """
         from pandas._config import get_option
 
@@ -75,8 +64,6 @@ class StringMixin(object):
     def __repr__(self):
         """
         Return a string representation for a particular object.
-
-        Yields Bytestring in Py2, Unicode String in py3.
         """
         return str(self)
 
@@ -93,9 +80,6 @@ class PandasObject(StringMixin, DirNamesMixin):
     def __unicode__(self):
         """
         Return a string representation for a particular object.
-
-        Invoked by unicode(obj) in py2 only. Yields a Unicode String in both
-        py2/py3.
         """
         # Should be overwritten by base classes
         return object.__repr__(self)
@@ -380,7 +364,7 @@ class SelectionMixin(object):
             # be list-likes
             if any(is_aggregator(x) for x in compat.itervalues(arg)):
                 new_arg = OrderedDict()
-                for k, v in compat.iteritems(arg):
+                for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
                     else:
@@ -448,7 +432,7 @@ class SelectionMixin(object):
                 return an OrderedDict
                 """
                 result = OrderedDict()
-                for fname, agg_how in compat.iteritems(arg):
+                for fname, agg_how in arg.items():
                     result[fname] = func(fname, agg_how)
                 return result
 

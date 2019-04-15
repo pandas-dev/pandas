@@ -1,4 +1,3 @@
-# pylint: disable-msg=E1101,W0613,W0603
 """
 High level interface to PyTables for reading and writing pandas data structures
 to disk
@@ -29,8 +28,8 @@ from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
     DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, PeriodIndex,
-    Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat, concat,
-    isna, to_datetime)
+    Series, SparseDataFrame, SparseSeries, TimedeltaIndex, concat, isna,
+    to_datetime)
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
@@ -2448,7 +2447,7 @@ class GenericFixed(Fixed):
 
     """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime', PeriodIndex: 'period'}
-    _reverse_index_map = {v: k for k, v in compat.iteritems(_index_type_map)}
+    _reverse_index_map = {v: k for k, v in _index_type_map.items()}
     attributes = []
 
     # indexer helpders
@@ -2912,7 +2911,7 @@ class SparseFrameFixed(SparseFixed):
     def write(self, obj, **kwargs):
         """ write it as a collection of individual sparse series """
         super(SparseFrameFixed, self).write(obj, **kwargs)
-        for name, ss in compat.iteritems(obj):
+        for name, ss in obj.items():
             key = 'sparse_series_{name}'.format(name=name)
             if key not in self.group._v_children:
                 node = self._handle.create_group(self.group, key)
