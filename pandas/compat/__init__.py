@@ -14,7 +14,6 @@ Key items to import for compatible code:
 Other items:
 * platform checker
 """
-
 import platform
 import re
 import struct

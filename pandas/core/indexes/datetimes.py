@@ -1,4 +1,3 @@
-# pylint: disable=E1101
 from datetime import datetime, time, timedelta
 import operator
 import warnings

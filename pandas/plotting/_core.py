@@ -1,5 +1,4 @@
 # being a bit too dynamic
-# pylint: disable=E1101
 from collections import namedtuple
 import re
 from typing import List, Optional, Type

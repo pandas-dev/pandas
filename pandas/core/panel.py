@@ -1,7 +1,6 @@
 """
 Contains data structures designed for manipulating panel (3-dimensional) data
 """
-# pylint: disable=E1103,W0231,W0212,W0621
 from collections import OrderedDict
 import warnings
 

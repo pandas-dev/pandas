@@ -1,5 +1,4 @@
 # being a bit too dynamic
-# pylint: disable=E1101
 import numpy as np
 
 from pandas.compat import lmap, lrange

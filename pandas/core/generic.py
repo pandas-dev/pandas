@@ -1,4 +1,3 @@
-# pylint: disable=W0231,E1101
 import collections
 from datetime import timedelta
 import functools

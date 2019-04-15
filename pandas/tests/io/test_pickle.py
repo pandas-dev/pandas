@@ -1,5 +1,3 @@
-# pylint: disable=E1101,E1103,W0232
-
 """
 manage legacy pickle tests
 

@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=W0102
-
 import numpy as np
 import pytest
 

@@ -1,5 +1,4 @@
 # being a bit too dynamic
-# pylint: disable=E1101
 from contextlib import contextmanager
 import warnings
 

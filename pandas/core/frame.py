@@ -1,5 +1,3 @@
-# pylint: disable=E1101
-# pylint: disable=W0212,W0703,W0622
 """
 DataFrame
 ---------

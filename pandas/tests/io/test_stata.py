@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=E1101
-
 from collections import OrderedDict
 import datetime as dt
 from datetime import datetime

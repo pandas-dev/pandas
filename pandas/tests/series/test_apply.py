@@ -1,6 +1,4 @@
 # coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from collections import Counter, OrderedDict, defaultdict
 from itertools import chain
 

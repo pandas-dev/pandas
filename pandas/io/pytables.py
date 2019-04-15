@@ -1,4 +1,3 @@
-# pylint: disable-msg=E1101,W0613,W0603
 """
 High level interface to PyTables for reading and writing pandas data structures
 to disk

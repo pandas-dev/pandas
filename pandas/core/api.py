@@ -1,5 +1,3 @@
-
-# pylint: disable=W0614,W0401,W0611
 # flake8: noqa
 
 import numpy as np

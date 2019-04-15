@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-# pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 import pydoc
 

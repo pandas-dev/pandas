@@ -1,5 +1,4 @@
 # being a bit too dynamic
-# pylint: disable=E1101
 from math import ceil
 import warnings
 
