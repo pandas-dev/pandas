@@ -318,6 +318,7 @@ class NaTType(_NaT):
     weekofyear = property(fget=lambda self: np.nan)
     days_in_month = property(fget=lambda self: np.nan)
     daysinmonth = property(fget=lambda self: np.nan)
+    day_of_week = property(fget=lambda self: np.nan)
     dayofweek = property(fget=lambda self: np.nan)
     weekday_name = property(fget=lambda self: np.nan)
 
@@ -386,7 +387,6 @@ class NaTType(_NaT):
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
-
     strptime = _make_error_func('strptime',  # noqa:E128
         """
         Timestamp.strptime(string, format)

@@ -595,11 +595,12 @@ class Timestamp(_Timestamp):
         return Period(self, freq=freq)
 
     @property
-    def dayofweek(self):
+    def day_of_week(self):
         """
         Return day of whe week.
         """
         return self.weekday()
+    dayofweek = day_of_week
 
     def day_name(self, locale=None):
         """
