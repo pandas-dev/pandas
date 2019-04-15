@@ -14,13 +14,10 @@ Key items to import for compatible code:
 Other items:
 * platform checker
 """
-# flake8: noqa
-
-import re
-from distutils.version import LooseVersion
-import sys
 import platform
+import re
 import struct
+import sys
 
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
@@ -108,6 +105,7 @@ def raise_with_traceback(exc, traceback=Ellipsis):
     if traceback == Ellipsis:
         _, _, traceback = sys.exc_info()
     raise exc.with_traceback(traceback)
+
 
 # In Python 3.7, the private re._pattern_type is removed.
 # Python 3.5+ have typing.re.Pattern
