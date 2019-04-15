@@ -2579,11 +2579,8 @@ class NDFrame(PandasObject, SelectionMixin):
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
-            values for this parameter depend on the version of Python. For
-            Python 2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a
-            valid value. For Python >= 3.4, 4 is a valid value. A negative
-            value for the protocol parameter is equivalent to setting its value
-            to HIGHEST_PROTOCOL.
+            values are 0, 1, 2, 3, 4. A negative value for the protocol
+            parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
 
             .. [1] https://docs.python.org/3/library/pickle.html
             .. versionadded:: 0.21.0
@@ -2836,7 +2833,7 @@ class NDFrame(PandasObject, SelectionMixin):
             characters in column names.
         encoding : str, optional
             A string representing the encoding to use in the output file,
-            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+            defaults to 'utf-8'.
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
 
@@ -2965,7 +2962,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Python write mode, default 'w'.
         encoding : str, optional
             A string representing the encoding to use in the output file,
-            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+            defaults to 'utf-8'.
         compression : str, default 'infer'
             Compression mode among the following possible values: {'infer',
             'gzip', 'bz2', 'zip', 'xz', None}. If 'infer' and `path_or_buf`

@@ -49,8 +49,7 @@ class TestToCSV(object):
         df = DataFrame({'col': ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
 
         with tm.ensure_clean('test.csv') as path:
-            # the default to_csv encoding in Python 2 is ascii, and that in
-            # Python 3 is uft-8.
+            # the default to_csv encoding is uft-8.
             df.to_csv(path)
             tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
 

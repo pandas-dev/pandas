@@ -33,11 +33,7 @@ def init_gtk_clipboard():
 
     def paste_gtk():
         clipboardContents = gtk.Clipboard().wait_for_text()
-        # for python 2, returns None if the clipboard is blank.
-        if clipboardContents is None:
-            return ''
-        else:
-            return clipboardContents
+        return clipboardContents
 
     return copy_gtk, paste_gtk
 

@@ -151,10 +151,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
 
     def __unicode__(self):
         """
-        Return a string representation for this object.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a unicode string representation for this object.
         """
         prepr = pprint_thing(self, escape_chars=('\t', '\r', '\n'),
                              quote_strings=True)

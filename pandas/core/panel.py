@@ -344,10 +344,7 @@ class Panel(NDFrame):
 
     def __unicode__(self):
         """
-        Return a string representation for a particular Panel.
-
-        Invoked by unicode(df) in py2 only.
-        Yields a Unicode String in both py2/py3.
+        Return a unicode string representation for a particular Panel.
         """
 
         class_name = str(self.__class__)

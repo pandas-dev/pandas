@@ -113,10 +113,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             result = op(s, other)
             expected = s.combine(other, op)
 
-            if op_name == '__rdiv__':
-                # combine is not giving the correct result for this case
-                pytest.skip("skipping reverse div in python 2")
-            elif op_name in ('__rtruediv__', '__truediv__', '__div__'):
+            if op_name in ('__rtruediv__', '__truediv__', '__div__'):
                 expected = expected.astype(float)
                 if op_name == '__rtruediv__':
                     # TODO reverse operators result in object dtype

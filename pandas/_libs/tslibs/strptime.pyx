@@ -7,19 +7,7 @@ import calendar
 import re
 from datetime import date as datetime_date
 
-
-# Python 2 vs Python 3
-try:
-    from thread import allocate_lock as _thread_allocate_lock
-except:
-    try:
-        from _thread import allocate_lock as _thread_allocate_lock
-    except:
-        try:
-            from dummy_thread import allocate_lock as _thread_allocate_lock
-        except:
-            from _dummy_thread import allocate_lock as _thread_allocate_lock
-
+from _thread import allocate_lock as _thread_allocate_lock
 
 import pytz
 
