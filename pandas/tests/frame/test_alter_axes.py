@@ -620,10 +620,9 @@ class TestDataFrameAlterAxes():
 
         # index
         data = {
-            'A': {'foo': 0, 'bar': 1}
+            'A': {'bar': 0, 'foo': 1}
         }
 
-        # gets sorted alphabetical
         df = DataFrame(data)
         renamed = df.rename(index={'foo': 'bar', 'bar': 'foo'})
         tm.assert_index_equal(renamed.index, Index(['foo', 'bar']))
