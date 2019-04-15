@@ -1,5 +1,4 @@
 # coding=utf-8
-# pylint: disable-msg=E1101,W0612
 from collections import OrderedDict
 import pydoc
 import warnings

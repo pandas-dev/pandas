@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101
 from collections import OrderedDict
 from datetime import timedelta
 from io import StringIO

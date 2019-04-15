@@ -50,10 +50,6 @@ from pandas.core.tools.datetimes import to_datetime
 import pandas.io.formats.format as fmt
 import pandas.plotting._core as gfx
 
-# pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613,W0201
-
-
 __all__ = ['Series']
 
 _shared_doc_kwargs = dict(

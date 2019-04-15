@@ -1,5 +1,3 @@
-# pylint: disable=E1101,W0232
-
 from shutil import get_terminal_size
 import textwrap
 from warnings import warn

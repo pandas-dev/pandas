@@ -1,5 +1,3 @@
-# pylint: disable=E1103
-
 import numpy as np
 from numpy.random import randn
 import pytest
