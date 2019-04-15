@@ -788,8 +788,7 @@ class PandasExprVisitor(BaseExprVisitor):
                      _replace_locals, _replace_booleans,
                      _clean_spaces_backtick_quoted_names)),
                  partial_str_match=False):
-        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser,
-                                                partial_str_match)
+        super().__init__(env, engine, parser, preparser, partial_str_match)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
@@ -797,9 +796,8 @@ class PythonExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser, preparser=lambda x: x,
                  partial_str_match=False):
-        super(PythonExprVisitor, self).__init__(
-            env, engine, parser, preparser=preparser,
-            partial_str_match=partial_str_match)
+        super().__init__(env, engine, parser, preparser=preparser,
+                         partial_str_match=partial_str_match)
 
 
 class Expr(StringMixin):
