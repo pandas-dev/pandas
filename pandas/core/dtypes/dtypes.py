@@ -775,7 +775,9 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
 
         elif freq is None:
             # empty constructor for pickle compat
-            return object.__new__(cls)
+            u = object.__new__(cls)
+            u._freq = None
+            return u
 
         if not isinstance(freq, ABCDateOffset):
             freq = cls._parse_dtype_strict(freq)
@@ -845,6 +847,10 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
             return other == self.name or other == self.name.title()
 
         return isinstance(other, PeriodDtype) and self.freq == other.freq
+
+    def __setstate__(self, state):
+        # for pickle compat.
+        self._freq = state['freq']
 
     @classmethod
     def is_dtype(cls, dtype):
@@ -1009,6 +1015,10 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         else:
             from pandas.core.dtypes.common import is_dtype_equal
             return is_dtype_equal(self.subtype, other.subtype)
+
+    def __setstate__(self, state):
+        # for pickle compat.
+        self._subtype = state['subtype']
 
     @classmethod
     def is_dtype(cls, dtype):
