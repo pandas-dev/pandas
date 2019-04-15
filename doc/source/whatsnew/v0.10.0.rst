@@ -299,7 +299,8 @@ Updated PyTables Support
 
     In [41]: store = pd.HDFStore('store.h5')
 
-    In [42]: df = pd.DataFrame(np.random.randn(8, 3), index=pd.date_range('1/1/2000', periods=8),
+    In [42]: df = pd.DataFrame(np.random.randn(8, 3),
+       ....:                   index=pd.date_range('1/1/2000', periods=8),
        ....:                   columns=['A', 'B', 'C'])
 
     In [43]: df
@@ -361,11 +362,11 @@ Updated PyTables Support
     Minor_axis axis: A to D
 
     # storing a panel
-    In [52]: store.append('wp',wp)
+    In [52]: store.append('wp', wp)
 
     # selecting via A QUERY
-    In [53]: store.select('wp',
-       ....:   [ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
+    In [53]: store.select('wp', [pd.Term('major_axis>20000102'),
+       ....:                     pd.Term('minor_axis', '=', ['A', 'B'])])
        ....:
     Out[53]:
     <class 'pandas.core.panel.Panel'>
@@ -375,7 +376,7 @@ Updated PyTables Support
     Minor_axis axis: A to B
 
     # removing data from tables
-    In [54]: store.remove('wp', Term('major_axis>20000103'))
+    In [54]: store.remove('wp', pd.Term('major_axis>20000103'))
     Out[54]: 8
 
     In [55]: store.select('wp')
@@ -406,7 +407,7 @@ Updated PyTables Support
 
         In [59]: store.append('food/orange', df)
 
-        In [60]: store.append('food/apple',  df)
+        In [60]: store.append('food/apple', df)
 
         In [61]: store
         Out[61]:
@@ -433,9 +434,9 @@ Updated PyTables Support
 
         In [64]: df['string'] = 'string'
 
-        In [65]: df['int']    = 1
+        In [65]: df['int'] = 1
 
-        In [66]: store.append('df',df)
+        In [66]: store.append('df', df)
 
         In [67]: df1 = store.select('df')
 
