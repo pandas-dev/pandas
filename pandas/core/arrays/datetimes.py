@@ -247,7 +247,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                  'is_year_end', 'is_leap_year']
     _object_ops = ['weekday_name', 'freq', 'tz']
     _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
-                  'weekofyear', 'week', 'weekday', 'dayofweek',
+                  'weekofyear', 'week', 'weekday', 'dayofweek','day_of_week',
                   'dayofyear', 'quarter', 'days_in_month',
                   'daysinmonth', 'microsecond',
                   'nanosecond']
@@ -1338,14 +1338,14 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
     See Also
     --------
-    Series.dt.dayofweek : Alias.
+    Series.dt.day_of_week : Alias.
     Series.dt.weekday : Alias.
     Series.dt.day_name : Returns the name of the day of the week.
 
     Examples
     --------
     >>> s = pd.date_range('2016-12-31', '2017-01-08', freq='D').to_series()
-    >>> s.dt.dayofweek
+    >>> s.dt.day_of_week
     2016-12-31    5
     2017-01-01    6
     2017-01-02    0
@@ -1357,8 +1357,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     2017-01-08    6
     Freq: D, dtype: int64
     """
-    dayofweek = _field_accessor('dayofweek', 'dow', _dayofweek_doc)
-    weekday = dayofweek
+    day_of_week = _field_accessor('day_of_week', 'dow', _dayofweek_doc)
+    day_of_week = dayofweek
+    weekday = day_of_week
 
     weekday_name = _field_accessor(
         'weekday_name',

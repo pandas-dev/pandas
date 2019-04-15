@@ -173,6 +173,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     weekofyear
     week
     dayofweek
+    day_of_week
     weekday
     quarter
     tz

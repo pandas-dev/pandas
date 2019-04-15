@@ -140,7 +140,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     _bool_ops = ['is_leap_year']
     _object_ops = ['start_time', 'end_time', 'freq']
     _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
-                  'weekofyear', 'weekday', 'week', 'dayofweek',
+                  'weekofyear', 'weekday', 'week', 'dayofweek', 'day_of_week',
                   'dayofyear', 'quarter', 'qyear',
                   'days_in_month', 'daysinmonth']
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops
@@ -299,9 +299,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     second = _field_accessor('second', 7, "The second of the period")
     weekofyear = _field_accessor('week', 8, "The week ordinal of the year")
     week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 10,
+    day_of_week = _field_accessor('day_of_week', 10,
                                 "The day of the week with Monday=0, Sunday=6")
-    weekday = dayofweek
+    day_of_week = dayofweek
+    weekday = day_of_week
     dayofyear = day_of_year = _field_accessor('dayofyear', 9,
                                               "The ordinal day of the year")
     quarter = _field_accessor('quarter', 2, "The quarter of the date")
