@@ -479,7 +479,8 @@ class TestDataFrameConstructors(TestData):
             dct.update(v.to_dict())
             data[k] = dct
         frame = DataFrame(data)
-        tm.assert_frame_equal(self.frame.sort_index(), frame)
+        old_frame = self.frame if PY36 else self.frame.sort_index()
+        tm.assert_frame_equal(old_frame, frame)
 
     def test_constructor_dict_block(self):
         expected = np.array([[4., 3., 2., 1.]])
@@ -1110,7 +1111,8 @@ class TestDataFrameConstructors(TestData):
 
         sdict = OrderedDict(zip(['x', 'Unnamed 0'], data))
         expected = DataFrame.from_dict(sdict, orient='index')
-        tm.assert_frame_equal(result.sort_index(), expected)
+
+        tm.assert_frame_equal(result if PY36 else result.sort_index(), expected)
 
         # none named
         data = [OrderedDict([['a', 1.5], ['b', 3], ['c', 4], ['d', 6]]),
@@ -1245,7 +1247,7 @@ class TestDataFrameConstructors(TestData):
     def test_constructor_orient(self):
         data_dict = self.mixed_frame.T._series
         recons = DataFrame.from_dict(data_dict, orient='index')
-        expected = self.mixed_frame.sort_index()
+        expected = self.mixed_frame if PY36 else self.mixed_frame.sort_index()
         tm.assert_frame_equal(recons, expected)
 
         # dict of sequence
