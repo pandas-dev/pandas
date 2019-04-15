@@ -1,4 +1,3 @@
-# pylint: disable-msg=E1101,W0613,W0603
 from io import StringIO
 from itertools import islice
 import os
