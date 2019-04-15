@@ -175,39 +175,47 @@ class TestDataFrameQueryWithMultiIndex(object):
         df = DataFrame(np.random.randn(30, 2), index=index)
         ind = Series(df.index.get_level_values('color').values, index=index,
                      name='color')
-        kwargs = {'parser': parser, 'engine': engine,
-                  'partial_str_match': partial_str_match}
 
         # equality
-        res1 = df.query('color == "red"', **kwargs)
-        res2 = df.query('"red" == color', **kwargs)
+        res1 = df.query('color == "red"', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('"red" == color', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[ind == 'red']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # inequality
-        res1 = df.query('color != "red"', **kwargs)
-        res2 = df.query('"red" != color', **kwargs)
+        res1 = df.query('color != "red"', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('"red" != color', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[ind != 'red']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # list equality (really just set membership)
-        res1 = df.query('color == ["red"]', **kwargs)
-        res2 = df.query('["red"] == color', **kwargs)
+        res1 = df.query('color == ["red"]', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('["red"] == color', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[ind.isin(['red'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
-        res1 = df.query('color != ["red"]', **kwargs)
-        res2 = df.query('["red"] != color', **kwargs)
+        res1 = df.query('color != ["red"]', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('["red"] != color', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[~ind.isin(['red'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # in/not in ops
-        res1 = df.query('["red"] in color', **kwargs)
-        res2 = df.query('"red" in color', **kwargs)
+        res1 = df.query('["red"] in color', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('"red" in color', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp1 = df[ind.isin(['red'])]
         if partial_str_match:
             exp2 = df[ind.isin(['red', 'a_red', 'a_red_a', 'red_a'])]
@@ -216,8 +224,10 @@ class TestDataFrameQueryWithMultiIndex(object):
         assert_frame_equal(res1, exp1)
         assert_frame_equal(res2, exp2)
 
-        res1 = df.query('["red"] not in color', **kwargs)
-        res2 = df.query('"red" not in color', **kwargs)
+        res1 = df.query('["red"] not in color', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('"red" not in color', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp1 = df[~ind.isin(['red'])]
         if partial_str_match:
             exp2 = df[~ind.isin(['red', 'a_red', 'a_red_a', 'red_a'])]
@@ -236,38 +246,46 @@ class TestDataFrameQueryWithMultiIndex(object):
         index = MultiIndex.from_arrays([a, b])
         df = DataFrame(np.random.randn(30, 2), index=index)
         ind = Series(df.index.get_level_values(0).values, index=index)
-        kwargs = {'parser': parser, 'engine': engine,
-                  'partial_str_match': partial_str_match}
 
-        res1 = df.query('ilevel_0 == "red"', **kwargs)
-        res2 = df.query('"red" == ilevel_0', **kwargs)
+        res1 = df.query('ilevel_0 == "red"', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('"red" == ilevel_0', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[ind == 'red']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # inequality
-        res1 = df.query('ilevel_0 != "red"', **kwargs)
-        res2 = df.query('"red" != ilevel_0', **kwargs)
+        res1 = df.query('ilevel_0 != "red"', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('"red" != ilevel_0', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[ind != 'red']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # list equality (really just set membership)
-        res1 = df.query('ilevel_0 == ["red"]', **kwargs)
-        res2 = df.query('["red"] == ilevel_0', **kwargs)
+        res1 = df.query('ilevel_0 == ["red"]', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('["red"] == ilevel_0', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[ind.isin(['red'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
-        res1 = df.query('ilevel_0 != ["red"]', **kwargs)
-        res2 = df.query('["red"] != ilevel_0', **kwargs)
+        res1 = df.query('ilevel_0 != ["red"]', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('["red"] != ilevel_0', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[~ind.isin(['red'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # in/not in ops
-        res1 = df.query('["red"] in ilevel_0', **kwargs)
-        res2 = df.query('"red" in ilevel_0', **kwargs)
+        res1 = df.query('["red"] in ilevel_0', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('"red" in ilevel_0', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp1 = df[ind.isin(['red'])]
         if partial_str_match:
             exp2 = df[ind.isin(['red', 'a_red', 'a_red_a', 'red_a'])]
@@ -276,8 +294,10 @@ class TestDataFrameQueryWithMultiIndex(object):
         assert_frame_equal(res1, exp1)
         assert_frame_equal(res2, exp2)
 
-        res1 = df.query('["red"] not in ilevel_0', **kwargs)
-        res2 = df.query('"red" not in ilevel_0', **kwargs)
+        res1 = df.query('["red"] not in ilevel_0', parser=parser,
+                        engine=engine, partial_str_match=partial_str_match)
+        res2 = df.query('"red" not in ilevel_0', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp1 = df[~ind.isin(['red'])]
         if partial_str_match:
             exp2 = df[~ind.isin(['red', 'a_red', 'a_red_a', 'red_a'])]
@@ -288,35 +308,45 @@ class TestDataFrameQueryWithMultiIndex(object):
 
         # ## LEVEL 1
         ind = Series(df.index.get_level_values(1).values, index=index)
-        res1 = df.query('ilevel_1 == "eggs"', **kwargs)
-        res2 = df.query('"eggs" == ilevel_1', **kwargs)
+        res1 = df.query('ilevel_1 == "eggs"', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('"eggs" == ilevel_1', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[ind == 'eggs']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # inequality
-        res1 = df.query('ilevel_1 != "eggs"', **kwargs)
-        res2 = df.query('"eggs" != ilevel_1', **kwargs)
+        res1 = df.query('ilevel_1 != "eggs"', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('"eggs" != ilevel_1', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[ind != 'eggs']
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # list equality (really just set membership)
-        res1 = df.query('ilevel_1 == ["eggs"]', **kwargs)
-        res2 = df.query('["eggs"] == ilevel_1', **kwargs)
+        res1 = df.query('ilevel_1 == ["eggs"]', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('["eggs"] == ilevel_1', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[ind.isin(['eggs'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
-        res1 = df.query('ilevel_1 != ["eggs"]', **kwargs)
-        res2 = df.query('["eggs"] != ilevel_1', **kwargs)
+        res1 = df.query('ilevel_1 != ["eggs"]', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('["eggs"] != ilevel_1', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp = df[~ind.isin(['eggs'])]
         assert_frame_equal(res1, exp)
         assert_frame_equal(res2, exp)
 
         # in/not in ops
-        res1 = df.query('["eggs"] in ilevel_1', **kwargs)
-        res2 = df.query('"eggs" in ilevel_1', **kwargs)
+        res1 = df.query('["eggs"] in ilevel_1', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
+        res2 = df.query('"eggs" in ilevel_1', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp1 = df[ind.isin(['eggs'])]
         if partial_str_match:
             exp2 = df[ind.isin(['eggs', 'a_eggs', 'a_eggs_a', 'eggs_a'])]
@@ -325,8 +355,10 @@ class TestDataFrameQueryWithMultiIndex(object):
         assert_frame_equal(res1, exp1)
         assert_frame_equal(res2, exp2)
 
-        res1 = df.query('["eggs"] not in ilevel_1', **kwargs)
-        res2 = df.query('"eggs" not in ilevel_1', **kwargs)
+        res1 = df.query('["eggs"] not in ilevel_1', parser=parser,
+                        engine=engine, partial_str_match=partial_str_match)
+        res2 = df.query('"eggs" not in ilevel_1', parser=parser, engine=engine,
+                        partial_str_match=partial_str_match)
         exp1 = df[~ind.isin(['eggs'])]
         if partial_str_match:
             exp2 = df[~ind.isin(['eggs', 'a_eggs', 'a_eggs_a', 'eggs_a'])]
@@ -893,25 +925,28 @@ class TestDataFrameQueryStrings(object):
                              partial_str_match=partial_str_match,
                              local_dict={'strings': df.strings})
         else:
-            kwargs = {'engine': engine, 'parser': parser,
-                      'partial_str_match': partial_str_match}
-            res = df.query('"ann" == strings', **kwargs)
+            res = df.query('"ann" == strings', engine=engine, parser=parser,
+                           partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
 
-            res = df.query('strings == "ann"', **kwargs)
+            res = df.query('strings == "ann"', engine=engine, parser=parser,
+                           partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
             assert_frame_equal(res, df[df.strings.isin(['ann'])])
 
             expect = df[df.strings != 'ann']
-            res = df.query('strings != "ann"', **kwargs)
+            res = df.query('strings != "ann"', engine=engine, parser=parser,
+                           partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
 
-            res = df.query('"ann" != strings', **kwargs)
+            res = df.query('"ann" != strings', engine=engine, parser=parser,
+                           partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
             assert_frame_equal(res, df[~df.strings.isin(['ann'])])
 
             # in/not in ops
-            res = df.query('"ann" in strings', **kwargs)
+            res = df.query('"ann" in strings', engine=engine, parser=parser,
+                           partial_str_match=partial_str_match)
             if partial_str_match:
                 expect = df[df.strings.isin(['ann', 'a_ann',
                                              'a_ann_a', 'ann_a'])]
@@ -919,7 +954,8 @@ class TestDataFrameQueryStrings(object):
                 expect = df[df.strings == 'ann']
             assert_frame_equal(res, expect)
 
-            res = df.query('"ann" not in strings', **kwargs)
+            res = df.query('"ann" not in strings', engine=engine,
+                           parser=parser, partial_str_match=partial_str_match)
             if partial_str_match:
                 expect = df[~df.strings.isin(['ann', 'a_ann',
                                               'a_ann_a', 'ann_a'])]
@@ -931,8 +967,6 @@ class TestDataFrameQueryStrings(object):
         df = DataFrame(np.random.randn(10, 1), columns=['b'])
         df['strings'] = Series(list('aabbccddee'))
         expect = df[df.strings.isin(['a', 'b'])]
-        kwargs = {'engine': engine, 'parser': parser,
-                  'partial_str_match': partial_str_match}
 
         if parser != 'pandas':
             col = 'strings'
@@ -947,32 +981,41 @@ class TestDataFrameQueryStrings(object):
             for lhs, op, rhs in zip(lhs, ops, rhs):
                 ex = '{lhs} {op} {rhs}'.format(lhs=lhs, op=op, rhs=rhs)
                 with pytest.raises(NotImplementedError):
-                    df.query(ex, **kwargs)
+                    df.query(ex, engine=engine, parser=parser,
+                             partial_str_match=partial_str_match)
         else:
-            res = df.query('strings == ["a", "b"]', **kwargs)
+            res = df.query('strings == ["a", "b"]', engine=engine,
+                           parser=parser, partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
 
-            res = df.query('["a", "b"] == strings', **kwargs)
+            res = df.query('["a", "b"] == strings', engine=engine,
+                           parser=parser, partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
 
-            res = df.query('strings in ["a", "b"]', **kwargs)
+            res = df.query('strings in ["a", "b"]', engine=engine,
+                           parser=parser, partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
 
-            res = df.query('["a", "b"] in strings', **kwargs)
+            res = df.query('["a", "b"] in strings', engine=engine,
+                           parser=parser, partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
 
             expect = df[~df.strings.isin(['a', 'b'])]
 
-            res = df.query('strings != ["a", "b"]', **kwargs)
+            res = df.query('strings != ["a", "b"]', engine=engine,
+                           parser=parser, partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
 
-            res = df.query('["a", "b"] != strings', **kwargs)
+            res = df.query('["a", "b"] != strings', engine=engine,
+                           parser=parser, partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
 
-            res = df.query('strings not in ["a", "b"]', **kwargs)
+            res = df.query('strings not in ["a", "b"]', engine=engine,
+                           parser=parser, partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
 
-            res = df.query('["a", "b"] not in strings', **kwargs)
+            res = df.query('["a", "b"] not in strings', engine=engine,
+                           parser=parser, partial_str_match=partial_str_match)
             assert_frame_equal(res, expect)
 
     def test_query_with_string_columns(self, parser, engine):
