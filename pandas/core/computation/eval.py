@@ -154,7 +154,7 @@ def _check_for_locals(expr, stack_level, parser):
 
 def eval(expr, parser='pandas', engine=None, truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
-         target=None, inplace=False, partial_str_match=False):
+         target=None, inplace=False, partial_str_match: bool = False):
     """Evaluate a Python expression as a string using various backends.
 
     The following arithmetic operations are supported: ``+``, ``-``, ``*``,
