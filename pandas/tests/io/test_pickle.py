@@ -1,5 +1,3 @@
-# pylint: disable=E1101,E1103,W0232
-
 """
 manage legacy pickle tests
 
@@ -67,15 +65,7 @@ def compare_element(result, expected, typ, version=None):
 
 def compare(data, vf, version):
 
-    # py3 compat when reading py2 pickle
-    try:
-        data = pd.read_pickle(vf)
-    except (ValueError) as e:
-        if 'unsupported pickle protocol:' in str(e):
-            # trying to read a py3 pickle in py2
-            return
-        else:
-            raise
+    data = pd.read_pickle(vf)
 
     m = globals()
     for typ, dv in data.items():

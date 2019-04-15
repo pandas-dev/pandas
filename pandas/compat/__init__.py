@@ -6,7 +6,7 @@ Cross-compatible functions for different versions of Python.
 
 Key items to import for compatible code:
 * lists: lrange(), lmap(), lzip(), lfilter()
-* iterable method compatibility: iteritems, iterkeys, itervalues
+* iterable method compatibility: itervalues
   * Uses the original method if available, otherwise uses items, keys, values.
 * add_metaclass(metaclass) - class decorator that recreates class with with the
   given metaclass instead (and avoids intermediary class creation)
@@ -14,14 +14,10 @@ Key items to import for compatible code:
 Other items:
 * platform checker
 """
-# pylint disable=W0611
-# flake8: noqa
-
-import re
-from distutils.version import LooseVersion
-import sys
 import platform
+import re
 import struct
+import sys
 
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
@@ -43,14 +39,6 @@ def lmap(*args, **kwargs):
 
 def lfilter(*args, **kwargs):
     return list(filter(*args, **kwargs))
-
-
-def iteritems(obj, **kw):
-    return iter(obj.items(**kw))
-
-
-def iterkeys(obj, **kw):
-    return iter(obj.keys(**kw))
 
 
 def itervalues(obj, **kw):
@@ -109,6 +97,7 @@ def raise_with_traceback(exc, traceback=Ellipsis):
     if traceback == Ellipsis:
         _, _, traceback = sys.exc_info()
     raise exc.with_traceback(traceback)
+
 
 # In Python 3.7, the private re._pattern_type is removed.
 # Python 3.5+ have typing.re.Pattern

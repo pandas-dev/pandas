@@ -1,5 +1,3 @@
-# pylint: disable-msg=E1101,W0612
-
 import operator
 
 import numpy as np
@@ -78,7 +76,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_constructor(self, float_frame, float_frame_int_kind,
                          float_frame_fill0):
-        for col, series in compat.iteritems(float_frame):
+        for col, series in float_frame.items():
             assert isinstance(series, SparseSeries)
 
         assert isinstance(float_frame_int_kind['A'].sp_index, IntIndex)
@@ -96,11 +94,11 @@ class TestSparseDataFrame(SharedWithSparse):
 
         # construct no data
         sdf = SparseDataFrame(columns=np.arange(10), index=np.arange(10))
-        for col, series in compat.iteritems(sdf):
+        for col, series in sdf.items():
             assert isinstance(series, SparseSeries)
 
         # construct from nested dict
-        data = {c: s.to_dict() for c, s in compat.iteritems(float_frame)}
+        data = {c: s.to_dict() for c, s in float_frame.items()}
 
         sdf = SparseDataFrame(data)
         tm.assert_sp_frame_equal(sdf, float_frame)
