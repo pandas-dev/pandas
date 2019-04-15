@@ -28,10 +28,10 @@ class CSVFormatter(object):
     def __init__(self, obj, path_or_buf=None, sep=",", na_rep='',
                  float_format=None, cols=None, header=True, index=True,
                  index_label=None, mode='w', nanRep=None, encoding=None,
-                 compression: Union[str, Dict, None] = 'infer', quoting=None,
-                 line_terminator='\n', chunksize=None, tupleize_cols=False,
-                 quotechar='"', date_format=None, doublequote=True,
-                 escapechar=None, decimal='.'):
+                 compression: Union[str, Dict, None] = 'infer',
+                 quoting=None, line_terminator='\n', chunksize=None,
+                 tupleize_cols=False, quotechar='"', date_format=None,
+                 doublequote=True, escapechar=None, decimal='.'):
 
         self.obj = obj
 
@@ -39,8 +39,8 @@ class CSVFormatter(object):
             path_or_buf = StringIO()
 
         # Extract compression mode as given, if dict
-        compression, self.compression_args \
-            = _get_compression_method(compression)
+        compression, self.compression_args = _get_compression_method(
+            compression)
 
         self.path_or_buf, _, _, _ = get_filepath_or_buffer(
             path_or_buf, encoding=encoding,

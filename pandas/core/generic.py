@@ -2920,10 +2920,10 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None,
-               compression: Union[str, Dict, None] = 'infer', quoting=None,
-               quotechar='"', line_terminator=None, chunksize=None,
-               tupleize_cols=None, date_format=None, doublequote=True,
-               escapechar=None, decimal='.'):
+               compression: Union[str, Dict, None] = 'infer',
+               quoting=None, quotechar='"', line_terminator=None,
+               chunksize=None, tupleize_cols=None, date_format=None,
+               doublequote=True, escapechar=None, decimal='.'):
         r"""
         Write object to a comma-separated values (csv) file.
 
@@ -2977,9 +2977,8 @@ class NDFrame(PandasObject, SelectionMixin):
             compression mode is 'infer' and `path_or_buf` is path-like, then
             detect compression mode from the following extensions: '.gz',
             '.bz2', '.zip' or '.xz'. (otherwise no compression). If dict given
-            and mode is 'zip' or inferred as 'zip', optional value at 'arcname'
-            specifies name of file within ZIP archive, assuming equal to
-            `path_or_buf` if not specified or None.
+            and mode is 'zip' or inferred as 'zip', other entries passed as
+            kwargs to ByteZipFile.
 
             .. versionchanged:: 0.25.0
 

@@ -9,7 +9,7 @@ from io import BytesIO
 import lzma
 import mmap
 import os
-from typing import Dict, Tuple, Union
+from typing import Any, Dict, Tuple, Union
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode, urljoin, urlparse as parse_url, uses_netloc, uses_params,
@@ -254,7 +254,7 @@ def _get_compression_method(compression: Union[str, Dict, None]):
     ------
     ValueError on dict missing 'method' key
     """
-    compression_args = {}  # type: Dict
+    compression_args = {}  # type: Dict[str, Any]
     # Handle dict
     if isinstance(compression, dict):
         compression_args = compression.copy()
@@ -319,8 +319,8 @@ def _infer_compression(filepath_or_buffer, compression):
 
 
 def _get_handle(path_or_buf, mode, encoding=None,
-                compression: Union[str, Dict, None] = None, memory_map=False,
-                is_text=True):
+                compression: Union[str, Dict, None] = None,
+                memory_map=False, is_text=True):
     """
     Get file handle for given path/buffer and mode.
 
@@ -338,8 +338,7 @@ def _get_handle(path_or_buf, mode, encoding=None,
         and `filepath_or_buffer` is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise
         no compression). If dict and compression mode is 'zip' or inferred as
-        'zip', optional value at key 'arcname' specifies the name of the file
-        within ZIP archive at `path_or_buf`.
+        'zip', other entries passed as kwargs to ByteZipFile.
 
         .. versionchanged:: 0.25.0
 
@@ -466,15 +465,18 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     """
     # GH 17778
     def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED,
-                 arcname: Union[str, zipfile.ZipInfo, None] = None, **kwargs):
+                 archive_name: Union[str, zipfile.ZipInfo, None] = None,
+                 **kwargs):
         if mode in ['wb', 'rb']:
             mode = mode.replace('b', '')
-        self.arcname = arcname
+        self.archive_name = archive_name
         super().__init__(file, mode, compression, **kwargs)
 
     def write(self, data):
-        arcname = self.filename if self.arcname is None else self.arcname
-        super().writestr(arcname, data)
+        archive_name = self.filename
+        if self.archive_name is not None:
+            archive_name = self.archive_name
+        super().writestr(archive_name, data)
 
     @property
     def closed(self):
