@@ -412,8 +412,7 @@ Other
 
 - Improved :class:`Timestamp` type checking in various datetime functions to prevent exceptions when using a subclassed `datetime` (:issue:`25851`)
 - Bug in :class:`Series` and :class:`DataFrame` repr where ``np.datetime64('NaT')`` and ``np.timedelta64('NaT')`` with ``dtype=object`` would be represented as ``NaN`` (:issue:`25445`)
--
--
+- Added enhancement to :func:`pd.DataFrame.describe` to include missing data count as one of the summary statistics (:issue:`21689`)
 
 
 .. _whatsnew_0.250.contributors:

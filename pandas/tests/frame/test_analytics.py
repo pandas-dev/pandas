@@ -505,6 +505,19 @@ class TestDataFrameAnalytics(object):
     # ---------------------------------------------------------------------
     # Describe
 
+    def test_missing_describe(self):
+        df = pd.DataFrame(data={'col1': [1, np.nan],
+                                'col2': [3, 4]})
+        result = df.describe()
+
+        expected = pd.DataFrame({'col1': [1, 1, np.nan, 1, 1, 1, 1, 1, 1],
+                                 'col2': [2, 3.5, 0.707107, 3, 3.25, 3.5,
+                                          3.75, 4, 0]},
+                                index=['count', 'mean', 'std', 'min', '25%',
+                                       '50%', '75%', 'max', 'missing'])
+
+        tm.assert_frame_equal(result, expected)
+
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({
             'string_data': ['a', 'b', 'c', 'd', 'e'],
@@ -516,9 +529,9 @@ class TestDataFrameAnalytics(object):
         # Boolean and string data are not.
         result = df.describe()
         expected = DataFrame({'int_data': [5, 30, df.int_data.std(),
-                                           10, 20, 30, 40, 50]},
+                                           10, 20, 30, 40, 50, 0]},
                              index=['count', 'mean', 'std', 'min', '25%',
-                                    '50%', '75%', 'max'])
+                                    '50%', '75%', 'max', 'missing'])
         tm.assert_frame_equal(result, expected)
 
         # Top value is a boolean value that is False
@@ -546,9 +559,9 @@ class TestDataFrameAnalytics(object):
         })
         result = df.describe()
         expected = DataFrame({'int_data': [5, 2, df.int_data.std(), 0, 1,
-                                           2, 3, 4]},
+                                           2, 3, 4, 0]},
                              index=['count', 'mean', 'std', 'min', '25%',
-                                    '50%', '75%', 'max'])
+                                    '50%', '75%', 'max', 'missing'])
         tm.assert_frame_equal(result, expected)
 
         df = pd.DataFrame({
@@ -605,11 +618,11 @@ class TestDataFrameAnalytics(object):
                                           categories=['int1', 'int2', 'obj'],
                                           ordered=True, name='XXX')
         expected = DataFrame({'int1': [5, 30, df.int1.std(),
-                                       10, 20, 30, 40, 50],
+                                       10, 20, 30, 40, 50, 0],
                               'int2': [5, 30, df.int2.std(),
-                                       10, 20, 30, 40, 50]},
+                                       10, 20, 30, 40, 50, 0]},
                              index=['count', 'mean', 'std', 'min', '25%',
-                                    '50%', '75%', 'max'],
+                                    '50%', '75%', 'max', 'missing'],
                              columns=exp_columns)
         tm.assert_frame_equal(result, expected)
         tm.assert_categorical_equal(result.columns.values,
@@ -627,11 +640,11 @@ class TestDataFrameAnalytics(object):
         exp_columns = pd.DatetimeIndex(['2011-01-01', '2011-02-01'],
                                        freq='MS', tz='US/Eastern', name='XXX')
         expected = DataFrame({0: [5, 30, df.iloc[:, 0].std(),
-                                  10, 20, 30, 40, 50],
+                                  10, 20, 30, 40, 50, 0],
                               1: [5, 30, df.iloc[:, 1].std(),
-                                  10, 20, 30, 40, 50]},
+                                  10, 20, 30, 40, 50, 0]},
                              index=['count', 'mean', 'std', 'min', '25%',
-                                    '50%', '75%', 'max'])
+                                    '50%', '75%', 'max', 'missing'])
         expected.columns = exp_columns
         tm.assert_frame_equal(result, expected)
         assert result.columns.freq == 'MS'
@@ -649,29 +662,30 @@ class TestDataFrameAnalytics(object):
                                      pd.Timedelta('2 days'),
                                      pd.Timedelta('3 days'),
                                      pd.Timedelta('4 days'),
-                                     pd.Timedelta('5 days')],
+                                     pd.Timedelta('5 days'), 0],
                               't2': [5, pd.Timedelta('3 hours'),
                                      df.iloc[:, 1].std(),
                                      pd.Timedelta('1 hours'),
                                      pd.Timedelta('2 hours'),
                                      pd.Timedelta('3 hours'),
                                      pd.Timedelta('4 hours'),
-                                     pd.Timedelta('5 hours')]},
+                                     pd.Timedelta('5 hours'), 0]},
                              index=['count', 'mean', 'std', 'min', '25%',
-                                    '50%', '75%', 'max'])
+                                    '50%', '75%', 'max', 'missing'])
 
         result = df.describe()
         tm.assert_frame_equal(result, expected)
 
-        exp_repr = ("                           t1                      t2\n"
-                    "count                       5                       5\n"
-                    "mean          3 days 00:00:00         0 days 03:00:00\n"
-                    "std    1 days 13:56:50.394919  0 days 01:34:52.099788\n"
-                    "min           1 days 00:00:00         0 days 01:00:00\n"
-                    "25%           2 days 00:00:00         0 days 02:00:00\n"
-                    "50%           3 days 00:00:00         0 days 03:00:00\n"
-                    "75%           4 days 00:00:00         0 days 04:00:00\n"
-                    "max           5 days 00:00:00         0 days 05:00:00")
+        exp_repr = ("                             t1                      t2\n"
+                    "count                         5                       5\n"
+                    "mean            3 days 00:00:00         0 days 03:00:00\n"
+                    "std      1 days 13:56:50.394919  0 days 01:34:52.099788\n"
+                    "min             1 days 00:00:00         0 days 01:00:00\n"
+                    "25%             2 days 00:00:00         0 days 02:00:00\n"
+                    "50%             3 days 00:00:00         0 days 03:00:00\n"
+                    "75%             4 days 00:00:00         0 days 04:00:00\n"
+                    "max             5 days 00:00:00         0 days 05:00:00\n"
+                    "missing                       0                       0")
         assert repr(result) == exp_repr
 
     def test_describe_tz_values(self, tz_naive_fixture):
@@ -684,14 +698,15 @@ class TestDataFrameAnalytics(object):
         df = pd.DataFrame({'s1': s1, 's2': s2})
 
         expected = DataFrame({'s1': [5, np.nan, np.nan, np.nan, np.nan, np.nan,
-                                     2, 1.581139, 0, 1, 2, 3, 4],
+                                     2, 1.581139, 0, 1, 2, 3, 4, 0],
                               's2': [5, 5, s2.value_counts().index[0], 1,
                                      start.tz_localize(tz),
                                      end.tz_localize(tz), np.nan, np.nan,
-                                     np.nan, np.nan, np.nan, np.nan, np.nan]},
+                                     np.nan, np.nan, np.nan, np.nan, np.nan,
+                                     np.nan]},
                              index=['count', 'unique', 'top', 'freq', 'first',
                                     'last', 'mean', 'std', 'min', '25%', '50%',
-                                    '75%', 'max']
+                                    '75%', 'max', 'missing']
                              )
         result = df.describe(include='all')
         tm.assert_frame_equal(result, expected)
