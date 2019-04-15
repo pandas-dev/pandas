@@ -35,7 +35,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
-
 common_docstring = """
         Parameters
         ----------

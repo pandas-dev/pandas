@@ -30,7 +30,6 @@ import pandas.core.ops as ops
 from pandas.core.series import Series
 from pandas.core.sparse.series import SparseSeries
 
-
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
 
 
