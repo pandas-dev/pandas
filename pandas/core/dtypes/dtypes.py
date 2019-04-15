@@ -583,6 +583,15 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
     tz : str, int, or datetime.tzinfo
         The timezone.
 
+    Attributes
+    ----------
+    unit
+    tz
+
+    Methods
+    -------
+    None
+
     Raises
     ------
     pytz.UnknownTimeZoneError
@@ -595,15 +604,6 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
     >>> pd.DatetimeTZDtype(tz='dateutil/US/Central')
     datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
-
-    Attributes
-    ----------
-    unit
-    tz
-
-    Methods
-    -------
-    None
     """
     type = Timestamp  # type: Type[Timestamp]
     kind = 'M'  # type: str_type
@@ -738,14 +738,6 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
     freq : str or DateOffset
         The frequency of this PeriodDtype
 
-    Examples
-    --------
-    >>> pd.PeriodDtype(freq='D')
-    period[D]
-
-    >>> pd.PeriodDtype(freq=pd.offsets.MonthEnd())
-    period[M]
-
     Attributes
     ----------
     freq
@@ -753,6 +745,14 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> pd.PeriodDtype(freq='D')
+    period[D]
+
+    >>> pd.PeriodDtype(freq=pd.offsets.MonthEnd())
+    period[M]
     """
     type = Period  # type: Type[Period]
     kind = 'O'  # type: str_type
@@ -887,11 +887,6 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     subtype : str, np.dtype
         The dtype of the Interval bounds.
 
-    Examples
-    --------
-    >>> pd.IntervalDtype(subtype='int64')
-    interval[int64]
-
     Attributes
     ----------
     subtype
@@ -899,6 +894,11 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> pd.IntervalDtype(subtype='int64')
+    interval[int64]
     """
     name = 'interval'
     kind = None  # type: Optional[str_type]
