@@ -19,9 +19,8 @@ import numpy as np
 
 from pandas._config.config import option_context
 
-import pandas._libs.groupby as libgroupby
 from pandas._libs import Timestamp
-from pandas._libs import Timestamp, groupby as libgroupby
+import pandas._libs.groupby as libgroupby
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
