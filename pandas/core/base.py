@@ -401,7 +401,7 @@ class SelectionMixin(object):
             else:
                 # deprecation of renaming keys
                 # GH 15931
-                keys = list(compat.iterkeys(arg))
+                keys = list(arg.keys())
                 if (isinstance(obj, ABCDataFrame) and
                         len(obj.columns.intersection(keys)) != len(keys)):
                     nested_renaming_depr()
@@ -437,7 +437,7 @@ class SelectionMixin(object):
                 return result
 
             # set the final keys
-            keys = list(compat.iterkeys(arg))
+            keys = list(arg.keys())
             result = OrderedDict()
 
             # nested renamer
@@ -449,7 +449,7 @@ class SelectionMixin(object):
                     result, results = OrderedDict(), result
                     for r in results:
                         result.update(r)
-                    keys = list(compat.iterkeys(result))
+                    keys = list(result.keys())
 
                 else:
 
