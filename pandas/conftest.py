@@ -127,7 +127,7 @@ def observed(request):
 
 
 @pytest.fixture(params=[True, False, None])
-def ordered(request):
+def ordered_fixture(request):
     """Boolean 'ordered' parameter for Categorical."""
     return request.param
 
