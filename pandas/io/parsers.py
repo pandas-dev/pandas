@@ -912,7 +912,7 @@ class TextFileReader(BaseIterator):
 
         options = {}
 
-        for argname, default in compat.iteritems(_parser_defaults):
+        for argname, default in _parser_defaults.items():
             value = kwds.get(argname, default)
 
             # see gh-12935
@@ -922,7 +922,7 @@ class TextFileReader(BaseIterator):
             else:
                 options[argname] = value
 
-        for argname, default in compat.iteritems(_c_parser_defaults):
+        for argname, default in _c_parser_defaults.items():
             if argname in kwds:
                 value = kwds[argname]
 
@@ -941,7 +941,7 @@ class TextFileReader(BaseIterator):
             options[argname] = value
 
         if engine == 'python-fwf':
-            for argname, default in compat.iteritems(_fwf_defaults):
+            for argname, default in _fwf_defaults.items():
                 options[argname] = kwds.get(argname, default)
 
         return options
@@ -1657,7 +1657,7 @@ class ParserBase(object):
     def _convert_to_ndarrays(self, dct, na_values, na_fvalues, verbose=False,
                              converters=None, dtypes=None):
         result = {}
-        for c, values in compat.iteritems(dct):
+        for c, values in dct.items():
             conv_f = None if converters is None else converters.get(c, None)
             if isinstance(dtypes, dict):
                 cast_type = dtypes.get(c, None)
@@ -2471,7 +2471,7 @@ class PythonParser(ParserBase):
         def _clean_mapping(mapping):
             "converts col numbers to names"
             clean = {}
-            for col, v in compat.iteritems(mapping):
+            for col, v in mapping.items():
                 if isinstance(col, int) and col not in self.orig_names:
                     col = self.orig_names[col]
                 clean[col] = v
@@ -3258,7 +3258,7 @@ def _process_date_conversion(data_dict, converter, parse_spec,
 
     elif isinstance(parse_spec, dict):
         # dict of new name to column list
-        for new_name, colspec in compat.iteritems(parse_spec):
+        for new_name, colspec in parse_spec.items():
             if new_name in data_dict:
                 raise ValueError(
                     'Date column {name} already in dict'.format(name=new_name))
@@ -3316,7 +3316,7 @@ def _clean_na_values(na_values, keep_default_na=True):
         # into array-likes for further use. This is also
         # where we append the default NaN values, provided
         # that `keep_default_na=True`.
-        for k, v in compat.iteritems(old_na_values):
+        for k, v in old_na_values.items():
             if not is_list_like(v):
                 v = [v]
 
@@ -3386,7 +3386,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
         dtype = defaultdict(lambda: np.object)
 
         # Convert column indexes to column names.
-        for k, v in compat.iteritems(_dtype):
+        for k, v in _dtype.items():
             col = columns[k] if is_integer(k) else k
             dtype[col] = v
 

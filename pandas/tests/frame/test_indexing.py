@@ -15,7 +15,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series,
-    Timestamp, compat, date_range, isna, notna)
+    Timestamp, date_range, isna, notna)
 import pandas.core.common as com
 from pandas.core.indexing import IndexingError
 from pandas.tests.frame.common import TestData
@@ -34,11 +34,11 @@ class TestDataFrameIndexing(TestData):
         assert len(sl.index) == 20
 
         # Column access
-        for _, series in compat.iteritems(sl):
+        for _, series in sl.items():
             assert len(series.index) == 20
             assert tm.equalContents(series.index, sl.index)
 
-        for key, _ in compat.iteritems(self.frame._series):
+        for key, _ in self.frame._series.items():
             assert self.frame[key] is not None
 
         assert 'random' not in self.frame
@@ -2438,7 +2438,7 @@ class TestDataFrameIndexing(TestData):
     def test_xs(self):
         idx = self.frame.index[5]
         xs = self.frame.xs(idx)
-        for item, value in compat.iteritems(xs):
+        for item, value in xs.items():
             if np.isnan(value):
                 assert np.isnan(self.frame[item][idx])
             else:
@@ -2595,7 +2595,7 @@ class TestDataFrameIndexing(TestData):
                         s.dtype != 'uint8')
 
             return DataFrame(dict((c, s + 1) if is_ok(s) else (c, s)
-                                  for c, s in compat.iteritems(df)))
+                                  for c, s in df.items()))
 
         def _check_get(df, cond, check_dtypes=True):
             other1 = _safe_add(df)
@@ -2713,7 +2713,7 @@ class TestDataFrameIndexing(TestData):
 
             # dtypes (and confirm upcasts)x
             if check_dtypes:
-                for k, v in compat.iteritems(df.dtypes):
+                for k, v in df.dtypes.items():
                     if issubclass(v.type, np.integer) and not cond[k].all():
                         v = np.dtype('float64')
                     assert dfi[k].dtype == v

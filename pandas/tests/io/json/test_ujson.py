@@ -40,7 +40,7 @@ def _clean_dict(d):
     cleaned_dict : dict
     """
 
-    return {str(k): v for k, v in compat.iteritems(d)}
+    return {str(k): v for k, v in d.items()}
 
 
 @pytest.fixture(params=[

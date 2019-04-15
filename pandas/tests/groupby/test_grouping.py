@@ -9,7 +9,7 @@ from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
-    CategoricalIndex, DataFrame, Index, MultiIndex, Series, Timestamp, compat,
+    CategoricalIndex, DataFrame, Index, MultiIndex, Series, Timestamp,
     date_range)
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
@@ -671,14 +671,14 @@ class TestIteration():
         groups = grouped.groups
         assert groups is grouped.groups  # caching works
 
-        for k, v in compat.iteritems(grouped.groups):
+        for k, v in grouped.groups.items():
             assert (df.loc[v]['A'] == k).all()
 
         grouped = df.groupby(['A', 'B'])
         groups = grouped.groups
         assert groups is grouped.groups  # caching works
 
-        for k, v in compat.iteritems(grouped.groups):
+        for k, v in grouped.groups.items():
             assert (df.loc[v]['A'] == k[0]).all()
             assert (df.loc[v]['B'] == k[1]).all()
 

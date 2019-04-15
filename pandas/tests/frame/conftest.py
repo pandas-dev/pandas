@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, NaT, compat, date_range
+from pandas import DataFrame, NaT, date_range
 import pandas.util.testing as tm
 
 
@@ -51,10 +51,9 @@ def int_frame():
 
     Columns are ['A', 'B', 'C', 'D']
     """
-    df = DataFrame({k: v.astype(int)
-                   for k, v in compat.iteritems(tm.getSeriesData())})
+    df = DataFrame({k: v.astype(int) for k, v in tm.getSeriesData().items()})
     # force these all to int64 to avoid platform testing issues
-    return DataFrame({c: s for c, s in compat.iteritems(df)}, dtype=np.int64)
+    return DataFrame({c: s for c, s in df.items()}, dtype=np.int64)
 
 
 @pytest.fixture
@@ -101,8 +100,7 @@ def mixed_int_frame():
 
     Columns are ['A', 'B', 'C', 'D'].
     """
-    df = DataFrame({k: v.astype(int)
-                   for k, v in compat.iteritems(tm.getSeriesData())})
+    df = DataFrame({k: v.astype(int) for k, v in tm.getSeriesData().items()})
     df.A = df.A.astype('int32')
     df.B = np.ones(len(df.B), dtype='uint64')
     df.C = df.C.astype('uint8')

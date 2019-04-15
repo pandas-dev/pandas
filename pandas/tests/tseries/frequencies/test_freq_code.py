@@ -3,12 +3,11 @@ import pytest
 from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.frequencies import (
     FreqGroup, _period_code_map, get_freq, get_freq_code)
-import pandas.compat as compat
 
 import pandas.tseries.offsets as offsets
 
 
-@pytest.fixture(params=list(compat.iteritems(_period_code_map)))
+@pytest.fixture(params=list(_period_code_map.items()))
 def period_code_item(request):
     return request.param
 

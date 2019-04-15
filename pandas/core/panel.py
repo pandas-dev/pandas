@@ -200,13 +200,13 @@ class Panel(NDFrame):
         if haxis is not None:
             haxis = ensure_index(haxis)
             data = OrderedDict((k, v)
-                               for k, v in compat.iteritems(data)
+                               for k, v in data.items()
                                if k in haxis)
         else:
             keys = com.dict_keys_to_ordered_list(data)
             haxis = Index(keys)
 
-        for k, v in compat.iteritems(data):
+        for k, v in data.items():
             if isinstance(v, dict):
                 data[k] = self._constructor_sliced(v)
 
@@ -266,8 +266,8 @@ class Panel(NDFrame):
         orient = orient.lower()
         if orient == 'minor':
             new_data = defaultdict(OrderedDict)
-            for col, df in compat.iteritems(data):
-                for item, s in compat.iteritems(df):
+            for col, df in data.items():
+                for item, s in df.items():
                     new_data[item][col] = s
             data = new_data
         elif orient != 'items':  # pragma: no cover
@@ -1500,7 +1500,7 @@ class Panel(NDFrame):
             result = OrderedDict()
 
         adj_frames = OrderedDict()
-        for k, v in compat.iteritems(frames):
+        for k, v in frames.items():
             if isinstance(v, dict):
                 adj_frames[k] = self._constructor_sliced(v)
             else:
@@ -1512,7 +1512,7 @@ class Panel(NDFrame):
 
         reindex_dict = {self._AXIS_SLICEMAP[a]: axes_dict[a] for a in axes}
         reindex_dict['copy'] = False
-        for key, frame in compat.iteritems(adj_frames):
+        for key, frame in adj_frames.items():
             if frame is not None:
                 result[key] = frame.reindex(**reindex_dict)
             else:

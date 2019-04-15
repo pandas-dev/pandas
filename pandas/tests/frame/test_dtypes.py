@@ -11,7 +11,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Series, Timedelta, Timestamp,
-    _np_version_under1p14, compat, concat, date_range, option_context)
+    _np_version_under1p14, concat, date_range, option_context)
 from pandas.core.arrays import integer_array
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
@@ -388,8 +388,7 @@ class TestDataFrameDataTypes(TestData):
     def test_dtypes_gh8722(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
         result = self.mixed_frame.dtypes
-        expected = Series({k: v.dtype
-                           for k, v in compat.iteritems(self.mixed_frame)},
+        expected = Series({k: v.dtype for k, v in self.mixed_frame.items()},
                           index=result.index)
         assert_series_equal(result, expected)
 
@@ -431,7 +430,7 @@ class TestDataFrameDataTypes(TestData):
         # mixed casting
         def _check_cast(df, v):
             assert (list({s.dtype.name for
-                          _, s in compat.iteritems(df)})[0] == v)
+                          _, s in df.items()})[0] == v)
 
         mn = self.all_mixed._get_numeric_data().copy()
         mn['little_float'] = np.array(12345., dtype='float16')

@@ -4,8 +4,6 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas.compat as compat
-
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
 import pandas.util.testing as tm
@@ -413,7 +411,7 @@ class TestDatetimeIndex(object):
                  -1: expected_4,
                  4: expected_4,
                  1: expected_1}
-        for n, expected in compat.iteritems(cases):
+        for n, expected in cases.items():
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
@@ -460,7 +458,7 @@ class TestDatetimeIndex(object):
         cases = {(0, 1, 2): expected_0_2,
                  (7, 8, 9): expected_7_9,
                  (3, 4, 5): expected_3_5}
-        for n, expected in compat.iteritems(cases):
+        for n, expected in cases.items():
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name

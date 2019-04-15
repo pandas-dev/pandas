@@ -11,7 +11,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY36, iteritems
+from pandas.compat import PY36
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -798,7 +798,7 @@ class ReadingTestsBase(SharedItems):
 
         with ensure_clean(ext) as pth:
             with ExcelWriter(pth) as ew:
-                for sheetname, df in iteritems(dfs):
+                for sheetname, df in dfs.items():
                     df.to_excel(ew, sheetname)
 
             dfs_returned = read_excel(pth, sheet_name=sheets, index_col=0)

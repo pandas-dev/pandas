@@ -8,8 +8,7 @@ import pytest
 import pytz
 
 from pandas import (
-    CategoricalDtype, DataFrame, MultiIndex, Series, Timestamp, compat,
-    date_range)
+    CategoricalDtype, DataFrame, MultiIndex, Series, Timestamp, date_range)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -374,20 +373,20 @@ class TestDataFrameConvertTo(TestData):
         # GH16122
         recons_data = DataFrame(test_data).to_dict(into=mapping)
 
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
+        for k, v in test_data.items():
+            for k2, v2 in v.items():
                 assert (v2 == recons_data[k][k2])
 
         recons_data = DataFrame(test_data).to_dict("l", mapping)
 
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
+        for k, v in test_data.items():
+            for k2, v2 in v.items():
                 assert (v2 == recons_data[k][int(k2) - 1])
 
         recons_data = DataFrame(test_data).to_dict("s", mapping)
 
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
+        for k, v in test_data.items():
+            for k2, v2 in v.items():
                 assert (v2 == recons_data[k][k2])
 
         recons_data = DataFrame(test_data).to_dict("sp", mapping)
@@ -407,8 +406,8 @@ class TestDataFrameConvertTo(TestData):
         # GH10844
         recons_data = DataFrame(test_data).to_dict("i")
 
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
+        for k, v in test_data.items():
+            for k2, v2 in v.items():
                 assert (v2 == recons_data[k2][k])
 
         df = DataFrame(test_data)
@@ -416,8 +415,8 @@ class TestDataFrameConvertTo(TestData):
         recons_data = df.to_dict("i")
         comp_data = test_data.copy()
         comp_data['duped'] = comp_data[df.columns[0]]
-        for k, v in compat.iteritems(comp_data):
-            for k2, v2 in compat.iteritems(v):
+        for k, v in comp_data.items():
+            for k2, v2 in v.items():
                 assert (v2 == recons_data[k2][k])
 
     @pytest.mark.parametrize('mapping', [list, defaultdict, []])

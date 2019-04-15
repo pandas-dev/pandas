@@ -1,7 +1,5 @@
 import numpy as np
 
-import pandas.compat as compat
-
 import pandas as pd
 
 
@@ -152,7 +150,7 @@ class TablePlotter(object):
             height = 1.0 / (len(df) + 1)
 
         props = tb.properties()
-        for (r, c), cell in compat.iteritems(props['celld']):
+        for (r, c), cell in props['celld'].items():
             if c == -1:
                 cell.set_visible(False)
             elif r < col_nlevels and c < idx_nlevels:

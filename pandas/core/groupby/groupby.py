@@ -20,7 +20,6 @@ import numpy as np
 from pandas._config.config import option_context
 
 from pandas._libs import Timestamp, groupby as libgroupby
-import pandas.compat as compat
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -876,7 +875,7 @@ b  2""")
         if self.grouper._filter_empty_groups:
 
             mask = counts.ravel() > 0
-            for name, result in compat.iteritems(output):
+            for name, result in output.items():
 
                 # since we are masking, make sure that we have a float object
                 values = result

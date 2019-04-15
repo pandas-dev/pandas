@@ -364,7 +364,7 @@ class SelectionMixin(object):
             # be list-likes
             if any(is_aggregator(x) for x in compat.itervalues(arg)):
                 new_arg = OrderedDict()
-                for k, v in compat.iteritems(arg):
+                for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
                     else:
@@ -432,7 +432,7 @@ class SelectionMixin(object):
                 return an OrderedDict
                 """
                 result = OrderedDict()
-                for fname, agg_how in compat.iteritems(arg):
+                for fname, agg_how in arg.items():
                     result[fname] = func(fname, agg_how)
                 return result
 

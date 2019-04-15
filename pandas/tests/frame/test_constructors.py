@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, MultiIndex, RangeIndex, Series, Timedelta,
-    Timestamp, compat, date_range, isna)
+    Timestamp, date_range, isna)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -462,11 +462,11 @@ class TestDataFrameConstructors(TestData):
         data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in range(10)),
                 'col2': tm.TestSubDict((x, 20.0 * x) for x in range(10))}
         df = DataFrame(data)
-        refdf = DataFrame({col: dict(compat.iteritems(val))
-                           for col, val in compat.iteritems(data)})
+        refdf = DataFrame({col: dict(val.items())
+                           for col, val in data.items()})
         tm.assert_frame_equal(refdf, df)
 
-        data = tm.TestSubDict(compat.iteritems(data))
+        data = tm.TestSubDict(data.items())
         df = DataFrame(data)
         tm.assert_frame_equal(refdf, df)
 
@@ -474,7 +474,7 @@ class TestDataFrameConstructors(TestData):
         from collections import defaultdict
         data = {}
         self.frame['B'][:10] = np.nan
-        for k, v in compat.iteritems(self.frame):
+        for k, v in self.frame.items():
             dct = defaultdict(dict)
             dct.update(v.to_dict())
             data[k] = dct
@@ -526,7 +526,7 @@ class TestDataFrameConstructors(TestData):
         data = {'a': (1, 2, 3), 'b': (4, 5, 6)}
 
         result = DataFrame(data)
-        expected = DataFrame({k: list(v) for k, v in compat.iteritems(data)})
+        expected = DataFrame({k: list(v) for k, v in data.items()})
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_dict_multiindex(self):
@@ -2099,13 +2099,13 @@ class TestDataFrameConstructors(TestData):
         tuples = []
         columns = []
         dtypes = []
-        for dtype, b in compat.iteritems(blocks):
+        for dtype, b in blocks.items():
             columns.extend(b.columns)
             dtypes.extend([(c, np.dtype(dtype).descr[0][1])
                            for c in b.columns])
         for i in range(len(df.index)):
             tup = []
-            for _, b in compat.iteritems(blocks):
+            for _, b in blocks.items():
                 tup.extend(b.iloc[i].values)
             tuples.append(tuple(tup))
 
@@ -2172,11 +2172,11 @@ class TestDataFrameConstructors(TestData):
         # from the dict
         blocks = df._to_dict_of_blocks()
         columns = []
-        for dtype, b in compat.iteritems(blocks):
+        for dtype, b in blocks.items():
             columns.extend(b.columns)
 
-        asdict = {x: y for x, y in compat.iteritems(df)}
-        asdict2 = {x: y.values for x, y in compat.iteritems(df)}
+        asdict = {x: y for x, y in df.items()}
+        asdict2 = {x: y.values for x, y in df.items()}
 
         # dict of series & dict of ndarrays (have dtype info)
         results = []
