@@ -3,7 +3,6 @@ import numpy as np
 from pandas.util._decorators import cache_readonly
 
 import pandas as pd
-from pandas import compat
 import pandas.util.testing as tm
 
 _seriesd = tm.getSeriesData()
@@ -11,8 +10,7 @@ _tsd = tm.getTimeSeriesData()
 
 _frame = pd.DataFrame(_seriesd)
 _frame2 = pd.DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
-_intframe = pd.DataFrame({k: v.astype(int)
-                          for k, v in compat.iteritems(_seriesd)})
+_intframe = pd.DataFrame({k: v.astype(int) for k, v in _seriesd.items()})
 
 _tsframe = pd.DataFrame(_tsd)
 
@@ -33,7 +31,7 @@ class TestData(object):
     @cache_readonly
     def intframe(self):
         # force these all to int64 to avoid platform testing issues
-        return pd.DataFrame({c: s for c, s in compat.iteritems(_intframe)},
+        return pd.DataFrame({c: s for c, s in _intframe.items()},
                             dtype=np.int64)
 
     @cache_readonly

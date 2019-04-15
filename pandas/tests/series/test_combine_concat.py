@@ -1,6 +1,4 @@
 # coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime
 
 import numpy as np
@@ -8,7 +6,7 @@ from numpy import nan
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, compat, date_range
+from pandas import DataFrame, DatetimeIndex, Series, date_range
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -17,7 +15,7 @@ class TestSeriesCombine(object):
 
     def test_append(self, datetime_series, string_series, object_series):
         appendedSeries = string_series.append(object_series)
-        for idx, value in compat.iteritems(appendedSeries):
+        for idx, value in appendedSeries.items():
             if idx in string_series.index:
                 assert value == string_series[idx]
             elif idx in object_series.index:

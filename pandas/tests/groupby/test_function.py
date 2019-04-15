@@ -10,7 +10,7 @@ from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range, isna)
+    DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna)
 import pandas.core.nanops as nanops
 from pandas.util import testing as tm
 
@@ -392,7 +392,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
                        "args": [1]},
                "count": {"expected": 2}}
 
-    for method, data in compat.iteritems(grp_exp):
+    for method, data in grp_exp.items():
         if "args" not in data:
             data["args"] = []
 

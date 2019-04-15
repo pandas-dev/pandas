@@ -364,7 +364,7 @@ class SelectionMixin(object):
             # be list-likes
             if any(is_aggregator(x) for x in compat.itervalues(arg)):
                 new_arg = OrderedDict()
-                for k, v in compat.iteritems(arg):
+                for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
                     else:
@@ -401,7 +401,7 @@ class SelectionMixin(object):
             else:
                 # deprecation of renaming keys
                 # GH 15931
-                keys = list(compat.iterkeys(arg))
+                keys = list(arg.keys())
                 if (isinstance(obj, ABCDataFrame) and
                         len(obj.columns.intersection(keys)) != len(keys)):
                     nested_renaming_depr()
@@ -432,12 +432,12 @@ class SelectionMixin(object):
                 return an OrderedDict
                 """
                 result = OrderedDict()
-                for fname, agg_how in compat.iteritems(arg):
+                for fname, agg_how in arg.items():
                     result[fname] = func(fname, agg_how)
                 return result
 
             # set the final keys
-            keys = list(compat.iterkeys(arg))
+            keys = list(arg.keys())
             result = OrderedDict()
 
             # nested renamer
@@ -449,7 +449,7 @@ class SelectionMixin(object):
                     result, results = OrderedDict(), result
                     for r in results:
                         result.update(r)
-                    keys = list(compat.iterkeys(result))
+                    keys = list(result.keys())
 
                 else:
 
@@ -699,12 +699,7 @@ class IndexOpsMixin(object):
         """
         Return the first element of the underlying data as a python scalar.
         """
-        try:
-            return self.values.item()
-        except IndexError:
-            # copy numpy's message here because Py26 raises an IndexError
-            raise ValueError('can only convert an array of size 1 to a '
-                             'Python scalar')
+        return self.values.item()
 
     @property
     def data(self):

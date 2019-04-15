@@ -10,8 +10,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Index, MultiIndex, Series, compat, date_range,
-    isna)
+    Categorical, DataFrame, Index, MultiIndex, Series, date_range, isna)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
@@ -212,7 +211,7 @@ class TestDataFrameSelectReindex(TestData):
         newFrame = self.frame.reindex(self.ts1.index)
 
         for col in newFrame.columns:
-            for idx, val in compat.iteritems(newFrame[col]):
+            for idx, val in newFrame[col].items():
                 if idx in self.frame.index:
                     if np.isnan(val):
                         assert np.isnan(self.frame[col][idx])
@@ -221,7 +220,7 @@ class TestDataFrameSelectReindex(TestData):
                 else:
                     assert np.isnan(val)
 
-        for col, series in compat.iteritems(newFrame):
+        for col, series in newFrame.items():
             assert tm.equalContents(series.index, newFrame.index)
         emptyFrame = self.frame.reindex(Index([]))
         assert len(emptyFrame.index) == 0
@@ -230,7 +229,7 @@ class TestDataFrameSelectReindex(TestData):
         nonContigFrame = self.frame.reindex(self.ts1.index[::2])
 
         for col in nonContigFrame.columns:
-            for idx, val in compat.iteritems(nonContigFrame[col]):
+            for idx, val in nonContigFrame[col].items():
                 if idx in self.frame.index:
                     if np.isnan(val):
                         assert np.isnan(self.frame[col][idx])
@@ -239,7 +238,7 @@ class TestDataFrameSelectReindex(TestData):
                 else:
                     assert np.isnan(val)
 
-        for col, series in compat.iteritems(nonContigFrame):
+        for col, series in nonContigFrame.items():
             assert tm.equalContents(series.index, nonContigFrame.index)
 
         # corner cases

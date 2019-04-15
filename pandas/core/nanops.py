@@ -103,7 +103,7 @@ class bottleneck_switch(object):
         @functools.wraps(alt)
         def f(values, axis=None, skipna=True, **kwds):
             if len(self.kwargs) > 0:
-                for k, v in compat.iteritems(self.kwargs):
+                for k, v in self.kwargs.items():
                     if k not in kwds:
                         kwds[k] = v
             try:

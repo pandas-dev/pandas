@@ -1,4 +1,3 @@
-# pylint: disable=E1103
 import numpy as np
 
 from pandas.compat import lrange

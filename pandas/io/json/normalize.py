@@ -273,7 +273,7 @@ def json_normalize(data, record_path=None, meta=None,
             columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
 
     # Data types, a problem
-    for k, v in compat.iteritems(meta_vals):
+    for k, v in meta_vals.items():
         if meta_prefix is not None:
             k = meta_prefix + k
 

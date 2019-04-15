@@ -1,5 +1,3 @@
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime
 import operator
 
@@ -14,7 +12,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
-    DataFrame, Series, SparseDtype, SparseSeries, bdate_range, compat, isna)
+    DataFrame, Series, SparseDtype, SparseSeries, bdate_range, isna)
 from pandas.core.reshape.util import cartesian_product
 import pandas.core.sparse.frame as spf
 from pandas.tests.series.test_api import SharedWithSparse
@@ -431,7 +429,7 @@ class TestSparseSeries(SharedWithSparse):
 
     def test_getitem(self):
         def _check_getitem(sp, dense):
-            for idx, val in compat.iteritems(dense):
+            for idx, val in dense.items():
                 tm.assert_almost_equal(val, sp[idx])
 
             for i in range(len(dense)):
@@ -850,7 +848,7 @@ class TestSparseSeries(SharedWithSparse):
             # homogenized is only valid with NaN fill values
             homogenized = spf.homogenize(data)
 
-            for k, v in compat.iteritems(homogenized):
+            for k, v in homogenized.items():
                 assert (v.sp_index.equals(expected))
 
         indices1 = [BlockIndex(10, [2], [7]), BlockIndex(10, [1, 6], [3, 4]),
