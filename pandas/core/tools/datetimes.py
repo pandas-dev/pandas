@@ -611,6 +611,7 @@ dtype='datetime64[ns]', freq=None)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
+            errors  = 'ignore' if not utc else errors
             result = _convert_and_box_cache(arg, cache_array, box, errors,
                                             name=arg.name)
         else:
@@ -619,6 +620,7 @@ dtype='datetime64[ns]', freq=None)
     elif is_list_like(arg):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
+            errors  = 'ignore' if not utc else errors
             result = _convert_and_box_cache(arg, cache_array, box, errors)
         else:
             result = convert_listlike(arg, box, format)
