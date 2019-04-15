@@ -1154,7 +1154,7 @@ class TextFileReader(BaseIterator):
         if index is None:
             if col_dict:
                 # Any column is actually fine:
-                new_rows = len(next(compat.itervalues(col_dict)))
+                new_rows = len(next(iter(col_dict.values())))
                 index = RangeIndex(self._currow, self._currow + new_rows)
             else:
                 new_rows = 0

@@ -15,7 +15,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-import pandas.compat as compat
 from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
@@ -850,7 +849,7 @@ class SeriesGroupBy(GroupBy):
                 obj._selection = name
             results[name] = obj.aggregate(func)
 
-        if any(isinstance(x, DataFrame) for x in compat.itervalues(results)):
+        if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
             if _level:
                 return results

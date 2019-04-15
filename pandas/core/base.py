@@ -9,7 +9,6 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-import pandas.compat as compat
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -362,7 +361,7 @@ class SelectionMixin(object):
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
-            if any(is_aggregator(x) for x in compat.itervalues(arg)):
+            if any(is_aggregator(x) for x in arg.values()):
                 new_arg = OrderedDict()
                 for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
@@ -493,13 +492,12 @@ class SelectionMixin(object):
 
             def is_any_series():
                 # return a boolean if we have *any* nested series
-                return any(isinstance(r, ABCSeries)
-                           for r in compat.itervalues(result))
+                return any(isinstance(r, ABCSeries) for r in result.values())
 
             def is_any_frame():
                 # return a boolean if we have *any* nested series
                 return any(isinstance(r, ABCDataFrame)
-                           for r in compat.itervalues(result))
+                           for r in result.values())
 
             if isinstance(result, list):
                 return concat(result, keys=keys, axis=1, sort=True), True
