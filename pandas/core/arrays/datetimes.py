@@ -247,7 +247,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                  'is_year_end', 'is_leap_year']
     _object_ops = ['weekday_name', 'freq', 'tz']
     _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
-                  'weekofyear', 'week', 'weekday', 'dayofweek','day_of_week',
+                  'weekofyear', 'week', 'weekday', 'dayofweek', 'day_of_week',
                   'dayofyear', 'quarter', 'days_in_month',
                   'daysinmonth', 'microsecond',
                   'nanosecond']
@@ -1358,7 +1358,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
     Freq: D, dtype: int64
     """
     day_of_week = _field_accessor('day_of_week', 'dow', _dayofweek_doc)
-    day_of_week = dayofweek
+    dayofweek = day_of_week
     weekday = day_of_week
 
     weekday_name = _field_accessor(

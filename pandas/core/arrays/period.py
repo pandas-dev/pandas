@@ -299,9 +299,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     second = _field_accessor('second', 7, "The second of the period")
     weekofyear = _field_accessor('week', 8, "The week ordinal of the year")
     week = weekofyear
-    day_of_week = _field_accessor('day_of_week', 10,
-                                "The day of the week with Monday=0, Sunday=6")
-    day_of_week = dayofweek
+    day_of_week = _field_accessor(
+        'day_of_week', 10, "The day of the week with Monday=0, Sunday=6")
+    dayofweek = day_of_week
     weekday = day_of_week
     dayofyear = day_of_year = _field_accessor('dayofyear', 9,
                                               "The ordinal day of the year")
