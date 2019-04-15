@@ -230,6 +230,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         else:
             bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
+
+        # GH 26045: cast to float64 to avoid an overflow
         if (np.diff(bins.astype('float64')) < 0).any():
             raise ValueError('bins must increase monotonically.')
 

@@ -112,12 +112,25 @@ def test_bins_not_monotonic():
         cut(data, [0.1, 1.5, 1, 10])
 
 
-def test_bins_monotic_not_overflowing():
-    data = date_range("2017-12-31", periods=3)
+@pytest.mark.parametrize("x, bins, expected", [
+    (date_range("2017-12-31", periods=3),
+     [Timestamp.min, Timestamp('2018-01-01'), Timestamp.max],
+     np.array([0, 0, 1], dtype="int8")),
+    ([-1, 0, 1],
+     np.array([np.iinfo(np.int64).min, 0, np.iinfo(np.int64).max],
+              dtype="int64"),
+     np.array([0, 0, 1], dtype="int8")),
+    ([np.timedelta64(-1), np.timedelta64(0), np.timedelta64(1)],
+     np.array([
+         np.timedelta64(-np.iinfo(np.int64).max),
+         np.timedelta64(0),
+         np.timedelta64(np.iinfo(np.int64).max)]),
+     np.array([0, 0, 1], dtype="int8")),
 
-    result = cut(data, [Timestamp.min, Timestamp('2018-01-01'), Timestamp.max])
-    tm.assert_numpy_array_equal(result.codes,
-                                np.array([0, 0, 1], dtype="int8"))
+])
+def test_bins_monotic_not_overflowing(x, bins, expected):
+    result = cut(x, bins)
+    tm.assert_numpy_array_equal(result.codes, expected)
 
 
 def test_wrong_num_labels():
