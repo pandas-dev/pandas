@@ -632,6 +632,7 @@ class TestFancy(Base):
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
 
+
 class TestMisc(Base):
 
     def test_float_index_to_mixed(self):
