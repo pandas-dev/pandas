@@ -258,10 +258,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                              'normalize', 'strftime', 'round', 'floor',
                              'ceil', 'month_name', 'day_name']
 
-    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
-    # by returning NotImplemented
-    timetuple = None
-
     # Needed so that Timestamp.__richcmp__(DateTimeArray) operates pointwise
     ndim = 1
 
