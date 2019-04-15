@@ -9,7 +9,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import iNaT, lib, tslibs
-import pandas.compat as compat
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
@@ -68,7 +67,7 @@ class disallow(object):
     def __call__(self, f):
         @functools.wraps(f)
         def _f(*args, **kwargs):
-            obj_iter = itertools.chain(args, compat.itervalues(kwargs))
+            obj_iter = itertools.chain(args, kwargs.values())
             if any(self.check(obj) for obj in obj_iter):
                 msg = 'reduction operation {name!r} not allowed for this dtype'
                 raise TypeError(msg.format(name=f.__name__.replace('nan', '')))
