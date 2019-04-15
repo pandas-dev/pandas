@@ -920,10 +920,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __unicode__(self):
         """
-        Return a string representation for this object.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a unicode string representation for this object.
         """
         klass = self.__class__.__name__
         data = self._format_data()

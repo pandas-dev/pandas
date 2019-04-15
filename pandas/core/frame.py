@@ -612,10 +612,7 @@ class DataFrame(NDFrame):
 
     def __unicode__(self):
         """
-        Return a string representation for a particular DataFrame.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a unicode string representation for a particular DataFrame.
         """
         buf = StringIO("")
         if self._info_repr():
@@ -901,16 +898,10 @@ class DataFrame(NDFrame):
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
 
-        # Python 3 supports at most 255 arguments to constructor, and
-        # things get slow with this many fields in Python 2
+        # Python 3 supports at most 255 arguments to constructor
         if name is not None and len(self.columns) + index < 256:
-            # `rename` is unsupported in Python 2.6
-            try:
-                itertuple = collections.namedtuple(name, fields, rename=True)
-                return map(itertuple._make, zip(*arrays))
-
-            except Exception:
-                pass
+            itertuple = collections.namedtuple(name, fields, rename=True)
+            return map(itertuple._make, zip(*arrays))
 
         # fallback to regular tuples
         return zip(*arrays)

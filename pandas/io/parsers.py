@@ -1326,12 +1326,6 @@ def _validate_usecols_arg(usecols):
 
         usecols = set(usecols)
 
-        if usecols_dtype == "unicode":
-            # see gh-13253
-            #
-            # Python 2.x compatibility
-            usecols = {col.encode("utf-8") for col in usecols}
-
         return usecols, usecols_dtype
     return usecols, None
 

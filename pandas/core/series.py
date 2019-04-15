@@ -1369,10 +1369,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __unicode__(self):
         """
-        Return a string representation for a particular DataFrame.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a unicode string representation for a particular DataFrame.
         """
         buf = StringIO("")
         width, height = get_terminal_size()
