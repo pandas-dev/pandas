@@ -33,10 +33,6 @@ _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
                             unique='IndexOpsMixin', duplicated='IndexOpsMixin')
 
 
-class InvalidIndexError(Exception):
-    pass
-
-
 class StringMixin(object):
     """implements string methods so long as object defines a `__unicode__`
     method.
@@ -1205,13 +1201,7 @@ class IndexOpsMixin(object):
             else:
                 values = self.values
 
-            try:
-                indexer = mapper.index.get_indexer(values)
-            except InvalidIndexError:
-                from pandas import Series
-                mapper = Series(algorithms.unique(mapper))
-                indexer = mapper.index.get_indexer(values)
-
+            indexer = mapper.index.get_indexer(values)
             new_values = algorithms.take_1d(mapper._values, indexer)
 
             return new_values

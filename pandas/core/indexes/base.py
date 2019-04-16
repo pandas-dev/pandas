@@ -37,7 +37,7 @@ from pandas.core import ops
 from pandas.core.accessor import CachedAccessor, DirNamesMixin
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import IndexOpsMixin, InvalidIndexError, PandasObject
+from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
@@ -141,6 +141,10 @@ def _make_arithmetic_op(op, cls):
     name = '__{name}__'.format(name=op.__name__)
     # TODO: docstring?
     return set_function_name(index_arithmetic_method, name, cls)
+
+
+class InvalidIndexError(Exception):
+    pass
 
 
 _o_dtype = np.dtype(object)
