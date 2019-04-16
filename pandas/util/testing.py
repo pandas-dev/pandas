@@ -1159,13 +1159,13 @@ def assert_frame_equal(left, right, check_dtype=True,
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.
-        
+
         When comparing two numbers, if the first number has magnitude less
         than 1e-5, we compare the two numbers directly and check whether
         they are equivalent within the specified precision. Otherwise, we
         compare the **ratio** of the second number to the first number and
         check whether it is equivalent to 1 within the specified precision.
-        
+
     See Also
     --------
     assert_series_equal : Equivalent method for asserting Series equality.
