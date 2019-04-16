@@ -76,7 +76,6 @@ Indexing, iteration
    Series.loc
    Series.iloc
    Series.__iter__
-   Series.iteritems
    Series.items
    Series.keys
    Series.pop

@@ -1692,13 +1692,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
 
-    def iteritems(self):
+    def items(self):
         """
         Lazily iterate over (index, value) tuples.
 
         This method returns an iterable tuple (index, value). This is
-        convenient if you want to create a lazy iterator. Note that the
-        methods Series.items and Series.iteritems are the same methods.
+        convenient if you want to create a lazy iterator.
 
         Returns
         -------
@@ -1708,12 +1707,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.iteritems : Equivalent to Series.iteritems for DataFrame.
+        DataFrame.items : Equivalent to Series.items for DataFrame.
 
         Examples
         --------
         >>> s = pd.Series(['A', 'B', 'C'])
-        >>> for index, value in s.iteritems():
+        >>> for index, value in s.items():
         ...     print("Index : {}, Value : {}".format(index, value))
         Index : 0, Value : A
         Index : 1, Value : B
@@ -1721,7 +1720,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return zip(iter(self.index), iter(self))
 
-    items = iteritems
+    @Appender(generic._shared_docs["iteritems"] % _shared_doc_kwargs)
+    def iteritems(self):
+        return self.items()
 
     # ----------------------------------------------------------------------
     # Misc public methods

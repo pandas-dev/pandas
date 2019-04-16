@@ -771,7 +771,7 @@ class DataFrame(NDFrame):
 
         return Styler(self)
 
-    def iteritems(self):
+    def items(self):
         r"""
         Iterator over (column name, Series) pairs.
 
@@ -802,7 +802,7 @@ class DataFrame(NDFrame):
         panda 	bear 	  1864
         polar 	bear 	  22000
         koala 	marsupial 80000
-        >>> for label, content in df.iteritems():
+        >>> for label, content in df.items():
         ...     print('label:', label)
         ...     print('content:', content, sep='\n')
         ...
@@ -826,6 +826,10 @@ class DataFrame(NDFrame):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
+    @Appender(items.__doc)
+    def iteritems(self):
+        return self.items()
+
     def iterrows(self):
         """
         Iterate over DataFrame rows as (index, Series) pairs.
@@ -843,7 +847,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         itertuples : Iterate over DataFrame rows as namedtuples of the values.
-        iteritems : Iterate over (column name, Series) pairs.
+        items : Iterate over (column name, Series) pairs.
 
         Notes
         -----
@@ -901,7 +905,7 @@ class DataFrame(NDFrame):
         --------
         DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
             pairs.
-        DataFrame.iteritems : Iterate over (column name, Series) pairs.
+        DataFrame.items : Iterate over (column name, Series) pairs.
 
         Notes
         -----
@@ -957,8 +961,6 @@ class DataFrame(NDFrame):
 
         # fallback to regular tuples
         return zip(*arrays)
-
-    items = iteritems
 
     def __len__(self):
         """
@@ -2634,7 +2636,7 @@ class DataFrame(NDFrame):
         5216
         """
         result = Series(
-            [c.memory_usage(index=False, deep=deep) for col, c in self.iteritems()],
+            [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
             index=self.columns,
         )
         if index:
@@ -4955,7 +4957,7 @@ class DataFrame(NDFrame):
         if not diff.empty:
             raise KeyError(diff)
 
-        vals = (col.values for name, col in self.iteritems() if name in subset)
+        vals = (col.values for name, col in self.items() if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
@@ -7343,7 +7345,7 @@ class DataFrame(NDFrame):
         from pandas.core.reshape.concat import concat
 
         def _dict_round(df, decimals):
-            for col, vals in df.iteritems():
+            for col, vals in df.items():
                 try:
                     yield _series_round(vals, decimals[col])
                 except KeyError:
@@ -7363,7 +7365,7 @@ class DataFrame(NDFrame):
             new_cols = [col for col in _dict_round(self, decimals)]
         elif is_integer(decimals):
             # Dispatch to Series.round
-            new_cols = [_series_round(v, decimals) for _, v in self.iteritems()]
+            new_cols = [_series_round(v, decimals) for _, v in self.items()]
         else:
             raise TypeError("decimals must be an integer, a dict-like or a " "Series")
 
