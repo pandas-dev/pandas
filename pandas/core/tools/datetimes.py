@@ -60,7 +60,42 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     return cache_array
 
 
-def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
+def _box_if_needed(dt_array, box, default, tz, name):
+    """
+    Properly boxes the ndarray of datetimes (if requested) to DatetimeIndex
+    if it is possible or to generic Index instead
+
+    Parameters
+    ----------
+    dt_array: 1-d array
+        array of datetimes to be boxed
+    box : boolean
+        True boxes result as an Index-like, False returns an ndarray
+    tz : object
+        None or 'utc'
+    name : string, default None
+        Name for a resulting index
+
+    Returns
+    -------
+    result : datetime of converted dates
+        Returns:
+
+        - Index-like if box=True
+        - ndarray if box=False
+    """
+    if box:
+        from pandas import DatetimeIndex, Index
+        print(type(dt_array))
+        if is_datetime64_dtype(dt_array):
+            return DatetimeIndex(dt_array, tz=tz, name=name)
+        #elif is_object_dtype(dt_array):
+        # e.g. an Index of datetime objects
+        return Index(dt_array, name=name)
+    return default
+
+
+def _convert_and_box_cache(arg, cache_array, box, name=None):
     """
     Convert array of dates with a cache and box the result
 
@@ -71,8 +106,6 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
         Cache of converted, unique dates
     box : boolean
         True boxes result as an Index-like, False returns an ndarray
-    errors : string
-        'ignore' plus box=True will convert result to Index
     name : string, default None
         Name for a DatetimeIndex
 
@@ -86,12 +119,7 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     """
     from pandas import Series, DatetimeIndex, Index
     result = Series(arg).map(cache_array)
-    if box:
-        if errors == 'ignore':
-            return Index(result, name=name)
-        else:
-            return DatetimeIndex(result, name=name)
-    return result.values
+    return _box_if_needed(result, box, result.values, None, name)
 
 
 def _return_parsed_timezone_results(result, timezones, box, tz, name):
@@ -323,15 +351,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                       for ts in result]
             return np.array(result, dtype=object)
 
-    if box:
-        # Ensure we return an Index in all cases where box=True
-        if is_datetime64_dtype(result):
-            return DatetimeIndex(result, tz=tz, name=name)
-        elif is_object_dtype(result):
-            # e.g. an Index of datetime objects
-            from pandas import Index
-            return Index(result, name=name)
-    return result
+    return _box_if_needed(result, box, result, tz, name)
 
 
 def _adjust_to_origin(arg, origin, unit):
@@ -611,7 +631,7 @@ dtype='datetime64[ns]', freq=None)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
-            result = _convert_and_box_cache(arg, cache_array, box, errors,
+            result = _convert_and_box_cache(arg, cache_array, box,
                                             name=arg.name)
         else:
             convert_listlike = partial(convert_listlike, name=arg.name)
@@ -619,7 +639,7 @@ dtype='datetime64[ns]', freq=None)
     elif is_list_like(arg):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
-            result = _convert_and_box_cache(arg, cache_array, box, errors)
+            result = _convert_and_box_cache(arg, cache_array, box)
         else:
             result = convert_listlike(arg, box, format)
     else:
