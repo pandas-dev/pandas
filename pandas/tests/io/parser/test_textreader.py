@@ -4,7 +4,7 @@
 Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
-
+from io import BytesIO, StringIO
 import os
 
 import numpy as np
@@ -13,8 +13,6 @@ import pytest
 
 import pandas._libs.parsers as parser
 from pandas._libs.parsers import TextReader
-import pandas.compat as compat
-from pandas.compat import BytesIO, StringIO
 
 from pandas import DataFrame
 import pandas.util.testing as tm
@@ -348,6 +346,6 @@ a,b,c
 
 
 def assert_array_dicts_equal(left, right):
-    for k, v in compat.iteritems(left):
+    for k, v in left.items():
         assert tm.assert_numpy_array_equal(np.asarray(v),
                                            np.asarray(right[k]))

@@ -3,13 +3,13 @@ HTML IO.
 
 """
 
+from collections import abc
 from distutils.version import LooseVersion
 import numbers
 import os
 import re
 
-import pandas.compat as compat
-from pandas.compat import iteritems, lmap, lrange, raise_with_traceback
+from pandas.compat import lmap, lrange, raise_with_traceback
 from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
@@ -617,7 +617,7 @@ def _build_xpath_expr(attrs):
     if 'class_' in attrs:
         attrs['class'] = attrs.pop('class_')
 
-    s = ["@{key}={val!r}".format(key=k, val=v) for k, v in iteritems(attrs)]
+    s = ["@{key}={val!r}".format(key=k, val=v) for k, v in attrs.items()]
     return '[{expr}]'.format(expr=' and '.join(s))
 
 
@@ -769,7 +769,7 @@ def _expand_elements(body):
     not_max = lens[lens != lens_max]
 
     empty = ['']
-    for ind, length in iteritems(not_max):
+    for ind, length in not_max.items():
         body[ind] += empty * (lens_max - length)
 
 
@@ -857,7 +857,7 @@ def _validate_flavor(flavor):
         flavor = 'lxml', 'bs4'
     elif isinstance(flavor, str):
         flavor = flavor,
-    elif isinstance(flavor, compat.Iterable):
+    elif isinstance(flavor, abc.Iterable):
         if not all(isinstance(flav, str) for flav in flavor):
             raise TypeError('Object of type {typ!r} is not an iterable of '
                             'strings'

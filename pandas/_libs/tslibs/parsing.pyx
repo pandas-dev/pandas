@@ -2,23 +2,14 @@
 """
 Parsing functions for datetime and datetime-like strings.
 """
-import sys
 import re
 import time
+from io import StringIO
 
 from cpython.datetime cimport datetime
 
 
 import numpy as np
-
-import six
-
-# Avoid import from outside _libs
-if sys.version_info.major == 2:
-    from StringIO import StringIO
-else:
-    from io import StringIO
-
 
 # dateutil compat
 from dateutil.tz import (tzoffset,
@@ -533,14 +524,8 @@ def try_parse_datetime_components(object[:] years,
 # Copyright (c) 2017 - dateutil contributors
 class _timelex(object):
     def __init__(self, instream):
-        if six.PY2:
-            # In Python 2, we can't duck type properly because unicode has
-            # a 'decode' function, and we'd be double-decoding
-            if isinstance(instream, (bytes, bytearray)):
-                instream = instream.decode()
-        else:
-            if getattr(instream, 'decode', None) is not None:
-                instream = instream.decode()
+        if getattr(instream, 'decode', None) is not None:
+            instream = instream.decode()
 
         if isinstance(instream, str):
             self.stream = instream
@@ -631,7 +616,7 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
         If True parses dates with the day first, eg 20/01/2005
         Warning: dayfirst=True is not strict, but will prefer to parse
         with day first (this is a known bug).
-    dt_str_parse : function, defaults to `compat.parse_date` (dateutil)
+    dt_str_parse : function, defaults to `dateutil.parser.parse`
         This function should take in a datetime string and return
         a `datetime.datetime` guess that the datetime string represents
     dt_str_split : function, defaults to `_DATEUTIL_LEXER_SPLIT` (dateutil)

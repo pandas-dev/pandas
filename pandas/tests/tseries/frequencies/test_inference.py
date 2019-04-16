@@ -5,7 +5,6 @@ import pytest
 
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
-import pandas.compat as compat
 from pandas.compat import is_platform_windows
 
 from pandas import (
@@ -218,14 +217,14 @@ def test_infer_freq_index(freq, expected):
 
 @pytest.mark.parametrize(
     "expected,dates",
-    list(compat.iteritems(
+    list(
         {"AS-JAN": ["2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01"],
          "Q-OCT": ["2009-01-31", "2009-04-30", "2009-07-31", "2009-10-31"],
          "M": ["2010-11-30", "2010-12-31", "2011-01-31", "2011-02-28"],
          "W-SAT": ["2010-12-25", "2011-01-01", "2011-01-08", "2011-01-15"],
          "D": ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"],
          "H": ["2011-12-31 22:00", "2011-12-31 23:00",
-               "2012-01-01 00:00", "2012-01-01 01:00"]}))
+               "2012-01-01 00:00", "2012-01-01 01:00"]}.items())
 )
 def test_infer_freq_tz(tz_naive_fixture, expected, dates):
     # see gh-7310

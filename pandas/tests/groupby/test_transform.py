@@ -1,10 +1,10 @@
 """ test with the .transform """
+from io import StringIO
 
 import numpy as np
 import pytest
 
 from pandas._libs import groupby
-from pandas.compat import StringIO
 
 from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
 

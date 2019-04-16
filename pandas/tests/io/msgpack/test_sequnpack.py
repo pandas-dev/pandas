@@ -1,8 +1,7 @@
 # coding: utf-8
+from io import BytesIO
 
 import pytest
-
-from pandas import compat
 
 from pandas.io.msgpack import BufferFull, OutOfData, Unpacker
 
@@ -85,7 +84,7 @@ class TestPack(object):
         assert unpacker.unpack() == ord(b'r')
 
         # Test buffer refill
-        unpacker = Unpacker(compat.BytesIO(b'foobar'), read_size=3)
+        unpacker = Unpacker(BytesIO(b'foobar'), read_size=3)
         assert unpacker.unpack() == ord(b'f')
         assert unpacker.read_bytes(3) == b'oob'
         assert unpacker.unpack() == ord(b'a')

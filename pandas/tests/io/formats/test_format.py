@@ -5,6 +5,7 @@ Test output formatting for Series/DataFrame, including to_string & reprs
 """
 
 from datetime import datetime
+from io import StringIO
 import itertools
 from operator import methodcaller
 import os
@@ -19,8 +20,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import (
-    StringIO, is_platform_32bit, is_platform_windows, lrange, lzip)
+from pandas.compat import is_platform_32bit, is_platform_windows, lrange, lzip
 
 import pandas as pd
 from pandas import (
@@ -1369,6 +1369,19 @@ class TestDataFrameFormatting(object):
                     '4.0  3\n'
                     '5.0  4')
         assert result == expected
+
+    def test_to_string_complex_float_formatting(self):
+        # GH #25514
+        with pd.option_context('display.precision', 5):
+            df = DataFrame({'x': [
+                (0.4467846931321966 + 0.0715185102060818j),
+                (0.2739442392974528 + 0.23515228785438969j),
+                (0.26974928742135185 + 0.3250604054898979j)]})
+            result = df.to_string()
+            expected = ('                  x\n0  0.44678+0.07152j\n'
+                        '1  0.27394+0.23515j\n'
+                        '2  0.26975+0.32506j')
+            assert result == expected
 
     def test_to_string_ascii_error(self):
         data = [('0  ', '                        .gitignore ', '     5 ',

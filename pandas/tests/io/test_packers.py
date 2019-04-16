@@ -1,6 +1,7 @@
 import datetime
 from distutils.version import LooseVersion
 import glob
+from io import BytesIO
 import os
 from warnings import catch_warnings
 
@@ -13,7 +14,7 @@ from pandas.errors import PerformanceWarning
 import pandas
 from pandas import (
     Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Period, Series,
-    Timestamp, bdate_range, compat, date_range, period_range)
+    Timestamp, bdate_range, date_range, period_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_categorical_equal, assert_frame_equal, assert_index_equal,
@@ -113,7 +114,7 @@ class TestAPI(TestPackers):
         tm.assert_frame_equal(result, df)
 
         s = df.to_msgpack()
-        result = read_msgpack(compat.BytesIO(s))
+        result = read_msgpack(BytesIO(s))
         tm.assert_frame_equal(result, df)
 
         s = to_msgpack(None, df)
@@ -817,12 +818,12 @@ class TestEncoding(TestPackers):
     def test_utf(self):
         # GH10581
         for encoding in self.utf_encodings:
-            for frame in compat.itervalues(self.frame):
+            for frame in self.frame.values():
                 result = self.encode_decode(frame, encoding=encoding)
                 assert_frame_equal(result, frame)
 
     def test_default_encoding(self):
-        for frame in compat.itervalues(self.frame):
+        for frame in self.frame.values():
             result = frame.to_msgpack()
             expected = frame.to_msgpack(encoding='utf8')
             assert result == expected

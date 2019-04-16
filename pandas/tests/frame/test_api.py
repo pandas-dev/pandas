@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-# pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 import pydoc
 
@@ -193,7 +191,7 @@ class SharedWithSparse(object):
 
     def test_iteritems(self):
         df = self.klass([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
-        for k, v in compat.iteritems(df):
+        for k, v in df.items():
             assert isinstance(v, self.klass._constructor_sliced)
 
     def test_items(self):
@@ -343,8 +341,8 @@ class SharedWithSparse(object):
     def test_transpose(self, float_frame):
         frame = float_frame
         dft = frame.T
-        for idx, series in compat.iteritems(dft):
-            for col, value in compat.iteritems(series):
+        for idx, series in dft.items():
+            for col, value in series.items():
                 if np.isnan(value):
                     assert np.isnan(frame[col][idx])
                 else:
@@ -355,7 +353,7 @@ class SharedWithSparse(object):
         mixed = self.klass(data, index=index)
 
         mixed_T = mixed.T
-        for col, s in compat.iteritems(mixed_T):
+        for col, s in mixed_T.items():
             assert s.dtype == np.object_
 
     def test_swapaxes(self):
@@ -398,12 +396,12 @@ class SharedWithSparse(object):
         assert result == expected
 
     def test_iteritems_names(self, float_string_frame):
-        for k, v in compat.iteritems(float_string_frame):
+        for k, v in float_string_frame.items():
             assert v.name == k
 
     def test_series_put_names(self, float_string_frame):
         series = float_string_frame._series
-        for k, v in compat.iteritems(series):
+        for k, v in series.items():
             assert v.name == k
 
     def test_empty_nonzero(self):
@@ -459,7 +457,7 @@ class TestDataFrameMisc(SharedWithSparse):
         cp = deepcopy(float_frame)
         series = cp['A']
         series[:] = 10
-        for idx, value in compat.iteritems(series):
+        for idx, value in series.items():
             assert float_frame['A'][idx] != value
 
     def test_transpose_get_view(self, float_frame):

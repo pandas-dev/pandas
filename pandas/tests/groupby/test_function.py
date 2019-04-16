@@ -1,14 +1,16 @@
+import builtins
+from io import StringIO
+from itertools import product
 from string import ascii_lowercase
 
 import numpy as np
 import pytest
 
-from pandas.compat import product as cart_product
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range, isna)
+    DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna)
 import pandas.core.nanops as nanops
 from pandas.util import testing as tm
 
@@ -26,7 +28,7 @@ def test_groupby_bool_aggs(agg_func, skipna, vals):
     df = DataFrame({'key': ['a'] * 3 + ['b'] * 3, 'val': vals * 2})
 
     # Figure out expectation using Python builtin
-    exp = getattr(compat.builtins, agg_func)(vals)
+    exp = getattr(builtins, agg_func)(vals)
 
     # edge case for missing data with skipna and 'any'
     if skipna and all(isna(vals)) and agg_func == 'any':
@@ -61,8 +63,8 @@ def test_intercept_builtin_sum():
     s = Series([1., 2., np.nan, 3.])
     grouped = s.groupby([0, 1, 2, 2])
 
-    result = grouped.agg(compat.builtins.sum)
-    result2 = grouped.apply(compat.builtins.sum)
+    result = grouped.agg(builtins.sum)
+    result2 = grouped.apply(builtins.sum)
     expected = grouped.sum()
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
@@ -390,7 +392,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
                        "args": [1]},
                "count": {"expected": 2}}
 
-    for method, data in compat.iteritems(grp_exp):
+    for method, data in grp_exp.items():
         if "args" not in data:
             data["args"] = []
 
@@ -494,7 +496,7 @@ def test_max_nan_bug():
 -05-06,2013-05-06 00:00:00,,log.log
 -05-07,2013-05-07 00:00:00,OE,xlsx"""
 
-    df = pd.read_csv(compat.StringIO(raw), parse_dates=[0])
+    df = pd.read_csv(StringIO(raw), parse_dates=[0])
     gb = df.groupby('Date')
     r = gb[['File']].max()
     e = gb['File'].max().to_frame()
@@ -1077,7 +1079,7 @@ def test_size(df):
         assert result[key] == len(group)
 
     df = DataFrame(np.random.choice(20, (1000, 3)), columns=list('abc'))
-    for sort, key in cart_product((False, True), ('a', 'b', ['a', 'b'])):
+    for sort, key in product((False, True), ('a', 'b', ['a', 'b'])):
         left = df.groupby(key, sort=sort).size()
         right = df.groupby(key, sort=sort)['c'].apply(lambda a: a.shape[0])
         tm.assert_series_equal(left, right, check_names=False)

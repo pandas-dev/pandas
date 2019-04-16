@@ -22,8 +22,8 @@ from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
 import pandas as pd
 from pandas import (
-    DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
-    date_range, isna, to_datetime)
+    DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, date_range, isna,
+    to_datetime)
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.util import testing as tm
@@ -762,7 +762,7 @@ class TestToDatetime(object):
                                   NaT], tz='UTC')
         tm.assert_index_equal(result, expected)
 
-    def test_iss8601_strings_mixed_offsets_with_naive(self):
+    def test_iso8601_strings_mixed_offsets_with_naive(self):
         # GH 24992
         result = pd.to_datetime([
             '2018-11-28T00:00:00',
@@ -784,6 +784,18 @@ class TestToDatetime(object):
         result = pd.to_datetime(items, utc=True)
         expected = pd.to_datetime(list(reversed(items)), utc=True)[::-1]
         tm.assert_index_equal(result, expected)
+
+    def test_mixed_offsets_with_native_datetime_raises(self):
+        # GH 25978
+        s = pd.Series([
+            'nan',
+            pd.Timestamp("1990-01-01"),
+            "2015-03-14T16:15:14.123-08:00",
+            "2019-03-04T21:56:32.620-07:00",
+            None,
+        ])
+        with pytest.raises(ValueError, match="Tz-aware datetime.datetime"):
+            pd.to_datetime(s)
 
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(['March 1, 2018 12:00:00+0400'] * 2)
@@ -1291,8 +1303,6 @@ class TestToDatetimeMisc(object):
     def test_string_na_nat_conversion(self, cache):
         # GH #999, #858
 
-        from pandas.compat import parse_date
-
         strings = np.array(['1/1/2000', '1/2/2000', np.nan,
                             '1/4/2000, 12:34:56'], dtype=object)
 
@@ -1301,7 +1311,7 @@ class TestToDatetimeMisc(object):
             if isna(val):
                 expected[i] = iNaT
             else:
-                expected[i] = parse_date(val)
+                expected[i] = parse(val)
 
         result = tslib.array_to_datetime(strings)[0]
         tm.assert_almost_equal(result, expected)
@@ -1691,7 +1701,7 @@ class TestDatetimeParsingWrappers(object):
                               (True, True,
                                datetime(2020, 12, 21))]}
 
-        for date_str, values in compat.iteritems(cases):
+        for date_str, values in cases.items():
             for dayfirst, yearfirst, expected in values:
 
                 # odd comparisons across version
@@ -1729,7 +1739,7 @@ class TestDatetimeParsingWrappers(object):
         cases = {'10:15': (parse('10:15'), datetime(1, 1, 1, 10, 15)),
                  '9:05': (parse('9:05'), datetime(1, 1, 1, 9, 5))}
 
-        for date_str, (exp_now, exp_def) in compat.iteritems(cases):
+        for date_str, (exp_now, exp_def) in cases.items():
             result1, _, _ = parsing.parse_time_string(date_str)
             result2 = to_datetime(date_str)
             result3 = to_datetime([date_str])

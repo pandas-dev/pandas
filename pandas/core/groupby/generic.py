@@ -6,7 +6,7 @@ These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
 
-import collections
+from collections import OrderedDict, abc
 import copy
 from functools import partial
 from textwrap import dedent
@@ -15,7 +15,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-import pandas.compat as compat
 from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
@@ -226,7 +225,7 @@ class NDFrameGroupBy(GroupBy):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result = collections.OrderedDict()
+        result = OrderedDict()
         if axis != obj._info_axis_number:
             try:
                 for name, data in self:
@@ -253,7 +252,7 @@ class NDFrameGroupBy(GroupBy):
         # only for axis==0
 
         obj = self._obj_with_exclusions
-        result = collections.OrderedDict()
+        result = OrderedDict()
         cannot_agg = []
         errors = None
         for item in obj:
@@ -770,7 +769,7 @@ class SeriesGroupBy(GroupBy):
         if isinstance(func_or_funcs, str):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
-        if isinstance(func_or_funcs, compat.Iterable):
+        if isinstance(func_or_funcs, abc.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             ret = self._aggregate_multiple_funcs(func_or_funcs,
@@ -834,7 +833,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(com.get_callable_name(f))
             arg = lzip(columns, arg)
 
-        results = collections.OrderedDict()
+        results = OrderedDict()
         for name, func in arg:
             obj = self
             if name in results:
@@ -850,7 +849,7 @@ class SeriesGroupBy(GroupBy):
                 obj._selection = name
             results[name] = obj.aggregate(func)
 
-        if any(isinstance(x, DataFrame) for x in compat.itervalues(results)):
+        if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
             if _level:
                 return results
@@ -911,7 +910,7 @@ class SeriesGroupBy(GroupBy):
                           name=self._selection_name)
 
     def _aggregate_named(self, func, *args, **kwargs):
-        result = collections.OrderedDict()
+        result = OrderedDict()
 
         for name, group in self:
             group.name = name
@@ -1507,7 +1506,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def _fill(self, direction, limit=None):
         """Overridden method to join grouped columns in output"""
         res = super(DataFrameGroupBy, self)._fill(direction, limit=limit)
-        output = collections.OrderedDict(
+        output = OrderedDict(
             (grp.name, grp.grouper) for grp in self.grouper.groupings)
 
         from pandas import concat

@@ -7,6 +7,7 @@ except ImportError:
 import calendar
 import datetime
 import decimal
+from io import StringIO
 import locale
 import math
 import re
@@ -20,7 +21,6 @@ import pytz
 import pandas._libs.json as ujson
 from pandas._libs.tslib import Timestamp
 import pandas.compat as compat
-from pandas.compat import StringIO
 
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
 import pandas.util.testing as tm
@@ -40,7 +40,7 @@ def _clean_dict(d):
     cleaned_dict : dict
     """
 
-    return {str(k): v for k, v in compat.iteritems(d)}
+    return {str(k): v for k, v in d.items()}
 
 
 @pytest.fixture(params=[
@@ -654,7 +654,7 @@ class TestUltraJSONTests(object):
         # Make sure no Exception is raised.
         for _ in range(10):
             base = '\u00e5'.encode("utf-8")
-            quote = compat.str_to_bytes("\"")
+            quote = b'"'
 
             escape_input = quote + (base * 1024 * 1024 * 2) + quote
             ujson.decode(escape_input)
