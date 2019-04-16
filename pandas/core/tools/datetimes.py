@@ -50,11 +50,10 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     from pandas import Series
     cache_array = Series()
     if cache:
-        # Perform a quicker unique check
         from pandas import Index
-        if not Index(arg).is_unique:
-            unique_dates = algorithms.unique(arg)
-            cache_dates = convert_listlike(unique_dates, True, format)
+        unique_dates = Index(arg).unique()
+        if len(unique_dates) < len(arg):
+            cache_dates = convert_listlike(unique_dates.to_numpy(), True, format)
             cache_array = Series(cache_dates, index=unique_dates)
     return cache_array
 
