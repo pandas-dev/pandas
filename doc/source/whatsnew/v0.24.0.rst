@@ -567,7 +567,7 @@ missing indicator, ``np.nan``. (:issue:`20377`)
 .. ipython:: python
    :suppress:
 
-   from pandas.io import StringIO
+   from io import StringIO
 
 *Previous Behavior*:
 

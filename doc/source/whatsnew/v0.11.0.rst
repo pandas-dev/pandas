@@ -278,6 +278,7 @@ Enhancements
   - ``Squeeze`` to possibly remove length 1 dimensions from an object.
 
     .. ipython:: python
+       :okwarning:
 
        p = pd.Panel(np.random.randn(3, 4, 4), items=['ItemA', 'ItemB', 'ItemC'],
                     major_axis=pd.date_range('20010102', periods=4),

@@ -322,13 +322,16 @@ which can be specified. These are computed from the starting point specified by 
                    1349720105400, 1349720105500], unit='ms')
 
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
-with the ``tz`` argument specified will localize the epoch timestamps to UTC
-first then convert the result to the specified time zone.
+with the ``tz`` argument specified will currently localize the epoch timestamps to UTC
+first then convert the result to the specified time zone. However, this behavior
+is :ref:`deprecated <whatsnew_0240.deprecations.integer_tz>`, and if you have
+epochs in wall time in another timezone, it is recommended to read the epochs
+as timezone-naive timestamps and then localize to the appropriate timezone:
 
 .. ipython:: python
 
-   pd.Timestamp(1262347200000000000, tz='US/Pacific')
-   pd.DatetimeIndex([1262347200000000000], tz='US/Pacific')
+   pd.Timestamp(1262347200000000000).tz_localize('US/Pacific')
+   pd.DatetimeIndex([1262347200000000000]).tz_localize('US/Pacific')
 
 .. note::
 

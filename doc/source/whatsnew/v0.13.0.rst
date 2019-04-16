@@ -272,6 +272,7 @@ This is like an ``append`` operation.
 A Panel setting operation on an arbitrary axis aligns the input to the Panel
 
 .. ipython:: python
+   :okwarning:
 
    p = pd.Panel(np.arange(16).reshape(2, 4, 2),
                 items=['Item1', 'Item2'],
@@ -543,7 +544,7 @@ Enhancements
 
   .. ipython:: python
 
-     td.fillna(0)
+     td.fillna(pd.Timedelta(0))
      td.fillna(datetime.timedelta(days=1, seconds=5))
 
   You can do numeric reduction operations on timedeltas.

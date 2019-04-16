@@ -191,13 +191,12 @@ Operands can also appear in a reversed order (a singular object operated with a 
    df.min().idxmax()
    df.min(axis=1).idxmin()
 
-You can fillna on timedeltas. Integers will be interpreted as seconds. You can
-pass a timedelta to get a particular value.
+You can fillna on timedeltas, passing a timedelta to get a particular value.
 
 .. ipython:: python
 
-   y.fillna(0)
-   y.fillna(10)
+   y.fillna(pd.Timedelta(0))
+   y.fillna(pd.Timedelta(10, unit='s'))
    y.fillna(pd.Timedelta('-1 days, 00:00:05'))
 
 You can also negate, multiply and use ``abs`` on ``Timedeltas``:

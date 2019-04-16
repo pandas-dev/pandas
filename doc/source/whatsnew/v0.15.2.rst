@@ -161,6 +161,7 @@ Other enhancements:
 - ``Panel`` now supports the ``all`` and ``any`` aggregation functions. (:issue:`8302`):
 
   .. ipython:: python
+     :okwarning:
 
      p = pd.Panel(np.random.rand(2, 5, 4) > 0.1)
      p.all()

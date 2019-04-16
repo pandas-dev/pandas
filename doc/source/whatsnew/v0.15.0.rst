@@ -702,6 +702,7 @@ Other notable API changes:
   This can also be seen in multi-axis indexing with a ``Panel``.
 
   .. ipython:: python
+     :okwarning:
 
      p = pd.Panel(np.arange(2 * 3 * 4).reshape(2, 3, 4),
                   items=['ItemA', 'ItemB'],
