@@ -96,20 +96,20 @@ class TestTake(object):
         with pytest.raises(IndexError):
             cat.take([0], allow_fill=allow_fill)
 
-    def test_positional_take(self, ordered):
+    def test_positional_take(self, ordered_fixture):
         cat = pd.Categorical(['a', 'a', 'b', 'b'], categories=['b', 'a'],
-                             ordered=ordered)
+                             ordered=ordered_fixture)
         result = cat.take([0, 1, 2], allow_fill=False)
         expected = pd.Categorical(['a', 'a', 'b'], categories=cat.categories,
-                                  ordered=ordered)
+                                  ordered=ordered_fixture)
         tm.assert_categorical_equal(result, expected)
 
-    def test_positional_take_unobserved(self, ordered):
+    def test_positional_take_unobserved(self, ordered_fixture):
         cat = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'],
-                             ordered=ordered)
+                             ordered=ordered_fixture)
         result = cat.take([1, 0], allow_fill=False)
         expected = pd.Categorical(['b', 'a'], categories=cat.categories,
-                                  ordered=ordered)
+                                  ordered=ordered_fixture)
         tm.assert_categorical_equal(result, expected)
 
     def test_take_allow_fill(self):

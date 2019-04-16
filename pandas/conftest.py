@@ -126,6 +126,12 @@ def observed(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False, None])
+def ordered_fixture(request):
+    """Boolean 'ordered' parameter for Categorical."""
+    return request.param
+
+
 _all_arithmetic_operators = ['__add__', '__radd__',
                              '__sub__', '__rsub__',
                              '__mul__', '__rmul__',
