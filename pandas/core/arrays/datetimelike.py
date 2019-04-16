@@ -8,11 +8,11 @@ import numpy as np
 from typing_extensions import Type
 
 from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
+from pandas._libs.tslibs.c_timestamp import maybe_integer_op_deprecated
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
-from pandas._libs.tslibs.timestamps import (
-    RoundTo, maybe_integer_op_deprecated, round_nsint64)
+from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)

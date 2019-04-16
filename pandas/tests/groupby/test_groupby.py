@@ -12,7 +12,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, compat, date_range,
+    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, date_range,
     read_csv)
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -403,7 +403,7 @@ def test_frame_groupby(tsframe):
     groups = grouped.groups
     indices = grouped.indices
 
-    for k, v in compat.iteritems(groups):
+    for k, v in groups.items():
         samething = tsframe.index.take(indices[k])
         assert (samething == v).all()
 
@@ -524,7 +524,7 @@ def test_groupby_multiple_columns(df, op):
         for n2, gp2 in gp1.groupby('B'):
             expected[n1][n2] = op(gp2.loc[:, ['C', 'D']])
     expected = {k: DataFrame(v)
-                for k, v in compat.iteritems(expected)}
+                for k, v in expected.items()}
     expected = Panel.fromDict(expected).swapaxes(0, 1)
     expected.major_axis.name, expected.minor_axis.name = 'A', 'B'
 
@@ -1275,7 +1275,7 @@ def test_groupby_sort_multi():
         tups = lmap(tuple, df[keys].values)
         tups = com.asarray_tuplesafe(tups)
         expected = f(df.groupby(tups)[field])
-        for k, v in compat.iteritems(expected):
+        for k, v in expected.items():
             assert (result[k] == v)
 
     _check_groupby(df, result, ['a', 'b'], 'd')

@@ -19,9 +19,9 @@ from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas.compat import lzip
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_extension_array_dtype, is_float, is_float_dtype, is_integer,
-    is_integer_dtype, is_list_like, is_numeric_dtype, is_scalar,
+    is_categorical_dtype, is_complex_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_extension_array_dtype, is_float, is_float_dtype,
+    is_integer, is_integer_dtype, is_list_like, is_numeric_dtype, is_scalar,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCMultiIndex, ABCSeries, ABCSparseArray)
@@ -34,9 +34,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
-
-# pylint: disable=W0141
-
 
 common_docstring = """
         Parameters
@@ -892,7 +889,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = Timedelta64Formatter
     elif is_extension_array_dtype(values.dtype):
         fmt_klass = ExtensionArrayFormatter
-    elif is_float_dtype(values.dtype):
+    elif is_float_dtype(values.dtype) or is_complex_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
     elif is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
@@ -981,17 +978,6 @@ class GenericArrayFormatter(object):
         if leading_space is None:
             leading_space = is_float_type.any()
 
-        if leading_space is False:
-            # False specifically, so that the default is
-            # to include a space if we get here.
-            tpl = '{v}'
-        else:
-            tpl = ' {v}'
-
-        # shortcut
-        if self.formatter is not None:
-            return [tpl.format(v=self.formatter(x)) for x in self.values]
-
         fmt_values = []
         for i, v in enumerate(vals):
             if not is_float_type[i] and leading_space:
@@ -999,6 +985,12 @@ class GenericArrayFormatter(object):
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
+                if leading_space is False:
+                    # False specifically, so that the default is
+                    # to include a space if we get here.
+                    tpl = '{v}'
+                else:
+                    tpl = ' {v}'
                 fmt_values.append(tpl.format(v=_format(v)))
 
         return fmt_values
@@ -1089,6 +1081,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # separate the wheat from the chaff
             values = self.values
+            is_complex = is_complex_dtype(values)
             mask = isna(values)
             if hasattr(values, 'to_dense'):  # sparse numpy ndarray
                 values = values.to_dense()
@@ -1099,7 +1092,10 @@ class FloatArrayFormatter(GenericArrayFormatter):
                                            for val in values.ravel()[imask]])
 
             if self.fixed_width:
-                return _trim_zeros(values, na_rep)
+                if is_complex:
+                    return _trim_zeros_complex(values, na_rep)
+                else:
+                    return _trim_zeros_float(values, na_rep)
 
             return values
 
@@ -1429,7 +1425,22 @@ def _make_fixed_width(strings, justify='right', minimum=None, adj=None):
     return result
 
 
-def _trim_zeros(str_floats, na_rep='NaN'):
+def _trim_zeros_complex(str_complexes, na_rep='NaN'):
+    """
+    Separates the real and imaginary parts from the complex number, and
+    executes the _trim_zeros_float method on each of those.
+    """
+    def separate_and_trim(str_complex, na_rep):
+        num_arr = str_complex.split('+')
+        return (_trim_zeros_float([num_arr[0]], na_rep) +
+                ['+'] +
+                _trim_zeros_float([num_arr[1][:-1]], na_rep) +
+                ['j'])
+
+    return [''.join(separate_and_trim(x, na_rep)) for x in str_complexes]
+
+
+def _trim_zeros_float(str_floats, na_rep='NaN'):
     """
     Trims zeros, leaving just one before the decimal points if need be.
     """

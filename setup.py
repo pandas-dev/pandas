@@ -203,6 +203,11 @@ AUTHOR = "The PyData Development Team"
 EMAIL = "pydata@googlegroups.com"
 URL = "http://pandas.pydata.org"
 DOWNLOAD_URL = ''
+PROJECT_URLS = {
+    'Bug Tracker': 'https://github.com/pandas-dev/pandas/issues',
+    'Documentation': 'http://pandas.pydata.org/pandas-docs/stable/',
+    'Source Code': 'https://github.com/pandas-dev/pandas'
+}
 CLASSIFIERS = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
@@ -312,6 +317,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/ops.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/c_timestamp.pyx',
                  'pandas/_libs/tslibs/ccalendar.pyx',
                  'pandas/_libs/tslibs/period.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
@@ -592,6 +598,11 @@ ext_data = {
         'include': ts_include,
         'depends': tseries_depends,
         'sources': np_datetime_sources},
+    '_libs.tslibs.c_timestamp': {
+        'pyxfile': '_libs/tslibs/c_timestamp',
+        'include': ts_include,
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.ccalendar': {
         'pyxfile': '_libs/tslibs/ccalendar',
         'include': []},
@@ -766,6 +777,7 @@ setup(name=DISTNAME,
       cmdclass=cmdclass,
       url=URL,
       download_url=DOWNLOAD_URL,
+      project_urls=PROJECT_URLS,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',

@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-import pandas.compat as compat
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -235,7 +234,7 @@ class Base(object):
         # gh-12309: Check that the "name" argument
         # passed at initialization is honored.
 
-        for name, index in compat.iteritems(self.indices):
+        for name, index in self.indices.items():
             if isinstance(index, MultiIndex):
                 continue
 
@@ -262,7 +261,7 @@ class Base(object):
     def test_ensure_copied_data(self):
         # Check the "copy" argument of each Index.__new__ is honoured
         # GH12309
-        for name, index in compat.iteritems(self.indices):
+        for name, index in self.indices.items():
             init_kwargs = {}
             if isinstance(index, PeriodIndex):
                 # Needs "freq" specification:
@@ -298,7 +297,7 @@ class Base(object):
                                             check_same='same')
 
     def test_memory_usage(self):
-        for name, index in compat.iteritems(self.indices):
+        for name, index in self.indices.items():
             result = index.memory_usage()
             if len(index):
                 index.get_loc(index[0])
@@ -428,7 +427,7 @@ class Base(object):
     @pytest.mark.parametrize("method", ["intersection", "union",
                                         "difference", "symmetric_difference"])
     def test_set_ops_error_cases(self, case, method):
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             # non-iterable input
 
             msg = "Input must be Index or array-like"
@@ -436,7 +435,7 @@ class Base(object):
                 getattr(idx, method)(case)
 
     def test_intersection_base(self):
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             first = idx[:5]
             second = idx[:3]
             intersect = first.intersection(second)
@@ -466,7 +465,7 @@ class Base(object):
                     first.intersection([1, 2, 3])
 
     def test_union_base(self):
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             first = idx[3:]
             second = idx[:5]
             everything = idx
@@ -494,7 +493,7 @@ class Base(object):
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_difference_base(self, sort):
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             first = idx[2:]
             second = idx[:4]
             answer = idx[4:]
@@ -529,7 +528,7 @@ class Base(object):
                     first.difference([1, 2, 3], sort)
 
     def test_symmetric_difference(self):
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             first = idx[1:]
             second = idx[:-1]
             if isinstance(idx, CategoricalIndex):
@@ -560,7 +559,7 @@ class Base(object):
 
     def test_insert_base(self):
 
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             result = idx[1:4]
 
             if not len(idx):
@@ -571,7 +570,7 @@ class Base(object):
 
     def test_delete_base(self):
 
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
 
             if not len(idx):
                 continue
@@ -596,7 +595,7 @@ class Base(object):
 
     def test_equals(self):
 
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             assert idx.equals(idx)
             assert idx.equals(idx.copy())
             assert idx.equals(idx.astype(object))
@@ -682,7 +681,7 @@ class Base(object):
         # test ufuncs of numpy, see:
         # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             for func in [np.exp, np.exp2, np.expm1, np.log, np.log2, np.log10,
                          np.log1p, np.sqrt, np.sin, np.cos, np.tan, np.arcsin,
                          np.arccos, np.arctan, np.sinh, np.cosh, np.tanh,

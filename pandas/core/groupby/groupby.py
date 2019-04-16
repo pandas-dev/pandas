@@ -21,7 +21,6 @@ from typing_extensions import Type
 from pandas._config.config import option_context
 
 from pandas._libs import Timestamp, groupby as libgroupby
-import pandas.compat as compat
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -877,7 +876,7 @@ b  2""")
         if self.grouper._filter_empty_groups:
 
             mask = counts.ravel() > 0
-            for name, result in compat.iteritems(output):
+            for name, result in output.items():
 
                 # since we are masking, make sure that we have a float object
                 values = result
@@ -1098,7 +1097,8 @@ class GroupBy(_GroupBy):
         # defined here for API doc
         raise NotImplementedError
 
-    @Substitution(name='groupby', see_also=_common_see_also)
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
     def mean(self, *args, **kwargs):
         """
         Compute mean of groups, excluding missing values.
@@ -1544,7 +1544,8 @@ class GroupBy(_GroupBy):
         return self._fill('bfill', limit=limit)
     bfill = backfill
 
-    @Substitution(name='groupby', see_also=_common_see_also)
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
     def nth(self, n, dropna=None):
         """
         Take the nth row from each group if n is an int, or a subset of rows
@@ -2131,7 +2132,8 @@ class GroupBy(_GroupBy):
         shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
 
-    @Substitution(name='groupby', see_also=_common_see_also)
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
     def head(self, n=5):
         """
         Return first n rows of each group.
@@ -2157,7 +2159,8 @@ class GroupBy(_GroupBy):
         mask = self._cumcount_array() < n
         return self._selected_obj[mask]
 
-    @Substitution(name='groupby', see_also=_common_see_also)
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
     def tail(self, n=5):
         """
         Return last n rows of each group.

@@ -6,7 +6,6 @@ from io import StringIO
 import math
 import operator
 import re
-import sys
 
 import numpy as np
 import pytest
@@ -414,9 +413,6 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        # TODO(GH-24559): Remove the sys.modules and warnings
-        # not sure what this is from. It's Py2 only.
-        modules = [sys.modules['pandas.core.indexes.base']]
         if (tz_naive_fixture and attr == "asi8" and
                 str(tz_naive_fixture) not in ('UTC', 'tzutc()', 'UTC+00:00')):
             ex_warn = FutureWarning
@@ -425,8 +421,7 @@ class TestIndex(Base):
 
         # stacklevel is checked elsewhere. We don't do it here since
         # Index will have an frame, throwing off the expected.
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False,
-                                        clear=modules):
+        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
             result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 

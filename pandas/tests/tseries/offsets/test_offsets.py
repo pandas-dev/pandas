@@ -709,7 +709,7 @@ class TestBusinessDay(Base):
     @pytest.mark.parametrize('case', apply_cases)
     def test_apply(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
@@ -924,7 +924,7 @@ class TestBusinessHour(Base):
     @pytest.mark.parametrize('case', normalize_cases)
     def test_normalize(self, case):
         offset, cases = case
-        for dt, expected in compat.iteritems(cases):
+        for dt, expected in cases.items():
             assert offset.apply(dt) == expected
 
     on_offset_cases = []
@@ -964,7 +964,7 @@ class TestBusinessHour(Base):
     @pytest.mark.parametrize('case', on_offset_cases)
     def test_onOffset(self, case):
         offset, cases = case
-        for dt, expected in compat.iteritems(cases):
+        for dt, expected in cases.items():
             assert offset.onOffset(dt) == expected
 
     opening_time_cases = []
@@ -1130,7 +1130,7 @@ class TestBusinessHour(Base):
     def test_opening_time(self, case):
         _offsets, cases = case
         for offset in _offsets:
-            for dt, (exp_next, exp_prev) in compat.iteritems(cases):
+            for dt, (exp_next, exp_prev) in cases.items():
                 assert offset._next_opening_time(dt) == exp_next
                 assert offset._prev_opening_time(dt) == exp_prev
 
@@ -1290,7 +1290,7 @@ class TestBusinessHour(Base):
     @pytest.mark.parametrize('case', apply_cases)
     def test_apply(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     apply_large_n_cases = []
@@ -1346,7 +1346,7 @@ class TestBusinessHour(Base):
     @pytest.mark.parametrize('case', apply_large_n_cases)
     def test_apply_large_n(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     def test_apply_nanoseconds(self):
@@ -1369,7 +1369,7 @@ class TestBusinessHour(Base):
                            '2014-07-03 17:00') - Nano(5), }))
 
         for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
+            for base, expected in cases.items():
                 assert_offset_equal(offset, base, expected)
 
     def test_datetimeindex(self):
@@ -1561,7 +1561,7 @@ class TestCustomBusinessHour(Base):
     @pytest.mark.parametrize('norm_cases', normalize_cases)
     def test_normalize(self, norm_cases):
         offset, cases = norm_cases
-        for dt, expected in compat.iteritems(cases):
+        for dt, expected in cases.items():
             assert offset.apply(dt) == expected
 
     def test_onOffset(self):
@@ -1577,7 +1577,7 @@ class TestCustomBusinessHour(Base):
                        datetime(2014, 7, 6, 12): False}))
 
         for offset, cases in tests:
-            for dt, expected in compat.iteritems(cases):
+            for dt, expected in cases.items():
                 assert offset.onOffset(dt) == expected
 
     apply_cases = []
@@ -1622,7 +1622,7 @@ class TestCustomBusinessHour(Base):
     @pytest.mark.parametrize('apply_case', apply_cases)
     def test_apply(self, apply_case):
         offset, cases = apply_case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     nano_cases = []
@@ -1647,7 +1647,7 @@ class TestCustomBusinessHour(Base):
     @pytest.mark.parametrize('nano_case', nano_cases)
     def test_apply_nanoseconds(self, nano_case):
         offset, cases = nano_case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
 
@@ -1778,7 +1778,7 @@ class TestCustomBusinessDay(Base):
     @pytest.mark.parametrize('case', apply_cases)
     def test_apply(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
@@ -1977,7 +1977,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     @pytest.mark.parametrize('case', apply_cases)
     def test_apply(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
@@ -2094,7 +2094,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     @pytest.mark.parametrize('case', apply_cases)
     def test_apply(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
@@ -2193,7 +2193,7 @@ class TestWeek(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     @pytest.mark.parametrize('weekday', range(7))
@@ -2518,7 +2518,7 @@ class TestSemiMonthEnd(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     @pytest.mark.parametrize('case', offset_cases)
@@ -2709,7 +2709,7 @@ class TestSemiMonthBegin(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     @pytest.mark.parametrize('case', offset_cases)
@@ -2831,7 +2831,7 @@ class TestOffsetAliases(object):
         _offset_map.clear()
 
     def test_alias_equality(self):
-        for k, v in compat.iteritems(_offset_map):
+        for k, v in _offset_map.items():
             if v is None:
                 continue
             assert k == v.copy()

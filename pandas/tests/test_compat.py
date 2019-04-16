@@ -5,8 +5,7 @@ Testing that functions from compat work as expected
 import builtins
 import re
 
-from pandas.compat import (
-    iteritems, iterkeys, itervalues, lfilter, lmap, lrange, lzip, re_type)
+from pandas.compat import lfilter, lmap, lrange, lzip, re_type
 
 
 class TestBuiltinIterators(object):
@@ -50,11 +49,6 @@ class TestBuiltinIterators(object):
         expecteds = list(builtins.zip(*lst)),
         lengths = 10,
         self.check_results(results, expecteds, lengths)
-
-    def test_dict_iterators(self):
-        assert next(itervalues({1: 2})) == 2
-        assert next(iterkeys({1: 2})) == 1
-        assert next(iteritems({1: 2})) == (1, 2)
 
 
 def test_re_type():
