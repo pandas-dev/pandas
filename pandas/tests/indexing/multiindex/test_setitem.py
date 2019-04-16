@@ -140,8 +140,8 @@ class TestMultiIndexSetItem(object):
         # http://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
         df_orig = DataFrame.from_dict({'price': {
             ('DE', 'Coal', 'Stock'): 2,
-            ('DE', 'Gas', 'Stock'): 4,
             ('DE', 'Elec', 'Demand'): 1,
+            ('DE', 'Gas', 'Stock'): 4,
             ('FR', 'Gas', 'Stock'): 5,
             ('FR', 'Solar', 'SupIm'): 0,
             ('FR', 'Wind', 'SupIm'): 0
