@@ -1100,15 +1100,3 @@ class TestTimeSeries(TestData):
             result = np.asarray(ser, dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_NA_values_with_cache(self, unique_nulls_fixture,
-                                  unique_nulls_fixture2):
-        # GH 22305
-        # check pairwise, that no pair of na values
-        # is mangled
-        if unique_nulls_fixture is not unique_nulls_fixture2:
-            # otherwise not unique
-            expected = Index([NaT, NaT], dtype='datetime64[ns]')
-            result = to_datetime([unique_nulls_fixture, unique_nulls_fixture2],
-                                 cache=True)
-            tm.assert_index_equal(result, expected)
