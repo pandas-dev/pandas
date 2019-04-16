@@ -1111,7 +1111,6 @@ class TestDataFrameConstructors(TestData):
 
         sdict = OrderedDict(zip(['x', 'Unnamed 0'], data))
         expected = DataFrame.from_dict(sdict, orient='index')
-
         result = result if PY36 else result.sort_index()
         tm.assert_frame_equal(result, expected)
 
