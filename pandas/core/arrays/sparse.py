@@ -9,7 +9,6 @@ from typing import Any, Callable
 import warnings
 
 import numpy as np
-from typing_extensions import Type
 
 from pandas._libs import index as libindex, lib
 import pandas._libs.sparse as splib
