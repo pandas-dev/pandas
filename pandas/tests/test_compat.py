@@ -5,7 +5,7 @@ Testing that functions from compat work as expected
 import builtins
 import re
 
-from pandas.compat import lfilter, lmap, lrange, lzip, re_type
+from pandas.compat import lmap, lrange, lzip, re_type
 
 
 class TestBuiltinIterators(object):
@@ -33,14 +33,6 @@ class TestBuiltinIterators(object):
         results = lmap(func, *lst),
         expecteds = list(builtins.map(func, *lst)),
         lengths = 10,
-        self.check_results(results, expecteds, lengths)
-
-    def test_lfilter(self):
-        func = lambda x: x
-        lst = list(builtins.range(10))
-        results = lfilter(lambda x: x, lst),
-        lengths = 9,
-        expecteds = list(builtins.filter(func, lst)),
         self.check_results(results, expecteds, lengths)
 
     def test_lzip(self):
