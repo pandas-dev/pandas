@@ -68,27 +68,6 @@ class NDFrameGroupBy(GroupBy):
             how, alt=alt, numeric_only=numeric_only, min_count=min_count)
         return self._wrap_agged_blocks(new_items, new_blocks)
 
-    def _wrap_agged_blocks(self, items, blocks):
-        obj = self._obj_with_exclusions
-
-        new_axes = list(obj._data.axes)
-
-        # more kludge
-        if self.axis == 0:
-            new_axes[0], new_axes[1] = new_axes[1], self.grouper.result_index
-        else:
-            new_axes[self.axis] = self.grouper.result_index
-
-        # Make sure block manager integrity check passes.
-        assert new_axes[0].equals(items)
-        new_axes[0] = items
-
-        mgr = BlockManager(blocks, new_axes)
-
-        new_obj = type(obj)(mgr)
-
-        return self._post_process_cython_aggregate(new_obj)
-
     _block_agg_axis = 0
 
     def _cython_agg_blocks(self, how, alt=None, numeric_only=True,
@@ -164,19 +143,6 @@ class NDFrameGroupBy(GroupBy):
             offset += loc
 
         return new_items, new_blocks
-
-    def _get_data_to_aggregate(self):
-        obj = self._obj_with_exclusions
-        if self.axis == 0:
-            return obj.swapaxes(0, 1)._data, 1
-        else:
-            return obj._data, self.axis
-
-    def _post_process_cython_aggregate(self, obj):
-        # undoing kludge from below
-        if self.axis == 0:
-            obj = obj.swapaxes(0, 1)
-        return obj
 
     def aggregate(self, arg, *args, **kwargs):
 
