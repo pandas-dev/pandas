@@ -9,7 +9,7 @@ import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
-from pandas.compat import lmap, lrange, raise_with_traceback
+from pandas.compat import PY36, lmap, lrange, raise_with_traceback
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar, construct_1d_ndarray_preserving_na,
@@ -301,7 +301,7 @@ def extract_index(data):
                              ' an index')
 
         if have_series or have_dicts:
-            index = _union_indexes(indexes, sort=False)
+            index = _union_indexes(indexes, sort=not PY36)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
