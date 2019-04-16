@@ -504,7 +504,6 @@ class TestToDatetime:
         with pytest.raises(ValueError, match=msg):
             pd.to_datetime(arr, cache=cache)
 
-
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_offset(self, cache):
         # inspired by asv timeseries.ToDatetimeNONISO8601 benchmark
@@ -515,7 +514,6 @@ class TestToDatetime:
         expected = pd.Index([parse(x) for x in arr])
         result = pd.to_datetime(arr, cache=cache)
         tm.assert_index_equal(result, expected)
-
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_tz_pytz(self, cache):

@@ -89,7 +89,6 @@ def _box_if_needed(dt_array, box, default, tz, name):
         print(type(dt_array))
         if is_datetime64_dtype(dt_array):
             return DatetimeIndex(dt_array, tz=tz, name=name)
-        #elif is_object_dtype(dt_array):
         # e.g. an Index of datetime objects
         return Index(dt_array, name=name)
     return default
@@ -117,7 +116,7 @@ def _convert_and_box_cache(arg, cache_array, box, name=None):
         - Index-like if box=True
         - ndarray if box=False
     """
-    from pandas import Series, DatetimeIndex, Index
+    from pandas import Series
     result = Series(arg).map(cache_array)
     return _box_if_needed(result, box, result.values, None, name)
 
