@@ -305,7 +305,7 @@ Conversion
 ^^^^^^^^^^
 
 - Bug in :func:`DataFrame.astype()` when passing a dict of columns and types the `errors` parameter was ignored. (:issue:`25905`)
--
+- Bug in constructing :class:`DataFrame` from dict, where the index would be sorted instead of using the dict insertion order. (:issue:`24859`)
 -
 
 Strings
