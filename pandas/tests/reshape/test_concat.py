@@ -1588,7 +1588,7 @@ class TestConcatenate(ConcatenateBase):
         s = Series(randn(3), index=['c', 'a', 'b'], name='A')
         s2 = Series(randn(4), index=['d', 'a', 'b', 'c'], name='B')
         result = concat([s, s2], axis=1, sort=sort)
-        expected = DataFrame({'A': s, 'B': s2})
+        expected = DataFrame({'A': s, 'B': s2}).sort_index()
         assert_frame_equal(result, expected)
 
     def test_concat_series_axis1_names_applied(self):
