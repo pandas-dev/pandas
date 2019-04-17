@@ -14,7 +14,7 @@ from pandas.util._decorators import deprecate_kwarg
 from pandas.core.dtypes.common import (
     ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
     is_datetime64tz_dtype, is_float, is_integer, is_integer_dtype,
-    is_list_like, is_numeric_dtype, is_object_dtype, is_scalar)
+    is_list_like, is_numeric_dtype, is_scalar)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import notna
 
@@ -60,7 +60,7 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     return cache_array
 
 
-def _box_if_needed(dt_array, box, default, tz, name):
+def _box_if_needed(dt_array, box, default, tz, name=None):
     """
     Properly boxes the ndarray of datetimes (if requested) to DatetimeIndex
     if it is possible or to generic Index instead
@@ -86,7 +86,6 @@ def _box_if_needed(dt_array, box, default, tz, name):
     """
     if box:
         from pandas import DatetimeIndex, Index
-        print(type(dt_array))
         if is_datetime64_dtype(dt_array):
             return DatetimeIndex(dt_array, tz=tz, name=name)
         # e.g. an Index of datetime objects
