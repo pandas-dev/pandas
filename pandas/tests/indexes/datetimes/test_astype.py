@@ -13,7 +13,7 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-class TestDatetimeIndex(object):
+class TestDatetimeIndex:
 
     def test_astype(self):
         # GH 13149, GH 13209
@@ -245,7 +245,7 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(result, expected)
 
 
-class TestToPeriod(object):
+class TestToPeriod:
 
     def setup_method(self, method):
         data = [Timestamp('2007-01-01 10:11:12.123456Z'),

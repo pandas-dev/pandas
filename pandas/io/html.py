@@ -139,7 +139,7 @@ def _read(obj):
     return text
 
 
-class _HtmlFrameParser(object):
+class _HtmlFrameParser:
     """Base class for parsers that parse HTML into DataFrames.
 
     Parameters

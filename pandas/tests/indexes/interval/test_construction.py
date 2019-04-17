@@ -21,7 +21,7 @@ def name(request):
     return request.param
 
 
-class Base(object):
+class Base:
     """
     Common tests for all variations of IntervalIndex construction. Input data
     to be supplied in breaks format, then converted by the subclass method

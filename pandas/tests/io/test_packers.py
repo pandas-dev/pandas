@@ -85,7 +85,7 @@ def check_arbitrary(a, b):
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-class TestPackers(object):
+class TestPackers:
 
     def setup_method(self, method):
         self.path = '__%s__.msg' % tm.rands(10)
@@ -148,7 +148,7 @@ class TestAPI(TestPackers):
 
     def test_invalid_arg(self):
         # GH10369
-        class A(object):
+        class A:
 
             def __init__(self):
                 self.read = 0
@@ -841,7 +841,7 @@ def legacy_packer(request, datapath):
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-class TestMsgpack(object):
+class TestMsgpack:
     """
     How to add msgpack tests:
 

@@ -32,7 +32,7 @@ _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
                             unique='IndexOpsMixin', duplicated='IndexOpsMixin')
 
 
-class StringMixin(object):
+class StringMixin:
     """
     Implements string methods so long as object defines a `__unicode__` method.
     """
@@ -110,7 +110,7 @@ class PandasObject(StringMixin, DirNamesMixin):
         return super(PandasObject, self).__sizeof__()
 
 
-class NoNewAttributesMixin(object):
+class NoNewAttributesMixin:
     """Mixin which prevents adding new attributes.
 
     Prevents additional attributes via xxx.attribute = "something" after a
@@ -153,7 +153,7 @@ class SpecificationError(GroupByError):
     pass
 
 
-class SelectionMixin(object):
+class SelectionMixin:
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
@@ -645,7 +645,7 @@ class SelectionMixin(object):
         return self._builtin_table.get(arg, arg)
 
 
-class IndexOpsMixin(object):
+class IndexOpsMixin:
     """ common ops mixin to support a unified interface / docs for Series /
     Index
     """
