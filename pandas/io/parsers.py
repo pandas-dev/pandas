@@ -727,7 +727,7 @@ read_table = Appender(_doc_read_csv_and_table.format(
                       summary="""Read general delimited file into DataFrame.
 
 .. deprecated:: 0.24.0
-Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
+  Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
                       _default_sep=r"'\\t' (tab-stop)")
                       )(read_table)
 
