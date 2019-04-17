@@ -3514,7 +3514,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @Substitution(see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
-                  versionadded='.. versionadded:: 0.20.0',
+                  versionadded='\n.. versionadded:: 0.20.0\n',
                   **_shared_doc_kwargs)
     @Appender(generic._shared_docs['aggregate'])
     def aggregate(self, func, axis=0, *args, **kwargs):
