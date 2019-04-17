@@ -118,12 +118,14 @@ def test_bins_not_monotonic():
      IntervalIndex.from_tuples([
          (Timestamp.min, Timestamp('2018-01-01')),
          (Timestamp('2018-01-01'), Timestamp.max)])),
+
     ([-1, 0, 1],
      np.array([np.iinfo(np.int64).min, 0, np.iinfo(np.int64).max],
               dtype="int64"),
      IntervalIndex.from_tuples([
          (np.iinfo(np.int64).min, 0),
          (0, np.iinfo(np.int64).max)])),
+
     ([np.timedelta64(-1), np.timedelta64(0), np.timedelta64(1)],
      np.array([
          np.timedelta64(-np.iinfo(np.int64).max),
@@ -133,7 +135,7 @@ def test_bins_not_monotonic():
          (np.timedelta64(-np.iinfo(np.int64).max), np.timedelta64(0)),
          (np.timedelta64(0), np.timedelta64(np.iinfo(np.int64).max))])),
 ])
-def test_bins_monotic_not_overflowing(x, bins, expected):
+def test_bins_monotonic_not_overflowing(x, bins, expected):
     # GH 26045
     result = cut(x, bins)
     tm.assert_index_equal(result.categories, expected)
