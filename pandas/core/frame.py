@@ -6304,11 +6304,11 @@ class DataFrame(NDFrame):
 
     Different aggregations per column.
 
-    >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
-            A    B
-    max   NaN  8.0
-    min   1.0  2.0
-    sum  12.0  NaN
+    >>> df.agg({'A' : ['max', 'min'], 'B' : ['min', 'sum']})
+           A     B
+    max  7.0   NaN
+    min  1.0   2.0
+    sum  NaN  15.0
 
     Aggregate over the columns.
 
