@@ -430,7 +430,7 @@ Updated PyTables Support
 
 - added mixed-dtype support!
 
-   .. ipython:: python
+   .. code-block:: ipython
 
         In [64]: df['string'] = 'string'
 

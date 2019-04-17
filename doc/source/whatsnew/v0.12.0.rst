@@ -320,7 +320,7 @@ Other Enhancements
     Let's say that we had an option ``'a.b'`` and another option ``'b.c'``.
     We can set them at the same time:
 
-    .. ipython:: python
+    .. code-block:: ipython
 
         In [31]: pd.get_option('a.b')
         Out[31]: 2
