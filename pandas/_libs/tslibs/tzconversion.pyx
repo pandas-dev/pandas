@@ -53,8 +53,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         - bool if True, treat all vals as DST. If False, treat them as non-DST
         - 'NaT' will return NaT where there are ambiguous times
 
-    nonexistent : {None, "NaT", "shift_forward", "shift_backward", "raise",
-                   timedelta-like}
+    nonexistent : {None, "NaT", "shift_forward", "shift_backward", "raise", \
+timedelta-like}
         How to handle non-existent times when converting wall times to UTC
 
         .. versionadded:: 0.24.0
