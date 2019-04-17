@@ -1,6 +1,4 @@
 # coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 """ test get/set & misc """
 
 from datetime import timedelta

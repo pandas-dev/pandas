@@ -1,5 +1,3 @@
-# pylint: disable=E1103
-
 from collections import OrderedDict
 
 import numpy as np

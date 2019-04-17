@@ -22,8 +22,8 @@ from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
 import pandas as pd
 from pandas import (
-    DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
-    date_range, isna, to_datetime)
+    DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, date_range, isna,
+    to_datetime)
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.util import testing as tm
@@ -1303,8 +1303,6 @@ class TestToDatetimeMisc(object):
     def test_string_na_nat_conversion(self, cache):
         # GH #999, #858
 
-        from pandas.compat import parse_date
-
         strings = np.array(['1/1/2000', '1/2/2000', np.nan,
                             '1/4/2000, 12:34:56'], dtype=object)
 
@@ -1313,7 +1311,7 @@ class TestToDatetimeMisc(object):
             if isna(val):
                 expected[i] = iNaT
             else:
-                expected[i] = parse_date(val)
+                expected[i] = parse(val)
 
         result = tslib.array_to_datetime(strings)[0]
         tm.assert_almost_equal(result, expected)
@@ -1630,6 +1628,15 @@ class TestDatetimeParsingWrappers(object):
                                  yearfirst=yearfirst)
             assert result7 == expected
 
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_na_values_with_cache(self, cache, unique_nulls_fixture,
+                                  unique_nulls_fixture2):
+        # GH22305
+        expected = Index([NaT, NaT], dtype='datetime64[ns]')
+        result = to_datetime([unique_nulls_fixture, unique_nulls_fixture2],
+                             cache=cache)
+        tm.assert_index_equal(result, expected)
+
     def test_parsers_nat(self):
         # Test that each of several string-accepting methods return pd.NaT
         result1, _, _ = parsing.parse_time_string('NaT')
@@ -1703,7 +1710,7 @@ class TestDatetimeParsingWrappers(object):
                               (True, True,
                                datetime(2020, 12, 21))]}
 
-        for date_str, values in compat.iteritems(cases):
+        for date_str, values in cases.items():
             for dayfirst, yearfirst, expected in values:
 
                 # odd comparisons across version
@@ -1741,7 +1748,7 @@ class TestDatetimeParsingWrappers(object):
         cases = {'10:15': (parse('10:15'), datetime(1, 1, 1, 10, 15)),
                  '9:05': (parse('9:05'), datetime(1, 1, 1, 9, 5))}
 
-        for date_str, (exp_now, exp_def) in compat.iteritems(cases):
+        for date_str, (exp_now, exp_def) in cases.items():
             result1, _, _ = parsing.parse_time_string(date_str)
             result2 = to_datetime(date_str)
             result3 = to_datetime([date_str])
