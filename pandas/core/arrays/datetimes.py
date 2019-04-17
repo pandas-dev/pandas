@@ -895,8 +895,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 

@@ -1628,6 +1628,15 @@ class TestDatetimeParsingWrappers(object):
                                  yearfirst=yearfirst)
             assert result7 == expected
 
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_na_values_with_cache(self, cache, unique_nulls_fixture,
+                                  unique_nulls_fixture2):
+        # GH22305
+        expected = Index([NaT, NaT], dtype='datetime64[ns]')
+        result = to_datetime([unique_nulls_fixture, unique_nulls_fixture2],
+                             cache=cache)
+        tm.assert_index_equal(result, expected)
+
     def test_parsers_nat(self):
         # Test that each of several string-accepting methods return pd.NaT
         result1, _, _ = parsing.parse_time_string('NaT')

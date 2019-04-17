@@ -241,6 +241,14 @@ class TestFancy(Base):
         result = df.loc[[1, 2], ['a', 'b']]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('case', [lambda s: s, lambda s: s.loc])
+    def test_duplicate_int_indexing(self, case):
+        # GH 17347
+        s = pd.Series(range(3), index=[1, 1, 3])
+        expected = s[1]
+        result = case(s)[[1]]
+        tm.assert_series_equal(result, expected)
+
     def test_indexing_mixed_frame_bug(self):
 
         # GH3492

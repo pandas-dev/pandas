@@ -15,7 +15,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-import pandas.compat as compat
 from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
@@ -68,27 +67,6 @@ class NDFrameGroupBy(GroupBy):
         new_items, new_blocks = self._cython_agg_blocks(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count)
         return self._wrap_agged_blocks(new_items, new_blocks)
-
-    def _wrap_agged_blocks(self, items, blocks):
-        obj = self._obj_with_exclusions
-
-        new_axes = list(obj._data.axes)
-
-        # more kludge
-        if self.axis == 0:
-            new_axes[0], new_axes[1] = new_axes[1], self.grouper.result_index
-        else:
-            new_axes[self.axis] = self.grouper.result_index
-
-        # Make sure block manager integrity check passes.
-        assert new_axes[0].equals(items)
-        new_axes[0] = items
-
-        mgr = BlockManager(blocks, new_axes)
-
-        new_obj = type(obj)(mgr)
-
-        return self._post_process_cython_aggregate(new_obj)
 
     _block_agg_axis = 0
 
@@ -165,19 +143,6 @@ class NDFrameGroupBy(GroupBy):
             offset += loc
 
         return new_items, new_blocks
-
-    def _get_data_to_aggregate(self):
-        obj = self._obj_with_exclusions
-        if self.axis == 0:
-            return obj.swapaxes(0, 1)._data, 1
-        else:
-            return obj._data, self.axis
-
-    def _post_process_cython_aggregate(self, obj):
-        # undoing kludge from below
-        if self.axis == 0:
-            obj = obj.swapaxes(0, 1)
-        return obj
 
     def aggregate(self, func, *args, **kwargs):
 
@@ -850,7 +815,7 @@ class SeriesGroupBy(GroupBy):
                 obj._selection = name
             results[name] = obj.aggregate(func)
 
-        if any(isinstance(x, DataFrame) for x in compat.itervalues(results)):
+        if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
             if _level:
                 return results
@@ -1569,7 +1534,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
         ham    1       1       2
         spam   1       2       1
 
-        # check for rows with the same id but conflicting values
+        Check for rows with the same id but conflicting values:
+
         >>> df.groupby('id').filter(lambda g: (g.nunique() > 1).any())
              id  value1 value2
         0  spam       1      a
