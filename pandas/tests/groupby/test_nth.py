@@ -434,3 +434,14 @@ def test_nth_column_order():
                          columns=['C', 'B'],
                          index=Index([1, 2], name='A'))
     assert_frame_equal(result, expected)
+
+
+def test_nth_nan_in_grouper():
+    # GH 26011
+    df = DataFrame([[np.nan, 1, np.nan],
+                    [2., 3, 4.]], columns=list('abc'))
+    result = df.groupby('a').nth(0)
+    expected = pd.DataFrame([[3, 4.]], columns=list('bc'),
+                            index=Index([2.0], name='a'))
+
+    assert_frame_equal(result, expected)
