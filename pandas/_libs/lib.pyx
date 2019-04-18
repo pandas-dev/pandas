@@ -1286,10 +1286,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         if is_string_array(values, skipna=skipna):
             return 'string'
 
-    elif isinstance(val, unicode):
-        if is_unicode_array(values, skipna=skipna):
-            return 'unicode'
-
     elif isinstance(val, bytes):
         if is_bytes_array(values, skipna=skipna):
             return 'bytes'
@@ -1558,22 +1554,6 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
         StringValidator validator = StringValidator(len(values),
                                                     values.dtype,
                                                     skipna=skipna)
-    return validator.validate(values)
-
-
-cdef class UnicodeValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
-        return isinstance(value, unicode)
-
-    cdef inline bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.unicode_)
-
-
-cdef bint is_unicode_array(ndarray values, bint skipna=False):
-    cdef:
-        UnicodeValidator validator = UnicodeValidator(len(values),
-                                                      values.dtype,
-                                                      skipna=skipna)
     return validator.validate(values)
 
 
