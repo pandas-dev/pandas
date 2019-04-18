@@ -66,6 +66,7 @@ def init_qt_clipboard():
 
 
 def init_xclip_clipboard():
+    print("X Clip ")
     def copy_xclip(text):
         p = subprocess.Popen(['xclip', '-selection', 'c'],
                              stdin=subprocess.PIPE, close_fds=True)
