@@ -702,7 +702,9 @@ class IndexOpsMixin(object):
     @property
     def data(self):
         """
-        DEPRECATED. Return the data pointer of the underlying data.
+        Return the data pointer of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.data is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -712,8 +714,9 @@ class IndexOpsMixin(object):
     @property
     def itemsize(self):
         """
-        DEPRECATED. Return the size of the dtype of the item of the underlying
-        data.
+        Return the size of the dtype of the item of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.itemsize is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -730,7 +733,9 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """
-        DEPRECATED. Return the strides of the underlying data.
+        Return the strides of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.strides is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -747,7 +752,9 @@ class IndexOpsMixin(object):
     @property
     def flags(self):
         """
-        DEPRECATED. Return the ndarray.flags for the underlying data.
+        Return the ndarray.flags for the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.flags is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -757,8 +764,9 @@ class IndexOpsMixin(object):
     @property
     def base(self):
         """
-        DEPRECATED. Return the base object if the memory of the underlying data
-        is shared.
+        Return the base object if the memory of the underlying data is shared.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.base is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
