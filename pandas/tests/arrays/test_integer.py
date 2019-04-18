@@ -94,7 +94,7 @@ def test_repr_array_long():
     assert result == expected
 
 
-class TestConstructors(object):
+class TestConstructors:
 
     def test_from_dtype_from_float(self, data):
         # construct from our dtype & string dtype
@@ -365,7 +365,7 @@ class TestComparisonOps(BaseOpsUtil):
         self._compare_other(data, op_name, other)
 
 
-class TestCasting(object):
+class TestCasting:
     pass
 
     @pytest.mark.parametrize('dropna', [True, False])

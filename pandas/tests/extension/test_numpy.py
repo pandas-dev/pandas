@@ -136,7 +136,7 @@ def skip_numpy_object(dtype):
 skip_nested = pytest.mark.usefixtures('skip_numpy_object')
 
 
-class BaseNumPyTests(object):
+class BaseNumPyTests:
     pass
 
 

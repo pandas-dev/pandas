@@ -212,7 +212,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_constructor_from_unknown_type(self):
         # GH 19393
-        class Unknown(object):
+        class Unknown:
             pass
         with pytest.raises(TypeError,
                            match=('SparseDataFrame called with unknown type '
@@ -1283,7 +1283,7 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(expected, result)
 
 
-class TestSparseDataFrameArithmetic(object):
+class TestSparseDataFrameArithmetic:
 
     def test_numeric_op_scalar(self):
         df = pd.DataFrame({'A': [nan, nan, 0, 1, ],
@@ -1312,7 +1312,7 @@ class TestSparseDataFrameArithmetic(object):
         tm.assert_frame_equal(res.to_dense(), df != 0)
 
 
-class TestSparseDataFrameAnalytics(object):
+class TestSparseDataFrameAnalytics:
 
     def test_cumsum(self, float_frame):
         expected = SparseDataFrame(float_frame.to_dense().cumsum())

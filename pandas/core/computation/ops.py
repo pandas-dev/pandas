@@ -541,7 +541,7 @@ class MathCall(Op):
         return pprint_thing('{0}({1})'.format(self.op, ','.join(operands)))
 
 
-class FuncNode(object):
+class FuncNode:
     def __init__(self, name):
         from pandas.core.computation.check import (_NUMEXPR_INSTALLED,
                                                    _NUMEXPR_VERSION)

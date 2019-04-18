@@ -1519,7 +1519,7 @@ class Block(PandasObject):
         return self
 
 
-class NonConsolidatableMixIn(object):
+class NonConsolidatableMixIn:
     """ hold methods for the nonconsolidatable blocks """
     _can_consolidate = False
     _verify_integrity = False
@@ -2033,7 +2033,7 @@ class IntBlock(NumericBlock):
         return is_integer_dtype(value) and value.dtype == self.dtype
 
 
-class DatetimeLikeBlockMixin(object):
+class DatetimeLikeBlockMixin:
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
     @property

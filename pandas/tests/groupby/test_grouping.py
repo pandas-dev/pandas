@@ -20,7 +20,7 @@ from pandas.util.testing import (
 # --------------------------------
 
 
-class TestSelection(object):
+class TestSelection:
 
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
