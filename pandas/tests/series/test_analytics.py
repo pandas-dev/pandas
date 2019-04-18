@@ -1,7 +1,4 @@
 # coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
-from distutils.version import LooseVersion
 from itertools import product
 import operator
 
@@ -9,13 +6,12 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY2, PY35, is_platform_windows, lrange, range
+from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
-    Categorical, CategoricalIndex, DataFrame, Series, compat, date_range, isna,
-    notna)
+    Categorical, CategoricalIndex, DataFrame, Series, date_range, isna, notna)
 from pandas.api.types import is_scalar
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
@@ -285,9 +281,6 @@ class TestSeriesAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.round(s, decimals=0, out=s)
 
-    @pytest.mark.xfail(
-        PY2 and is_platform_windows(), reason="numpy/numpy#7882",
-        raises=AssertionError, strict=True)
     def test_numpy_round_nan(self):
         # See gh-14197
         s = Series([1.53, np.nan, 0.06])
@@ -297,10 +290,6 @@ class TestSeriesAnalytics(object):
         assert_series_equal(result, expected)
 
     def test_built_in_round(self):
-        if not compat.PY3:
-            pytest.skip(
-                'build in round cannot be overridden prior to Python 3')
-
         s = Series([1.123, 2.123, 3.123], index=lrange(3))
         result = round(s)
         expected_rounded0 = Series([1., 2., 3.], index=lrange(3))
@@ -351,7 +340,6 @@ class TestSeriesAnalytics(object):
 
     @td.skip_if_no_scipy
     def test_corr_rank(self):
-        import scipy
         import scipy.stats as stats
 
         # kendall and spearman
@@ -365,11 +353,6 @@ class TestSeriesAnalytics(object):
         result = A.corr(B, method='spearman')
         expected = stats.spearmanr(A, B)[0]
         tm.assert_almost_equal(result, expected)
-
-        # these methods got rewritten in 0.8
-        if LooseVersion(scipy.__version__) < LooseVersion('0.9'):
-            pytest.skip("skipping corr rank because of scipy version "
-                        "{0}".format(scipy.__version__))
 
         # results from R
         A = Series(
@@ -497,8 +480,6 @@ class TestSeriesAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             a.dot(b.T)
 
-    @pytest.mark.skipif(not PY35,
-                        reason='matmul supported for Python>=3.5')
     def test_matmul(self):
         # matmul test is for GH #10259
         a = Series(np.random.randn(4), index=['p', 'q', 'r', 's'])
@@ -771,7 +752,6 @@ class TestSeriesAnalytics(object):
         result = s.isin(empty)
         tm.assert_series_equal(expected, result)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_ptp(self):
         # GH21614
         N = 1000
@@ -1426,14 +1406,14 @@ class TestCategoricalSeriesAnalytics(object):
          pytest.param("datetime64[D]",
                       marks=pytest.mark.xfail(reason="GH#7996"))]
     )
-    @pytest.mark.parametrize("is_ordered", [True, False])
-    def test_drop_duplicates_categorical_non_bool(self, dtype, is_ordered):
+    def test_drop_duplicates_categorical_non_bool(self, dtype,
+                                                  ordered_fixture):
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
         # Test case 1
         input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
         tc1 = Series(Categorical(input1, categories=cat_array,
-                                 ordered=is_ordered))
+                                 ordered=ordered_fixture))
 
         expected = Series([False, False, False, True])
         tm.assert_series_equal(tc1.duplicated(), expected)
@@ -1460,7 +1440,7 @@ class TestCategoricalSeriesAnalytics(object):
         # Test case 2
         input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
         tc2 = Series(Categorical(
-            input2, categories=cat_array, ordered=is_ordered)
+            input2, categories=cat_array, ordered=ordered_fixture)
         )
 
         expected = Series([False, False, False, False, True, True, False])
@@ -1485,10 +1465,10 @@ class TestCategoricalSeriesAnalytics(object):
         sc.drop_duplicates(keep=False, inplace=True)
         tm.assert_series_equal(sc, tc2[~expected])
 
-    @pytest.mark.parametrize("is_ordered", [True, False])
-    def test_drop_duplicates_categorical_bool(self, is_ordered):
+    def test_drop_duplicates_categorical_bool(self, ordered_fixture):
         tc = Series(Categorical([True, False, True, False],
-                                categories=[True, False], ordered=is_ordered))
+                                categories=[True, False],
+                                ordered=ordered_fixture))
 
         expected = Series([False, False, True, True])
         tm.assert_series_equal(tc.duplicated(), expected)

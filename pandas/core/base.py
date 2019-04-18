@@ -1,6 +1,7 @@
 """
 Base and utility classes for pandas objects.
 """
+import builtins
 from collections import OrderedDict
 import textwrap
 import warnings
@@ -8,8 +9,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-import pandas.compat as compat
-from pandas.compat import PYPY, builtins, map, range
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -24,6 +24,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
+from pandas.core.arrays import ExtensionArray
 import pandas.core.nanops as nanops
 
 _shared_docs = dict()
@@ -32,10 +33,8 @@ _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
 
 
 class StringMixin(object):
-    """implements string methods so long as object defines a `__unicode__`
-    method.
-
-    Handles Python2/3 compatibility transparently.
+    """
+    Implements string methods so long as object defines a `__unicode__` method.
     """
     # side note - this could be made into a metaclass if more than one
     #             object needs
@@ -49,23 +48,14 @@ class StringMixin(object):
     def __str__(self):
         """
         Return a string representation for a particular Object
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
         """
-
-        if compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
+        return self.__unicode__()
 
     def __bytes__(self):
         """
         Return a string representation for a particular object.
-
-        Invoked by bytes(obj) in py3 only.
-        Yields a bytestring in both py2/py3.
         """
-        from pandas.core.config import get_option
+        from pandas._config import get_option
 
         encoding = get_option("display.encoding")
         return self.__unicode__().encode(encoding, 'replace')
@@ -73,8 +63,6 @@ class StringMixin(object):
     def __repr__(self):
         """
         Return a string representation for a particular object.
-
-        Yields Bytestring in Py2, Unicode String in py3.
         """
         return str(self)
 
@@ -91,9 +79,6 @@ class PandasObject(StringMixin, DirNamesMixin):
     def __unicode__(self):
         """
         Return a string representation for a particular object.
-
-        Invoked by unicode(obj) in py2 only. Yields a Unicode String in both
-        py2/py3.
         """
         # Should be overwritten by base classes
         return object.__repr__(self)
@@ -305,7 +290,7 @@ class SelectionMixin(object):
         - raise
 
         """
-        assert isinstance(arg, compat.string_types)
+        assert isinstance(arg, str)
 
         f = getattr(self, arg, None)
         if f is not None:
@@ -352,7 +337,7 @@ class SelectionMixin(object):
             _axis = getattr(self, 'axis', 0)
         _level = kwargs.pop('_level', None)
 
-        if isinstance(arg, compat.string_types):
+        if isinstance(arg, str):
             return self._try_aggregate_string_function(arg, *args,
                                                        **kwargs), None
 
@@ -376,9 +361,9 @@ class SelectionMixin(object):
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
-            if any(is_aggregator(x) for x in compat.itervalues(arg)):
+            if any(is_aggregator(x) for x in arg.values()):
                 new_arg = OrderedDict()
-                for k, v in compat.iteritems(arg):
+                for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
                     else:
@@ -415,7 +400,7 @@ class SelectionMixin(object):
             else:
                 # deprecation of renaming keys
                 # GH 15931
-                keys = list(compat.iterkeys(arg))
+                keys = list(arg.keys())
                 if (isinstance(obj, ABCDataFrame) and
                         len(obj.columns.intersection(keys)) != len(keys)):
                     nested_renaming_depr()
@@ -446,12 +431,12 @@ class SelectionMixin(object):
                 return an OrderedDict
                 """
                 result = OrderedDict()
-                for fname, agg_how in compat.iteritems(arg):
+                for fname, agg_how in arg.items():
                     result[fname] = func(fname, agg_how)
                 return result
 
             # set the final keys
-            keys = list(compat.iterkeys(arg))
+            keys = list(arg.keys())
             result = OrderedDict()
 
             # nested renamer
@@ -463,7 +448,7 @@ class SelectionMixin(object):
                     result, results = OrderedDict(), result
                     for r in results:
                         result.update(r)
-                    keys = list(compat.iterkeys(result))
+                    keys = list(result.keys())
 
                 else:
 
@@ -507,13 +492,12 @@ class SelectionMixin(object):
 
             def is_any_series():
                 # return a boolean if we have *any* nested series
-                return any(isinstance(r, ABCSeries)
-                           for r in compat.itervalues(result))
+                return any(isinstance(r, ABCSeries) for r in result.values())
 
             def is_any_frame():
                 # return a boolean if we have *any* nested series
                 return any(isinstance(r, ABCDataFrame)
-                           for r in compat.itervalues(result))
+                           for r in result.values())
 
             if isinstance(result, list):
                 return concat(result, keys=keys, axis=1, sort=True), True
@@ -553,7 +537,7 @@ class SelectionMixin(object):
                                 name=getattr(self, 'name', None))
 
             return result, True
-        elif is_list_like(arg) and arg not in compat.string_types:
+        elif is_list_like(arg):
             # we require a list, but not an 'str'
             return self._aggregate_multiple_funcs(arg,
                                                   _level=_level,
@@ -713,17 +697,14 @@ class IndexOpsMixin(object):
         """
         Return the first element of the underlying data as a python scalar.
         """
-        try:
-            return self.values.item()
-        except IndexError:
-            # copy numpy's message here because Py26 raises an IndexError
-            raise ValueError('can only convert an array of size 1 to a '
-                             'Python scalar')
+        return self.values.item()
 
     @property
     def data(self):
         """
         Return the data pointer of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.data is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -734,6 +715,8 @@ class IndexOpsMixin(object):
     def itemsize(self):
         """
         Return the size of the dtype of the item of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.itemsize is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -751,6 +734,8 @@ class IndexOpsMixin(object):
     def strides(self):
         """
         Return the strides of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.strides is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -768,6 +753,8 @@ class IndexOpsMixin(object):
     def flags(self):
         """
         Return the ndarray.flags for the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.flags is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -778,6 +765,8 @@ class IndexOpsMixin(object):
     def base(self):
         """
         Return the base object if the memory of the underlying data is shared.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.base is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -785,8 +774,7 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
-    def array(self):
-        # type: () -> ExtensionArray
+    def array(self) -> ExtensionArray:
         """
         The ExtensionArray of the data backing this Series or Index.
 
@@ -961,8 +949,7 @@ class IndexOpsMixin(object):
         return result
 
     @property
-    def _ndarray_values(self):
-        # type: () -> np.ndarray
+    def _ndarray_values(self) -> np.ndarray:
         """
         The data as an ndarray, possibly losing information.
 

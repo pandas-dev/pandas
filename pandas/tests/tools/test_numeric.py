@@ -4,8 +4,6 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
-import pandas.compat as compat
-
 import pandas as pd
 from pandas import DataFrame, Index, Series, to_numeric
 from pandas.util import testing as tm
@@ -280,8 +278,7 @@ def test_really_large_in_arr(large_val, signed, transform,
                 expected.append(extra_elt)
                 exp_dtype = object
         else:
-            exp_dtype = float if isinstance(exp_val, (
-                int, compat.long, float)) else object
+            exp_dtype = float if isinstance(exp_val, (int, float)) else object
 
         tm.assert_almost_equal(result, np.array(expected, dtype=exp_dtype))
 

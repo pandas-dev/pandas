@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101
-
 """ test fancy indexing & misc """
 
 from datetime import datetime
@@ -10,7 +8,7 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
@@ -214,8 +212,6 @@ class TestFancy(Base):
             result = df.loc[['A', 'A', 'E']]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(PY2,
-                        reason="GH-20770. Py2 unreliable warnings catching.")
     def test_dups_fancy_indexing2(self):
         # GH 5835
         # dups on index and missing values
@@ -244,6 +240,14 @@ class TestFancy(Base):
         expected = df.iloc[0:6, :]
         result = df.loc[[1, 2], ['a', 'b']]
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('case', [lambda s: s, lambda s: s.loc])
+    def test_duplicate_int_indexing(self, case):
+        # GH 17347
+        s = pd.Series(range(3), index=[1, 1, 3])
+        expected = s[1]
+        result = case(s)[[1]]
+        tm.assert_series_equal(result, expected)
 
     def test_indexing_mixed_frame_bug(self):
 

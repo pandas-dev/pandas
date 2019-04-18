@@ -1,7 +1,5 @@
 import numpy as np
 
-from pandas.compat import u
-
 import pandas as pd
 from pandas import DataFrame
 from pandas.util import testing as tm
@@ -170,14 +168,14 @@ class TestEngFormatter(object):
 
         formatter = fmt.EngFormatter(accuracy=3, use_eng_prefix=True)
         result = formatter(0)
-        assert result == u(' 0.000')
+        assert result == ' 0.000'
 
     def test_nan(self):
         # Issue #11981
 
         formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
         result = formatter(np.nan)
-        assert result == u('NaN')
+        assert result == 'NaN'
 
         df = pd.DataFrame({'a': [1.5, 10.3, 20.5],
                            'b': [50.3, 60.67, 70.12],
@@ -193,4 +191,4 @@ class TestEngFormatter(object):
 
         formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
         result = formatter(np.inf)
-        assert result == u('inf')
+        assert result == 'inf'

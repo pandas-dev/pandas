@@ -4,7 +4,6 @@ from textwrap import dedent
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
-from pandas.compat import PY2, signature
 
 
 def deprecate(name, alternative, version, alt_name=None,
@@ -197,22 +196,21 @@ def rewrite_axis_style_signature(name, extra_params):
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
 
-        if not PY2:
-            kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
-            params = [
-                inspect.Parameter('self', kind),
-                inspect.Parameter(name, kind, default=None),
-                inspect.Parameter('index', kind, default=None),
-                inspect.Parameter('columns', kind, default=None),
-                inspect.Parameter('axis', kind, default=None),
-            ]
+        kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+        params = [
+            inspect.Parameter('self', kind),
+            inspect.Parameter(name, kind, default=None),
+            inspect.Parameter('index', kind, default=None),
+            inspect.Parameter('columns', kind, default=None),
+            inspect.Parameter('axis', kind, default=None),
+        ]
 
-            for pname, default in extra_params:
-                params.append(inspect.Parameter(pname, kind, default=default))
+        for pname, default in extra_params:
+            params.append(inspect.Parameter(pname, kind, default=default))
 
-            sig = inspect.Signature(params)
+        sig = inspect.Signature(params)
 
-            func.__signature__ = sig
+        func.__signature__ = sig
         return wrapper
     return decorate
 
@@ -336,7 +334,7 @@ def make_signature(func):
     (['a', 'b', 'c=2'], ['a', 'b', 'c'])
     """
 
-    spec = signature(func)
+    spec = inspect.getfullargspec(func)
     if spec.defaults is None:
         n_wo_defaults = len(spec.args)
         defaults = ('',) * n_wo_defaults
@@ -348,6 +346,6 @@ def make_signature(func):
         args.append(var if default == '' else var + '=' + repr(default))
     if spec.varargs:
         args.append('*' + spec.varargs)
-    if spec.keywords:
-        args.append('**' + spec.keywords)
+    if spec.varkw:
+        args.append('**' + spec.varkw)
     return args, spec.args

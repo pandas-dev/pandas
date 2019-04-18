@@ -21,11 +21,10 @@ from collections import OrderedDict
 
 from numpy import ndarray
 
+from pandas._libs.lib import is_bool, is_integer
 from pandas.errors import UnsupportedFunctionCall
 from pandas.util._validators import (
     validate_args, validate_args_and_kwargs, validate_kwargs)
-
-from pandas.core.dtypes.common import is_bool, is_integer
 
 
 class CompatValidator(object):

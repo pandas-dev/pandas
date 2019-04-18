@@ -9,7 +9,6 @@ import pytest
 import pytz
 from pytz import timezone
 
-import pandas.compat as compat
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -335,12 +334,11 @@ class TestDateRanges(TestData):
         with pytest.raises(ValueError, match=msg):
             date_range()
 
-    @pytest.mark.parametrize('f', [compat.long, int])
-    def test_compat_replace(self, f):
+    def test_compat_replace(self):
         # https://github.com/statsmodels/statsmodels/issues/3349
         # replace should take ints/longs for compat
         result = date_range(Timestamp('1960-04-01 00:00:00', freq='QS-JAN'),
-                            periods=f(76), freq='QS-JAN')
+                            periods=76, freq='QS-JAN')
         assert len(result) == 76
 
     def test_catch_infinite_loop(self):

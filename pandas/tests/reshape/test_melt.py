@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101
-
 import numpy as np
 from numpy import nan
 import pytest
-
-from pandas.compat import range
 
 import pandas as pd
 from pandas import DataFrame, lreshape, melt, wide_to_long

@@ -119,7 +119,7 @@ class TestDatetimeIndex(object):
         i = pd.date_range('20130101', periods=5, freq='H', tz=tz)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
-        if str(tz) in ('UTC', 'tzutc()'):
+        if str(tz) in ('UTC', 'tzutc()', 'UTC+00:00'):
             warn = None
         else:
             warn = FutureWarning
@@ -534,6 +534,12 @@ class TestDatetimeIndex(object):
 
         result = DatetimeIndex(idx, dtype='datetime64[ns, US/Eastern]')
         tm.assert_index_equal(idx, result)
+
+    @pytest.mark.parametrize('dtype', [object, np.int32, np.int64])
+    def test_constructor_invalid_dtype_raises(self, dtype):
+        # GH 23986
+        with pytest.raises(ValueError):
+            DatetimeIndex([1, 2], dtype=dtype)
 
     def test_constructor_name(self):
         idx = date_range(start='2000-01-01', periods=1, freq='A',

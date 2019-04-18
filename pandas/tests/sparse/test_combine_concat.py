@@ -1,4 +1,3 @@
-# pylint: disable-msg=E1101,W0612
 import itertools
 
 import numpy as np

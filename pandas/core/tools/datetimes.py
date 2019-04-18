@@ -1,3 +1,4 @@
+from collections import abc
 from datetime import datetime, time
 from functools import partial
 
@@ -8,7 +9,6 @@ from pandas._libs.tslibs import Timestamp, conversion, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError, _format_is_iso, _guess_datetime_format, parse_time_string)
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas.compat import zip
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import notna
 
-from pandas import compat
 from pandas.core import algorithms
 
 
@@ -53,9 +52,10 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     if cache:
         # Perform a quicker unique check
         from pandas import Index
-        if not Index(arg).is_unique:
-            unique_dates = algorithms.unique(arg)
-            cache_dates = convert_listlike(unique_dates, True, format)
+        unique_dates = Index(arg).unique()
+        if len(unique_dates) < len(arg):
+            cache_dates = convert_listlike(unique_dates.to_numpy(),
+                                           True, format)
             cache_array = Series(cache_dates, index=unique_dates)
     return cache_array
 
@@ -455,6 +455,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
         all the way up to nanoseconds.
+        See strftime documentation for more information on choices:
+        https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
     exact : boolean, True by default
 
         - If True, require an exact format match.
@@ -598,7 +600,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         else:
             values = convert_listlike(arg._values, True, format)
             result = arg._constructor(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (ABCDataFrame, compat.MutableMapping)):
+    elif isinstance(arg, (ABCDataFrame, abc.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, box, tz)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)

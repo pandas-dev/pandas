@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Timedelta, TimedeltaIndex, compat, timedelta_range
+from pandas import Index, Timedelta, TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
 
 
@@ -240,7 +240,7 @@ class TestTimedeltaIndex(object):
                  -1: expected_4,
                  4: expected_4,
                  1: expected_1}
-        for n, expected in compat.iteritems(cases):
+        for n, expected in cases.items():
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
@@ -267,7 +267,7 @@ class TestTimedeltaIndex(object):
         cases = {(0, 1, 2): expected_0_2,
                  (7, 8, 9): expected_7_9,
                  (3, 4, 5): expected_3_5}
-        for n, expected in compat.iteritems(cases):
+        for n, expected in cases.items():
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name

@@ -1,6 +1,7 @@
 import numbers
 
 import numpy as np
+from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas.compat.numpy import function as nv
@@ -82,20 +83,6 @@ class PandasDtype(ExtensionDtype):
         return self._dtype.itemsize
 
 
-# TODO(NumPy1.13): remove this
-# Compat for NumPy 1.12, which doesn't provide NDArrayOperatorsMixin
-# or __array_ufunc__, so those operations won't be available to people
-# on older NumPys.
-#
-# We would normally write this as bases=(...), then "class Foo(*bases):
-# but Python2 doesn't allow unpacking tuples in the class statement.
-# So, we fall back to "object", to avoid writing a metaclass.
-try:
-    from numpy.lib.mixins import NDArrayOperatorsMixin
-except ImportError:
-    NDArrayOperatorsMixin = object
-
-
 class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     """
     A pandas ExtensionArray for NumPy data.
@@ -111,10 +98,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         The NumPy ndarray to wrap. Must be 1-dimensional.
     copy : bool, default False
         Whether to copy `values`.
-
-    Notes
-    -----
-    Operations like ``+`` and applying ufuncs requires NumPy>=1.13.
     """
     # If you're wondering why pd.Series(cls) doesn't put the array in an
     # ExtensionBlock, search for `ABCPandasArray`. We check for

@@ -1,12 +1,13 @@
 """
 Tests for the pandas.io.common functionalities
 """
+from io import StringIO
 import mmap
 import os
 
 import pytest
 
-from pandas.compat import FileNotFoundError, StringIO, is_platform_windows
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd

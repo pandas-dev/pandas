@@ -10,11 +10,12 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas.core.dtypes.generic import ABCDataFrame
 
 import pandas.core.common as com
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
-from pandas.core.config import get_option
 
 if _NUMEXPR_INSTALLED:
     import numexpr as ne
