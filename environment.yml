@@ -11,7 +11,7 @@ dependencies:
 
   # development
   - asv
-  - cython>=0.28.2
+  - cython>=0.29.7
   - flake8
   - flake8-comprehensions
   - flake8-rst>=0.6.0,<=0.7.0
