@@ -18,14 +18,14 @@ class TestCategoricalWarnings(object):
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('c.', 1))
 
-    def test_CategoricalAccessor_categorical_deprecation(object):
+    def test_CategoricalAccessor_categorical_deprecation(self):
         with tm.assert_produces_warning(FutureWarning):
             pd.Series(['a', 'b'], dtype='category').cat.categorical
 
-    def test_CategoricalAccessor_name_deprecation(object):
+    def test_CategoricalAccessor_name_deprecation(self):
         with tm.assert_produces_warning(FutureWarning):
             pd.Series(['a', 'b'], dtype='category').cat.name
 
-    def test_CategoricalAccessor_index_deprecation(object):
+    def test_CategoricalAccessor_index_deprecation(self):
         with tm.assert_produces_warning(FutureWarning):
             pd.Series(['a', 'b'], dtype='category').cat.index
