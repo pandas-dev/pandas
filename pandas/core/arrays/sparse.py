@@ -2196,7 +2196,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         from pandas import DataFrame
 
         data = {k: v.array.to_dense()
-                for k, v in compat.iteritems(self._parent)}
+                for k, v in self._parent.iteritems()}
         return DataFrame(data,
                          index=self._parent.index,
                          columns=self._parent.columns)
