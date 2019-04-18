@@ -648,7 +648,7 @@ class TestRolling(Base):
         with pytest.raises(NotImplementedError):
             iter(obj.rolling(2))
 
-    def test_rolling_axis(self, axis_frame):
+    def test_rolling_axis_sum(self, axis_frame):
         # see gh-23372.
         df = DataFrame(np.ones((10, 20)))
         axis = df._get_axis_number(axis_frame)
@@ -667,17 +667,21 @@ class TestRolling(Base):
         result = df.rolling(3, axis=axis_frame).sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_count_axis(self):
+    def test_rolling_axis_count(self):
         # see gh-26055
         df = DataFrame({'x': range(3), 'y': range(3)})
-        df_row = DataFrame({'x': [1.0, 2.0, 2.0], 'y': [1.0, 2.0, 2.0]})
 
-        # not specifiying axis and making axis=rows should be the same result
-        tm.assert_frame_equal(df.rolling(2).count(), df_row)
-        tm.assert_frame_equal(df.rolling(2, axis='rows').count(), df_row)
+        result = df.rolling(2).count()
+        expected = DataFrame({'x': [1.0, 2.0, 2.0], 'y': [1.0, 2.0, 2.0]})
+        tm.assert_frame_equal(result, expected)
 
-        df_col = DataFrame({'x': [1.0, 1.0, 1.0], 'y': [2.0, 2.0, 2.0]})
-        tm.assert_frame_equal(df.rolling(2, axis='columns').count(), df_col)
+        # not specifiying axis and making axis=rows are expected to yeild the same result
+        result = df.rolling(2, axis='rows').count()
+        tm.assert_frame_equal(result, expected)
+
+        result = df.rolling(2, axis='columns').count()
+        expected = DataFrame({'x': [1.0, 1.0, 1.0], 'y': [2.0, 2.0, 2.0]})
+        tm.assert_frame_equal(result, expected)
 
 
 class TestExpanding(Base):
