@@ -10,7 +10,6 @@ from io import StringIO
 
 from dateutil.parser import parse as du_parse
 from hypothesis import given, settings, strategies as st
-from dateutil.parser import parse
 import numpy as np
 import pytest
 import pytz
@@ -451,7 +450,7 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
 """
     if "dayfirst" in kwargs:
         df = parser.read_csv(StringIO(data), names=["time", "Q", "NTU"],
-                             date_parser=lambda d: parse(d, **kwargs),
+                             date_parser=lambda d: du_parse(d, **kwargs),
                              header=0, index_col=0, parse_dates=True,
                              na_values=["NA"])
         exp_index = Index([datetime(2010, 1, 31), datetime(2010, 2, 1),
@@ -463,7 +462,7 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
         msg = "got an unexpected keyword argument 'day_first'"
         with pytest.raises(TypeError, match=msg):
             parser.read_csv(StringIO(data), names=["time", "Q", "NTU"],
-                            date_parser=lambda d: parse(d, **kwargs),
+                            date_parser=lambda d: du_parse(d, **kwargs),
                             skiprows=[0], index_col=0, parse_dates=True,
                             na_values=["NA"])
 
