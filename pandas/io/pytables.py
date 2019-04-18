@@ -2169,10 +2169,13 @@ class DataCol(IndexCol):
 
     def get_attr(self):
         """ get the data for this colummn """
+        # reading tables prior to 0.x.x
         self.values = getattr(self.attrs, self.kind_attr, None)
+
         if self.values is None:
             try:
-                data = self.handle.get_node(self.attrs._v_node._v_parent, self.kind_attr)[:]
+                data = self.handle.get_node(self.attrs._v_node._v_parent,
+                                            self.kind_attr)[:]
                 data = np.array(data, dtype='object')
                 if len(data.shape) > 1 and data.shape[1] > 1: # multiIndex
                     self.values = list(map(tuple, data.tolist()))
@@ -2187,22 +2190,14 @@ class DataCol(IndexCol):
 
     def set_attr(self):
         """ set the data for this colummn """
-        #setattr(self.attrs, self.kind_attr, self.values)
-        def write_attr_node():
-            arr = np.array(self.values, dtype='object')
-            vlarray = self.handle.create_vlarray(self.attrs._v_node._v_parent,
-                                                 self.kind_attr, _tables().ObjectAtom(),
-                                                 filters = self.table.filters)
-            for fld in arr:
-                vlarray.append(fld)
+        group, key = self.attrs._v_node._v_parent, self.kind_attr
+        if key in group:
+            self.handle.remove_node(group, key)
 
-        try:
-            write_attr_node()
-
-        except NodeError:
-            self.handle.remove_node(self.attrs._v_node._v_parent,
-                                   self.kind_attr)
-            write_attr_node()
+        vlarray = self.handle.create_vlarray(group, key,
+                                             _tables().ObjectAtom())
+        for fld in self.values:
+            vlarray.append(fld)
 
         setattr(self.attrs, self.meta_attr, self.meta)
         if self.dtype is not None:
@@ -3189,27 +3184,21 @@ class Table(Fixed):
 
     def set_non_index_axes(self):
         """ Write the axes to carrays """
-        def write_attr_node(name, flds):
-            arr = np.array(flds, dtype='object')
-            vlarray = self._handle.create_vlarray(self.attrs._v_node,
-                                                 name, _tables().ObjectAtom(),
-                                                 filters=self._filters)
-            for fld in arr:
-                vlarray.append(fld)
+        group = self.attrs._v_node
 
         def f(dim, flds):
-            name = "non_index_axes_%d" % dim
-            try:
-                write_attr_node(name, flds)
-            except NodeError:
-                self._handle.remove_node(self.attrs._v_node,
-                                       self.kind_attr)
-                write_attr_node(name, flds)
-            return dim, name
+            key = "non_index_axes_%d" % dim
+            if key in group:
+                self.handle.remove_node(group, key)
+
+            vlarray = self._handle.create_vlarray(group, key,
+                                                   _tables().ObjectAtom())
+            for fld in flds:
+                vlarray.append(fld)
+            return dim, key
 
         replacement = [f(dim, flds) for dim, flds in self.non_index_axes]
         self.attrs.non_index_axes = replacement
-
 
     def get_non_index_axes(self):
         """Load the non-index axes from their carrays. This is a pass-through
@@ -3234,7 +3223,6 @@ class Table(Fixed):
         self.attrs.table_type = str(self.table_type)
         self.attrs.index_cols = self.index_cols()
         self.attrs.values_cols = self.values_cols()
-        #self.attrs.non_index_axes = self.non_index_axes
         self.set_non_index_axes()
         self.attrs.data_columns = self.data_columns
         self.attrs.nan_rep = self.nan_rep
@@ -3245,10 +3233,6 @@ class Table(Fixed):
 
     def get_attrs(self):
         """ retrieve our attributes """
-# =============================================================================
-#         self.non_index_axes = getattr(
-#             self.attrs, 'non_index_axes', None) or []
-# =============================================================================
         self.data_columns = getattr(
             self.attrs, 'data_columns', None) or []
         self.info = getattr(
