@@ -26,6 +26,10 @@ from pandas.core.tools import datetimes as tools
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal
 
+from hypothesis.extra.pytz import timezones
+from hypothesis.strategies import datetimes
+from hypothesis import given
+
 
 class TestTimeConversionFormats:
 
@@ -514,6 +518,29 @@ class TestToDatetime:
         expected = pd.Index([parse(x) for x in arr])
         result = pd.to_datetime(arr, cache=cache)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('errors', ('ignore', 'coerce', 'raise'))
+    @pytest.mark.parametrize('suffix', ([], ['foo']))
+    @pytest.mark.parametrize('convertor', (lambda x: x, str))
+    @given(date1=datetimes(timezones=timezones()),
+           date2=datetimes(timezones=timezones()))
+    def test_to_datetime_cache_errors(self, date1, date2, suffix,
+                                      errors, convertor):
+        arg = [convertor(date1), convertor(date2)] * 5 + suffix
+
+        def _get_answer(cache):
+            try:
+                return pd.to_datetime(arg, cache=cache, errors=errors)
+            except ValueError as err:
+                return err.args
+
+        cache_on = _get_answer(cache=True)
+        cache_off = _get_answer(cache=False)
+        assert type(cache_on) == type(cache_off)
+        if isinstance(cache_on, pd.Index):
+            tm.assert_index_equal(cache_on, cache_off)
+        else:
+            assert cache_on == cache_off
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_tz_pytz(self, cache):
