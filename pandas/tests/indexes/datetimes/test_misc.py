@@ -11,7 +11,7 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-class TestTimeSeries(object):
+class TestTimeSeries:
 
     def test_pass_datetimeindex_to_index(self):
         # Bugs in #1396
@@ -88,7 +88,7 @@ class TestTimeSeries(object):
         tm.assert_index_equal(idx, exp)
 
 
-class TestDatetime64(object):
+class TestDatetime64:
 
     def test_datetimeindex_accessors(self):
         dti_naive = pd.date_range(freq='D', start=datetime(1998, 1, 1),

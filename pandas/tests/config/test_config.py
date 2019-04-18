@@ -9,7 +9,7 @@ from pandas._config.config import OptionError
 import pandas as pd
 
 
-class TestConfig(object):
+class TestConfig:
 
     @classmethod
     def setup_class(cls):

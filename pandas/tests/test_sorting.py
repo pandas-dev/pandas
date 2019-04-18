@@ -15,7 +15,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestSorting(object):
+class TestSorting:
 
     @pytest.mark.slow
     def test_int64_overflow(self):
@@ -188,7 +188,7 @@ class TestSorting(object):
             nargsort(data)
 
 
-class TestMerge(object):
+class TestMerge:
 
     @pytest.mark.slow
     def test_int64_overflow_issues(self):
@@ -340,7 +340,7 @@ def test_decons():
     testit(label_list, shape)
 
 
-class TestSafeSort(object):
+class TestSafeSort:
 
     def test_basic_sort(self):
         values = [3, 1, 2, 0, 4]

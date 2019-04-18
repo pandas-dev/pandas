@@ -11,7 +11,7 @@ from pandas import Index, Series, Timedelta, TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
 
 
-class TestVectorizedTimedelta(object):
+class TestVectorizedTimedelta:
     def test_tdi_total_seconds(self):
         # GH#10939
         # test index

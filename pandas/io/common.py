@@ -37,7 +37,7 @@ _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard('')
 
 
-class BaseIterator(object):
+class BaseIterator:
     """Subclass this and provide a "__next__()" method to obtain an iterator.
     Useful only when the object being iterated is non-reusable (e.g. OK for a
     parser, not for an in-memory table, yes for its iterator)."""

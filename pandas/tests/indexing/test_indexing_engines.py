@@ -5,7 +5,7 @@ from pandas._libs import algos as libalgos, index as libindex
 import pandas.util.testing as tm
 
 
-class TestNumericEngine(object):
+class TestNumericEngine:
     def test_is_monotonic(self, numeric_indexing_engine_type_and_dtype):
         engine_type, dtype = numeric_indexing_engine_type_and_dtype
         num = 1000
@@ -88,7 +88,7 @@ class TestNumericEngine(object):
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestObjectEngine(object):
+class TestObjectEngine:
     engine_type = libindex.ObjectEngine
     dtype = np.object_
     values = list('abc')

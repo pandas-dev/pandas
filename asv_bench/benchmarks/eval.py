@@ -6,7 +6,7 @@ except ImportError:
     import pandas.computation.expressions as expr
 
 
-class Eval(object):
+class Eval:
 
     params = [['numexpr', 'python'], [1, 'all']]
     param_names = ['engine', 'threads']
@@ -37,7 +37,7 @@ class Eval(object):
         expr.set_numexpr_threads()
 
 
-class Query(object):
+class Query:
 
     def setup(self):
         N = 10**6

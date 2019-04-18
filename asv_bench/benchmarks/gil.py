@@ -26,7 +26,7 @@ except ImportError:
 from .pandas_vb_common import BaseIO
 
 
-class ParallelGroupbyMethods(object):
+class ParallelGroupbyMethods:
 
     params = ([2, 4, 8], ['count', 'last', 'max', 'mean', 'min', 'prod',
                           'sum', 'var'])
@@ -57,7 +57,7 @@ class ParallelGroupbyMethods(object):
             self.loop()
 
 
-class ParallelGroups(object):
+class ParallelGroups:
 
     params = [2, 4, 8]
     param_names = ['threads']
@@ -78,7 +78,7 @@ class ParallelGroups(object):
         self.get_groups()
 
 
-class ParallelTake1D(object):
+class ParallelTake1D:
 
     params = ['int64', 'float64']
     param_names = ['dtype']
@@ -99,7 +99,7 @@ class ParallelTake1D(object):
         self.parallel_take1d()
 
 
-class ParallelKth(object):
+class ParallelKth:
 
     number = 1
     repeat = 5
@@ -121,7 +121,7 @@ class ParallelKth(object):
         self.parallel_kth_smallest()
 
 
-class ParallelDatetimeFields(object):
+class ParallelDatetimeFields:
 
     def setup(self):
         if not have_real_test_parallel:
@@ -167,7 +167,7 @@ class ParallelDatetimeFields(object):
         run(self.period)
 
 
-class ParallelRolling(object):
+class ParallelRolling:
 
     params = ['median', 'mean', 'min', 'max', 'var', 'skew', 'kurt', 'std']
     param_names = ['method']
@@ -239,7 +239,7 @@ class ParallelReadCSV(BaseIO):
         self.parallel_read_csv()
 
 
-class ParallelFactorize(object):
+class ParallelFactorize:
 
     number = 1
     repeat = 5

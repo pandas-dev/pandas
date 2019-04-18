@@ -14,7 +14,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
-class TestGetDummies(object):
+class TestGetDummies:
 
     @pytest.fixture
     def df(self):
@@ -584,7 +584,7 @@ class TestGetDummies(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestCategoricalReshape(object):
+class TestCategoricalReshape:
 
     def test_reshaping_multi_index_categorical(self):
 
@@ -611,7 +611,7 @@ class TestCategoricalReshape(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestMakeAxisDummies(object):
+class TestMakeAxisDummies:
 
     def test_preserve_categorical_dtype(self):
         # GH13854

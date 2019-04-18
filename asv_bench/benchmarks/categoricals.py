@@ -12,7 +12,7 @@ except ImportError:
         pass
 
 
-class Concat(object):
+class Concat:
 
     def setup(self):
         N = 10**5
@@ -28,7 +28,7 @@ class Concat(object):
         union_categoricals([self.a, self.b])
 
 
-class Constructor(object):
+class Constructor:
 
     def setup(self):
         N = 10**5
@@ -77,7 +77,7 @@ class Constructor(object):
         pd.Categorical(self.series)
 
 
-class ValueCounts(object):
+class ValueCounts:
 
     params = [True, False]
     param_names = ['dropna']
@@ -92,7 +92,7 @@ class ValueCounts(object):
         self.ts.value_counts(dropna=dropna)
 
 
-class Repr(object):
+class Repr:
 
     def setup(self):
         self.sel = pd.Series(['s1234']).astype('category')
@@ -101,7 +101,7 @@ class Repr(object):
         str(self.sel)
 
 
-class SetCategories(object):
+class SetCategories:
 
     def setup(self):
         n = 5 * 10**5
@@ -113,7 +113,7 @@ class SetCategories(object):
         self.ts.cat.set_categories(self.ts.cat.categories[::2])
 
 
-class RemoveCategories(object):
+class RemoveCategories:
 
     def setup(self):
         n = 5 * 10**5
@@ -125,7 +125,7 @@ class RemoveCategories(object):
         self.ts.cat.remove_categories(self.ts.cat.categories[::2])
 
 
-class Rank(object):
+class Rank:
 
     def setup(self):
         N = 10**5
@@ -162,7 +162,7 @@ class Rank(object):
         self.s_int_cat_ordered.rank()
 
 
-class Isin(object):
+class Isin:
 
     params = ['object', 'int64']
     param_names = ['dtype']
@@ -181,7 +181,7 @@ class Isin(object):
         self.series.isin(self.sample)
 
 
-class IsMonotonic(object):
+class IsMonotonic:
 
     def setup(self):
         N = 1000
@@ -201,7 +201,7 @@ class IsMonotonic(object):
         self.s.is_monotonic_decreasing
 
 
-class Contains(object):
+class Contains:
 
     def setup(self):
         N = 10**5
@@ -216,7 +216,7 @@ class Contains(object):
         self.key in self.c
 
 
-class CategoricalSlicing(object):
+class CategoricalSlicing:
 
     params = ['monotonic_incr', 'monotonic_decr', 'non_monotonic']
     param_names = ['index']
@@ -257,7 +257,7 @@ class CategoricalSlicing(object):
         self.data[self.data == self.cat_scalar]
 
 
-class Indexing(object):
+class Indexing:
 
     def setup(self):
         N = 10**5

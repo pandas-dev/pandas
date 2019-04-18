@@ -111,7 +111,7 @@ def test_is_sequence():
     assert (not is_seq("abcd"))
     assert (not is_seq(np.int64))
 
-    class A(object):
+    class A:
 
         def __getitem__(self):
             return 1
@@ -175,7 +175,7 @@ def test_is_dict_like_fails(ll):
 @pytest.mark.parametrize("has_getitem", [True, False])
 @pytest.mark.parametrize("has_contains", [True, False])
 def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
-    class DictLike(object):
+    class DictLike:
         def __init__(self, d):
             self.d = d
 
@@ -199,7 +199,7 @@ def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
 
 
 def test_is_file_like():
-    class MockFile(object):
+    class MockFile:
         pass
 
     is_file = inference.is_file_like
@@ -253,13 +253,13 @@ def test_is_names_tuple_fails(ll):
 def test_is_hashable():
 
     # all new-style classes are hashable by default
-    class HashableClass(object):
+    class HashableClass:
         pass
 
-    class UnhashableClass1(object):
+    class UnhashableClass1:
         __hash__ = None
 
-    class UnhashableClass2(object):
+    class UnhashableClass2:
 
         def __hash__(self):
             raise TypeError("Not hashable")
@@ -315,7 +315,7 @@ def test_is_recompilable_fails(ll):
     assert not inference.is_re_compilable(ll)
 
 
-class TestInference(object):
+class TestInference:
 
     def test_infer_dtype_bytes(self):
         compare = 'bytes'
@@ -497,7 +497,7 @@ class TestInference(object):
         tm.assert_numpy_array_equal(result, array)
 
 
-class TestTypeInference(object):
+class TestTypeInference:
 
     # Dummy class used for testing with Python objects
     class Dummy():
@@ -1084,7 +1084,7 @@ class TestTypeInference(object):
         assert result == 'categorical'
 
 
-class TestNumberScalar(object):
+class TestNumberScalar:
 
     def test_is_number(self):
 
@@ -1227,7 +1227,7 @@ class TestNumberScalar(object):
         assert not is_timedelta64_ns_dtype(tdi.astype('timedelta64[h]'))
 
 
-class TestIsScalar(object):
+class TestIsScalar:
 
     def test_is_scalar_builtin_scalars(self):
         assert is_scalar(None)

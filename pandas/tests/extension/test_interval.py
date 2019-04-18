@@ -70,7 +70,7 @@ def data_for_grouping():
     return IntervalArray.from_tuples([b, b, None, None, a, a, b, c])
 
 
-class BaseInterval(object):
+class BaseInterval:
     pass
 
 

@@ -10,7 +10,7 @@ from pandas.util import testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-class TestMultiIndexIx(object):
+class TestMultiIndexIx:
 
     def test_frame_setitem_ix(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data

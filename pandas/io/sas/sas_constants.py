@@ -102,7 +102,7 @@ encoding_names = {29: "latin1", 20: "utf-8", 33: "cyrillic", 60: "wlatin2",
                   61: "wcyrillic", 62: "wlatin1", 90: "ebcdic870"}
 
 
-class SASIndex(object):
+class SASIndex:
     row_size_index = 0
     column_size_index = 1
     subheader_counts_index = 2

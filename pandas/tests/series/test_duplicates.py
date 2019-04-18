@@ -75,7 +75,7 @@ def test_is_unique(data, expected):
 
 def test_is_unique_class_ne(capsys):
     # GH 20661
-    class Foo(object):
+    class Foo:
         def __init__(self, val):
             self._value = val
 

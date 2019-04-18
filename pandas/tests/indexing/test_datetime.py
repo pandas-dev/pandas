@@ -8,7 +8,7 @@ from pandas import DataFrame, Index, Series, Timestamp, date_range
 from pandas.util import testing as tm
 
 
-class TestDatetimeIndex(object):
+class TestDatetimeIndex:
 
     def test_setitem_with_datetime_tz(self):
         # 16889

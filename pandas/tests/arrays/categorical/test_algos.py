@@ -71,7 +71,7 @@ def test_isin_empty(empty):
     tm.assert_numpy_array_equal(expected, result)
 
 
-class TestTake(object):
+class TestTake:
     # https://github.com/pandas-dev/pandas/issues/20664
 
     def test_take_warns(self):

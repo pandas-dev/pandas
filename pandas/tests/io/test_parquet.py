@@ -220,7 +220,7 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
             tm.assert_frame_equal(result, df[['a', 'd']])
 
 
-class Base(object):
+class Base:
 
     def check_error_on_write(self, df, engine, exc):
         # check that we are raising the exception on writing

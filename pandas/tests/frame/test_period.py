@@ -14,7 +14,7 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestPeriodIndex(object):
+class TestPeriodIndex:
 
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)

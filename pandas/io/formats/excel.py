@@ -20,7 +20,7 @@ from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
 
 
-class ExcelCell(object):
+class ExcelCell:
     __fields__ = ('row', 'col', 'val', 'style', 'mergestart', 'mergeend')
     __slots__ = __fields__
 
@@ -34,7 +34,7 @@ class ExcelCell(object):
         self.mergeend = mergeend
 
 
-class CSSToExcelConverter(object):
+class CSSToExcelConverter:
     """A callable for converting CSS declarations to ExcelWriter styles
 
     Supports parts of CSS 2.2, with minimal CSS 3.0 support (e.g. text-shadow),
@@ -308,7 +308,7 @@ class CSSToExcelConverter(object):
         return {'format_code': props.get('number-format')}
 
 
-class ExcelFormatter(object):
+class ExcelFormatter:
     """
     Class for formatting a DataFrame to a list of ExcelCells,
 

@@ -16,7 +16,7 @@ import pandas.util.testing as tm
 from pandas.tseries.frequencies import to_offset
 
 
-class TestDatetimeIndexOps(object):
+class TestDatetimeIndexOps:
     def test_dti_time(self):
         rng = date_range('1/1/2000', freq='12min', periods=10)
         result = pd.Index(rng).time
@@ -254,7 +254,7 @@ class TestDatetimeIndexOps(object):
         tm.assert_index_equal(result, expected)
 
 
-class TestDateTimeIndexToJulianDate(object):
+class TestDateTimeIndexToJulianDate:
 
     def test_1700(self):
         dr = date_range(start=Timestamp('1710-10-01'), periods=5, freq='D')

@@ -20,7 +20,7 @@ def kind(request):
     return request.param
 
 
-class TestSparseArray(object):
+class TestSparseArray:
 
     def setup_method(self, method):
         self.arr_data = np.array([np.nan, np.nan, 1, 2, 3,
@@ -814,7 +814,7 @@ class TestSparseArray(object):
         tm.assert_numpy_array_equal(expected, result)
 
 
-class TestSparseArrayAnalytics(object):
+class TestSparseArrayAnalytics:
 
     @pytest.mark.parametrize('data,pos,neg', [
         ([True, True, True], True, False),
@@ -1071,7 +1071,7 @@ class TestSparseArrayAnalytics(object):
         assert arr.npoints == 1
 
 
-class TestAccessor(object):
+class TestAccessor:
 
     @pytest.mark.parametrize('attr', [
         'npoints', 'density', 'fill_value', 'sp_values',

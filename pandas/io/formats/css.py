@@ -10,7 +10,7 @@ class CSSWarning(UserWarning):
     pass
 
 
-class CSSResolver(object):
+class CSSResolver:
     """A callable for parsing and resolving CSS to atomic properties
 
     """

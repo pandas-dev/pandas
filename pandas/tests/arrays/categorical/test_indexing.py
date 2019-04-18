@@ -84,7 +84,7 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
             target[mask] = other[mask]
 
 
-class TestCategoricalIndexing(object):
+class TestCategoricalIndexing:
 
     def test_getitem_listlike(self):
 

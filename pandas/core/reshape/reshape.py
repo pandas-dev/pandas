@@ -24,7 +24,7 @@ from pandas.core.sorting import (
     get_group_index)
 
 
-class _Unstacker(object):
+class _Unstacker:
     """
     Helper class to unstack data / pivot with multi-level index
 

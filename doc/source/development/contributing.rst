@@ -773,7 +773,7 @@ Transitioning to ``pytest``
 
 .. code-block:: python
 
-    class TestReallyCoolFeature(object):
+    class TestReallyCoolFeature:
         pass
 
 Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing

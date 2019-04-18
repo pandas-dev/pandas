@@ -8,7 +8,7 @@ from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
-class TestSparseArrayArithmetics(object):
+class TestSparseArrayArithmetics:
 
     _base = np.array
     _klass = pd.SparseArray

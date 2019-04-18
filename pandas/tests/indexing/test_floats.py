@@ -13,7 +13,7 @@ from pandas.util.testing import assert_almost_equal, assert_series_equal
 ignore_ix = pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
 
 
-class TestFloatIndexers(object):
+class TestFloatIndexers:
 
     def check(self, result, original, indexer, getitem):
         """

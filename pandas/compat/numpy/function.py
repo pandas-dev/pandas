@@ -27,7 +27,7 @@ from pandas.util._validators import (
     validate_args, validate_args_and_kwargs, validate_kwargs)
 
 
-class CompatValidator(object):
+class CompatValidator:
 
     def __init__(self, defaults, fname=None, method=None,
                  max_fname_arg_count=None):

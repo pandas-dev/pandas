@@ -31,7 +31,7 @@ from pandas.tseries.offsets import (
 from .common import assert_offset_equal, assert_onOffset
 
 
-class WeekDay(object):
+class WeekDay:
     # TODO: Remove: This is not used outside of tests
     MON = 0
     TUE = 1
@@ -58,7 +58,7 @@ def test_to_M8():
 #####
 
 
-class Base(object):
+class Base:
     _offset = None
     d = Timestamp(datetime(2008, 1, 2))
 
@@ -1868,7 +1868,7 @@ class TestCustomBusinessDay(Base):
         assert cday == cday0_14_1
 
 
-class CustomBusinessMonthBase(object):
+class CustomBusinessMonthBase:
 
     def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
@@ -2785,7 +2785,7 @@ def test_Easter():
                         datetime(2008, 3, 23))
 
 
-class TestOffsetNames(object):
+class TestOffsetNames:
 
     def test_get_offset_name(self):
         assert BDay().freqstr == 'B'
@@ -2825,7 +2825,7 @@ def test_get_offset_legacy():
             get_offset(name)
 
 
-class TestOffsetAliases(object):
+class TestOffsetAliases:
 
     def setup_method(self, method):
         _offset_map.clear()
@@ -2884,7 +2884,7 @@ def test_freq_offsets():
     assert (off.freqstr == 'B-30Min')
 
 
-class TestReprNames(object):
+class TestReprNames:
 
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
@@ -2909,7 +2909,7 @@ def get_utc_offset_hours(ts):
     return (o.days * 24 * 3600 + o.seconds) / 3600.0
 
 
-class TestDST(object):
+class TestDST:
     """
     test DateOffset additions over Daylight Savings Time
     """

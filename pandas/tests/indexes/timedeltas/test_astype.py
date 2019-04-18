@@ -10,7 +10,7 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-class TestTimedeltaIndex(object):
+class TestTimedeltaIndex:
     def test_astype_object(self):
         idx = timedelta_range(start='1 days', periods=4, freq='D', name='idx')
         expected_list = [Timedelta('1 days'), Timedelta('2 days'),

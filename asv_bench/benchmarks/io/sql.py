@@ -6,7 +6,7 @@ from pandas import DataFrame, date_range, read_sql_query, read_sql_table
 from sqlalchemy import create_engine
 
 
-class SQL(object):
+class SQL:
 
     params = ['sqlalchemy', 'sqlite']
     param_names = ['connection']
@@ -38,7 +38,7 @@ class SQL(object):
         read_sql_query(self.query_all, self.con)
 
 
-class WriteSQLDtypes(object):
+class WriteSQLDtypes:
 
     params = (['sqlalchemy', 'sqlite'],
               ['float', 'float_with_nan', 'string', 'bool', 'int', 'datetime'])
@@ -71,7 +71,7 @@ class WriteSQLDtypes(object):
         read_sql_query(self.query_col, self.con)
 
 
-class ReadSQLTable(object):
+class ReadSQLTable:
 
     def setup(self):
         N = 10000
@@ -98,7 +98,7 @@ class ReadSQLTable(object):
                        parse_dates=['datetime_string'])
 
 
-class ReadSQLTableDtypes(object):
+class ReadSQLTableDtypes:
 
     params = ['float', 'float_with_nan', 'string', 'bool', 'int', 'datetime']
     param_names = ['dtype']

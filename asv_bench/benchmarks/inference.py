@@ -5,7 +5,7 @@ from pandas import DataFrame, Series, to_numeric
 from .pandas_vb_common import numeric_dtypes, lib
 
 
-class NumericInferOps(object):
+class NumericInferOps:
     # from GH 7332
     params = numeric_dtypes
     param_names = ['dtype']
@@ -31,7 +31,7 @@ class NumericInferOps(object):
         self.df['A'] % self.df['B']
 
 
-class DateInferOps(object):
+class DateInferOps:
     # from GH 7332
     def setup_cache(self):
         N = 5 * 10**5
@@ -49,7 +49,7 @@ class DateInferOps(object):
         df['timedelta'] + df['timedelta']
 
 
-class ToNumeric(object):
+class ToNumeric:
 
     params = ['ignore', 'coerce']
     param_names = ['errors']
@@ -70,7 +70,7 @@ class ToNumeric(object):
         to_numeric(self.str, errors=errors)
 
 
-class ToNumericDowncast(object):
+class ToNumericDowncast:
 
     param_names = ['dtype', 'downcast']
     params = [['string-float', 'string-int', 'string-nint', 'datetime64',
@@ -95,7 +95,7 @@ class ToNumericDowncast(object):
         to_numeric(self.data, downcast=downcast)
 
 
-class MaybeConvertNumeric(object):
+class MaybeConvertNumeric:
 
     def setup_cache(self):
         N = 10**6

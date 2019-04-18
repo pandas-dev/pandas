@@ -4,7 +4,7 @@ from pandas import (Series, date_range, DatetimeIndex, Index, RangeIndex,
                     Float64Index)
 
 
-class SetOperations(object):
+class SetOperations:
 
     params = (['datetime', 'date_string', 'int', 'strings'],
               ['intersection', 'union', 'symmetric_difference'])
@@ -29,7 +29,7 @@ class SetOperations(object):
         getattr(self.left, method)(self.right)
 
 
-class SetDisjoint(object):
+class SetDisjoint:
 
     def setup(self):
         N = 10**5
@@ -41,7 +41,7 @@ class SetDisjoint(object):
         self.datetime_left.difference(self.datetime_right)
 
 
-class Datetime(object):
+class Datetime:
 
     def setup(self):
         self.dr = date_range('20000101', freq='D', periods=10000)
@@ -50,7 +50,7 @@ class Datetime(object):
         self.dr._is_dates_only
 
 
-class Ops(object):
+class Ops:
 
     sample_time = 0.2
     params = ['float', 'int']
@@ -77,7 +77,7 @@ class Ops(object):
         self.index % 2
 
 
-class Range(object):
+class Range:
 
     def setup(self):
         self.idx_inc = RangeIndex(start=0, stop=10**7, step=3)
@@ -96,7 +96,7 @@ class Range(object):
         self.idx_inc.min()
 
 
-class IndexAppend(object):
+class IndexAppend:
 
     def setup(self):
 
@@ -125,7 +125,7 @@ class IndexAppend(object):
         self.obj_idx.append(self.object_idxs)
 
 
-class Indexing(object):
+class Indexing:
 
     params = ['String', 'Float', 'Int']
     param_names = ['dtype']
@@ -170,7 +170,7 @@ class Indexing(object):
         self.non_unique_sorted.get_loc(self.key)
 
 
-class Float64IndexMethod(object):
+class Float64IndexMethod:
     # GH 13166
     def setup(self):
         N = 100000

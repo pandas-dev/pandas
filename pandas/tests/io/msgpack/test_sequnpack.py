@@ -6,7 +6,7 @@ import pytest
 from pandas.io.msgpack import BufferFull, OutOfData, Unpacker
 
 
-class TestPack(object):
+class TestPack:
 
     def test_partial_data(self):
         unpacker = Unpacker()

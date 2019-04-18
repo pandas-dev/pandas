@@ -48,7 +48,7 @@ def test_to_native_types():
     tm.assert_numpy_array_equal(result, expected)
 
 
-class TestPeriodIndexRendering(object):
+class TestPeriodIndexRendering:
 
     def test_frame_repr(self):
         df = pd.DataFrame({"A": [1, 2, 3]},

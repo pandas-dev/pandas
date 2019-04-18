@@ -26,7 +26,7 @@ decorate a class, providing the name of attribute to add. The class's
 .. code-block:: python
 
    @pd.api.extensions.register_dataframe_accessor("geo")
-   class GeoAccessor(object):
+   class GeoAccessor:
        def __init__(self, pandas_obj):
            self._validate(pandas_obj)
            self._obj = pandas_obj

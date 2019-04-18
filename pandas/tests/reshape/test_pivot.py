@@ -21,7 +21,7 @@ def dropna(request):
     return request.param
 
 
-class TestPivotTable(object):
+class TestPivotTable:
 
     def setup_method(self, method):
         self.data = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
@@ -1338,7 +1338,7 @@ class TestPivotTable(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestCrosstab(object):
+class TestCrosstab:
 
     def setup_method(self, method):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',

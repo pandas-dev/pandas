@@ -1410,7 +1410,7 @@ class HDFStore(StringMixin):
         return s.read(**kwargs)
 
 
-class TableIterator(object):
+class TableIterator:
 
     """ define the iteration interface on a table
 
@@ -4618,7 +4618,7 @@ def _need_convert(kind):
     return False
 
 
-class Selection(object):
+class Selection:
 
     """
     Carries out a selection operation on a tables.Table object.

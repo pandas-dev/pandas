@@ -17,7 +17,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 import pandas.util.testing as tm
 
 
-class Base(object):
+class Base:
     """ base class for index sub-class tests """
     _holder = None
     _compat_props = ['shape', 'ndim', 'size', 'nbytes']

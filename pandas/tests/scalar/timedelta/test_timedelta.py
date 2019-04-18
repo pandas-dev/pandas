@@ -13,7 +13,7 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-class TestTimedeltaArithmetic(object):
+class TestTimedeltaArithmetic:
 
     def test_arithmetic_overflow(self):
         with pytest.raises(OverflowError):
@@ -50,7 +50,7 @@ class TestTimedeltaArithmetic(object):
             assert left != right
 
     def test_ops_notimplemented(self):
-        class Other(object):
+        class Other:
             pass
 
         other = Other()
@@ -76,7 +76,7 @@ class TestTimedeltaArithmetic(object):
         assert abs(-td) == Timedelta('10d')
 
 
-class TestTimedeltaComparison(object):
+class TestTimedeltaComparison:
     def test_compare_tick(self, tick_classes):
         cls = tick_classes
 
@@ -131,7 +131,7 @@ class TestTimedeltaComparison(object):
         Make sure non supported operations on Timedelta returns NonImplemented
         and yields to other operand (GH#20829).
         """
-        class CustomClass(object):
+        class CustomClass:
 
             def __init__(self, cmp_result=None):
                 self.cmp_result = cmp_result
@@ -174,7 +174,7 @@ class TestTimedeltaComparison(object):
             t < val
 
 
-class TestTimedeltas(object):
+class TestTimedeltas:
 
     @pytest.mark.parametrize("unit, value, expected", [
         ('us', 9.999, 9999), ('ms', 9.999999, 9999999),

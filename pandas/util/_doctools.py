@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 
-class TablePlotter(object):
+class TablePlotter:
     """
     Layout some DataFrames in vertical/horizontal layout for explanation.
     Used in merging.rst

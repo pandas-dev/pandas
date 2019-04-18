@@ -14,7 +14,7 @@ from pandas.core import ops
 import pandas.util.testing as tm
 
 
-class TestTimedeltaAdditionSubtraction(object):
+class TestTimedeltaAdditionSubtraction:
     """
     Tests for Timedelta methods:
 
@@ -240,7 +240,7 @@ class TestTimedeltaAdditionSubtraction(object):
         tm.assert_numpy_array_equal(res, exp)
 
 
-class TestTimedeltaMultiplicationDivision(object):
+class TestTimedeltaMultiplicationDivision:
     """
     Tests for Timedelta methods:
 

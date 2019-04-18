@@ -74,7 +74,7 @@ def na_value():
 
 
 # ----------------------------------------------------------------------------
-class BaseDatetimeTests(object):
+class BaseDatetimeTests:
     pass
 
 

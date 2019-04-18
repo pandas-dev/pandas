@@ -15,7 +15,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestCategoricalIndex(object):
+class TestCategoricalIndex:
 
     def setup_method(self, method):
 

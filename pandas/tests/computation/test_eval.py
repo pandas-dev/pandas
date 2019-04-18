@@ -110,7 +110,7 @@ _good_arith_ops = set(_arith_ops_syms).difference(_special_case_arith_ops_syms)
 
 
 @td.skip_if_no_ne
-class TestEvalNumexprPandas(object):
+class TestEvalNumexprPandas:
 
     @classmethod
     def setup_class(cls):
@@ -784,7 +784,7 @@ f = lambda *args, **kwargs: np.random.randn()
 # gh-12388: Typecasting rules consistency with python
 
 
-class TestTypeCasting(object):
+class TestTypeCasting:
     @pytest.mark.parametrize('op', ['+', '-', '*', '**', '/'])
     # maybe someday... numexpr has too many upcasting rules now
     # chain(*(np.sctypes[x] for x in ['uint', 'int', 'float']))
@@ -817,7 +817,7 @@ def should_warn(*args):
     return not_mono and only_one_dt
 
 
-class TestAlignment(object):
+class TestAlignment:
 
     index_types = 'i', 'u', 'dt'
     lhs_index_types = index_types + ('s',)  # 'p'
@@ -1061,7 +1061,7 @@ class TestAlignment(object):
 # Slightly more complex ops
 
 @td.skip_if_no_ne
-class TestOperationsNumExprPandas(object):
+class TestOperationsNumExprPandas:
 
     @classmethod
     def setup_class(cls):
@@ -1588,7 +1588,7 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
 
 
 @td.skip_if_no_ne
-class TestMathPythonPython(object):
+class TestMathPythonPython:
 
     @classmethod
     def setup_class(cls):
@@ -1734,7 +1734,7 @@ class TestMathNumExprPython(TestMathPythonPython):
 _var_s = randn(10)
 
 
-class TestScope(object):
+class TestScope:
 
     def test_global_scope(self, engine, parser):
         e = '_var_s * 2'
@@ -1882,7 +1882,7 @@ def test_negate_lt_eq_le(engine, parser):
         tm.assert_frame_equal(result, expected)
 
 
-class TestValidate(object):
+class TestValidate:
 
     def test_validate_bool_args(self):
         invalid_values = [1, "True", [1, 2, 3], 5.0]

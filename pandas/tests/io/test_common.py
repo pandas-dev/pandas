@@ -16,7 +16,7 @@ import pandas.util.testing as tm
 import pandas.io.common as icom
 
 
-class CustomFSPath(object):
+class CustomFSPath:
     """For testing fspath on unknown objects"""
     def __init__(self, path):
         self.path = path
@@ -45,7 +45,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 # https://github.com/cython/cython/issues/1720
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
-class TestCommonIOCapabilities(object):
+class TestCommonIOCapabilities:
     data1 = """index,A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10
@@ -300,7 +300,7 @@ def mmap_file(datapath):
     return datapath('io', 'data', 'test_mmap.csv')
 
 
-class TestMMapWrapper(object):
+class TestMMapWrapper:
 
     def test_constructor_bad_file(self, mmap_file):
         non_file = StringIO('I am not a file')

@@ -8,7 +8,7 @@ from pandas import DataFrame, MultiIndex, Period, Series, Timedelta, Timestamp
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestCounting(object):
+class TestCounting:
 
     def test_cumcount(self):
         df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'])

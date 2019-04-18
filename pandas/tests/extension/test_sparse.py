@@ -81,7 +81,7 @@ def data_for_grouping(request):
                        fill_value=request.param)
 
 
-class BaseSparseTests(object):
+class BaseSparseTests:
 
     def _check_unsupported(self, data):
         if data.dtype == SparseDtype(int, 0):

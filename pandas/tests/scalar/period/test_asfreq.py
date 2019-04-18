@@ -7,7 +7,7 @@ from pandas.errors import OutOfBoundsDatetime
 from pandas import Period, offsets
 
 
-class TestFreqConversion(object):
+class TestFreqConversion:
     """Test frequency conversion of date objects"""
     @pytest.mark.parametrize('freq', ['A', 'Q', 'M', 'W', 'B', 'D'])
     def test_asfreq_near_zero(self, freq):

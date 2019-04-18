@@ -1047,7 +1047,7 @@ def quantile(x, q, interpolation_method='fraction'):
 # select n        #
 # --------------- #
 
-class SelectN(object):
+class SelectN:
 
     def __init__(self, obj, n, keep):
         self.obj = obj

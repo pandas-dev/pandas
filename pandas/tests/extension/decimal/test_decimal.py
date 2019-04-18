@@ -65,7 +65,7 @@ def data_for_grouping():
     return DecimalArray([b, b, na, na, a, a, b, c])
 
 
-class BaseDecimal(object):
+class BaseDecimal:
 
     def assert_series_equal(self, left, right, *args, **kwargs):
         def convert(x):
@@ -149,7 +149,7 @@ class TestMissing(BaseDecimal, base.BaseMissingTests):
     pass
 
 
-class Reduce(object):
+class Reduce:
 
     def check_reduce(self, s, op_name, skipna):
 

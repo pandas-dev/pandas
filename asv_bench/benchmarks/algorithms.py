@@ -13,7 +13,7 @@ for imp in ['pandas.util', 'pandas.tools.hashing']:
         pass
 
 
-class Factorize(object):
+class Factorize:
 
     params = [[True, False], ['int', 'uint', 'float', 'string']]
     param_names = ['sort', 'dtype']
@@ -30,7 +30,7 @@ class Factorize(object):
         self.idx.factorize(sort=sort)
 
 
-class FactorizeUnique(object):
+class FactorizeUnique:
 
     params = [[True, False], ['int', 'uint', 'float', 'string']]
     param_names = ['sort', 'dtype']
@@ -48,7 +48,7 @@ class FactorizeUnique(object):
         self.idx.factorize(sort=sort)
 
 
-class Duplicated(object):
+class Duplicated:
 
     params = [['first', 'last', False], ['int', 'uint', 'float', 'string']]
     param_names = ['keep', 'dtype']
@@ -67,7 +67,7 @@ class Duplicated(object):
         self.idx.duplicated(keep=keep)
 
 
-class DuplicatedUniqueIndex(object):
+class DuplicatedUniqueIndex:
 
     params = ['int', 'uint', 'float', 'string']
     param_names = ['dtype']
@@ -86,7 +86,7 @@ class DuplicatedUniqueIndex(object):
         self.idx.duplicated()
 
 
-class Hashing(object):
+class Hashing:
 
     def setup_cache(self):
         N = 10**5
@@ -124,7 +124,7 @@ class Hashing(object):
         hashing.hash_pandas_object(df['dates'])
 
 
-class Quantile(object):
+class Quantile:
     params = [[0, 0.5, 1],
               ['linear', 'nearest', 'lower', 'higher', 'midpoint'],
               ['float', 'int', 'uint']]

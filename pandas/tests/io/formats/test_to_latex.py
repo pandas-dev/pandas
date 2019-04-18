@@ -13,7 +13,7 @@ def frame():
     return DataFrame(tm.getSeriesData())
 
 
-class TestToLatex(object):
+class TestToLatex:
 
     def test_to_latex_filename(self, frame):
         with tm.ensure_clean('test.tex') as path:

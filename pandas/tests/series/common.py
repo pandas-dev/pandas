@@ -6,7 +6,7 @@ import pandas.util.testing as tm
 _ts = tm.makeTimeSeries()
 
 
-class TestData(object):
+class TestData:
 
     @cache_readonly
     def ts(self):

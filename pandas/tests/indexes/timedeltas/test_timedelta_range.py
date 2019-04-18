@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 from pandas.tseries.offsets import Day, Second
 
 
-class TestTimedeltas(object):
+class TestTimedeltas:
 
     def test_timedelta_range(self):
 

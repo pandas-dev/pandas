@@ -253,7 +253,7 @@ def infer_freq(index, warn=True):
     return inferer.get_freq()
 
 
-class _FrequencyInferer(object):
+class _FrequencyInferer:
     """
     Not sure if I can avoid the state machine here
     """

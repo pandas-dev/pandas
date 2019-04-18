@@ -210,7 +210,7 @@ def test_resample_how_callables():
     def fn(x, a=1):
         return str(type(x))
 
-    class FnClass(object):
+    class FnClass:
 
         def __call__(self, x):
             return str(type(x))

@@ -5,7 +5,7 @@ from pandas import Series, DataFrame
 import pandas.util.testing as tm
 
 
-class Methods(object):
+class Methods:
 
     def setup(self):
         self.s = Series(tm.makeStringIndex(10**5))
@@ -93,7 +93,7 @@ class Methods(object):
         self.s.str.zfill(10)
 
 
-class Repeat(object):
+class Repeat:
 
     params = ['int', 'array']
     param_names = ['repeats']
@@ -108,7 +108,7 @@ class Repeat(object):
         self.s.str.repeat(self.values)
 
 
-class Cat(object):
+class Cat:
 
     params = ([0, 3], [None, ','], [None, '-'], [0.0, 0.001, 0.15])
     param_names = ['other_cols', 'sep', 'na_rep', 'na_frac']
@@ -133,7 +133,7 @@ class Cat(object):
         self.s.str.cat(others=self.others, sep=sep, na_rep=na_rep)
 
 
-class Contains(object):
+class Contains:
 
     params = [True, False]
     param_names = ['regex']
@@ -145,7 +145,7 @@ class Contains(object):
         self.s.str.contains('A', regex=regex)
 
 
-class Split(object):
+class Split:
 
     params = [True, False]
     param_names = ['expand']
@@ -160,7 +160,7 @@ class Split(object):
         self.s.str.rsplit('--', expand=expand)
 
 
-class Dummies(object):
+class Dummies:
 
     def setup(self):
         self.s = Series(tm.makeStringIndex(10**5)).str.join('|')
@@ -169,7 +169,7 @@ class Dummies(object):
         self.s.str.get_dummies('|')
 
 
-class Encode(object):
+class Encode:
 
     def setup(self):
         self.ser = Series(tm.makeUnicodeIndex())
@@ -178,7 +178,7 @@ class Encode(object):
         self.ser.str.encode('utf-8').str.decode('utf-8')
 
 
-class Slice(object):
+class Slice:
 
     def setup(self):
         self.s = Series(['abcdefg', np.nan] * 500000)

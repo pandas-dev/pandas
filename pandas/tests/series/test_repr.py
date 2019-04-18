@@ -198,7 +198,7 @@ class TestSeriesRepr(TestData):
         assert repr(s) == exp
 
 
-class TestCategoricalRepr(object):
+class TestCategoricalRepr:
 
     def test_categorical_repr_unicode(self):
         # see gh-21002

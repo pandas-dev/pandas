@@ -177,7 +177,7 @@ def get_default_val(pat):
     return _get_registered_option(key).defval
 
 
-class DictWrapper(object):
+class DictWrapper:
     """ provide attribute-style access to a nested dict"""
 
     def __init__(self, d, prefix=""):
@@ -222,7 +222,7 @@ class DictWrapper(object):
 # of options, and option descriptions.
 
 
-class CallableDynamicDoc(object):
+class CallableDynamicDoc:
 
     def __init__(self, func, doc_tmpl):
         self.__doc_tmpl__ = doc_tmpl
@@ -379,7 +379,7 @@ options = DictWrapper(_global_config)
 # Functions for use by pandas developers, in addition to User - api
 
 
-class option_context(object):
+class option_context:
     """
     Context manager to temporarily set options in the `with` statement context.
 

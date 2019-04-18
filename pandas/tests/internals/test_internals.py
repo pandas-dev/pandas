@@ -193,7 +193,7 @@ def create_mgr(descr, item_shape=None):
                         [mgr_items] + [np.arange(n) for n in item_shape])
 
 
-class TestBlock(object):
+class TestBlock:
 
     def setup_method(self, method):
         # self.fblock = get_float_ex()  # a,c,e
@@ -295,7 +295,7 @@ class TestBlock(object):
                                         dtype=block.values.dtype)
 
 
-class TestDatetimeBlock(object):
+class TestDatetimeBlock:
 
     def test_try_coerce_arg(self):
         block = create_block('datetime', [0])
@@ -313,7 +313,7 @@ class TestDatetimeBlock(object):
             assert pd.Timestamp('2010-10-10') == pd.Timestamp(coerced)
 
 
-class TestBlockManager(object):
+class TestBlockManager:
 
     def test_constructor_corner(self):
         pass
@@ -834,7 +834,7 @@ class TestBlockManager(object):
                 bm1.replace_list([1], [2], inplace=value)
 
 
-class TestIndexing(object):
+class TestIndexing:
     # Nosetests-style data-driven tests.
     #
     # This test applies different indexing routines to block managers and
@@ -1037,7 +1037,7 @@ class TestIndexing(object):
     # reindex_indexer(new_labels, indexer, axis)
 
 
-class TestBlockPlacement(object):
+class TestBlockPlacement:
 
     def test_slice_len(self):
         assert len(BlockPlacement(slice(0, 4))) == 4
@@ -1179,7 +1179,7 @@ class TestBlockPlacement(object):
                 BlockPlacement(slice(2, None, -1)).add(-1)
 
 
-class DummyElement(object):
+class DummyElement:
     def __init__(self, value, dtype):
         self.value = value
         self.dtype = np.dtype(dtype)
@@ -1204,7 +1204,7 @@ class DummyElement(object):
         return bool(self.value)
 
 
-class TestCanHoldElement(object):
+class TestCanHoldElement:
     @pytest.mark.parametrize('value, dtype', [
         (1, 'i8'),
         (1.0, 'f8'),

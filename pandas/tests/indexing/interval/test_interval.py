@@ -6,7 +6,7 @@ from pandas import DataFrame, Interval, IntervalIndex, Series
 import pandas.util.testing as tm
 
 
-class TestIntervalIndex(object):
+class TestIntervalIndex:
 
     def setup_method(self, method):
         self.s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))

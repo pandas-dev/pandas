@@ -27,11 +27,11 @@ from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 
 
-class _subheader_pointer(object):
+class _subheader_pointer:
     pass
 
 
-class _column(object):
+class _column:
     pass
 
 

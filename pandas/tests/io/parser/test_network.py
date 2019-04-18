@@ -54,7 +54,7 @@ def tips_df(datapath):
 
 @pytest.mark.usefixtures("s3_resource")
 @td.skip_if_not_us_locale()
-class TestS3(object):
+class TestS3:
 
     def test_parse_public_s3_bucket(self, tips_df):
         pytest.importorskip('s3fs')

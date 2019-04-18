@@ -8,7 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 
-class _DtypeOpsMixin(object):
+class _DtypeOpsMixin:
     # Not all of pandas' extension dtypes are compatibile with
     # the new ExtensionArray interface. This means PandasExtensionDtype
     # can't subclass ExtensionDtype yet, as is_extension_array_dtype would

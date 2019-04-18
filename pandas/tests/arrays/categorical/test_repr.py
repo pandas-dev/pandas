@@ -18,7 +18,7 @@ class TestCategoricalReprWithFactor(TestCategorical):
         assert actual == expected
 
 
-class TestCategoricalRepr(object):
+class TestCategoricalRepr:
 
     def test_big_print(self):
         factor = Categorical([0, 1, 2, 0, 1, 2] * 100, ['a', 'b', 'c'],

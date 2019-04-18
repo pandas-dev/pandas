@@ -17,7 +17,7 @@ from pandas.core.indexes.datetimes import date_range
 import pandas.util.testing as tm
 
 
-class TestSeriesTimezones(object):
+class TestSeriesTimezones:
     # -----------------------------------------------------------------
     # Series.tz_localize
     def test_series_tz_localize(self):

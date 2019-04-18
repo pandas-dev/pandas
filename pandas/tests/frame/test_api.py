@@ -16,7 +16,7 @@ from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 
-class SharedWithSparse(object):
+class SharedWithSparse:
     """
     A collection of tests DataFrame and SparseDataFrame can share.
 

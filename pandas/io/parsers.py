@@ -1351,7 +1351,7 @@ def _validate_parse_dates_arg(parse_dates):
     return parse_dates
 
 
-class ParserBase(object):
+class ParserBase:
 
     def __init__(self, kwds):
         self.names = kwds.get('names')

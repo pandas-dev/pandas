@@ -16,7 +16,7 @@ def start_shift(request):
     return request.param
 
 
-class TestOverlaps(object):
+class TestOverlaps:
 
     def test_overlaps_self(self, start_shift, closed):
         start, shift = start_shift

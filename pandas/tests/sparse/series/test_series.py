@@ -1032,7 +1032,7 @@ class TestSparseSeries(SharedWithSparse):
         assert sparse_usage < dense_usage
 
 
-class TestSparseHandlingMultiIndexes(object):
+class TestSparseHandlingMultiIndexes:
 
     def setup_method(self, method):
         miindex = pd.MultiIndex.from_product(
@@ -1062,7 +1062,7 @@ class TestSparseHandlingMultiIndexes(object):
 @pytest.mark.filterwarnings(
     "ignore:the matrix subclass:PendingDeprecationWarning"
 )
-class TestSparseSeriesScipyInteraction(object):
+class TestSparseSeriesScipyInteraction:
     # Issue 8048: add SparseSeries coo methods
 
     def setup_method(self, method):
@@ -1425,7 +1425,7 @@ def _dense_series_compare(s, f):
     tm.assert_series_equal(result.to_dense(), dense_result)
 
 
-class TestSparseSeriesAnalytics(object):
+class TestSparseSeriesAnalytics:
 
     def setup_method(self, method):
         arr, index = _test_data1()

@@ -33,7 +33,7 @@ _integer2 = DataFrame(np.random.randint(1, 100, size=(101, 4)),
 
 
 @pytest.mark.skipif(not expr._USE_NUMEXPR, reason='not using numexpr')
-class TestExpressions(object):
+class TestExpressions:
 
     def setup_method(self, method):
 

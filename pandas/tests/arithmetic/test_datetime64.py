@@ -38,7 +38,7 @@ def assert_all(obj):
 # ------------------------------------------------------------------
 # Comparisons
 
-class TestDatetime64DataFrameComparison(object):
+class TestDatetime64DataFrameComparison:
     @pytest.mark.parametrize('timestamps', [
         [pd.Timestamp('2012-01-01 13:00:00+00:00')] * 2,
         [pd.Timestamp('2012-01-01 13:00:00')] * 2])
@@ -58,7 +58,7 @@ class TestDatetime64DataFrameComparison(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestDatetime64SeriesComparison(object):
+class TestDatetime64SeriesComparison:
     # TODO: moved from tests.series.test_operators; needs cleanup
 
     @pytest.mark.parametrize('pair', [
@@ -337,7 +337,7 @@ class TestDatetime64SeriesComparison(object):
         # comparison with the Series on the left-hand side
 
 
-class TestDatetimeIndexComparisons(object):
+class TestDatetimeIndexComparisons:
 
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
     @pytest.mark.parametrize("op", [
@@ -789,7 +789,7 @@ class TestDatetimeIndexComparisons(object):
 # ------------------------------------------------------------------
 # Arithmetic
 
-class TestDatetime64Arithmetic(object):
+class TestDatetime64Arithmetic:
     # This class is intended for "finished" tests that are fully parametrized
     #  over DataFrame/Series/Index/DatetimeArray
 
@@ -1125,7 +1125,7 @@ class TestDatetime64Arithmetic(object):
             per - dtarr
 
 
-class TestDatetime64DateOffsetArithmetic(object):
+class TestDatetime64DateOffsetArithmetic:
 
     # -------------------------------------------------------------
     # Tick DateOffsets
@@ -1437,7 +1437,7 @@ class TestDatetime64DateOffsetArithmetic(object):
         tm.assert_equal(res, expected)
 
 
-class TestDatetime64OverflowHandling(object):
+class TestDatetime64OverflowHandling:
     # TODO: box + de-duplicate
 
     def test_dt64_overflow_masking(self, box_with_array):
@@ -1555,7 +1555,7 @@ class TestDatetime64OverflowHandling(object):
             tmax - t2
 
 
-class TestTimestampSeriesArithmetic(object):
+class TestTimestampSeriesArithmetic:
 
     def test_empty_series_add_sub(self):
         # GH#13844
@@ -1843,7 +1843,7 @@ class TestTimestampSeriesArithmetic(object):
             td2 - dt2
 
 
-class TestDatetimeIndexArithmetic(object):
+class TestDatetimeIndexArithmetic:
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and int

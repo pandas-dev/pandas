@@ -26,7 +26,7 @@ def get_keywords():
     return keywords
 
 
-class VersioneerConfig(object):
+class VersioneerConfig:
     pass
 
 

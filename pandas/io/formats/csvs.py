@@ -21,7 +21,7 @@ from pandas.io.common import (
     UnicodeWriter, _get_handle, _infer_compression, get_filepath_or_buffer)
 
 
-class CSVFormatter(object):
+class CSVFormatter:
 
     def __init__(self, obj, path_or_buf=None, sep=",", na_rep='',
                  float_format=None, cols=None, header=True, index=True,

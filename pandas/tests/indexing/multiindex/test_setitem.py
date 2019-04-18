@@ -12,7 +12,7 @@ from pandas.util import testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-class TestMultiIndexSetItem(object):
+class TestMultiIndexSetItem:
 
     def test_setitem_multiindex(self):
         with catch_warnings(record=True):

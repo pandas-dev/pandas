@@ -15,7 +15,7 @@ from pandas.util.testing import assert_almost_equal
 randn = np.random.randn
 
 
-class TestDatetimeIndex(object):
+class TestDatetimeIndex:
 
     def test_roundtrip_pickle_with_tz(self):
 

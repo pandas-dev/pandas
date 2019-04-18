@@ -35,7 +35,7 @@ _NS = slice(None, None)
 
 
 # the public IndexSlicerMaker
-class _IndexSlice(object):
+class _IndexSlice:
     """
     Create an object to more easily perform multi-index slicing
 
