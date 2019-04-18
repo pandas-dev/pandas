@@ -1,5 +1,3 @@
-# pylint: disable-msg=W0614,W0401,W0611,W0622
-
 # flake8: noqa
 
 __docformat__ = 'restructuredtext'
@@ -20,7 +18,9 @@ if missing_dependencies:
 del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
-from pandas.compat.numpy import *
+from pandas.compat.numpy import (
+    _np_version_under1p14, _np_version_under1p15, _np_version_under1p16,
+    _np_version_under1p17)
 
 try:
     from pandas._libs import (hashtable as _hashtable,
@@ -36,54 +36,87 @@ except ImportError as e:  # pragma: no cover
 
 from datetime import datetime
 
+from pandas._config import (get_option, set_option, reset_option,
+                            describe_option, option_context, options)
+
 # let init-time option registration happen
 import pandas.core.config_init
 
-from pandas.core.api import *
-from pandas.core.sparse.api import *
-from pandas.stats.api import *
-from pandas.tseries.api import *
-from pandas.core.computation.api import *
-from pandas.core.reshape.api import *
+from pandas.core.api import (
+    # dtype
+    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype,
+    UInt16Dtype, UInt32Dtype, UInt64Dtype, CategoricalDtype,
+    PeriodDtype, IntervalDtype, DatetimeTZDtype,
 
-# deprecate tools.plotting, plot_params and scatter_matrix on the top namespace
-import pandas.tools.plotting
-plot_params = pandas.plotting._style._Options(deprecated=True)
-# do not import deprecate to top namespace
-scatter_matrix = pandas.util._decorators.deprecate(
-    'pandas.scatter_matrix', pandas.plotting.scatter_matrix,
-    'pandas.plotting.scatter_matrix')
+    # missing
+    isna, isnull, notna, notnull,
+
+    # indexes
+    Index, CategoricalIndex, Int64Index, UInt64Index, RangeIndex,
+    Float64Index, MultiIndex, IntervalIndex, TimedeltaIndex,
+    DatetimeIndex, PeriodIndex, IndexSlice,
+
+    # tseries
+    NaT, Period, period_range, Timedelta, timedelta_range,
+    Timestamp, date_range, bdate_range, Interval, interval_range,
+    DateOffset,
+
+    # conversion
+    to_numeric, to_datetime, to_timedelta,
+
+    # misc
+    np, TimeGrouper, Grouper, factorize, unique, value_counts,
+    array, Categorical, set_eng_float_format, Series, DataFrame,
+    Panel)
+
+from pandas.core.sparse.api import (
+    SparseArray, SparseDataFrame, SparseSeries, SparseDtype)
+
+from pandas.tseries.api import infer_freq
+from pandas.tseries import offsets
+
+from pandas.core.computation.api import eval
+
+from pandas.core.reshape.api import (
+    concat, lreshape, melt, wide_to_long, merge, merge_asof,
+    merge_ordered, crosstab, pivot, pivot_table, get_dummies,
+    cut, qcut)
 
 from pandas.util._print_versions import show_versions
-from pandas.io.api import *
+
+from pandas.io.api import (
+    # excel
+    ExcelFile, ExcelWriter, read_excel,
+
+    # packers
+    read_msgpack, to_msgpack,
+
+    # parsers
+    read_csv, read_fwf, read_table,
+
+    # pickle
+    read_pickle, to_pickle,
+
+    # pytables
+    HDFStore, read_hdf,
+
+    # sql
+    read_sql, read_sql_query,
+    read_sql_table,
+
+    # misc
+    read_clipboard, read_parquet, read_feather, read_gbq,
+    read_html, read_json, read_stata, read_sas)
+
 from pandas.util._tester import test
 import pandas.testing
-
-# extension module deprecations
-from pandas.util._depr_module import _DeprecatedModule
-
-json = _DeprecatedModule(deprmod='pandas.json',
-                         moved={'dumps': 'pandas.io.json.dumps',
-                                'loads': 'pandas.io.json.loads'})
-parser = _DeprecatedModule(deprmod='pandas.parser',
-                           removals=['na_values'],
-                           moved={'CParserError': 'pandas.errors.ParserError'})
-lib = _DeprecatedModule(deprmod='pandas.lib', deprmodto=False,
-                        moved={'Timestamp': 'pandas.Timestamp',
-                               'Timedelta': 'pandas.Timedelta',
-                               'NaT': 'pandas.NaT',
-                               'infer_dtype': 'pandas.api.types.infer_dtype'})
-tslib = _DeprecatedModule(deprmod='pandas.tslib',
-                          moved={'Timestamp': 'pandas.Timestamp',
-                                 'Timedelta': 'pandas.Timedelta',
-                                 'NaT': 'pandas.NaT',
-                                 'NaTType': 'type(pandas.NaT)',
-                                 'OutOfBoundsDatetime': 'pandas.errors.OutOfBoundsDatetime'})
+import pandas.arrays
 
 # use the closest tagged version if possible
 from ._version import get_versions
 v = get_versions()
 __version__ = v.get('closest-tag', v['version'])
+__git_version__ = v.get('full-revisionid')
 del get_versions, v
 
 # module level doc-string
@@ -104,25 +137,25 @@ Main Features
 Here are just a few of the things that pandas does well:
 
   - Easy handling of missing data in floating point as well as non-floating
-    point data
+    point data.
   - Size mutability: columns can be inserted and deleted from DataFrame and
     higher dimensional objects
-  - Automatic and explicit data alignment: objects can  be explicitly aligned
+  - Automatic and explicit data alignment: objects can be explicitly aligned
     to a set of labels, or the user can simply ignore the labels and let
     `Series`, `DataFrame`, etc. automatically align the data for you in
-    computations
+    computations.
   - Powerful, flexible group by functionality to perform split-apply-combine
-    operations on data sets, for both aggregating and transforming data
+    operations on data sets, for both aggregating and transforming data.
   - Make it easy to convert ragged, differently-indexed data in other Python
-    and NumPy data structures into DataFrame objects
+    and NumPy data structures into DataFrame objects.
   - Intelligent label-based slicing, fancy indexing, and subsetting of large
-    data sets
-  - Intuitive merging and joining data sets
-  - Flexible reshaping and pivoting of data sets
-  - Hierarchical labeling of axes (possible to have multiple labels per tick)
+    data sets.
+  - Intuitive merging and joining data sets.
+  - Flexible reshaping and pivoting of data sets.
+  - Hierarchical labeling of axes (possible to have multiple labels per tick).
   - Robust IO tools for loading data from flat files (CSV and delimited),
     Excel files, databases, and saving/loading data from the ultrafast HDF5
-    format
+    format.
   - Time series-specific functionality: date range generation and frequency
     conversion, moving window statistics, moving window linear regressions,
     date shifting and lagging, etc.

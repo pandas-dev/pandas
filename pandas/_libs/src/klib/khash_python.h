@@ -1,3 +1,4 @@
+#include <string.h>
 #include <Python.h>
 
 #include "khash.h"
@@ -14,9 +15,24 @@
 // hash for 64 bit integers.
 // GH 13436
 khint64_t PANDAS_INLINE asint64(double key) {
-  return *(khint64_t *)(&key);
+  khint64_t val;
+  memcpy(&val, &key, sizeof(double));
+  return val;
 }
-#define kh_float64_hash_func(key) (khint32_t)((asint64(key))>>33^(asint64(key))^(asint64(key))<<11)
+
+// correct for all inputs but not -0.0 and NaNs
+#define kh_float64_hash_func_0_NAN(key) (khint32_t)((asint64(key))>>33^(asint64(key))^(asint64(key))<<11)
+
+// correct for all inputs but not NaNs
+#define kh_float64_hash_func_NAN(key) ((key) == 0.0 ?                       \
+                                        kh_float64_hash_func_0_NAN(0.0) : \
+                                        kh_float64_hash_func_0_NAN(key))
+
+// correct for all
+#define kh_float64_hash_func(key) ((key) != (key) ?                       \
+                                   kh_float64_hash_func_NAN(Py_NAN) :     \
+                                   kh_float64_hash_func_NAN(key))
+
 #define kh_float64_hash_equal(a, b) ((a) == (b) || ((b) != (b) && (a) != (a)))
 
 #define KHASH_MAP_INIT_FLOAT64(name, khval_t)								\
@@ -31,10 +47,19 @@ int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
 		PyErr_Clear();
 		return 0;
 	}
+    if (result == 0) {  // still could be two NaNs
+        return PyFloat_CheckExact(a) &&
+               PyFloat_CheckExact(b) &&
+               Py_IS_NAN(PyFloat_AS_DOUBLE(a)) &&
+               Py_IS_NAN(PyFloat_AS_DOUBLE(b));
+    }
 	return result;
 }
 
-
+// For PyObject_Hash holds:
+//    hash(0.0) == 0 == hash(-0.0)
+//    hash(X) == 0 if X is a NaN-value
+// so it is OK to use it directly
 #define kh_python_hash_func(key) (PyObject_Hash(key))
 #define kh_python_hash_equal(a, b) (pyobject_cmp(a, b))
 
@@ -59,3 +84,41 @@ KHASH_SET_INIT_PYOBJECT(pyset)
 #define kh_exist_pyset(h, k) (kh_exist(h, k))
 
 KHASH_MAP_INIT_STR(strbox, kh_pyobject_t)
+
+typedef struct {
+	kh_str_t *table;
+	int starts[256];
+} kh_str_starts_t;
+
+typedef kh_str_starts_t* p_kh_str_starts_t;
+
+p_kh_str_starts_t PANDAS_INLINE kh_init_str_starts(void) {
+	kh_str_starts_t *result = (kh_str_starts_t*)calloc(1, sizeof(kh_str_starts_t));
+	result->table = kh_init_str();
+	return result;
+}
+
+khint_t PANDAS_INLINE kh_put_str_starts_item(kh_str_starts_t* table, char* key, int* ret) {
+    khint_t result = kh_put_str(table->table, key, ret);
+	if (*ret != 0) {
+		table->starts[(unsigned char)key[0]] = 1;
+	}
+    return result;
+}
+
+khint_t PANDAS_INLINE kh_get_str_starts_item(kh_str_starts_t* table, char* key) {
+    unsigned char ch = *key;
+	if (table->starts[ch]) {
+		if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets) return 1;
+	}
+    return 0;
+}
+
+void PANDAS_INLINE kh_destroy_str_starts(kh_str_starts_t* table) {
+	kh_destroy_str(table->table);
+	free(table);
+}
+
+void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t* table, khint_t val) {
+	kh_resize_str(table->table, val);
+}

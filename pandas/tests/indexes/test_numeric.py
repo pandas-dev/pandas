@@ -1,123 +1,34 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
 from datetime import datetime
-from pandas.compat import range, PY3
+import re
 
 import numpy as np
+import pytest
 
-from pandas import (date_range, notna, Series, Index, Float64Index,
-                    Int64Index, UInt64Index, RangeIndex)
-
-import pandas.util.testing as tm
+from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
-from pandas._libs.lib import Timestamp
-
+from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
+from pandas.api.types import pandas_dtype
 from pandas.tests.indexes.common import Base
-
-
-def full_like(array, value):
-    """Compatibility for numpy<1.8.0
-    """
-    ret = np.empty(array.shape, dtype=np.array(value).dtype)
-    ret.fill(value)
-    return ret
+import pandas.util.testing as tm
 
 
 class Numeric(Base):
 
-    def test_numeric_compat(self):
-
+    def test_can_hold_identifiers(self):
         idx = self.create_index()
-        didx = idx * idx
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
 
-        result = idx * 1
-        tm.assert_index_equal(result, idx)
-
-        result = 1 * idx
-        tm.assert_index_equal(result, idx)
-
-        # in general not true for RangeIndex
-        if not isinstance(idx, RangeIndex):
-            result = idx * idx
-            tm.assert_index_equal(result, idx ** 2)
-
-        # truediv under PY3
-        result = idx / 1
-        expected = idx
-        if PY3:
-            expected = expected.astype('float64')
-        tm.assert_index_equal(result, expected)
-
-        result = idx / 2
-        if PY3:
-            expected = expected.astype('float64')
-        expected = Index(idx.values / 2)
-        tm.assert_index_equal(result, expected)
-
-        result = idx // 1
-        tm.assert_index_equal(result, idx)
-
-        result = idx * np.array(5, dtype='int64')
-        tm.assert_index_equal(result, idx * 5)
-
-        arr_dtype = 'uint64' if isinstance(idx, UInt64Index) else 'int64'
-        result = idx * np.arange(5, dtype=arr_dtype)
-        tm.assert_index_equal(result, didx)
-
-        result = idx * Series(np.arange(5, dtype=arr_dtype))
-        tm.assert_index_equal(result, didx)
-
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        expected = Float64Index(np.arange(5, dtype='float64') *
-                                (np.arange(5, dtype='float64') + 0.1))
-        tm.assert_index_equal(result, expected)
-
-        # invalid
-        pytest.raises(TypeError,
-                      lambda: idx * date_range('20130101', periods=5))
-        pytest.raises(ValueError, lambda: idx * idx[0:3])
-        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
-
-        result = divmod(idx, 2)
-        with np.errstate(all='ignore'):
-            div, mod = divmod(idx.values, 2)
-            expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
-            tm.assert_index_equal(r, e)
-
-        result = divmod(idx, full_like(idx.values, 2))
-        with np.errstate(all='ignore'):
-            div, mod = divmod(idx.values, full_like(idx.values, 2))
-            expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
-            tm.assert_index_equal(r, e)
-
-        result = divmod(idx, Series(full_like(idx.values, 2)))
-        with np.errstate(all='ignore'):
-            div, mod = divmod(
-                idx.values,
-                full_like(idx.values, 2),
-            )
-            expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
-            tm.assert_index_equal(r, e)
-
-        # test power calculations both ways, GH 14973
-        expected = pd.Float64Index(2.0**idx.values)
-        result = 2.0**idx
-        tm.assert_index_equal(result, expected)
-
-        expected = pd.Float64Index(idx.values**2.0)
-        result = idx**2.0
-        tm.assert_index_equal(result, expected)
+    def test_numeric_compat(self):
+        pass  # override Base method
 
     def test_explicit_conversions(self):
 
         # GH 8608
-        # add/sub are overriden explicity for Float/Int Index
+        # add/sub are overridden explicitly for Float/Int Index
         idx = self._holder(np.arange(5, dtype='int64'))
 
         # float conversions
@@ -137,12 +48,6 @@ class Numeric(Base):
         expected = Float64Index(-arr)
         a = np.zeros(5, dtype='float64')
         result = a - fidx
-        tm.assert_index_equal(result, expected)
-
-    def test_ufunc_compat(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        result = np.sin(idx)
-        expected = Float64Index(np.sin(np.arange(5, dtype='int64')))
         tm.assert_index_equal(result, expected)
 
     def test_index_groupby(self):
@@ -169,11 +74,24 @@ class Numeric(Base):
                         ex_keys[1]: idx[[1, 4]]}
             tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 
-    def test_modulo(self):
-        # GH 9244
-        index = self.create_index()
-        expected = Index(index.values % 2)
-        tm.assert_index_equal(index % 2, expected)
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
+    def test_where(self, klass):
+        i = self.create_index()
+        cond = [True] * len(i)
+        expected = i
+        result = i.where(klass(cond))
+
+        cond = [False] + [True] * (len(i) - 1)
+        expected = Float64Index([i._na_value] + i[1:].tolist())
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
+
+    def test_insert(self):
+        # GH 18295 (test missing)
+        expected = Float64Index([0, np.nan, 1, 2, 3, 4])
+        for na in (np.nan, pd.NaT, None):
+            result = self.create_index().insert(1, na)
+            tm.assert_index_equal(result, expected)
 
 
 class TestFloat64Index(Numeric):
@@ -181,7 +99,9 @@ class TestFloat64Index(Numeric):
 
     def setup_method(self, method):
         self.indices = dict(mixed=Float64Index([1.5, 2, 3, 4, 5]),
-                            float=Float64Index(np.arange(5) * 2.5))
+                            float=Float64Index(np.arange(5) * 2.5),
+                            mixed_dec=Float64Index([5, 4, 3, 2, 1.5]),
+                            float_dec=Float64Index(np.arange(4, -1, -1) * 2.5))
         self.setup_indices()
 
     def create_index(self):
@@ -237,9 +157,18 @@ class TestFloat64Index(Numeric):
     def test_constructor_invalid(self):
 
         # invalid
-        pytest.raises(TypeError, Float64Index, 0.)
-        pytest.raises(TypeError, Float64Index, ['a', 'b', 0.])
-        pytest.raises(TypeError, Float64Index, [Timestamp('20130101')])
+        msg = (r"Float64Index\(\.\.\.\) must be called with a collection of"
+               r" some kind, 0\.0 was passed")
+        with pytest.raises(TypeError, match=msg):
+            Float64Index(0.)
+        msg = ("String dtype not supported, you may need to explicitly cast to"
+               " a numeric type")
+        with pytest.raises(TypeError, match=msg):
+            Float64Index(['a', 'b', 0.])
+        msg = (r"float\(\) argument must be a string or a number, not"
+               " 'Timestamp'")
+        with pytest.raises(TypeError, match=msg):
+            Float64Index([Timestamp('20130101')])
 
     def test_constructor_coerce(self):
 
@@ -297,12 +226,29 @@ class TestFloat64Index(Numeric):
 
         # invalid
         for dtype in ['M8[ns]', 'm8[ns]']:
-            pytest.raises(TypeError, lambda: i.astype(dtype))
+            msg = ("Cannot convert Float64Index to dtype {}; integer values"
+                   " are required for conversion").format(pandas_dtype(dtype))
+            with pytest.raises(TypeError, match=re.escape(msg)):
+                i.astype(dtype)
 
         # GH 13149
         for dtype in ['int16', 'int32', 'int64']:
             i = Float64Index([0, 1.1, np.NAN])
-            pytest.raises(ValueError, lambda: i.astype(dtype))
+            msg = "Cannot convert NA to integer"
+            with pytest.raises(ValueError, match=msg):
+                i.astype(dtype)
+
+    def test_type_coercion_fail(self, any_int_dtype):
+        # see gh-15832
+        msg = "Trying to coerce float values to integers"
+        with pytest.raises(ValueError, match=msg):
+            Index([1, 2, 3.5], dtype=any_int_dtype)
+
+    def test_type_coercion_valid(self, float_dtype):
+        # There is no Float32Index, so we always
+        # generate Float64Index.
+        i = Index([1, 2, 3.5], dtype=float_dtype)
+        tm.assert_index_equal(i, Index([1, 2, 3.5]))
 
     def test_equals_numeric(self):
 
@@ -344,13 +290,27 @@ class TestFloat64Index(Numeric):
             assert idx.get_loc(1.1, method) == loc
             assert idx.get_loc(1.1, method, tolerance=0.9) == loc
 
-        pytest.raises(KeyError, idx.get_loc, 'foo')
-        pytest.raises(KeyError, idx.get_loc, 1.5)
-        pytest.raises(KeyError, idx.get_loc, 1.5, method='pad',
-                      tolerance=0.1)
+        with pytest.raises(KeyError, match="^'foo'$"):
+            idx.get_loc('foo')
+        with pytest.raises(KeyError, match=r"^1\.5$"):
+            idx.get_loc(1.5)
+        with pytest.raises(KeyError, match=r"^1\.5$"):
+            idx.get_loc(1.5, method='pad', tolerance=0.1)
+        with pytest.raises(KeyError, match="^True$"):
+            idx.get_loc(True)
+        with pytest.raises(KeyError, match="^False$"):
+            idx.get_loc(False)
 
-        with tm.assert_raises_regex(ValueError, 'must be numeric'):
+        with pytest.raises(ValueError, match='must be numeric'):
             idx.get_loc(1.4, method='nearest', tolerance='foo')
+
+        with pytest.raises(ValueError, match='must contain numeric elements'):
+            idx.get_loc(1.4, method='nearest', tolerance=np.array(['foo']))
+
+        with pytest.raises(
+                ValueError,
+                match='tolerance size must match target index size'):
+            idx.get_loc(1.4, method='nearest', tolerance=np.array([1, 2]))
 
     def test_get_loc_na(self):
         idx = Float64Index([np.nan, 1, 2])
@@ -369,15 +329,20 @@ class TestFloat64Index(Numeric):
         # not representable by slice
         idx = Float64Index([np.nan, 1, np.nan, np.nan])
         assert idx.get_loc(1) == 1
-        pytest.raises(KeyError, idx.slice_locs, np.nan)
+        msg = "'Cannot get left slice bound for non-unique label: nan"
+        with pytest.raises(KeyError, match=msg):
+            idx.slice_locs(np.nan)
 
     def test_get_loc_missing_nan(self):
         # GH 8569
         idx = Float64Index([1, 2])
         assert idx.get_loc(1) == 0
-        pytest.raises(KeyError, idx.get_loc, 3)
-        pytest.raises(KeyError, idx.get_loc, np.nan)
-        pytest.raises(KeyError, idx.get_loc, [np.nan])
+        with pytest.raises(KeyError, match=r"^3\.0$"):
+            idx.get_loc(3)
+        with pytest.raises(KeyError, match="^nan$"):
+            idx.get_loc(np.nan)
+        with pytest.raises(KeyError, match=r"^\[nan\]$"):
+            idx.get_loc([np.nan])
 
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
@@ -446,9 +411,9 @@ class TestFloat64Index(Numeric):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -458,8 +423,6 @@ class TestFloat64Index(Numeric):
 class NumericInt(Numeric):
 
     def test_view(self):
-        super(NumericInt, self).test_view()
-
         i = self._holder([], name='Foo')
         i_view = i.view()
         assert i_view.name == 'Foo'
@@ -471,32 +434,32 @@ class NumericInt(Numeric):
         tm.assert_index_equal(i, self._holder(i_view, name='Foo'))
 
     def test_is_monotonic(self):
-        assert self.index.is_monotonic
-        assert self.index.is_monotonic_increasing
-        assert self.index._is_strictly_monotonic_increasing
-        assert not self.index.is_monotonic_decreasing
-        assert not self.index._is_strictly_monotonic_decreasing
+        assert self.index.is_monotonic is True
+        assert self.index.is_monotonic_increasing is True
+        assert self.index._is_strictly_monotonic_increasing is True
+        assert self.index.is_monotonic_decreasing is False
+        assert self.index._is_strictly_monotonic_decreasing is False
 
         index = self._holder([4, 3, 2, 1])
-        assert not index.is_monotonic
-        assert not index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is False
+        assert index._is_strictly_monotonic_increasing is False
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = self._holder([1])
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
     def test_is_strictly_monotonic(self):
         index = self._holder([1, 1, 2, 3])
-        assert index.is_monotonic_increasing
-        assert not index._is_strictly_monotonic_increasing
+        assert index.is_monotonic_increasing is True
+        assert index._is_strictly_monotonic_increasing is False
 
         index = self._holder([3, 2, 1, 1])
-        assert index.is_monotonic_decreasing
-        assert not index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_decreasing is False
 
         index = self._holder([1, 1])
         assert index.is_monotonic_increasing
@@ -541,11 +504,10 @@ class NumericInt(Numeric):
         exp_ridx = np.array([2, 3, 2, 3, 0, 1, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(ridx, exp_ridx)
 
-    def test_join_self(self):
-        kinds = 'outer', 'inner', 'left', 'right'
-        for kind in kinds:
-            joined = self.index.join(self.index, how=kind)
-            assert self.index is joined
+    @pytest.mark.parametrize('kind', ['outer', 'inner', 'left', 'right'])
+    def test_join_self(self, kind):
+        joined = self.index.join(self.index, how=kind)
+        assert self.index is joined
 
     def test_union_noncomparable(self):
         from datetime import datetime, timedelta
@@ -561,13 +523,17 @@ class NumericInt(Numeric):
         tm.assert_index_equal(result, expected)
 
     def test_cant_or_shouldnt_cast(self):
+        msg = ("String dtype not supported, you may need to explicitly cast to"
+               " a numeric type")
         # can't
         data = ['foo', 'bar', 'baz']
-        pytest.raises(TypeError, self._holder, data)
+        with pytest.raises(TypeError, match=msg):
+            self._holder(data)
 
         # shouldn't
         data = ['0', '1', '2']
-        pytest.raises(TypeError, self._holder, data)
+        with pytest.raises(TypeError, match=msg):
+            self._holder(data)
 
     def test_view_index(self):
         self.index.view(Index)
@@ -593,7 +559,7 @@ class NumericInt(Numeric):
                "{name} cannot contain NA").format(name=name)
 
         # fill_value=True
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -1]), fill_value=True)
 
         # allow_fill=False
@@ -602,9 +568,9 @@ class NumericInt(Numeric):
         expected = self._holder([2, 1, 3], name='xxx')
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -614,47 +580,14 @@ class NumericInt(Numeric):
         idx = self._holder([1, 2], name='asdf')
         assert idx.name == idx[1:].name
 
-    def test_ufunc_coercions(self):
-        idx = self._holder([1, 2, 3, 4, 5], name='x')
-
-        result = np.sqrt(idx)
-        assert isinstance(result, Float64Index)
-        exp = Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = np.divide(idx, 2.)
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
-        tm.assert_index_equal(result, exp)
-
-        # _evaluate_numeric_binop
-        result = idx + 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([3., 4., 5., 6., 7.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx - 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([-1., 0., 1., 2., 3.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx * 1.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([1., 2., 3., 4., 5.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx / 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
-        tm.assert_index_equal(result, exp)
-
 
 class TestInt64Index(NumericInt):
     _dtype = 'int64'
     _holder = Int64Index
 
     def setup_method(self, method):
-        self.indices = dict(index=Int64Index(np.arange(0, 20, 2)))
+        self.indices = dict(index=Int64Index(np.arange(0, 20, 2)),
+                            index_dec=Int64Index(np.arange(19, -1, -1)))
         self.setup_indices()
 
     def create_index(self):
@@ -671,7 +604,10 @@ class TestInt64Index(NumericInt):
         tm.assert_index_equal(index, expected)
 
         # scalar raise Exception
-        pytest.raises(TypeError, Int64Index, 5)
+        msg = (r"Int64Index\(\.\.\.\) must be called with a collection of some"
+               " kind, 5 was passed")
+        with pytest.raises(TypeError, match=msg):
+            Int64Index(5)
 
         # copy
         arr = self.index.values
@@ -699,12 +635,26 @@ class TestInt64Index(NumericInt):
 
         # preventing casting
         arr = np.array([1, '2', 3, '4'], dtype=object)
-        with tm.assert_raises_regex(TypeError, 'casting'):
+        with pytest.raises(TypeError, match='casting'):
             Int64Index(arr)
 
         arr_with_floats = [0, 2, 3, 4, 5, 1.25, 3, -1]
-        with tm.assert_raises_regex(TypeError, 'casting'):
+        with pytest.raises(TypeError, match='casting'):
             Int64Index(arr_with_floats)
+
+    def test_constructor_coercion_signed_to_unsigned(self, uint_dtype):
+
+        # see gh-15832
+        msg = "Trying to coerce negative values to unsigned integers"
+
+        with pytest.raises(OverflowError, match=msg):
+            Index([-1], dtype=uint_dtype)
+
+    def test_constructor_unwraps_index(self):
+        idx = pd.Index([1, 2])
+        result = pd.Int64Index(idx)
+        expected = np.array([1, 2], dtype='int64')
+        tm.assert_numpy_array_equal(result._data, expected)
 
     def test_coerce_list(self):
         # coerce things
@@ -714,31 +664,6 @@ class TestInt64Index(NumericInt):
         # but not if explicit dtype passed
         arr = Index([1, 2, 3, 4], dtype=object)
         assert isinstance(arr, Index)
-
-    def test_where(self):
-        i = self.create_index()
-        result = i.where(notna(i))
-        expected = i
-        tm.assert_index_equal(result, expected)
-
-        _nan = i._na_value
-        cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        result = i.where(cond)
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
-
-        _nan = i._na_value
-        cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
 
     def test_get_indexer(self):
         target = Int64Index(np.arange(10))
@@ -949,8 +874,9 @@ class TestUInt64Index(NumericInt):
     _holder = UInt64Index
 
     def setup_method(self, method):
-        self.indices = dict(index=UInt64Index([2**63, 2**63 + 10, 2**63 + 15,
-                                               2**63 + 20, 2**63 + 25]))
+        vals = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
+        self.indices = dict(index=UInt64Index(vals),
+                            index_dec=UInt64Index(reversed(vals)))
         self.setup_indices()
 
     def create_index(self):

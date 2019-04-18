@@ -15,7 +15,12 @@ The full license is in the LICENSE file, distributed with this software.
 
 #ifndef O_BINARY
 #define O_BINARY 0
-#endif /* O_BINARY */
+#endif  // O_BINARY
+
+#if PY_VERSION_HEX >= 0x03060000 && defined(_WIN32)
+#define USE_WIN_UTF16
+#include <Windows.h>
+#endif
 
 /*
   On-disk FILE, uncompressed
@@ -27,7 +32,35 @@ void *new_file_source(char *fname, size_t buffer_size) {
         return NULL;
     }
 
+#ifdef USE_WIN_UTF16
+    // Fix gh-15086 properly - convert UTF8 to UTF16 that Windows widechar API
+    // accepts. This is needed because UTF8 might _not_ be convertible to MBCS
+    // for some conditions, as MBCS is locale-dependent, and not all unicode
+    // symbols can be expressed in it.
+    {
+        wchar_t* wname = NULL;
+        int required = MultiByteToWideChar(CP_UTF8, 0, fname, -1, NULL, 0);
+        if (required == 0) {
+            free(fs);
+            return NULL;
+        }
+        wname = (wchar_t*)malloc(required * sizeof(wchar_t));
+        if (wname == NULL) {
+            free(fs);
+            return NULL;
+        }
+        if (MultiByteToWideChar(CP_UTF8, 0, fname, -1, wname, required) <
+                                                                required) {
+            free(wname);
+            free(fs);
+            return NULL;
+        }
+        fs->fd = _wopen(wname, O_RDONLY | O_BINARY);
+        free(wname);
+    }
+#else
     fs->fd = open(fname, O_RDONLY | O_BINARY);
+#endif
     if (fs->fd == -1) {
         free(fs);
         return NULL;
@@ -150,7 +183,11 @@ void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
         return NULL;
     } else if (!PyBytes_Check(result)) {
         tmp = PyUnicode_AsUTF8String(result);
-        Py_XDECREF(result);
+        Py_DECREF(result);
+        if (tmp == NULL) {
+            PyGILState_Release(state);
+            return NULL;
+        }
         result = tmp;
     }
 
@@ -273,4 +310,4 @@ void *buffer_mmap_bytes(void *source, size_t nbytes, size_t *bytes_read,
     return NULL;
 }
 
-#endif
+#endif  // HAVE_MMAP

@@ -1,24 +1,23 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import datetime, timedelta
+from io import StringIO
 import re
 import sys
+import textwrap
 
-from numpy import nan
 import numpy as np
 import pytest
 
-from pandas import (DataFrame, compat, option_context)
-from pandas.compat import StringIO, lrange, u
-import pandas.io.formats.format as fmt
-import pandas as pd
+from pandas.compat import PYPY, lrange
 
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Series, date_range, option_context, period_range)
+from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
-from pandas.tests.frame.common import TestData
-
+import pandas.io.formats.format as fmt
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
@@ -47,8 +46,8 @@ class TestDataFrameReprInfoEtc(TestData):
         biggie = DataFrame({'A': np.random.randn(200),
                             'B': tm.makeStringIndex(200)},
                            index=lrange(200))
-        biggie.loc[:20, 'A'] = nan
-        biggie.loc[:20, 'B'] = nan
+        biggie.loc[:20, 'A'] = np.nan
+        biggie.loc[:20, 'B'] = np.nan
 
         foo = repr(biggie)  # noqa
 
@@ -124,7 +123,7 @@ class TestDataFrameReprInfoEtc(TestData):
         warnings.filters = warn_filters
 
     def test_repr_unicode(self):
-        uval = u('\u03c3\u03c3\u03c3\u03c3')
+        uval = '\u03c3\u03c3\u03c3\u03c3'
 
         # TODO(wesm): is this supposed to be used?
         bval = uval.encode('utf-8')  # noqa
@@ -140,19 +139,12 @@ class TestDataFrameReprInfoEtc(TestData):
         assert result.split('\n')[0].rstrip() == ex_top
 
     def test_unicode_string_with_unicode(self):
-        df = DataFrame({'A': [u("\u05d0")]})
-
-        if compat.PY3:
-            str(df)
-        else:
-            compat.text_type(df)
+        df = DataFrame({'A': ["\u05d0"]})
+        str(df)
 
     def test_bytestring_with_unicode(self):
-        df = DataFrame({'A': [u("\u05d0")]})
-        if compat.PY3:
-            bytes(df)
-        else:
-            str(df)
+        df = DataFrame({'A': ["\u05d0"]})
+        bytes(df)
 
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),
@@ -171,8 +163,8 @@ class TestDataFrameReprInfoEtc(TestData):
                                       'the CSV file externally. I want to Call'
                                       ' the File through the code..')})
 
-        result = repr(df)
-        assert 'StringCol' in result
+        with option_context('display.max_columns', 20):
+            assert 'StringCol' in repr(df)
 
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
@@ -192,7 +184,6 @@ class TestDataFrameReprInfoEtc(TestData):
         # GH 12182
         assert df._repr_latex_() is None
 
-    @tm.capture_stdout
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)
@@ -202,6 +193,25 @@ class TestDataFrameReprInfoEtc(TestData):
 
         frame.info()
         frame.info(verbose=False)
+
+    def test_info_memory(self):
+        # https://github.com/pandas-dev/pandas/issues/21056
+        df = pd.DataFrame({'a': pd.Series([1, 2], dtype='i8')})
+        buf = StringIO()
+        df.info(buf=buf)
+        result = buf.getvalue()
+        bytes = float(df.memory_usage().sum())
+
+        expected = textwrap.dedent("""\
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 2 entries, 0 to 1
+        Data columns (total 1 columns):
+        a    2 non-null int64
+        dtypes: int64(1)
+        memory usage: {} bytes
+        """.format(bytes))
+
+        assert result == expected
 
     def test_info_wide(self):
         from pandas import set_option, reset_option
@@ -306,7 +316,7 @@ class TestDataFrameReprInfoEtc(TestData):
         res = buf.getvalue().splitlines()
         assert "memory usage: " in res[-1]
 
-        # do not display memory usage cas
+        # do not display memory usage case
         df.info(buf=buf, memory_usage=False)
         res = buf.getvalue().splitlines()
         assert "memory usage: " not in res[-1]
@@ -323,23 +333,6 @@ class TestDataFrameReprInfoEtc(TestData):
         # excluded column with object dtype, so estimate is accurate
         assert not re.match(r"memory usage: [^+]+\+", res[-1])
 
-        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
-        df_with_object_index.info(buf=buf, memory_usage=True)
-        res = buf.getvalue().splitlines()
-        assert re.match(r"memory usage: [^+]+\+", res[-1])
-
-        df_with_object_index.info(buf=buf, memory_usage='deep')
-        res = buf.getvalue().splitlines()
-        assert re.match(r"memory usage: [^+]+$", res[-1])
-
-        assert (df_with_object_index.memory_usage(
-            index=True, deep=True).sum() > df_with_object_index.memory_usage(
-            index=True).sum())
-
-        df_object = pd.DataFrame({'a': ['a']})
-        assert (df_object.memory_usage(deep=True).sum() >
-                df_object.memory_usage().sum())
-
         # Test a DataFrame with duplicate columns
         dtypes = ['int64', 'int64', 'int64', 'float64']
         data = {}
@@ -348,6 +341,15 @@ class TestDataFrameReprInfoEtc(TestData):
             data[i] = np.random.randint(2, size=n).astype(dtype)
         df = DataFrame(data)
         df.columns = dtypes
+
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        df_with_object_index.info(buf=buf, memory_usage=True)
+        res = buf.getvalue().splitlines()
+        assert re.match(r"memory usage: [^+]+\+", res[-1])
+
+        df_with_object_index.info(buf=buf, memory_usage='deep')
+        res = buf.getvalue().splitlines()
+        assert re.match(r"memory usage: [^+]+$", res[-1])
 
         # Ensure df size is as expected
         # (cols * rows * bytes) + index size
@@ -377,9 +379,47 @@ class TestDataFrameReprInfoEtc(TestData):
         df.memory_usage(index=True)
         df.index.values.nbytes
 
+        mem = df.memory_usage(deep=True).sum()
+        assert mem > 0
+
+    @pytest.mark.skipif(PYPY,
+                        reason="on PyPy deep=True doesn't change result")
+    def test_info_memory_usage_deep_not_pypy(self):
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        assert (df_with_object_index.memory_usage(
+                index=True, deep=True).sum() >
+                df_with_object_index.memory_usage(
+                    index=True).sum())
+
+        df_object = pd.DataFrame({'a': ['a']})
+        assert (df_object.memory_usage(deep=True).sum() >
+                df_object.memory_usage().sum())
+
+    @pytest.mark.skipif(not PYPY,
+                        reason="on PyPy deep=True does not change result")
+    def test_info_memory_usage_deep_pypy(self):
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        assert (df_with_object_index.memory_usage(
+                index=True, deep=True).sum() ==
+                df_with_object_index.memory_usage(
+                    index=True).sum())
+
+        df_object = pd.DataFrame({'a': ['a']})
+        assert (df_object.memory_usage(deep=True).sum() ==
+                df_object.memory_usage().sum())
+
+    @pytest.mark.skipif(PYPY, reason="PyPy getsizeof() fails by design")
+    def test_usage_via_getsizeof(self):
+        df = DataFrame(
+            data=1,
+            index=pd.MultiIndex.from_product(
+                [['a'], range(1000)]),
+            columns=['A']
+        )
+        mem = df.memory_usage(deep=True).sum()
         # sys.getsizeof will call the .memory_usage with
         # deep=True, and add on some GC overhead
-        diff = df.memory_usage(deep=True).sum() - sys.getsizeof(df)
+        diff = mem - sys.getsizeof(df)
         assert abs(diff) < 100
 
     def test_info_memory_usage_qualified(self):
@@ -441,3 +481,43 @@ class TestDataFrameReprInfoEtc(TestData):
 
         buf = StringIO()
         df.info(buf=buf)
+
+    def test_info_categorical_column(self):
+
+        # make sure it works
+        n = 2500
+        df = DataFrame({'int64': np.random.randint(100, size=n)})
+        df['category'] = Series(np.array(list('abcdefghij')).take(
+            np.random.randint(0, 10, size=n))).astype('category')
+        df.isna()
+        buf = StringIO()
+        df.info(buf=buf)
+
+        df2 = df[df['category'] == 'd']
+        buf = StringIO()
+        df2.info(buf=buf)
+
+    def test_repr_categorical_dates_periods(self):
+        # normal DataFrame
+        dt = date_range('2011-01-01 09:00', freq='H', periods=5,
+                        tz='US/Eastern')
+        p = period_range('2011-01', freq='M', periods=5)
+        df = DataFrame({'dt': dt, 'p': p})
+        exp = """                         dt        p
+0 2011-01-01 09:00:00-05:00  2011-01
+1 2011-01-01 10:00:00-05:00  2011-02
+2 2011-01-01 11:00:00-05:00  2011-03
+3 2011-01-01 12:00:00-05:00  2011-04
+4 2011-01-01 13:00:00-05:00  2011-05"""
+
+        df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
+        assert repr(df) == exp
+
+    @pytest.mark.parametrize('arg', [np.datetime64, np.timedelta64])
+    @pytest.mark.parametrize('box, expected', [
+        [Series, '0    NaT\ndtype: object'],
+        [DataFrame, '     0\n0  NaT']])
+    def test_repr_np_nat_with_object(self, arg, box, expected):
+        # GH 25445
+        result = repr(box([arg('NaT')], dtype=object))
+        assert result == expected

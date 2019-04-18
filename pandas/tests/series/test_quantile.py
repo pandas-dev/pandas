@@ -1,13 +1,12 @@
 # coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
 
-from pandas import (Index, Series, _np_version_under1p9)
-from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.dtypes.common import is_integer
+
+import pandas as pd
+from pandas import Index, Series
+from pandas.core.indexes.datetimes import Timestamp
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -18,14 +17,14 @@ class TestSeriesQuantile(TestData):
     def test_quantile(self):
 
         q = self.ts.quantile(0.1)
-        assert q == np.percentile(self.ts.valid(), 10)
+        assert q == np.percentile(self.ts.dropna(), 10)
 
         q = self.ts.quantile(0.9)
-        assert q == np.percentile(self.ts.valid(), 90)
+        assert q == np.percentile(self.ts.dropna(), 90)
 
         # object dtype
         q = Series(self.ts, dtype=object).quantile(0.9)
-        assert q == np.percentile(self.ts.valid(), 90)
+        assert q == np.percentile(self.ts.dropna(), 90)
 
         # datetime64[ns] dtype
         dts = self.ts.index.to_series()
@@ -39,19 +38,19 @@ class TestSeriesQuantile(TestData):
 
         # GH7661
         result = Series([np.timedelta64('NaT')]).sum()
-        assert result is pd.NaT
+        assert result == pd.Timedelta(0)
 
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 self.ts.quantile(invalid)
 
     def test_quantile_multi(self):
 
         qs = [.1, .9]
         result = self.ts.quantile(qs)
-        expected = pd.Series([np.percentile(self.ts.valid(), 10),
-                              np.percentile(self.ts.valid(), 90)],
+        expected = pd.Series([np.percentile(self.ts.dropna(), 10),
+                              np.percentile(self.ts.dropna(), 90)],
                              index=qs, name=self.ts.name)
         tm.assert_series_equal(result, expected)
 
@@ -68,22 +67,18 @@ class TestSeriesQuantile(TestData):
             [], dtype=float))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.skipif(_np_version_under1p9,
-                        reason="Numpy version is under 1.9")
     def test_quantile_interpolation(self):
         # see gh-10174
 
         # interpolation = linear (default case)
         q = self.ts.quantile(0.1, interpolation='linear')
-        assert q == np.percentile(self.ts.valid(), 10)
+        assert q == np.percentile(self.ts.dropna(), 10)
         q1 = self.ts.quantile(0.1)
-        assert q1 == np.percentile(self.ts.valid(), 10)
+        assert q1 == np.percentile(self.ts.dropna(), 10)
 
         # test with and without interpolation keyword
         assert q == q1
 
-    @pytest.mark.skipif(_np_version_under1p9,
-                        reason="Numpy version is under 1.9")
     def test_quantile_interpolation_dtype(self):
         # GH #10174
 
@@ -95,26 +90,6 @@ class TestSeriesQuantile(TestData):
         q = pd.Series([1, 3, 4]).quantile(0.5, interpolation='higher')
         assert q == np.percentile(np.array([1, 3, 4]), 50)
         assert is_integer(q)
-
-    @pytest.mark.skipif(not _np_version_under1p9,
-                        reason="Numpy version is greater 1.9")
-    def test_quantile_interpolation_np_lt_1p9(self):
-        # GH #10174
-
-        # interpolation = linear (default case)
-        q = self.ts.quantile(0.1, interpolation='linear')
-        assert q == np.percentile(self.ts.valid(), 10)
-        q1 = self.ts.quantile(0.1)
-        assert q1 == np.percentile(self.ts.valid(), 10)
-
-        # interpolation other than linear
-        msg = "Interpolation methods other than "
-        with tm.assert_raises_regex(ValueError, msg):
-            self.ts.quantile(0.9, interpolation='nearest')
-
-        # object dtype
-        with tm.assert_raises_regex(ValueError, msg):
-            Series(self.ts, dtype=object).quantile(0.7, interpolation='higher')
 
     def test_quantile_nan(self):
 
@@ -138,31 +113,30 @@ class TestSeriesQuantile(TestData):
             tm.assert_series_equal(res, pd.Series([np.nan, np.nan],
                                                   index=[0.2, 0.3]))
 
-    def test_quantile_box(self):
-        cases = [[pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
-                  pd.Timestamp('2011-01-03')],
-                 [pd.Timestamp('2011-01-01', tz='US/Eastern'),
-                  pd.Timestamp('2011-01-02', tz='US/Eastern'),
-                  pd.Timestamp('2011-01-03', tz='US/Eastern')],
-                 [pd.Timedelta('1 days'), pd.Timedelta('2 days'),
-                  pd.Timedelta('3 days')],
-                 # NaT
-                 [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
-                  pd.Timestamp('2011-01-03'), pd.NaT],
-                 [pd.Timestamp('2011-01-01', tz='US/Eastern'),
-                  pd.Timestamp('2011-01-02', tz='US/Eastern'),
-                  pd.Timestamp('2011-01-03', tz='US/Eastern'), pd.NaT],
-                 [pd.Timedelta('1 days'), pd.Timedelta('2 days'),
-                  pd.Timedelta('3 days'), pd.NaT]]
+    @pytest.mark.parametrize('case', [
+        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+         pd.Timestamp('2011-01-03')],
+        [pd.Timestamp('2011-01-01', tz='US/Eastern'),
+         pd.Timestamp('2011-01-02', tz='US/Eastern'),
+         pd.Timestamp('2011-01-03', tz='US/Eastern')],
+        [pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+         pd.Timedelta('3 days')],
+        # NaT
+        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+         pd.Timestamp('2011-01-03'), pd.NaT],
+        [pd.Timestamp('2011-01-01', tz='US/Eastern'),
+         pd.Timestamp('2011-01-02', tz='US/Eastern'),
+         pd.Timestamp('2011-01-03', tz='US/Eastern'), pd.NaT],
+        [pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+         pd.Timedelta('3 days'), pd.NaT]])
+    def test_quantile_box(self, case):
+        s = pd.Series(case, name='XXX')
+        res = s.quantile(0.5)
+        assert res == case[1]
 
-        for case in cases:
-            s = pd.Series(case, name='XXX')
-            res = s.quantile(0.5)
-            assert res == case[1]
-
-            res = s.quantile([0.5])
-            exp = pd.Series([case[1]], index=[0.5], name='XXX')
-            tm.assert_series_equal(res, exp)
+        res = s.quantile([0.5])
+        exp = pd.Series([case[1]], index=[0.5], name='XXX')
+        tm.assert_series_equal(res, exp)
 
     def test_datetime_timedelta_quantiles(self):
         # covers #9694
@@ -175,6 +149,16 @@ class TestSeriesQuantile(TestData):
 
         res = Series([pd.NaT, pd.NaT]).quantile([0.5])
         tm.assert_series_equal(res, pd.Series([pd.NaT], index=[0.5]))
+
+    @pytest.mark.parametrize('values, dtype', [
+        ([0, 0, 0, 1, 2, 3], 'Sparse[int]'),
+        ([0., None, 1., 2.], 'Sparse[float]'),
+    ])
+    def test_quantile_sparse(self, values, dtype):
+        ser = pd.Series(values, dtype=dtype)
+        result = ser.quantile([0.5])
+        expected = pd.Series(np.asarray(ser)).quantile([0.5])
+        tm.assert_series_equal(result, expected)
 
     def test_quantile_empty(self):
 

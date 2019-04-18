@@ -1,13 +1,20 @@
 # coding: utf-8
-#cython: embedsignature=True
+# cython: embedsignature=True
 
-from cpython cimport *
-from libc.stdlib cimport *
-from libc.string cimport *
-from libc.limits cimport *
+from cpython cimport (
+    PyFloat_Check, PyLong_Check, PyInt_Check,
+    PyDict_CheckExact, PyDict_Check,
+    PyTuple_Check, PyList_Check,
+    PyCallable_Check,
+    PyUnicode_Check, PyBytes_Check,
+    PyBytes_AsString,
+    PyBytes_FromStringAndSize,
+    PyUnicode_AsEncodedString)
+from libc.stdlib cimport free, malloc
 
 from pandas.io.msgpack.exceptions import PackValueError
 from pandas.io.msgpack import ExtType
+import numpy as np
 
 
 cdef extern from "../../src/msgpack/pack.h":
@@ -67,14 +74,15 @@ cdef class Packer(object):
         Use bin type introduced in msgpack spec 2.0 for bytes.
         It also enable str8 type for unicode.
     """
-    cdef msgpack_packer pk
-    cdef object _default
-    cdef object _bencoding
-    cdef object _berrors
-    cdef char *encoding
-    cdef char *unicode_errors
-    cdef bool use_float
-    cdef bint autoreset
+    cdef:
+        msgpack_packer pk
+        object _default
+        object _bencoding
+        object _berrors
+        char *encoding
+        char *unicode_errors
+        bint use_float
+        bint autoreset
 
     def __cinit__(self):
         cdef int buf_size = 1024 * 1024
@@ -116,16 +124,17 @@ cdef class Packer(object):
 
     cdef int _pack(self, object o,
                    int nest_limit=DEFAULT_RECURSE_LIMIT) except -1:
-        cdef long long llval
-        cdef unsigned long long ullval
-        cdef long longval
-        cdef float fval
-        cdef double dval
-        cdef char* rawval
-        cdef int ret
-        cdef dict d
-        cdef size_t L
-        cdef int default_used = 0
+        cdef:
+            long long llval
+            unsigned long long ullval
+            long longval
+            float fval
+            double dval
+            char* rawval
+            int ret
+            dict d
+            size_t L
+            int default_used = 0
 
         if nest_limit < 0:
             raise PackValueError("recursion limit exceeded.")
@@ -133,7 +142,7 @@ cdef class Packer(object):
         while True:
             if o is None:
                 ret = msgpack_pack_nil(&self.pk)
-            elif isinstance(o, bool):
+            elif isinstance(o, (bool, np.bool_)):
                 if o:
                     ret = msgpack_pack_true(&self.pk)
                 else:
@@ -224,7 +233,7 @@ cdef class Packer(object):
                 default_used = 1
                 continue
             else:
-                raise TypeError("can't serialize %r" % (o,))
+                raise TypeError("can't serialize {thing!r}".format(thing=o))
             return ret
 
     cpdef pack(self, object obj):

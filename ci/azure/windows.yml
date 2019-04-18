@@ -1,0 +1,52 @@
+parameters:
+  name: ''
+  vmImage: ''
+
+jobs:
+- job: ${{ parameters.name }}
+  pool:
+    vmImage: ${{ parameters.vmImage }}
+  strategy:
+    matrix:
+      py36_np15:
+        ENV_FILE: ci/deps/azure-windows-36.yaml
+        CONDA_PY: "36"
+
+      py37_np141:
+        ENV_FILE: ci/deps/azure-windows-37.yaml
+        CONDA_PY: "37"
+
+  steps:
+    - task: CondaEnvironment@1
+      inputs:
+        updateConda: no
+        packageSpecs: ''
+
+    - script: |
+        ci\\incremental\\setup_conda_environment.cmd
+      displayName: 'Before Install'
+    - script: |
+        call activate pandas-dev
+        ci\\incremental\\build.cmd
+      displayName: 'Build'
+    - script: |
+        call activate pandas-dev
+        pytest -m "not slow and not network" --junitxml=test-data.xml pandas -n 2 -r sxX --strict --durations=10 %*
+      displayName: 'Test'
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: 'test-data.xml'
+        testRunTitle: 'Windows-$(CONDA_PY)'
+    - powershell: |
+        $junitXml = "test-data.xml"
+        $(Get-Content $junitXml | Out-String) -match 'failures="(.*?)"'
+        if ($matches[1] -eq 0)
+        {
+          Write-Host "No test failures in test-data"
+        }
+        else
+        {
+          # note that this will produce $LASTEXITCODE=1
+          Write-Error "$($matches[1]) tests failed"
+        }
+      displayName: Check for test failures

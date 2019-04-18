@@ -2,18 +2,19 @@
 Module for scope operations
 """
 
-import sys
-import struct
-import inspect
 import datetime
+import inspect
+from io import StringIO
 import itertools
 import pprint
+import struct
+import sys
 
 import numpy as np
 
-import pandas
-import pandas as pd  # noqa
-from pandas.compat import DeepChainMap, map, StringIO
+from pandas._libs.tslibs import Timestamp
+from pandas.compat.chainmap import DeepChainMap
+
 from pandas.core.base import StringMixin
 import pandas.core.computation as compu
 
@@ -48,7 +49,7 @@ def _raw_hex_id(obj):
 
 
 _DEFAULT_GLOBALS = {
-    'Timestamp': pandas._libs.lib.Timestamp,
+    'Timestamp': Timestamp,
     'datetime': datetime.datetime,
     'True': True,
     'False': False,
@@ -137,8 +138,10 @@ class Scope(StringMixin):
     def __unicode__(self):
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
-        return '%s(scope=%s, resolvers=%s)' % (type(self).__name__, scope_keys,
-                                               res_keys)
+        unicode_str = '{name}(scope={scope_keys}, resolvers={res_keys})'
+        return unicode_str.format(name=type(self).__name__,
+                                  scope_keys=scope_keys,
+                                  res_keys=res_keys)
 
     @property
     def has_resolvers(self):
@@ -158,7 +161,7 @@ class Scope(StringMixin):
 
         Parameters
         ----------
-        key : text_type
+        key : str
             A variable name
         is_local : bool
             Flag indicating whether the variable is local or not (prefixed with
@@ -269,8 +272,9 @@ class Scope(StringMixin):
         name : basestring
             The name of the temporary variable created.
         """
-        name = '{0}_{1}_{2}'.format(type(value).__name__, self.ntemps,
-                                    _raw_hex_id(self))
+        name = '{name}_{num}_{hex_id}'.format(name=type(value).__name__,
+                                              num=self.ntemps,
+                                              hex_id=_raw_hex_id(self))
 
         # add to inner most scope
         assert name not in self.temps

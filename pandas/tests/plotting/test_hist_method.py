@@ -2,21 +2,20 @@
 
 """ Test cases for .hist method """
 
-import pytest
-
-from pandas import Series, DataFrame
-import pandas.util.testing as tm
-
 import numpy as np
 from numpy.random import randn
+import pytest
+
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame, Series
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+import pandas.util.testing as tm
 
 from pandas.plotting._core import grouped_hist
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 
-tm._skip_if_no_mpl()
-
-
+@td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -122,7 +121,7 @@ class TestSeriesPlots(TestPlotBase):
         subplot(122)
         y.hist()
         fig = gcf()
-        axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
+        axes = fig.axes
         assert len(axes) == 2
 
     @pytest.mark.slow
@@ -141,6 +140,7 @@ class TestSeriesPlots(TestPlotBase):
             self.ts.hist(ax=ax1, figure=fig2)
 
 
+@td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
@@ -192,8 +192,8 @@ class TestDataFramePlots(TestPlotBase):
                                 ylabelsize=yf, yrot=yrot)
 
         tm.close()
-        # make sure kwargs to hist are handled
-        ax = ser.hist(normed=True, cumulative=True, bins=4)
+
+        ax = ser.hist(cumulative=True, bins=4, density=True)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
@@ -243,14 +243,14 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     # GH 9351
     def test_tight_layout(self):
-        if self.mpl_ge_2_0_1:
-            df = DataFrame(randn(100, 3))
-            _check_plot_works(df.hist)
-            self.plt.tight_layout()
+        df = DataFrame(randn(100, 3))
+        _check_plot_works(df.hist)
+        self.plt.tight_layout()
 
-            tm.close()
+        tm.close()
 
 
+@td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.slow
@@ -278,9 +278,10 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # make sure kwargs to hist are handled
         xf, yf = 20, 18
         xrot, yrot = 30, 40
-        axes = grouped_hist(df.A, by=df.C, normed=True, cumulative=True,
+
+        axes = grouped_hist(df.A, by=df.C, cumulative=True,
                             bins=4, xlabelsize=xf, xrot=xrot,
-                            ylabelsize=yf, yrot=yrot)
+                            ylabelsize=yf, yrot=yrot, density=True)
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
@@ -320,12 +321,17 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_grouped_hist_layout(self):
         df = self.hist_df
-        pytest.raises(ValueError, df.hist, column='weight', by=df.gender,
-                      layout=(1, 1))
-        pytest.raises(ValueError, df.hist, column='height', by=df.category,
-                      layout=(1, 3))
-        pytest.raises(ValueError, df.hist, column='height', by=df.category,
-                      layout=(-1, -1))
+        msg = "Layout of 1x1 must be larger than required size 2"
+        with pytest.raises(ValueError, match=msg):
+            df.hist(column='weight', by=df.gender, layout=(1, 1))
+
+        msg = "Layout of 1x3 must be larger than required size 4"
+        with pytest.raises(ValueError, match=msg):
+            df.hist(column='height', by=df.category, layout=(1, 3))
+
+        msg = "At least one dimension of layout must be positive"
+        with pytest.raises(ValueError, match=msg):
+            df.hist(column='height', by=df.category, layout=(-1, -1))
 
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(df.hist, column='height', by=df.gender,
