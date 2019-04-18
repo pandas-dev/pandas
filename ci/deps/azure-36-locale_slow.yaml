@@ -1,0 +1,36 @@
+name: pandas-dev
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - beautifulsoup4
+  - cython>=0.28.2
+  - gcsfs
+  - html5lib
+  - ipython
+  - jinja2
+  - lxml
+  - matplotlib=3.0.*
+  - nomkl
+  - numexpr
+  - numpy=1.15.*
+  - openpyxl
+  - pytables
+  - python-dateutil
+  - python=3.6.*
+  - pytz
+  - s3fs
+  - scipy
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  # universal
+  - pytest>=4.0.2
+  - pytest-xdist
+  - pytest-mock
+  - moto
+  - isort
+  - pip
+  - pip:
+    - hypothesis>=3.58.0

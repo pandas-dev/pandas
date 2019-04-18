@@ -1,0 +1,117 @@
+# Adapted from https://github.com/numba/numba/blob/master/azure-pipelines.yml
+jobs:
+# Mac and Linux use the same template
+- template: ci/azure/posix.yml
+  parameters:
+    name: macOS
+    vmImage: xcode9-macos10.13
+- template: ci/azure/posix.yml
+  parameters:
+    name: Linux
+    vmImage: ubuntu-16.04
+
+- template: ci/azure/windows.yml
+  parameters:
+    name: Windows
+    vmImage: vs2017-win2016
+
+- job: 'Checks_and_doc'
+  pool:
+    vmImage: ubuntu-16.04
+  timeoutInMinutes: 90
+  steps:
+  - script: |
+      # XXX next command should avoid redefining the path in every step, but
+      # made the process crash as it couldn't find deactivate
+      #echo '##vso[task.prependpath]$HOME/miniconda3/bin'
+      echo '##vso[task.setvariable variable=CONDA_ENV]pandas-dev'
+      echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
+      echo '##vso[task.setvariable variable=AZURE]true'
+    displayName: 'Setting environment variables'
+
+  # Do not require a conda environment
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      ci/code_checks.sh patterns
+    displayName: 'Looking for unwanted patterns'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      sudo apt-get install -y libc6-dev-i386
+      ci/setup_env.sh
+    displayName: 'Setup environment and build pandas'
+    condition: true
+
+  # Do not require pandas
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
+      ci/code_checks.sh lint
+    displayName: 'Linting'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
+      ci/code_checks.sh dependencies
+    displayName: 'Dependencies consistency'
+    condition: true
+
+  # Require pandas
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
+      ci/code_checks.sh code
+    displayName: 'Checks on imported code'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
+      ci/code_checks.sh doctests
+    displayName: 'Running doctests'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
+      ci/code_checks.sh docstrings
+    displayName: 'Docstring validation'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
+      ci/code_checks.sh typing
+    displayName: 'Typing validation'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
+      pytest --capture=no --strict scripts
+    displayName: 'Testing docstring validaton script'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
+      git remote add upstream https://github.com/pandas-dev/pandas.git
+      git fetch upstream
+      if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
+          cd asv_bench
+          asv machine --yes
+          ASV_OUTPUT="$(asv dev)"
+          if [[ $(echo "$ASV_OUTPUT" | grep "failed") ]]; then
+              echo "##vso[task.logissue type=error]Benchmarks run with errors"
+              echo "$ASV_OUTPUT"
+              exit 1
+          else
+              echo "Benchmarks run without errors"
+          fi
+      else
+          echo "Benchmarks did not run, no changes detected"
+      fi
+    displayName: 'Running benchmarks'
+    condition: true

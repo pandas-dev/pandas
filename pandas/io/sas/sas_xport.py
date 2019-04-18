@@ -9,13 +9,17 @@ https://support.sas.com/techsup/technote/ts140.pdf
 """
 
 from datetime import datetime
-import pandas as pd
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-from pandas import compat
+from io import BytesIO
 import struct
-import numpy as np
-from pandas.util._decorators import Appender
 import warnings
+
+import numpy as np
+
+from pandas.util._decorators import Appender
+
+import pandas as pd
+
+from pandas.io.common import BaseIterator, get_filepath_or_buffer
 
 _correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
                   "000000000000000000000000000000  ")
@@ -68,15 +72,14 @@ Examples
 --------
 Read a SAS Xport file:
 
->>> df = pandas.read_sas('filename.XPT')
+>>> df = pd.read_sas('filename.XPT')
 
 Read a Xport file in 10,000 line chunks:
 
->>> itr = pandas.read_sas('filename.XPT', chunksize=10000)
+>>> itr = pd.read_sas('filename.XPT', chunksize=10000)
 >>> for chunk in itr:
 >>>     do_something(chunk)
 
-.. versionadded:: 0.17.0
 """ % {"_base_params_doc": _base_params_doc,
        "_format_params_doc": _format_params_doc,
        "_params2_doc": _params2_doc,
@@ -179,10 +182,6 @@ def _parse_float_vec(vec):
     # number sans exponent
     ieee1 = xport1 & 0x00ffffff
 
-    # Get the second half of the ibm number into the second half of
-    # the ieee number
-    ieee2 = xport2
-
     # The fraction bit to the left of the binary point in the ieee
     # format was set and the number was shifted 0, 1, 2, or 3
     # places. This will tell us how to adjust the ibm exponent to be a
@@ -237,19 +236,20 @@ class XportReader(BaseIterator):
         self._chunksize = chunksize
 
         if isinstance(filepath_or_buffer, str):
-            filepath_or_buffer, encoding, compression = get_filepath_or_buffer(
+            (filepath_or_buffer, encoding,
+             compression, should_close) = get_filepath_or_buffer(
                 filepath_or_buffer, encoding=encoding)
 
-        if isinstance(filepath_or_buffer, (str, compat.text_type, bytes)):
+        if isinstance(filepath_or_buffer, (str, bytes)):
             self.filepath_or_buffer = open(filepath_or_buffer, 'rb')
         else:
             # Copy to BytesIO, and ensure no encoding
             contents = filepath_or_buffer.read()
             try:
                 contents = contents.encode(self._encoding)
-            except:
+            except UnicodeEncodeError:
                 pass
-            self.filepath_or_buffer = compat.BytesIO(contents)
+            self.filepath_or_buffer = BytesIO(contents)
 
         self._read_header()
 
@@ -353,9 +353,8 @@ class XportReader(BaseIterator):
         self.columns = [x['name'].decode() for x in self.fields]
 
         # Setup the dtype.
-        dtypel = []
-        for i, field in enumerate(self.fields):
-            dtypel.append(('s' + str(i), "S" + str(field['field_length'])))
+        dtypel = [('s' + str(i), "S" + str(field['field_length']))
+                  for i, field in enumerate(self.fields)]
         dtype = np.dtype(dtypel)
         self._dtype = dtype
 
@@ -450,9 +449,10 @@ class XportReader(BaseIterator):
                 v[miss] = np.nan
             elif self.fields[j]['ntype'] == 'char':
                 v = [y.rstrip() for y in vec]
-                if compat.PY3:
-                    if self._encoding is not None:
-                        v = [y.decode(self._encoding) for y in v]
+
+                if self._encoding is not None:
+                    v = [y.decode(self._encoding) for y in v]
+
             df[x] = v
 
         if self._index is None:

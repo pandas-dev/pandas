@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import datetime, time
+from itertools import product
 
-import pytest
-
-from numpy import nan
-from numpy.random import randn
 import numpy as np
+import pytest
+import pytz
 
-from pandas import (DataFrame, Series, Index,
-                    Timestamp, DatetimeIndex,
-                    to_datetime, date_range)
 import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, MultiIndex, Series, Timestamp, date_range,
+    period_range, to_datetime)
+from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_frame_equal, assert_index_equal, assert_series_equal)
+
 import pandas.tseries.offsets as offsets
 
-from pandas.util.testing import assert_series_equal, assert_frame_equal
 
-import pandas.util.testing as tm
-from pandas.compat import product
-
-from pandas.tests.frame.common import TestData
+@pytest.fixture(params=product([True, False], [True, False]))
+def close_open_fixture(request):
+    return request.param
 
 
 class TestDataFrameTimeSeriesMethods(TestData):
@@ -53,6 +53,32 @@ class TestDataFrameTimeSeriesMethods(TestData):
         expected = pd.DataFrame({'x': np.nan, 'y': pd.Series(
             1), 'z': pd.Series(1)}).astype('float64')
         assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_diff_datetime_axis0(self, tz):
+        # GH 18578
+        df = DataFrame({0: date_range('2010', freq='D', periods=2, tz=tz),
+                        1: date_range('2010', freq='D', periods=2, tz=tz)})
+
+        result = df.diff(axis=0)
+        expected = DataFrame({0: pd.TimedeltaIndex(['NaT', '1 days']),
+                              1: pd.TimedeltaIndex(['NaT', '1 days'])})
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_diff_datetime_axis1(self, tz):
+        # GH 18578
+        df = DataFrame({0: date_range('2010', freq='D', periods=2, tz=tz),
+                        1: date_range('2010', freq='D', periods=2, tz=tz)})
+        if tz is None:
+            result = df.diff(axis=1)
+            expected = DataFrame({0: pd.TimedeltaIndex(['NaT', 'NaT']),
+                                  1: pd.TimedeltaIndex(['0 days',
+                                                        '0 days'])})
+            assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(NotImplementedError):
+                result = df.diff(axis=1)
 
     def test_diff_timedelta(self):
         # GH 4533
@@ -105,7 +131,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         rs = self.tsframe.pct_change(freq='5D')
         filled = self.tsframe.fillna(method='pad')
-        assert_frame_equal(rs, filled / filled.shift(freq='5D') - 1)
+        assert_frame_equal(rs,
+                           (filled / filled.shift(freq='5D') - 1)
+                           .reindex_like(filled))
 
     def test_pct_change_shift_over_nas(self):
         s = Series([1., 1.5, np.nan, 2.5, 3.])
@@ -113,9 +141,36 @@ class TestDataFrameTimeSeriesMethods(TestData):
         df = DataFrame({'a': s, 'b': s})
 
         chg = df.pct_change()
-        expected = Series([np.nan, 0.5, np.nan, 2.5 / 1.5 - 1, .2])
+        expected = Series([np.nan, 0.5, 0., 2.5 / 1.5 - 1, .2])
         edf = DataFrame({'a': expected, 'b': expected})
         assert_frame_equal(chg, edf)
+
+    @pytest.mark.parametrize("freq, periods, fill_method, limit",
+                             [('5B', 5, None, None),
+                              ('3B', 3, None, None),
+                              ('3B', 3, 'bfill', None),
+                              ('7B', 7, 'pad', 1),
+                              ('7B', 7, 'bfill', 3),
+                              ('14B', 14, None, None)])
+    def test_pct_change_periods_freq(self, freq, periods, fill_method, limit):
+        # GH 7292
+        rs_freq = self.tsframe.pct_change(freq=freq,
+                                          fill_method=fill_method,
+                                          limit=limit)
+        rs_periods = self.tsframe.pct_change(periods,
+                                             fill_method=fill_method,
+                                             limit=limit)
+        assert_frame_equal(rs_freq, rs_periods)
+
+        empty_ts = DataFrame(index=self.tsframe.index,
+                             columns=self.tsframe.columns)
+        rs_freq = empty_ts.pct_change(freq=freq,
+                                      fill_method=fill_method,
+                                      limit=limit)
+        rs_periods = empty_ts.pct_change(periods,
+                                         fill_method=fill_method,
+                                         limit=limit)
+        assert_frame_equal(rs_freq, rs_periods)
 
     def test_frame_ctor_datetime64_column(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
@@ -124,7 +179,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         df = DataFrame({'A': np.random.randn(len(rng)), 'B': dates})
         assert np.issubdtype(df['B'].dtype, np.dtype('M8[ns]'))
 
-    def test_frame_add_datetime64_column(self):
+    def test_frame_append_datetime64_column(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
         df = DataFrame(index=np.arange(len(rng)))
 
@@ -137,7 +192,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         # it works!
         repr(df)
 
-    def test_frame_add_datetime64_col_other_units(self):
+    def test_frame_append_datetime64_col_other_units(self):
         n = 100
 
         units = ['h', 'm', 's', 'ms', 'D', 'M', 'Y']
@@ -210,7 +265,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         unshifted = shifted.shift(-1)
         tm.assert_index_equal(shifted.index, ps.index)
         tm.assert_index_equal(unshifted.index, ps.index)
-        tm.assert_numpy_array_equal(unshifted.iloc[:, 0].valid().values,
+        tm.assert_numpy_array_equal(unshifted.iloc[:, 0].dropna().values,
                                     ps.iloc[:-1, 0].values)
 
         shifted2 = ps.shift(1, 'B')
@@ -218,9 +273,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(shifted2, shifted3)
         assert_frame_equal(ps, shifted2.shift(-1, 'B'))
 
-        tm.assert_raises_regex(ValueError,
-                               'does not match PeriodIndex freq',
-                               ps.shift, freq='D')
+        msg = 'does not match PeriodIndex freq'
+        with pytest.raises(ValueError, match=msg):
+            ps.shift(freq='D')
 
         # shift other axis
         # GH 6371
@@ -258,6 +313,20 @@ class TestDataFrameTimeSeriesMethods(TestData):
         rs = df.shift(1)
         xp = DataFrame({'one': s1.shift(1), 'two': s2.shift(1)})
         assert_frame_equal(rs, xp)
+
+    def test_shift_fill_value(self):
+        # GH #24128
+        df = DataFrame([1, 2, 3, 4, 5],
+                       index=date_range('1/1/2000', periods=5, freq='H'))
+        exp = DataFrame([0, 1, 2, 3, 4],
+                        index=date_range('1/1/2000', periods=5, freq='H'))
+        result = df.shift(1, fill_value=0)
+        assert_frame_equal(result, exp)
+
+        exp = DataFrame([0, 0, 1, 2, 3],
+                        index=date_range('1/1/2000', periods=5, freq='H'))
+        result = df.shift(2, fill_value=0)
+        assert_frame_equal(result, exp)
 
     def test_shift_empty(self):
         # Regression test for #8019
@@ -302,8 +371,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
         shifted3 = ps.tshift(freq=offsets.BDay())
         assert_frame_equal(shifted, shifted3)
 
-        tm.assert_raises_regex(
-            ValueError, 'does not match', ps.tshift, freq='M')
+        with pytest.raises(ValueError, match='does not match'):
+            ps.tshift(freq='M')
 
         # DatetimeIndex
         shifted = self.tsframe.tshift(1)
@@ -323,7 +392,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(unshifted, inferred_ts)
 
         no_freq = self.tsframe.iloc[[0, 5, 7], :]
-        pytest.raises(ValueError, no_freq.tshift)
+        msg = "Freq was not given and was not set in the index"
+        with pytest.raises(ValueError, match=msg):
+            no_freq.tshift()
 
     def test_truncate(self):
         ts = self.tsframe[::3]
@@ -364,15 +435,43 @@ class TestDataFrameTimeSeriesMethods(TestData):
         truncated = ts.truncate(after=end_missing)
         assert_frame_equal(truncated, expected)
 
-        pytest.raises(ValueError, ts.truncate,
-                      before=ts.index[-1] - 1,
-                      after=ts.index[0] + 1)
+        msg = "Truncate: 2000-01-06 00:00:00 must be after 2000-02-04 00:00:00"
+        with pytest.raises(ValueError, match=msg):
+            ts.truncate(before=ts.index[-1] - ts.index.freq,
+                        after=ts.index[0] + ts.index.freq)
 
     def test_truncate_copy(self):
         index = self.tsframe.index
         truncated = self.tsframe.truncate(index[5], index[10])
         truncated.values[:] = 5.
         assert not (self.tsframe.values[5:11] == 5).any()
+
+    def test_truncate_nonsortedindex(self):
+        # GH 17935
+
+        df = pd.DataFrame({'A': ['a', 'b', 'c', 'd', 'e']},
+                          index=[5, 3, 2, 9, 0])
+        msg = 'truncate requires a sorted index'
+        with pytest.raises(ValueError, match=msg):
+            df.truncate(before=3, after=9)
+
+        rng = pd.date_range('2011-01-01', '2012-01-01', freq='W')
+        ts = pd.DataFrame({'A': np.random.randn(len(rng)),
+                           'B': np.random.randn(len(rng))},
+                          index=rng)
+        msg = 'truncate requires a sorted index'
+        with pytest.raises(ValueError, match=msg):
+            ts.sort_values('A', ascending=False).truncate(before='2011-11',
+                                                          after='2011-12')
+
+        df = pd.DataFrame({3: np.random.randn(5),
+                           20: np.random.randn(5),
+                           2: np.random.randn(5),
+                           0: np.random.randn(5)},
+                          columns=[3, 20, 2, 0])
+        msg = 'truncate requires a sorted index'
+        with pytest.raises(ValueError, match=msg):
+            df.truncate(before=2, after=20, axis=1)
 
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(offsets.BMonthEnd())
@@ -421,11 +520,19 @@ class TestDataFrameTimeSeriesMethods(TestData):
         actual_series = ts.asfreq(freq='1S', fill_value=9.0)
         assert_series_equal(expected_series, actual_series)
 
-    def test_first_last_valid(self):
+    @pytest.mark.parametrize("data,idx,expected_first,expected_last", [
+        ({'A': [1, 2, 3]}, [1, 1, 2], 1, 2),
+        ({'A': [1, 2, 3]}, [1, 2, 2], 1, 2),
+        ({'A': [1, 2, 3, 4]}, ['d', 'd', 'd', 'd'], 'd', 'd'),
+        ({'A': [1, np.nan, 3]}, [1, 1, 2], 1, 2),
+        ({'A': [np.nan, np.nan, 3]}, [1, 1, 2], 2, 2),
+        ({'A': [1, np.nan, 3]}, [1, 2, 2], 1, 2)])
+    def test_first_last_valid(self, data, idx,
+                              expected_first, expected_last):
         N = len(self.frame.index)
-        mat = randn(N)
-        mat[:5] = nan
-        mat[-5:] = nan
+        mat = np.random.randn(N)
+        mat[:5] = np.nan
+        mat[-5:] = np.nan
 
         frame = DataFrame({'foo': mat}, index=self.frame.index)
         index = frame.first_valid_index()
@@ -440,7 +547,78 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert empty.last_valid_index() is None
         assert empty.first_valid_index() is None
 
-    def test_at_time_frame(self):
+        # GH17400: no valid entries
+        frame[:] = np.nan
+        assert frame.last_valid_index() is None
+        assert frame.first_valid_index() is None
+
+        # GH20499: its preserves freq with holes
+        frame.index = date_range("20110101", periods=N, freq="B")
+        frame.iloc[1] = 1
+        frame.iloc[-2] = 1
+        assert frame.first_valid_index() == frame.index[1]
+        assert frame.last_valid_index() == frame.index[-2]
+        assert frame.first_valid_index().freq == frame.index.freq
+        assert frame.last_valid_index().freq == frame.index.freq
+
+        # GH 21441
+        df = DataFrame(data, index=idx)
+        assert expected_first == df.first_valid_index()
+        assert expected_last == df.last_valid_index()
+
+    def test_first_subset(self):
+        ts = tm.makeTimeDataFrame(freq='12h')
+        result = ts.first('10d')
+        assert len(result) == 20
+
+        ts = tm.makeTimeDataFrame(freq='D')
+        result = ts.first('10d')
+        assert len(result) == 10
+
+        result = ts.first('3M')
+        expected = ts[:'3/31/2000']
+        assert_frame_equal(result, expected)
+
+        result = ts.first('21D')
+        expected = ts[:21]
+        assert_frame_equal(result, expected)
+
+        result = ts[:0].first('3M')
+        assert_frame_equal(result, ts[:0])
+
+    def test_first_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.first('1D')
+
+    def test_last_subset(self):
+        ts = tm.makeTimeDataFrame(freq='12h')
+        result = ts.last('10d')
+        assert len(result) == 20
+
+        ts = tm.makeTimeDataFrame(nper=30, freq='D')
+        result = ts.last('10d')
+        assert len(result) == 10
+
+        result = ts.last('21D')
+        expected = ts['2000-01-10':]
+        assert_frame_equal(result, expected)
+
+        result = ts.last('21D')
+        expected = ts[-21:]
+        assert_frame_equal(result, expected)
+
+        result = ts[:0].last('3M')
+        assert_frame_equal(result, ts[:0])
+
+    def test_last_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.last('1D')
+
+    def test_at_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         rs = ts.at_time(rng[1])
@@ -470,33 +648,77 @@ class TestDataFrameTimeSeriesMethods(TestData):
         rs = ts.at_time('16:00')
         assert len(rs) == 0
 
-    def test_between_time_frame(self):
+    @pytest.mark.parametrize('hour', ['1:00', '1:00AM', time(1),
+                                      time(1, tzinfo=pytz.UTC)])
+    def test_at_time_errors(self, hour):
+        # GH 24043
+        dti = pd.date_range('2018', periods=3, freq='H')
+        df = pd.DataFrame(list(range(len(dti))), index=dti)
+        if getattr(hour, 'tzinfo', None) is None:
+            result = df.at_time(hour)
+            expected = df.iloc[1:2]
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(ValueError, match="Index must be timezone"):
+                df.at_time(hour)
+
+    def test_at_time_tz(self):
+        # GH 24043
+        dti = pd.date_range('2018', periods=3, freq='H', tz='US/Pacific')
+        df = pd.DataFrame(list(range(len(dti))), index=dti)
+        result = df.at_time(time(4, tzinfo=pytz.timezone('US/Eastern')))
+        expected = df.iloc[1:2]
+        tm.assert_frame_equal(result, expected)
+
+    def test_at_time_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.at_time('00:00')
+
+    @pytest.mark.parametrize('axis', ['index', 'columns', 0, 1])
+    def test_at_time_axis(self, axis):
+        # issue 8839
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = DataFrame(np.random.randn(len(rng), len(rng)))
+        ts.index, ts.columns = rng, rng
+
+        indices = rng[(rng.hour == 9) & (rng.minute == 30) & (rng.second == 0)]
+
+        if axis in ['index', 0]:
+            expected = ts.loc[indices, :]
+        elif axis in ['columns', 1]:
+            expected = ts.loc[:, indices]
+
+        result = ts.at_time('9:30', axis=axis)
+        assert_frame_equal(result, expected)
+
+    def test_between_time(self, close_open_fixture):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         stime = time(0, 0)
         etime = time(1, 0)
+        inc_start, inc_end = close_open_fixture
 
-        close_open = product([True, False], [True, False])
-        for inc_start, inc_end in close_open:
-            filtered = ts.between_time(stime, etime, inc_start, inc_end)
-            exp_len = 13 * 4 + 1
-            if not inc_start:
-                exp_len -= 5
-            if not inc_end:
-                exp_len -= 4
+        filtered = ts.between_time(stime, etime, inc_start, inc_end)
+        exp_len = 13 * 4 + 1
+        if not inc_start:
+            exp_len -= 5
+        if not inc_end:
+            exp_len -= 4
 
-            assert len(filtered) == exp_len
-            for rs in filtered.index:
-                t = rs.time()
-                if inc_start:
-                    assert t >= stime
-                else:
-                    assert t > stime
+        assert len(filtered) == exp_len
+        for rs in filtered.index:
+            t = rs.time()
+            if inc_start:
+                assert t >= stime
+            else:
+                assert t > stime
 
-                if inc_end:
-                    assert t <= etime
-                else:
-                    assert t < etime
+            if inc_end:
+                assert t <= etime
+            else:
+                assert t < etime
 
         result = ts.between_time('00:00', '01:00')
         expected = ts.between_time(stime, etime)
@@ -508,27 +730,69 @@ class TestDataFrameTimeSeriesMethods(TestData):
         stime = time(22, 0)
         etime = time(9, 0)
 
-        close_open = product([True, False], [True, False])
-        for inc_start, inc_end in close_open:
-            filtered = ts.between_time(stime, etime, inc_start, inc_end)
-            exp_len = (12 * 11 + 1) * 4 + 1
-            if not inc_start:
-                exp_len -= 4
-            if not inc_end:
-                exp_len -= 4
+        filtered = ts.between_time(stime, etime, inc_start, inc_end)
+        exp_len = (12 * 11 + 1) * 4 + 1
+        if not inc_start:
+            exp_len -= 4
+        if not inc_end:
+            exp_len -= 4
 
-            assert len(filtered) == exp_len
-            for rs in filtered.index:
-                t = rs.time()
-                if inc_start:
-                    assert (t >= stime) or (t <= etime)
-                else:
-                    assert (t > stime) or (t <= etime)
+        assert len(filtered) == exp_len
+        for rs in filtered.index:
+            t = rs.time()
+            if inc_start:
+                assert (t >= stime) or (t <= etime)
+            else:
+                assert (t > stime) or (t <= etime)
 
-                if inc_end:
-                    assert (t <= etime) or (t >= stime)
-                else:
-                    assert (t < etime) or (t >= stime)
+            if inc_end:
+                assert (t <= etime) or (t >= stime)
+            else:
+                assert (t < etime) or (t >= stime)
+
+    def test_between_time_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.between_time(start_time='00:00', end_time='12:00')
+
+    def test_between_time_axis(self, axis):
+        # issue 8839
+        rng = date_range('1/1/2000', periods=100, freq='10min')
+        ts = DataFrame(np.random.randn(len(rng), len(rng)))
+        stime, etime = ('08:00:00', '09:00:00')
+        exp_len = 7
+
+        if axis in ['index', 0]:
+            ts.index = rng
+            assert len(ts.between_time(stime, etime)) == exp_len
+            assert len(ts.between_time(stime, etime, axis=0)) == exp_len
+
+        if axis in ['columns', 1]:
+            ts.columns = rng
+            selected = ts.between_time(stime, etime, axis=1).columns
+            assert len(selected) == exp_len
+
+    def test_between_time_axis_raises(self, axis):
+        # issue 8839
+        rng = date_range('1/1/2000', periods=100, freq='10min')
+        mask = np.arange(0, len(rng))
+        rand_data = np.random.randn(len(rng), len(rng))
+        ts = DataFrame(rand_data, index=rng, columns=rng)
+        stime, etime = ('08:00:00', '09:00:00')
+
+        msg = "Index must be DatetimeIndex"
+        if axis in ['columns', 1]:
+            ts.index = mask
+            with pytest.raises(TypeError, match=msg):
+                ts.between_time(stime, etime)
+            with pytest.raises(TypeError, match=msg):
+                ts.between_time(stime, etime, axis=0)
+
+        if axis in ['index', 0]:
+            ts.columns = mask
+            with pytest.raises(TypeError, match=msg):
+                ts.between_time(stime, etime, axis=1)
 
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.
@@ -571,11 +835,10 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
     def test_frame_to_period(self):
         K = 5
-        from pandas.core.indexes.period import period_range
 
         dr = date_range('1/1/2000', '1/1/2001')
         pr = period_range('1/1/2000', '1/1/2001')
-        df = DataFrame(randn(len(dr), K), index=dr)
+        df = DataFrame(np.random.randn(len(dr), K), index=dr)
         df['mix'] = 'a'
 
         pts = df.to_period()
@@ -595,4 +858,72 @@ class TestDataFrameTimeSeriesMethods(TestData):
         pts = df.to_period('M', axis=1)
         tm.assert_index_equal(pts.columns, exp.columns.asfreq('M'))
 
-        pytest.raises(ValueError, df.to_period, axis=2)
+        msg = ("No axis named 2 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            df.to_period(axis=2)
+
+    @pytest.mark.parametrize("fn", ['tz_localize', 'tz_convert'])
+    def test_tz_convert_and_localize(self, fn):
+        l0 = date_range('20140701', periods=5, freq='D')
+        l1 = date_range('20140701', periods=5, freq='D')
+
+        int_idx = Index(range(5))
+
+        if fn == 'tz_convert':
+            l0 = l0.tz_localize('UTC')
+            l1 = l1.tz_localize('UTC')
+
+        for idx in [l0, l1]:
+
+            l0_expected = getattr(idx, fn)('US/Pacific')
+            l1_expected = getattr(idx, fn)('US/Pacific')
+
+            df1 = DataFrame(np.ones(5), index=l0)
+            df1 = getattr(df1, fn)('US/Pacific')
+            assert_index_equal(df1.index, l0_expected)
+
+            # MultiIndex
+            # GH7846
+            df2 = DataFrame(np.ones(5), MultiIndex.from_arrays([l0, l1]))
+
+            df3 = getattr(df2, fn)('US/Pacific', level=0)
+            assert not df3.index.levels[0].equals(l0)
+            assert_index_equal(df3.index.levels[0], l0_expected)
+            assert_index_equal(df3.index.levels[1], l1)
+            assert not df3.index.levels[1].equals(l1_expected)
+
+            df3 = getattr(df2, fn)('US/Pacific', level=1)
+            assert_index_equal(df3.index.levels[0], l0)
+            assert not df3.index.levels[0].equals(l0_expected)
+            assert_index_equal(df3.index.levels[1], l1_expected)
+            assert not df3.index.levels[1].equals(l1)
+
+            df4 = DataFrame(np.ones(5),
+                            MultiIndex.from_arrays([int_idx, l0]))
+
+            # TODO: untested
+            df5 = getattr(df4, fn)('US/Pacific', level=1)  # noqa
+
+            assert_index_equal(df3.index.levels[0], l0)
+            assert not df3.index.levels[0].equals(l0_expected)
+            assert_index_equal(df3.index.levels[1], l1_expected)
+            assert not df3.index.levels[1].equals(l1)
+
+        # Bad Inputs
+
+        # Not DatetimeIndex / PeriodIndex
+        with pytest.raises(TypeError, match='DatetimeIndex'):
+            df = DataFrame(index=int_idx)
+            df = getattr(df, fn)('US/Pacific')
+
+        # Not DatetimeIndex / PeriodIndex
+        with pytest.raises(TypeError, match='DatetimeIndex'):
+            df = DataFrame(np.ones(5),
+                           MultiIndex.from_arrays([int_idx, l0]))
+            df = getattr(df, fn)('US/Pacific', level=0)
+
+        # Invalid level
+        with pytest.raises(ValueError, match='not valid'):
+            df = DataFrame(index=l0)
+            df = getattr(df, fn)('US/Pacific', level=1)

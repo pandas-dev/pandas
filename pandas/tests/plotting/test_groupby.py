@@ -3,16 +3,16 @@
 """ Test cases for GroupBy.plot """
 
 
-from pandas import Series, DataFrame
-import pandas.util.testing as tm
-
 import numpy as np
 
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame, Series
 from pandas.tests.plotting.common import TestPlotBase
+import pandas.util.testing as tm
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     def test_series_groupby_plotting_nominally_works(self):

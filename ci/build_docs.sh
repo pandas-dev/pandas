@@ -1,30 +1,18 @@
 #!/bin/bash
 
+set -e
+
 if [ "${TRAVIS_OS_NAME}" != "linux" ]; then
    echo "not doing build_docs on non-linux"
    exit 0
 fi
 
-cd "$TRAVIS_BUILD_DIR"
+cd "$TRAVIS_BUILD_DIR"/doc
 echo "inside $0"
-
-git show --pretty="format:" --name-only HEAD~5.. --first-parent | grep -P "rst|txt|doc"
-
-if [ "$?" != "0" ]; then
-    echo "Skipping doc build, none were modified"
-    # nope, skip docs build
-    exit 0
-fi
-
 
 if [ "$DOC" ]; then
 
     echo "Will build docs"
-
-    source activate pandas
-
-    mv "$TRAVIS_BUILD_DIR"/doc /tmp
-    cd /tmp/doc
 
     echo ###############################
     echo # Log file for the doc build  #
@@ -37,37 +25,32 @@ if [ "$DOC" ]; then
     echo # Create and send docs #
     echo ########################
 
-    cd /tmp/doc/build/html
-    git config --global user.email "pandas-docs-bot@localhost.foo"
-    git config --global user.name "pandas-docs-bot"
+    echo "Only uploading docs when TRAVIS_PULL_REQUEST is 'false'"
+    echo "TRAVIS_PULL_REQUEST: ${TRAVIS_PULL_REQUEST}"
 
-    # create the repo
-    git init
+    if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then
+        cd build/html
+        git config --global user.email "pandas-docs-bot@localhost.foo"
+        git config --global user.name "pandas-docs-bot"
 
-    touch README
-    git add README
-    git commit -m "Initial commit" --allow-empty
-    git branch gh-pages
-    git checkout gh-pages
-    touch .nojekyll
-    git add --all .
-    git commit -m "Version" --allow-empty
+        # create the repo
+        git init
 
-    git remote remove origin
-    git remote add origin "https://${PANDAS_GH_TOKEN}@github.com/pandas-dev/pandas-docs-travis.git"
-    git fetch origin
-    git remote -v
+        touch README
+        git add README
+        git commit -m "Initial commit" --allow-empty
+        git branch gh-pages
+        git checkout gh-pages
+        touch .nojekyll
+        git add --all .
+        git commit -m "Version" --allow-empty
 
-    git push origin gh-pages -f
+        git remote add origin "https://${PANDAS_GH_TOKEN}@github.com/pandas-dev/pandas-docs-travis.git"
+        git fetch origin
+        git remote -v
 
-    echo "Running doctests"
-    cd "$TRAVIS_BUILD_DIR"
-    pytest --doctest-modules \
-           pandas/core/reshape/concat.py \
-           pandas/core/reshape/pivot.py \
-           pandas/core/reshape/reshape.py \
-           pandas/core/reshape/tile.py
-
+        git push origin gh-pages -f
+    fi
 fi
 
 exit 0

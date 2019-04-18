@@ -1,12 +1,10 @@
-from warnings import catch_warnings
-
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
+from pandas import (
+    DataFrame, Series, Timestamp, compat, date_range, option_context)
 from pandas.core import common as com
-from pandas import (compat, DataFrame, option_context,
-                    Series, MultiIndex, date_range, Timestamp)
 from pandas.util import testing as tm
 
 
@@ -95,7 +93,6 @@ class TestChaining(object):
     def test_setitem_chained_setfault(self):
 
         # GH6026
-        # setfaults under numpy 1.7.1 (ok on 1.8)
         data = ['right', 'left', 'left', 'left', 'right', 'left', 'timeout']
         mdata = ['right', 'left', 'left', 'left', 'right', 'left', 'none']
 
@@ -136,7 +133,7 @@ class TestChaining(object):
         expected = DataFrame([[-5, 1], [-6, 3]], columns=list('AB'))
         df = DataFrame(np.arange(4).reshape(2, 2),
                        columns=list('AB'), dtype='int64')
-        assert df.is_copy is None
+        assert df._is_copy is None
 
         df['A'][0] = -5
         df['A'][1] = -6
@@ -145,7 +142,7 @@ class TestChaining(object):
         # test with the chaining
         df = DataFrame({'A': Series(range(2), dtype='int64'),
                         'B': np.array(np.arange(2, 4), dtype=np.float64)})
-        assert df.is_copy is None
+        assert df._is_copy is None
 
         with pytest.raises(com.SettingWithCopyError):
             df['A'][0] = -5
@@ -153,7 +150,7 @@ class TestChaining(object):
         with pytest.raises(com.SettingWithCopyError):
             df['A'][1] = np.nan
 
-        assert df['A'].is_copy is None
+        assert df['A']._is_copy is None
 
         # Using a copy (the chain), fails
         df = DataFrame({'A': Series(range(2), dtype='int64'),
@@ -166,7 +163,7 @@ class TestChaining(object):
         df = DataFrame({'a': ['one', 'one', 'two', 'three',
                               'two', 'one', 'six'],
                         'c': Series(range(7), dtype='int64')})
-        assert df.is_copy is None
+        assert df._is_copy is None
 
         with pytest.raises(com.SettingWithCopyError):
             indexer = df.a.str.startswith('o')
@@ -186,7 +183,7 @@ class TestChaining(object):
 
         # gh-5475: Make sure that is_copy is picked up reconstruction
         df = DataFrame({"A": [1, 2]})
-        assert df.is_copy is None
+        assert df._is_copy is None
 
         with tm.ensure_clean('__tmp__pickle') as path:
             df.to_pickle(path)
@@ -211,16 +208,16 @@ class TestChaining(object):
 
         # Always a copy
         x = df.iloc[[0, 1, 2]]
-        assert x.is_copy is not None
+        assert x._is_copy is not None
 
         x = df.iloc[[0, 1, 2, 4]]
-        assert x.is_copy is not None
+        assert x._is_copy is not None
 
         # Explicitly copy
         indexer = df.letters.apply(lambda x: len(x) > 10)
         df = df.loc[indexer].copy()
 
-        assert df.is_copy is None
+        assert df._is_copy is None
         df['letters'] = df['letters'].apply(str.lower)
 
         # Implicitly take
@@ -228,7 +225,7 @@ class TestChaining(object):
         indexer = df.letters.apply(lambda x: len(x) > 10)
         df = df.loc[indexer]
 
-        assert df.is_copy is not None
+        assert df._is_copy is not None
         df['letters'] = df['letters'].apply(str.lower)
 
         # Implicitly take 2
@@ -236,14 +233,14 @@ class TestChaining(object):
         indexer = df.letters.apply(lambda x: len(x) > 10)
 
         df = df.loc[indexer]
-        assert df.is_copy is not None
+        assert df._is_copy is not None
         df.loc[:, 'letters'] = df['letters'].apply(str.lower)
 
         # Should be ok even though it's a copy!
-        assert df.is_copy is None
+        assert df._is_copy is None
 
         df['letters'] = df['letters'].apply(str.lower)
-        assert df.is_copy is None
+        assert df._is_copy is None
 
         df = random_text(100000)
         indexer = df.letters.apply(lambda x: len(x) > 10)
@@ -252,26 +249,8 @@ class TestChaining(object):
 
         # an identical take, so no copy
         df = DataFrame({'a': [1]}).dropna()
-        assert df.is_copy is None
+        assert df._is_copy is None
         df['a'] += 1
-
-        # Inplace ops, originally from:
-        # http://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
-        a = [12, 23]
-        b = [123, None]
-        c = [1234, 2345]
-        d = [12345, 23456]
-        tuples = [('eyes', 'left'), ('eyes', 'right'), ('ears', 'left'),
-                  ('ears', 'right')]
-        events = {('eyes', 'left'): a,
-                  ('eyes', 'right'): b,
-                  ('ears', 'left'): c,
-                  ('ears', 'right'): d}
-        multiind = MultiIndex.from_tuples(tuples, names=['part', 'side'])
-        zed = DataFrame(events, index=['a', 'b'], columns=multiind)
-
-        with pytest.raises(com.SettingWithCopyError):
-            zed['eyes']['right'].fillna(value=555, inplace=True)
 
         df = DataFrame(np.random.randn(10, 4))
         s = df.iloc[:, 0].sort_values()
@@ -318,15 +297,15 @@ class TestChaining(object):
     def test_setting_with_copy_bug(self):
 
         # operating on a copy
-        df = pd.DataFrame({'a': list(range(4)),
-                           'b': list('ab..'),
-                           'c': ['a', 'b', np.nan, 'd']})
+        df = DataFrame({'a': list(range(4)),
+                        'b': list('ab..'),
+                        'c': ['a', 'b', np.nan, 'd']})
         mask = pd.isna(df.c)
 
-        def f():
+        msg = ("A value is trying to be set on a copy of a slice from a"
+               " DataFrame")
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df[['c']][mask] = df[['b']][mask]
-
-        pytest.raises(com.SettingWithCopyError, f)
 
         # invalid warning as we are returning a new object
         # GH 8730
@@ -338,13 +317,24 @@ class TestChaining(object):
         df2['y'] = ['g', 'h', 'i']
 
     def test_detect_chained_assignment_warnings(self):
+        with option_context("chained_assignment", "warn"):
+            df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
 
-        # warnings
-        with option_context('chained_assignment', 'warn'):
-            df = DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
-            with tm.assert_produces_warning(
-                    expected_warning=com.SettingWithCopyWarning):
-                df.loc[0]['A'] = 111
+            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+                df.loc[0]["A"] = 111
+
+    def test_detect_chained_assignment_warnings_filter_and_dupe_cols(self):
+        # xref gh-13017.
+        with option_context("chained_assignment", "warn"):
+            df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, -9]],
+                              columns=["a", "a", "c"])
+
+            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+                df.c.loc[df.c > 0] = None
+
+            expected = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, -9]],
+                                    columns=["a", "a", "c"])
+            tm.assert_frame_equal(df, expected)
 
     def test_chained_getitem_with_lists(self):
 
@@ -366,41 +356,15 @@ class TestChaining(object):
         result4 = df['A'].iloc[2]
         check(result4, expected)
 
+    @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
         df = tm.makeDataFrame()
         df['A']  # cache series
-        with catch_warnings(record=True):
-            df.ix["Hello Friend"] = df.ix[0]
+        df.ix["Hello Friend"] = df.ix[0]
         assert "Hello Friend" in df['A'].index
         assert "Hello Friend" in df['B'].index
-
-        with catch_warnings(record=True):
-            panel = tm.makePanel()
-            panel.ix[0]  # get first item into cache
-            panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
-            assert "A+1" in panel.ix[0].columns
-            assert "A+1" in panel.ix[1].columns
-
-        # 5216
-        # make sure that we don't try to set a dead cache
-        a = np.random.rand(10, 3)
-        df = DataFrame(a, columns=['x', 'y', 'z'])
-        tuples = [(i, j) for i in range(5) for j in range(2)]
-        index = MultiIndex.from_tuples(tuples)
-        df.index = index
-
-        # setting via chained assignment
-        # but actually works, since everything is a view
-        df.loc[0]['z'].iloc[0] = 1.
-        result = df.loc[(0, 0), 'z']
-        assert result == 1
-
-        # correct setting
-        df.loc[(0, 0), 'z'] = 2
-        result = df.loc[(0, 0), 'z']
-        assert result == 2
 
         # 10264
         df = DataFrame(np.zeros((5, 5), dtype='int64'), columns=[
@@ -418,3 +382,14 @@ class TestChaining(object):
         tm.assert_frame_equal(df, expected)
         expected = Series([0, 0, 0, 2, 0], name='f')
         tm.assert_series_equal(df.f, expected)
+
+    def test_deprecate_is_copy(self):
+        # GH18801
+        df = DataFrame({"A": [1, 2, 3]})
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # getter
+            df.is_copy
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # setter
+            df.is_copy = "test deprecated is_copy"

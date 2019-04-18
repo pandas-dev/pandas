@@ -1,28 +1,33 @@
 """Operator classes for eval.
 """
 
-import operator as op
-from functools import partial
 from datetime import datetime
+from distutils.version import LooseVersion
+from functools import partial
+import operator as op
 
 import numpy as np
 
+from pandas._libs.tslibs import Timestamp
+
 from pandas.core.dtypes.common import is_list_like, is_scalar
-import pandas as pd
-from pandas.compat import PY3, string_types, text_type
-import pandas.core.common as com
-from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
+
 from pandas.core.base import StringMixin
+import pandas.core.common as com
 from pandas.core.computation.common import _ensure_decoded, _result_type_many
 from pandas.core.computation.scope import _DEFAULT_GLOBALS
 
+from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
 _reductions = 'sum', 'prod'
 
 _unary_math_ops = ('sin', 'cos', 'exp', 'log', 'expm1', 'log1p',
                    'sqrt', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos',
-                   'arctan', 'arccosh', 'arcsinh', 'arctanh', 'abs')
+                   'arctan', 'arccosh', 'arcsinh', 'arctanh', 'abs', 'log10',
+                   'floor', 'ceil'
+                   )
 _binary_math_ops = ('arctan2',)
+
 _mathops = _unary_math_ops + _binary_math_ops
 
 
@@ -44,7 +49,7 @@ class UndefinedVariableError(NameError):
 class Term(StringMixin):
 
     def __new__(cls, name, env, side=None, encoding=None):
-        klass = Constant if not isinstance(name, string_types) else cls
+        klass = Constant if not isinstance(name, str) else cls
         supr_new = super(Term, klass).__new__
         return supr_new(klass)
 
@@ -52,7 +57,7 @@ class Term(StringMixin):
         self._name = name
         self.env = env
         self.side = side
-        tname = text_type(name)
+        tname = str(name)
         self.is_local = (tname.startswith(_LOCAL_TAG) or
                          tname in _DEFAULT_GLOBALS)
         self._value = self._resolve_name()
@@ -93,13 +98,13 @@ class Term(StringMixin):
         key = self.name
 
         # if it's a variable name (otherwise a constant)
-        if isinstance(key, string_types):
+        if isinstance(key, str):
             self.env.swapkey(self.local_name, key, new_value=value)
 
         self.value = value
 
     @property
-    def isscalar(self):
+    def is_scalar(self):
         return is_scalar(self._value)
 
     @property
@@ -214,8 +219,8 @@ class Op(StringMixin):
         return frozenset(term.type for term in com.flatten(self))
 
     @property
-    def isscalar(self):
-        return all(operand.isscalar for operand in self.operands)
+    def is_scalar(self):
+        return all(operand.is_scalar for operand in self.operands)
 
     @property
     def is_datetime(self):
@@ -266,8 +271,8 @@ _bool_ops_funcs = op.and_, op.or_, op.and_, op.or_
 _bool_ops_dict = dict(zip(_bool_ops_syms, _bool_ops_funcs))
 
 _arith_ops_syms = '+', '-', '*', '/', '**', '//', '%'
-_arith_ops_funcs = (op.add, op.sub, op.mul, op.truediv if PY3 else op.div,
-                    op.pow, op.floordiv, op.mod)
+_arith_ops_funcs = (op.add, op.sub, op.mul, op.truediv, op.pow, op.floordiv,
+                    op.mod)
 _arith_ops_dict = dict(zip(_arith_ops_syms, _arith_ops_funcs))
 
 _special_case_arith_ops_syms = '**', '//', '%'
@@ -393,8 +398,9 @@ class BinOp(Op):
             if self.op in eval_in_python:
                 res = self.func(left.value, right.value)
             else:
-                res = pd.eval(self, local_dict=env, engine=engine,
-                              parser=parser)
+                from pandas.core.computation.eval import eval
+                res = eval(self, local_dict=env, engine=engine,
+                           parser=parser)
 
         name = env.add_tmp(res)
         return term_type(name, env=env)
@@ -412,26 +418,26 @@ class BinOp(Op):
 
         lhs, rhs = self.lhs, self.rhs
 
-        if is_term(lhs) and lhs.is_datetime and is_term(rhs) and rhs.isscalar:
+        if is_term(lhs) and lhs.is_datetime and is_term(rhs) and rhs.is_scalar:
             v = rhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = pd.Timestamp(_ensure_decoded(v))
+            v = Timestamp(_ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             self.rhs.update(v)
 
-        if is_term(rhs) and rhs.is_datetime and is_term(lhs) and lhs.isscalar:
+        if is_term(rhs) and rhs.is_datetime and is_term(lhs) and lhs.is_scalar:
             v = lhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = pd.Timestamp(_ensure_decoded(v))
+            v = Timestamp(_ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             self.lhs.update(v)
 
     def _disallow_scalar_only_bool_ops(self):
-        if ((self.lhs.isscalar or self.rhs.isscalar) and
+        if ((self.lhs.is_scalar or self.rhs.is_scalar) and
             self.op in _bool_ops_dict and
             (not (issubclass(self.rhs.return_type, (bool, np.bool_)) and
                   issubclass(self.lhs.return_type, (bool, np.bool_))))):
@@ -464,10 +470,9 @@ class Div(BinOp):
                                                       lhs.return_type,
                                                       rhs.return_type))
 
-        if truediv or PY3:
-            # do not upcast float32s to float64 un-necessarily
-            acceptable_dtypes = [np.float32, np.float_]
-            _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
+        # do not upcast float32s to float64 un-necessarily
+        acceptable_dtypes = [np.float32, np.float_]
+        _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
 
 
 _unary_ops_syms = '+', '-', '~', 'not'
@@ -537,11 +542,17 @@ class MathCall(Op):
 
 
 class FuncNode(object):
-
     def __init__(self, name):
-        if name not in _mathops:
+        from pandas.core.computation.check import (_NUMEXPR_INSTALLED,
+                                                   _NUMEXPR_VERSION)
+        if name not in _mathops or (
+                _NUMEXPR_INSTALLED and
+                _NUMEXPR_VERSION < LooseVersion('2.6.9') and
+                name in ('floor', 'ceil')
+        ):
             raise ValueError(
                 "\"{0}\" is not a supported function".format(name))
+
         self.name = name
         self.func = getattr(np, name)
 

@@ -1,7 +1,9 @@
 from io import BytesIO
 import sys
-from pandas.io.msgpack import Unpacker, packb, OutOfData, ExtType
+
 import pytest
+
+from pandas.io.msgpack import ExtType, OutOfData, Unpacker, packb
 
 
 class TestUnpack(object):
@@ -14,7 +16,9 @@ class TestUnpack(object):
         assert unpacker.unpack() == 2
         assert unpacker.unpack() == 3
         assert unpacker.unpack() == 4
-        pytest.raises(OutOfData, unpacker.unpack)
+        msg = "No more data to unpack"
+        with pytest.raises(OutOfData, match=msg):
+            unpacker.unpack()
 
     def test_unpacker_hook_refcnt(self):
         if not hasattr(sys, 'getrefcount'):

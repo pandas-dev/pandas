@@ -4,13 +4,14 @@
 """
 
 import tokenize
-from pandas.io.formats.printing import pprint_thing
-from pandas.core.computation import _NUMEXPR_INSTALLED
-from pandas.core.computation.expr import Expr, _parsers, tokenize_string
-from pandas.core.computation.scope import _ensure_scope
-from pandas.compat import string_types
-from pandas.core.computation.engines import _engines
+import warnings
+
 from pandas.util._validators import validate_bool_kwarg
+
+from pandas.core.computation.engines import _engines
+from pandas.core.computation.scope import _ensure_scope
+
+from pandas.io.formats.printing import pprint_thing
 
 
 def _check_engine(engine):
@@ -32,6 +33,7 @@ def _check_engine(engine):
     string engine
 
     """
+    from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
     if engine is None:
         if _NUMEXPR_INSTALLED:
@@ -40,8 +42,9 @@ def _check_engine(engine):
             engine = 'python'
 
     if engine not in _engines:
-        raise KeyError('Invalid engine {0!r} passed, valid engines are'
-                       ' {1}'.format(engine, list(_engines.keys())))
+        valid = list(_engines.keys())
+        raise KeyError('Invalid engine {engine!r} passed, valid engines are'
+                       ' {valid}'.format(engine=engine, valid=valid))
 
     # TODO: validate this in a more general way (thinking of future engines
     # that won't necessarily be import-able)
@@ -68,9 +71,11 @@ def _check_parser(parser):
     KeyError
       * If an invalid parser is passed
     """
+    from pandas.core.computation.expr import _parsers
+
     if parser not in _parsers:
-        raise KeyError('Invalid parser {0!r} passed, valid parsers are'
-                       ' {1}'.format(parser, _parsers.keys()))
+        raise KeyError('Invalid parser {parser!r} passed, valid parsers are'
+                       ' {valid}'.format(parser=parser, valid=_parsers.keys()))
 
 
 def _check_resolvers(resolvers):
@@ -78,8 +83,8 @@ def _check_resolvers(resolvers):
         for resolver in resolvers:
             if not hasattr(resolver, '__getitem__'):
                 name = type(resolver).__name__
-                raise TypeError('Resolver of type %r does not implement '
-                                'the __getitem__ method' % name)
+                raise TypeError('Resolver of type {name!r} does not implement '
+                                'the __getitem__ method'.format(name=name))
 
 
 def _check_expression(expr):
@@ -128,6 +133,8 @@ def _convert_expression(expr):
 
 
 def _check_for_locals(expr, stack_level, parser):
+    from pandas.core.computation.expr import tokenize_string
+
     at_top_of_stack = stack_level == 0
     not_pandas_parser = parser != 'pandas'
 
@@ -164,9 +171,9 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
     expr : str or unicode
         The expression to evaluate. This string cannot contain any Python
         `statements
-        <http://docs.python.org/2/reference/simple_stmts.html#simple-statements>`__,
+        <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__,
         only Python `expressions
-        <http://docs.python.org/2/reference/simple_stmts.html#expression-statements>`__.
+        <https://docs.python.org/3/reference/simple_stmts.html#expression-statements>`__.
     parser : string, default 'pandas', {'pandas', 'python'}
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard
@@ -197,8 +204,8 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         A list of objects implementing the ``__getitem__`` special method that
         you can use to inject an additional collection of namespaces to use for
         variable lookup. For example, this is used in the
-        :meth:`~pandas.DataFrame.query` method to inject the
-        :attr:`~pandas.DataFrame.index` and :attr:`~pandas.DataFrame.columns`
+        :meth:`~DataFrame.query` method to inject the
+        ``DataFrame.index`` and ``DataFrame.columns``
         variables that refer to their respective :class:`~pandas.DataFrame`
         instance attributes.
     level : int, optional
@@ -238,6 +245,11 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         - Item assignment is provided and `inplace=False`, but the `target`
           does not support the `.copy()` method
 
+    See Also
+    --------
+    DataFrame.query
+    DataFrame.eval
+
     Notes
     -----
     The ``dtype`` of any objects involved in an arithmetic ``%`` operation are
@@ -245,16 +257,12 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
     See the :ref:`enhancing performance <enhancingperf.eval>` documentation for
     more details.
-
-    See Also
-    --------
-    pandas.DataFrame.query
-    pandas.DataFrame.eval
     """
+    from pandas.core.computation.expr import Expr
 
     inplace = validate_bool_kwarg(inplace, "inplace")
 
-    if isinstance(expr, string_types):
+    if isinstance(expr, str):
         _check_expression(expr)
         exprs = [e.strip() for e in expr.splitlines() if e.strip() != '']
     else:
@@ -298,7 +306,8 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
                                  "if there is no assignment")
 
         # assign if needed
-        if env.target is not None and parsed_expr.assigner is not None:
+        assigner = parsed_expr.assigner
+        if env.target is not None and assigner is not None:
             target_modified = True
 
             # if returning a copy, copy only on the first assignment
@@ -312,22 +321,26 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
             # TypeError is most commonly raised (e.g. int, list), but you
             # get IndexError if you try to do this assignment on np.ndarray.
+            # we will ignore numpy warnings here; e.g. if trying
+            # to use a non-numeric indexer
             try:
-                target[parsed_expr.assigner] = ret
+                with warnings.catch_warnings(record=True):
+                    # TODO: Filter the warnings we actually care about here.
+                    target[assigner] = ret
             except (TypeError, IndexError):
                 raise ValueError("Cannot assign expression output to target")
 
             if not resolvers:
-                resolvers = ({parsed_expr.assigner: ret},)
+                resolvers = ({assigner: ret},)
             else:
                 # existing resolver needs updated to handle
                 # case of mutating existing column in copy
                 for resolver in resolvers:
-                    if parsed_expr.assigner in resolver:
-                        resolver[parsed_expr.assigner] = ret
+                    if assigner in resolver:
+                        resolver[assigner] = ret
                         break
                 else:
-                    resolvers += ({parsed_expr.assigner: ret},)
+                    resolvers += ({assigner: ret},)
 
             ret = None
             first_expr = False

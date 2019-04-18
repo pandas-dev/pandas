@@ -1,30 +1,103 @@
-from .pandas_vb_common import *
+import numpy as np
+import pandas.util.testing as tm
+from pandas import Series, Index, DatetimeIndex, Timestamp, MultiIndex
 
 
-class Constructors(object):
-    goal_time = 0.2
+def no_change(arr):
+    return arr
+
+
+def list_of_str(arr):
+    return list(arr.astype(str))
+
+
+def gen_of_str(arr):
+    return (x for x in arr.astype(str))
+
+
+def arr_dict(arr):
+    return dict(zip(range(len(arr)), arr))
+
+
+def list_of_tuples(arr):
+    return [(i, -i) for i in arr]
+
+
+def gen_of_tuples(arr):
+    return ((i, -i) for i in arr)
+
+
+def list_of_lists(arr):
+    return [[i, -i] for i in arr]
+
+
+def list_of_tuples_with_none(arr):
+    return [(i, -i) for i in arr][:-1] + [None]
+
+
+def list_of_lists_with_none(arr):
+    return [[i, -i] for i in arr][:-1] + [None]
+
+
+class SeriesConstructors(object):
+
+    param_names = ["data_fmt", "with_index", "dtype"]
+    params = [[no_change,
+               list,
+               list_of_str,
+               gen_of_str,
+               arr_dict,
+               list_of_tuples,
+               gen_of_tuples,
+               list_of_lists,
+               list_of_tuples_with_none,
+               list_of_lists_with_none],
+              [False, True],
+              ['float', 'int']]
+
+    def setup(self, data_fmt, with_index, dtype):
+        N = 10**4
+        if dtype == 'float':
+            arr = np.random.randn(N)
+        else:
+            arr = np.arange(N)
+        self.data = data_fmt(arr)
+        self.index = np.arange(N) if with_index else None
+
+    def time_series_constructor(self, data_fmt, with_index, dtype):
+        Series(self.data, index=self.index)
+
+
+class SeriesDtypesConstructors(object):
 
     def setup(self):
-        self.arr = np.random.randn(100, 100)
+        N = 10**4
+        self.arr = np.random.randn(N)
         self.arr_str = np.array(['foo', 'bar', 'baz'], dtype=object)
-
-        self.data = np.random.randn(100)
-        self.index = Index(np.arange(100))
-
-        self.s = Series(([Timestamp('20110101'), Timestamp('20120101'),
-                          Timestamp('20130101')] * 1000))
-
-    def time_frame_from_ndarray(self):
-        DataFrame(self.arr)
-
-    def time_series_from_ndarray(self):
-        pd.Series(self.data, index=self.index)
+        self.s = Series([Timestamp('20110101'), Timestamp('20120101'),
+                         Timestamp('20130101')] * N * 10)
 
     def time_index_from_array_string(self):
         Index(self.arr_str)
 
+    def time_index_from_array_floats(self):
+        Index(self.arr)
+
     def time_dtindex_from_series(self):
         DatetimeIndex(self.s)
 
-    def time_dtindex_from_series2(self):
+    def time_dtindex_from_index_with_series(self):
         Index(self.s)
+
+
+class MultiIndexConstructor(object):
+
+    def setup(self):
+        N = 10**4
+        self.iterables = [tm.makeStringIndex(N), range(20)]
+
+    def time_multiindex_from_iterables(self):
+        MultiIndex.from_product(self.iterables)
+
+
+from .pandas_vb_common import setup  # noqa: F401

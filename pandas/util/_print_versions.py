@@ -1,11 +1,11 @@
+import codecs
+import importlib
+import locale
 import os
 import platform
-import sys
 import struct
 import subprocess
-import codecs
-import locale
-import importlib
+import sys
 
 
 def get_sys_info():
@@ -21,7 +21,7 @@ def get_sys_info():
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
             so, serr = pipe.communicate()
-        except:
+        except (OSError, ValueError):
             pass
         else:
             if pipe.returncode == 0:
@@ -38,20 +38,19 @@ def get_sys_info():
         (sysname, nodename, release,
          version, machine, processor) = platform.uname()
         blob.extend([
-            ("python", "%d.%d.%d.%s.%s" % sys.version_info[:]),
+            ("python", '.'.join(map(str, sys.version_info))),
             ("python-bits", struct.calcsize("P") * 8),
-            ("OS", "%s" % (sysname)),
-            ("OS-release", "%s" % (release)),
-            # ("Version", "%s" % (version)),
-            ("machine", "%s" % (machine)),
-            ("processor", "%s" % (processor)),
-            ("byteorder", "%s" % sys.byteorder),
-            ("LC_ALL", "%s" % os.environ.get('LC_ALL', "None")),
-            ("LANG", "%s" % os.environ.get('LANG', "None")),
-            ("LOCALE", "%s.%s" % locale.getlocale()),
-
+            ("OS", "{sysname}".format(sysname=sysname)),
+            ("OS-release", "{release}".format(release=release)),
+            # ("Version", "{version}".format(version=version)),
+            ("machine", "{machine}".format(machine=machine)),
+            ("processor", "{processor}".format(processor=processor)),
+            ("byteorder", "{byteorder}".format(byteorder=sys.byteorder)),
+            ("LC_ALL", "{lc}".format(lc=os.environ.get('LC_ALL', "None"))),
+            ("LANG", "{lang}".format(lang=os.environ.get('LANG', "None"))),
+            ("LOCALE", '.'.join(map(str, locale.getlocale()))),
         ])
-    except:
+    except (KeyError, ValueError):
         pass
 
     return blob
@@ -86,7 +85,7 @@ def show_versions(as_json=False):
         ("xlrd", lambda mod: mod.__VERSION__),
         ("xlwt", lambda mod: mod.__VERSION__),
         ("xlsxwriter", lambda mod: mod.__version__),
-        ("lxml", lambda mod: mod.etree.__version__),
+        ("lxml.etree", lambda mod: mod.__version__),
         ("bs4", lambda mod: mod.__version__),
         ("html5lib", lambda mod: mod.__version__),
         ("sqlalchemy", lambda mod: mod.__version__),
@@ -94,8 +93,10 @@ def show_versions(as_json=False):
         ("psycopg2", lambda mod: mod.__version__),
         ("jinja2", lambda mod: mod.__version__),
         ("s3fs", lambda mod: mod.__version__),
+        ("fastparquet", lambda mod: mod.__version__),
         ("pandas_gbq", lambda mod: mod.__version__),
         ("pandas_datareader", lambda mod: mod.__version__),
+        ("gcsfs", lambda mod: mod.__version__),
     ]
 
     deps_blob = list()
@@ -107,13 +108,13 @@ def show_versions(as_json=False):
                 mod = importlib.import_module(modname)
             ver = ver_f(mod)
             deps_blob.append((modname, ver))
-        except:
+        except ImportError:
             deps_blob.append((modname, None))
 
     if (as_json):
         try:
             import json
-        except:
+        except ImportError:
             import simplejson as json
 
         j = dict(system=dict(sys_info), dependencies=dict(deps_blob))
@@ -130,11 +131,11 @@ def show_versions(as_json=False):
         print("------------------")
 
         for k, stat in sys_info:
-            print("%s: %s" % (k, stat))
+            print("{k}: {stat}".format(k=k, stat=stat))
 
         print("")
         for k, stat in deps_blob:
-            print("%s: %s" % (k, stat))
+            print("{k}: {stat}".format(k=k, stat=stat))
 
 
 def main():

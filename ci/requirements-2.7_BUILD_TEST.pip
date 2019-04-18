@@ -1,7 +1,0 @@
-xarray
-geopandas
-seaborn
-pandas_gbq
-pandas_datareader
-statsmodels
-scikit-learn

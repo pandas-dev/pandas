@@ -1,5 +1,6 @@
-from khash cimport (kh_int64_t, kh_uint64_t, kh_float64_t, kh_pymap_t,
-                    kh_str_t, uint64_t, int64_t, float64_t)
+from pandas._libs.khash cimport (
+    kh_int64_t, kh_uint64_t, kh_float64_t, kh_pymap_t, kh_str_t, uint64_t,
+    int64_t, float64_t)
 from numpy cimport ndarray
 
 # prototypes for sharing
@@ -30,15 +31,6 @@ cdef class PyObjectHashTable(HashTable):
 
     cpdef get_item(self, object val)
     cpdef set_item(self, object key, Py_ssize_t val)
-
-cdef class MultiIndexHashTable(HashTable):
-    cdef:
-        kh_uint64_t *table
-        object mi
-
-    cpdef get_item(self, object val)
-    cpdef set_item(self, object key, Py_ssize_t val)
-    cdef inline void _check_for_collision(self, Py_ssize_t loc, object label)
 
 
 cdef class StringHashTable(HashTable):
