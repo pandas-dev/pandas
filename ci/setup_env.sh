@@ -118,7 +118,7 @@ echo "conda list"
 conda list
 
 # Install DB for Linux
-export DISPLAY=":99."
+export DISPLAY=":99.0"
 if [ ${TRAVIS_OS_NAME} == "linux" ]; then
   echo "installing dbs"
   mysql -e 'create database pandas_nosetest;'
