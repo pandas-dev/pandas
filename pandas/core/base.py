@@ -702,7 +702,7 @@ class IndexOpsMixin(object):
     @property
     def data(self):
         """
-        Return the data pointer of the underlying data.
+        DEPRECATED. Return the data pointer of the underlying data.
         """
         warnings.warn("{obj}.data is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -712,7 +712,8 @@ class IndexOpsMixin(object):
     @property
     def itemsize(self):
         """
-        Return the size of the dtype of the item of the underlying data.
+        DEPRECATED. Return the size of the dtype of the item of the underlying
+        data.
         """
         warnings.warn("{obj}.itemsize is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -729,7 +730,7 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """
-        Return the strides of the underlying data.
+        DEPRECATED. Return the strides of the underlying data.
         """
         warnings.warn("{obj}.strides is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -746,7 +747,7 @@ class IndexOpsMixin(object):
     @property
     def flags(self):
         """
-        Return the ndarray.flags for the underlying data.
+        DEPRECATED. Return the ndarray.flags for the underlying data.
         """
         warnings.warn("{obj}.flags is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -756,7 +757,8 @@ class IndexOpsMixin(object):
     @property
     def base(self):
         """
-        Return the base object if the memory of the underlying data is shared.
+        DEPRECATED. Return the base object if the memory of the underlying data
+        is shared.
         """
         warnings.warn("{obj}.base is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
