@@ -41,7 +41,7 @@ from pandas.core.internals import BlockManager, _block_shape, make_block
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
-from tables.exceptions import NoSuchNodeError, NodeError
+from tables.exceptions import NoSuchNodeError
 
 # versioning attribute
 _version = '0.15.2'
@@ -2247,7 +2247,8 @@ class DataCol(IndexCol):
                 data = self.handle.get_node(self.attrs._v_node._v_parent,
                                             self.kind_attr)[:]
                 data = np.array(data, dtype='object')
-                if len(data.shape) > 1 and data.shape[1] > 1: # multiIndex
+                # check for multiindex
+                if len(data.shape) > 1 and data.shape[1] > 1:
                     self.values = list(map(tuple, data.tolist()))
                 else:
                     self.values = data.tolist()
@@ -2259,7 +2260,7 @@ class DataCol(IndexCol):
         self.set_kind()
 
     def set_attr(self):
-        """ set the data for this colummn """
+        """ set the data for this column """
         group, key = self.attrs._v_node._v_parent, self.kind_attr
         if key in group:
             self.handle.remove_node(group, key)
@@ -3280,7 +3281,7 @@ class Table(Fixed):
                 self.handle.remove_node(group, key)
 
             vlarray = self._handle.create_vlarray(group, key,
-                                                   _tables().ObjectAtom())
+                                                  _tables().ObjectAtom())
             for fld in flds:
                 vlarray.append(fld)
             return dim, key
@@ -3292,7 +3293,7 @@ class Table(Fixed):
         """Load the non-index axes from their carrays. This is a pass-through
         for tables stored prior to v0.xx"""
         def f(dim, flds):
-            if isinstance(flds, string_types):
+            if isinstance(flds, str):
                 flds = self._handle.get_node(self.attrs._v_node, flds)[:]
                 flds = np.array(flds, dtype='object')
                 if len(flds.shape) > 1 and flds.shape[1] > 1:
@@ -3301,7 +3302,7 @@ class Table(Fixed):
                     flds = flds.tolist()
                 return dim, flds
             else:
-                return dim, flds #if not a string presumably pre v17 list
+                return dim, flds  # if not a string presumably pre v0.xx list
         non_index_axes = getattr(self.attrs, 'non_index_axes', [])
         new = [f(dim, flds) for dim, flds in non_index_axes]
         return new
@@ -3622,7 +3623,6 @@ class Table(Fixed):
                 info['names'] = list(a.names)
                 info['type'] = a.__class__.__name__
 
-                #self.non_index_axes.append((i, a))
                 self.non_index_axes.append((i, append_axis))
 
         # set axis positions (based on the axes)
