@@ -541,13 +541,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         return new_data
 
-    Other_types = Union[ABCPeriodArray, ABCSeries, ABCPeriodIndex,
-                        np.ndarray]
-
     @Appender(dtl.DatetimeLikeArrayMixin._addsub_int_array.__doc__)
     def _addsub_int_array(
             self,
-            other: Other_types,
+            other: Union[ABCPeriodArray, ABCSeries,
+                         ABCPeriodIndex, np.ndarray],
             op: Callable[[Any], Any]
     ) -> ABCPeriodArray:
         assert op in [operator.add, operator.sub]
