@@ -5152,7 +5152,7 @@ class TestTimezones(Base):
     def test_wide_table_format(self):
         # test storing wide dataframes with in table format
 
-        df = DataFrame(np.random.random((10,10000)))
+        df = DataFrame(np.random.random((10, 10000)))
 
         with ensure_clean_path(self.path) as path:
             df.to_hdf(path, 'df', format='table')
@@ -5162,12 +5162,11 @@ class TestTimezones(Base):
     def test_append_wide_table_format(self):
         # test append to hdf with wide dataframe
 
-        df1 = DataFrame(np.random.random((10,10000)))
-        df2 = DataFrame(np.random.random((10,10000)))
+        df1 = DataFrame(np.random.random((10, 10000)))
+        df2 = DataFrame(np.random.random((10, 10000)))
 
         with ensure_clean_path(self.path) as path:
             df1.to_hdf(path, 'df', format='table')
             df2.to_hdf(path, 'df', append=True)
             reread = read_hdf(path)
             assert_frame_equal(pd.concat([df1, df2]), reread)
-
