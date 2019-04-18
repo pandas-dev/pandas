@@ -42,7 +42,7 @@ setuptools_kwargs = {
 }
 
 
-min_cython_ver = '0.28.2'
+min_cython_ver = '0.29.7'
 try:
     import Cython
     ver = Cython.__version__
