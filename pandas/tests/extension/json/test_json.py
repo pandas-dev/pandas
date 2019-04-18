@@ -71,7 +71,7 @@ def data_for_grouping():
     ])
 
 
-class BaseJSON(object):
+class BaseJSON:
     # NumPy doesn't handle an array of equal-length UserDicts.
     # The default assert_series_equal eventually does a
     # Series.values, which raises. We work around it by

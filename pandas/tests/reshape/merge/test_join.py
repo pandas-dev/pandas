@@ -14,7 +14,7 @@ from pandas.util.testing import assert_frame_equal
 a_ = np.array
 
 
-class TestJoin(object):
+class TestJoin:
 
     def setup_method(self, method):
         # aggregate multiple columns

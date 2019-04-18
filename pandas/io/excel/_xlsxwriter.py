@@ -4,7 +4,7 @@ from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import _validate_freeze_panes
 
 
-class _XlsxStyler(object):
+class _XlsxStyler:
     # Map from openpyxl-oriented styles to flatter xlsxwriter representation
     # Ordering necessary for both determinism and because some are keyed by
     # prefixes of others.
