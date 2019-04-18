@@ -6,6 +6,9 @@ import locale
 
 from dateutil.parser import parse
 from dateutil.tz.tz import tzoffset
+from hypothesis import given
+from hypothesis.extra.pytz import timezones
+from hypothesis.strategies import datetimes
 import numpy as np
 import pytest
 import pytz
@@ -25,10 +28,6 @@ from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal
-
-from hypothesis.extra.pytz import timezones
-from hypothesis.strategies import datetimes
-from hypothesis import given
 
 
 class TestTimeConversionFormats:
