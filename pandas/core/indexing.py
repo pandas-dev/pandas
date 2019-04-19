@@ -982,7 +982,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 self._get_label(tup, axis=self.axis)
             except KeyError:
                 return self._get_label(tup, axis=self.axis)
-            raise IndexingError("Too many indexers. handle elsewhere")
+            except Exception:
+                raise IndexingError("Too many indexers. handle elsewhere")
 
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
