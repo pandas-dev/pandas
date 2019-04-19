@@ -944,6 +944,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         except TypeError:
             # slices are unhashable
             pass
+        except KeyError:
+            return self._get_label(tup, axis=self.axis)
         except Exception as e1:
             if isinstance(tup[0], (slice, Index)):
                 raise IndexingError("Handle elsewhere")
