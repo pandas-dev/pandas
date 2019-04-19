@@ -223,7 +223,7 @@ def get_api_items(api_doc_fd):
         previous_line = line
 
 
-class Docstring(object):
+class Docstring:
     def __init__(self, name):
         self.name = name
         obj = self._load_obj(name)

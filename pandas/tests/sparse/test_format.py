@@ -10,7 +10,7 @@ import pandas.util.testing as tm
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 
-class TestSparseSeriesFormatting(object):
+class TestSparseSeriesFormatting:
 
     @property
     def dtype_format_for_platform(self):
@@ -106,7 +106,7 @@ class TestSparseSeriesFormatting(object):
             assert result == exp
 
 
-class TestSparseDataFrameFormatting(object):
+class TestSparseDataFrameFormatting:
 
     def test_sparse_frame(self):
         # GH 13110

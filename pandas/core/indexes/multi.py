@@ -1,4 +1,3 @@
-# pylint: disable=E1101,E1103,W0232
 from collections import OrderedDict
 import datetime
 from sys import getsizeof

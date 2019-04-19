@@ -11,7 +11,6 @@ from pandas._libs import (
 from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-import pandas.compat as compat
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -535,7 +534,7 @@ class Index(IndexOpsMixin, PandasObject):
         # we actually set this value too.
         result._index_data = values
         result.name = name
-        for k, v in compat.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(result, k, v)
         return result._reset_identity()
 
@@ -921,10 +920,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __unicode__(self):
         """
-        Return a string representation for this object.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a unicode string representation for this object.
         """
         klass = self.__class__.__name__
         data = self._format_data()
@@ -1754,7 +1750,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(state, dict):
             self._data = state.pop('data')
-            for k, v in compat.iteritems(state):
+            for k, v in state.items():
                 setattr(self, k, v)
 
         elif isinstance(state, tuple):
@@ -4486,7 +4482,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = values._reverse_indexer()
 
         # map to the label
-        result = {k: self.take(v) for k, v in compat.iteritems(result)}
+        result = {k: self.take(v) for k, v in result.items()}
 
         return result
 

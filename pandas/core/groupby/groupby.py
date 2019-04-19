@@ -12,15 +12,15 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import Optional, Tuple, Type
+from typing import FrozenSet, Optional, Tuple, Type
 import warnings
 
 import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs import Timestamp, groupby as libgroupby
-import pandas.compat as compat
+from pandas._libs import Timestamp
+import pandas._libs.groupby as libgroupby
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -326,7 +326,7 @@ def _group_selection_context(groupby):
 
 class _GroupBy(PandasObject, SelectionMixin):
     _group_selection = None
-    _apply_whitelist = frozenset()
+    _apply_whitelist = frozenset()  # type: FrozenSet[str]
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
@@ -876,7 +876,7 @@ b  2""")
         if self.grouper._filter_empty_groups:
 
             mask = counts.ravel() > 0
-            for name, result in compat.iteritems(output):
+            for name, result in output.items():
 
                 # since we are masking, make sure that we have a float object
                 values = result

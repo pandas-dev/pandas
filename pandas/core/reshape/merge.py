@@ -469,7 +469,7 @@ def merge_asof(left, right, on=None,
 
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
-class _MergeOperation(object):
+class _MergeOperation:
     """
     Perform a database (SQL) merge operation between two DataFrame objects
     using either columns as keys or their row indexes
