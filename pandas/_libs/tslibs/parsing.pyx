@@ -54,7 +54,7 @@ cdef:
     int MAX_DAYS_IN_MONTH = 31, MAX_MONTH = 12
 
 
-cdef bint _is_not_delimiter(const char ch):
+cdef inline bint _is_not_delimiter(const char ch):
     return strchr(delimiters, ch) == NULL
 
 
