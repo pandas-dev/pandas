@@ -508,7 +508,7 @@ class TestToDatetime:
             pd.to_datetime(arr, cache=cache)
 
     @pytest.mark.parametrize('cache', [True, False])
-    def test_to_datetime_offset(self, cache):
+    def test_to_datetime_different_offsets(self, cache):
         # inspired by asv timeseries.ToDatetimeNONISO8601 benchmark
         # see GH-26097 for more
         ts_string_1 = 'March 1, 2018 12:00:00+0400'
@@ -523,8 +523,10 @@ class TestToDatetime:
     @pytest.mark.parametrize('convertor', (lambda x: x, str))
     @given(date1=datetimes(timezones=timezones()),
            date2=datetimes(timezones=timezones()))
-    def test_to_datetime_cache_errors(self, date1, date2, suffix,
-                                      errors, convertor):
+    def test_to_datetime_cache_invariance(self, date1, date2, suffix,
+                                          errors, convertor):
+        # prepare a list of dates to parse with some duplicates
+        # and possible invalid string
         arg = [convertor(date1), convertor(date2)] * 5 + suffix
 
         def _get_answer(cache):
