@@ -5,15 +5,17 @@ accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 
 """
+from typing import FrozenSet
 import warnings
 
 from pandas.util._decorators import Appender
 
 
 class DirNamesMixin(object):
-    _accessors = frozenset()
+    _accessors = frozenset()  # type: FrozenSet[str]
     _deprecations = frozenset(
-        ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
+        ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides']
+    )  # type: FrozenSet[str]
 
     def _dir_deletions(self):
         """
