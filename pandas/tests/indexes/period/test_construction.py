@@ -13,7 +13,7 @@ import pandas.core.indexes.period as period
 import pandas.util.testing as tm
 
 
-class TestPeriodIndex(object):
+class TestPeriodIndex:
 
     def setup_method(self, method):
         pass
@@ -527,7 +527,7 @@ class TestPeriodIndex(object):
         tm.assert_index_equal(res, expected)
 
 
-class TestSeriesPeriod(object):
+class TestSeriesPeriod:
 
     def setup_method(self, method):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))

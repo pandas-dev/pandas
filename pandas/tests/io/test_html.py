@@ -81,7 +81,7 @@ def test_same_ordering(datapath):
         not td.safe_import('lxml'), reason='No bs4')),
     pytest.param('lxml', marks=pytest.mark.skipif(
         not td.safe_import('lxml'), reason='No lxml'))], scope="class")
-class TestReadHtml(object):
+class TestReadHtml:
 
     @pytest.fixture(autouse=True)
     def set_files(self, datapath):
@@ -1109,7 +1109,7 @@ class TestReadHtml(object):
     def test_parse_failure_rewinds(self):
         # Issue #17975
 
-        class MockFile(object):
+        class MockFile:
             def __init__(self, data):
                 self.data = data
                 self.at_end = False

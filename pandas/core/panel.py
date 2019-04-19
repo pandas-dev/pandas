@@ -6,7 +6,6 @@ import warnings
 
 import numpy as np
 
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_axis_style_args
@@ -344,10 +343,7 @@ class Panel(NDFrame):
 
     def __unicode__(self):
         """
-        Return a string representation for a particular Panel.
-
-        Invoked by unicode(df) in py2 only.
-        Yields a Unicode String in both py2/py3.
+        Return a unicode string representation for a particular Panel.
         """
 
         class_name = str(self.__class__)
@@ -1183,7 +1179,7 @@ class Panel(NDFrame):
         # need to assume they are the same
         if ndim is None:
             if isinstance(result, dict):
-                ndim = getattr(list(compat.itervalues(result))[0], 'ndim', 0)
+                ndim = getattr(list(result.values())[0], 'ndim', 0)
 
                 # have a dict, so top-level is +1 dim
                 if ndim != 0:

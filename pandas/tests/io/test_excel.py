@@ -50,7 +50,7 @@ def ignore_xlrd_time_clock_warning():
 
 
 @td.skip_if_no('xlrd', '1.0.0')
-class SharedItems(object):
+class SharedItems:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
@@ -2327,7 +2327,7 @@ class TestXlsxWriterTests(_WriterBase):
                 ExcelWriter(f, engine=engine, mode='a')
 
 
-class TestExcelWriterEngineTests(object):
+class TestExcelWriterEngineTests:
 
     @pytest.mark.parametrize('klass,ext', [
         pytest.param(_XlsxWriter, '.xlsx', marks=pytest.mark.skipif(
@@ -2543,7 +2543,7 @@ def test_styler_to_excel(engine):
 
 @td.skip_if_no('openpyxl')
 @pytest.mark.skipif(not PY36, reason='requires fspath')
-class TestFSPath(object):
+class TestFSPath:
 
     def test_excelfile_fspath(self):
         with tm.ensure_clean('foo.xlsx') as path:

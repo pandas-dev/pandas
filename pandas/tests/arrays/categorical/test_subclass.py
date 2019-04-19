@@ -4,7 +4,7 @@ from pandas import Categorical
 import pandas.util.testing as tm
 
 
-class TestCategoricalSubclassing(object):
+class TestCategoricalSubclassing:
 
     def test_constructor(self):
         sc = tm.SubclassedCategorical(['a', 'b', 'c'])

@@ -126,7 +126,7 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def from_range(cls, data, name=None, dtype=None, **kwargs):
-        """ Create RangeIndex from a range (py3), or xrange (py2) object. """
+        """ Create RangeIndex from a range object. """
         if not isinstance(data, range):
             raise TypeError(
                 '{0}(...) must be called with object coercible to a '

@@ -329,7 +329,7 @@ def read_excel(io,
 
 
 @add_metaclass(abc.ABCMeta)
-class _BaseExcelReader(object):
+class _BaseExcelReader:
 
     @property
     @abc.abstractmethod
@@ -488,7 +488,7 @@ class _BaseExcelReader(object):
 
 
 @add_metaclass(abc.ABCMeta)
-class ExcelWriter(object):
+class ExcelWriter:
     """
     Class for writing DataFrame objects into excel sheets, default is to use
     xlwt for xls, openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
@@ -732,7 +732,7 @@ class ExcelWriter(object):
         return self.save()
 
 
-class ExcelFile(object):
+class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
     Uses xlrd. See read_excel for more documentation

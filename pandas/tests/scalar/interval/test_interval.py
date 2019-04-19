@@ -10,7 +10,7 @@ def interval():
     return Interval(0, 1)
 
 
-class TestInterval(object):
+class TestInterval:
 
     def test_properties(self, interval):
         assert interval.closed == 'right'

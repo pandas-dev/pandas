@@ -727,7 +727,7 @@ read_table = Appender(_doc_read_csv_and_table.format(
                       summary="""Read general delimited file into DataFrame.
 
 .. deprecated:: 0.24.0
-Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
+  Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
                       _default_sep=r"'\\t' (tab-stop)")
                       )(read_table)
 
@@ -1154,7 +1154,7 @@ class TextFileReader(BaseIterator):
         if index is None:
             if col_dict:
                 # Any column is actually fine:
-                new_rows = len(next(compat.itervalues(col_dict)))
+                new_rows = len(next(iter(col_dict.values())))
                 index = RangeIndex(self._currow, self._currow + new_rows)
             else:
                 new_rows = 0
@@ -1326,12 +1326,6 @@ def _validate_usecols_arg(usecols):
 
         usecols = set(usecols)
 
-        if usecols_dtype == "unicode":
-            # see gh-13253
-            #
-            # Python 2.x compatibility
-            usecols = {col.encode("utf-8") for col in usecols}
-
         return usecols, usecols_dtype
     return usecols, None
 
@@ -1357,7 +1351,7 @@ def _validate_parse_dates_arg(parse_dates):
     return parse_dates
 
 
-class ParserBase(object):
+class ParserBase:
 
     def __init__(self, kwds):
         self.names = kwds.get('names')
