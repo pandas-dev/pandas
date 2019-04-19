@@ -12,8 +12,7 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import (
-    cast, Collection, FrozenSet, List, Optional, Tuple, Type, Union)
+from typing import cast, FrozenSet, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -1548,7 +1547,7 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby')
     @Substitution(see_also=_common_see_also)
     def nth(self,
-            n: Union[int, Collection[int]],
+            n: Union[int, List[int]],
             dropna: Optional[str] = None) -> DataFrame:
         """
         Take the nth row from each group if n is an int, or a subset of rows
