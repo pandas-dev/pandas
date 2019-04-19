@@ -362,7 +362,7 @@ pre-processing.
         comments = []
         while True:
             # Read a single line.
-            line = f.readline().strip() 
+            line = f.readline().strip()
 
             if line.startswith('#'):
                 comments.append(line)
@@ -370,9 +370,9 @@ pre-processing.
                 break
 
         # The last line read was the header.
-        columns = line.split(',') 
+        columns = line.split(',')
         # Pass the file handler and columns to {func_name}
-        df = pd.read_csv(f, names=columns) 
+        df = pd.read_csv(f, names=columns)
 
 >>> df # doctest: +SKIP
           duration       launch_date   mission
