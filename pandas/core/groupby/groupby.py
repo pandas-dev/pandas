@@ -12,7 +12,7 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import FrozenSet, Optional, Tuple, Type
+from typing import FrozenSet, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -1546,7 +1546,9 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Substitution(see_also=_common_see_also)
-    def nth(self, n, dropna=None):
+    def nth(self,
+            n: Union[int, List[int]],
+            dropna: Optional[Union[bool, str]] = None) -> DataFrame:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.
@@ -1636,11 +1638,13 @@ class GroupBy(_GroupBy):
                                  -nth_values)
             mask = mask_left | mask_right
 
+            ids, _, _ = self.grouper.group_info
+            mask = mask | ids != -1  # Drop NA values in grouping
+
             out = self._selected_obj[mask]
             if not self.as_index:
                 return out
 
-            ids, _, _ = self.grouper.group_info
             out.index = self.grouper.result_index[ids[mask]]
 
             return out.sort_index() if self.sort else out
