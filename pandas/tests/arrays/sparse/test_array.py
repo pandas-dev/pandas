@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
+from pandas.compat.numpy import _np_version_under1p16
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -172,7 +173,12 @@ class TestSparseArray(object):
             assert result == fill_value
 
     @pytest.mark.parametrize('format', ['coo', 'csc', 'csr'])
-    @pytest.mark.parametrize('size', [0, 10])
+    @pytest.mark.parametrize('size', [
+        pytest.param(0,
+                     marks=pytest.mark.skipif(_np_version_under1p16,
+                                              reason='NumPy-11383')),
+        10
+    ])
     def test_from_spmatrix(self, size, format):
         pytest.importorskip('scipy')
         import scipy.sparse
