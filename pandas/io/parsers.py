@@ -73,19 +73,19 @@ filepath_or_buffer : str, path object, or file-like object
 
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
-    
+
     Occasionally, you might run into a data file that begins with comments.
-    
+
     .. code-block:: text
-    
+
         # data.csv
-        # This file contains info on Apollo space missions.
-        # Each row contains info on the mission title, launch date, and duration.
+        # This file has info on Apollo space missions.
+        # Each row has info on the mission title, launch date, and duration.
         duration,launch_date,mission
         NaN,21 February 1967,Apollo 1
         10d 20h 09m 03s,11 October 1968,Apollo 7
         06d 03h 00m 42s,21 December 1968,Apollo 8
-    
+
     While this will throw off pd.read_csv, it can be handled with some minor
     pre-processing.
 
@@ -114,9 +114,8 @@ filepath_or_buffer : str, path object, or file-like object
 
     >>> comments
     ['# data.csv',
-    '# This file contains information about Apollo space missions.',
-    '# Each row contains information about the mission title, launch date, and
-    duration.']
+    '# This file has info on Apollo space missions.',
+    '# Each row has info on the mission title, launch date, and duration.']
 
 sep : str, default {_default_sep}
     Delimiter to use. If sep is None, the C engine cannot automatically detect
