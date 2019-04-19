@@ -369,8 +369,9 @@ pre-processing.
                 break
 
         columns = line.split(',') # The last line read was the header.
-        df = pd.read_csv(f, header=None) # Pass the file handler to {func_name}
-        df.columns = columns
+        df = pd.read_csv(f, header=None, names=columns) # Pass the file handler 
+                                                        # and columns 
+                                                        # to {func_name}
 
 >>> df # doctest: +SKIP
           duration       launch_date   mission
