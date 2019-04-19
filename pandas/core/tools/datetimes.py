@@ -60,17 +60,15 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     return cache_array
 
 
-def _box_if_needed(dt_array, box, default, tz, name=None):
+def _box_as_indexlike(dt_array, tz=None, name=None):
     """
-    Properly boxes the ndarray of datetimes (if requested) to DatetimeIndex
+    Properly boxes the ndarray of datetimes to DatetimeIndex
     if it is possible or to generic Index instead
 
     Parameters
     ----------
     dt_array: 1-d array
         array of datetimes to be boxed
-    box : boolean
-        True boxes result as an Index-like, False returns an ndarray
     tz : object
         None or 'utc'
     name : string, default None
@@ -79,18 +77,13 @@ def _box_if_needed(dt_array, box, default, tz, name=None):
     Returns
     -------
     result : datetime of converted dates
-        Returns:
-
-        - Index-like if box=True
-        - ndarray if box=False
+        - DatetimeIndex if convertible to sole datetime64 type
+        - general Index otherwise
     """
-    if box:
-        from pandas import DatetimeIndex, Index
-        if is_datetime64_dtype(dt_array):
-            return DatetimeIndex(dt_array, tz=tz, name=name)
-        # e.g. an Index of datetime objects
-        return Index(dt_array, name=name)
-    return default
+    from pandas import DatetimeIndex, Index
+    if is_datetime64_dtype(dt_array):
+        return DatetimeIndex(dt_array, tz=tz, name=name)
+    return Index(dt_array, name=name)
 
 
 def _convert_and_box_cache(arg, cache_array, box, name=None):
@@ -117,7 +110,9 @@ def _convert_and_box_cache(arg, cache_array, box, name=None):
     """
     from pandas import Series
     result = Series(arg).map(cache_array)
-    return _box_if_needed(result, box, result.values, None, name)
+    if box:
+        return _box_as_indexlike(result, tz=None, name=name)
+    return result.values
 
 
 def _return_parsed_timezone_results(result, timezones, box, tz, name):
@@ -349,7 +344,9 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                       for ts in result]
             return np.array(result, dtype=object)
 
-    return _box_if_needed(result, box, result, tz, name)
+    if box:
+        return _box_as_indexlike(result, tz=tz, name=name)
+    return result
 
 
 def _adjust_to_origin(arg, origin, unit):
