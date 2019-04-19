@@ -32,7 +32,7 @@ _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
                             unique='IndexOpsMixin', duplicated='IndexOpsMixin')
 
 
-class StringMixin(object):
+class StringMixin:
     """
     Implements string methods so long as object defines a `__unicode__` method.
     """
@@ -110,7 +110,7 @@ class PandasObject(StringMixin, DirNamesMixin):
         return super(PandasObject, self).__sizeof__()
 
 
-class NoNewAttributesMixin(object):
+class NoNewAttributesMixin:
     """Mixin which prevents adding new attributes.
 
     Prevents additional attributes via xxx.attribute = "something" after a
@@ -153,7 +153,7 @@ class SpecificationError(GroupByError):
     pass
 
 
-class SelectionMixin(object):
+class SelectionMixin:
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
@@ -645,7 +645,7 @@ class SelectionMixin(object):
         return self._builtin_table.get(arg, arg)
 
 
-class IndexOpsMixin(object):
+class IndexOpsMixin:
     """ common ops mixin to support a unified interface / docs for Series /
     Index
     """
@@ -703,6 +703,8 @@ class IndexOpsMixin(object):
     def data(self):
         """
         Return the data pointer of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.data is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -713,6 +715,8 @@ class IndexOpsMixin(object):
     def itemsize(self):
         """
         Return the size of the dtype of the item of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.itemsize is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -730,6 +734,8 @@ class IndexOpsMixin(object):
     def strides(self):
         """
         Return the strides of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.strides is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -747,6 +753,8 @@ class IndexOpsMixin(object):
     def flags(self):
         """
         Return the ndarray.flags for the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.flags is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -757,6 +765,8 @@ class IndexOpsMixin(object):
     def base(self):
         """
         Return the base object if the memory of the underlying data is shared.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.base is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),

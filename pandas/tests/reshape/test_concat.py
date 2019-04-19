@@ -39,7 +39,7 @@ def sort_with_none(request):
     return request.param
 
 
-class ConcatenateBase(object):
+class ConcatenateBase:
 
     def setup_method(self, method):
         self.frame = DataFrame(tm.getSeriesData())
@@ -1728,7 +1728,7 @@ class TestConcatenate(ConcatenateBase):
         assert_frame_equal(
             concat(deque((df1, df2)), ignore_index=True), expected)
 
-        class CustomIterator1(object):
+        class CustomIterator1:
 
             def __len__(self):
                 return 2

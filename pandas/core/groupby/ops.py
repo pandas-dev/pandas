@@ -10,7 +10,9 @@ import collections
 
 import numpy as np
 
-from pandas._libs import NaT, groupby as libgroupby, iNaT, lib, reduction
+from pandas._libs import NaT, iNaT, lib
+import pandas._libs.groupby as libgroupby
+import pandas._libs.reduction as reduction
 from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
@@ -87,7 +89,7 @@ def generate_bins_generic(values, binner, closed):
     return bins
 
 
-class BaseGrouper(object):
+class BaseGrouper:
     """
     This is an internal Grouper class, which actually holds
     the generated groups
@@ -808,7 +810,7 @@ def _is_indexed_like(obj, axes):
 # Splitting / application
 
 
-class DataSplitter(object):
+class DataSplitter:
 
     def __init__(self, data, labels, ngroups, axis=0):
         self.data = data
