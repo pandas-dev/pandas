@@ -884,33 +884,10 @@ class FrameSplitter(DataSplitter):
             return sdata._slice(slice_obj, axis=1)  # .loc[:, slice_obj]
 
 
-class NDFrameSplitter(DataSplitter):
-
-    def __init__(self, data, labels, ngroups, axis=0):
-        super(NDFrameSplitter, self).__init__(data, labels, ngroups, axis=axis)
-
-        self.factory = data._constructor
-
-    def _get_sorted_data(self):
-        # this is the BlockManager
-        data = self.data._data
-
-        # this is sort of wasteful but...
-        sorted_axis = data.axes[self.axis].take(self.sort_idx)
-        sorted_data = data.reindex_axis(sorted_axis, axis=self.axis)
-
-        return sorted_data
-
-    def _chop(self, sdata, slice_obj):
-        return self.factory(sdata.get_slice(slice_obj, axis=self.axis))
-
-
 def get_splitter(data, *args, **kwargs):
     if isinstance(data, Series):
         klass = SeriesSplitter
     elif isinstance(data, DataFrame):
         klass = FrameSplitter
-    else:
-        klass = NDFrameSplitter
 
     return klass(data, *args, **kwargs)
