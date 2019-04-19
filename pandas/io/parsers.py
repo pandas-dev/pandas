@@ -346,33 +346,35 @@ Examples
 
 Occasionally, you might run into a data file that begins with comments.
 
-data.csv -
-# This file contains info on Apollo space missions.
-# Each row contains info on the mission title, launch date, and duration.
-duration,launch_date,mission
-NaN,21 February 1967,Apollo 1
-10d 20h 09m 03s,11 October 1968,Apollo 7
-06d 03h 00m 42s,21 December 1968,Apollo 8
-...
+.. code-block:: text
+
+    # data.csv
+    # This file contains info on Apollo space missions.
+    # Each row contains info on the mission title, launch date, and duration.
+    duration,launch_date,mission
+    NaN,21 February 1967,Apollo 1
+    10d 20h 09m 03s,11 October 1968,Apollo 7
+    06d 03h 00m 42s,21 December 1968,Apollo 8
 
 While this will throw off pd.{func_name}, it can be handled with some minor
 pre-processing.
 
 >>> with open('data.csv', 'r') as f: # doctest: +SKIP
-        comments = []
-        while True:
-            # Read a single line.
-            line = f.readline().strip()
-
-            if line.startswith('#'):
-                comments.append(line)
-            else:
-                break
-
-        # The last line read was the header.
-        columns = line.split(',')
-        # Pass the file handler and columns to {func_name}
-        df = pd.read_csv(f, names=columns)
+...     comments = []
+...     while True:
+...         # Read a single line.
+...         line = f.readline().strip()
+...
+...         # Check whether line is a comment.
+...         if line.startswith('#'):
+...             comments.append(line)
+...         else:
+...             break
+...
+...     # The last line read was the header.
+...     columns = line.split(',')
+...     # Pass the file handler and columns to {func_name}
+...     df = pd.read_csv(f, names=columns)
 
 >>> df # doctest: +SKIP
           duration       launch_date   mission
@@ -381,9 +383,10 @@ pre-processing.
 2  06d 03h 00m 42s  21 December 1968  Apollo 8
 
 >>> comments # doctest: +SKIP
-['# This file contains information about Apollo space missions.',
-'# Each row contains information about the mission title, launch date,
-and duration.']
+['# data.csv',
+'# This file contains information about Apollo space missions.',
+'# Each row contains information about the mission title, launch date, and
+duration.']
 """
 
 
