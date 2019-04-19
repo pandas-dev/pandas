@@ -667,21 +667,19 @@ class TestRolling(Base):
         result = df.rolling(3, axis=axis_frame).sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_rolling_axis_count(self):
+    def test_rolling_axis_count(self, axis_frame):
         # see gh-26055
         df = DataFrame({'x': range(3), 'y': range(3)})
 
-        result = df.rolling(2).count()
-        expected = DataFrame({'x': [1.0, 2.0, 2.0], 'y': [1.0, 2.0, 2.0]})
-        tm.assert_frame_equal(result, expected)
+        axis = df._get_axis_number(axis_frame)
 
-        # not specifiying axis and making axis=rows
-        # are expected to yield the same result
-        result = df.rolling(2, axis='rows').count()
-        tm.assert_frame_equal(result, expected)
+        if axis == 0:
+            expected = DataFrame({'x': [1.0, 2.0, 2.0], 'y': [1.0, 2.0, 2.0]})
+        else:
+            # axis == 1
+            expected = DataFrame({'x': [1.0, 1.0, 1.0], 'y': [2.0, 2.0, 2.0]})
 
-        result = df.rolling(2, axis='columns').count()
-        expected = DataFrame({'x': [1.0, 1.0, 1.0], 'y': [2.0, 2.0, 2.0]})
+        result = df.rolling(2, axis=axis_frame).count()
         tm.assert_frame_equal(result, expected)
 
 
