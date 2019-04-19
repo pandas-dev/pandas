@@ -334,6 +334,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         self._ordered = ordered
 
     def __setstate__(self, state):
+        # for pickle compat. __get_state__ is defined in the
+        # PandasExtensionDtype superclass and uses the public properties to
+        # pickle -> need to set the settable private ones here (see GH26067)
         self._categories = state.pop('categories', None)
         self._ordered = state.pop('ordered', False)
 
@@ -721,7 +724,9 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
                 str(self.tz) == str(other.tz))
 
     def __setstate__(self, state):
-        # for pickle compat.
+        # for pickle compat. __get_state__ is defined in the
+        # PandasExtensionDtype superclass and uses the public properties to
+        # pickle -> need to set the settable private ones here (see GH26067)
         self._tz = state['tz']
         self._unit = state['unit']
 
@@ -849,7 +854,9 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
         return isinstance(other, PeriodDtype) and self.freq == other.freq
 
     def __setstate__(self, state):
-        # for pickle compat.
+        # for pickle compat. __get_state__ is defined in the
+        # PandasExtensionDtype superclass and uses the public properties to
+        # pickle -> need to set the settable private ones here (see GH26067)
         self._freq = state['freq']
 
     @classmethod
@@ -1017,7 +1024,9 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
             return is_dtype_equal(self.subtype, other.subtype)
 
     def __setstate__(self, state):
-        # for pickle compat.
+        # for pickle compat. __get_state__ is defined in the
+        # PandasExtensionDtype superclass and uses the public properties to
+        # pickle -> need to set the settable private ones here (see GH26067)
         self._subtype = state['subtype']
 
     @classmethod
