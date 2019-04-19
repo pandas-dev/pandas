@@ -88,7 +88,7 @@ filepath_or_buffer : str, path object, or file-like object
     
     While this will throw off pd.read_csv, it can be handled with some minor
     pre-processing.
-    
+
     >>> with open('data.csv', 'r') as f:
     ...     comments = []
     ...     while True:
@@ -105,13 +105,13 @@ filepath_or_buffer : str, path object, or file-like object
     ...     columns = line.split(',')
     ...     # Pass the file handler and columns to read_csv
     ...     df = pd.read_csv(f, names=columns)
-    
+
     >>> df
               duration       launch_date   mission
     0              NaN  21 February 1967  Apollo 1
     1  10d 20h 09m 03s   11 October 1968  Apollo 7
     2  06d 03h 00m 42s  21 December 1968  Apollo 8
-    
+
     >>> comments
     ['# data.csv',
     '# This file contains information about Apollo space missions.',
