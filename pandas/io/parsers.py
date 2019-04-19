@@ -372,7 +372,7 @@ pre-processing.
         # The last line read was the header.
         columns = line.split(',') 
         # Pass the file handler and columns to {func_name}
-        df = pd.read_csv(f, header=None, names=columns) 
+        df = pd.read_csv(f, names=columns) 
 
 >>> df # doctest: +SKIP
           duration       launch_date   mission
