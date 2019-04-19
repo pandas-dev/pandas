@@ -76,7 +76,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
         path_or_buf.write(s)
 
 
-class Writer(object):
+class Writer:
     def __init__(self, obj, orient, date_format, double_precision,
                  ensure_ascii, date_unit, index, default_handler=None):
         self.obj = obj
@@ -615,7 +615,7 @@ class JsonReader(BaseIterator):
         raise StopIteration
 
 
-class Parser(object):
+class Parser:
 
     _STAMP_UNITS = ('s', 'ms', 'us', 'ns')
     _MIN_STAMPS = {

@@ -65,7 +65,7 @@ def dtype_fill_out_dtype(request):
     return request.param
 
 
-class TestTake(object):
+class TestTake:
     # Standard incompatible fill error.
     fill_error = re.compile("Incompatible type for fill_value")
 
@@ -422,7 +422,7 @@ class TestTake(object):
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestExtensionTake(object):
+class TestExtensionTake:
     # The take method found in pd.api.extensions
 
     def test_bounds_check_large(self):

@@ -12,7 +12,7 @@ from pandas import Categorical, Index, isna
 import pandas.util.testing as tm
 
 
-class TestCategoricalMissing(object):
+class TestCategoricalMissing:
 
     def test_na_flags_int_categories(self):
         # #1457

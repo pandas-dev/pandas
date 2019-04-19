@@ -65,7 +65,7 @@ pear:tomato
 
 
 def test_invalid_dialect(all_parsers):
-    class InvalidDialect(object):
+    class InvalidDialect:
         pass
 
     data = "a\n1"

@@ -8,7 +8,7 @@ import re
 from pandas.compat import lmap, lrange, lzip, re_type
 
 
-class TestBuiltinIterators(object):
+class TestBuiltinIterators:
 
     @classmethod
     def check_results(cls, results, expecteds, lengths):

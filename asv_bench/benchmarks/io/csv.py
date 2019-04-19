@@ -68,7 +68,7 @@ class ToCSVDatetimeBig(BaseIO):
         self.data.to_csv(self.fname)
 
 
-class StringIORewind(object):
+class StringIORewind:
 
     def data(self, stringio_object):
         stringio_object.seek(0)
