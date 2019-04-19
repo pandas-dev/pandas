@@ -2178,6 +2178,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         i8values = self.values.view('i8')
 
         if slicer is not None:
+            values = values[..., slicer]
             i8values = i8values[..., slicer]
 
         from pandas.io.formats.format import _get_format_datetime64_from_values
