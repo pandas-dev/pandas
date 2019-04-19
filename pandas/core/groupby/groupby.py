@@ -1668,7 +1668,7 @@ class GroupBy(_GroupBy):
 
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf
-        n = cast(n, int)
+        n = cast(int, n)
         max_len = n if n >= 0 else - 1 - n
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 
