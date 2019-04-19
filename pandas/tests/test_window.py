@@ -676,7 +676,7 @@ class TestRolling(Base):
         tm.assert_frame_equal(result, expected)
 
         # not specifiying axis and making axis=rows
-        # are expected to yeild the same result
+        # are expected to yield the same result
         result = df.rolling(2, axis='rows').count()
         tm.assert_frame_equal(result, expected)
 
