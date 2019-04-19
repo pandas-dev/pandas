@@ -358,7 +358,7 @@ NaN,21 February 1967,Apollo 1
 While this will throw off pd.{func_name}, it can be handled with some minor
 pre-processing.
 
->>> with open('data.csv', 'r') as f:
+>>> with open('data.csv', 'r') as f: # doctest: +SKIP
         comments = []
         while True:
             line = f.readline().strip() # Read a single line.
@@ -372,13 +372,13 @@ pre-processing.
         df = pd.read_csv(f, header=None)
         df.columns = columns
 
->>> df
+>>> df # doctest: +SKIP
           duration       launch_date   mission
 0              NaN  21 February 1967  Apollo 1
 1  10d 20h 09m 03s   11 October 1968  Apollo 7
 2  06d 03h 00m 42s  21 December 1968  Apollo 8
 
->>> comments
+>>> comments # doctest: +SKIP
 ['# This file contains information about Apollo space missions.',
 '# Each row contains information about the mission title, launch date,
 and duration.']
