@@ -218,6 +218,7 @@ Other API Changes
 - :meth:`Timestamp.strptime` will now rise a ``NotImplementedError`` (:issue:`25016`)
 - Comparing :class:`Timestamp` with unsupported objects now returns :py:obj:`NotImplemented` instead of raising ``TypeError``. This implies that unsupported rich comparisons are delegated to the other object, and are now consistent with Python 3 behavior for ``datetime`` objects (:issue:`24011`)
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
+- The ``arg`` argument in :meth:`pandas.core.groupby.DataFrameGroupBy.agg` has been renamed to ``func`` (:issue:`26089`)
 
 .. _whatsnew_0250.deprecations:
 
@@ -267,7 +268,7 @@ Datetimelike
 ^^^^^^^^^^^^
 
 - Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
--
+- Bug in :func:`to_datetime` which would raise ``InvalidIndexError: Reindexing only valid with uniquely valued Index objects`` when called with ``cache=True``, with ``arg`` including at least two different elements from the set {None, numpy.nan, pandas.NaT} (:issue:`22305`)
 -
 -
 
@@ -293,6 +294,7 @@ Numeric
 
 - Bug in :meth:`to_numeric` in which large negative numbers were being improperly handled (:issue:`24910`)
 - Bug in :meth:`to_numeric` in which numbers were being coerced to float, even though ``errors`` was not ``coerce`` (:issue:`24910`)
+- Bug in :class:`format` in which floating point complex numbers were not being formatted to proper display precision and trimming (:issue:`25514`)
 - Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
 - Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
 - Raises a helpful exception when a non-numeric index is sent to :meth:`interpolate` with methods which require numeric index. (:issue:`21662`)
@@ -380,6 +382,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.nunique` in which the names of column levels were lost (:issue:`23222`)
 - Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying a aggregation function to timezone aware data (:issue:`23683`)
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
+- Bug in :func:`pandas.core.groupby.GroupBy.size` when grouping only NA values (:issue:`23050`)
 - Bug in :func:`Series.groupby` where using ``groupby`` with a :class:`MultiIndex` Series with a list of labels equal to the length of the series caused incorrect grouping (:issue:`25704`)
 - Ensured that ordering of outputs in ``groupby`` aggregation functions is consistent across all versions of Python (:issue:`25692`)
 - Ensured that result group order is correct when grouping on an ordered ``Categorical`` and specifying ``observed=True`` (:issue:`25871`, :issue:`25167`)
@@ -393,6 +396,7 @@ Reshaping
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
 - Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
+- Bug in :func:`pivot_table` where columns with ``NaN`` values are dropped even if ``dropna`` argument is ``False``, when the ``aggfunc`` argument contains a ``list`` (:issue:`22159`)
 - Bug in :func:`concat` where the resulting ``freq`` of two :class:`DatetimeIndex` with the same ``freq`` would be dropped (:issue:`3232`).
 - Bug in :func:`merge` where merging with equivalent Categorical dtypes was raising an error (:issue:`22501`)
 - Bug in :class:`DataFrame` constructor when passing non-empty tuples would cause a segmentation fault (:issue:`25691`)

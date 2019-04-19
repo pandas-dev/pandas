@@ -8,7 +8,7 @@ import pytest
 from pandas import Timestamp
 
 
-class TestTimestampComparison(object):
+class TestTimestampComparison:
     def test_comparison_object_array(self):
         # GH#15183
         ts = Timestamp('2011-01-03 00:00:00-0500', tz='US/Eastern')
@@ -162,7 +162,7 @@ def test_rich_comparison_with_unsupported_type():
     # Comparisons with unsupported objects should return NotImplemented
     # (it previously raised TypeError, see #24011)
 
-    class Inf(object):
+    class Inf:
         def __lt__(self, o):
             return False
 

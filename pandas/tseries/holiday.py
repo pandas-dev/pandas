@@ -122,7 +122,7 @@ def after_nearest_workday(dt):
     return next_workday(nearest_workday(dt))
 
 
-class Holiday(object):
+class Holiday:
     """
     Class that defines a holiday with start/end dates and rules
     for observance.
@@ -325,7 +325,7 @@ class HolidayCalendarMetaClass(type):
 
 
 @add_metaclass(HolidayCalendarMetaClass)
-class AbstractHolidayCalendar(object):
+class AbstractHolidayCalendar:
     """
     Abstract interface to create holidays following certain rules.
     """

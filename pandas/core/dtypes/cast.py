@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
-from pandas.compat import PY3, to_str
+from pandas.compat import to_str
 
 from .common import (
     _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, ensure_int8,
@@ -636,11 +636,6 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
         dtype = pandas_dtype(dtype)
 
     if issubclass(dtype.type, str):
-        # in Py3 that's str, in Py2 that's unicode
-        return lib.astype_unicode(arr.ravel(),
-                                  skipna=skipna).reshape(arr.shape)
-
-    elif issubclass(dtype.type, str):
         return lib.astype_str(arr.ravel(),
                               skipna=skipna).reshape(arr.shape)
 
@@ -664,9 +659,7 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
         elif dtype == np.int64:
             return arr.view(dtype)
 
-        # in py3, timedelta64[ns] are int64
-        if ((PY3 and dtype not in [_INT64_DTYPE, _TD_DTYPE]) or
-                (not PY3 and dtype != _TD_DTYPE)):
+        if dtype not in [_INT64_DTYPE, _TD_DTYPE]:
 
             # allow frequency conversions
             # we return a float here!

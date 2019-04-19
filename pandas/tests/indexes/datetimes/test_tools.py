@@ -22,15 +22,15 @@ from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
 import pandas as pd
 from pandas import (
-    DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
-    date_range, isna, to_datetime)
+    DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, date_range, isna,
+    to_datetime)
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal
 
 
-class TestTimeConversionFormats(object):
+class TestTimeConversionFormats:
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_format(self, cache):
@@ -243,7 +243,7 @@ class TestTimeConversionFormats(object):
         tm.assert_index_equal(result, expected)
 
 
-class TestToDatetime(object):
+class TestToDatetime:
     @pytest.mark.parametrize("s, _format, dt", [
         ['2015-1-1', '%G-%V-%u', datetime(2014, 12, 29, 0, 0)],
         ['2015-1-4', '%G-%V-%u', datetime(2015, 1, 1, 0, 0)],
@@ -824,7 +824,7 @@ class TestToDatetime(object):
         assert result == expected
 
 
-class TestToDatetimeUnit(object):
+class TestToDatetimeUnit:
     @pytest.mark.parametrize('cache', [True, False])
     def test_unit(self, cache):
         # GH 11758
@@ -1147,7 +1147,7 @@ class TestToDatetimeUnit(object):
         tm.assert_index_equal(result, expected)
 
 
-class TestToDatetimeMisc(object):
+class TestToDatetimeMisc:
     def test_to_datetime_barely_out_of_bounds(self):
         # GH#19529
         # GH#19382 close enough to bounds that dropping nanos would result
@@ -1396,7 +1396,7 @@ class TestToDatetimeMisc(object):
         tm.assert_index_equal(expected, idx6)
 
 
-class TestGuessDatetimeFormat(object):
+class TestGuessDatetimeFormat:
 
     @td.skip_if_not_us_locale
     def test_guess_datetime_format_for_array(self):
@@ -1419,7 +1419,7 @@ class TestGuessDatetimeFormat(object):
         assert format_for_string_of_nans is None
 
 
-class TestToDatetimeInferFormat(object):
+class TestToDatetimeInferFormat:
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_infer_datetime_format_consistent_format(self, cache):
@@ -1498,7 +1498,7 @@ class TestToDatetimeInferFormat(object):
                                               cache=cache), expected)
 
 
-class TestDaysInMonth(object):
+class TestDaysInMonth:
     # tests for issue #10154
 
     @pytest.mark.parametrize('cache', [True, False])
@@ -1544,7 +1544,7 @@ class TestDaysInMonth(object):
                            format="%Y-%m-%d", cache=cache) == '2015-04-31'
 
 
-class TestDatetimeParsingWrappers(object):
+class TestDatetimeParsingWrappers:
 
     @pytest.mark.parametrize('date_str,expected', list({
         '2011-01-01': datetime(2011, 1, 1),
@@ -1628,6 +1628,15 @@ class TestDatetimeParsingWrappers(object):
                                  yearfirst=yearfirst)
             assert result7 == expected
 
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_na_values_with_cache(self, cache, unique_nulls_fixture,
+                                  unique_nulls_fixture2):
+        # GH22305
+        expected = Index([NaT, NaT], dtype='datetime64[ns]')
+        result = to_datetime([unique_nulls_fixture, unique_nulls_fixture2],
+                             cache=cache)
+        tm.assert_index_equal(result, expected)
+
     def test_parsers_nat(self):
         # Test that each of several string-accepting methods return pd.NaT
         result1, _, _ = parsing.parse_time_string('NaT')
@@ -1701,7 +1710,7 @@ class TestDatetimeParsingWrappers(object):
                               (True, True,
                                datetime(2020, 12, 21))]}
 
-        for date_str, values in compat.iteritems(cases):
+        for date_str, values in cases.items():
             for dayfirst, yearfirst, expected in values:
 
                 # odd comparisons across version
@@ -1739,7 +1748,7 @@ class TestDatetimeParsingWrappers(object):
         cases = {'10:15': (parse('10:15'), datetime(1, 1, 1, 10, 15)),
                  '9:05': (parse('9:05'), datetime(1, 1, 1, 9, 5))}
 
-        for date_str, (exp_now, exp_def) in compat.iteritems(cases):
+        for date_str, (exp_now, exp_def) in cases.items():
             result1, _, _ = parsing.parse_time_string(date_str)
             result2 = to_datetime(date_str)
             result3 = to_datetime([date_str])
@@ -1857,7 +1866,7 @@ def julian_dates():
     return pd.date_range('2014-1-1', periods=10).to_julian_date().values
 
 
-class TestOrigin(object):
+class TestOrigin:
 
     def test_to_basic(self, julian_dates):
         # gh-11276, gh-11745

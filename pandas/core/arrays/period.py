@@ -439,19 +439,16 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         --------
         >>> pidx = pd.period_range('2010-01-01', '2015-01-01', freq='A')
         >>> pidx
-        <class 'pandas.core.indexes.period.PeriodIndex'>
-        [2010, ..., 2015]
-        Length: 6, Freq: A-DEC
+        PeriodIndex(['2010', '2011', '2012', '2013', '2014', '2015'],
+        dtype='period[A-DEC]', freq='A-DEC')
 
         >>> pidx.asfreq('M')
-        <class 'pandas.core.indexes.period.PeriodIndex'>
-        [2010-12, ..., 2015-12]
-        Length: 6, Freq: M
+        PeriodIndex(['2010-12', '2011-12', '2012-12', '2013-12', '2014-12',
+        '2015-12'], dtype='period[M]', freq='M')
 
         >>> pidx.asfreq('M', how='S')
-        <class 'pandas.core.indexes.period.PeriodIndex'>
-        [2010-01, ..., 2015-01]
-        Length: 6, Freq: M
+        PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
+        '2015-01'], dtype='period[M]', freq='M')
         """
         how = libperiod._validate_end_alias(how)
 
