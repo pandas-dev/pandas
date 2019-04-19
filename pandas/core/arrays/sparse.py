@@ -1948,7 +1948,7 @@ def _make_index(length, indices, kind):
 # Accessor
 
 
-class BaseAccessor(object):
+class BaseAccessor:
     _validation_msg = "Can only use the '.sparse' accessor with Sparse data."
 
     def __init__(self, data=None):

@@ -9,7 +9,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestSeriesAccessor(object):
+class TestSeriesAccessor:
     # TODO: collect other Series accessor tests
     def test_to_dense(self):
         s = pd.Series([0, 1, 0, 10], dtype='Sparse[int64]')
@@ -18,7 +18,7 @@ class TestSeriesAccessor(object):
         tm.assert_series_equal(result, expected)
 
 
-class TestFrameAccessor(object):
+class TestFrameAccessor:
 
     def test_accessor_raises(self):
         df = pd.DataFrame({"A": [0, 1]})
