@@ -1639,7 +1639,7 @@ class GroupBy(_GroupBy):
             mask = mask_left | mask_right
 
             ids, _, _ = self.grouper.group_info
-            mask = mask | ids != -1  # Drop NA values in grouping
+            mask = mask & (ids != -1)  # Drop NA values in grouping
 
             out = self._selected_obj[mask]
             if not self.as_index:
