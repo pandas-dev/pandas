@@ -343,6 +343,45 @@ read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 Examples
 --------
 >>> pd.{func_name}('data.csv')  # doctest: +SKIP
+
+Occasionally, you might run into a data file that begins with comments. 
+
+data.csv - 
+# This file contains information on Apollo space missions.
+# Each row contains information on the mission title, launch date, and duration.
+duration,launch_date,mission
+NaN,21 February 1967,Apollo 1
+10d 20h 09m 03s,11 October 1968,Apollo 7
+06d 03h 00m 42s,21 December 1968,Apollo 8
+...
+
+While this will throw off pd.{func_name}, it can be handled with some minor
+pre-processing.
+
+>>> with open('data.csv', 'r') as f:
+        comments = []
+        while True:
+            line = f.readline().strip() # Read a single line.
+    
+            if line.startswith('#'):
+                comments.append(line)
+            else:
+                break
+    
+        columns = line.split(',') # The last line read was the header.
+        df = pd.read_csv(f, header=None)
+        df.columns = columns
+        
+>>> df
+          duration       launch_date   mission
+0              NaN  21 February 1967  Apollo 1
+1  10d 20h 09m 03s   11 October 1968  Apollo 7
+2  06d 03h 00m 42s  21 December 1968  Apollo 8
+
+>>> comments
+['# This file contains information about Apollo space missions.', 
+'# Each row contains information about the mission title, launch date, 
+and duration.']
 """
 
 
