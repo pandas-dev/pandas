@@ -1549,7 +1549,7 @@ class GroupBy(_GroupBy):
     @Substitution(see_also=_common_see_also)
     def nth(self,
             n: Union[int, Collection[int]],
-            dropna: Optional[Union[bool, str]] = None) -> DataFrame:
+            dropna: Optional[str] = None) -> DataFrame:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.
