@@ -580,8 +580,8 @@ class Docstring(object):
         application = flake8.main.application.Application()
         application.initialize(["--quiet"])
 
-        with tempfile.NamedTemporaryFile(mode='wb') as file:
-            file.write(content.encode("utf-8"))
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8') as file:
+            file.write(content)
             file.flush()
             application.run_checks([file.name])
 

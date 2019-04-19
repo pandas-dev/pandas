@@ -5,8 +5,7 @@ import textwrap
 import pytest
 import numpy as np
 import pandas as pd
-
-from scripts import validate_docstrings
+import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
 
@@ -1052,7 +1051,7 @@ class TestDocstringClass(object):
         with pytest.raises(AttributeError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 
-    @pytest.mark.parametrize('name', ['pandas.Series.str.isdecimal'])
+    @pytest.mark.parametrize('name', ['pandas.Series.str.isdecimal', 'pandas.Series.str.islower'])
     def test_encode_content_write_to_file(self, name):
         docstr = validate_docstrings.Docstring(name).validate_pep8()
         assert len(list(docstr)) == 0
