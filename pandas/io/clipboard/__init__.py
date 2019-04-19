@@ -58,6 +58,8 @@ def determine_clipboard():
         return init_windows_clipboard()
     if os.name == 'mac' or platform.system() == 'Darwin':
         return init_osx_clipboard()
+    print("Has Diplay ", os.getenv("DISPLAY", False))
+    print("HAS_DISPLAY", HAS_DISPLAY)
     if HAS_DISPLAY:
         # Determine which command/module is installed, if any.
         try:
