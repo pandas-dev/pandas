@@ -945,7 +945,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # slices are unhashable
             pass
         except KeyError:
-            return self._get_label(tup, axis=self.axis)
+            return None
         except Exception as e1:
             if isinstance(tup[0], (slice, Index)):
                 raise IndexingError("Handle elsewhere")
@@ -978,6 +978,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 return result
 
         if len(tup) > self.obj.ndim:
+            try:
+                self._get_label(tup, axis=self.axis)
+            except KeyError:
+                return self._get_label(tup, axis=self.axis)
             raise IndexingError("Too many indexers. handle elsewhere")
 
         # to avoid wasted computation
