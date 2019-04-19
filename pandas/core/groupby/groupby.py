@@ -12,7 +12,8 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import FrozenSet, List, Optional, Tuple, Type, Union
+from typing import (
+    cast, Collection, FrozenSet, List, Optional, Tuple, Type, Union)
 import warnings
 
 import numpy as np
@@ -1547,16 +1548,15 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby')
     @Substitution(see_also=_common_see_also)
     def nth(self,
-            n: Union[int, List[int]],
+            n: Union[int, Collection[int]],
             dropna: Optional[Union[bool, str]] = None) -> DataFrame:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.
 
         If dropna, will take the nth non-null row, dropna is either
-        Truthy (if a Series) or 'all', 'any' (if a DataFrame);
-        this is equivalent to calling dropna(how=dropna) before the
-        groupby.
+        'all' or 'any'; this is equivalent to calling dropna(how=dropna)
+        before the groupby.
 
         Parameters
         ----------
@@ -1669,6 +1669,7 @@ class GroupBy(_GroupBy):
 
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf
+        n = cast(n, int)
         max_len = n if n >= 0 else - 1 - n
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 
