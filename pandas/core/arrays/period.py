@@ -190,9 +190,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             copy: bool = False,
     ) -> ABCPeriodArray:
         if dtype:
-            freq = dtype.freq  # type: ignore
-            # freq is set in PeriodDtype's __new__ method, so mypy doesn't
-            # recognize it
+            freq = dtype.freq
         else:
             freq = None
 

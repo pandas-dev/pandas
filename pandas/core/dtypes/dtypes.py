@@ -751,6 +751,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
     _metadata = ('freq',)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
+    freq = None
 
     def __new__(cls, freq=None):
         """
