@@ -8,7 +8,7 @@ from pandas.core import common as com
 from pandas.util import testing as tm
 
 
-class TestCaching(object):
+class TestCaching:
 
     def test_slice_consolidate_invalidate_item_cache(self):
 
@@ -88,7 +88,7 @@ class TestCaching(object):
         tm.assert_series_equal(out['A'], expected['A'])
 
 
-class TestChaining(object):
+class TestChaining:
 
     def test_setitem_chained_setfault(self):
 

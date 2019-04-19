@@ -11,7 +11,7 @@ import warnings
 from pandas.util._decorators import Appender
 
 
-class DirNamesMixin(object):
+class DirNamesMixin:
     _accessors = frozenset()  # type: FrozenSet[str]
     _deprecations = frozenset(
         ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides']
@@ -46,7 +46,7 @@ class DirNamesMixin(object):
         return sorted(rv)
 
 
-class PandasDelegate(object):
+class PandasDelegate:
     """
     An abstract base class for delegating methods/properties.
     """
@@ -153,7 +153,7 @@ def delegate_names(delegate, accessors, typ, overwrite=False):
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
 # 2. We use a UserWarning instead of a custom Warning
 
-class CachedAccessor(object):
+class CachedAccessor:
     """
     Custom property-like object (descriptor) for caching accessors.
 
@@ -237,7 +237,7 @@ In your library code::
     import pandas as pd
 
     @pd.api.extensions.register_dataframe_accessor("geo")
-    class GeoAccessor(object):
+    class GeoAccessor:
         def __init__(self, pandas_obj):
             self._obj = pandas_obj
 

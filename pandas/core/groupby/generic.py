@@ -144,10 +144,10 @@ class NDFrameGroupBy(GroupBy):
 
         return new_items, new_blocks
 
-    def aggregate(self, arg, *args, **kwargs):
+    def aggregate(self, func, *args, **kwargs):
 
         _level = kwargs.pop('_level', None)
-        result, how = self._aggregate(arg, _level=_level, *args, **kwargs)
+        result, how = self._aggregate(func, _level=_level, *args, **kwargs)
         if how is None:
             return result
 
@@ -155,14 +155,14 @@ class NDFrameGroupBy(GroupBy):
 
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
-                return self._python_agg_general(arg, *args, **kwargs)
+                return self._python_agg_general(func, *args, **kwargs)
             else:
 
                 # try to treat as if we are passing a list
                 try:
                     assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
-                        [arg], _level=_level, _axis=self.axis)
+                        [func], _level=_level, _axis=self.axis)
 
                     result.columns = Index(
                         result.columns.levels[0],
@@ -174,7 +174,7 @@ class NDFrameGroupBy(GroupBy):
                         # to SparseDataFrame, so we do it here.
                         result = SparseDataFrame(result._data)
                 except Exception:
-                    result = self._aggregate_generic(arg, *args, **kwargs)
+                    result = self._aggregate_generic(func, *args, **kwargs)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1534,7 +1534,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
         ham    1       1       2
         spam   1       2       1
 
-        # check for rows with the same id but conflicting values
+        Check for rows with the same id but conflicting values:
+
         >>> df.groupby('id').filter(lambda g: (g.nunique() > 1).any())
              id  value1 value2
         0  spam       1      a
