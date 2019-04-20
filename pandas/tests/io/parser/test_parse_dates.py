@@ -8,14 +8,16 @@ parsers defined in parsers.py
 from datetime import date, datetime
 from io import StringIO
 
-from dateutil.parser import parse
+from dateutil.parser import parse as du_parse
+from hypothesis import given, settings, strategies as st
 import numpy as np
 import pytest
 import pytz
 
 from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs import parsing
-from pandas.compat import lrange
+from pandas._libs.tslibs.parsing import parse_datetime_string
+from pandas.compat import is_platform_windows, lrange
 from pandas.compat.numpy import np_array_datetime64_compat
 
 import pandas as pd
@@ -25,6 +27,15 @@ import pandas.util.testing as tm
 
 import pandas.io.date_converters as conv
 import pandas.io.parsers as parsers
+
+# constant
+_DEFAULT_DATETIME = datetime(1, 1, 1)
+
+# Strategy for hypothesis
+if is_platform_windows():
+    date_strategy = st.datetimes(min_value=datetime(1900, 1, 1))
+else:
+    date_strategy = st.datetimes()
 
 
 def test_separator_date_conflict(all_parsers):
@@ -439,7 +450,7 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
 """
     if "dayfirst" in kwargs:
         df = parser.read_csv(StringIO(data), names=["time", "Q", "NTU"],
-                             date_parser=lambda d: parse(d, **kwargs),
+                             date_parser=lambda d: du_parse(d, **kwargs),
                              header=0, index_col=0, parse_dates=True,
                              na_values=["NA"])
         exp_index = Index([datetime(2010, 1, 31), datetime(2010, 2, 1),
@@ -451,7 +462,7 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
         msg = "got an unexpected keyword argument 'day_first'"
         with pytest.raises(TypeError, match=msg):
             parser.read_csv(StringIO(data), names=["time", "Q", "NTU"],
-                            date_parser=lambda d: parse(d, **kwargs),
+                            date_parser=lambda d: du_parse(d, **kwargs),
                             skiprows=[0], index_col=0, parse_dates=True,
                             na_values=["NA"])
 
@@ -849,3 +860,82 @@ def test_parse_timezone(all_parsers):
 
     expected = DataFrame(expected_data)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("date_string", [
+    "32/32/2019",
+    "02/30/2019",
+    "13/13/2019",
+    "13/2019",
+    "a3/11/2018",
+    "10/11/2o17"
+])
+def test_invalid_parse_delimited_date(all_parsers, date_string):
+    parser = all_parsers
+    expected = DataFrame({0: [date_string]}, dtype="object")
+    result = parser.read_csv(StringIO(date_string),
+                             header=None, parse_dates=[0])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("date_string,dayfirst,expected", [
+    # %d/%m/%Y; month > 12 thus replacement
+    ("13/02/2019", False, datetime(2019, 2, 13)),
+    ("13/02/2019", True, datetime(2019, 2, 13)),
+    # %m/%d/%Y; day > 12 thus there will be no replacement
+    ("02/13/2019", False, datetime(2019, 2, 13)),
+    ("02/13/2019", True, datetime(2019, 2, 13)),
+    # %d/%m/%Y; dayfirst==True thus replacement
+    ("04/02/2019", True, datetime(2019, 2, 4))
+])
+def test_parse_delimited_date_swap(all_parsers, date_string,
+                                   dayfirst, expected):
+    parser = all_parsers
+    expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
+    result = parser.read_csv(StringIO(date_string), header=None,
+                             dayfirst=dayfirst, parse_dates=[0])
+    tm.assert_frame_equal(result, expected)
+
+
+def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
+    msg, result = None, None
+    try:
+        result = call(date_string, **kwargs)
+    except ValueError as er:
+        msg = str(er)
+        pass
+    return msg, result
+
+
+@given(date_strategy)
+@settings(deadline=None)
+@pytest.mark.parametrize("delimiter", list(" -./"))
+@pytest.mark.parametrize("dayfirst", [True, False])
+@pytest.mark.parametrize("date_format", [
+    "%d %m %Y",
+    "%m %d %Y",
+    "%m %Y",
+    "%Y %m %d",
+    "%y %m %d",
+    "%Y%m%d",
+    "%y%m%d",
+])
+def test_hypothesis_delimited_date(date_format, dayfirst,
+                                   delimiter, test_datetime):
+    if date_format == "%m %Y" and delimiter == ".":
+        pytest.skip("parse_datetime_string cannot reliably tell whether \
+        e.g. %m.%Y is a float or a date, thus we skip it")
+    result, expected = None, None
+    except_in_dateutil, except_out_dateutil = None, None
+    date_string = test_datetime.strftime(date_format.replace(' ', delimiter))
+
+    except_out_dateutil, result = _helper_hypothesis_delimited_date(
+        parse_datetime_string, date_string,
+        dayfirst=dayfirst)
+    except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+        du_parse, date_string,
+        default=_DEFAULT_DATETIME,
+        dayfirst=dayfirst, yearfirst=False)
+
+    assert except_out_dateutil == except_in_dateutil
+    assert result == expected
