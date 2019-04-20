@@ -55,7 +55,10 @@ def test_numpy_ufuncs_other(indices, func):
 
         # ok under numpy >= 1.17
         if not _np_version_under1p17 and func in [np.isfinite]:
-            pass
+            # Results in bool array
+            result = func(idx)
+            assert isinstance(result, np.ndarray)
+            assert not isinstance(result, Index)
         else:
             # raise TypeError or ValueError (PeriodIndex)
             with pytest.raises(Exception):
