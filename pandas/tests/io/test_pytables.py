@@ -4728,8 +4728,60 @@ class TestHDFStore(Base):
                 mode='r') as store:
             result = store['p']
             assert_frame_equal(result, expected)
+            
+    def test_wide_table_format(self):
+        # GH 26135
+        # test storing wide dataframes with in table format
 
+        df = DataFrame(np.random.random((10, 10000)))
 
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', format='table')
+            reread = read_hdf(path, 'df')
+            assert_frame_equal(df, reread)
+
+    def test_append_wide_table_format(self):
+        # GH 26135
+        # test append to hdf with wide dataframe
+
+        df1 = DataFrame(np.random.random((10, 10000)))
+        df2 = DataFrame(np.random.random((10, 10000)))
+
+        with ensure_clean_path(self.path) as path:
+            df1.to_hdf(path, 'df', format='table')
+            df2.to_hdf(path, 'df', append=True)
+            reread = read_hdf(path)
+            assert_frame_equal(pd.concat([df1, df2]), reread)
+            
+    @xfail_non_writeable
+    def test_legacy_table_table_format_read(self, datapath):
+        # GH 26135
+        # test read of legacy table with table format and column 
+        # saved as pytables metadata
+        
+        column_numeric = [1, 2, 3, 4]
+        column_str_1 = ['A', 'B', 'C', 'D']
+        column_str_2 = ['Ä', 'Ö', 'Â', 'é']
+        column_dt = pd.date_range('19700101', '19700104')
+        column_multi_1 = pd.MultiIndex.from_tuples(
+                zip(column_numeric, column_str_1))
+        column_multi_2 = pd.MultiIndex.from_tuples(
+                zip(column_str_2, column_dt))
+        
+        columns = [column_numeric, column_str_1, column_str_2, column_dt,
+                   column_multi_1, column_multi_2]
+        
+        data = np.arange(0, 16).reshape(4,4)
+        
+        with ensure_clean_store(
+                datapath('io', 'data', 'legacy_hdf',
+                         'legacy_table_table_format.h5'),
+                mode='r') as store:
+            for i, column in enumerate(columns):
+                table_name = 'table_{}'.format(i)
+                df = pd.DataFrame(data, columns=column)
+                tm.assert_frame_equal(store[table_name], df)
+        
 class TestHDFComplexValues(Base):
     # GH10447
 
@@ -5150,25 +5202,3 @@ class TestTimezones(Base):
                 store.append('df', df)
                 result = store.select('df')
                 assert_frame_equal(result, df)
-
-    def test_wide_table_format(self):
-        # test storing wide dataframes with in table format
-
-        df = DataFrame(np.random.random((10, 10000)))
-
-        with ensure_clean_path(self.path) as path:
-            df.to_hdf(path, 'df', format='table')
-            reread = read_hdf(path, 'df')
-            assert_frame_equal(df, reread)
-
-    def test_append_wide_table_format(self):
-        # test append to hdf with wide dataframe
-
-        df1 = DataFrame(np.random.random((10, 10000)))
-        df2 = DataFrame(np.random.random((10, 10000)))
-
-        with ensure_clean_path(self.path) as path:
-            df1.to_hdf(path, 'df', format='table')
-            df2.to_hdf(path, 'df', append=True)
-            reread = read_hdf(path)
-            assert_frame_equal(pd.concat([df1, df2]), reread)
