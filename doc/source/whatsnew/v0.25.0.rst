@@ -250,6 +250,7 @@ Performance Improvements
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
 - Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
 - Improved performance of :meth:DataFrame.`to_csv` when write datetime dtype data (:issue:`25708`)
+- Improved performance of :meth:`read_csv` by much faster parsing of MM/YYYY and DD/MM/YYYY datetime formats (:issue:`25922`)
 
 .. _whatsnew_0250.bug_fixes:
 
