@@ -48,11 +48,11 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
 
     max_level: int, optional, normalize to a maximum level of, default: None
 
-        .. versionadded:: 0.24.0
+        .. versionadded:: 0.25.0
 
     ignore_keys: list, optional, keys to ignore, default None
 
-         .. versionadded:: 0.24.0
+         .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -325,5 +325,5 @@ def json_normalize(data, record_path=None, meta=None,
         if k in result:
             raise ValueError('Conflicting metadata name {name}, '
                              'need distinguishing prefix '.format(name=k))
-        result[k] = np.array(v).repeat(lengths)
+        result[k] = np.array(v, dtype=object).repeat(lengths)
     return result

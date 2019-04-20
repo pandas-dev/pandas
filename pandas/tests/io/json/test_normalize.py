@@ -99,6 +99,7 @@ def expected_data_test_path_with_nested_data():
                  'Image': {'a': 'b'}}]}
 
 
+@pytest.fixture
 def missing_metadata():
     return [
         {'name': 'Alice',
@@ -415,12 +416,14 @@ class TestNestedToRecord:
              'zip': 37643,
              'name': np.nan}
         ]
-        ex_data = [
-            ['Massillon', 9562, 'OH', 'Morris St.', 44646, 'Alice'],
-            ['Elizabethton', 8449, 'TN', 'Spring St.', 37643, np.nan]
-        ]
+        # ex_data = [
+        #     ['Massillon', 9562, 'OH', 'Morris St.', 44646, 'Alice'],
+        #     ['Elizabethton', 8449, 'TN', 'Spring St.', 37643, "nan"]
+        # ]
+
         columns = ['city', 'number', 'state', 'street', 'zip', 'name']
         expected = DataFrame(ex_data, columns=columns)
+        # print(type(expected["name"][1]), type(result["name"][1]))
         tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
