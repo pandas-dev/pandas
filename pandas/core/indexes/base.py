@@ -1411,8 +1411,8 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(level, int):
             if level < 0 and level != -1:
                 raise IndexError("Too many levels: Index has only 1 level,"
-                                 " {level} is not a valid level number"
-                                 "".format(level=level))
+                                 " {level} is not a valid level"
+                                 " number".format(level=level))
             elif level > 0:
                 raise IndexError("Too many levels: Index has only 1 level, not"
                                  " {level}".format(level=(level + 1)))
