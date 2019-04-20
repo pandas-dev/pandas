@@ -14,8 +14,7 @@ from pandas.util._decorators import Appender
 class DirNamesMixin:
     _accessors = set()  # type: Set[str]
     _deprecations = frozenset(
-        ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides']
-    )  # type: FrozenSet[str]
+        ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
 
     def _dir_deletions(self):
         """
