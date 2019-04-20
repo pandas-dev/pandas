@@ -122,7 +122,7 @@ class TestLoc(Base):
         self.check_result('label range', 'loc', 20, 'ix', 20,
                           typs=['ints', 'uints', 'mixed'], fails=KeyError)
         self.check_result('label range', 'loc', 20, 'ix', 20,
-                          typs=['labels'], fails=KeyError)
+                          typs=['labels'], fails=TypeError)
         self.check_result('label range', 'loc', 20, 'ix', 20, typs=['ts'],
                           axes=0, fails=TypeError)
         self.check_result('label range', 'loc', 20, 'ix', 20, typs=['floats'],
