@@ -361,8 +361,8 @@ class BaseGrouper:
             'cummax': 'group_cummax',
             'rank': {
                 'name': 'group_rank',
-                'f': lambda func, a, b, c, d, **kwargs: func(
-                    a, b, c, d,
+                'f': lambda func, a, b, c, d, e, **kwargs: func(
+                    a, b, c, e,
                     kwargs.get('ties_method', 'average'),
                     kwargs.get('ascending', True),
                     kwargs.get('pct', False),
@@ -600,9 +600,10 @@ class BaseGrouper:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
                 transform_func(result[:, :, i], values,
-                               comp_ids, is_datetimelike, **kwargs)
+                               comp_ids, ngroups, is_datetimelike, **kwargs)
         else:
-            transform_func(result, values, comp_ids, is_datetimelike, **kwargs)
+            transform_func(result, values, comp_ids, ngroups, is_datetimelike,
+                           **kwargs)
 
         return result
 
