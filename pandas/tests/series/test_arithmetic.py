@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, compat
+from pandas import Series
 from pandas.core.indexes.period import IncompatibleFrequency
 import pandas.util.testing as tm
 
@@ -14,7 +14,7 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestSeriesFlexArithmetic(object):
+class TestSeriesFlexArithmetic:
     @pytest.mark.parametrize(
         'ts',
         [
@@ -35,7 +35,7 @@ class TestSeriesFlexArithmetic(object):
         other = ts[1](tser)
         check_reverse = ts[2]
 
-        if opname == 'div' and compat.PY3:
+        if opname == 'div':
             pytest.skip('div test only for Py3')
 
         op = getattr(Series, opname)
@@ -55,7 +55,7 @@ class TestSeriesFlexArithmetic(object):
             tm.assert_almost_equal(result, expected)
 
 
-class TestSeriesArithmetic(object):
+class TestSeriesArithmetic:
     # Some of these may end up in tests/arithmetic, but are not yet sorted
 
     def test_add_series_with_period_index(self):
@@ -78,7 +78,7 @@ class TestSeriesArithmetic(object):
 # ------------------------------------------------------------------
 # Comparisons
 
-class TestSeriesFlexComparison(object):
+class TestSeriesFlexComparison:
     def test_comparison_flex_basic(self):
         left = pd.Series(np.random.randn(10))
         right = pd.Series(np.random.randn(10))
@@ -106,7 +106,7 @@ class TestSeriesFlexComparison(object):
                 getattr(left, op)(right, axis=1)
 
 
-class TestSeriesComparison(object):
+class TestSeriesComparison:
     def test_comparison_different_length(self):
         a = Series(['a', 'b', 'c'])
         b = Series(['b', 'a'])

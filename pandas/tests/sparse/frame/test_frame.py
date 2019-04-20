@@ -1,5 +1,3 @@
-# pylint: disable-msg=E1101,W0612
-
 import operator
 
 import numpy as np
@@ -7,7 +5,7 @@ from numpy import nan
 import pytest
 
 from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas.compat import PY2, lrange
+from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -78,7 +76,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_constructor(self, float_frame, float_frame_int_kind,
                          float_frame_fill0):
-        for col, series in compat.iteritems(float_frame):
+        for col, series in float_frame.items():
             assert isinstance(series, SparseSeries)
 
         assert isinstance(float_frame_int_kind['A'].sp_index, IntIndex)
@@ -96,11 +94,11 @@ class TestSparseDataFrame(SharedWithSparse):
 
         # construct no data
         sdf = SparseDataFrame(columns=np.arange(10), index=np.arange(10))
-        for col, series in compat.iteritems(sdf):
+        for col, series in sdf.items():
             assert isinstance(series, SparseSeries)
 
         # construct from nested dict
-        data = {c: s.to_dict() for c, s in compat.iteritems(float_frame)}
+        data = {c: s.to_dict() for c, s in float_frame.items()}
 
         sdf = SparseDataFrame(data)
         tm.assert_sp_frame_equal(sdf, float_frame)
@@ -214,7 +212,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_constructor_from_unknown_type(self):
         # GH 19393
-        class Unknown(object):
+        class Unknown:
             pass
         with pytest.raises(TypeError,
                            match=('SparseDataFrame called with unknown type '
@@ -568,8 +566,9 @@ class TestSparseDataFrame(SharedWithSparse):
             assert len(frame['I'].sp_values) == N // 2
 
             # insert ndarray wrong size
-            msg = "Length of values does not match length of index"
-            with pytest.raises(AssertionError, match=msg):
+            # GH 25484
+            msg = 'Length of values does not match length of index'
+            with pytest.raises(ValueError, match=msg):
                 frame['foo'] = np.random.randn(N - 1)
 
             # scalar value
@@ -881,7 +880,6 @@ class TestSparseDataFrame(SharedWithSparse):
         str(float_frame)
         desc = float_frame.describe()  # noqa
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_join(self, float_frame):
         left = float_frame.loc[:, ['A', 'B']]
         right = float_frame.loc[:, ['C', 'D']]
@@ -1285,7 +1283,7 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(expected, result)
 
 
-class TestSparseDataFrameArithmetic(object):
+class TestSparseDataFrameArithmetic:
 
     def test_numeric_op_scalar(self):
         df = pd.DataFrame({'A': [nan, nan, 0, 1, ],
@@ -1314,7 +1312,7 @@ class TestSparseDataFrameArithmetic(object):
         tm.assert_frame_equal(res.to_dense(), df != 0)
 
 
-class TestSparseDataFrameAnalytics(object):
+class TestSparseDataFrameAnalytics:
 
     def test_cumsum(self, float_frame):
         expected = SparseDataFrame(float_frame.to_dense().cumsum())

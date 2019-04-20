@@ -3,6 +3,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import index as libindex
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -19,7 +21,6 @@ from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, contains
 import pandas.core.common as com
-from pandas.core.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 import pandas.core.missing as missing
@@ -237,7 +238,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         values = cls._create_categorical(values, dtype=dtype)
         result._data = values
         result.name = name
-        for k, v in compat.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(result, k, v)
 
         result._reset_identity()

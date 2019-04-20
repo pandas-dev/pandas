@@ -2,9 +2,7 @@
 Data structures for sparse float data. Life is made simpler by dealing only
 with float64 data
 """
-
-# pylint: disable=E1101,E1103,W0231
-
+from collections import abc
 import warnings
 
 import numpy as np
@@ -12,7 +10,6 @@ import numpy as np
 import pandas._libs.index as libindex
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
@@ -82,7 +79,7 @@ class SparseSeries(Series):
             if index is not None:
                 data = data.reindex(index)
 
-        elif isinstance(data, compat.Mapping):
+        elif isinstance(data, abc.Mapping):
             data, index = Series()._init_dict(data, index=index)
 
         elif is_scalar(data) and index is not None:

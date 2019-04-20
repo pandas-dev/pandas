@@ -3,6 +3,7 @@ import contextlib
 from datetime import date, datetime, time, timedelta
 from distutils.version import LooseVersion
 from functools import partial
+from io import BytesIO
 import os
 import warnings
 
@@ -10,12 +11,11 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY36, BytesIO, iteritems, map, range, u
+from pandas.compat import PY36
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.core.config import get_option, set_option
+from pandas import DataFrame, Index, MultiIndex, Series, get_option, set_option
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 
@@ -50,7 +50,7 @@ def ignore_xlrd_time_clock_warning():
 
 
 @td.skip_if_no('xlrd', '1.0.0')
-class SharedItems(object):
+class SharedItems:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
@@ -798,7 +798,7 @@ class ReadingTestsBase(SharedItems):
 
         with ensure_clean(ext) as pth:
             with ExcelWriter(pth) as ew:
-                for sheetname, df in iteritems(dfs):
+                for sheetname, df in dfs.items():
                     df.to_excel(ew, sheetname)
 
             dfs_returned = read_excel(pth, sheet_name=sheets, index_col=0)
@@ -1695,10 +1695,10 @@ class TestExcelWriter(_WriterBase):
 
     def test_to_excel_output_encoding(self, merge_cells, engine, ext):
         # Avoid mixed inferred_type.
-        df = DataFrame([[u"\u0192", u"\u0193", u"\u0194"],
-                        [u"\u0195", u"\u0196", u"\u0197"]],
-                       index=[u"A\u0192", u"B"],
-                       columns=[u"X\u0193", u"Y", u"Z"])
+        df = DataFrame([["\u0192", "\u0193", "\u0194"],
+                        ["\u0195", "\u0196", "\u0197"]],
+                       index=["A\u0192", "B"],
+                       columns=["X\u0193", "Y", "Z"])
 
         with ensure_clean("__tmp_to_excel_float_format__." + ext) as filename:
             df.to_excel(filename, sheet_name="TestSheet", encoding="utf8")
@@ -1707,7 +1707,7 @@ class TestExcelWriter(_WriterBase):
             tm.assert_frame_equal(result, df)
 
     def test_to_excel_unicode_filename(self, merge_cells, engine, ext):
-        with ensure_clean(u("\u0192u.") + ext) as filename:
+        with ensure_clean("\u0192u." + ext) as filename:
             try:
                 f = open(filename, "wb")
             except UnicodeEncodeError:
@@ -2327,7 +2327,7 @@ class TestXlsxWriterTests(_WriterBase):
                 ExcelWriter(f, engine=engine, mode='a')
 
 
-class TestExcelWriterEngineTests(object):
+class TestExcelWriterEngineTests:
 
     @pytest.mark.parametrize('klass,ext', [
         pytest.param(_XlsxWriter, '.xlsx', marks=pytest.mark.skipif(
@@ -2543,7 +2543,7 @@ def test_styler_to_excel(engine):
 
 @td.skip_if_no('openpyxl')
 @pytest.mark.skipif(not PY36, reason='requires fspath')
-class TestFSPath(object):
+class TestFSPath:
 
     def test_excelfile_fspath(self):
         with tm.ensure_clean('foo.xlsx') as path:

@@ -2,8 +2,6 @@ import warnings
 
 import numpy as np
 
-from pandas.compat import u
-
 from pandas.core.indexes.frozen import FrozenList, FrozenNDArray
 from pandas.tests.test_base import CheckImmutable, CheckStringMixin
 from pandas.util import testing as tm
@@ -11,7 +9,7 @@ from pandas.util import testing as tm
 
 class TestFrozenList(CheckImmutable, CheckStringMixin):
     mutable_methods = ('extend', 'pop', 'remove', 'insert')
-    unicode_container = FrozenList([u("\u05d0"), u("\u05d1"), "c"])
+    unicode_container = FrozenList(["\u05d0", "\u05d1", "c"])
 
     def setup_method(self, _):
         self.lst = [1, 2, 3, 4, 5]
@@ -63,8 +61,7 @@ class TestFrozenNDArray(CheckImmutable, CheckStringMixin):
             warnings.simplefilter("ignore", FutureWarning)
 
             self.container = FrozenNDArray(self.lst)
-            self.unicode_container = FrozenNDArray(
-                [u("\u05d0"), u("\u05d1"), "c"])
+            self.unicode_container = FrozenNDArray(["\u05d0", "\u05d1", "c"])
 
     def test_constructor_warns(self):
         # see gh-9031

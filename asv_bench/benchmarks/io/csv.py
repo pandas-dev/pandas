@@ -4,7 +4,7 @@ import string
 import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Categorical, date_range, read_csv
-from pandas.compat import cStringIO as StringIO
+from io import StringIO
 
 from ..pandas_vb_common import BaseIO
 
@@ -50,7 +50,25 @@ class ToCSVDatetime(BaseIO):
         self.data.to_csv(self.fname, date_format='%Y%m%d')
 
 
-class StringIORewind(object):
+class ToCSVDatetimeBig(BaseIO):
+
+    fname = '__test__.csv'
+    timeout = 1500
+    params = [1000, 10000, 100000]
+    param_names = ['obs']
+
+    def setup(self, obs):
+        d = '2018-11-29'
+        dt = '2018-11-26 11:18:27.0'
+        self.data = DataFrame({'dt': [np.datetime64(dt)] * obs,
+                               'd': [np.datetime64(d)] * obs,
+                               'r': [np.random.uniform()] * obs})
+
+    def time_frame(self, obs):
+        self.data.to_csv(self.fname)
+
+
+class StringIORewind:
 
     def data(self, stringio_object):
         stringio_object.seek(0)

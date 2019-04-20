@@ -2,4 +2,4 @@
 # flake8: noqa
 
 from .tslibs import (
-    iNaT, NaT, Timestamp, Timedelta, OutOfBoundsDatetime, Period)
+    iNaT, NaT, NaTType, Timestamp, Timedelta, OutOfBoundsDatetime, Period)

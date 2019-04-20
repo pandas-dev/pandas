@@ -11,13 +11,16 @@ files will probably erase them.
 Usage::
     $ ./find_commits_touching_func.py  (see arguments below)
 """
-from __future__ import print_function
 import logging
 import re
 import os
 import argparse
 from collections import namedtuple
-from pandas.compat import lrange, map, string_types, text_type, parse_date
+
+from dateutil.parser import parse
+
+from pandas.compat import lrange
+
 try:
     import sh
 except ImportError:
@@ -103,12 +106,12 @@ def get_commit_info(c, fmt, sep='\t'):
                "-n",
                "1",
                _tty_out=False)
-    return text_type(r).split(sep)
+    return str(r).split(sep)
 
 
 def get_commit_vitals(c, hlen=HASH_LEN):
     h, s, d = get_commit_info(c, '%H\t%s\t%ci', "\t")
-    return h[:hlen], s, parse_date(d)
+    return h[:hlen], s, parse(d)
 
 
 def file_filter(state, dirname, fnames):
@@ -199,11 +202,11 @@ You must specify the -y argument to ignore this warning.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 """)
         return
-    if isinstance(args.file_masks, string_types):
+    if isinstance(args.file_masks, str):
         args.file_masks = args.file_masks.split(',')
-    if isinstance(args.path_masks, string_types):
+    if isinstance(args.path_masks, str):
         args.path_masks = args.path_masks.split(',')
-    if isinstance(args.dir_masks, string_types):
+    if isinstance(args.dir_masks, str):
         args.dir_masks = args.dir_masks.split(',')
 
     logger.setLevel(getattr(logging, args.debug_level))

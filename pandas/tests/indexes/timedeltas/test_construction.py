@@ -9,7 +9,7 @@ from pandas.core.arrays import TimedeltaArray
 import pandas.util.testing as tm
 
 
-class TestTimedeltaIndex(object):
+class TestTimedeltaIndex:
 
     def test_verify_integrity_deprecated(self):
         # GH#23919
@@ -114,7 +114,7 @@ class TestTimedeltaIndex(object):
         tm.assert_index_equal(result, expected)
 
         # unicode
-        result = TimedeltaIndex([u'1 days', '1 days, 00:00:05', np.timedelta64(
+        result = TimedeltaIndex(['1 days', '1 days, 00:00:05', np.timedelta64(
             2, 'D'), timedelta(days=2, seconds=2), pd.offsets.Second(3)])
 
         expected = TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01',

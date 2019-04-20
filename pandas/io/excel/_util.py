@@ -1,7 +1,6 @@
 import warnings
 
-import pandas.compat as compat
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 
@@ -144,7 +143,7 @@ def _maybe_convert_usecols(usecols):
                       FutureWarning, stacklevel=2)
         return lrange(usecols + 1)
 
-    if isinstance(usecols, compat.string_types):
+    if isinstance(usecols, str):
         return _range2cols(usecols)
 
     return usecols
@@ -171,39 +170,6 @@ def _trim_excel_header(row):
     # xlrd uses '' , openpyxl None
     while len(row) > 0 and (row[0] == '' or row[0] is None):
         row = row[1:]
-    return row
-
-
-def _maybe_convert_to_string(row):
-    """
-    Convert elements in a row to string from Unicode.
-
-    This is purely a Python 2.x patch and is performed ONLY when all
-    elements of the row are string-like.
-
-    Parameters
-    ----------
-    row : array-like
-        The row of data to convert.
-
-    Returns
-    -------
-    converted : array-like
-    """
-    if compat.PY2:
-        converted = []
-
-        for i in range(len(row)):
-            if isinstance(row[i], compat.string_types):
-                try:
-                    converted.append(str(row[i]))
-                except UnicodeEncodeError:
-                    break
-            else:
-                break
-        else:
-            row = converted
-
     return row
 
 
@@ -235,7 +201,7 @@ def _fill_mi_header(row, control_row):
             control_row[i] = False
             last = row[i]
 
-    return _maybe_convert_to_string(row), control_row
+    return row, control_row
 
 
 def _pop_header_name(row, index_col):

@@ -6,7 +6,8 @@ from pandas._libs import tslibs
 
 def test_namespace():
 
-    submodules = ['ccalendar',
+    submodules = ['c_timestamp',
+                  'ccalendar',
                   'conversion',
                   'fields',
                   'frequencies',
@@ -19,9 +20,11 @@ def test_namespace():
                   'strptime',
                   'timedeltas',
                   'timestamps',
-                  'timezones']
+                  'timezones',
+                  'tzconversion']
 
     api = ['NaT',
+           'NaTType',
            'iNaT',
            'is_null_datetimelike',
            'OutOfBoundsDatetime',

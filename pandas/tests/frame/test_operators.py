@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from decimal import Decimal
 import operator
 
 import numpy as np
 import pytest
 
-from pandas.compat import range
-
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, compat
+from pandas import DataFrame, MultiIndex, Series
 import pandas.core.common as com
 from pandas.tests.frame.common import _check_mixed_float
 import pandas.util.testing as tm
@@ -19,7 +15,7 @@ from pandas.util.testing import (
     assert_frame_equal, assert_numpy_array_equal, assert_series_equal)
 
 
-class TestDataFrameUnaryOperators(object):
+class TestDataFrameUnaryOperators:
     # __pos__, __neg__, __inv__
 
     @pytest.mark.parametrize('df,expected', [
@@ -92,7 +88,7 @@ class TestDataFrameUnaryOperators(object):
             (+ df['a'])
 
 
-class TestDataFrameLogicalOperators(object):
+class TestDataFrameLogicalOperators:
     # &, |, ^
 
     def test_logical_ops_empty_frame(self):
@@ -207,7 +203,7 @@ class TestDataFrameLogicalOperators(object):
         assert_series_equal(result, expected)
 
 
-class TestDataFrameOperators(object):
+class TestDataFrameOperators:
 
     @pytest.mark.parametrize('op', [operator.add, operator.sub,
                                     operator.mul, operator.truediv])
@@ -387,7 +383,7 @@ class TestDataFrameOperators(object):
 
         added = float_frame + series
 
-        for key, s in compat.iteritems(added):
+        for key, s in added.items():
             assert_series_equal(s, float_frame[key] + series[key])
 
         larger_series = series.to_dict()
@@ -395,7 +391,7 @@ class TestDataFrameOperators(object):
         larger_series = Series(larger_series)
         larger_added = float_frame + larger_series
 
-        for key, s in compat.iteritems(float_frame):
+        for key, s in float_frame.items():
             assert_series_equal(larger_added[key], s + series[key])
         assert 'E' in larger_added
         assert np.isnan(larger_added['E']).all()
@@ -428,7 +424,7 @@ class TestDataFrameOperators(object):
         # and require explicit broadcasting
         added = datetime_frame.add(ts, axis='index')
 
-        for key, col in compat.iteritems(datetime_frame):
+        for key, col in datetime_frame.items():
             result = col + ts
             assert_series_equal(added[key], result, check_names=False)
             assert added[key].name == key
@@ -469,7 +465,7 @@ class TestDataFrameOperators(object):
 
         # vs mix
         result = mixed_float_frame * 2
-        for c, s in compat.iteritems(result):
+        for c, s in result.items():
             tm.assert_numpy_array_equal(
                 s.values, mixed_float_frame[c].values * 2)
         _check_mixed_float(result, dtype=dict(C=None))
@@ -726,7 +722,7 @@ class TestDataFrameOperators(object):
                                     'xor'])
     def test_inplace_ops_identity2(self, op):
 
-        if compat.PY3 and op == 'div':
+        if op == 'div':
             return
 
         df = DataFrame({'a': [1., 2., 3.],

@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import datetime
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange, lzip, u
+from pandas.compat import lrange, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Index, MultiIndex, Series, compat, date_range,
-    isna)
+    Categorical, DataFrame, Index, MultiIndex, Series, date_range, isna)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
@@ -214,7 +211,7 @@ class TestDataFrameSelectReindex(TestData):
         newFrame = self.frame.reindex(self.ts1.index)
 
         for col in newFrame.columns:
-            for idx, val in compat.iteritems(newFrame[col]):
+            for idx, val in newFrame[col].items():
                 if idx in self.frame.index:
                     if np.isnan(val):
                         assert np.isnan(self.frame[col][idx])
@@ -223,7 +220,7 @@ class TestDataFrameSelectReindex(TestData):
                 else:
                     assert np.isnan(val)
 
-        for col, series in compat.iteritems(newFrame):
+        for col, series in newFrame.items():
             assert tm.equalContents(series.index, newFrame.index)
         emptyFrame = self.frame.reindex(Index([]))
         assert len(emptyFrame.index) == 0
@@ -232,7 +229,7 @@ class TestDataFrameSelectReindex(TestData):
         nonContigFrame = self.frame.reindex(self.ts1.index[::2])
 
         for col in nonContigFrame.columns:
-            for idx, val in compat.iteritems(nonContigFrame[col]):
+            for idx, val in nonContigFrame[col].items():
                 if idx in self.frame.index:
                     if np.isnan(val):
                         assert np.isnan(self.frame[col][idx])
@@ -241,7 +238,7 @@ class TestDataFrameSelectReindex(TestData):
                 else:
                     assert np.isnan(val)
 
-        for col, series in compat.iteritems(nonContigFrame):
+        for col, series in nonContigFrame.items():
             assert tm.equalContents(series.index, nonContigFrame.index)
 
         # corner cases
@@ -848,7 +845,7 @@ class TestDataFrameSelectReindex(TestData):
         assert 'foo' in filtered
 
         # unicode columns, won't ascii-encode
-        df = self.frame.rename(columns={'B': u('\u2202')})
+        df = self.frame.rename(columns={'B': '\u2202'})
         filtered = df.filter(like='C')
         assert 'C' in filtered
 
@@ -872,18 +869,18 @@ class TestDataFrameSelectReindex(TestData):
         assert_frame_equal(result, exp)
 
     @pytest.mark.parametrize('name,expected', [
-        ('a', DataFrame({u'a': [1, 2]})),
-        (u'a', DataFrame({u'a': [1, 2]})),
-        (u'あ', DataFrame({u'あ': [3, 4]}))
+        ('a', DataFrame({'a': [1, 2]})),
+        ('a', DataFrame({'a': [1, 2]})),
+        ('あ', DataFrame({'あ': [3, 4]}))
     ])
     def test_filter_unicode(self, name, expected):
         # GH13101
-        df = DataFrame({u'a': [1, 2], u'あ': [3, 4]})
+        df = DataFrame({'a': [1, 2], 'あ': [3, 4]})
 
         assert_frame_equal(df.filter(like=name), expected)
         assert_frame_equal(df.filter(regex=name), expected)
 
-    @pytest.mark.parametrize('name', ['a', u'a'])
+    @pytest.mark.parametrize('name', ['a', 'a'])
     def test_filter_bytestring(self, name):
         # GH13101
         df = DataFrame({b'a': [1, 2], b'b': [3, 4]})
@@ -1051,7 +1048,6 @@ class TestDataFrameSelectReindex(TestData):
         smaller = self.intframe.reindex(columns=['A', 'B', 'E'])
         assert smaller['E'].dtype == np.float64
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_reindex_axis(self):
         cols = ['A', 'B', 'E']
         with tm.assert_produces_warning(FutureWarning) as m:
