@@ -14,7 +14,7 @@ from pandas import DataFrame, Index, Series, date_range
 from pandas.util import testing as tm
 
 
-class TestPartialSetting(object):
+class TestPartialSetting:
 
     @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
     def test_partial_setting(self):

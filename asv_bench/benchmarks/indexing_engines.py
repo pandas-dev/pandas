@@ -16,7 +16,7 @@ def _get_numeric_engines():
             if hasattr(libindex, engine_name)]
 
 
-class NumericEngineIndexing(object):
+class NumericEngineIndexing:
 
     params = [_get_numeric_engines(),
               ['monotonic_incr', 'monotonic_decr', 'non_monotonic'],
@@ -42,7 +42,7 @@ class NumericEngineIndexing(object):
         self.data.get_loc(2)
 
 
-class ObjectEngineIndexing(object):
+class ObjectEngineIndexing:
 
     params = [('monotonic_incr', 'monotonic_decr', 'non_monotonic')]
     param_names = ['index_type']

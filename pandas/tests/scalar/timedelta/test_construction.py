@@ -112,12 +112,12 @@ def test_construction():
 
     # GH#11995: unicode
     expected = Timedelta('1H')
-    result = Timedelta(u'1H')
+    result = Timedelta('1H')
     assert result == expected
-    assert to_timedelta(offsets.Hour(2)) == Timedelta(u'0 days, 02:00:00')
+    assert to_timedelta(offsets.Hour(2)) == Timedelta('0 days, 02:00:00')
 
     with pytest.raises(ValueError):
-        Timedelta(u'foo bar')
+        Timedelta('foo bar')
 
 
 @pytest.mark.parametrize('item', list({'days': 'D',

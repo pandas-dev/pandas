@@ -34,6 +34,11 @@ def data(request):
     return res
 
 
+@pytest.fixture
+def data_for_twos(request):
+    return SparseArray(np.ones(100) * 2)
+
+
 @pytest.fixture(params=[0, np.nan])
 def data_missing(request):
     """Length 2 array with [NA, Valid]"""
@@ -76,7 +81,7 @@ def data_for_grouping(request):
                        fill_value=request.param)
 
 
-class BaseSparseTests(object):
+class BaseSparseTests:
 
     def _check_unsupported(self, data):
         if data.dtype == SparseDtype(int, 0):

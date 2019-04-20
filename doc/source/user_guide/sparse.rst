@@ -6,8 +6,6 @@
 Sparse data structures
 **********************
 
-.. note:: The ``SparsePanel`` class has been removed in 0.19.0
-
 We have implemented "sparse" versions of ``Series`` and ``DataFrame``. These are not sparse
 in the typical "mostly 0". Rather, you can view these objects as being "compressed"
 where any data matching a specific value (``NaN`` / missing value, though any value

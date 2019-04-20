@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import datetime, timedelta
+from io import StringIO
 import re
 import sys
 import textwrap
@@ -10,12 +9,11 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY, StringIO, lrange, u
+from pandas.compat import PYPY, lrange
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Series, compat, date_range, option_context,
-    period_range)
+    Categorical, DataFrame, Series, date_range, option_context, period_range)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -125,7 +123,7 @@ class TestDataFrameReprInfoEtc(TestData):
         warnings.filters = warn_filters
 
     def test_repr_unicode(self):
-        uval = u('\u03c3\u03c3\u03c3\u03c3')
+        uval = '\u03c3\u03c3\u03c3\u03c3'
 
         # TODO(wesm): is this supposed to be used?
         bval = uval.encode('utf-8')  # noqa
@@ -141,19 +139,12 @@ class TestDataFrameReprInfoEtc(TestData):
         assert result.split('\n')[0].rstrip() == ex_top
 
     def test_unicode_string_with_unicode(self):
-        df = DataFrame({'A': [u("\u05d0")]})
-
-        if compat.PY3:
-            str(df)
-        else:
-            compat.text_type(df)
+        df = DataFrame({'A': ["\u05d0"]})
+        str(df)
 
     def test_bytestring_with_unicode(self):
-        df = DataFrame({'A': [u("\u05d0")]})
-        if compat.PY3:
-            bytes(df)
-        else:
-            str(df)
+        df = DataFrame({'A': ["\u05d0"]})
+        bytes(df)
 
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),
@@ -503,7 +494,7 @@ class TestDataFrameReprInfoEtc(TestData):
         df.info(buf=buf)
 
         df2 = df[df['category'] == 'd']
-        buf = compat.StringIO()
+        buf = StringIO()
         df2.info(buf=buf)
 
     def test_repr_categorical_dates_periods(self):
@@ -521,3 +512,12 @@ class TestDataFrameReprInfoEtc(TestData):
 
         df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
         assert repr(df) == exp
+
+    @pytest.mark.parametrize('arg', [np.datetime64, np.timedelta64])
+    @pytest.mark.parametrize('box, expected', [
+        [Series, '0    NaT\ndtype: object'],
+        [DataFrame, '     0\n0  NaT']])
+    def test_repr_np_nat_with_object(self, arg, box, expected):
+        # GH 25445
+        result = repr(box([arg('NaT')], dtype=object))
+        assert result == expected
