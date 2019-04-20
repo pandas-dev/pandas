@@ -6,8 +6,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.util import testing as tm
 from pandas.core.indexing import IndexingError
+from pandas.util import testing as tm
 
 
 @pytest.fixture
