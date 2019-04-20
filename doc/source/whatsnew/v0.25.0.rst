@@ -23,7 +23,7 @@ including other versions of pandas.
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
-
+- :func:`DataFrame.plot` keywords ``logy``, ``logx`` and ``loglog`` can now accept the value ``'sym'`` for symlog scaling. (:issue:`24867`)
 - Added support for ISO week year format ('%G-%V-%u') when parsing datetimes using :meth: `to_datetime` (:issue:`16607`)
 - Indexing of ``DataFrame`` and ``Series`` now accepts zerodim ``np.ndarray`` (:issue:`24919`)
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
@@ -218,6 +218,7 @@ Other API Changes
 - :meth:`Timestamp.strptime` will now rise a ``NotImplementedError`` (:issue:`25016`)
 - Comparing :class:`Timestamp` with unsupported objects now returns :py:obj:`NotImplemented` instead of raising ``TypeError``. This implies that unsupported rich comparisons are delegated to the other object, and are now consistent with Python 3 behavior for ``datetime`` objects (:issue:`24011`)
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
+- The ``arg`` argument in :meth:`pandas.core.groupby.DataFrameGroupBy.agg` has been renamed to ``func`` (:issue:`26089`)
 
 .. _whatsnew_0250.deprecations:
 
@@ -248,11 +249,14 @@ Performance Improvements
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
 - Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
+- Improved performance of :meth:DataFrame.`to_csv` when write datetime dtype data (:issue:`25708`)
+- Improved performance of :meth:`read_csv` by much faster parsing of MM/YYYY and DD/MM/YYYY datetime formats (:issue:`25922`)
 
 .. _whatsnew_0250.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
+
 
 
 Categorical
@@ -266,7 +270,7 @@ Datetimelike
 ^^^^^^^^^^^^
 
 - Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
--
+- Bug in :func:`to_datetime` which would raise ``InvalidIndexError: Reindexing only valid with uniquely valued Index objects`` when called with ``cache=True``, with ``arg`` including at least two different elements from the set {None, numpy.nan, pandas.NaT} (:issue:`22305`)
 -
 -
 
@@ -292,10 +296,11 @@ Numeric
 
 - Bug in :meth:`to_numeric` in which large negative numbers were being improperly handled (:issue:`24910`)
 - Bug in :meth:`to_numeric` in which numbers were being coerced to float, even though ``errors`` was not ``coerce`` (:issue:`24910`)
+- Bug in :class:`format` in which floating point complex numbers were not being formatted to proper display precision and trimming (:issue:`25514`)
 - Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
 - Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
 - Raises a helpful exception when a non-numeric index is sent to :meth:`interpolate` with methods which require numeric index. (:issue:`21662`)
--
+- Bug in :meth:`~pandas.eval` when comparing floats with scalar operators, for example: ``x < -0.1`` (:issue:`25928`)
 -
 
 
@@ -362,6 +367,7 @@ I/O
 - Improved the explanation for the failure when value labels are repeated in Stata dta files and suggested work-arounds (:issue:`25772`)
 - Improved :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` to read incorrectly formatted 118 format files saved by Stata (:issue:`25960`)
 - Fixed bug in loading objects from S3 that contain ``#`` characters in the URL (:issue:`25945`)
+- Adds ``use_bqstorage_api`` parameter to :func:`read_gbq` to speed up downloads of large data frames. This feature requires version 0.10.0 of the ``pandas-gbq`` library as well as the ``google-cloud-bigquery-storage`` and ``fastavro`` libraries. (:issue:`26104`)
 
 Plotting
 ^^^^^^^^
@@ -379,12 +385,15 @@ Groupby/Resample/Rolling
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.nunique` in which the names of column levels were lost (:issue:`23222`)
 - Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying a aggregation function to timezone aware data (:issue:`23683`)
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
+- Bug in :func:`pandas.core.groupby.GroupBy.size` when grouping only NA values (:issue:`23050`)
 - Bug in :func:`Series.groupby` where using ``groupby`` with a :class:`MultiIndex` Series with a list of labels equal to the length of the series caused incorrect grouping (:issue:`25704`)
 - Ensured that ordering of outputs in ``groupby`` aggregation functions is consistent across all versions of Python (:issue:`25692`)
 - Ensured that result group order is correct when grouping on an ordered ``Categorical`` and specifying ``observed=True`` (:issue:`25871`, :issue:`25167`)
 - Bug in :meth:`pandas.core.window.Rolling.min` and :meth:`pandas.core.window.Rolling.max` that caused a memory leak (:issue:`25893`)
 - Bug in :func:`idxmax` and :func:`idxmin` on :meth:`DataFrame.groupby` with datetime column would return incorrect dtype (:issue:`25444`, :issue:`15306`)
 - Bug in :meth:`pandas.core.window.Rolling.count` and `pandas.core.window.Expanding.count` was previously ignoring the axis keyword (:issue:`13503`)
+- Bug in :meth:`pandas.core.groupby.GroupBy.idxmax` and :meth:`pandas.core.groupby.GroupBy.idxmin` with datetime column would return incorrect dtype (:issue:`25444`, :issue:`15306`)
+- Bug in :meth:`pandas.core.groupby.GroupBy.cumsum`, :meth:`pandas.core.groupby.GroupBy.cumprod`, :meth:`pandas.core.groupby.GroupBy.cummin` and :meth:`pandas.core.groupby.GroupBy.cummax` with categorical column having absent categories, would return incorrect result or segfault (:issue:`16771`)
 
 Reshaping
 ^^^^^^^^^
@@ -393,16 +402,18 @@ Reshaping
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
 - :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
 - Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
+- Bug in :func:`pivot_table` where columns with ``NaN`` values are dropped even if ``dropna`` argument is ``False``, when the ``aggfunc`` argument contains a ``list`` (:issue:`22159`)
 - Bug in :func:`concat` where the resulting ``freq`` of two :class:`DatetimeIndex` with the same ``freq`` would be dropped (:issue:`3232`).
 - Bug in :func:`merge` where merging with equivalent Categorical dtypes was raising an error (:issue:`22501`)
 - Bug in :class:`DataFrame` constructor when passing non-empty tuples would cause a segmentation fault (:issue:`25691`)
+- Bug in :func:`pandas.cut` where large bins could incorrectly raise an error due to an integer overflow (:issue:`26045`)
 
 Sparse
 ^^^^^^
 
 - Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
 - Bug in :class:`SparseFrame` constructor where passing ``None`` as the data would cause ``default_fill_value`` to be ignored (:issue:`16807`)
--
+- Bug in `SparseDataFrame` when adding a column in which the length of values does not match length of index, ``AssertionError`` is raised instead of raising ``ValueError`` (:issue:`25484`)
 
 
 Other
