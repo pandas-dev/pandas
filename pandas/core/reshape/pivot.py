@@ -33,7 +33,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
             table = pivot_table(data, values=values, index=index,
                                 columns=columns,
                                 fill_value=fill_value, aggfunc=func,
-                                margins=margins, dropna=dropna, 
+                                margins=margins, dropna=dropna,
                                 margins_name=margins_name,
                                 observed=observed)
             pieces.append(table)
