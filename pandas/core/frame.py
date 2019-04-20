@@ -1,5 +1,3 @@
-# pylint: disable=E1101
-# pylint: disable=W0212,W0703,W0622
 """
 DataFrame
 ---------
@@ -18,7 +16,7 @@ import itertools
 import sys
 import warnings
 from textwrap import dedent
-from typing import List, Optional, Union
+from typing import FrozenSet, List, Optional, Set, Type, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -33,7 +31,6 @@ from pandas.util._decorators import (Appender, Substitution,
 from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
-from pandas import compat
 from pandas.compat import PY36, lmap, lzip, raise_with_traceback
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
@@ -363,10 +360,11 @@ class DataFrame(NDFrame):
     def _constructor(self):
         return DataFrame
 
-    _constructor_sliced = Series
-    _deprecations = NDFrame._deprecations | frozenset(
-        ['get_value', 'set_value', 'from_csv', 'from_items'])
-    _accessors = set()
+    _constructor_sliced = Series  # type: Type[Series]
+    _deprecations = NDFrame._deprecations | frozenset([
+        'get_value', 'set_value', 'from_csv', 'from_items'
+    ])  # type: FrozenSet[str]
+    _accessors = set()  # type: Set[str]
 
     @property
     def _constructor_expanddim(self):
@@ -615,10 +613,7 @@ class DataFrame(NDFrame):
 
     def __unicode__(self):
         """
-        Return a string representation for a particular DataFrame.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a unicode string representation for a particular DataFrame.
         """
         buf = StringIO("")
         if self._info_repr():
@@ -904,16 +899,10 @@ class DataFrame(NDFrame):
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
 
-        # Python 3 supports at most 255 arguments to constructor, and
-        # things get slow with this many fields in Python 2
+        # Python 3 supports at most 255 arguments to constructor
         if name is not None and len(self.columns) + index < 256:
-            # `rename` is unsupported in Python 2.6
-            try:
-                itertuple = collections.namedtuple(name, fields, rename=True)
-                return map(itertuple._make, zip(*arrays))
-
-            except Exception:
-                pass
+            itertuple = collections.namedtuple(name, fields, rename=True)
+            return map(itertuple._make, zip(*arrays))
 
         # fallback to regular tuples
         return zip(*arrays)
@@ -1275,9 +1264,9 @@ class DataFrame(NDFrame):
         into_c = com.standardize_mapping(into)
         if orient.lower().startswith('d'):
             return into_c(
-                (k, v.to_dict(into)) for k, v in compat.iteritems(self))
+                (k, v.to_dict(into)) for k, v in self.items())
         elif orient.lower().startswith('l'):
-            return into_c((k, v.tolist()) for k, v in compat.iteritems(self))
+            return into_c((k, v.tolist()) for k, v in self.items())
         elif orient.lower().startswith('sp'):
             return into_c((('index', self.index.tolist()),
                            ('columns', self.columns.tolist()),
@@ -1287,14 +1276,14 @@ class DataFrame(NDFrame):
                            ])))
         elif orient.lower().startswith('s'):
             return into_c((k, com.maybe_box_datetimelike(v))
-                          for k, v in compat.iteritems(self))
+                          for k, v in self.items())
         elif orient.lower().startswith('r'):
             columns = self.columns.tolist()
             rows = (dict(zip(columns, row))
                     for row in self.itertuples(index=False, name=None))
             return [
                 into_c((k, com.maybe_box_datetimelike(v))
-                       for k, v in compat.iteritems(row))
+                       for k, v in row.items())
                 for row in rows]
         elif orient.lower().startswith('i'):
             if not self.index.is_unique:
@@ -1480,7 +1469,7 @@ class DataFrame(NDFrame):
             else:
                 arrays = []
                 arr_columns = []
-                for k, v in compat.iteritems(data):
+                for k, v in data.items():
                     if k in columns:
                         arr_columns.append(k)
                         arrays.append(v)
@@ -2430,7 +2419,7 @@ class DataFrame(NDFrame):
 
         counts = self.get_dtype_counts()
         dtypes = ['{k}({kk:d})'.format(k=k[0], kk=k[1]) for k
-                  in sorted(compat.iteritems(counts))]
+                  in sorted(counts.items())]
         lines.append('dtypes: {types}'.format(types=', '.join(dtypes)))
 
         if memory_usage is None:
@@ -6322,7 +6311,7 @@ class DataFrame(NDFrame):
 
     @Substitution(see_also=_agg_summary_and_see_also_doc,
                   examples=_agg_examples_doc,
-                  versionadded='.. versionadded:: 0.20.0',
+                  versionadded='\n.. versionadded:: 0.20.0\n',
                   **_shared_doc_kwargs)
     @Appender(_shared_docs['aggregate'])
     def aggregate(self, func, axis=0, *args, **kwargs):
@@ -8051,8 +8040,8 @@ ops.add_special_arithmetic_methods(DataFrame)
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
     new_data = OrderedDict()
-    for index, s in compat.iteritems(data):
-        for col, v in compat.iteritems(s):
+    for index, s in data.items():
+        for col, v in s.items():
             new_data[col] = new_data.get(col, OrderedDict())
             new_data[col][index] = v
     return new_data

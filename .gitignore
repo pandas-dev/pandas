@@ -65,6 +65,7 @@ coverage_html_report
 *.pytest_cache
 # hypothesis test database
 .hypothesis/
+__pycache__
 
 # OS generated files #
 ######################

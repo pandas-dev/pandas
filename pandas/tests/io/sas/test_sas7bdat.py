@@ -13,7 +13,7 @@ import pandas.util.testing as tm
 
 # https://github.com/cython/cython/issues/1720
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
-class TestSAS7BDAT(object):
+class TestSAS7BDAT:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
