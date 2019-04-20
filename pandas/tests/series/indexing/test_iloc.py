@@ -1,9 +1,7 @@
 # coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 import numpy as np
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 from pandas import Series
 from pandas.util.testing import assert_almost_equal, assert_series_equal

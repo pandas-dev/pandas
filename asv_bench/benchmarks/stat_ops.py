@@ -6,7 +6,7 @@ ops = ['mean', 'sum', 'median', 'std', 'skew', 'kurt', 'mad', 'prod', 'sem',
        'var']
 
 
-class FrameOps(object):
+class FrameOps:
 
     params = [ops, ['float', 'int'], [0, 1], [True, False]]
     param_names = ['op', 'dtype', 'axis', 'use_bottleneck']
@@ -24,7 +24,7 @@ class FrameOps(object):
         self.df_func(axis=axis)
 
 
-class FrameMultiIndexOps(object):
+class FrameMultiIndexOps:
 
     params = ([0, 1, [0, 1]], ops)
     param_names = ['level', 'op']
@@ -42,7 +42,7 @@ class FrameMultiIndexOps(object):
         self.df_func(level=level)
 
 
-class SeriesOps(object):
+class SeriesOps:
 
     params = [ops, ['float', 'int'], [True, False]]
     param_names = ['op', 'dtype', 'use_bottleneck']
@@ -60,7 +60,7 @@ class SeriesOps(object):
         self.s_func()
 
 
-class SeriesMultiIndexOps(object):
+class SeriesMultiIndexOps:
 
     params = ([0, 1, [0, 1]], ops)
     param_names = ['level', 'op']
@@ -78,7 +78,7 @@ class SeriesMultiIndexOps(object):
         self.s_func(level=level)
 
 
-class Rank(object):
+class Rank:
 
     params = [['DataFrame', 'Series'], [True, False]]
     param_names = ['constructor', 'pct']
@@ -94,7 +94,7 @@ class Rank(object):
         self.data.rank(pct=pct) / len(self.data)
 
 
-class Correlation(object):
+class Correlation:
 
     params = [['spearman', 'kendall', 'pearson'], [True, False]]
     param_names = ['method', 'use_bottleneck']
@@ -123,7 +123,7 @@ class Correlation(object):
         self.df.corrwith(self.df2, axis=1, method=method)
 
 
-class Covariance(object):
+class Covariance:
 
     params = [[True, False]]
     param_names = ['use_bottleneck']

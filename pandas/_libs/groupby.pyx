@@ -57,10 +57,10 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         n -= na_count
 
     if n % 2:
-        result = kth_smallest_c( a, n / 2, n)
+        result = kth_smallest_c( a, n // 2, n)
     else:
-        result = (kth_smallest_c(a, n / 2, n) +
-                  kth_smallest_c(a, n / 2 - 1, n)) / 2
+        result = (kth_smallest_c(a, n // 2, n) +
+                  kth_smallest_c(a, n // 2 - 1, n)) / 2
 
     if na_count:
         free(a)

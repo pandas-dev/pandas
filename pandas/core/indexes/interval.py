@@ -4,6 +4,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import Timedelta, Timestamp
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas.compat import add_metaclass
@@ -21,7 +23,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
-from pandas.core.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, _index_shared_docs, default_pprint, ensure_index)
@@ -1014,7 +1015,7 @@ class IntervalIndex(IntervalMixin, Index):
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
 
-    def _format_native_types(self, na_rep='', quoting=None, **kwargs):
+    def _format_native_types(self, na_rep='NaN', quoting=None, **kwargs):
         """ actually format my specific types """
         from pandas.io.formats.format import ExtensionArrayFormatter
         return ExtensionArrayFormatter(values=self,

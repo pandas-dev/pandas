@@ -1,15 +1,12 @@
 from collections import defaultdict
 from datetime import datetime
 from itertools import product
-import warnings
 
 import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY2
-
-from pandas import DataFrame, MultiIndex, Series, compat, concat, merge
+from pandas import DataFrame, MultiIndex, Series, concat, merge, to_datetime
 from pandas.core import common as com
 from pandas.core.sorting import (
     decons_group_index, get_group_index, is_int64_overflow_possible,
@@ -18,7 +15,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestSorting(object):
+class TestSorting:
 
     @pytest.mark.slow
     def test_int64_overflow(self):
@@ -53,7 +50,7 @@ class TestSorting(object):
 
         expected = df.groupby(tups).sum()['values']
 
-        for k, v in compat.iteritems(expected):
+        for k, v in expected.items():
             assert left[k] == right[k[::-1]]
             assert left[k] == v
         assert len(left) == len(right)
@@ -183,8 +180,15 @@ class TestSorting(object):
         exp = list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1))
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
+    def test_nargsort_datetimearray_warning(self):
+        # https://github.com/pandas-dev/pandas/issues/25439
+        # can be removed once the FutureWarning for np.array(DTA) is removed
+        data = to_datetime([0, 2, 0, 1]).tz_localize('Europe/Brussels')
+        with tm.assert_produces_warning(None):
+            nargsort(data)
 
-class TestMerge(object):
+
+class TestMerge:
 
     @pytest.mark.slow
     def test_int64_overflow_issues(self):
@@ -336,7 +340,7 @@ def test_decons():
     testit(label_list, shape)
 
 
-class TestSafeSort(object):
+class TestSafeSort:
 
     def test_basic_sort(self):
         values = [3, 1, 2, 0, 4]
@@ -405,21 +409,14 @@ class TestSafeSort(object):
         expected = np.array([0, 0, 1, 'a', 'b', 'b'], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        msg = (r"'(<|>)' not supported between instances of"
-               r" 'datetime\.datetime' and 'int'|"
-               r"unorderable types: int\(\) > datetime\.datetime\(\)")
-        if compat.PY2:
-            # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
-            with warnings.catch_warnings():
-                with pytest.raises(TypeError, match=msg):
-                    safe_sort(arr)
-        else:
-            with pytest.raises(TypeError, match=msg):
-                safe_sort(arr)
+        msg = ("unorderable types: .* [<>] .*"
+               "|"  # the above case happens for numpy < 1.14
+               "'[<>]' not supported between instances of .*")
+        with pytest.raises(TypeError, match=msg):
+            safe_sort(arr)
 
     def test_exceptions(self):
         with pytest.raises(TypeError,

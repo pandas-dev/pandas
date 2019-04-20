@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import PY2, range
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
@@ -155,7 +154,6 @@ class TestFloat64Index(Numeric):
         result = Index(np.array([np.nan]))
         assert pd.isna(result.values).all()
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_constructor_invalid(self):
 
         # invalid

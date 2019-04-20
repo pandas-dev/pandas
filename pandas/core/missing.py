@@ -1,13 +1,11 @@
 """
 Routines for filling missing data.
 """
-from distutils.version import LooseVersion
 import operator
 
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas.compat import range, string_types
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
@@ -73,7 +71,7 @@ def clean_fill_method(method, allow_nearest=False):
     if method in [None, 'asfreq']:
         return None
 
-    if isinstance(method, string_types):
+    if isinstance(method, str):
         method = method.lower()
         if method == 'ffill':
             method = 'pad'
@@ -347,16 +345,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     y : scalar or array_like
         The result, of length R or length M or M by R.
     """
-    import scipy
     from scipy import interpolate
-
-    if LooseVersion(scipy.__version__) < LooseVersion('0.18.0'):
-        try:
-            method = interpolate.piecewise_polynomial_interpolate
-            return method(xi, yi.reshape(-1, 1), x,
-                          orders=order, der=der)
-        except AttributeError:
-            pass
 
     # return the method for compat with scipy version & backwards compat
     method = interpolate.BPoly.from_derivatives

@@ -26,7 +26,7 @@ def data_missing():
     return ArrowBoolArray.from_scalars([None, True])
 
 
-class BaseArrowTests(object):
+class BaseArrowTests:
     pass
 
 

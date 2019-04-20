@@ -178,6 +178,7 @@ We'll now kick off a three-step process:
    # Create and activate the build environment
    conda env create -f environment.yml
    conda activate pandas-dev
+   conda uninstall --force pandas
 
    # or with older versions of Anaconda:
    source activate pandas-dev
@@ -772,7 +773,7 @@ Transitioning to ``pytest``
 
 .. code-block:: python
 
-    class TestReallyCoolFeature(object):
+    class TestReallyCoolFeature:
         pass
 
 Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing

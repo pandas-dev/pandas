@@ -2,13 +2,13 @@ import warnings
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (Series, DataFrame, Panel, MultiIndex,
+from pandas import (Series, DataFrame, MultiIndex,
                     Int64Index, UInt64Index, Float64Index,
                     IntervalIndex, CategoricalIndex,
                     IndexSlice, concat, date_range)
 
 
-class NumericSeriesIndexing(object):
+class NumericSeriesIndexing:
 
     params = [
         (Int64Index, UInt64Index, Float64Index),
@@ -79,7 +79,7 @@ class NumericSeriesIndexing(object):
         self.data.loc[:800000]
 
 
-class NonNumericSeriesIndexing(object):
+class NonNumericSeriesIndexing:
 
     params = [
         ('string', 'datetime'),
@@ -114,7 +114,7 @@ class NonNumericSeriesIndexing(object):
         self.s[[self.lbl]]
 
 
-class DataFrameStringIndexing(object):
+class DataFrameStringIndexing:
 
     def setup(self):
         index = tm.makeStringIndex(1000)
@@ -146,7 +146,7 @@ class DataFrameStringIndexing(object):
         self.df[self.bool_obj_indexer]
 
 
-class DataFrameNumericIndexing(object):
+class DataFrameNumericIndexing:
 
     def setup(self):
         self.idx_dupe = np.array(range(30)) * 99
@@ -170,7 +170,7 @@ class DataFrameNumericIndexing(object):
         self.df[self.bool_indexer]
 
 
-class Take(object):
+class Take:
 
     params = ['int', 'datetime']
     param_names = ['index']
@@ -187,7 +187,7 @@ class Take(object):
         self.s.take(self.indexer)
 
 
-class MultiIndexing(object):
+class MultiIndexing:
 
     def setup(self):
         mi = MultiIndex.from_product([range(1000), range(1000)])
@@ -215,7 +215,7 @@ class MultiIndexing(object):
         self.mdt.loc[self.idx, :]
 
 
-class IntervalIndexing(object):
+class IntervalIndexing:
 
     def setup_cache(self):
         idx = IntervalIndex.from_breaks(np.arange(1000001))
@@ -235,7 +235,7 @@ class IntervalIndexing(object):
         monotonic.loc[80000:]
 
 
-class CategoricalIndexIndexing(object):
+class CategoricalIndexIndexing:
 
     params = ['monotonic_incr', 'monotonic_decr', 'non_monotonic']
     param_names = ['index']
@@ -277,19 +277,7 @@ class CategoricalIndexIndexing(object):
         self.data.get_indexer(self.cat_list)
 
 
-class PanelIndexing(object):
-
-    def setup(self):
-        with warnings.catch_warnings(record=True):
-            self.p = Panel(np.random.randn(100, 100, 100))
-            self.inds = range(0, 100, 10)
-
-    def time_subset(self):
-        with warnings.catch_warnings(record=True):
-            self.p.ix[(self.inds, self.inds, self.inds)]
-
-
-class MethodLookup(object):
+class MethodLookup:
 
     def setup_cache(self):
         s = Series()
@@ -305,7 +293,7 @@ class MethodLookup(object):
         s.loc
 
 
-class GetItemSingleColumn(object):
+class GetItemSingleColumn:
 
     def setup(self):
         self.df_string_col = DataFrame(np.random.randn(3000, 1), columns=['A'])
@@ -318,7 +306,7 @@ class GetItemSingleColumn(object):
         self.df_int_col[0]
 
 
-class AssignTimeseriesIndex(object):
+class AssignTimeseriesIndex:
 
     def setup(self):
         N = 100000
@@ -329,7 +317,7 @@ class AssignTimeseriesIndex(object):
         self.df['date'] = self.df.index
 
 
-class InsertColumns(object):
+class InsertColumns:
 
     def setup(self):
         self.N = 10**3

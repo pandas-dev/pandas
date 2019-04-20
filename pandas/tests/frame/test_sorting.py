@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 import random
 
 import numpy as np
@@ -54,8 +52,10 @@ class TestDataFrameSorting(TestData):
         sorted_df = frame.sort_values(by=['B', 'A'], ascending=[True, False])
         assert_frame_equal(sorted_df, expected)
 
-        pytest.raises(ValueError, lambda: frame.sort_values(
-            by=['A', 'B'], axis=2, inplace=True))
+        msg = ("No axis named 2 for object type"
+               " <class 'pandas.core.frame.DataFrame'>")
+        with pytest.raises(ValueError, match=msg):
+            frame.sort_values(by=['A', 'B'], axis=2, inplace=True)
 
         # by row (axis=1): GH 10806
         sorted_df = frame.sort_values(by=3, axis=1)
