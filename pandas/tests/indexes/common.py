@@ -9,9 +9,9 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
-    CategoricalIndex, DatetimeIndex, Float64Index, Index, Int64Index,
-    IntervalIndex, MultiIndex, PeriodIndex, RangeIndex, Series, TimedeltaIndex,
-    UInt64Index, isna)
+    CategoricalIndex, DatetimeIndex, Index, Int64Index, IntervalIndex,
+    MultiIndex, PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index,
+    isna)
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 import pandas.util.testing as tm
@@ -677,58 +677,9 @@ class Base:
             tm.assert_numpy_array_equal(index_a == item, expected3)
             tm.assert_series_equal(series_a == item, Series(expected3))
 
-    def test_numpy_ufuncs(self):
-        # test ufuncs of numpy, see:
-        # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
-
-        for name, idx in self.indices.items():
-            for func in [np.exp, np.exp2, np.expm1, np.log, np.log2, np.log10,
-                         np.log1p, np.sqrt, np.sin, np.cos, np.tan, np.arcsin,
-                         np.arccos, np.arctan, np.sinh, np.cosh, np.tanh,
-                         np.arcsinh, np.arccosh, np.arctanh, np.deg2rad,
-                         np.rad2deg]:
-                if isinstance(idx, DatetimeIndexOpsMixin):
-                    # raise TypeError or ValueError (PeriodIndex)
-                    # PeriodIndex behavior should be changed in future version
-                    with pytest.raises(Exception):
-                        with np.errstate(all='ignore'):
-                            func(idx)
-                elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
-                    # coerces to float (e.g. np.sin)
-                    with np.errstate(all='ignore'):
-                        result = func(idx)
-                        exp = Index(func(idx.values), name=idx.name)
-
-                    tm.assert_index_equal(result, exp)
-                    assert isinstance(result, pd.Float64Index)
-                else:
-                    # raise AttributeError or TypeError
-                    if len(idx) == 0:
-                        continue
-                    else:
-                        with pytest.raises(Exception):
-                            with np.errstate(all='ignore'):
-                                func(idx)
-
-            for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
-                if isinstance(idx, DatetimeIndexOpsMixin):
-                    # raise TypeError or ValueError (PeriodIndex)
-                    with pytest.raises(Exception):
-                        func(idx)
-                elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
-                    # Results in bool array
-                    result = func(idx)
-                    assert isinstance(result, np.ndarray)
-                    assert not isinstance(result, Index)
-                else:
-                    if len(idx) == 0:
-                        continue
-                    else:
-                        with pytest.raises(Exception):
-                            func(idx)
-
     def test_hasnans_isnans(self):
         # GH 11343, added tests for hasnans / isnans
+
         for name, index in self.indices.items():
             if isinstance(index, MultiIndex):
                 pass
