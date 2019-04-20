@@ -38,8 +38,6 @@ from pandas.core.computation.pytables import Expr, maybe_expression
 from pandas.core.index import ensure_index
 from pandas.core.internals import BlockManager, _block_shape, make_block
 
-from tables.exceptions import NoSuchNodeError
-
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
@@ -2252,7 +2250,7 @@ class DataCol(IndexCol):
                     self.values = list(map(tuple, data.tolist()))
                 else:
                     self.values = data.tolist()
-            except NoSuchNodeError:
+            except _table_mod.exceptions.NoSuchNodeError:
                 pass
 
         self.dtype = getattr(self.attrs, self.dtype_attr, None)
