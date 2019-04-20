@@ -278,10 +278,11 @@ class MultiIndex(Index):
                 raise ValueError("Unequal code lengths: %s" %
                                  ([len(code_) for code_ in codes]))
             if len(level_codes) and level_codes.max() >= len(level):
-                raise ValueError("On level %d, code max (%d) >= length of"
-                                 " level  (%d). NOTE: this index is in an"
-                                 " inconsistent state" % (i, level_codes.max(),
-                                                          len(level)))
+                raise ValueError("On level {index}, code max ({max}) >= "
+                                 "length of level  ({length}). NOTE: this "
+                                 "index is in an inconsistent state".format(
+                                     index=i, max=level_codes.max(),
+                                     length=len(level)))
             if not level.is_unique:
                 raise ValueError("Level values must be unique: {values} on "
                                  "level {level}".format(
@@ -923,7 +924,8 @@ class MultiIndex(Index):
         return attrs
 
     def _format_space(self):
-        return "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
+        return "\n{space}".format(
+            space=(' ' * (len(self.__class__.__name__) + 1)))
 
     def _format_data(self, name=None):
         # we are formatting thru the attributes

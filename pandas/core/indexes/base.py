@@ -927,14 +927,15 @@ class Index(IndexOpsMixin, PandasObject):
         attrs = self._format_attrs()
         space = self._format_space()
 
-        prepr = (",%s" %
-                 space).join("%s=%s" % (k, v) for k, v in attrs)
+        prepr = (",{space}".format(space=space)).join(
+            "{k}={v}".format(k=k, v=v) for k, v in attrs)
 
         # no data provided, just attributes
         if data is None:
             data = ''
 
-        res = "%s(%s%s)" % (klass, data, prepr)
+        res = "{klass}({data}{prepr})".format(
+            klass=klass, data=data, prepr=prepr)
 
         return res
 
@@ -1410,14 +1411,14 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(level, int):
             if level < 0 and level != -1:
                 raise IndexError("Too many levels: Index has only 1 level,"
-                                 " %d is not a valid level number" % (level, ))
+                                 " {level} is not a valid level number"
+                                 "".format(level=level))
             elif level > 0:
-                raise IndexError("Too many levels:"
-                                 " Index has only 1 level, not %d" %
-                                 (level + 1))
+                raise IndexError("Too many levels: Index has only 1 level, not"
+                                 " {level}".format(level=(level + 1)))
         elif level != self.name:
-            raise KeyError('Level %s must be same as name (%s)' %
-                           (level, self.name))
+            raise KeyError("Level {level} must be same as name ({name})"
+                           "".format(level=level, name=self.name))
 
     def _get_level_number(self, level):
         self._validate_index_level(level)
@@ -4808,8 +4809,9 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 slc = lib.maybe_indices_to_slice(slc.astype('i8'), len(self))
             if isinstance(slc, np.ndarray):
-                raise KeyError("Cannot get %s slice bound for non-unique "
-                               "label: %r" % (side, original_label))
+                raise KeyError("Cannot get {side} slice bound for non-unique "
+                               "label: {original_label!r}".format(
+                                   side=side, original_label=original_label))
 
         if isinstance(slc, slice):
             if side == 'left':
