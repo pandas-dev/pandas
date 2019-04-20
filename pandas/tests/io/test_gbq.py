@@ -8,7 +8,6 @@ import pytz
 
 import pandas as pd
 from pandas import DataFrame
-import pandas.util.testing as tm
 
 api_exceptions = pytest.importorskip("google.api_core.exceptions")
 bigquery = pytest.importorskip("google.cloud.bigquery")
@@ -90,16 +89,59 @@ def make_mixed_dataframe_v2(test_size):
                      index=range(test_size))
 
 
-def test_read_gbq_without_dialect_warns_future_change(monkeypatch):
-    # Default dialect is changing to standard SQL. See:
-    # https://github.com/pydata/pandas-gbq/issues/195
+def test_read_gbq_with_deprecated_kwargs(monkeypatch):
+    captured_kwargs = {}
 
-    def mock_read_gbq(*args, **kwargs):
+    def mock_read_gbq(sql, **kwargs):
+        captured_kwargs.update(kwargs)
         return DataFrame([[1.0]])
 
-    monkeypatch.setattr(pandas_gbq, 'read_gbq', mock_read_gbq)
-    with tm.assert_produces_warning(FutureWarning):
-        pd.read_gbq("SELECT 1")
+    monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
+    private_key = object()
+    pd.read_gbq("SELECT 1", verbose=True, private_key=private_key)
+
+    assert captured_kwargs["verbose"]
+    assert captured_kwargs["private_key"] is private_key
+
+
+def test_read_gbq_without_deprecated_kwargs(monkeypatch):
+    captured_kwargs = {}
+
+    def mock_read_gbq(sql, **kwargs):
+        captured_kwargs.update(kwargs)
+        return DataFrame([[1.0]])
+
+    monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
+    pd.read_gbq("SELECT 1")
+
+    assert "verbose" not in captured_kwargs
+    assert "private_key" not in captured_kwargs
+
+
+def test_read_gbq_with_new_kwargs(monkeypatch):
+    captured_kwargs = {}
+
+    def mock_read_gbq(sql, **kwargs):
+        captured_kwargs.update(kwargs)
+        return DataFrame([[1.0]])
+
+    monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
+    pd.read_gbq("SELECT 1", use_bqstorage_api=True)
+
+    assert captured_kwargs["use_bqstorage_api"]
+
+
+def test_read_gbq_without_new_kwargs(monkeypatch):
+    captured_kwargs = {}
+
+    def mock_read_gbq(sql, **kwargs):
+        captured_kwargs.update(kwargs)
+        return DataFrame([[1.0]])
+
+    monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
+    pd.read_gbq("SELECT 1")
+
+    assert "use_bqstorage_api" not in captured_kwargs
 
 
 @pytest.mark.single
