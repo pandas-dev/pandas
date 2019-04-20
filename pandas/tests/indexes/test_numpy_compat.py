@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import Float64Index, Index, Int64Index, UInt64Index
+from pandas import (
+    DatetimeIndex, Float64Index, Index, Int64Index, TimedeltaIndex,
+    UInt64Index, _np_version_under1p17)
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.util import testing as tm
 
@@ -20,7 +22,6 @@ def test_numpy_ufuncs_basic(indices, func):
     idx = indices
     if isinstance(idx, DatetimeIndexOpsMixin):
         # raise TypeError or ValueError (PeriodIndex)
-        # PeriodIndex behavior should be changed in future version
         with pytest.raises(Exception):
             with np.errstate(all='ignore'):
                 func(idx)
@@ -50,10 +51,21 @@ def test_numpy_ufuncs_other(indices, func):
     # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
     idx = indices
-    if isinstance(idx, DatetimeIndexOpsMixin):
+    if isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
+
+        # ok under numpy >= 1.17
+        if not _np_version_under1p17 and func in [np.isfinite]:
+            pass
+        else:
+            # raise TypeError or ValueError (PeriodIndex)
+            with pytest.raises(Exception):
+                func(idx)
+
+    elif isinstance(idx, DatetimeIndexOpsMixin):
         # raise TypeError or ValueError (PeriodIndex)
         with pytest.raises(Exception):
             func(idx)
+
     elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
         # Results in bool array
         result = func(idx)
