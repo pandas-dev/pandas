@@ -676,7 +676,6 @@ class TestRolling(Base):
         if axis in [0, 'index']:
             expected = DataFrame({'x': [1.0, 2.0, 2.0], 'y': [1.0, 2.0, 2.0]})
         else:
-            # axis == 1
             expected = DataFrame({'x': [1.0, 1.0, 1.0], 'y': [2.0, 2.0, 2.0]})
 
         result = df.rolling(2, axis=axis_frame).count()
