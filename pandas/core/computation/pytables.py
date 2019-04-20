@@ -572,7 +572,7 @@ class Expr(expr.Expr):
         return self.condition, self.filter
 
 
-class TermValue(object):
+class TermValue:
 
     """ hold a term value the we use to construct a condition/filter """
 

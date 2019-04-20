@@ -7,7 +7,6 @@ import pytest
 
 from pandas._libs.algos import Infinity, NegInfinity
 from pandas._libs.tslib import iNaT
-import pandas.compat as compat
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Series, Timestamp, date_range
@@ -376,7 +375,7 @@ class TestSeriesRank(TestData):
     def test_rank_int(self):
         s = self.s.dropna().astype('i8')
 
-        for method, res in compat.iteritems(self.results):
+        for method, res in self.results.items():
             result = s.rank(method=method)
             expected = Series(res).dropna()
             expected.index = result.index

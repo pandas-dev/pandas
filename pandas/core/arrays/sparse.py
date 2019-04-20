@@ -72,6 +72,14 @@ class SparseDtype(ExtensionDtype):
         =========== ==========
 
         The default value may be overridden by specifying a `fill_value`.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     # We include `_is_na_fill_value` in the metadata to avoid hash collisions
     # between SparseDtype(float, 0.0) and SparseDtype(float, nan).
@@ -1593,8 +1601,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
                    'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
-        if compat.PY2:
-            special.add('div')
         aliases = {
             'subtract': 'sub',
             'multiply': 'mul',

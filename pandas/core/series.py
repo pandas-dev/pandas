@@ -12,7 +12,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import iNaT, index as libindex, lib, tslibs
-import pandas.compat as compat
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
@@ -50,10 +49,6 @@ from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
 import pandas.plotting._core as gfx
-
-# pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613,W0201
-
 
 __all__ = ['Series']
 
@@ -291,7 +286,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
         if data:
-            keys, values = zip(*compat.iteritems(data))
+            keys, values = zip(*data.items())
             values = list(values)
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
@@ -1374,10 +1369,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __unicode__(self):
         """
-        Return a string representation for a particular DataFrame.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a unicode string representation for a particular DataFrame.
         """
         buf = StringIO("")
         width, height = get_terminal_size()
@@ -1523,7 +1515,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # GH16122
         into_c = com.standardize_mapping(into)
-        return into_c(compat.iteritems(self))
+        return into_c(self.items())
 
     def to_frame(self, name=None):
         """
@@ -3522,7 +3514,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @Substitution(see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
-                  versionadded='.. versionadded:: 0.20.0',
+                  versionadded='\n.. versionadded:: 0.20.0\n',
                   **_shared_doc_kwargs)
     @Appender(generic._shared_docs['aggregate'])
     def aggregate(self, func, axis=0, *args, **kwargs):

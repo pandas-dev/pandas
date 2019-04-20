@@ -1,5 +1,4 @@
 # being a bit too dynamic
-# pylint: disable=E1101
 from collections import namedtuple
 import re
 from typing import List, Optional, Type
@@ -9,7 +8,6 @@ import numpy as np
 
 from pandas._config import get_option
 
-import pandas.compat as compat
 from pandas.compat import lrange
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
@@ -62,7 +60,7 @@ def _gcf():
     return plt.gcf()
 
 
-class MPLPlot(object):
+class MPLPlot:
     """
     Base class for assembling a pandas plot using matplotlib
 
@@ -1627,7 +1625,7 @@ class BoxPlot(LinePlot):
 
             if isinstance(self.color, dict):
                 valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
-                for key, values in compat.iteritems(self.color):
+                for key, values in self.color.items():
                     if key not in valid_keys:
                         raise ValueError("color dict contains invalid "
                                          "key '{0}' "
@@ -2090,15 +2088,15 @@ _shared_docs['boxplot'] = """
     -----
     The return type depends on the `return_type` parameter:
 
-        * 'axes' : object of class matplotlib.axes.Axes
-        * 'dict' : dict of matplotlib.lines.Line2D objects
-        * 'both' : a namedtuple with structure (ax, lines)
+    * 'axes' : object of class matplotlib.axes.Axes
+    * 'dict' : dict of matplotlib.lines.Line2D objects
+    * 'both' : a namedtuple with structure (ax, lines)
 
-        For data grouped with ``by``:
+    For data grouped with ``by``, return a Series of the above or a numpy
+    array:
 
-        * :class:`~pandas.Series`
-        * :class:`~numpy.array` (for ``return_type = None``)
-        Return Series or numpy.array.
+    * :class:`~pandas.Series`
+    * :class:`~numpy.array` (for ``return_type = None``)
 
     Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines

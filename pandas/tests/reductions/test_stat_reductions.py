@@ -16,7 +16,7 @@ from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 import pandas.util.testing as tm
 
 
-class TestDatetimeLikeStatReductions(object):
+class TestDatetimeLikeStatReductions:
 
     @pytest.mark.parametrize('box', [Series, pd.Index, DatetimeArray])
     def test_dt64_mean(self, tz_naive_fixture, box):
@@ -84,7 +84,7 @@ class TestDatetimeLikeStatReductions(object):
         assert result2.round('us') == (result * 11. / 10).round('us')
 
 
-class TestSeriesStatReductions(object):
+class TestSeriesStatReductions:
     # Note: the name TestSeriesStatReductions indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific

@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from pandas.compat import PY3, PY36
+from pandas.compat import PY36
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, IntervalDtype,
@@ -1274,9 +1274,7 @@ def _is_unorderable_exception(e):
     if PY36:
         return "'>' not supported between instances of" in str(e)
 
-    elif PY3:
-        return 'unorderable' in str(e)
-    return False
+    return 'unorderable' in str(e)
 
 
 def is_numeric_v_string_like(a, b):
