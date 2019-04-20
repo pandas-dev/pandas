@@ -673,7 +673,7 @@ class TestRolling(Base):
 
         axis = df._get_axis_number(axis_frame)
 
-        if axis == 0:
+        if axis in [0, 'index']:
             expected = DataFrame({'x': [1.0, 2.0, 2.0], 'y': [1.0, 2.0, 2.0]})
         else:
             # axis == 1
