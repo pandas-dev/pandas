@@ -146,6 +146,11 @@ If the data are tz-aware, then every value in the array must have the same timez
    :toctree: api/
 
    arrays.DatetimeArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
    DatetimeTZDtype
 
 .. _api.arrays.timedelta:
@@ -260,6 +265,11 @@ Every period in a ``PeriodArray`` must have the same ``freq``.
    :toctree: api/
 
    arrays.PeriodArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
    PeriodDtype
 
 .. _api.arrays.interval:
@@ -296,6 +306,11 @@ A collection of intervals may be stored in an :class:`arrays.IntervalArray`.
    :toctree: api/
 
    arrays.IntervalArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
    IntervalDtype
 
 .. _api.arrays.integer_na:
@@ -310,6 +325,11 @@ Pandas provides this through :class:`arrays.IntegerArray`.
    :toctree: api/
 
    arrays.IntegerArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
    Int8Dtype
    Int16Dtype
    Int32Dtype
@@ -396,8 +416,27 @@ be stored efficiently as a :class:`SparseArray`.
    :toctree: api/
 
    SparseArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
    SparseDtype
 
 The ``Series.sparse`` accessor may be used to access sparse-specific attributes
 and methods if the :class:`Series` contains sparse values. See
 :ref:`api.series.sparse` for more.
+
+
+
+.. Dtype attributes which are manually listed in their docstrings: including
+.. it here to make sure a docstring page is built for them
+
+..
+    .. autosummary::
+      :toctree: api/
+
+      DatetimeTZDtype.unit
+      DatetimeTZDtype.tz
+      PeriodDtype.freq
+      IntervalDtype.subtype

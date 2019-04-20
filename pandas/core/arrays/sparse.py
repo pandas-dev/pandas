@@ -72,6 +72,14 @@ class SparseDtype(ExtensionDtype):
         =========== ==========
 
         The default value may be overridden by specifying a `fill_value`.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     # We include `_is_na_fill_value` in the metadata to avoid hash collisions
     # between SparseDtype(float, 0.0) and SparseDtype(float, nan).
