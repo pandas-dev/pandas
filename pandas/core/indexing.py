@@ -944,8 +944,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         except TypeError:
             # slices are unhashable
             pass
-        except KeyError:
-            return None
+        except KeyError as ek:
+            if len(tup) > self.obj.ndim:
+                raise ek
         except Exception as e1:
             if isinstance(tup[0], (slice, Index)):
                 raise IndexingError("Handle elsewhere")
@@ -978,12 +979,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 return result
 
         if len(tup) > self.obj.ndim:
-            try:
-                self._get_label(tup, axis=self.axis)
-            except KeyError:
-                return self._get_label(tup, axis=self.axis)
-            except Exception:
-                raise IndexingError("Too many indexers. handle elsewhere")
+            raise IndexingError("Too many indexers. handle elsewhere")
 
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
