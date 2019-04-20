@@ -6,7 +6,7 @@ from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
 import pandas as pd
 
 
-class Melt(object):
+class Melt:
 
     def setup(self):
         self.df = DataFrame(np.random.randn(10000, 3), columns=['A', 'B', 'C'])
@@ -17,7 +17,7 @@ class Melt(object):
         melt(self.df, id_vars=['id1', 'id2'])
 
 
-class Pivot(object):
+class Pivot:
 
     def setup(self):
         N = 10000
@@ -31,7 +31,7 @@ class Pivot(object):
         self.df.pivot('date', 'variable', 'value')
 
 
-class SimpleReshape(object):
+class SimpleReshape:
 
     def setup(self):
         arrays = [np.arange(100).repeat(100),
@@ -47,7 +47,7 @@ class SimpleReshape(object):
         self.df.unstack(1)
 
 
-class Unstack(object):
+class Unstack:
 
     params = ['int', 'category']
 
@@ -79,7 +79,7 @@ class Unstack(object):
         self.df2.unstack()
 
 
-class SparseIndex(object):
+class SparseIndex:
 
     def setup(self):
         NUM_ROWS = 1000
@@ -95,7 +95,7 @@ class SparseIndex(object):
         self.df.unstack()
 
 
-class WideToLong(object):
+class WideToLong:
 
     def setup(self):
         nyrs = 20
@@ -113,7 +113,7 @@ class WideToLong(object):
         wide_to_long(self.df, self.letters, i='id', j='year')
 
 
-class PivotTable(object):
+class PivotTable:
 
     def setup(self):
         N = 100000
@@ -152,7 +152,7 @@ class PivotTable(object):
                              aggfunc=np.sum, fill_value=0, observed=True)
 
 
-class Crosstab(object):
+class Crosstab:
 
     def setup(self):
         N = 100000
@@ -176,7 +176,7 @@ class Crosstab(object):
         pd.crosstab(self.vec1, self.vec2, normalize=True, margins=True)
 
 
-class GetDummies(object):
+class GetDummies:
     def setup(self):
         categories = list(string.ascii_letters[:12])
         s = pd.Series(np.random.choice(categories, size=1000000),
@@ -190,7 +190,7 @@ class GetDummies(object):
         pd.get_dummies(self.s, sparse=True)
 
 
-class Cut(object):
+class Cut:
     params = [[4, 10, 1000]]
     param_names = ['bins']
 

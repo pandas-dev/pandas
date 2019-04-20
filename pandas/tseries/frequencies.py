@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 import re
+from typing import Dict
 
 import numpy as np
 from pytz import AmbiguousTimeError
@@ -37,7 +38,7 @@ _ONE_DAY = (24 * _ONE_HOUR)
 # Offset names ("time rules") and related functions
 
 #: cache of previously seen offsets
-_offset_map = {}
+_offset_map = {}  # type: Dict[str, DateOffset]
 
 
 def get_period_alias(offset_str):
@@ -252,7 +253,7 @@ def infer_freq(index, warn=True):
     return inferer.get_freq()
 
 
-class _FrequencyInferer(object):
+class _FrequencyInferer:
     """
     Not sure if I can avoid the state machine here
     """

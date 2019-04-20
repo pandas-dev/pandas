@@ -10,7 +10,7 @@ import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
 
-class GoodDocStrings(object):
+class GoodDocStrings:
     """
     Collection of good doc strings.
 
@@ -253,7 +253,7 @@ class GoodDocStrings(object):
             return None
 
 
-class BadGenericDocStrings(object):
+class BadGenericDocStrings:
     """Everything here has a bad docstring
     """
 
@@ -445,7 +445,7 @@ class BadGenericDocStrings(object):
         pass
 
 
-class BadSummaries(object):
+class BadSummaries:
 
     def wrong_line(self):
         """Exists on the wrong line"""
@@ -484,7 +484,7 @@ class BadSummaries(object):
         """
 
 
-class BadParameters(object):
+class BadParameters:
     """
     Everything here has a problem with its Parameters section.
     """
@@ -611,7 +611,7 @@ class BadParameters(object):
         pass
 
 
-class BadReturns(object):
+class BadReturns:
 
     def return_not_documented(self):
         """
@@ -694,7 +694,7 @@ class BadReturns(object):
         return "Hello", "World!"
 
 
-class BadSeeAlso(object):
+class BadSeeAlso:
 
     def desc_no_period(self):
         """
@@ -732,7 +732,7 @@ class BadSeeAlso(object):
         pass
 
 
-class BadExamples(object):
+class BadExamples:
 
     def unused_import(self):
         """
@@ -770,7 +770,7 @@ class BadExamples(object):
         pass
 
 
-class TestValidator(object):
+class TestValidator:
 
     def _import_path(self, klass=None, func=None):
         """
@@ -951,7 +951,7 @@ class TestValidator(object):
         assert len(result) == 0
 
 
-class TestApiItems(object):
+class TestApiItems:
     @property
     def api_doc(self):
         return io.StringIO(textwrap.dedent('''
@@ -1027,7 +1027,7 @@ class TestApiItems(object):
         assert result[idx][3] == subsection
 
 
-class TestDocstringClass(object):
+class TestDocstringClass:
     @pytest.mark.parametrize('name, expected_obj',
                              [('pandas.isnull', pd.isnull),
                               ('pandas.DataFrame', pd.DataFrame),
@@ -1053,7 +1053,7 @@ class TestDocstringClass(object):
             validate_docstrings.Docstring(invalid_name)
 
 
-class TestMainFunction(object):
+class TestMainFunction:
     def test_exit_status_for_validate_one(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings, 'validate_one', lambda func_name: {

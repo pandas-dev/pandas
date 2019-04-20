@@ -18,7 +18,7 @@ from pandas.core.indexes.datetimes import date_range
 import pandas.util.testing as tm
 
 
-class TestDataFrameTimezones(object):
+class TestDataFrameTimezones:
 
     def test_frame_values_with_tz(self):
         tz = "US/Central"

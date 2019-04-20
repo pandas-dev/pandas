@@ -3,7 +3,7 @@ import pytest
 from pandas._config import detect_console_encoding
 
 
-class MockEncoding(object):  # TODO(py27): replace with mock
+class MockEncoding:  # TODO(py27): replace with mock
     """
     Used to add a side effect when accessing the 'encoding' property. If the
     side effect is a str in nature, the value will be returned. Otherwise, the
