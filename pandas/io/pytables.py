@@ -2252,7 +2252,7 @@ class DataCol(IndexCol):
                     self.values = list(map(tuple, data.tolist()))
                 else:
                     self.values = data.tolist()
-            except NoSuchNodeError:
+            except _table_mod.exceptions.NoSuchNodeError:
                 pass
 
         self.dtype = getattr(self.attrs, self.dtype_attr, None)
