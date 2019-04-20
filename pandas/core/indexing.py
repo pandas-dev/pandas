@@ -945,7 +945,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # slices are unhashable
             pass
         except KeyError as ek:
-            if len(tup) > self.obj.ndim:
+            # raise KeyError if number of indexers match
+            # else IndexingError will be raised
+            if (len(tup) == len(self.obj.index._levels)
+                    and len(tup) > self.obj.ndim):
                 raise ek
         except Exception as e1:
             if isinstance(tup[0], (slice, Index)):
