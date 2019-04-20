@@ -1421,7 +1421,7 @@ class MultiIndex(Index):
     def unique(self, level=None):
 
         if level is None:
-            return super(MultiIndex, self).unique()
+            return super().unique()
         else:
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
@@ -2121,8 +2121,7 @@ class MultiIndex(Index):
             indexer is an ndarray or None if cannot convert
             keyarr are tuple-safe keys
         """
-        indexer, keyarr = super(MultiIndex, self)._convert_listlike_indexer(
-            keyarr, kind=kind)
+        indexer, keyarr = super()._convert_listlike_indexer(keyarr, kind=kind)
 
         # are we indexing a specific level
         if indexer is None and len(keyarr) and not isinstance(keyarr[0],
@@ -2181,7 +2180,7 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        return super(MultiIndex, self).get_indexer_non_unique(target)
+        return super().get_indexer_non_unique(target)
 
     def reindex(self, target, method=None, level=None, limit=None,
                 tolerance=None):
@@ -2306,7 +2305,7 @@ class MultiIndex(Index):
         """
         # This function adds nothing to its parent implementation (the magic
         # happens in get_slice_bound method), but it adds meaningful doc.
-        return super(MultiIndex, self).slice_locs(start, end, step, kind=kind)
+        return super().slice_locs(start, end, step, kind=kind)
 
     def _partial_tup_index(self, tup, side='left'):
         if len(tup) > self.lexsort_depth:
