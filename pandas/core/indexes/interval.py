@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype, is_list_like, is_number, is_object_dtype, is_scalar)
 from pandas.core.dtypes.missing import isna
 
+import pandas.core.algorithms as algos
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
@@ -1090,6 +1091,63 @@ class IntervalIndex(IntervalMixin, Index):
     def overlaps(self, other):
         return self._data.overlaps(other)
 
+    def intersection2(self, other, sort=False):
+        other = self._as_like_interval_index(other)
+
+        # GH 19016: ensure set op will not return a prohibited dtype
+        subtypes = [self.dtype.subtype, other.dtype.subtype]
+        common_subtype = find_common_type(subtypes)
+        if is_object_dtype(common_subtype):
+            msg = ('can only do intersection between two IntervalIndex '
+                   'objects that have compatible dtypes')
+            raise TypeError(msg)
+
+        try:
+            lindexer = other.left.get_indexer(self.left)
+            rindexer = other.right.get_indexer(self.right)
+        except Exception:
+            # duplicates
+            lindexer = algos.unique1d(
+                other.left.get_indexer_non_unique(self.left)[0])
+            rindexer = algos.unique1d(
+                other.right.get_indexer_non_unique(self.right)[0])
+
+        match = (lindexer == rindexer) & (lindexer != -1)
+        indexer = lindexer.take(match.nonzero()[0])
+        taken = other.take(indexer)
+
+        return taken
+
+    def intersection(self, other, sort=False):
+        other = self._as_like_interval_index(other)
+
+        # GH 19016: ensure set op will not return a prohibited dtype
+        subtypes = [self.dtype.subtype, other.dtype.subtype]
+        common_subtype = find_common_type(subtypes)
+        if is_object_dtype(common_subtype):
+            msg = ('can only do intersection between two IntervalIndex '
+                   'objects that have compatible dtypes')
+            raise TypeError(msg)
+
+        try:
+            lindexer = self.left.get_indexer(other.left)
+            rindexer = self.right.get_indexer(other.right)
+        except Exception:
+            # duplicates
+            lindexer = algos.unique1d(
+                self.left.get_indexer_non_unique(other.left)[0])
+            rindexer = algos.unique1d(
+                self.right.get_indexer_non_unique(other.right)[0])
+
+        match = (lindexer == rindexer) & (lindexer != -1)
+        indexer = lindexer.take(match.nonzero()[0])
+        taken = self.take(indexer)
+
+        if sort is None:
+            taken = taken.sort_values()
+
+        return taken
+
     def _setop(op_name, sort=None):
         def func(self, other, sort=sort):
             other = self._as_like_interval_index(other)
@@ -1125,7 +1183,6 @@ class IntervalIndex(IntervalMixin, Index):
         return False
 
     union = _setop('union')
-    intersection = _setop('intersection', sort=False)
     difference = _setop('difference')
     symmetric_difference = _setop('symmetric_difference')
 
