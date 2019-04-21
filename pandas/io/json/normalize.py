@@ -38,15 +38,17 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
     ----------
     ds : dict or list of dicts
     prefix: the prefix, optional, default: ""
-    sep : string, default '.'
+    sep : str, default '.'
         Nested records will generate names separated by sep,
         e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
 
         .. versionadded:: 0.20.0
 
-    level: int, optional, the number of levels in the json string, default: 0
+    level: int, optional, default:0
+        The number of levels in the json string.
 
-    max_level: int, optional, normalize to a maximum level of, default: None
+    max_level: int, optional, default: None
+        The max depth to normalize.
 
         .. versionadded:: 0.25.0
 
@@ -123,37 +125,40 @@ def json_normalize(data, record_path=None, meta=None,
     Parameters
     ----------
     data : dict or list of dicts
-        Unserialized JSON objects
-    record_path : str or list of string, default None
+        Unserialized JSON objects.
+    record_path : str or list of str, default None
         Path in each object to list of records. If not passed, data will be
         assumed to be an array of records.
-    meta : list of paths (string or list of strings), default None
+    meta : list of paths (str or list of str), default None
         Fields to use as metadata for each record in resulting table.
-    meta_prefix : string, default None
-    record_prefix : string, default None
+    meta_prefix : str, default None
+        If True, prefix records with dotted (?) path, e.g. foo.bar.field if
+        meta is ['foo', 'bar'].
+    record_prefix : str, default None
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar'].
     errors : {'raise', 'ignore'}, default 'raise'
+        Configures error handling.
         * 'ignore' : will ignore KeyError if keys listed in meta are not
-          always present
+          always present.
         * 'raise' : will raise KeyError if keys listed in meta are not
-          always present
+          always present.
 
         .. versionadded:: 0.20.0
 
-    sep : string, default '.'
-        Nested records will generate names separated by sep,
-        e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
+    sep : str, default '.'
+        Nested records will generate names separated by sep.
+        e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar.
 
         .. versionadded:: 0.20.0
 
-    max_level : integer, default None
-        max number of levels(depth of dict) to normalize.
+    max_level : int, default None
+        Max number of levels(depth of dict) to normalize.
         if None, normalizes all levels.
 
         .. versionadded:: 0.25.0
 
-    ignore_keys : list, keys to ignore, default []
+    ignore_keys : list, keys to ignore, default None
         List of keys that you do not want to normalize.
 
         .. versionadded:: 0.25.0
@@ -161,6 +166,7 @@ def json_normalize(data, record_path=None, meta=None,
     Returns
     -------
     frame : DataFrame
+        Returns a JSON normalized Dataframe.
 
     Examples
     --------
@@ -186,7 +192,7 @@ def json_normalize(data, record_path=None, meta=None,
     >>> json_normalize(data, max_level=1, ignore_keys=["name"])
       fitness.height  fitness.weight   id                  name
     0   130              60          1.0    {'first': 'Coleen', 'last': 'Volk'}
-    1   130              60          NaN  {'given': 'Mose', 'family': 'Regner'}
+    1   130              60          NaN    {'given': 'Mose', 'family': 'Regner'}
     2   130              60          2.0               Faye Raker
 
     >>> data = [{'state': 'Florida',

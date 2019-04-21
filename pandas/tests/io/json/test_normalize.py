@@ -79,7 +79,7 @@ def deeply_nested_post_data():
                       {'foo': 'something2', 'bar': 'else2'}]
              }]
 
-
+@pytest.fixture
 def expected_data_test_path_with_nested_data():
     return {0: [{"TextField": "Some text",
                  'UserField': {'Id': 'ID001', 'Name': 'Name001'},
@@ -332,7 +332,7 @@ class TestJSONNormalize:
                                          deeply_nested_post_data,
                                          max_level):
         test_input = deeply_nested_post_data
-        expected_data = expected_data_test_path_with_nested_data()[max_level]
+        expected_data = expected_data_test_path_with_nested_data[max_level]
         result = json_normalize(test_input,
                                 record_path=["Lookup"],
                                 meta=[["CreatedBy"], ["Image"]],
@@ -416,14 +416,8 @@ class TestNestedToRecord:
              'zip': 37643,
              'name': np.nan}
         ]
-        # ex_data = [
-        #     ['Massillon', 9562, 'OH', 'Morris St.', 44646, 'Alice'],
-        #     ['Elizabethton', 8449, 'TN', 'Spring St.', 37643, "nan"]
-        # ]
-
         columns = ['city', 'number', 'state', 'street', 'zip', 'name']
         expected = DataFrame(ex_data, columns=columns)
-        # print(type(expected["name"][1]), type(result["name"][1]))
         tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
@@ -510,6 +504,7 @@ class TestNestedToRecord:
         assert result == expected
 
     def test_with_max_level_none(self):
+        #GH23843 Enhanced JSON normalize
         data = [{
             'CreatedBy': {'Name': 'User001'},
             'Lookup': {'TextField': 'Some text',
