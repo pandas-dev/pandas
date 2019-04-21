@@ -379,5 +379,6 @@ cdef class _Timestamp(datetime):
 
     def timestamp(self):
         """Return POSIX timestamp as float."""
-        # Note: tz-aware Timestamps will return a UTC-like timestamp
+        # GH 17329
+        # Note: Naive timestamps will not match datetime.stdlib
         return round(self.value / 1e9, 6)
