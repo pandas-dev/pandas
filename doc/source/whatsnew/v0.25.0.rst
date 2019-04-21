@@ -390,7 +390,6 @@ Groupby/Resample/Rolling
 - Bug in :func:`idxmax` and :func:`idxmin` on :meth:`DataFrame.groupby` with datetime column would return incorrect dtype (:issue:`25444`, :issue:`15306`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.idxmax` and :meth:`pandas.core.groupby.GroupBy.idxmin` with datetime column would return incorrect dtype (:issue:`25444`, :issue:`15306`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.cumsum`, :meth:`pandas.core.groupby.GroupBy.cumprod`, :meth:`pandas.core.groupby.GroupBy.cummin` and :meth:`pandas.core.groupby.GroupBy.cummax` with categorical column having absent categories, would return incorrect result or segfault (:issue:`16771`)
-- Bug in :func:`_cython_agg_general` which caused a fall back in line 1272 of groupby.py, fixed by adding optional skipna flag in :func:`_cython_agg_general`. Fallback still occurs from strings but this comes from :func:`_aggregate` in groupby/ops.py
 
 Reshaping
 ^^^^^^^^^
