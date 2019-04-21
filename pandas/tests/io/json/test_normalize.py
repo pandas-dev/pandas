@@ -330,6 +330,7 @@ class TestJSONNormalize:
     @pytest.mark.parametrize("max_level", [0, 1])
     def test_max_level_with_records_path(self,
                                          deeply_nested_post_data,
+                                         expected_data_test_path_with_nested_data,
                                          max_level):
         test_input = deeply_nested_post_data
         expected_data = expected_data_test_path_with_nested_data[max_level]
