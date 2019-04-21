@@ -3,8 +3,6 @@ import collections
 import textwrap
 import warnings
 
-import sys
-
 import cython
 
 from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
@@ -14,7 +12,7 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
-from cpython.datetime cimport (datetime, timedelta,
+from cpython.datetime cimport (timedelta,
                                PyDateTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT

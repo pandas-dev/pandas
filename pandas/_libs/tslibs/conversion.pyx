@@ -3,22 +3,19 @@ import cython
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport uint8_t, int64_t, int32_t, intp_t, ndarray
+from numpy cimport int64_t, int32_t, intp_t, ndarray
 cnp.import_array()
 
 import pytz
-from dateutil.tz import tzutc
 
 # stdlib datetime imports
 from datetime import time as datetime_time
 from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_Check, PyDate_Check,
-                               PyDateTime_IMPORT, PyDelta_Check)
+                               PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.c_timestamp cimport _Timestamp
-
-from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
 
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, pandas_datetime_to_datetimestruct,
@@ -42,7 +39,7 @@ from pandas._libs.tslibs.nattype cimport (
     NPY_NAT, checknull_with_nat, c_NaT as NaT)
 
 from pandas._libs.tslibs.tzconversion import (
-    tz_localize_to_utc, tz_convert, tz_convert_single)
+    tz_localize_to_utc, tz_convert_single)
 from pandas._libs.tslibs.tzconversion cimport _tz_convert_tzlocal_utc
 
 # ----------------------------------------------------------------------
