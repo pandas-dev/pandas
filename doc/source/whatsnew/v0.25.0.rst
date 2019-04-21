@@ -328,7 +328,7 @@ Indexing
 ^^^^^^^^
 
 - Improved exception message when calling :meth:`DataFrame.iloc` with a list of non-numeric objects (:issue:`25753`).
--
+- Bug in :meth:`_NDFrameIndexer._handle_lowerdim_multi_index_axis0` where KeyError was not raised for a ``MultiIndex``. Now, IndexingError takes precedence over KeyError (:issue:`14885`)
 -
 
 

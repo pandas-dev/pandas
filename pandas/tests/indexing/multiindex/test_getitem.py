@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series
+from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
 
 # ----------------------------------------------------------------------------
@@ -85,6 +86,7 @@ def test_series_getitem_returns_scalar(
     (lambda s: s.__getitem__((2000, 3, 4)), KeyError, r"^356L?$"),
     (lambda s: s[(2000, 3, 4)], KeyError, r"^356L?$"),
     (lambda s: s.loc[(2000, 3, 4)], KeyError, r"^356L?$"),
+    (lambda s: s.loc[(2000, 3, 4, 5)], IndexingError, 'Too many indexers'),
     (lambda s: s.__getitem__(len(s)), IndexError, 'index out of bounds'),
     (lambda s: s[len(s)], IndexError, 'index out of bounds'),
     (lambda s: s.iloc[len(s)], IndexError,
