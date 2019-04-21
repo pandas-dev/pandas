@@ -356,7 +356,6 @@ def test_to_numpy_alias():
 ])
 def test_nat_comparisons(compare_operators_no_eq_ne, other):
     # GH 26039
-    short_opname = compare_operators_no_eq_ne.strip('_')
-    op = getattr(operator, short_opname)
+    op = getattr(operator, compare_operators_no_eq_ne)
     assert op(NaT, other) is False
     assert op(other, NaT) is False
