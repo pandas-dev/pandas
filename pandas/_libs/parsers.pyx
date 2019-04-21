@@ -304,6 +304,7 @@ cdef class TextReader:
         object index_col
         object low_memory
         object skiprows
+        object skipdatarows
         object dtype
         object encoding
         object compression
@@ -359,6 +360,7 @@ cdef class TextReader:
                   allow_leading_cols=True,
                   low_memory=False,
                   skiprows=None,
+                  skipdatarows=None,
                   skipfooter=0,
                   verbose=False,
                   mangle_dupe_cols=True,
@@ -446,6 +448,7 @@ cdef class TextReader:
         self.parser.error_bad_lines = int(error_bad_lines)
         self.parser.warn_bad_lines = int(warn_bad_lines)
 
+        self.skipdatarows = skipdatarows
         self.skiprows = skiprows
         if skiprows is not None:
             self._make_skiprow_set()

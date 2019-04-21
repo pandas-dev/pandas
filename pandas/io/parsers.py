@@ -433,10 +433,12 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     _validate_names(kwds.get("names", None))
 
     # Create the parser.
-    parser = TextFileReader(fp_or_buf, **kwds)
+    # Added functionality for `skipdatarows` flag, if not provided, regular
+    # parser created.
+    if isinstance(kwds.get('skipdatarows', None), int):
+        kwds['skiprows'] = None
 
-    if chunksize or iterator:
-        return parser
+    parser = TextFileReader(fp_or_buf, **kwds)
 
     try:
         data = parser.read(nrows)
@@ -448,6 +450,12 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
             fp_or_buf.close()
         except ValueError:
             pass
+
+    # If `skipdatarows` flag is provided, and has at least one entry, return data after first n data rows.
+    if len(data) is 0:
+        return data
+    elif isinstance(kwds.get('skipdatarows', None), int):
+        data = data.loc[kwds['skipdatarows']::, :].reset_index(drop=True)
 
     return data
 
@@ -467,6 +475,7 @@ _parser_defaults = {
     'names': None,
     'prefix': None,
     'skiprows': None,
+    'skipdatarows': None,
     'skipfooter': 0,
     'nrows': None,
     'na_values': None,
@@ -561,6 +570,7 @@ def _make_parser_function(name, default_sep=','):
                  false_values=None,
                  skipinitialspace=False,
                  skiprows=None,
+                 skipdatarows=None,
                  skipfooter=0,
                  nrows=None,
 
@@ -670,6 +680,7 @@ def _make_parser_function(name, default_sep=','):
                     names=names,
                     prefix=prefix,
                     skiprows=skiprows,
+                    skipdatarows=skipdatarows,
                     skipfooter=skipfooter,
                     na_values=na_values,
                     true_values=true_values,
