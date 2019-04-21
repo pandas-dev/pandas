@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import operator
 
 import numpy as np
 import pytest
@@ -356,6 +355,5 @@ def test_to_numpy_alias():
 ])
 def test_nat_comparisons(compare_operators_no_eq_ne, other):
     # GH 26039
-    op = getattr(operator, compare_operators_no_eq_ne)
-    assert op(NaT, other) is False
-    assert op(other, NaT) is False
+    assert getattr(NaT, compare_operators_no_eq_ne)(other) is False
+    assert getattr(other, compare_operators_no_eq_ne)(NaT) is False
