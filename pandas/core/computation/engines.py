@@ -35,11 +35,8 @@ def _check_ne_builtin_clash(expr):
                                      .format(expr=expr, s=s))
 
 
-class AbstractEngine:
-
+class AbstractEngine(metaclass=abc.ABCMeta):
     """Object serving as a base class for all engines."""
-
-    __metaclass__ = abc.ABCMeta
 
     has_neg_frac = False
 
