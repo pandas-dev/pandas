@@ -330,7 +330,7 @@ def array_with_unit_to_datetime(ndarray values, object unit,
     if unit == 'ns':
         if issubclass(values.dtype.type, np.integer):
             return values.astype('M8[ns]')
-        return array_to_datetime(values.astype(object), errors=errors)[0]
+        return array_to_datetime(values.astype(object), errors=errors)
 
     m = cast_from_unit(None, unit)
 
