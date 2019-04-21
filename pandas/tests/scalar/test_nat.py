@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import operator
 
 import numpy as np
 import pytest
@@ -350,14 +351,12 @@ def test_to_numpy_alias():
     assert isna(expected) and isna(result)
 
 
-@pytest.mark.parametrize("op", [
-    lambda a, b: a > b, lambda a, b: a >= b,
-    lambda a, b: a < b, lambda a, b: a <= b
-])
 @pytest.mark.parametrize("other", [
     Timedelta(0), Timestamp(0)
 ])
-def test_nat_comparisons(op, other):
+def test_nat_comparisons(compare_operators_no_eq_ne, other):
     # GH 26039
+    short_opname = compare_operators_no_eq_ne.strip('_')
+    op = getattr(operator, short_opname)
     assert op(NaT, other) is False
     assert op(other, NaT) is False
