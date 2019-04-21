@@ -4,8 +4,6 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas.compat as compat
-
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
 import pandas.util.testing as tm
@@ -15,7 +13,7 @@ from pandas.tseries.offsets import BDay, CDay
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestGetItem(object):
+class TestGetItem:
     def test_ellipsis(self):
         # GH#21282
         idx = pd.date_range('2011-01-01', '2011-01-31', freq='D',
@@ -109,7 +107,7 @@ class TestGetItem(object):
         tm.assert_numpy_array_equal(values, expected)
 
 
-class TestWhere(object):
+class TestWhere:
     def test_where_other(self):
         # other is ndarray or Index
         i = pd.date_range('20130101', periods=3, tz='US/Eastern')
@@ -142,7 +140,7 @@ class TestWhere(object):
         tm.assert_index_equal(result, expected)
 
 
-class TestTake(object):
+class TestTake:
     def test_take(self):
         # GH#10295
         idx1 = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
@@ -286,7 +284,7 @@ class TestTake(object):
             idx.take(np.array([1, -5]))
 
 
-class TestDatetimeIndex(object):
+class TestDatetimeIndex:
     @pytest.mark.parametrize('null', [None, np.nan, pd.NaT])
     @pytest.mark.parametrize('tz', [None, 'UTC', 'US/Eastern'])
     def test_insert_nat(self, tz, null):
@@ -413,7 +411,7 @@ class TestDatetimeIndex(object):
                  -1: expected_4,
                  4: expected_4,
                  1: expected_1}
-        for n, expected in compat.iteritems(cases):
+        for n, expected in cases.items():
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
@@ -460,7 +458,7 @@ class TestDatetimeIndex(object):
         cases = {(0, 1, 2): expected_0_2,
                  (7, 8, 9): expected_7_9,
                  (3, 4, 5): expected_3_5}
-        for n, expected in compat.iteritems(cases):
+        for n, expected in cases.items():
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name

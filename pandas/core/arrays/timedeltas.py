@@ -566,10 +566,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                             .format(dtype=other.dtype,
                                     cls=type(self).__name__))
 
-    if compat.PY2:
-        __div__ = __truediv__
-        __rdiv__ = __rtruediv__
-
     def __floordiv__(self, other):
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented

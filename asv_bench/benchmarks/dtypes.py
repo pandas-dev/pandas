@@ -12,7 +12,7 @@ _numpy_dtypes = [np.dtype(dtype)
 _dtypes = _numpy_dtypes + extension_dtypes
 
 
-class Dtypes(object):
+class Dtypes:
     params = (_dtypes +
               list(map(lambda dt: dt.name, _dtypes)))
     param_names = ['dtype']
@@ -21,7 +21,7 @@ class Dtypes(object):
         pandas_dtype(dtype)
 
 
-class DtypesInvalid(object):
+class DtypesInvalid:
     param_names = ['dtype']
     params = ['scalar-string', 'scalar-int', 'list-string', 'array-string']
     data_dict = {'scalar-string': 'foo',
