@@ -2,16 +2,17 @@
 from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal
+from io import StringIO
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, lzip
+from pandas.compat import lmap, lrange, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, compat, date_range,
+    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, date_range,
     read_csv)
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -402,7 +403,7 @@ def test_frame_groupby(tsframe):
     groups = grouped.groups
     indices = grouped.indices
 
-    for k, v in compat.iteritems(groups):
+    for k, v in groups.items():
         samething = tsframe.index.take(indices[k])
         assert (samething == v).all()
 
@@ -523,7 +524,7 @@ def test_groupby_multiple_columns(df, op):
         for n2, gp2 in gp1.groupby('B'):
             expected[n1][n2] = op(gp2.loc[:, ['C', 'D']])
     expected = {k: DataFrame(v)
-                for k, v in compat.iteritems(expected)}
+                for k, v in expected.items()}
     expected = Panel.fromDict(expected).swapaxes(0, 1)
     expected.major_axis.name, expected.minor_axis.name = 'A', 'B'
 
@@ -1274,7 +1275,7 @@ def test_groupby_sort_multi():
         tups = lmap(tuple, df[keys].values)
         tups = com.asarray_tuplesafe(tups)
         expected = f(df.groupby(tups)[field])
-        for k, v in compat.iteritems(expected):
+        for k, v in expected.items():
             assert (result[k] == v)
 
     _check_groupby(df, result, ['a', 'b'], 'd')
@@ -1719,3 +1720,23 @@ def test_groupby_empty_list_raises():
     msg = "Grouper and axis must be same length"
     with pytest.raises(ValueError, match=msg):
         df.groupby([[]])
+
+
+def test_groupby_multiindex_series_keys_len_equal_group_axis():
+    # GH 25704
+    index_array = [
+        ['x', 'x'],
+        ['a', 'b'],
+        ['k', 'k']
+    ]
+    index_names = ['first', 'second', 'third']
+    ri = pd.MultiIndex.from_arrays(index_array, names=index_names)
+    s = pd.Series(data=[1, 2], index=ri)
+    result = s.groupby(['first', 'third']).sum()
+
+    index_array = [['x'], ['k']]
+    index_names = ['first', 'third']
+    ei = pd.MultiIndex.from_arrays(index_array, names=index_names)
+    expected = pd.Series([3], index=ei)
+
+    assert_series_equal(result, expected)

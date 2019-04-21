@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import index as libindex, lib
 import pandas.compat as compat
-from pandas.compat import get_range_parameters, lrange
+from pandas.compat import lrange
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -126,13 +126,13 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def from_range(cls, data, name=None, dtype=None, **kwargs):
-        """ Create RangeIndex from a range (py3), or xrange (py2) object. """
+        """ Create RangeIndex from a range object. """
         if not isinstance(data, range):
             raise TypeError(
                 '{0}(...) must be called with object coercible to a '
                 'range, {1} was passed'.format(cls.__name__, repr(data)))
 
-        start, stop, step = get_range_parameters(data)
+        start, stop, step = data.start, data.stop, data.step
         return RangeIndex(start, stop, step, dtype=dtype, name=name, **kwargs)
 
     @classmethod
@@ -156,7 +156,7 @@ class RangeIndex(Int64Index):
         result._stop = stop or 0
         result._step = step or 1
         result.name = name
-        for k, v in compat.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(result, k, v)
 
         result._reset_identity()
@@ -726,9 +726,6 @@ class RangeIndex(Int64Index):
                                                step=operator.truediv)
         cls.__rtruediv__ = _make_evaluate_binop(ops.rtruediv,
                                                 step=ops.rtruediv)
-        if not compat.PY3:
-            cls.__div__ = _make_evaluate_binop(operator.div, step=operator.div)
-            cls.__rdiv__ = _make_evaluate_binop(ops.rdiv, step=ops.rdiv)
 
 
 RangeIndex._add_numeric_methods()

@@ -27,11 +27,8 @@ from requests.auth import HTTPBasicAuth
 import requests
 
 import os
-import six
 import sys
 import textwrap
-
-from six.moves import input
 
 PANDAS_HOME = '.'
 PROJECT_NAME = 'pandas'
@@ -80,12 +77,12 @@ def fail(msg):
 
 
 def run_cmd(cmd):
-    if isinstance(cmd, six.string_types):
+    if isinstance(cmd, str):
         cmd = cmd.split(' ')
 
     output = check_output(cmd)
 
-    if isinstance(output, six.binary_type):
+    if isinstance(output, bytes):
         output = output.decode('utf-8')
     return output
 

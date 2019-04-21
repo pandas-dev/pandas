@@ -5,7 +5,7 @@ import pytest
 from pandas import read_csv, read_table
 
 
-class BaseParser(object):
+class BaseParser:
     engine = None
     low_memory = True
     float_precision_choices = []

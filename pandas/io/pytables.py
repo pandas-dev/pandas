@@ -1,4 +1,3 @@
-# pylint: disable-msg=E1101,W0613,W0603
 """
 High level interface to PyTables for reading and writing pandas data structures
 to disk
@@ -19,7 +18,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas.compat import PY3, lrange, string_types
+from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -29,8 +28,8 @@ from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
     DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, PeriodIndex,
-    Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat, concat,
-    isna, to_datetime)
+    Series, SparseDataFrame, SparseSeries, TimedeltaIndex, concat, isna,
+    to_datetime)
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
@@ -46,7 +45,6 @@ from pandas.io.formats.printing import adjoin, pprint_thing
 _version = '0.15.2'
 
 # encoding
-# PY3 encoding if we don't specify
 _default_encoding = 'UTF-8'
 
 
@@ -60,20 +58,20 @@ def _ensure_decoded(s):
 def _ensure_encoding(encoding):
     # set the encoding if we need
     if encoding is None:
-        if PY3:
-            encoding = _default_encoding
+        encoding = _default_encoding
+
     return encoding
 
 
 def _ensure_str(name):
-    """Ensure that an index / column name is a str (python 3) or
-    unicode (python 2); otherwise they may be np.string dtype.
-    Non-string dtypes are passed through unchanged.
+    """
+    Ensure that an index / column name is a str (python 3); otherwise they
+    may be np.string dtype. Non-string dtypes are passed through unchanged.
 
     https://github.com/pandas-dev/pandas/issues/13492
     """
-    if isinstance(name, compat.string_types):
-        name = compat.text_type(name)
+    if isinstance(name, str):
+        name = str(name)
     return name
 
 
@@ -257,7 +255,7 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
         f = lambda store: store.put(key, value, **kwargs)
 
     path_or_buf = _stringify_path(path_or_buf)
-    if isinstance(path_or_buf, string_types):
+    if isinstance(path_or_buf, str):
         with HDFStore(path_or_buf, mode=mode, complevel=complevel,
                       complib=complib) as store:
             f(store)
@@ -340,7 +338,7 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
         auto_close = False
     else:
         path_or_buf = _stringify_path(path_or_buf)
-        if not isinstance(path_or_buf, string_types):
+        if not isinstance(path_or_buf, str):
             raise NotImplementedError('Support for generic buffers has not '
                                       'been implemented.')
         try:
@@ -376,7 +374,7 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
                                      'contains multiple datasets.')
             key = candidate_only_group._v_pathname
         return store.select(key, auto_close=auto_close, **kwargs)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, KeyError):
         # if there is an error, close the store
         try:
             store.close()
@@ -791,7 +789,7 @@ class HDFStore(StringMixin):
         where = _ensure_term(where, scope_level=1)
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
             keys = keys[0]
-        if isinstance(keys, string_types):
+        if isinstance(keys, str):
             return self.select(key=keys, where=where, columns=columns,
                                start=start, stop=stop, iterator=iterator,
                                chunksize=chunksize, **kwargs)
@@ -1412,7 +1410,7 @@ class HDFStore(StringMixin):
         return s.read(**kwargs)
 
 
-class TableIterator(object):
+class TableIterator:
 
     """ define the iteration interface on a table
 
@@ -2449,7 +2447,7 @@ class GenericFixed(Fixed):
 
     """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime', PeriodIndex: 'period'}
-    _reverse_index_map = {v: k for k, v in compat.iteritems(_index_type_map)}
+    _reverse_index_map = {v: k for k, v in _index_type_map.items()}
     attributes = []
 
     # indexer helpders
@@ -2913,7 +2911,7 @@ class SparseFrameFixed(SparseFixed):
     def write(self, obj, **kwargs):
         """ write it as a collection of individual sparse series """
         super(SparseFrameFixed, self).write(obj, **kwargs)
-        for name, ss in compat.iteritems(obj):
+        for name, ss in obj.items():
             key = 'sparse_series_{name}'.format(name=name)
             if key not in self.group._v_children:
                 node = self._handle.create_group(self.group, key)
@@ -4572,18 +4570,15 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None,
     shape = data.shape
     data = np.asarray(data.ravel(), dtype=object)
 
-    # guard against a None encoding in PY3 (because of a legacy
+    # guard against a None encoding (because of a legacy
     # where the passed encoding is actually None)
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
 
         itemsize = libwriters.max_len_string_array(ensure_object(data))
-        if compat.PY3:
-            dtype = "U{0}".format(itemsize)
-        else:
-            dtype = "S{0}".format(itemsize)
+        dtype = "U{0}".format(itemsize)
 
-        if isinstance(data[0], compat.binary_type):
+        if isinstance(data[0], bytes):
             data = Series(data).str.decode(encoding, errors=errors).values
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
@@ -4623,7 +4618,7 @@ def _need_convert(kind):
     return False
 
 
-class Selection(object):
+class Selection:
 
     """
     Carries out a selection operation on a tables.Table object.

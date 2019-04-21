@@ -1,6 +1,4 @@
 # coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
@@ -26,7 +24,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
-class TestSeriesConstructors(object):
+class TestSeriesConstructors:
 
     @pytest.mark.parametrize('constructor,check_index_type', [
         # NOTE: some overlap with test_constructor_empty but that test does not

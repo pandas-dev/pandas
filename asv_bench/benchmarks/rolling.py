@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 
-class Methods(object):
+class Methods:
 
     sample_time = 0.2
     params = (['DataFrame', 'Series'],
@@ -21,7 +21,7 @@ class Methods(object):
         getattr(self.roll, method)()
 
 
-class ExpandingMethods(object):
+class ExpandingMethods:
 
     sample_time = 0.2
     params = (['DataFrame', 'Series'],
@@ -39,7 +39,7 @@ class ExpandingMethods(object):
         getattr(self.expanding, method)()
 
 
-class EWMMethods(object):
+class EWMMethods:
 
     sample_time = 0.2
     params = (['DataFrame', 'Series'],
@@ -73,7 +73,7 @@ class VariableWindowMethods(Methods):
         self.roll = getattr(pd, constructor)(arr, index=index).rolling(window)
 
 
-class Pairwise(object):
+class Pairwise:
 
     sample_time = 0.2
     params = ([10, 1000, None],
@@ -94,7 +94,7 @@ class Pairwise(object):
         getattr(r, method)(self.df, pairwise=pairwise)
 
 
-class Quantile(object):
+class Quantile:
     sample_time = 0.2
     params = (['DataFrame', 'Series'],
               [10, 1000],
@@ -111,6 +111,22 @@ class Quantile(object):
     def time_quantile(self, constructor, window, dtype, percentile,
                       interpolation):
         self.roll.quantile(percentile, interpolation=interpolation)
+
+
+class PeakMemFixed:
+
+    def setup(self):
+        N = 10
+        arr = 100 * np.random.random(N)
+        self.roll = pd.Series(arr).rolling(10)
+
+    def peakmem_fixed(self):
+        # GH 25926
+        # This is to detect memory leaks in rolling operations.
+        # To save time this is only ran on one method.
+        # 6000 iterations is enough for most types of leaks to be detected
+        for x in range(6000):
+            self.roll.max()
 
 
 from .pandas_vb_common import setup  # noqa: F401

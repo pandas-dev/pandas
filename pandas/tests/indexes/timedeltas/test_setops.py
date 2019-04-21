@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 from pandas.tseries.offsets import Hour
 
 
-class TestTimedeltaIndex(object):
+class TestTimedeltaIndex:
 
     def test_union(self):
 

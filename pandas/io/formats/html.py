@@ -8,11 +8,11 @@ from textwrap import dedent
 
 from pandas._config import get_option
 
-from pandas.compat import lzip, unichr
+from pandas.compat import lzip
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas import compat, option_context
+from pandas import option_context
 
 from pandas.io.common import _is_url
 from pandas.io.formats.format import TableFormatter, get_level_lengths
@@ -69,6 +69,9 @@ class HTMLFormatter(TableFormatter):
             return 1
         # not showing (row) index
         return 0
+
+    def _get_columns_formatted_values(self):
+        return self.columns
 
     @property
     def is_truncated(self):
@@ -145,7 +148,7 @@ class HTMLFormatter(TableFormatter):
         self._write_table()
 
         if self.should_show_dimensions:
-            by = chr(215) if compat.PY3 else unichr(215)  # ×
+            by = chr(215)  # ×
             self.write('<p>{rows} rows {by} {cols} columns</p>'
                        .format(rows=len(self.frame),
                                by=by,
@@ -292,7 +295,7 @@ class HTMLFormatter(TableFormatter):
                     row.append(self.columns.name or '')
                 else:
                     row.append('')
-            row.extend(self.columns)
+            row.extend(self._get_columns_formatted_values())
             align = self.fmt.justify
 
             if truncate_h:
@@ -493,6 +496,9 @@ class NotebookFormatter(HTMLFormatter):
 
     def _get_formatted_values(self):
         return {i: self.fmt._format_col(i) for i in range(self.ncols)}
+
+    def _get_columns_formatted_values(self):
+        return self.columns.format()
 
     def write_style(self):
         # We use the "scoped" attribute here so that the desired

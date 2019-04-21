@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 from functools import partial
+from io import StringIO
 
 import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import StringIO
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -210,7 +210,7 @@ def test_resample_how_callables():
     def fn(x, a=1):
         return str(type(x))
 
-    class FnClass(object):
+    class FnClass:
 
         def __call__(self, x):
             return str(type(x))

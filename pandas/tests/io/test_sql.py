@@ -19,14 +19,14 @@ The SQL tests are broken down in different classes:
 
 import csv
 from datetime import date, datetime, time
+from io import StringIO
 import sqlite3
 import warnings
 
 import numpy as np
 import pytest
 
-import pandas.compat as compat
-from pandas.compat import PY36, lrange, string_types
+from pandas.compat import PY36, lrange
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype, is_datetime64tz_dtype)
@@ -177,7 +177,7 @@ SQL_STRINGS = {
 }
 
 
-class MixInBase(object):
+class MixInBase:
 
     def teardown_method(self, method):
         # if setup fails, there may not be a connection to close.
@@ -239,7 +239,7 @@ class SQLAlchemyMixIn(MixInBase):
         pass
 
 
-class PandasSQLTest(object):
+class PandasSQLTest:
     """
     Base class with common private methods for SQLAlchemy and fallback cases.
 
@@ -1034,7 +1034,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         assert all_names == {'Iris-setosa'}
 
 
-class _EngineToConnMixin(object):
+class _EngineToConnMixin:
     """
     A mixin that causes setup_connect to create a conn rather than an engine.
     """
@@ -1392,7 +1392,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         )
         if self.flavor == 'sqlite':
             # read_sql_query does not return datetime type like read_sql_table
-            assert isinstance(result.loc[0, 'A'], string_types)
+            assert isinstance(result.loc[0, 'A'], str)
             result['A'] = to_datetime(result['A'])
         tm.assert_frame_equal(result, expected)
 
@@ -1451,7 +1451,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
         result = result.drop('index', axis=1)
         if self.flavor == 'sqlite':
-            assert isinstance(result.loc[0, 'A'], string_types)
+            assert isinstance(result.loc[0, 'A'], str)
             result['A'] = to_datetime(result['A'])
             tm.assert_frame_equal(result, df)
         else:
@@ -1470,7 +1470,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # with read_sql -> no type information -> sqlite has no native
         result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
         if self.flavor == 'sqlite':
-            assert isinstance(result.loc[0, 'A'], string_types)
+            assert isinstance(result.loc[0, 'A'], str)
             result['A'] = to_datetime(result['A'], errors='coerce')
             tm.assert_frame_equal(result, df)
         else:
@@ -1734,7 +1734,7 @@ class _TestSQLAlchemyConn(_EngineToConnMixin, _TestSQLAlchemy):
             "Nested transactions rollbacks don't work with Pandas")
 
 
-class _TestSQLiteAlchemy(object):
+class _TestSQLiteAlchemy:
     """
     Test the sqlalchemy backend against an in-memory sqlite database.
 
@@ -1782,7 +1782,7 @@ class _TestSQLiteAlchemy(object):
             assert len(w) == 0
 
 
-class _TestMySQLAlchemy(object):
+class _TestMySQLAlchemy:
     """
     Test the sqlalchemy backend against an MySQL database.
 
@@ -1849,7 +1849,7 @@ class _TestMySQLAlchemy(object):
         tm.assert_frame_equal(df, res2)
 
 
-class _TestPostgreSQLAlchemy(object):
+class _TestPostgreSQLAlchemy:
     """
     Test the sqlalchemy backend against an PostgreSQL database.
 
@@ -1939,7 +1939,7 @@ class _TestPostgreSQLAlchemy(object):
             # gets a DBAPI connection that can provide a cursor
             dbapi_conn = conn.connection
             with dbapi_conn.cursor() as cur:
-                s_buf = compat.StringIO()
+                s_buf = StringIO()
                 writer = csv.writer(s_buf)
                 writer.writerows(data_iter)
                 s_buf.seek(0)
@@ -2192,8 +2192,7 @@ _formatters = {
     datetime: lambda dt: "'%s'" % date_format(dt),
     str: lambda x: "'%s'" % x,
     np.str_: lambda x: "'%s'" % x,
-    compat.text_type: lambda x: "'%s'" % x,
-    compat.binary_type: lambda x: "'%s'" % x,
+    bytes: lambda x: "'%s'" % x,
     float: lambda x: "%.8f" % x,
     int: lambda x: "%s" % x,
     type(None): lambda x: "NULL",
