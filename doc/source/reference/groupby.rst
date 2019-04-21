@@ -58,8 +58,6 @@ Computations / Descriptive Stats
    GroupBy.first
    GroupBy.head
    GroupBy.last
-   GroupBy.idxmax
-   GroupBy.idxmin
    GroupBy.max
    GroupBy.mean
    GroupBy.median
