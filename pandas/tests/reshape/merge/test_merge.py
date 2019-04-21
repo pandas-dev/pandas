@@ -1,5 +1,3 @@
-# pylint: disable=E1103
-
 from collections import OrderedDict
 from datetime import date, datetime
 import random
@@ -88,7 +86,7 @@ def series_of_dtype_all_na(request):
     return request.param
 
 
-class TestMerge(object):
+class TestMerge:
 
     def setup_method(self, method):
         # aggregate multiple columns
@@ -387,10 +385,10 @@ class TestMerge(object):
                               dict(left_on='a', right_on='x')])
     def test_merge_left_empty_right_empty(self, join_type, kwarg):
         # GH 10824
-        left = pd.DataFrame([], columns=['a', 'b', 'c'])
-        right = pd.DataFrame([], columns=['x', 'y', 'z'])
+        left = pd.DataFrame(columns=['a', 'b', 'c'])
+        right = pd.DataFrame(columns=['x', 'y', 'z'])
 
-        exp_in = pd.DataFrame([], columns=['a', 'b', 'c', 'x', 'y', 'z'],
+        exp_in = pd.DataFrame(columns=['a', 'b', 'c', 'x', 'y', 'z'],
                               index=pd.Index([], dtype=object),
                               dtype=object)
 
@@ -399,7 +397,7 @@ class TestMerge(object):
 
     def test_merge_left_empty_right_notempty(self):
         # GH 10824
-        left = pd.DataFrame([], columns=['a', 'b', 'c'])
+        left = pd.DataFrame(columns=['a', 'b', 'c'])
         right = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                              columns=['x', 'y', 'z'])
 
@@ -445,7 +443,7 @@ class TestMerge(object):
         # GH 10824
         left = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                             columns=['a', 'b', 'c'])
-        right = pd.DataFrame([], columns=['x', 'y', 'z'])
+        right = pd.DataFrame(columns=['x', 'y', 'z'])
 
         exp_out = pd.DataFrame({'a': [1, 4, 7],
                                 'b': [2, 5, 8],
@@ -1118,7 +1116,7 @@ def _check_merge(x, y):
         assert_frame_equal(result, expected, check_names=False)
 
 
-class TestMergeDtypes(object):
+class TestMergeDtypes:
 
     @pytest.mark.parametrize('right_vals', [
         ['foo', 'bar'],
@@ -1318,7 +1316,7 @@ def right():
          'Z': [1, 2]})
 
 
-class TestMergeCategorical(object):
+class TestMergeCategorical:
 
     def test_identical(self, left):
         # merging on the same, should preserve dtypes
@@ -1551,7 +1549,7 @@ def right_df():
     return DataFrame({'b': [300, 100, 200]}, index=[3, 1, 2])
 
 
-class TestMergeOnIndexes(object):
+class TestMergeOnIndexes:
 
     @pytest.mark.parametrize(
         "how, sort, expected",
@@ -1702,3 +1700,68 @@ def test_merge_suffix_none_error(col1, col2, suffixes):
     msg = "iterable"
     with pytest.raises(TypeError, match=msg):
         pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+
+
+@pytest.mark.parametrize("cat_dtype", ["one", "two"])
+@pytest.mark.parametrize("reverse", [True, False])
+def test_merge_equal_cat_dtypes(cat_dtype, reverse):
+    # see gh-22501
+    cat_dtypes = {
+        "one": CategoricalDtype(categories=["a", "b", "c"], ordered=False),
+        "two": CategoricalDtype(categories=["a", "b", "c"], ordered=False),
+    }
+
+    df1 = DataFrame({
+        "foo": Series(["a", "b", "c"]).astype(cat_dtypes["one"]),
+        "left": [1, 2, 3],
+    }).set_index("foo")
+
+    data_foo = ["a", "b", "c"]
+    data_right = [1, 2, 3]
+
+    if reverse:
+        data_foo.reverse()
+        data_right.reverse()
+
+    df2 = DataFrame({
+        "foo": Series(data_foo).astype(cat_dtypes[cat_dtype]),
+        "right": data_right
+    }).set_index("foo")
+
+    result = df1.merge(df2, left_index=True, right_index=True)
+
+    expected = DataFrame({
+        "left": [1, 2, 3],
+        "right": [1, 2, 3],
+        "foo": Series(["a", "b", "c"]).astype(cat_dtypes["one"]),
+    }).set_index("foo")
+
+    # Categorical is unordered, so don't check ordering.
+    tm.assert_frame_equal(result, expected, check_categorical=False)
+
+
+def test_merge_equal_cat_dtypes2():
+    # see gh-22501
+    cat_dtype = CategoricalDtype(categories=["a", "b", "c"], ordered=False)
+
+    # Test Data
+    df1 = DataFrame({
+        "foo": Series(["a", "b"]).astype(cat_dtype),
+        "left": [1, 2],
+    }).set_index("foo")
+
+    df2 = DataFrame({
+        "foo": Series(["a", "b", "c"]).astype(cat_dtype),
+        "right": [3, 2, 1],
+    }).set_index("foo")
+
+    result = df1.merge(df2, left_index=True, right_index=True)
+
+    expected = DataFrame({
+        "left": [1, 2],
+        "right": [3, 2],
+        "foo": Series(["a", "b"]).astype(cat_dtype),
+    }).set_index("foo")
+
+    # Categorical is unordered, so don't check ordering.
+    tm.assert_frame_equal(result, expected, check_categorical=False)

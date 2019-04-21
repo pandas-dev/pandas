@@ -257,7 +257,7 @@ def test_array_not_registered(registry_without_decimal):
     tm.assert_equal(result, expected)
 
 
-class TestArrayAnalytics(object):
+class TestArrayAnalytics:
     def test_searchsorted(self, string_dtype):
         arr = pd.array(['a', 'b', 'c'], dtype=string_dtype)
 

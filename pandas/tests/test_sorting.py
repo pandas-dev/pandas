@@ -6,9 +6,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas import (
-    DataFrame, MultiIndex, Series, _np_version_under1p14, compat, concat,
-    merge, to_datetime)
+from pandas import DataFrame, MultiIndex, Series, concat, merge, to_datetime
 from pandas.core import common as com
 from pandas.core.sorting import (
     decons_group_index, get_group_index, is_int64_overflow_possible,
@@ -17,7 +15,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestSorting(object):
+class TestSorting:
 
     @pytest.mark.slow
     def test_int64_overflow(self):
@@ -52,7 +50,7 @@ class TestSorting(object):
 
         expected = df.groupby(tups).sum()['values']
 
-        for k, v in compat.iteritems(expected):
+        for k, v in expected.items():
             assert left[k] == right[k[::-1]]
             assert left[k] == v
         assert len(left) == len(right)
@@ -190,7 +188,7 @@ class TestSorting(object):
             nargsort(data)
 
 
-class TestMerge(object):
+class TestMerge:
 
     @pytest.mark.slow
     def test_int64_overflow_issues(self):
@@ -342,7 +340,7 @@ def test_decons():
     testit(label_list, shape)
 
 
-class TestSafeSort(object):
+class TestSafeSort:
 
     def test_basic_sort(self):
         values = [3, 1, 2, 0, 4]
@@ -414,13 +412,9 @@ class TestSafeSort(object):
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        msg = (r"unorderable types: ({0} [<>] {1}|{1} [<>] {0})".format(
-                   r"int\(\)", r"datetime\.datetime\(\)")  # noqa: E126
-               if _np_version_under1p14 else
-               (r"'[<>]' not supported between instances of "
-                r"({0} and {1}|{1} and {0})").format(
-                    "'int'", r"'datetime\.datetime'")
-               )
+        msg = ("unorderable types: .* [<>] .*"
+               "|"  # the above case happens for numpy < 1.14
+               "'[<>]' not supported between instances of .*")
         with pytest.raises(TypeError, match=msg):
             safe_sort(arr)
 

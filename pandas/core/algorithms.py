@@ -2,8 +2,6 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
-from __future__ import division
-
 from textwrap import dedent
 from warnings import catch_warnings, simplefilter, warn
 
@@ -1049,7 +1047,7 @@ def quantile(x, q, interpolation_method='fraction'):
 # select n        #
 # --------------- #
 
-class SelectN(object):
+class SelectN:
 
     def __init__(self, obj, n, keep):
         self.obj = obj

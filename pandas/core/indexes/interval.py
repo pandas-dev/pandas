@@ -8,9 +8,7 @@ from pandas._config import get_option
 
 from pandas._libs import Timedelta, Timestamp
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
-from pandas.compat import add_metaclass
 from pandas.util._decorators import Appender, cache_readonly
-from pandas.util._doctools import _WritableDoc
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
@@ -126,7 +124,6 @@ def _new_IntervalIndex(cls, d):
     """),
 
 ))
-@add_metaclass(_WritableDoc)
 class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
@@ -1015,7 +1012,7 @@ class IntervalIndex(IntervalMixin, Index):
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
 
-    def _format_native_types(self, na_rep='', quoting=None, **kwargs):
+    def _format_native_types(self, na_rep='NaN', quoting=None, **kwargs):
         """ actually format my specific types """
         from pandas.io.formats.format import ExtensionArrayFormatter
         return ExtensionArrayFormatter(values=self,

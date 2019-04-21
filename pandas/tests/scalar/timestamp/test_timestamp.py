@@ -24,7 +24,7 @@ import pandas.util.testing as tm
 from pandas.tseries import offsets
 
 
-class TestTimestampProperties(object):
+class TestTimestampProperties:
 
     def test_properties_business(self):
         ts = Timestamp('2017-10-01', freq='B')
@@ -192,7 +192,7 @@ class TestTimestampProperties(object):
         assert dt.resolution == Timedelta(nanoseconds=1)
 
 
-class TestTimestampConstructors(object):
+class TestTimestampConstructors:
 
     def test_constructor(self):
         base_str = '2014-07-01 09:00'
@@ -603,8 +603,20 @@ class TestTimestampConstructors(object):
         expected = Timestamp(datetime(2018, 1, 1)).tz_localize(tzutc())
         assert result == expected
 
+    def test_constructor_subclassed_datetime(self):
+        # GH 25851
+        # ensure that subclassed datetime works for
+        # Timestamp creation
+        class SubDatetime(datetime):
+            pass
 
-class TestTimestamp(object):
+        data = SubDatetime(2000, 1, 1)
+        result = Timestamp(data)
+        expected = Timestamp(2000, 1, 1)
+        assert result == expected
+
+
+class TestTimestamp:
 
     def test_tz(self):
         tstr = '2014-02-01 09:00'
@@ -775,7 +787,7 @@ class TestTimestamp(object):
         assert t2.tz_convert(tz='UTC').freq == t2.freq
 
 
-class TestTimestampNsOperations(object):
+class TestTimestampNsOperations:
 
     def setup_method(self, method):
         self.timestamp = Timestamp(datetime.utcnow())
@@ -862,7 +874,7 @@ class TestTimestampNsOperations(object):
         assert t.nanosecond == 10
 
 
-class TestTimestampToJulianDate(object):
+class TestTimestampToJulianDate:
 
     def test_compare_1700(self):
         r = Timestamp('1700-06-23').to_julian_date()
@@ -885,7 +897,7 @@ class TestTimestampToJulianDate(object):
         assert r == 2451769.0416666666666666
 
 
-class TestTimestampConversion(object):
+class TestTimestampConversion:
     def test_conversion(self):
         # GH#9255
         ts = Timestamp('2000-01-01')

@@ -9,7 +9,7 @@ dependencies:
   - html5lib
   - jinja2
   - lxml
-  - matplotlib=3.0.1
+  - matplotlib=2.2.*
   - numexpr
   - numpy=1.14.*
   - openpyxl

@@ -4,9 +4,10 @@ Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
 
-from __future__ import print_function
-
 from functools import partial
+from io import StringIO
+from shutil import get_terminal_size
+from unicodedata import east_asian_width
 
 import numpy as np
 
@@ -15,18 +16,17 @@ from pandas._config.config import get_option, set_option
 from pandas._libs import lib
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
-from pandas.compat import StringIO, lzip
+from pandas.compat import lzip
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_extension_array_dtype, is_float, is_float_dtype, is_integer,
-    is_integer_dtype, is_list_like, is_numeric_dtype, is_scalar,
+    is_categorical_dtype, is_complex_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_extension_array_dtype, is_float, is_float_dtype,
+    is_integer, is_integer_dtype, is_list_like, is_numeric_dtype, is_scalar,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCMultiIndex, ABCSeries, ABCSparseArray)
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas import compat
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
@@ -34,10 +34,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
-from pandas.io.formats.terminal import get_terminal_size
-
-# pylint: disable=W0141
-
 
 common_docstring = """
         Parameters
@@ -107,7 +103,7 @@ return_docstring = """
     """
 
 
-class CategoricalFormatter(object):
+class CategoricalFormatter:
 
     def __init__(self, categorical, buf=None, length=True, na_rep='NaN',
                  footer=True):
@@ -132,7 +128,7 @@ class CategoricalFormatter(object):
             footer += '\n'
         footer += level_info
 
-        return compat.text_type(footer)
+        return str(footer)
 
     def _get_formatted_values(self):
         return format_array(self.categorical.get_values(), None,
@@ -158,10 +154,10 @@ class CategoricalFormatter(object):
             if footer:
                 result.append(footer)
 
-        return compat.text_type('\n'.join(result))
+        return str('\n'.join(result))
 
 
-class SeriesFormatter(object):
+class SeriesFormatter:
 
     def __init__(self, series, buf=None, length=True, header=True, index=True,
                  na_rep='NaN', name=False, float_format=None, dtype=True,
@@ -237,7 +233,7 @@ class SeriesFormatter(object):
                 footer += "\n"
             footer += level_info
 
-        return compat.text_type(footer)
+        return str(footer)
 
     def _get_formatted_index(self):
         index = self.tr_series.index
@@ -291,16 +287,16 @@ class SeriesFormatter(object):
         if footer:
             result += '\n' + footer
 
-        return compat.text_type(''.join(result))
+        return str(''.join(result))
 
 
-class TextAdjustment(object):
+class TextAdjustment:
 
     def __init__(self):
         self.encoding = get_option("display.encoding")
 
     def len(self, text):
-        return compat.strlen(text, encoding=self.encoding)
+        return len(text)
 
     def justify(self, texts, max_len, mode='right'):
         return justify(texts, max_len, mode=mode)
@@ -319,9 +315,20 @@ class EastAsianTextAdjustment(TextAdjustment):
         else:
             self.ambiguous_width = 1
 
+        # Definition of East Asian Width
+        # http://unicode.org/reports/tr11/
+        # Ambiguous width can be changed by option
+        self._EAW_MAP = {'Na': 1, 'N': 1, 'W': 2, 'F': 2, 'H': 1}
+
     def len(self, text):
-        return compat.east_asian_len(text, encoding=self.encoding,
-                                     ambiguous_width=self.ambiguous_width)
+        """
+        Calculate display width considering unicode East Asian Width
+        """
+        if not isinstance(text, str):
+            return len(text)
+
+        return sum(self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width)
+                   for c in text)
 
     def justify(self, texts, max_len, mode='right'):
         # re-calculate padding space per str considering East Asian Width
@@ -344,7 +351,7 @@ def _get_adjustment():
         return TextAdjustment()
 
 
-class TableFormatter(object):
+class TableFormatter:
 
     is_truncated = False
     show_dimensions = None
@@ -691,11 +698,11 @@ class DataFrameFormatter(TableFormatter):
                                         multirow=multirow)
 
         if encoding is None:
-            encoding = 'ascii' if compat.PY2 else 'utf-8'
+            encoding = 'utf-8'
 
         if hasattr(self.buf, 'write'):
             latex_renderer.write_result(self.buf)
-        elif isinstance(self.buf, compat.string_types):
+        elif isinstance(self.buf, str):
             import codecs
             with codecs.open(self.buf, 'w', encoding=encoding) as f:
                 latex_renderer.write_result(f)
@@ -733,7 +740,7 @@ class DataFrameFormatter(TableFormatter):
         html = Klass(self, classes=classes, border=border).render()
         if hasattr(self.buf, 'write'):
             buffer_put_lines(self.buf, html)
-        elif isinstance(self.buf, compat.string_types):
+        elif isinstance(self.buf, str):
             with open(self.buf, 'w') as f:
                 buffer_put_lines(f, html)
         else:
@@ -882,7 +889,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = Timedelta64Formatter
     elif is_extension_array_dtype(values.dtype):
         fmt_klass = ExtensionArrayFormatter
-    elif is_float_dtype(values.dtype):
+    elif is_float_dtype(values.dtype) or is_complex_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
     elif is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
@@ -906,7 +913,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     return fmt_obj.get_result()
 
 
-class GenericArrayFormatter(object):
+class GenericArrayFormatter:
 
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
                  space=12, float_format=None, justify='right', decimal='.',
@@ -943,10 +950,16 @@ class GenericArrayFormatter(object):
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                if x is None:
-                    return 'None'
-                elif x is NaT:
-                    return 'NaT'
+                try:
+                    # try block for np.isnat specifically
+                    # determine na_rep if x is None or NaT-like
+                    if x is None:
+                        return 'None'
+                    elif x is NaT or np.isnat(x):
+                        return 'NaT'
+                except (TypeError, ValueError):
+                    # np.isnat only handles datetime or timedelta objects
+                    pass
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return '{x}'.format(x=x)
@@ -1068,6 +1081,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # separate the wheat from the chaff
             values = self.values
+            is_complex = is_complex_dtype(values)
             mask = isna(values)
             if hasattr(values, 'to_dense'):  # sparse numpy ndarray
                 values = values.to_dense()
@@ -1078,7 +1092,10 @@ class FloatArrayFormatter(GenericArrayFormatter):
                                            for val in values.ravel()[imask]])
 
             if self.fixed_width:
-                return _trim_zeros(values, na_rep)
+                if is_complex:
+                    return _trim_zeros_complex(values, na_rep)
+                else:
+                    return _trim_zeros_float(values, na_rep)
 
             return values
 
@@ -1408,7 +1425,22 @@ def _make_fixed_width(strings, justify='right', minimum=None, adj=None):
     return result
 
 
-def _trim_zeros(str_floats, na_rep='NaN'):
+def _trim_zeros_complex(str_complexes, na_rep='NaN'):
+    """
+    Separates the real and imaginary parts from the complex number, and
+    executes the _trim_zeros_float method on each of those.
+    """
+    def separate_and_trim(str_complex, na_rep):
+        num_arr = str_complex.split('+')
+        return (_trim_zeros_float([num_arr[0]], na_rep) +
+                ['+'] +
+                _trim_zeros_float([num_arr[1][:-1]], na_rep) +
+                ['j'])
+
+    return [''.join(separate_and_trim(x, na_rep)) for x in str_complexes]
+
+
+def _trim_zeros_float(str_floats, na_rep='NaN'):
     """
     Trims zeros, leaving just one before the decimal points if need be.
     """
@@ -1437,7 +1469,7 @@ def _has_names(index):
         return index.name is not None
 
 
-class EngFormatter(object):
+class EngFormatter:
     """
     Formats float values according to engineering format.
 
@@ -1620,6 +1652,6 @@ def buffer_put_lines(buf, lines):
     lines
         The lines to append.
     """
-    if any(isinstance(x, compat.text_type) for x in lines):
-        lines = [compat.text_type(x) for x in lines]
+    if any(isinstance(x, str) for x in lines):
+        lines = [str(x) for x in lines]
     buf.write('\n'.join(lines))

@@ -9,6 +9,7 @@ import pytz
 from pandas._libs import iNaT, tslib
 from pandas.compat.numpy import np_array_datetime64_compat
 
+from pandas import Timestamp
 import pandas.util.testing as tm
 
 
@@ -154,3 +155,27 @@ def test_to_datetime_barely_out_of_bounds():
 
     with pytest.raises(tslib.OutOfBoundsDatetime, match=msg):
         tslib.array_to_datetime(arr)
+
+
+class SubDatetime(datetime):
+    pass
+
+
+@pytest.mark.parametrize("data,expected", [
+    ([SubDatetime(2000, 1, 1)],
+     ["2000-01-01T00:00:00.000000000-0000"]),
+    ([datetime(2000, 1, 1)],
+     ["2000-01-01T00:00:00.000000000-0000"]),
+    ([Timestamp(2000, 1, 1)],
+     ["2000-01-01T00:00:00.000000000-0000"])
+])
+def test_datetime_subclass(data, expected):
+    # GH 25851
+    # ensure that subclassed datetime works with
+    # array_to_datetime
+
+    arr = np.array(data, dtype=object)
+    result, _ = tslib.array_to_datetime(arr)
+
+    expected = np_array_datetime64_compat(expected, dtype="M8[ns]")
+    tm.assert_numpy_array_equal(result, expected)

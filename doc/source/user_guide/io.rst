@@ -137,7 +137,7 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
-     from pandas.compat import StringIO, BytesIO
+     from io import StringIO, BytesIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
              'a,b,2\n'
@@ -3563,13 +3563,6 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
    :suppress:
 
    os.remove('file.h5')
-
-
-.. ipython:: python
-   :suppress:
-
-   os.remove('file.h5')
-
 
 
 .. _io.hdf5-fixed:
