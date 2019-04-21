@@ -52,7 +52,8 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
 
         .. versionadded:: 0.25.0
 
-    ignore_keys: list, optional, keys to ignore, default None
+    ignore_keys: list, optional, default None
+        keys to ignore
 
          .. versionadded:: 0.25.0
 
