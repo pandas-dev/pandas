@@ -272,7 +272,7 @@ Datetimelike
 
 - Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
 - Bug in :func:`to_datetime` which would raise ``InvalidIndexError: Reindexing only valid with uniquely valued Index objects`` when called with ``cache=True``, with ``arg`` including at least two different elements from the set {None, numpy.nan, pandas.NaT} (:issue:`22305`)
--
+- Bug in :class:`DataFrame` and :class:`Series` where timezone aware data with ``dtype='datetime64[ns]`` was not cast to naive (:issue:`25843`)
 -
 
 Timedelta
