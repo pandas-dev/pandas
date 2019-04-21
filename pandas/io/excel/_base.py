@@ -597,14 +597,16 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     curr_sheet = None
     path = None
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def supported_extensions(self):
-        "extensions that writer engine supports"
+        """Extensions that writer engine supports."""
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def engine(self):
-        "name of engine"
+        """Name of engine."""
         pass
 
     @abc.abstractmethod
