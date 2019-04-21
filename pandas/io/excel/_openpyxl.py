@@ -1,13 +1,14 @@
 from collections import OrderedDict
 from io import BytesIO
+from urllib.request import urlopen
 
 import pandas.compat as compat
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.frame import DataFrame
-from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
+from pandas.io.common import (_is_url, _validate_header_arg,
                               get_filepath_or_buffer)
 from pandas.io.excel._base import (ExcelWriter, _BaseExcelReader,
-                                   _fill_mi_header, _maybe_convert_to_string,
+                                   _fill_mi_header,
                                    _maybe_convert_usecols, _pop_header_name)
 from pandas.io.excel._util import _validate_freeze_panes
 from pandas.io.parsers import _validate_usecols_arg, _validate_usecols_names
@@ -488,7 +489,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         # If filepath_or_buffer is a url, want to keep the data as bytes so
         # can't pass to get_filepath_or_buffer()
         if _is_url(filepath_or_buffer):
-            filepath_or_buffer = BytesIO(_urlopen(filepath_or_buffer).read())
+            filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer,
                             (ExcelFile, openpyxl.Workbook)):
             filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
@@ -704,9 +705,6 @@ class _OpenpyxlReader(_BaseExcelReader):
                 if header_names:
                     output[asheetname].columns = output[
                         asheetname].columns.set_names(header_names)
-                elif compat.PY2:
-                    output[asheetname].columns = _maybe_convert_to_string(
-                        output[asheetname].columns)
 
             # name unnamed columns
             unnamed = 0
