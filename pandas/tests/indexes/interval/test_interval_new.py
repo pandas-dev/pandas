@@ -7,7 +7,7 @@ import pandas.util.testing as tm
 pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
 
 
-class TestIntervalIndex(object):
+class TestIntervalIndex:
 
     @pytest.mark.parametrize("side", ['right', 'left', 'both', 'neither'])
     def test_get_loc_interval(self, closed, side):

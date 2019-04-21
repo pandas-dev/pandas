@@ -42,7 +42,7 @@ def get_engine(engine):
         return FastParquetImpl()
 
 
-class BaseImpl(object):
+class BaseImpl:
 
     api = None  # module
 

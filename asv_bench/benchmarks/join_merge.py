@@ -11,7 +11,7 @@ except ImportError:
     from pandas import ordered_merge as merge_ordered
 
 
-class Append(object):
+class Append:
 
     def setup(self):
         self.df1 = DataFrame(np.random.randn(10000, 4),
@@ -33,7 +33,7 @@ class Append(object):
         self.mdf1.append(self.mdf2)
 
 
-class Concat(object):
+class Concat:
 
     params = [0, 1]
     param_names = ['axis']
@@ -65,7 +65,7 @@ class Concat(object):
         concat(self.mixed_ndims, axis=axis)
 
 
-class ConcatDataFrames(object):
+class ConcatDataFrames:
 
     params = ([0, 1], [True, False])
     param_names = ['axis', 'ignore_index']
@@ -85,7 +85,7 @@ class ConcatDataFrames(object):
         concat(self.frame_f, axis=axis, ignore_index=ignore_index)
 
 
-class Join(object):
+class Join:
 
     params = [True, False]
     param_names = ['sort']
@@ -132,7 +132,7 @@ class Join(object):
         self.df_shuf.join(self.df_key2, on='key2', sort=sort)
 
 
-class JoinIndex(object):
+class JoinIndex:
 
     def setup(self):
         N = 50000
@@ -145,7 +145,7 @@ class JoinIndex(object):
         self.left.join(self.right, on='jim')
 
 
-class JoinNonUnique(object):
+class JoinNonUnique:
     # outer join of non-unique
     # GH 6329
     def setup(self):
@@ -162,7 +162,7 @@ class JoinNonUnique(object):
         self.fracofday * self.temp
 
 
-class Merge(object):
+class Merge:
 
     params = [True, False]
     param_names = ['sort']
@@ -196,7 +196,7 @@ class Merge(object):
         merge(self.df, self.df2, on='key1', sort=sort)
 
 
-class I8Merge(object):
+class I8Merge:
 
     params = ['inner', 'outer', 'left', 'right']
     param_names = ['how']
@@ -214,7 +214,7 @@ class I8Merge(object):
         merge(self.left, self.right, how=how)
 
 
-class MergeCategoricals(object):
+class MergeCategoricals:
 
     def setup(self):
         self.left_object = DataFrame(
@@ -237,7 +237,7 @@ class MergeCategoricals(object):
         merge(self.left_cat, self.right_cat, on='X')
 
 
-class MergeOrdered(object):
+class MergeOrdered:
 
     def setup(self):
         groups = tm.makeStringIndex(10).values
@@ -251,7 +251,7 @@ class MergeOrdered(object):
         merge_ordered(self.left, self.right, on='key', left_by='group')
 
 
-class MergeAsof(object):
+class MergeAsof:
     params = [['backward', 'forward', 'nearest']]
     param_names = ['direction']
 
@@ -306,7 +306,7 @@ class MergeAsof(object):
                    direction=direction)
 
 
-class Align(object):
+class Align:
 
     def setup(self):
         size = 5 * 10**5

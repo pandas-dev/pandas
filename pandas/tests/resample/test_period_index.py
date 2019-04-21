@@ -32,7 +32,7 @@ def _series_name():
     return 'pi'
 
 
-class TestPeriodIndex(object):
+class TestPeriodIndex:
 
     @pytest.mark.parametrize('freq', ['2D', '1H', '2H'])
     @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])

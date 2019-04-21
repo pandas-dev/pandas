@@ -1,5 +1,3 @@
-# pylint: disable=E1103
-
 from collections import OrderedDict
 from datetime import date, datetime
 import random
@@ -87,7 +85,7 @@ def series_of_dtype_all_na(request):
     return request.param
 
 
-class TestMerge(object):
+class TestMerge:
 
     def setup_method(self, method):
         # aggregate multiple columns
@@ -1082,7 +1080,7 @@ def _check_merge(x, y):
         assert_frame_equal(result, expected, check_names=False)
 
 
-class TestMergeDtypes(object):
+class TestMergeDtypes:
 
     @pytest.mark.parametrize('right_vals', [
         ['foo', 'bar'],
@@ -1282,7 +1280,7 @@ def right():
          'Z': [1, 2]})
 
 
-class TestMergeCategorical(object):
+class TestMergeCategorical:
 
     def test_identical(self, left):
         # merging on the same, should preserve dtypes
@@ -1515,7 +1513,7 @@ def right_df():
     return DataFrame({'b': [300, 100, 200]}, index=[3, 1, 2])
 
 
-class TestMergeOnIndexes(object):
+class TestMergeOnIndexes:
 
     @pytest.mark.parametrize(
         "how, sort, expected",

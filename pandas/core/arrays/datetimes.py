@@ -10,7 +10,7 @@ from pytz import utc
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT, Timestamp, ccalendar, conversion, fields, iNaT, normalize_date,
-    resolution as libresolution, timezones)
+    resolution as libresolution, timezones, tzconversion)
 import pandas.compat as compat
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender
@@ -257,10 +257,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
                              'tz_convert',
                              'normalize', 'strftime', 'round', 'floor',
                              'ceil', 'month_name', 'day_name']
-
-    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
-    # by returning NotImplemented
-    timetuple = None
 
     # Needed so that Timestamp.__richcmp__(DateTimeArray) operates pointwise
     ndim = 1
@@ -788,7 +784,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         This is used to calculate time-of-day information as if the timestamps
         were timezone-naive.
         """
-        return conversion.tz_convert(self.asi8, utc, self.tz)
+        return tzconversion.tz_convert(self.asi8, utc, self.tz)
 
     def tz_convert(self, tz):
         """
@@ -899,8 +895,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
@@ -1036,8 +1032,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
 
         if self.tz is not None:
             if tz is None:
-                new_dates = conversion.tz_convert(self.asi8, timezones.UTC,
-                                                  self.tz)
+                new_dates = tzconversion.tz_convert(self.asi8, timezones.UTC,
+                                                    self.tz)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
