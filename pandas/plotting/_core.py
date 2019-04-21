@@ -1,14 +1,13 @@
 # being a bit too dynamic
-# pylint: disable=E1101
 from collections import namedtuple
 import re
+from typing import List, Optional, Type
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
-import pandas.compat as compat
 from pandas.compat import lrange
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
@@ -61,7 +60,7 @@ def _gcf():
     return plt.gcf()
 
 
-class MPLPlot(object):
+class MPLPlot:
     """
     Base class for assembling a pandas plot using matplotlib
 
@@ -78,7 +77,7 @@ class MPLPlot(object):
 
     _layout_type = 'vertical'
     _default_rot = 0
-    orientation = None
+    orientation = None  # type: Optional[str]
     _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
                        'mark_right', 'stacked']
     _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
@@ -286,8 +285,10 @@ class MPLPlot(object):
             if not self._has_plotted_object(orig_ax):  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
 
-            if self.logy or self.loglog:
+            if self.logy is True or self.loglog is True:
                 new_ax.set_yscale('log')
+            elif self.logy == 'sym' or self.loglog == 'sym':
+                new_ax.set_yscale('symlog')
             return new_ax
 
     def _setup_subplots(self):
@@ -309,10 +310,24 @@ class MPLPlot(object):
 
         axes = _flatten(axes)
 
-        if self.logx or self.loglog:
+        valid_log = {False, True, 'sym', None}
+        input_log = {self.logx, self.logy, self.loglog}
+        if input_log - valid_log:
+            invalid_log = next(iter((input_log - valid_log)))
+            raise ValueError(
+                "Boolean, None and 'sym' are valid options,"
+                " '{}' is given.".format(invalid_log)
+            )
+
+        if self.logx is True or self.loglog is True:
             [a.set_xscale('log') for a in axes]
-        if self.logy or self.loglog:
+        elif self.logx == 'sym' or self.loglog == 'sym':
+            [a.set_xscale('symlog') for a in axes]
+
+        if self.logy is True or self.loglog is True:
             [a.set_yscale('log') for a in axes]
+        elif self.logy == 'sym' or self.loglog == 'sym':
+            [a.set_yscale('symlog') for a in axes]
 
         self.fig = fig
         self.axes = axes
@@ -1610,7 +1625,7 @@ class BoxPlot(LinePlot):
 
             if isinstance(self.color, dict):
                 valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
-                for key, values in compat.iteritems(self.color):
+                for key, values in self.color.items():
                     if key not in valid_keys:
                         raise ValueError("color dict contains invalid "
                                          "key '{0}' "
@@ -1723,7 +1738,8 @@ _series_kinds = ['pie']
 _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 
 _klasses = [LinePlot, BarPlot, BarhPlot, KdePlot, HistPlot, BoxPlot,
-            ScatterPlot, HexBinPlot, AreaPlot, PiePlot]
+            ScatterPlot, HexBinPlot, AreaPlot, PiePlot] \
+    # type: List[Type[MPLPlot]]
 
 _plot_klass = {klass._kind: klass for klass in _klasses}
 
@@ -1898,12 +1914,18 @@ _shared_docs['plot'] = """
         Place legend on axis subplots
     style : list or dict
         matplotlib line style per column
-    logx : bool, default False
-        Use log scaling on x axis
-    logy : bool, default False
-        Use log scaling on y axis
-    loglog : bool, default False
-        Use log scaling on both x and y axes
+    logx : bool or 'sym', default False
+        Use log scaling or symlog scaling on x axis
+        .. versionchanged:: 0.25.0
+
+    logy : bool or 'sym' default False
+        Use log scaling or symlog scaling on y axis
+        .. versionchanged:: 0.25.0
+
+    loglog : bool or 'sym', default False
+        Use log scaling or symlog scaling on both x and y axes
+        .. versionchanged:: 0.25.0
+
     xticks : sequence
         Values to use for the xticks
     yticks : sequence
@@ -2066,15 +2088,15 @@ _shared_docs['boxplot'] = """
     -----
     The return type depends on the `return_type` parameter:
 
-        * 'axes' : object of class matplotlib.axes.Axes
-        * 'dict' : dict of matplotlib.lines.Line2D objects
-        * 'both' : a namedtuple with structure (ax, lines)
+    * 'axes' : object of class matplotlib.axes.Axes
+    * 'dict' : dict of matplotlib.lines.Line2D objects
+    * 'both' : a namedtuple with structure (ax, lines)
 
-        For data grouped with ``by``:
+    For data grouped with ``by``, return a Series of the above or a numpy
+    array:
 
-        * :class:`~pandas.Series`
-        * :class:`~numpy.array` (for ``return_type = None``)
-        Return Series or numpy.array.
+    * :class:`~pandas.Series`
+    * :class:`~numpy.array` (for ``return_type = None``)
 
     Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines

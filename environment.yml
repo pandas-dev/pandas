@@ -25,6 +25,7 @@ dependencies:
   - pytest-mock
   - sphinx
   - numpydoc
+  - pip
 
   # optional
   - beautifulsoup4>=4.2.1

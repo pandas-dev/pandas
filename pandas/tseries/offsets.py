@@ -2,6 +2,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
+from typing import Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -409,7 +410,7 @@ class SingleConstructorOffset(DateOffset):
         return cls()
 
 
-class _CustomMixin(object):
+class _CustomMixin:
     """
     Mixin for classes that define and validate calendar, holidays,
     and weekdays attributes.
@@ -427,7 +428,7 @@ class _CustomMixin(object):
         object.__setattr__(self, "calendar", calendar)
 
 
-class BusinessMixin(object):
+class BusinessMixin:
     """
     Mixin to business types to provide related functions.
     """
@@ -1413,7 +1414,7 @@ class Week(DateOffset):
         return cls(weekday=weekday)
 
 
-class _WeekOfMonthMixin(object):
+class _WeekOfMonthMixin:
     """
     Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
     """
@@ -1582,8 +1583,8 @@ class QuarterOffset(DateOffset):
     """
     Quarter representation - doesn't call super.
     """
-    _default_startingMonth = None
-    _from_name_startingMonth = None
+    _default_startingMonth = None  # type: Optional[int]
+    _from_name_startingMonth = None   # type: Optional[int]
     _adjust_dst = True
     _attributes = frozenset(['n', 'normalize', 'startingMonth'])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some

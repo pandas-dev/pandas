@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, timedelta
+from io import StringIO
 import re
 import sys
 import textwrap
@@ -8,12 +9,11 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY, StringIO, lrange
+from pandas.compat import PYPY, lrange
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Series, compat, date_range, option_context,
-    period_range)
+    Categorical, DataFrame, Series, date_range, option_context, period_range)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -494,7 +494,7 @@ class TestDataFrameReprInfoEtc(TestData):
         df.info(buf=buf)
 
         df2 = df[df['category'] == 'd']
-        buf = compat.StringIO()
+        buf = StringIO()
         df2.info(buf=buf)
 
     def test_repr_categorical_dates_periods(self):

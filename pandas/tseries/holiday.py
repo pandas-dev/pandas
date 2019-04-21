@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
+from typing import List
 import warnings
 
 from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE  # noqa
 import numpy as np
 
-from pandas.compat import add_metaclass
 from pandas.errors import PerformanceWarning
 
 from pandas import DateOffset, Series, Timestamp, date_range
@@ -121,7 +121,7 @@ def after_nearest_workday(dt):
     return next_workday(nearest_workday(dt))
 
 
-class Holiday(object):
+class Holiday:
     """
     Class that defines a holiday with start/end dates and rules
     for observance.
@@ -323,13 +323,11 @@ class HolidayCalendarMetaClass(type):
         return calendar_class
 
 
-@add_metaclass(HolidayCalendarMetaClass)
-class AbstractHolidayCalendar(object):
+class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     """
     Abstract interface to create holidays following certain rules.
     """
-    __metaclass__ = HolidayCalendarMetaClass
-    rules = []
+    rules = []  # type: List[Holiday]
     start_date = Timestamp(datetime(1970, 1, 1))
     end_date = Timestamp(datetime(2030, 12, 31))
     _cache = None

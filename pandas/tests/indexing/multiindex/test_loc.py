@@ -25,7 +25,7 @@ def frame_random_data_integer_multi_index():
 
 
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-class TestMultiIndexLoc(object):
+class TestMultiIndexLoc:
 
     def test_loc_getitem_series(self):
         # GH14730

@@ -25,7 +25,7 @@ def freq(request):
     return request.param
 
 
-class TestTimedeltaIndexArithmetic(object):
+class TestTimedeltaIndexArithmetic:
     # Addition and Subtraction Operations
 
     # -------------------------------------------------------------
