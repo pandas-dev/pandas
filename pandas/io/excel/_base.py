@@ -8,7 +8,6 @@ import warnings
 from pandas._config import config
 
 import pandas.compat as compat
-from pandas.compat import add_metaclass
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -328,8 +327,7 @@ def read_excel(io,
         **kwds)
 
 
-@add_metaclass(abc.ABCMeta)
-class _BaseExcelReader:
+class _BaseExcelReader(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
@@ -487,8 +485,7 @@ class _BaseExcelReader:
             return output[asheetname]
 
 
-@add_metaclass(abc.ABCMeta)
-class ExcelWriter:
+class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets, default is to use
     xlwt for xls, openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
@@ -600,14 +597,16 @@ class ExcelWriter:
     curr_sheet = None
     path = None
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def supported_extensions(self):
-        "extensions that writer engine supports"
+        """Extensions that writer engine supports."""
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def engine(self):
-        "name of engine"
+        """Name of engine."""
         pass
 
     @abc.abstractmethod

@@ -364,3 +364,11 @@ class TestSeriesTimezones:
                           index=date_range('20131027', periods=5, freq='1H',
                                            tz=tz))
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
+        # GH 25843
+        tz = tz_aware_fixture
+        result = Series([Timestamp('2019', tz=tz)],
+                        dtype='datetime64[ns]')
+        expected = Series([Timestamp('2019')])
+        tm.assert_series_equal(result, expected)
