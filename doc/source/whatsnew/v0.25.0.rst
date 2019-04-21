@@ -331,7 +331,7 @@ Indexing
 ^^^^^^^^
 
 - Improved exception message when calling :meth:`DataFrame.iloc` with a list of non-numeric objects (:issue:`25753`).
--
+- Bug in which :meth:`DataFrame.append` produced an erroneous warning indicating that a ``KeyError`` will be thrown in the future when the data to be appended contains new columns (:issue:`22252`).
 -
 
 

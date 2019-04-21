@@ -6720,7 +6720,7 @@ class DataFrame(NDFrame):
         elif isinstance(other, list) and not isinstance(other[0], DataFrame):
             other = DataFrame(other)
             if (self.columns.get_indexer(other.columns) >= 0).all():
-                other = other.loc[:, self.columns]
+                other = other.reindex(columns=self.columns)
 
         from pandas.core.reshape.concat import concat
         if isinstance(other, (list, tuple)):
