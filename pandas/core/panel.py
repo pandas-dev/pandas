@@ -1,13 +1,11 @@
 """
 Contains data structures designed for manipulating panel (3-dimensional) data
 """
-# pylint: disable=E1103,W0231,W0212,W0621
 from collections import OrderedDict
 import warnings
 
 import numpy as np
 
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_axis_style_args
@@ -200,13 +198,13 @@ class Panel(NDFrame):
         if haxis is not None:
             haxis = ensure_index(haxis)
             data = OrderedDict((k, v)
-                               for k, v in compat.iteritems(data)
+                               for k, v in data.items()
                                if k in haxis)
         else:
             keys = com.dict_keys_to_ordered_list(data)
             haxis = Index(keys)
 
-        for k, v in compat.iteritems(data):
+        for k, v in data.items():
             if isinstance(v, dict):
                 data[k] = self._constructor_sliced(v)
 
@@ -266,8 +264,8 @@ class Panel(NDFrame):
         orient = orient.lower()
         if orient == 'minor':
             new_data = defaultdict(OrderedDict)
-            for col, df in compat.iteritems(data):
-                for item, s in compat.iteritems(df):
+            for col, df in data.items():
+                for item, s in df.items():
                     new_data[item][col] = s
             data = new_data
         elif orient != 'items':  # pragma: no cover
@@ -345,10 +343,7 @@ class Panel(NDFrame):
 
     def __unicode__(self):
         """
-        Return a string representation for a particular Panel.
-
-        Invoked by unicode(df) in py2 only.
-        Yields a Unicode String in both py2/py3.
+        Return a unicode string representation for a particular Panel.
         """
 
         class_name = str(self.__class__)
@@ -1184,7 +1179,7 @@ class Panel(NDFrame):
         # need to assume they are the same
         if ndim is None:
             if isinstance(result, dict):
-                ndim = getattr(list(compat.itervalues(result))[0], 'ndim', 0)
+                ndim = getattr(list(result.values())[0], 'ndim', 0)
 
                 # have a dict, so top-level is +1 dim
                 if ndim != 0:
@@ -1500,7 +1495,7 @@ class Panel(NDFrame):
             result = OrderedDict()
 
         adj_frames = OrderedDict()
-        for k, v in compat.iteritems(frames):
+        for k, v in frames.items():
             if isinstance(v, dict):
                 adj_frames[k] = self._constructor_sliced(v)
             else:
@@ -1512,7 +1507,7 @@ class Panel(NDFrame):
 
         reindex_dict = {self._AXIS_SLICEMAP[a]: axes_dict[a] for a in axes}
         reindex_dict['copy'] = False
-        for key, frame in compat.iteritems(adj_frames):
+        for key, frame in adj_frames.items():
             if frame is not None:
                 result[key] = frame.reindex(**reindex_dict)
             else:

@@ -636,11 +636,6 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
         dtype = pandas_dtype(dtype)
 
     if issubclass(dtype.type, str):
-        # in Py3 that's str, in Py2 that's unicode
-        return lib.astype_unicode(arr.ravel(),
-                                  skipna=skipna).reshape(arr.shape)
-
-    elif issubclass(dtype.type, str):
         return lib.astype_str(arr.ravel(),
                               skipna=skipna).reshape(arr.shape)
 

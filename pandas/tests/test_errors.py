@@ -47,7 +47,7 @@ def test_error_rename():
         pass
 
 
-class Foo(object):
+class Foo:
     @classmethod
     def classmethod(cls):
         raise AbstractMethodError(cls, methodtype='classmethod')

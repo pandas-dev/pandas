@@ -22,7 +22,6 @@ from pandas._config.localization import (  # noqa:F401
     can_set_locale, get_locales, set_locale)
 
 from pandas._libs import testing as _testing
-import pandas.compat as compat
 from pandas.compat import lmap, lrange, lzip, raise_with_traceback
 
 from pandas.core.dtypes.common import (
@@ -1499,7 +1498,7 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
     if check_fill_value:
         assert_attr_equal('default_fill_value', left, right, obj=obj)
 
-    for col, series in compat.iteritems(left):
+    for col, series in left.items():
         assert (col in right)
         # trade-off?
 
@@ -2264,7 +2263,7 @@ item assignment"
         return manager
 
 
-class _AssertRaisesContextmanager(object):
+class _AssertRaisesContextmanager:
     """
     Context manager behind `assert_raises_regex`.
     """
@@ -2459,7 +2458,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             )
 
 
-class RNGContext(object):
+class RNGContext:
     """
     Context manager to set the numpy random number generator speed. Returns
     to the original value upon exiting the context manager.

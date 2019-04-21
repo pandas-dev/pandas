@@ -35,9 +35,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
-# pylint: disable=W0141
-
-
 common_docstring = """
         Parameters
         ----------
@@ -106,7 +103,7 @@ return_docstring = """
     """
 
 
-class CategoricalFormatter(object):
+class CategoricalFormatter:
 
     def __init__(self, categorical, buf=None, length=True, na_rep='NaN',
                  footer=True):
@@ -160,7 +157,7 @@ class CategoricalFormatter(object):
         return str('\n'.join(result))
 
 
-class SeriesFormatter(object):
+class SeriesFormatter:
 
     def __init__(self, series, buf=None, length=True, header=True, index=True,
                  na_rep='NaN', name=False, float_format=None, dtype=True,
@@ -293,7 +290,7 @@ class SeriesFormatter(object):
         return str(''.join(result))
 
 
-class TextAdjustment(object):
+class TextAdjustment:
 
     def __init__(self):
         self.encoding = get_option("display.encoding")
@@ -354,7 +351,7 @@ def _get_adjustment():
         return TextAdjustment()
 
 
-class TableFormatter(object):
+class TableFormatter:
 
     is_truncated = False
     show_dimensions = None
@@ -916,7 +913,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
     return fmt_obj.get_result()
 
 
-class GenericArrayFormatter(object):
+class GenericArrayFormatter:
 
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
                  space=12, float_format=None, justify='right', decimal='.',
@@ -1472,7 +1469,7 @@ def _has_names(index):
         return index.name is not None
 
 
-class EngFormatter(object):
+class EngFormatter:
     """
     Formats float values according to engineering format.
 
