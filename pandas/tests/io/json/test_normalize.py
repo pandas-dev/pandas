@@ -79,25 +79,6 @@ def deeply_nested_post_data():
                       {'foo': 'something2', 'bar': 'else2'}]
              }]
 
-@pytest.fixture
-def expected_data_test_path_with_nested_data():
-    return {0: [{"TextField": "Some text",
-                 'UserField': {'Id': 'ID001', 'Name': 'Name001'},
-                 "CreatedBy": {"Name": "User001"},
-                 'Image': {'a': 'b'}},
-                {"TextField": "Some text",
-                 'UserField': {'Id': 'ID001', 'Name': 'Name001'},
-                 "CreatedBy": {"Name": "User001"},
-                 'Image': {'a': 'b'}}],
-            1: [{"TextField": "Some text", "UserField.Id": "ID001",
-                 "UserField.Name": "Name001",
-                 "CreatedBy": {"Name": "User001"},
-                 'Image': {'a': 'b'}},
-                {"TextField": "Some text", "UserField.Id": "ID001",
-                 "UserField.Name": "Name001",
-                 "CreatedBy": {"Name": "User001"},
-                 'Image': {'a': 'b'}}]}
-
 
 @pytest.fixture
 def missing_metadata():
@@ -330,10 +311,27 @@ class TestJSONNormalize:
     @pytest.mark.parametrize("max_level", [0, 1])
     def test_max_level_with_records_path(self,
                                          deeply_nested_post_data,
-                                         expected_data_test_path_with_nested_data,
                                          max_level):
+
+        expected_data = {0: [{"TextField": "Some text",
+                              'UserField': {'Id': 'ID001', 'Name': 'Name001'},
+                              "CreatedBy": {"Name": "User001"},
+                              'Image': {'a': 'b'}},
+                             {"TextField": "Some text",
+                              'UserField': {'Id': 'ID001', 'Name': 'Name001'},
+                              "CreatedBy": {"Name": "User001"},
+                              'Image': {'a': 'b'}}],
+                         1: [{"TextField": "Some text", "UserField.Id": "ID001",
+                              "UserField.Name": "Name001",
+                              "CreatedBy": {"Name": "User001"},
+                              'Image': {'a': 'b'}},
+                             {"TextField": "Some text", "UserField.Id": "ID001",
+                              "UserField.Name": "Name001",
+                              "CreatedBy": {"Name": "User001"},
+                              'Image': {'a': 'b'}}]}
+
         test_input = deeply_nested_post_data
-        expected_data = expected_data_test_path_with_nested_data[max_level]
+        expected_data = expected_data[max_level]
         result = json_normalize(test_input,
                                 record_path=["Lookup"],
                                 meta=[["CreatedBy"], ["Image"]],
