@@ -127,7 +127,7 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         tm.assert_numpy_array_equal(res, exp)
 
 
-class TestCategoricalOps(object):
+class TestCategoricalOps:
 
     def test_compare_frame(self):
         # GH#24282 check that Categorical.__cmp__(DataFrame) defers to frame

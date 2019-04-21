@@ -129,7 +129,7 @@ def _maybe_remove(store, key):
         pass
 
 
-class Base(object):
+class Base:
 
     @classmethod
     def setup_class(cls):

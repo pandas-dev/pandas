@@ -60,7 +60,7 @@ def _gcf():
     return plt.gcf()
 
 
-class MPLPlot(object):
+class MPLPlot:
     """
     Base class for assembling a pandas plot using matplotlib
 
