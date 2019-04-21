@@ -2,8 +2,6 @@
 from io import StringIO
 import warnings
 
-import pandas.compat as compat
-
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas import get_option, option_context
@@ -38,10 +36,8 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
 
     # Try to decode (if needed, as "text" might already be a string here).
     try:
-        text = compat.bytes_to_str(
-            text, encoding=(kwargs.get('encoding') or
-                            get_option('display.encoding'))
-        )
+        text = text.decode(kwargs.get('encoding')
+                           or get_option('display.encoding'))
     except AttributeError:
         pass
 

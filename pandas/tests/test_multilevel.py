@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101,W0141
 import datetime
 from io import StringIO
 import itertools
@@ -24,7 +23,7 @@ AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
                  'std', 'var', 'sem']
 
 
-class Base(object):
+class Base:
 
     def setup_method(self, method):
 

@@ -1,5 +1,3 @@
-# pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613,W0201
 from functools import partial
 import itertools
 
@@ -26,7 +24,7 @@ from pandas.core.sorting import (
     get_group_index)
 
 
-class _Unstacker(object):
+class _Unstacker:
     """
     Helper class to unstack data / pivot with multi-level index
 
