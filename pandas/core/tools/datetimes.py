@@ -200,26 +200,22 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         if format is not None:
             raise ValueError("cannot specify both format and unit")
         arg = getattr(arg, 'values', arg)
-        tz_parsed = None
-        result = tslib.array_with_unit_to_datetime(arg, unit,
-                                                   errors=errors)
-        # GH 25546:
-        # Capture tz information from array_with_unit_to_datetime
-        if isinstance(result, tuple):
-            result, tz_parsed = result
+        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit,
+                                                              errors=errors)
         if box:
             if errors == 'ignore':
                 from pandas import Index
                 result = Index(result, name=name)
-                if not isinstance(result, DatetimeIndex):
-                    return result
             else:
                 result = DatetimeIndex(result, name=name)
             # GH 23758: We may still need to localize the result with tz
-            # Apply tz_parsed first (from arg) and then tz (from caller)
-            if tz_parsed is not None:
-                # result will be naive but in UTC
+            # GH 25546: Apply tz_parsed first (from arg), then tz (from caller)
+            # result will be naive but in UTC
+            try:
                 result = result.tz_localize('UTC').tz_convert(tz_parsed)
+            except AttributeError:
+                # Regular Index from 'ignore' path
+                return result
             if tz is not None:
                 if result.tz is None:
                     result = result.tz_localize(tz)
