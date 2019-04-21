@@ -67,7 +67,7 @@ def author_missing_data():
 
 
 @pytest.fixture
-def data_records_path_with_nested_data():
+def deeply_nested_post_data():
     return [{'CreatedBy': {'Name': 'User001'},
              'Lookup': [{'TextField': 'Some text',
                          'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
@@ -75,8 +75,8 @@ def data_records_path_with_nested_data():
                          'UserField': {'Id': 'ID001', 'Name': 'Name001'}}
                         ],
              'Image': {'a': 'b'},
-             'random': [{'foo': 'something', 'bar': 'else'},
-                        {'foo': 'something2', 'bar': 'else2'}]
+             'tags': [{'foo': 'something', 'bar': 'else'},
+                      {'foo': 'something2', 'bar': 'else2'}]
              }]
 
 
@@ -328,10 +328,10 @@ class TestJSONNormalize:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("max_level", [0, 1])
-    def test_max_level_with_records_path_in_nested_data(self,
-                                           data_records_path_with_nested_data,
-                                           max_level):
-        test_input = data_records_path_with_nested_data
+    def test_max_level_with_records_path(self,
+                                         deeply_nested_post_data,
+                                         max_level):
+        test_input = deeply_nested_post_data
         expected_data = expected_data_test_path_with_nested_data()[max_level]
         result = json_normalize(test_input,
                                 record_path=["Lookup"],
