@@ -5,7 +5,6 @@ import warnings
 from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE  # noqa
 import numpy as np
 
-from pandas.compat import add_metaclass
 from pandas.errors import PerformanceWarning
 
 from pandas import DateOffset, Series, Timestamp, date_range
@@ -324,12 +323,10 @@ class HolidayCalendarMetaClass(type):
         return calendar_class
 
 
-@add_metaclass(HolidayCalendarMetaClass)
-class AbstractHolidayCalendar:
+class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     """
     Abstract interface to create holidays following certain rules.
     """
-    __metaclass__ = HolidayCalendarMetaClass
     rules = []  # type: List[Holiday]
     start_date = Timestamp(datetime(1970, 1, 1))
     end_date = Timestamp(datetime(2030, 12, 31))
