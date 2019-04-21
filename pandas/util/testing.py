@@ -1166,7 +1166,6 @@ def assert_frame_equal(left, right, check_dtype=True,
         Specify object name being compared, internally used to show appropriate
         assertion message.
 
-
     See Also
     --------
     assert_series_equal : Equivalent method for asserting Series equality.
