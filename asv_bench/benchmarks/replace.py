@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-class FillNa(object):
+class FillNa:
 
     params = [True, False]
     param_names = ['inplace']
@@ -21,7 +21,7 @@ class FillNa(object):
         self.ts.replace(np.nan, 0.0, inplace=inplace)
 
 
-class ReplaceDict(object):
+class ReplaceDict:
 
     params = [True, False]
     param_names = ['inplace']
@@ -36,7 +36,7 @@ class ReplaceDict(object):
         self.s.replace(self.to_rep, inplace=inplace)
 
 
-class Convert(object):
+class Convert:
 
     params = (['DataFrame', 'Series'], ['Timestamp', 'Timedelta'])
     param_names = ['constructor', 'replace_data']

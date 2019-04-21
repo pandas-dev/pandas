@@ -16,7 +16,6 @@ from urllib.parse import (  # noqa
 from urllib.request import pathname2url, urlopen
 import zipfile
 
-import pandas.compat as compat
 from pandas.errors import (  # noqa
     AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
     ParserWarning)
@@ -38,7 +37,7 @@ _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard('')
 
 
-class BaseIterator(object):
+class BaseIterator:
     """Subclass this and provide a "__next__()" method to obtain an iterator.
     Useful only when the object being iterated is non-reusable (e.g. OK for a
     parser, not for an in-memory table, yes for its iterator)."""
@@ -460,7 +459,7 @@ class MMapWrapper(BaseIterator):
 
         # readline returns bytes, not str, but Python's CSV reader
         # expects str, so convert the output to str before continuing
-        newline = compat.bytes_to_str(newline)
+        newline = newline.decode('utf-8')
 
         # mmap doesn't raise if reading past the allocated
         # data but instead returns an empty string, so raise

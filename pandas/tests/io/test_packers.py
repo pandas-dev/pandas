@@ -14,7 +14,7 @@ from pandas.errors import PerformanceWarning
 import pandas
 from pandas import (
     Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Period, Series,
-    Timestamp, bdate_range, compat, date_range, period_range)
+    Timestamp, bdate_range, date_range, period_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_categorical_equal, assert_frame_equal, assert_index_equal,
@@ -85,7 +85,7 @@ def check_arbitrary(a, b):
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-class TestPackers(object):
+class TestPackers:
 
     def setup_method(self, method):
         self.path = '__%s__.msg' % tm.rands(10)
@@ -148,7 +148,7 @@ class TestAPI(TestPackers):
 
     def test_invalid_arg(self):
         # GH10369
-        class A(object):
+        class A:
 
             def __init__(self):
                 self.read = 0
@@ -818,12 +818,12 @@ class TestEncoding(TestPackers):
     def test_utf(self):
         # GH10581
         for encoding in self.utf_encodings:
-            for frame in compat.itervalues(self.frame):
+            for frame in self.frame.values():
                 result = self.encode_decode(frame, encoding=encoding)
                 assert_frame_equal(result, frame)
 
     def test_default_encoding(self):
-        for frame in compat.itervalues(self.frame):
+        for frame in self.frame.values():
             result = frame.to_msgpack()
             expected = frame.to_msgpack(encoding='utf8')
             assert result == expected
@@ -841,7 +841,7 @@ def legacy_packer(request, datapath):
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-class TestMsgpack(object):
+class TestMsgpack:
     """
     How to add msgpack tests:
 

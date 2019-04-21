@@ -6,7 +6,7 @@ from pandas import (
     DataFrame, Series, Timedelta, Timestamp, timedelta_range, to_timedelta)
 
 
-class TimedeltaConstructor(object):
+class TimedeltaConstructor:
 
     def time_from_int(self):
         Timedelta(123456789)
@@ -34,7 +34,7 @@ class TimedeltaConstructor(object):
         Timedelta('nat')
 
 
-class ToTimedelta(object):
+class ToTimedelta:
 
     def setup(self):
         self.ints = np.random.randint(0, 60, size=10000)
@@ -54,7 +54,7 @@ class ToTimedelta(object):
         to_timedelta(self.str_seconds)
 
 
-class ToTimedeltaErrors(object):
+class ToTimedeltaErrors:
 
     params = ['coerce', 'ignore']
     param_names = ['errors']
@@ -68,7 +68,7 @@ class ToTimedeltaErrors(object):
         to_timedelta(self.arr, errors=errors)
 
 
-class TimedeltaOps(object):
+class TimedeltaOps:
 
     def setup(self):
         self.td = to_timedelta(np.arange(1000000))
@@ -78,7 +78,7 @@ class TimedeltaOps(object):
         self.td + self.ts
 
 
-class TimedeltaProperties(object):
+class TimedeltaProperties:
 
     def setup_cache(self):
         td = Timedelta(days=365, minutes=35, seconds=25, milliseconds=35)
@@ -97,7 +97,7 @@ class TimedeltaProperties(object):
         td.nanoseconds
 
 
-class DatetimeAccessor(object):
+class DatetimeAccessor:
 
     def setup_cache(self):
         N = 100000
@@ -120,7 +120,7 @@ class DatetimeAccessor(object):
         series.dt.nanoseconds
 
 
-class TimedeltaIndexing(object):
+class TimedeltaIndexing:
 
     def setup(self):
         self.index = timedelta_range(start='1985', periods=1000, freq='D')

@@ -5,7 +5,7 @@ from pandas import Timedelta, date_range, period_range
 import pandas.util.testing as tm
 
 
-class TestPeriodIndexOps(object):
+class TestPeriodIndexOps:
     def test_start_time(self):
         index = period_range(freq='M', start='2016-01-01', end='2016-05-31')
         expected_index = date_range('2016-01-01', end='2016-05-31', freq='MS')
