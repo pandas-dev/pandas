@@ -361,6 +361,7 @@ I/O
 - Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
 - Improved the explanation for the failure when value labels are repeated in Stata dta files and suggested work-arounds (:issue:`25772`)
 - Improved :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` to read incorrectly formatted 118 format files saved by Stata (:issue:`25960`)
+- Added feature in :func:`read_csv` to now accept a `skipdatarows` flag, which will skip the first n data rows after removing all comment rows as defined by `comment` (:issue:`23067`)
 
 Plotting
 ^^^^^^^^
