@@ -117,7 +117,7 @@ Concatenating Sparse Values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When passed DataFrames whose values are sparse, :func:`concat` will now return a
-:class:`Series` or :class:`DataFrame` with sparse values, rather than a :class`SparseDataFrame` (:issue:`25702`).
+:class:`Series` or :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (:issue:`25702`).
 
 .. ipython:: python
 
