@@ -1628,13 +1628,13 @@ class GroupBy(_GroupBy):
         else:
             raise TypeError("n needs to be an int or a list/set/tuple of ints")
 
-        nth_values = np.array(nth_values, dtype=np.intp)
+        nth_array = np.array(nth_values, dtype=np.intp)
         self._set_group_selection()
 
         if not dropna:
-            mask_left = np.in1d(self._cumcount_array(), nth_values)
+            mask_left = np.in1d(self._cumcount_array(), nth_array)
             mask_right = np.in1d(self._cumcount_array(ascending=False) + 1,
-                                 -nth_values)
+                                 -nth_array)
             mask = mask_left | mask_right
 
             ids, _, _ = self.grouper.group_info
