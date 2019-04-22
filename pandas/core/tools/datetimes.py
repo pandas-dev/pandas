@@ -18,7 +18,14 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import notna
 
+from pandas._typing import (
+    ArrayLike, IndexLike, IndexLikeOrNdarray, SeriesLike, Union)
 from pandas.core import algorithms
+
+
+# notations
+IntFltStrDateLisTuplArrSer = Union[int, float, str, list, tuple,
+                                   datetime, ArrayLike, SeriesLike]
 
 
 def _guess_datetime_format_for_array(arr, **kwargs):
@@ -60,7 +67,7 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     return cache_array
 
 
-def _box_as_indexlike(dt_array, tz=None, name=None):
+def _box_as_indexlike(dt_array: ArrayLike, tz=None, name=None) -> IndexLike:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
     if it is possible or to generic Index instead
@@ -86,7 +93,9 @@ def _box_as_indexlike(dt_array, tz=None, name=None):
     return Index(dt_array, name=name)
 
 
-def _convert_and_box_cache(arg, cache_array, box, name=None):
+def _convert_and_box_cache(arg: IntFltStrDateLisTuplArrSer,
+                           cache_array: SeriesLike,
+                           box: bool, name=None) -> IndexLikeOrNdarray:
     """
     Convert array of dates with a cache and box the result
 
