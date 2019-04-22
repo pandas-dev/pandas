@@ -6,7 +6,7 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO
 import os
-from typing import Dict, Union
+from typing import Any, Dict, Optional, Union
 import warnings
 from zipfile import ZipFile
 
@@ -28,7 +28,7 @@ class CSVFormatter:
     def __init__(self, obj, path_or_buf=None, sep=",", na_rep='',
                  float_format=None, cols=None, header=True, index=True,
                  index_label=None, mode='w', nanRep=None, encoding=None,
-                 compression: Union[str, Dict, None] = 'infer',
+                 compression: Optional[Union[str, Dict[str, Any]]] = 'infer',
                  quoting=None, line_terminator='\n', chunksize=None,
                  tupleize_cols=False, quotechar='"', date_format=None,
                  doublequote=True, escapechar=None, decimal='.'):

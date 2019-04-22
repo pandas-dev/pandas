@@ -36,7 +36,7 @@ Other Enhancements
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
-- :meth:`NDFrame.to_csv` now supports dicts as ``compression`` argument with key ``'method'`` being the compression method and others as kwargs of ``ByteZipFile`` when the compression method is ``'zip'``. (:issue:`26023`)
+- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as kwargs of ``ByteZipFile`` when the compression method is ``'zip'``. (:issue:`26023`)
 
 .. _whatsnew_0250.api_breaking:
 

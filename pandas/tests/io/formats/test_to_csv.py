@@ -548,6 +548,13 @@ z
             read_df = pd.read_csv(path, index_col=0)
             tm.assert_frame_equal(read_df, df)
 
+    def test_to_csv_compression_dict_no_method(self):
+        # GH 26023
+        df = DataFrame({"ABC": [1]})
+        compression = {"some_option": True}
+        with tm.ensure_clean("out.zip") as path, pytest.raises(ValueError):
+            df.to_csv(path, compression=compression)
+
     @pytest.mark.parametrize("compression", ["zip", "infer"])
     @pytest.mark.parametrize("archive_name", [None, "test_to_csv.csv",
                                               "test_to_csv.zip"])
