@@ -131,6 +131,8 @@ class TestMultiIndexLoc:
             with pytest.raises(KeyError, match=r"^2L?$"):
                 mi_int.ix[2]
 
+    def test_loc_multiindex_fails(self):
+        # GH 14885
         s = Series(range(8), index=MultiIndex.from_product(
             [['a', 'b'], ['c', 'd'], ['e', 'f']]))
 
