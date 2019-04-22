@@ -464,9 +464,19 @@ class SparseSeries(Series):
     def reindex(self, index=None, method=None, copy=True, limit=None,
                 **kwargs):
         # TODO: remove?
+        fill_value = kwargs.pop('fill_value', None)
+        if fill_value is None:
+            fill_value = self.fill_value
         return super(SparseSeries, self).reindex(index=index, method=method,
+                                                 fill_value=fill_value,
                                                  copy=copy, limit=limit,
                                                  **kwargs)
+
+    def _reindex_with_indexers(self, *args, **kwargs):
+        return super(SparseSeries, self)._reindex_with_indexers(
+            *args,
+            preserve_dtype=True,
+            **kwargs)
 
     def sparse_reindex(self, new_index):
         """

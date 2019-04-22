@@ -4502,7 +4502,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                            fill_value=fill_value, copy=copy)
 
     def _reindex_with_indexers(self, reindexers, fill_value=None, copy=False,
-                               allow_dups=False):
+                               allow_dups=False, preserve_dtype=False):
         """allow_dups indicates an internal call here """
 
         # reindex doing multiple operations on different axes if indicated
@@ -4527,7 +4527,8 @@ class NDFrame(PandasObject, SelectionMixin):
         if copy and new_data is self._data:
             new_data = new_data.copy()
 
-        return self._constructor(new_data).__finalize__(self)
+        kwargs = {'dtype': self._data.dtype} if preserve_dtype else {}
+        return self._constructor(new_data, **kwargs).__finalize__(self)
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """

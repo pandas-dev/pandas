@@ -12,7 +12,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
-    DataFrame, Series, SparseDtype, SparseSeries, bdate_range, isna)
+    DataFrame, Series, SparseDtype, SparseSeries, bdate_range)
 from pandas.core.reshape.util import cartesian_product
 import pandas.core.sparse.frame as spf
 from pandas.tests.series.test_api import SharedWithSparse
@@ -309,7 +309,7 @@ class TestSparseSeries(SharedWithSparse):
         sp = SparseSeries(data, np.arange(100))
         sp = sp.reindex(np.arange(200))
         assert (sp.loc[:99] == data).all()
-        assert isna(sp.loc[100:]).all()
+        assert sp.loc[100:].isin((0,)).all()
 
         data = np.nan
         sp = SparseSeries(data, np.arange(100))
@@ -1030,6 +1030,11 @@ class TestSparseSeries(SharedWithSparse):
         dense_usage = dense_series.memory_usage(deep=deep)
 
         assert sparse_usage < dense_usage
+
+    @pytest.mark.parametrize('dtype', (np.float32, np.int32, np.bool))
+    def test_resize_preserves_dtype(self, dtype):
+        s = pd.SparseSeries([1, 0], dtype=dtype)
+        assert s.dtype == s.reindex([0, 1, 2]).dtype
 
 
 class TestSparseHandlingMultiIndexes:
