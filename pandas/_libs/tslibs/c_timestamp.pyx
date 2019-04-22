@@ -23,8 +23,6 @@ cimport numpy as cnp
 from numpy cimport int64_t, int8_t
 cnp.import_array()
 
-from dateutil.tz import tzutc
-
 from cpython.datetime cimport (datetime,
                                PyDateTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
@@ -38,9 +36,9 @@ from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.np_datetime cimport (
-    reverse_ops, cmp_scalar, npy_datetimestruct, dt64_to_dtstruct)
+    reverse_ops, cmp_scalar)
 from pandas._libs.tslibs.timezones cimport (
-    get_timezone, get_utcoffset, is_utc, tz_compare)
+    get_timezone, is_utc, tz_compare)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
@@ -381,5 +379,6 @@ cdef class _Timestamp(datetime):
 
     def timestamp(self):
         """Return POSIX timestamp as float."""
-        # py27 compat, see GH#17329
+        # GH 17329
+        # Note: Naive timestamps will not match datetime.stdlib
         return round(self.value / 1e9, 6)

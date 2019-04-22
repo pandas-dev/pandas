@@ -21,7 +21,7 @@ def dropna(request):
     return request.param
 
 
-class TestPivotTable(object):
+class TestPivotTable:
 
     def setup_method(self, method):
         self.data = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
@@ -1288,8 +1288,57 @@ class TestPivotTable(object):
             df.pivot_table(index='ind1', columns='ind2',
                            values='count', aggfunc='count')
 
+    def test_pivot_table_aggfunc_dropna(self, dropna):
+        # GH 22159
+        df = pd.DataFrame({'fruit': ['apple', 'peach', 'apple'],
+                           'size': [1, 1, 2],
+                           'taste': [7, 6, 6]})
 
-class TestCrosstab(object):
+        def ret_one(x):
+            return 1
+
+        def ret_sum(x):
+            return sum(x)
+
+        def ret_none(x):
+            return np.nan
+
+        result = pd.pivot_table(df, columns='fruit',
+                                aggfunc=[ret_sum, ret_none, ret_one],
+                                dropna=dropna)
+
+        data = [[3, 1, np.nan, np.nan, 1, 1], [13, 6, np.nan, np.nan, 1, 1]]
+        col = pd.MultiIndex.from_product([['ret_sum', 'ret_none', 'ret_one'],
+                                         ['apple', 'peach']],
+                                         names=[None, 'fruit'])
+        expected = pd.DataFrame(data, index=['size', 'taste'], columns=col)
+
+        if dropna:
+            expected = expected.dropna(axis='columns')
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_aggfunc_scalar_dropna(self, dropna):
+        # GH 22159
+        df = pd.DataFrame({'A': ['one', 'two', 'one'],
+                           'x': [3, np.nan, 2],
+                           'y': [1, np.nan, np.nan]})
+
+        result = pd.pivot_table(df, columns='A',
+                                aggfunc=np.mean,
+                                dropna=dropna)
+
+        data = [[2.5, np.nan], [1, np.nan]]
+        col = pd.Index(['one', 'two'], name='A')
+        expected = pd.DataFrame(data, index=['x', 'y'], columns=col)
+
+        if dropna:
+            expected = expected.dropna(axis='columns')
+
+        tm.assert_frame_equal(result, expected)
+
+
+class TestCrosstab:
 
     def setup_method(self, method):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',

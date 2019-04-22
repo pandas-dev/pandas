@@ -30,8 +30,8 @@ from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype)
 
 from pandas import (
-    Categorical, DatetimeIndex, NaT, Timestamp, compat, concat, isna,
-    to_datetime, to_timedelta)
+    Categorical, DatetimeIndex, NaT, Timestamp, concat, isna, to_datetime,
+    to_timedelta)
 from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
@@ -592,7 +592,7 @@ def _cast_to_stata_types(data):
     return data
 
 
-class StataValueLabel(object):
+class StataValueLabel:
     """
     Parse a categorical column and prepare formatted output
 
@@ -833,7 +833,7 @@ class StataMissingValue(StringMixin):
         return value
 
 
-class StataParser(object):
+class StataParser:
 
     def __init__(self):
 
@@ -1700,7 +1700,7 @@ the string values returned are correct."""
         """
         Converts categorical columns to Categorical type.
         """
-        value_labels = list(compat.iterkeys(value_label_dict))
+        value_labels = list(value_label_dict.keys())
         cat_converted_data = []
         for col, label in zip(data, lbllist):
             if label in value_labels:
@@ -2483,7 +2483,7 @@ def _pad_bytes_new(name, length):
     return name + b'\x00' * (length - len(name))
 
 
-class StataStrLWriter(object):
+class StataStrLWriter:
     """
     Converter for Stata StrLs
 
