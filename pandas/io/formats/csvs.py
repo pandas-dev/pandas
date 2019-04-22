@@ -122,7 +122,7 @@ class CSVFormatter:
         self.data_index = obj.index
         if (isinstance(self.data_index, (ABCDatetimeIndex, ABCPeriodIndex)) and
                 date_format is not None):
-            from pandas import Index  # type: ignore
+            from pandas import Index
             self.data_index = Index([x.strftime(date_format) if notna(x) else
                                      '' for x in self.data_index])
 
