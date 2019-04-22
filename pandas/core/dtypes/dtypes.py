@@ -169,7 +169,7 @@ class CategoricalDtypeType(type):
 @register_extension_dtype
 class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
-    Type for categorical data with the categories and orderedness
+    Type for categorical data with the categories and orderedness.
 
     .. versionchanged:: 0.21.0
 
@@ -334,6 +334,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         self._ordered = ordered
 
     def __setstate__(self, state):
+        # for pickle compat. __get_state__ is defined in the
+        # PandasExtensionDtype superclass and uses the public properties to
+        # pickle -> need to set the settable private ones here (see GH26067)
         self._categories = state.pop('categories', None)
         self._ordered = state.pop('ordered', False)
 
@@ -570,13 +573,40 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
 @register_extension_dtype
 class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
-
     """
-    A np.dtype duck-typed class, suitable for holding a custom datetime with tz
-    dtype.
+    An ExtensionDtype for timezone-aware datetime data.
 
-    THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of
-    np.datetime64[ns]
+    **This is not an actual numpy dtype**, but a duck type.
+
+    Parameters
+    ----------
+    unit : str, default "ns"
+        The precision of the datetime data. Currently limited
+        to ``"ns"``.
+    tz : str, int, or datetime.tzinfo
+        The timezone.
+
+    Attributes
+    ----------
+    unit
+    tz
+
+    Methods
+    -------
+    None
+
+    Raises
+    ------
+    pytz.UnknownTimeZoneError
+        When the requested timezone cannot be found.
+
+    Examples
+    --------
+    >>> pd.DatetimeTZDtype(tz='UTC')
+    datetime64[ns, UTC]
+
+    >>> pd.DatetimeTZDtype(tz='dateutil/US/Central')
+    datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
     """
     type = Timestamp  # type: Type[Timestamp]
     kind = 'M'  # type: str_type
@@ -589,30 +619,6 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
     _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
 
     def __init__(self, unit="ns", tz=None):
-        """
-        An ExtensionDtype for timezone-aware datetime data.
-
-        Parameters
-        ----------
-        unit : str, default "ns"
-            The precision of the datetime data. Currently limited
-            to ``"ns"``.
-        tz : str, int, or datetime.tzinfo
-            The timezone.
-
-        Raises
-        ------
-        pytz.UnknownTimeZoneError
-            When the requested timezone cannot be found.
-
-        Examples
-        --------
-        >>> pd.core.dtypes.dtypes.DatetimeTZDtype(tz='UTC')
-        datetime64[ns, UTC]
-
-        >>> pd.core.dtypes.dtypes.DatetimeTZDtype(tz='dateutil/US/Central')
-        datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
-        """
         if isinstance(unit, DatetimeTZDtype):
             unit, tz = unit.unit, unit.tz
 
@@ -718,7 +724,9 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
                 str(self.tz) == str(other.tz))
 
     def __setstate__(self, state):
-        # for pickle compat.
+        # for pickle compat. __get_state__ is defined in the
+        # PandasExtensionDtype superclass and uses the public properties to
+        # pickle -> need to set the settable private ones here (see GH26067)
         self._tz = state['tz']
         self._unit = state['unit']
 
@@ -726,9 +734,30 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 @register_extension_dtype
 class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
     """
-    A Period duck-typed class, suitable for holding a period with freq dtype.
+    An ExtensionDtype for Period data.
 
-    THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.int64.
+    **This is not an actual numpy dtype**, but a duck type.
+
+    Parameters
+    ----------
+    freq : str or DateOffset
+        The frequency of this PeriodDtype
+
+    Attributes
+    ----------
+    freq
+
+    Methods
+    -------
+    None
+
+    Examples
+    --------
+    >>> pd.PeriodDtype(freq='D')
+    period[D]
+
+    >>> pd.PeriodDtype(freq=pd.offsets.MonthEnd())
+    period[M]
     """
     type = Period  # type: Type[Period]
     kind = 'O'  # type: str_type
@@ -751,7 +780,9 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
 
         elif freq is None:
             # empty constructor for pickle compat
-            return object.__new__(cls)
+            u = object.__new__(cls)
+            u._freq = None
+            return u
 
         if not isinstance(freq, ABCDateOffset):
             freq = cls._parse_dtype_strict(freq)
@@ -760,9 +791,14 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
             return cls._cache[freq.freqstr]
         except KeyError:
             u = object.__new__(cls)
-            u.freq = freq
+            u._freq = freq
             cls._cache[freq.freqstr] = u
             return u
+
+    @property
+    def freq(self):
+        """The frequency object of this PeriodDtype."""
+        return self._freq
 
     @classmethod
     def _parse_dtype_strict(cls, freq):
@@ -817,6 +853,12 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
 
         return isinstance(other, PeriodDtype) and self.freq == other.freq
 
+    def __setstate__(self, state):
+        # for pickle compat. __get_state__ is defined in the
+        # PandasExtensionDtype superclass and uses the public properties to
+        # pickle -> need to set the settable private ones here (see GH26067)
+        self._freq = state['freq']
+
     @classmethod
     def is_dtype(cls, dtype):
         """
@@ -849,9 +891,27 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
 @register_extension_dtype
 class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     """
-    A Interval duck-typed class, suitable for holding an interval
+    An ExtensionDtype for Interval data.
 
-    THIS IS NOT A REAL NUMPY DTYPE
+    **This is not an actual numpy dtype**, but a duck type.
+
+    Parameters
+    ----------
+    subtype : str, np.dtype
+        The dtype of the Interval bounds.
+
+    Attributes
+    ----------
+    subtype
+
+    Methods
+    -------
+    None
+
+    Examples
+    --------
+    >>> pd.IntervalDtype(subtype='int64')
+    interval[int64]
     """
     name = 'interval'
     kind = None  # type: Optional[str_type]
@@ -863,11 +923,6 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
 
     def __new__(cls, subtype=None):
-        """
-        Parameters
-        ----------
-        subtype : the dtype of the Interval
-        """
         from pandas.core.dtypes.common import (
             is_categorical_dtype, is_string_dtype, pandas_dtype)
 
@@ -877,7 +932,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
             # we are called as an empty constructor
             # generally for pickle compat
             u = object.__new__(cls)
-            u.subtype = None
+            u._subtype = None
             return u
         elif (isinstance(subtype, str) and
               subtype.lower() == 'interval'):
@@ -903,9 +958,14 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
             return cls._cache[str(subtype)]
         except KeyError:
             u = object.__new__(cls)
-            u.subtype = subtype
+            u._subtype = subtype
             cls._cache[str(subtype)] = u
             return u
+
+    @property
+    def subtype(self):
+        """The dtype of the Interval bounds."""
+        return self._subtype
 
     @classmethod
     def construct_array_type(cls):
@@ -962,6 +1022,12 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         else:
             from pandas.core.dtypes.common import is_dtype_equal
             return is_dtype_equal(self.subtype, other.subtype)
+
+    def __setstate__(self, state):
+        # for pickle compat. __get_state__ is defined in the
+        # PandasExtensionDtype superclass and uses the public properties to
+        # pickle -> need to set the settable private ones here (see GH26067)
+        self._subtype = state['subtype']
 
     @classmethod
     def is_dtype(cls, dtype):

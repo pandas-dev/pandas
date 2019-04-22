@@ -24,7 +24,7 @@ including other versions of pandas.
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 - :func:`DataFrame.plot` keywords ``logy``, ``logx`` and ``loglog`` can now accept the value ``'sym'`` for symlog scaling. (:issue:`24867`)
-- Added support for ISO week year format ('%G-%V-%u') when parsing datetimes using :meth: `to_datetime` (:issue:`16607`)
+- Added support for ISO week year format ('%G-%V-%u') when parsing datetimes using :meth:`to_datetime` (:issue:`16607`)
 - Indexing of ``DataFrame`` and ``Series`` now accepts zerodim ``np.ndarray`` (:issue:`24919`)
 - :meth:`Timestamp.replace` now supports the ``fold`` argument to disambiguate DST transition times (:issue:`25017`)
 - :meth:`DataFrame.at_time` and :meth:`Series.at_time` now support :meth:`datetime.time` objects with timezones (:issue:`24043`)
@@ -52,16 +52,14 @@ Indexing a :class:`DataFrame` or :class:`Series` with a :class:`DatetimeIndex` w
 date string with a UTC offset would previously ignore the UTC offset. Now, the UTC offset
 is respected in indexing. (:issue:`24076`, :issue:`16785`)
 
+.. ipython:: python
+
+    df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
+    df
+
 *Previous Behavior*:
 
 .. code-block:: ipython
-
-    In [1]: df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
-
-    In [2]: df
-    Out[2]:
-                               0
-    2019-01-01 00:00:00-08:00  0
 
     In [3]: df['2019-01-01 00:00:00+04:00':'2019-01-01 01:00:00+04:00']
     Out[3]:
@@ -70,9 +68,8 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
 
 *New Behavior*:
 
-.. ipython:: ipython
+.. ipython:: python
 
-    df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
     df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
@@ -83,10 +80,7 @@ GroupBy.apply on ``DataFrame`` evaluates first group only once
 The implementation of :meth:`DataFrameGroupBy.apply() <pandas.core.groupby.DataFrameGroupBy.apply>`
 previously evaluated the supplied function consistently twice on the first group
 to infer if it is safe to use a fast code path. Particularly for functions with
-side effects, this was an undesired behavior and may have led to surprises.
-
-(:issue:`2936`, :issue:`2656`, :issue:`7739`, :issue:`10519`, :issue:`12155`,
-:issue:`20084`, :issue:`21417`)
+side effects, this was an undesired behavior and may have led to surprises. (:issue:`2936`, :issue:`2656`, :issue:`7739`, :issue:`10519`, :issue:`12155`, :issue:`20084`, :issue:`21417`)
 
 Now every group is evaluated only a single time.
 
@@ -123,7 +117,7 @@ Concatenating Sparse Values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When passed DataFrames whose values are sparse, :func:`concat` will now return a
-Series or DataFrame with sparse values, rather than a ``SparseDataFrame`` (:issue:`25702`).
+:class:`Series` or :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (:issue:`25702`).
 
 .. ipython:: python
 
@@ -160,7 +154,7 @@ cause a ``SparseSeries`` or ``SparseDataFrame`` to be returned, as before.
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions (issue:`25725`, :issue:`24942`, :issue:`25752`).
+Due to dropping support for Python 2.7, a number of optional dependencies have updated minimum versions (:issue:`25725`, :issue:`24942`, :issue:`25752`).
 Independently, some minimum supported versions of dependencies were updated (:issue:`23519`, :issue:`25554`).
 If installed, we now require:
 
@@ -214,7 +208,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - :class:`DatetimeTZDtype` will now standardize pytz timezones to a common timezone instance (:issue:`24713`)
-- ``Timestamp`` and ``Timedelta`` scalars now implement the :meth:`to_numpy` method as aliases to :meth:`Timestamp.to_datetime64` and :meth:`Timedelta.to_timedelta64`, respectively. (:issue:`24653`)
+- :class:`Timestamp` and :class:`Timedelta` scalars now implement the :meth:`to_numpy` method as aliases to :meth:`Timestamp.to_datetime64` and :meth:`Timedelta.to_timedelta64`, respectively. (:issue:`24653`)
 - :meth:`Timestamp.strptime` will now rise a ``NotImplementedError`` (:issue:`25016`)
 - Comparing :class:`Timestamp` with unsupported objects now returns :py:obj:`NotImplemented` instead of raising ``TypeError``. This implies that unsupported rich comparisons are delegated to the other object, and are now consistent with Python 3 behavior for ``datetime`` objects (:issue:`24011`)
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
@@ -225,14 +219,14 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
-- Deprecated the `M (months)` and `Y (year)` `units` parameter of :func: `pandas.to_timedelta`, :func: `pandas.Timedelta` and :func: `pandas.TimedeltaIndex` (:issue:`16344`)
-- The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64`/:meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
+- Deprecated the ``units=M`` (months) and ``units=Y`` (year) parameters for ``units`` of :func:`pandas.to_timedelta`, :func:`pandas.Timedelta` and :func:`pandas.TimedeltaIndex` (:issue:`16344`)
+- The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
 
 .. _whatsnew_0250.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- Removed (parts of) :class:`Panel` (:issue:`25047`,:issue:`25191`,:issue:`25231`)
+- Removed ``Panel`` (:issue:`25047`, :issue:`25191`, :issue:`25231`)
 -
 -
 -
@@ -242,14 +236,16 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
-- `DataFrame.to_stata()` is now faster when outputting data with any string or non-native endian columns (:issue:`25045`)
+- Significant speedup in :class:`SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
+- :meth:`DataFrame.to_stata()` is now faster when outputting data with any string or non-native endian columns (:issue:`25045`)
 - Improved performance of :meth:`Series.searchsorted`. The speedup is especially large when the dtype is
   int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
 - Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
-- Improved performance of :meth:DataFrame.`to_csv` when write datetime dtype data (:issue:`25708`)
+- Imporved performance of :meth:`IntervalIndex.is_monotonic`, :meth:`IntervalIndex.is_monotonic_increasing` and :meth:`IntervalIndex.is_monotonic_decreasing` by removing conversion to :class:`MultiIndex` (:issue:`24813`)
+- Improved performance of :meth:`DataFrame.to_csv` when writing datetime dtypes (:issue:`25708`)
+- Improved performance of :meth:`read_csv` by much faster parsing of ``MM/YYYY`` and ``DD/MM/YYYY`` datetime formats (:issue:`25922`)
 
 .. _whatsnew_0250.bug_fixes:
 
@@ -269,8 +265,10 @@ Datetimelike
 ^^^^^^^^^^^^
 
 - Bug in :func:`to_datetime` which would raise an (incorrect) ``ValueError`` when called with a date far into the future and the ``format`` argument specified instead of raising ``OutOfBoundsDatetime`` (:issue:`23830`)
-- Bug in :func:`to_datetime` which would raise ``InvalidIndexError: Reindexing only valid with uniquely valued Index objects`` when called with ``cache=True``, with ``arg`` including at least two different elements from the set {None, numpy.nan, pandas.NaT} (:issue:`22305`)
--
+- Bug in :func:`to_datetime` which would raise ``InvalidIndexError: Reindexing only valid with uniquely valued Index objects`` when called with ``cache=True``, with ``arg`` including at least two different elements from the set ``{None, numpy.nan, pandas.NaT}`` (:issue:`22305`)
+- Bug in :class:`DataFrame` and :class:`Series` where timezone aware data with ``dtype='datetime64[ns]`` was not cast to naive (:issue:`25843`)
+- Improved :class:`Timestamp` type checking in various datetime functions to prevent exceptions when using a subclassed ``datetime`` (:issue:`25851`)
+- Bug in :class:`Series` and :class:`DataFrame` repr where ``np.datetime64('NaT')`` and ``np.timedelta64('NaT')`` with ``dtype=object`` would be represented as ``NaN`` (:issue:`25445`)
 -
 
 Timedelta
@@ -329,21 +327,21 @@ Indexing
 ^^^^^^^^
 
 - Improved exception message when calling :meth:`DataFrame.iloc` with a list of non-numeric objects (:issue:`25753`).
--
+- Bug in which :meth:`DataFrame.append` produced an erroneous warning indicating that a ``KeyError`` will be thrown in the future when the data to be appended contains new columns (:issue:`22252`).
 -
 
 
 Missing
 ^^^^^^^
 
-- Fixed misleading exception message in :meth:`Series.missing` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
+- Fixed misleading exception message in :meth:`Series.interpolate` if argument ``order`` is required, but omitted (:issue:`10633`, :issue:`24014`).
 - Fixed class type displayed in exception message in :meth:`DataFrame.dropna` if invalid ``axis`` parameter passed (:issue:`25555`)
 -
 
 MultiIndex
 ^^^^^^^^^^
 
-- Bug in which incorrect exception raised by :meth:`pd.Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
+- Bug in which incorrect exception raised by :class:`Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
 -
 -
 
@@ -366,6 +364,7 @@ I/O
 - Improved the explanation for the failure when value labels are repeated in Stata dta files and suggested work-arounds (:issue:`25772`)
 - Improved :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` to read incorrectly formatted 118 format files saved by Stata (:issue:`25960`)
 - Fixed bug in loading objects from S3 that contain ``#`` characters in the URL (:issue:`25945`)
+- Adds ``use_bqstorage_api`` parameter to :func:`read_gbq` to speed up downloads of large data frames. This feature requires version 0.10.0 of the ``pandas-gbq`` library as well as the ``google-cloud-bigquery-storage`` and ``fastavro`` libraries. (:issue:`26104`)
 
 Plotting
 ^^^^^^^^
@@ -388,14 +387,15 @@ Groupby/Resample/Rolling
 - Ensured that ordering of outputs in ``groupby`` aggregation functions is consistent across all versions of Python (:issue:`25692`)
 - Ensured that result group order is correct when grouping on an ordered ``Categorical`` and specifying ``observed=True`` (:issue:`25871`, :issue:`25167`)
 - Bug in :meth:`pandas.core.window.Rolling.min` and :meth:`pandas.core.window.Rolling.max` that caused a memory leak (:issue:`25893`)
-- Bug in :func:`idxmax` and :func:`idxmin` on :meth:`DataFrame.groupby` with datetime column would return incorrect dtype (:issue:`25444`, :issue:`15306`)
+- Bug in :meth:`pandas.core.groupby.GroupBy.idxmax` and :meth:`pandas.core.groupby.GroupBy.idxmin` with datetime column would return incorrect dtype (:issue:`25444`, :issue:`15306`)
+- Bug in :meth:`pandas.core.groupby.GroupBy.cumsum`, :meth:`pandas.core.groupby.GroupBy.cumprod`, :meth:`pandas.core.groupby.GroupBy.cummin` and :meth:`pandas.core.groupby.GroupBy.cummax` with categorical column having absent categories, would return incorrect result or segfault (:issue:`16771`)
 
 Reshaping
 ^^^^^^^^^
 
-- Bug in :func:`pandas.merge` adds a string of ``None`` if ``None`` is assigned in suffixes instead of remain the column name as-is (:issue:`24782`).
+- Bug in :func:`pandas.merge` adds a string of ``None``, if ``None`` is assigned in suffixes instead of remain the column name as-is (:issue:`24782`).
 - Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
-- :func:`to_records` now accepts dtypes to its `column_dtypes` parameter (:issue:`24895`)
+- :func:`to_records` now accepts dtypes to its ``column_dtypes`` parameter (:issue:`24895`)
 - Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
 - Bug in :func:`pivot_table` where columns with ``NaN`` values are dropped even if ``dropna`` argument is ``False``, when the ``aggfunc`` argument contains a ``list`` (:issue:`22159`)
 - Bug in :func:`concat` where the resulting ``freq`` of two :class:`DatetimeIndex` with the same ``freq`` would be dropped (:issue:`3232`).
@@ -406,16 +406,14 @@ Reshaping
 Sparse
 ^^^^^^
 
-- Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
+- Significant speedup in :class:`SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
 - Bug in :class:`SparseFrame` constructor where passing ``None`` as the data would cause ``default_fill_value`` to be ignored (:issue:`16807`)
-- Bug in `SparseDataFrame` when adding a column in which the length of values does not match length of index, ``AssertionError`` is raised instead of raising ``ValueError`` (:issue:`25484`)
+- Bug in :class:`SparseDataFrame` when adding a column in which the length of values does not match length of index, ``AssertionError`` is raised instead of raising ``ValueError`` (:issue:`25484`)
 
 
 Other
 ^^^^^
 
-- Improved :class:`Timestamp` type checking in various datetime functions to prevent exceptions when using a subclassed `datetime` (:issue:`25851`)
-- Bug in :class:`Series` and :class:`DataFrame` repr where ``np.datetime64('NaT')`` and ``np.timedelta64('NaT')`` with ``dtype=object`` would be represented as ``NaN`` (:issue:`25445`)
 -
 -
 
