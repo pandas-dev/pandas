@@ -480,8 +480,10 @@ class _OpenpyxlReader(_BaseExcelReader):
             import openpyxl
         except ImportError:
             raise ImportError(err_msg)
-
-        from openpyxl.cell.cell import TYPE_ERROR as CELL_TYPE_ERROR
+        try:
+            from openpyxl.cell.cell import TYPE_ERROR as CELL_TYPE_ERROR
+        except ImportError:
+            CELL_TYPE_ERROR = 'e'
         self.CELL_TYPE_ERROR = CELL_TYPE_ERROR
 
         from pandas.io.excel._base import ExcelFile
