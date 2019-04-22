@@ -5,9 +5,7 @@ compat
 Cross-compatible functions for different versions of Python.
 
 Key items to import for compatible code:
-* lists: lrange(), lmap(), lzip(), lfilter()
-* add_metaclass(metaclass) - class decorator that recreates class with with the
-  given metaclass instead (and avoids intermediary class creation)
+* lists: lrange(), lmap(), lzip()
 
 Other items:
 * platform checker
@@ -33,10 +31,6 @@ def lzip(*args, **kwargs):
 
 def lmap(*args, **kwargs):
     return list(map(*args, **kwargs))
-
-
-def lfilter(*args, **kwargs):
-    return list(filter(*args, **kwargs))
 
 
 # ----------------------------------------------------------------------------
@@ -68,20 +62,6 @@ def set_function_name(f, name, cls):
         name=name)
     f.__module__ = cls.__module__
     return f
-
-
-def add_metaclass(metaclass):
-    """
-    Class decorator for creating a class with a metaclass.
-    """
-    def wrapper(cls):
-        orig_vars = cls.__dict__.copy()
-        orig_vars.pop('__dict__', None)
-        orig_vars.pop('__weakref__', None)
-        for slots_var in orig_vars.get('__slots__', ()):
-            orig_vars.pop(slots_var)
-        return metaclass(cls.__name__, cls.__bases__, orig_vars)
-    return wrapper
 
 
 def raise_with_traceback(exc, traceback=Ellipsis):

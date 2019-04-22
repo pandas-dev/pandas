@@ -29,7 +29,7 @@ def _axify(obj, key, axis):
     return tuple(axes)
 
 
-class Base(object):
+class Base:
     """ indexing comprehensive base class """
 
     _objs = {'series', 'frame'}
