@@ -184,16 +184,16 @@ def json_normalize(data, record_path=None, meta=None,
 
     >>> from pandas.io.json import json_normalize
     >>> data = [{'id': 1,
-    ...          'name': {'first': 'Coleen', 'last': 'Volk'},
+    ...          'name': {'first': 'Cole', 'last': 'Volk'},
     ...          'fitness': {'height': 130, 'weight': 60}},
-    ...         {'name': {'given': 'Mose', 'family': 'Regner'},
+    ...         {'name': {'given': 'Mose', 'family': 'Reg'},
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
     >>> json_normalize(data, max_level=1, ignore_keys=['name'])
       fitness.height  fitness.weight   id                  name
-    0   130              60          1.0    {'first': 'Coleen', 'last': 'Volk'}
-    1   130              60          NaN    {'given': 'Mose', 'family': 'Regner'}
+    0   130              60          1.0    {'first': 'Cole', 'last': 'Volk'}
+    1   130              60          NaN    {'given': 'Mose', 'family': 'Reg'}
     2   130              60          2.0               Faye Raker
 
     >>> data = [{'state': 'Florida',
