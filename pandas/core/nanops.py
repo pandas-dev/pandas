@@ -9,7 +9,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import iNaT, lib, tslibs
-import pandas.compat as compat
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
@@ -23,7 +22,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 import pandas.core.common as com
 
 _BOTTLENECK_INSTALLED = False
-_MIN_BOTTLENECK_VERSION = '1.0.0'
+_MIN_BOTTLENECK_VERSION = '1.2.1'
 
 try:
     import bottleneck as bn
@@ -55,7 +54,7 @@ def set_use_bottleneck(v=True):
 set_use_bottleneck(get_option('compute.use_bottleneck'))
 
 
-class disallow(object):
+class disallow:
 
     def __init__(self, *dtypes):
         super(disallow, self).__init__()
@@ -68,7 +67,7 @@ class disallow(object):
     def __call__(self, f):
         @functools.wraps(f)
         def _f(*args, **kwargs):
-            obj_iter = itertools.chain(args, compat.itervalues(kwargs))
+            obj_iter = itertools.chain(args, kwargs.values())
             if any(self.check(obj) for obj in obj_iter):
                 msg = 'reduction operation {name!r} not allowed for this dtype'
                 raise TypeError(msg.format(name=f.__name__.replace('nan', '')))
@@ -87,7 +86,7 @@ class disallow(object):
         return _f
 
 
-class bottleneck_switch(object):
+class bottleneck_switch:
 
     def __init__(self, **kwargs):
         self.kwargs = kwargs
@@ -103,7 +102,7 @@ class bottleneck_switch(object):
         @functools.wraps(alt)
         def f(values, axis=None, skipna=True, **kwds):
             if len(self.kwargs) > 0:
-                for k, v in compat.iteritems(self.kwargs):
+                for k, v in self.kwargs.items():
                     if k not in kwds:
                         kwds[k] = v
             try:

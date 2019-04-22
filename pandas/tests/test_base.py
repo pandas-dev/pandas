@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-
 from datetime import datetime, timedelta
+from io import StringIO
 import re
 import sys
 
@@ -9,7 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import PYPY, StringIO
+from pandas.compat import PYPY
 from pandas.compat.numpy import np_array_datetime64_compat
 
 from pandas.core.dtypes.common import (
@@ -28,7 +27,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 import pandas.util.testing as tm
 
 
-class CheckStringMixin(object):
+class CheckStringMixin:
 
     def test_string_methods_dont_fail(self):
         repr(self.container)
@@ -43,7 +42,7 @@ class CheckStringMixin(object):
         bytes(self.unicode_container)
 
 
-class CheckImmutable(object):
+class CheckImmutable:
     mutable_regex = re.compile('does not support mutable operations')
 
     def check_mutable_error(self, *args, **kwargs):
@@ -88,9 +87,9 @@ class CheckImmutable(object):
         assert result == expected
 
 
-class TestPandasDelegate(object):
+class TestPandasDelegate:
 
-    class Delegator(object):
+    class Delegator:
         _properties = ['foo']
         _methods = ['bar']
 
@@ -150,7 +149,7 @@ class TestPandasDelegate(object):
         sys.getsizeof(delegate)
 
 
-class Ops(object):
+class Ops:
 
     def _allow_na_ops(self, obj):
         """Whether to skip test cases including NaN"""
@@ -980,7 +979,7 @@ class TestTranspose(Ops):
                 np.transpose(obj, axes=1)
 
 
-class TestNoNewAttributesMixin(object):
+class TestNoNewAttributesMixin:
 
     def test_mixin(self):
         class T(NoNewAttributesMixin):
@@ -1002,7 +1001,7 @@ class TestNoNewAttributesMixin(object):
         assert not hasattr(t, "b")
 
 
-class TestToIterable(object):
+class TestToIterable:
     # test that we convert an iterable to python types
 
     dtypes = [

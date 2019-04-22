@@ -1,30 +1,28 @@
-from __future__ import division
-
+import bz2
 from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
+import gzip
+import http.client
+import lzma
 import os
 import re
 from shutil import rmtree
 import string
-import subprocess
-import sys
 import tempfile
 import traceback
 import warnings
+import zipfile
 
 import numpy as np
 from numpy.random import rand, randn
 
 from pandas._config.localization import (  # noqa:F401
-    _valid_locales, can_set_locale, set_locale)
+    can_set_locale, get_locales, set_locale)
 
 from pandas._libs import testing as _testing
-import pandas.compat as compat
-from pandas.compat import (
-    PY2, PY3, httplib, lmap, lrange, lzip, raise_with_traceback, string_types,
-    unichr)
+from pandas.compat import lmap, lrange, lzip, raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -180,16 +178,12 @@ def decompress_file(path, compression):
     if compression is None:
         f = open(path, 'rb')
     elif compression == 'gzip':
-        import gzip
         f = gzip.open(path, 'rb')
     elif compression == 'bz2':
-        import bz2
         f = bz2.BZ2File(path, 'rb')
     elif compression == 'xz':
-        lzma = compat.import_lzma()
         f = lzma.LZMAFile(path, 'rb')
     elif compression == 'zip':
-        import zipfile
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
         if len(zip_names) == 1:
@@ -239,7 +233,7 @@ def write_to_compressed(compression, path, data, dest="test"):
         import bz2
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        lzma = compat.import_lzma()
+        import lzma
         compress_method = lzma.LZMAFile
     else:
         msg = "Unrecognized compression type: {}".format(compression)
@@ -370,7 +364,7 @@ def randbool(size=(), p=0.5):
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits),
                        dtype=(np.str_, 1))
-RANDU_CHARS = np.array(list("".join(map(unichr, lrange(1488, 1488 + 26))) +
+RANDU_CHARS = np.array(list("".join(map(chr, lrange(1488, 1488 + 26))) +
                             string.digits), dtype=(np.unicode_, 1))
 
 
@@ -422,103 +416,6 @@ def close(fignum=None):
             _close(fignum)
     else:
         _close(fignum)
-
-
-# -----------------------------------------------------------------------------
-# locale utilities
-
-
-def _default_locale_getter():
-    try:
-        raw_locales = subprocess.check_output(['locale -a'], shell=True)
-    except subprocess.CalledProcessError as e:
-        raise type(e)("{exception}, the 'locale -a' command cannot be found "
-                      "on your system".format(exception=e))
-    return raw_locales
-
-
-def get_locales(prefix=None, normalize=True,
-                locale_getter=_default_locale_getter):
-    """Get all the locales that are available on the system.
-
-    Parameters
-    ----------
-    prefix : str
-        If not ``None`` then return only those locales with the prefix
-        provided. For example to get all English language locales (those that
-        start with ``"en"``), pass ``prefix="en"``.
-    normalize : bool
-        Call ``locale.normalize`` on the resulting list of available locales.
-        If ``True``, only locales that can be set without throwing an
-        ``Exception`` are returned.
-    locale_getter : callable
-        The function to use to retrieve the current locales. This should return
-        a string with each locale separated by a newline character.
-
-    Returns
-    -------
-    locales : list of strings
-        A list of locale strings that can be set with ``locale.setlocale()``.
-        For example::
-
-            locale.setlocale(locale.LC_ALL, locale_string)
-
-    On error will return None (no locale available, e.g. Windows)
-
-    """
-    try:
-        raw_locales = locale_getter()
-    except Exception:
-        return None
-
-    try:
-        # raw_locales is "\n" separated list of locales
-        # it may contain non-decodable parts, so split
-        # extract what we can and then rejoin.
-        raw_locales = raw_locales.split(b'\n')
-        out_locales = []
-        for x in raw_locales:
-            if PY3:
-                out_locales.append(str(
-                    x, encoding=pd.options.display.encoding))
-            else:
-                out_locales.append(str(x))
-
-    except TypeError:
-        pass
-
-    if prefix is None:
-        return _valid_locales(out_locales, normalize)
-
-    pattern = re.compile('{prefix}.*'.format(prefix=prefix))
-    found = pattern.findall('\n'.join(out_locales))
-    return _valid_locales(found, normalize)
-
-
-# -----------------------------------------------------------------------------
-# Stdout / stderr decorators
-
-
-@contextmanager
-def set_defaultencoding(encoding):
-    """
-    Set default encoding (as given by sys.getdefaultencoding()) to the given
-    encoding; restore on exit.
-
-    Parameters
-    ----------
-    encoding : str
-    """
-    if not PY2:
-        raise ValueError("set_defaultencoding context is only available "
-                         "in Python 2.")
-    orig = sys.getdefaultencoding()
-    reload(sys)  # noqa:F821
-    sys.setdefaultencoding(encoding)
-    try:
-        yield
-    finally:
-        sys.setdefaultencoding(orig)
 
 
 # -----------------------------------------------------------------------------
@@ -924,18 +821,10 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     elif is_categorical_dtype(left):
         left = repr(left)
 
-    if PY2 and isinstance(left, string_types):
-        # left needs to be printable in native text type in python2
-        left = left.encode('utf-8')
-
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
     elif is_categorical_dtype(right):
         right = repr(right)
-
-    if PY2 and isinstance(right, string_types):
-        # right needs to be printable in native text type in python2
-        right = right.encode('utf-8')
 
     msg = """{obj} are different
 
@@ -1280,18 +1169,21 @@ def assert_frame_equal(left, right, check_dtype=True,
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 
     df1 equals itself.
+
     >>> assert_frame_equal(df1, df1)
 
     df1 differs from df2 as column 'b' is of a different type.
+
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
     AssertionError: Attributes are different
-
+    ...
     Attribute "dtype" are different
     [left]:  int64
     [right]: float64
 
     Ignore differing dtypes in columns with check_dtype.
+
     >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
     __tracebackhide__ = True
@@ -1606,7 +1498,7 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
     if check_fill_value:
         assert_attr_equal('default_fill_value', left, right, obj=obj)
 
-    for col, series in compat.iteritems(left):
+    for col, series in left.items():
         assert (col in right)
         # trade-off?
 
@@ -1884,7 +1776,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         names = None
 
     # make singelton case uniform
-    if isinstance(names, compat.string_types) and nlevels == 1:
+    if isinstance(names, str) and nlevels == 1:
         names = [names]
 
     # specific 1D index type requested?
@@ -2158,10 +2050,7 @@ _network_errno_vals = (
 # servers.
 
 # and conditionally raise on these exception types
-_network_error_classes = (IOError, httplib.HTTPException)
-
-if PY3:
-    _network_error_classes += (TimeoutError,)  # noqa
+_network_error_classes = (IOError, http.client.HTTPException, TimeoutError)
 
 
 def can_connect(url, error_classes=_network_error_classes):
@@ -2281,7 +2170,7 @@ def network(t, url="http://www.google.com",
     from pytest import skip
     t.network = True
 
-    @compat.wraps(t)
+    @wraps(t)
     def wrapper(*args, **kwargs):
         if check_before_test and not raise_on_error:
             if not can_connect(url, error_classes):
@@ -2374,7 +2263,7 @@ item assignment"
         return manager
 
 
-class _AssertRaisesContextmanager(object):
+class _AssertRaisesContextmanager:
     """
     Context manager behind `assert_raises_regex`.
     """
@@ -2569,7 +2458,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             )
 
 
-class RNGContext(object):
+class RNGContext:
     """
     Context manager to set the numpy random number generator speed. Returns
     to the original value upon exiting the context manager.

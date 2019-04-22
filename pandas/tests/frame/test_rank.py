@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
-from distutils.version import LooseVersion
 
 import numpy as np
 import pytest
@@ -209,7 +208,6 @@ class TestRank(TestData):
     def test_rank_methods_frame(self):
         pytest.importorskip('scipy.stats.special')
         rankdata = pytest.importorskip('scipy.stats.rankdata')
-        import scipy
 
         xs = np.random.randint(0, 21, (100, 26))
         xs = (xs - 10.0) / 10.0
@@ -225,11 +223,8 @@ class TestRank(TestData):
                         rankdata, ax, vals,
                         m if m != 'first' else 'ordinal')
                     sprank = sprank.astype(np.float64)
-                    expected = DataFrame(sprank, columns=cols)
-
-                    if (LooseVersion(scipy.__version__) >=
-                            LooseVersion('0.17.0')):
-                        expected = expected.astype('float64')
+                    expected = DataFrame(sprank,
+                                         columns=cols).astype('float64')
                     tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('dtype', ['O', 'f8', 'i8'])

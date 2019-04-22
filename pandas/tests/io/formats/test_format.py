@@ -4,13 +4,13 @@
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
 
-from __future__ import print_function
-
 from datetime import datetime
+from io import StringIO
 import itertools
 from operator import methodcaller
 import os
 import re
+from shutil import get_terminal_size
 import sys
 import textwrap
 import warnings
@@ -20,9 +20,7 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas.compat as compat
-from pandas.compat import (
-    StringIO, is_platform_32bit, is_platform_windows, lrange, lzip)
+from pandas.compat import is_platform_32bit, is_platform_windows, lrange, lzip
 
 import pandas as pd
 from pandas import (
@@ -32,7 +30,6 @@ import pandas.util.testing as tm
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
-from pandas.io.formats.terminal import get_terminal_size
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
@@ -106,7 +103,7 @@ def has_expanded_repr(df):
     return False
 
 
-class TestDataFrameFormatting(object):
+class TestDataFrameFormatting:
 
     def setup_method(self, method):
         self.warn_filters = warnings.filters
@@ -308,8 +305,6 @@ class TestDataFrameFormatting(object):
         # see gh-21180
 
         terminal_size = (118, 96)
-        monkeypatch.setattr('pandas.io.formats.console.get_terminal_size',
-                            lambda: terminal_size)
         monkeypatch.setattr('pandas.io.formats.format.get_terminal_size',
                             lambda: terminal_size)
 
@@ -338,8 +333,7 @@ class TestDataFrameFormatting(object):
         # GH 22984 ensure entire window is filled
         terminal_size = (80, 24)
         df = pd.DataFrame(np.random.rand(1, 7))
-        monkeypatch.setattr('pandas.io.formats.console.get_terminal_size',
-                            lambda: terminal_size)
+
         monkeypatch.setattr('pandas.io.formats.format.get_terminal_size',
                             lambda: terminal_size)
         assert "..." not in str(df)
@@ -487,7 +481,7 @@ class TestDataFrameFormatting(object):
         buf.getvalue()
 
         result = self.frame.to_string()
-        assert isinstance(result, compat.text_type)
+        assert isinstance(result, str)
 
     def test_to_string_utf8_columns(self):
         n = "\u05d0".encode('utf-8')
@@ -555,106 +549,106 @@ class TestDataFrameFormatting(object):
         # not alighned properly because of east asian width
 
         # mid col
-        df = DataFrame({'a': [u'あ', u'いいい', u'う', u'ええええええ'],
+        df = DataFrame({'a': ['あ', 'いいい', 'う', 'ええええええ'],
                         'b': [1, 222, 33333, 4]},
                        index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"          a      b\na         あ      1\n"
-                    u"bb      いいい    222\nc         う  33333\n"
-                    u"ddd  ええええええ      4")
+        expected = ("          a      b\na         あ      1\n"
+                    "bb      いいい    222\nc         う  33333\n"
+                    "ddd  ええええええ      4")
         assert repr(df) == expected
 
         # last col
         df = DataFrame({'a': [1, 222, 33333, 4],
-                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                        'b': ['あ', 'いいい', 'う', 'ええええええ']},
                        index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"         a       b\na        1       あ\n"
-                    u"bb     222     いいい\nc    33333       う\n"
-                    u"ddd      4  ええええええ")
+        expected = ("         a       b\na        1       あ\n"
+                    "bb     222     いいい\nc    33333       う\n"
+                    "ddd      4  ええええええ")
         assert repr(df) == expected
 
         # all col
-        df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+        df = DataFrame({'a': ['あああああ', 'い', 'う', 'えええ'],
+                        'b': ['あ', 'いいい', 'う', 'ええええええ']},
                        index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"         a       b\na    あああああ       あ\n"
-                    u"bb       い     いいい\nc        う       う\n"
-                    u"ddd    えええ  ええええええ")
+        expected = ("         a       b\na    あああああ       あ\n"
+                    "bb       い     いいい\nc        う       う\n"
+                    "ddd    えええ  ええええええ")
         assert repr(df) == expected
 
         # column name
-        df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
-                        u'あああああ': [1, 222, 33333, 4]},
+        df = DataFrame({'b': ['あ', 'いいい', 'う', 'ええええええ'],
+                        'あああああ': [1, 222, 33333, 4]},
                        index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"          b  あああああ\na         あ      1\n"
-                    u"bb      いいい    222\nc         う  33333\n"
-                    u"ddd  ええええええ      4")
+        expected = ("          b  あああああ\na         あ      1\n"
+                    "bb      いいい    222\nc         う  33333\n"
+                    "ddd  ええええええ      4")
         assert repr(df) == expected
 
         # index
-        df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
-                       index=[u'あああ', u'いいいいいい', u'うう', u'え'])
-        expected = (u"            a       b\nあああ     あああああ       あ\n"
-                    u"いいいいいい      い     いいい\nうう          う       う\n"
-                    u"え         えええ  ええええええ")
+        df = DataFrame({'a': ['あああああ', 'い', 'う', 'えええ'],
+                        'b': ['あ', 'いいい', 'う', 'ええええええ']},
+                       index=['あああ', 'いいいいいい', 'うう', 'え'])
+        expected = ("            a       b\nあああ     あああああ       あ\n"
+                    "いいいいいい      い     いいい\nうう          う       う\n"
+                    "え         えええ  ええええええ")
         assert repr(df) == expected
 
         # index name
-        df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
-                       index=pd.Index([u'あ', u'い', u'うう', u'え'],
-                                      name=u'おおおお'))
-        expected = (u"          a       b\n"
-                    u"おおおお               \n"
-                    u"あ     あああああ       あ\n"
-                    u"い         い     いいい\n"
-                    u"うう        う       う\n"
-                    u"え       えええ  ええええええ")
+        df = DataFrame({'a': ['あああああ', 'い', 'う', 'えええ'],
+                        'b': ['あ', 'いいい', 'う', 'ええええええ']},
+                       index=pd.Index(['あ', 'い', 'うう', 'え'],
+                                      name='おおおお'))
+        expected = ("          a       b\n"
+                    "おおおお               \n"
+                    "あ     あああああ       あ\n"
+                    "い         い     いいい\n"
+                    "うう        う       う\n"
+                    "え       えええ  ええええええ")
         assert repr(df) == expected
 
         # all
-        df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
-                        u'いいいいい': [u'あ', u'いいい', u'う', u'ええ']},
-                       index=pd.Index([u'あ', u'いいい', u'うう', u'え'],
-                                      name=u'お'))
-        expected = (u"       あああ いいいいい\n"
-                    u"お               \n"
-                    u"あ      あああ     あ\n"
-                    u"いいい      い   いいい\n"
-                    u"うう       う     う\n"
-                    u"え    えええええ    ええ")
+        df = DataFrame({'あああ': ['あああ', 'い', 'う', 'えええええ'],
+                        'いいいいい': ['あ', 'いいい', 'う', 'ええ']},
+                       index=pd.Index(['あ', 'いいい', 'うう', 'え'],
+                                      name='お'))
+        expected = ("       あああ いいいいい\n"
+                    "お               \n"
+                    "あ      あああ     あ\n"
+                    "いいい      い   いいい\n"
+                    "うう       う     う\n"
+                    "え    えええええ    ええ")
         assert repr(df) == expected
 
         # MultiIndex
-        idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
-            u'おおお', u'かかかか'), (u'き', u'くく')])
-        df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+        idx = pd.MultiIndex.from_tuples([('あ', 'いい'), ('う', 'え'), (
+            'おおお', 'かかかか'), ('き', 'くく')])
+        df = DataFrame({'a': ['あああああ', 'い', 'う', 'えええ'],
+                        'b': ['あ', 'いいい', 'う', 'ええええええ']},
                        index=idx)
-        expected = (u"              a       b\n"
-                    u"あ   いい    あああああ       あ\n"
-                    u"う   え         い     いいい\n"
-                    u"おおお かかかか      う       う\n"
-                    u"き   くく      えええ  ええええええ")
+        expected = ("              a       b\n"
+                    "あ   いい    あああああ       あ\n"
+                    "う   え         い     いいい\n"
+                    "おおお かかかか      う       う\n"
+                    "き   くく      えええ  ええええええ")
         assert repr(df) == expected
 
         # truncate
         with option_context('display.max_rows', 3, 'display.max_columns', 3):
-            df = pd.DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                               'b': [u'あ', u'いいい', u'う', u'ええええええ'],
-                               'c': [u'お', u'か', u'ききき', u'くくくくくく'],
-                               u'ああああ': [u'さ', u'し', u'す', u'せ']},
-                              columns=['a', 'b', 'c', u'ああああ'])
+            df = pd.DataFrame({'a': ['あああああ', 'い', 'う', 'えええ'],
+                               'b': ['あ', 'いいい', 'う', 'ええええええ'],
+                               'c': ['お', 'か', 'ききき', 'くくくくくく'],
+                               'ああああ': ['さ', 'し', 'す', 'せ']},
+                              columns=['a', 'b', 'c', 'ああああ'])
 
-            expected = (u"        a  ... ああああ\n0   あああああ  ...    さ\n"
-                        u"..    ...  ...  ...\n3     えええ  ...    せ\n"
-                        u"\n[4 rows x 4 columns]")
+            expected = ("        a  ... ああああ\n0   あああああ  ...    さ\n"
+                        "..    ...  ...  ...\n3     えええ  ...    せ\n"
+                        "\n[4 rows x 4 columns]")
             assert repr(df) == expected
 
-            df.index = [u'あああ', u'いいいい', u'う', 'aaa']
-            expected = (u"         a  ... ああああ\nあああ  あああああ  ...    さ\n"
-                        u"..     ...  ...  ...\naaa    えええ  ...    せ\n"
-                        u"\n[4 rows x 4 columns]")
+            df.index = ['あああ', 'いいいい', 'う', 'aaa']
+            expected = ("         a  ... ああああ\nあああ  あああああ  ...    さ\n"
+                        "..     ...  ...  ...\naaa    えええ  ...    せ\n"
+                        "\n[4 rows x 4 columns]")
             assert repr(df) == expected
 
     def test_east_asian_unicode_true(self):
@@ -662,129 +656,129 @@ class TestDataFrameFormatting(object):
         with option_context('display.unicode.east_asian_width', True):
 
             # mid col
-            df = DataFrame({'a': [u'あ', u'いいい', u'う', u'ええええええ'],
+            df = DataFrame({'a': ['あ', 'いいい', 'う', 'ええええええ'],
                             'b': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"                a      b\na              あ      1\n"
-                        u"bb         いいい    222\nc              う  33333\n"
-                        u"ddd  ええええええ      4")
+            expected = ("                a      b\na              あ      1\n"
+                        "bb         いいい    222\nc              う  33333\n"
+                        "ddd  ええええええ      4")
             assert repr(df) == expected
 
             # last col
             df = DataFrame({'a': [1, 222, 33333, 4],
-                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                            'b': ['あ', 'いいい', 'う', 'ええええええ']},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"         a             b\na        1            あ\n"
-                        u"bb     222        いいい\nc    33333            う\n"
-                        u"ddd      4  ええええええ")
+            expected = ("         a             b\na        1            あ\n"
+                        "bb     222        いいい\nc    33333            う\n"
+                        "ddd      4  ええええええ")
             assert repr(df) == expected
 
             # all col
-            df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+            df = DataFrame({'a': ['あああああ', 'い', 'う', 'えええ'],
+                            'b': ['あ', 'いいい', 'う', 'ええええええ']},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"              a             b\n"
-                        u"a    あああああ            あ\n"
-                        u"bb           い        いいい\n"
-                        u"c            う            う\n"
-                        u"ddd      えええ  ええええええ")
+            expected = ("              a             b\n"
+                        "a    あああああ            あ\n"
+                        "bb           い        いいい\n"
+                        "c            う            う\n"
+                        "ddd      えええ  ええええええ")
             assert repr(df) == expected
 
             # column name
-            df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
-                            u'あああああ': [1, 222, 33333, 4]},
+            df = DataFrame({'b': ['あ', 'いいい', 'う', 'ええええええ'],
+                            'あああああ': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"                b  あああああ\n"
-                        u"a              あ           1\n"
-                        u"bb         いいい         222\n"
-                        u"c              う       33333\n"
-                        u"ddd  ええええええ           4")
+            expected = ("                b  あああああ\n"
+                        "a              あ           1\n"
+                        "bb         いいい         222\n"
+                        "c              う       33333\n"
+                        "ddd  ええええええ           4")
             assert repr(df) == expected
 
             # index
-            df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
-                           index=[u'あああ', u'いいいいいい', u'うう', u'え'])
-            expected = (u"                       a             b\n"
-                        u"あああ        あああああ            あ\n"
-                        u"いいいいいい          い        いいい\n"
-                        u"うう                  う            う\n"
-                        u"え                えええ  ええええええ")
+            df = DataFrame({'a': ['あああああ', 'い', 'う', 'えええ'],
+                            'b': ['あ', 'いいい', 'う', 'ええええええ']},
+                           index=['あああ', 'いいいいいい', 'うう', 'え'])
+            expected = ("                       a             b\n"
+                        "あああ        あああああ            あ\n"
+                        "いいいいいい          い        いいい\n"
+                        "うう                  う            う\n"
+                        "え                えええ  ええええええ")
             assert repr(df) == expected
 
             # index name
-            df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
-                           index=pd.Index([u'あ', u'い', u'うう', u'え'],
-                                          name=u'おおおお'))
-            expected = (u"                   a             b\n"
-                        u"おおおお                          \n"
-                        u"あ        あああああ            あ\n"
-                        u"い                い        いいい\n"
-                        u"うう              う            う\n"
-                        u"え            えええ  ええええええ")
+            df = DataFrame({'a': ['あああああ', 'い', 'う', 'えええ'],
+                            'b': ['あ', 'いいい', 'う', 'ええええええ']},
+                           index=pd.Index(['あ', 'い', 'うう', 'え'],
+                                          name='おおおお'))
+            expected = ("                   a             b\n"
+                        "おおおお                          \n"
+                        "あ        あああああ            あ\n"
+                        "い                い        いいい\n"
+                        "うう              う            う\n"
+                        "え            えええ  ええええええ")
             assert repr(df) == expected
 
             # all
-            df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
-                            u'いいいいい': [u'あ', u'いいい', u'う', u'ええ']},
-                           index=pd.Index([u'あ', u'いいい', u'うう', u'え'],
-                                          name=u'お'))
-            expected = (u"            あああ いいいいい\n"
-                        u"お                           \n"
-                        u"あ          あああ         あ\n"
-                        u"いいい          い     いいい\n"
-                        u"うう            う         う\n"
-                        u"え      えええええ       ええ")
+            df = DataFrame({'あああ': ['あああ', 'い', 'う', 'えええええ'],
+                            'いいいいい': ['あ', 'いいい', 'う', 'ええ']},
+                           index=pd.Index(['あ', 'いいい', 'うう', 'え'],
+                                          name='お'))
+            expected = ("            あああ いいいいい\n"
+                        "お                           \n"
+                        "あ          あああ         あ\n"
+                        "いいい          い     いいい\n"
+                        "うう            う         う\n"
+                        "え      えええええ       ええ")
             assert repr(df) == expected
 
             # MultiIndex
-            idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
-                u'おおお', u'かかかか'), (u'き', u'くく')])
-            df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+            idx = pd.MultiIndex.from_tuples([('あ', 'いい'), ('う', 'え'), (
+                'おおお', 'かかかか'), ('き', 'くく')])
+            df = DataFrame({'a': ['あああああ', 'い', 'う', 'えええ'],
+                            'b': ['あ', 'いいい', 'う', 'ええええええ']},
                            index=idx)
-            expected = (u"                          a             b\n"
-                        u"あ     いい      あああああ            あ\n"
-                        u"う     え                い        いいい\n"
-                        u"おおお かかかか          う            う\n"
-                        u"き     くく          えええ  ええええええ")
+            expected = ("                          a             b\n"
+                        "あ     いい      あああああ            あ\n"
+                        "う     え                い        いいい\n"
+                        "おおお かかかか          う            う\n"
+                        "き     くく          えええ  ええええええ")
             assert repr(df) == expected
 
             # truncate
             with option_context('display.max_rows', 3, 'display.max_columns',
                                 3):
 
-                df = pd.DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                                   'b': [u'あ', u'いいい', u'う', u'ええええええ'],
-                                   'c': [u'お', u'か', u'ききき', u'くくくくくく'],
-                                   u'ああああ': [u'さ', u'し', u'す', u'せ']},
-                                  columns=['a', 'b', 'c', u'ああああ'])
+                df = pd.DataFrame({'a': ['あああああ', 'い', 'う', 'えええ'],
+                                   'b': ['あ', 'いいい', 'う', 'ええええええ'],
+                                   'c': ['お', 'か', 'ききき', 'くくくくくく'],
+                                   'ああああ': ['さ', 'し', 'す', 'せ']},
+                                  columns=['a', 'b', 'c', 'ああああ'])
 
-                expected = (u"             a  ... ああああ\n"
-                            u"0   あああああ  ...       さ\n"
-                            u"..         ...  ...      ...\n"
-                            u"3       えええ  ...       せ\n"
-                            u"\n[4 rows x 4 columns]")
+                expected = ("             a  ... ああああ\n"
+                            "0   あああああ  ...       さ\n"
+                            "..         ...  ...      ...\n"
+                            "3       えええ  ...       せ\n"
+                            "\n[4 rows x 4 columns]")
                 assert repr(df) == expected
 
-                df.index = [u'あああ', u'いいいい', u'う', 'aaa']
-                expected = (u"                 a  ... ああああ\n"
-                            u"あああ  あああああ  ...       さ\n"
-                            u"...            ...  ...      ...\n"
-                            u"aaa         えええ  ...       せ\n"
-                            u"\n[4 rows x 4 columns]")
+                df.index = ['あああ', 'いいいい', 'う', 'aaa']
+                expected = ("                 a  ... ああああ\n"
+                            "あああ  あああああ  ...       さ\n"
+                            "...            ...  ...      ...\n"
+                            "aaa         えええ  ...       せ\n"
+                            "\n[4 rows x 4 columns]")
                 assert repr(df) == expected
 
             # ambiguous unicode
-            df = DataFrame({'b': [u'あ', u'いいい', u'¡¡', u'ええええええ'],
-                            u'あああああ': [1, 222, 33333, 4]},
+            df = DataFrame({'b': ['あ', 'いいい', '¡¡', 'ええええええ'],
+                            'あああああ': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', '¡¡¡'])
-            expected = (u"                b  あああああ\n"
-                        u"a              あ           1\n"
-                        u"bb         いいい         222\n"
-                        u"c              ¡¡       33333\n"
-                        u"¡¡¡  ええええええ           4")
+            expected = ("                b  あああああ\n"
+                        "a              あ           1\n"
+                        "bb         いいい         222\n"
+                        "c              ¡¡       33333\n"
+                        "¡¡¡  ええええええ           4")
             assert repr(df) == expected
 
     def test_to_string_buffer_all_unicode(self):
@@ -958,7 +952,7 @@ class TestDataFrameFormatting(object):
 
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({'c/\u03c3': Series({'test': np.nan})})
-        compat.text_type(dm.to_string())
+        str(dm.to_string())
 
     def test_string_repr_encoding(self, datapath):
         filepath = datapath('io', 'parser', 'data', 'unicode_series.csv')
@@ -1194,7 +1188,7 @@ class TestDataFrameFormatting(object):
         assert retval is None
         assert buf.getvalue() == s
 
-        assert isinstance(s, compat.string_types)
+        assert isinstance(s, str)
 
         # print in right order
         result = biggie.to_string(columns=['B', 'A'], col_space=17,
@@ -1375,6 +1369,19 @@ class TestDataFrameFormatting(object):
                     '4.0  3\n'
                     '5.0  4')
         assert result == expected
+
+    def test_to_string_complex_float_formatting(self):
+        # GH #25514
+        with pd.option_context('display.precision', 5):
+            df = DataFrame({'x': [
+                (0.4467846931321966 + 0.0715185102060818j),
+                (0.2739442392974528 + 0.23515228785438969j),
+                (0.26974928742135185 + 0.3250604054898979j)]})
+            result = df.to_string()
+            expected = ('                  x\n0  0.44678+0.07152j\n'
+                        '1  0.27394+0.23515j\n'
+                        '2  0.26975+0.32506j')
+            assert result == expected
 
     def test_to_string_ascii_error(self):
         data = [('0  ', '                        .gitignore ', '     5 ',
@@ -1712,7 +1719,7 @@ c  10  11  12  13  14\
         If the test fails, it at least won't hang.
         """
 
-        class A(object):
+        class A:
             def __getitem__(self, key):
                 return 3  # obviously simplified
 
@@ -1765,7 +1772,7 @@ def gen_series_formatting():
     return test_sers
 
 
-class TestSeriesFormatting(object):
+class TestSeriesFormatting:
 
     def setup_method(self, method):
         self.ts = tm.makeTimeSeries()
@@ -1860,72 +1867,72 @@ class TestSeriesFormatting(object):
 
         # unicode index
         s = Series(['a', 'bb', 'CCC', 'D'],
-                   index=[u'あ', u'いい', u'ううう', u'ええええ'])
-        expected = (u"あ         a\nいい       bb\nううう     CCC\n"
-                    u"ええええ      D\ndtype: object")
+                   index=['あ', 'いい', 'ううう', 'ええええ'])
+        expected = ("あ         a\nいい       bb\nううう     CCC\n"
+                    "ええええ      D\ndtype: object")
         assert repr(s) == expected
 
         # unicode values
-        s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
+        s = Series(['あ', 'いい', 'ううう', 'ええええ'],
                    index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"a         あ\nbb       いい\nc       ううう\n"
-                    u"ddd    ええええ\ndtype: object")
+        expected = ("a         あ\nbb       いい\nc       ううう\n"
+                    "ddd    ええええ\ndtype: object")
         assert repr(s) == expected
 
         # both
-        s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
-                   index=[u'ああ', u'いいいい', u'う', u'えええ'])
-        expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
-                    u"えええ     ええええ\ndtype: object")
+        s = Series(['あ', 'いい', 'ううう', 'ええええ'],
+                   index=['ああ', 'いいいい', 'う', 'えええ'])
+        expected = ("ああ         あ\nいいいい      いい\nう        ううう\n"
+                    "えええ     ええええ\ndtype: object")
         assert repr(s) == expected
 
         # unicode footer
-        s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
-                   index=[u'ああ', u'いいいい', u'う', u'えええ'],
-                   name=u'おおおおおおお')
-        expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
-                    u"えええ     ええええ\nName: おおおおおおお, dtype: object")
+        s = Series(['あ', 'いい', 'ううう', 'ええええ'],
+                   index=['ああ', 'いいいい', 'う', 'えええ'],
+                   name='おおおおおおお')
+        expected = ("ああ         あ\nいいいい      いい\nう        ううう\n"
+                    "えええ     ええええ\nName: おおおおおおお, dtype: object")
         assert repr(s) == expected
 
         # MultiIndex
-        idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
-            u'おおお', u'かかかか'), (u'き', u'くく')])
+        idx = pd.MultiIndex.from_tuples([('あ', 'いい'), ('う', 'え'), (
+            'おおお', 'かかかか'), ('き', 'くく')])
         s = Series([1, 22, 3333, 44444], index=idx)
-        expected = (u"あ    いい          1\n"
-                    u"う    え          22\n"
-                    u"おおお  かかかか     3333\n"
-                    u"き    くく      44444\ndtype: int64")
+        expected = ("あ    いい          1\n"
+                    "う    え          22\n"
+                    "おおお  かかかか     3333\n"
+                    "き    くく      44444\ndtype: int64")
         assert repr(s) == expected
 
         # object dtype, shorter than unicode repr
-        s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
-        expected = (u"1          1\nAB        22\nNaN     3333\n"
-                    u"あああ    44444\ndtype: int64")
+        s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, 'あああ'])
+        expected = ("1          1\nAB        22\nNaN     3333\n"
+                    "あああ    44444\ndtype: int64")
         assert repr(s) == expected
 
         # object dtype, longer than unicode repr
         s = Series([1, 22, 3333, 44444],
-                   index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
-        expected = (u"1                          1\n"
-                    u"AB                        22\n"
-                    u"2011-01-01 00:00:00     3333\n"
-                    u"あああ                    44444\ndtype: int64")
+                   index=[1, 'AB', pd.Timestamp('2011-01-01'), 'あああ'])
+        expected = ("1                          1\n"
+                    "AB                        22\n"
+                    "2011-01-01 00:00:00     3333\n"
+                    "あああ                    44444\ndtype: int64")
         assert repr(s) == expected
 
         # truncate
         with option_context('display.max_rows', 3):
-            s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
-                       name=u'おおおおおおお')
+            s = Series(['あ', 'いい', 'ううう', 'ええええ'],
+                       name='おおおおおおお')
 
-            expected = (u"0       あ\n     ... \n"
-                        u"3    ええええ\n"
-                        u"Name: おおおおおおお, Length: 4, dtype: object")
+            expected = ("0       あ\n     ... \n"
+                        "3    ええええ\n"
+                        "Name: おおおおおおお, Length: 4, dtype: object")
             assert repr(s) == expected
 
-            s.index = [u'ああ', u'いいいい', u'う', u'えええ']
-            expected = (u"ああ        あ\n       ... \n"
-                        u"えええ    ええええ\n"
-                        u"Name: おおおおおおお, Length: 4, dtype: object")
+            s.index = ['ああ', 'いいいい', 'う', 'えええ']
+            expected = ("ああ        あ\n       ... \n"
+                        "えええ    ええええ\n"
+                        "Name: おおおおおおお, Length: 4, dtype: object")
             assert repr(s) == expected
 
         # Emable Unicode option -----------------------------------------
@@ -1933,87 +1940,87 @@ class TestSeriesFormatting(object):
 
             # unicode index
             s = Series(['a', 'bb', 'CCC', 'D'],
-                       index=[u'あ', u'いい', u'ううう', u'ええええ'])
-            expected = (u"あ            a\nいい         bb\nううう      CCC\n"
-                        u"ええええ      D\ndtype: object")
+                       index=['あ', 'いい', 'ううう', 'ええええ'])
+            expected = ("あ            a\nいい         bb\nううう      CCC\n"
+                        "ええええ      D\ndtype: object")
             assert repr(s) == expected
 
             # unicode values
-            s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
+            s = Series(['あ', 'いい', 'ううう', 'ええええ'],
                        index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"a            あ\nbb         いい\nc        ううう\n"
-                        u"ddd    ええええ\ndtype: object")
+            expected = ("a            あ\nbb         いい\nc        ううう\n"
+                        "ddd    ええええ\ndtype: object")
             assert repr(s) == expected
 
             # both
-            s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
-                       index=[u'ああ', u'いいいい', u'う', u'えええ'])
-            expected = (u"ああ              あ\n"
-                        u"いいいい        いい\n"
-                        u"う            ううう\n"
-                        u"えええ      ええええ\ndtype: object")
+            s = Series(['あ', 'いい', 'ううう', 'ええええ'],
+                       index=['ああ', 'いいいい', 'う', 'えええ'])
+            expected = ("ああ              あ\n"
+                        "いいいい        いい\n"
+                        "う            ううう\n"
+                        "えええ      ええええ\ndtype: object")
             assert repr(s) == expected
 
             # unicode footer
-            s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
-                       index=[u'ああ', u'いいいい', u'う', u'えええ'],
-                       name=u'おおおおおおお')
-            expected = (u"ああ              あ\n"
-                        u"いいいい        いい\n"
-                        u"う            ううう\n"
-                        u"えええ      ええええ\n"
-                        u"Name: おおおおおおお, dtype: object")
+            s = Series(['あ', 'いい', 'ううう', 'ええええ'],
+                       index=['ああ', 'いいいい', 'う', 'えええ'],
+                       name='おおおおおおお')
+            expected = ("ああ              あ\n"
+                        "いいいい        いい\n"
+                        "う            ううう\n"
+                        "えええ      ええええ\n"
+                        "Name: おおおおおおお, dtype: object")
             assert repr(s) == expected
 
             # MultiIndex
-            idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
-                u'おおお', u'かかかか'), (u'き', u'くく')])
+            idx = pd.MultiIndex.from_tuples([('あ', 'いい'), ('う', 'え'), (
+                'おおお', 'かかかか'), ('き', 'くく')])
             s = Series([1, 22, 3333, 44444], index=idx)
-            expected = (u"あ      いい            1\n"
-                        u"う      え             22\n"
-                        u"おおお  かかかか     3333\n"
-                        u"き      くく        44444\n"
-                        u"dtype: int64")
+            expected = ("あ      いい            1\n"
+                        "う      え             22\n"
+                        "おおお  かかかか     3333\n"
+                        "き      くく        44444\n"
+                        "dtype: int64")
             assert repr(s) == expected
 
             # object dtype, shorter than unicode repr
-            s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
-            expected = (u"1             1\nAB           22\nNaN        3333\n"
-                        u"あああ    44444\ndtype: int64")
+            s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, 'あああ'])
+            expected = ("1             1\nAB           22\nNaN        3333\n"
+                        "あああ    44444\ndtype: int64")
             assert repr(s) == expected
 
             # object dtype, longer than unicode repr
             s = Series([1, 22, 3333, 44444],
-                       index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
-            expected = (u"1                          1\n"
-                        u"AB                        22\n"
-                        u"2011-01-01 00:00:00     3333\n"
-                        u"あああ                 44444\ndtype: int64")
+                       index=[1, 'AB', pd.Timestamp('2011-01-01'), 'あああ'])
+            expected = ("1                          1\n"
+                        "AB                        22\n"
+                        "2011-01-01 00:00:00     3333\n"
+                        "あああ                 44444\ndtype: int64")
             assert repr(s) == expected
 
             # truncate
             with option_context('display.max_rows', 3):
-                s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
-                           name=u'おおおおおおお')
-                expected = (u"0          あ\n       ...   \n"
-                            u"3    ええええ\n"
-                            u"Name: おおおおおおお, Length: 4, dtype: object")
+                s = Series(['あ', 'いい', 'ううう', 'ええええ'],
+                           name='おおおおおおお')
+                expected = ("0          あ\n       ...   \n"
+                            "3    ええええ\n"
+                            "Name: おおおおおおお, Length: 4, dtype: object")
                 assert repr(s) == expected
 
-                s.index = [u'ああ', u'いいいい', u'う', u'えええ']
-                expected = (u"ああ            あ\n"
-                            u"            ...   \n"
-                            u"えええ    ええええ\n"
-                            u"Name: おおおおおおお, Length: 4, dtype: object")
+                s.index = ['ああ', 'いいいい', 'う', 'えええ']
+                expected = ("ああ            あ\n"
+                            "            ...   \n"
+                            "えええ    ええええ\n"
+                            "Name: おおおおおおお, Length: 4, dtype: object")
                 assert repr(s) == expected
 
             # ambiguous unicode
-            s = Series([u'¡¡', u'い¡¡', u'ううう', u'ええええ'],
-                       index=[u'ああ', u'¡¡¡¡いい', u'¡¡', u'えええ'])
-            expected = (u"ああ              ¡¡\n"
-                        u"¡¡¡¡いい        い¡¡\n"
-                        u"¡¡            ううう\n"
-                        u"えええ      ええええ\ndtype: object")
+            s = Series(['¡¡', 'い¡¡', 'ううう', 'ええええ'],
+                       index=['ああ', '¡¡¡¡いい', '¡¡', 'えええ'])
+            expected = ("ああ              ¡¡\n"
+                        "¡¡¡¡いい        い¡¡\n"
+                        "¡¡            ううう\n"
+                        "えええ      ええええ\ndtype: object")
             assert repr(s) == expected
 
     def test_float_trim_zeros(self):
@@ -2348,7 +2355,7 @@ def _three_digit_exp():
     return '{x:.4g}'.format(x=1.7e8) == '1.7e+008'
 
 
-class TestFloatArrayFormatter(object):
+class TestFloatArrayFormatter:
 
     def test_misc(self):
         obj = fmt.FloatArrayFormatter(np.array([], dtype=np.float64))
@@ -2434,7 +2441,7 @@ class TestFloatArrayFormatter(object):
             assert str(df) == '            x\n0  1.2346e+04\n1  2.0000e+06'
 
 
-class TestRepr_timedelta64(object):
+class TestRepr_timedelta64:
 
     def test_none(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2500,7 +2507,7 @@ class TestRepr_timedelta64(object):
         assert drepr(-delta_1d + delta_1ns) == "-1 days +00:00:00.000000001"
 
 
-class TestTimedelta64Formatter(object):
+class TestTimedelta64Formatter:
 
     def test_days(self):
         x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
@@ -2546,7 +2553,7 @@ class TestTimedelta64Formatter(object):
         assert result[0].strip() == "'0 days'"
 
 
-class TestDatetime64Formatter(object):
+class TestDatetime64Formatter:
 
     def test_mixed(self):
         x = Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])
@@ -2627,7 +2634,7 @@ class TestDatetime64Formatter(object):
         assert result == ['10:10', '12:12']
 
 
-class TestNaTFormatting(object):
+class TestNaTFormatting:
 
     def test_repr(self):
         assert repr(pd.NaT) == "NaT"
@@ -2636,7 +2643,7 @@ class TestNaTFormatting(object):
         assert str(pd.NaT) == "NaT"
 
 
-class TestDatetimeIndexFormat(object):
+class TestDatetimeIndexFormat:
 
     def test_datetime(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1, 12), pd.NaT]).format()
@@ -2663,7 +2670,7 @@ class TestDatetimeIndexFormat(object):
         assert formatted[1] == "UT"
 
 
-class TestDatetimeIndexUnicode(object):
+class TestDatetimeIndexUnicode:
 
     def test_dates(self):
         text = str(pd.to_datetime([datetime(2013, 1, 1), datetime(2014, 1, 1)
@@ -2678,7 +2685,7 @@ class TestDatetimeIndexUnicode(object):
         assert "'2014-01-01 00:00:00']" in text
 
 
-class TestStringRepTimestamp(object):
+class TestStringRepTimestamp:
 
     def test_no_tz(self):
         dt_date = datetime(2013, 1, 2)

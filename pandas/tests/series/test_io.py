@@ -1,13 +1,10 @@
 # coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 import collections
 from datetime import datetime
+from io import StringIO
 
 import numpy as np
 import pytest
-
-from pandas.compat import StringIO
 
 import pandas as pd
 from pandas import DataFrame, Series
@@ -160,8 +157,8 @@ class TestSeriesToCSV():
                 name='X'), None),
         # GH 21241, 21118
         (Series(['abc', 'def', 'ghi'], name='X'), 'ascii'),
-        (Series(["123", u"你好", u"世界"], name=u"中文"), 'gb2312'),
-        (Series(["123", u"Γειά σου", u"Κόσμε"], name=u"Ελληνικά"), 'cp737')
+        (Series(["123", "你好", "世界"], name="中文"), 'gb2312'),
+        (Series(["123", "Γειά σου", "Κόσμε"], name="Ελληνικά"), 'cp737')
     ])
     def test_to_csv_compression(self, s, encoding, compression):
 

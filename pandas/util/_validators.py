@@ -237,7 +237,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     Parameters
     ----------
     data : DataFrame or Panel
-    arg : tuple
+    args : tuple
         All positional arguments from the user
     kwargs : dict
         All keyword arguments from the user
@@ -261,7 +261,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     ...                              'mapper', 'rename')
     {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
     """
-    # TODO(PY3): Change to keyword-only args and remove all this
+    # TODO: Change to keyword-only args and remove all this
 
     out = {}
     # Goal: fill 'out' with index/columns-style arguments

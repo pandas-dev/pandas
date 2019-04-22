@@ -5,7 +5,6 @@ import numpy as np
 
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
-from pandas.compat import PY3, string_types
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
@@ -284,7 +283,7 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
     return indexer
 
 
-class _KeyMapper(object):
+class _KeyMapper:
 
     """
     Ease my suffering. Map compressed group id -> key tuple
@@ -454,14 +453,14 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
 
     def sort_mixed(values):
         # order ints before strings, safe in py3
-        str_pos = np.array([isinstance(x, string_types) for x in values],
+        str_pos = np.array([isinstance(x, str) for x in values],
                            dtype=bool)
         nums = np.sort(values[~str_pos])
         strs = np.sort(values[str_pos])
         return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
     sorter = None
-    if PY3 and lib.infer_dtype(values, skipna=False) == 'mixed-integer':
+    if lib.infer_dtype(values, skipna=False) == 'mixed-integer':
         # unorderable in py3 if mixed str/int
         ordered = sort_mixed(values)
     else:

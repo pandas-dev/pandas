@@ -99,7 +99,7 @@ def get_mgr_concatenation_plan(mgr, indexers):
     return plan
 
 
-class JoinUnit(object):
+class JoinUnit:
 
     def __init__(self, block, shape, indexers=None):
         # Passing shape explicitly is required for cases when block is None.

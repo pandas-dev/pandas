@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, timedelta
 import re
 
@@ -8,8 +6,6 @@ import numpy as np
 from numpy import nan as NA
 from numpy.random import randint
 import pytest
-
-import pandas.compat as compat
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
@@ -163,7 +159,7 @@ def any_allowed_skipna_inferred_dtype(request):
     return inferred_dtype, values
 
 
-class TestStringMethods(object):
+class TestStringMethods:
 
     def test_api(self):
 
@@ -302,7 +298,7 @@ class TestStringMethods(object):
 
             for el in s:
                 # each element of the series is either a basestring/str or nan
-                assert isinstance(el, compat.string_types) or isna(el)
+                assert isinstance(el, str) or isna(el)
 
         # desired behavior is to iterate until everything would be nan on the
         # next iter so make sure the last element of the iterator was 'l' in
@@ -748,7 +744,7 @@ class TestStringMethods(object):
         tm.assert_series_equal(rs, xp)
 
         # unicode
-        values = np.array([u'foo', NA, u'fooommm__foo', u'mmm_'],
+        values = np.array(['foo', NA, 'fooommm__foo', 'mmm_'],
                           dtype=np.object_)
         pat = 'mmm[_]+'
 
@@ -1792,7 +1788,7 @@ class TestStringMethods(object):
 
     def test_empty_str_methods_to_frame(self):
         empty = Series(dtype=str)
-        empty_df = DataFrame([])
+        empty_df = DataFrame()
         tm.assert_frame_equal(empty_df, empty.str.partition('a'))
         tm.assert_frame_equal(empty_df, empty.str.rpartition('a'))
 
@@ -1840,18 +1836,18 @@ class TestStringMethods(object):
         # 0x2605: ★ not number
         # 0x1378: ፸ ETHIOPIC NUMBER SEVENTY
         # 0xFF13: ３ Em 3
-        values = ['A', '3', u'¼', u'★', u'፸', u'３', 'four']
+        values = ['A', '3', '¼', '★', '፸', '３', 'four']
         s = Series(values)
         numeric_e = [False, True, True, False, True, True, False]
         decimal_e = [False, True, False, False, False, True, False]
         tm.assert_series_equal(s.str.isnumeric(), Series(numeric_e))
         tm.assert_series_equal(s.str.isdecimal(), Series(decimal_e))
 
-        unicodes = [u'A', u'3', u'¼', u'★', u'፸', u'３', u'four']
+        unicodes = ['A', '3', '¼', '★', '፸', '３', 'four']
         assert s.str.isnumeric().tolist() == [v.isnumeric() for v in unicodes]
         assert s.str.isdecimal().tolist() == [v.isdecimal() for v in unicodes]
 
-        values = ['A', np.nan, u'¼', u'★', np.nan, u'３', 'four']
+        values = ['A', np.nan, '¼', '★', np.nan, '３', 'four']
         s = Series(values)
         numeric_e = [False, np.nan, True, False, np.nan, True, False]
         decimal_e = [False, np.nan, False, False, np.nan, True, False]
@@ -2163,10 +2159,6 @@ class TestStringMethods(object):
             expected = klass(['cdedefg', 'cdee', 'edddfg', 'edefggg'])
             _check(result, expected)
 
-            msg = "deletechars is not a valid argument"
-            with pytest.raises(ValueError, match=msg):
-                result = s.str.translate(table, deletechars='fg')
-
         # Series with non-string values
         s = Series(['a', 'b', 'c', 1.2])
         expected = Series(['c', 'd', 'e', np.nan])
@@ -2356,7 +2348,7 @@ class TestStringMethods(object):
         # expand blank split GH 20067
         values = Series([''], name='test')
         result = values.str.split(expand=True)
-        exp = DataFrame([[]])
+        exp = DataFrame([[]])  # NOTE: this is NOT an empty DataFrame
         tm.assert_frame_equal(result, exp)
 
         values = Series(['a b c', 'a b', '', ' '], name='test')
@@ -2604,16 +2596,16 @@ class TestStringMethods(object):
         tm.assert_series_equal(result, exp)
 
         # unicode
-        values = Series([u'a_b_c', u'c_d_e', NA, u'f_g_h'])
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
 
         result = values.str.partition('_', expand=False)
-        exp = Series([(u'a', u'_', u'b_c'), (u'c', u'_', u'd_e'),
-                      NA, (u'f', u'_', u'g_h')])
+        exp = Series([('a', '_', 'b_c'), ('c', '_', 'd_e'),
+                      NA, ('f', '_', 'g_h')])
         tm.assert_series_equal(result, exp)
 
         result = values.str.rpartition('_', expand=False)
-        exp = Series([(u'a_b', u'_', u'c'), (u'c_d', u'_', u'e'),
-                      NA, (u'f_g', u'_', u'h')])
+        exp = Series([('a_b', '_', 'c'), ('c_d', '_', 'e'),
+                      NA, ('f_g', '_', 'h')])
         tm.assert_series_equal(result, exp)
 
         # compare to standard lib
@@ -3104,16 +3096,16 @@ class TestStringMethods(object):
         tm.assert_series_equal(result, exp)
 
     def test_normalize(self):
-        values = ['ABC', u'ＡＢＣ', u'１２３', np.nan, u'ｱｲｴ']
+        values = ['ABC', 'ＡＢＣ', '１２３', np.nan, 'ｱｲｴ']
         s = Series(values, index=['a', 'b', 'c', 'd', 'e'])
 
-        normed = [u'ABC', u'ABC', u'123', np.nan, u'アイエ']
+        normed = ['ABC', 'ABC', '123', np.nan, 'アイエ']
         expected = Series(normed, index=['a', 'b', 'c', 'd', 'e'])
 
         result = s.str.normalize('NFKC')
         tm.assert_series_equal(result, expected)
 
-        expected = Series([u'ABC', u'ＡＢＣ', u'１２３', np.nan, u'ｱｲｴ'],
+        expected = Series(['ABC', 'ＡＢＣ', '１２３', np.nan, 'ｱｲｴ'],
                           index=['a', 'b', 'c', 'd', 'e'])
 
         result = s.str.normalize('NFC')
@@ -3122,8 +3114,8 @@ class TestStringMethods(object):
         with pytest.raises(ValueError, match="invalid normalization form"):
             s.str.normalize('xxx')
 
-        s = Index([u'ＡＢＣ', u'１２３', u'ｱｲｴ'])
-        expected = Index([u'ABC', u'123', u'アイエ'])
+        s = Index(['ＡＢＣ', '１２３', 'ｱｲｴ'])
+        expected = Index(['ABC', '123', 'アイエ'])
         result = s.str.normalize('NFKC')
         tm.assert_index_equal(result, expected)
 

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from datetime import datetime
 
 import numpy as np
@@ -169,11 +167,26 @@ class TestDataFrameConcatCommon():
         expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
         assert_frame_equal(result, expected)
 
+    def test_append_missing_cols(self):
+        # GH22252
+        # exercise the conditional branch in append method where the data
+        # to be appended is a list and does not contain all columns that are in
+        # the target DataFrame
+        df = DataFrame(np.random.randn(5, 4),
+                       columns=['foo', 'bar', 'baz', 'qux'])
+
+        dicts = [{'foo': 9}, {'bar': 10}]
+        with tm.assert_produces_warning(None):
+            result = df.append(dicts, ignore_index=True, sort=True)
+
+        expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
+        assert_frame_equal(result, expected)
+
     def test_append_empty_dataframe(self):
 
         # Empty df append empty df
-        df1 = DataFrame([])
-        df2 = DataFrame([])
+        df1 = DataFrame()
+        df2 = DataFrame()
         result = df1.append(df2)
         expected = df1.copy()
         assert_frame_equal(result, expected)
@@ -583,10 +596,10 @@ class TestDataFrameCombineFirst():
         assert_series_equal(combined['A'].reindex(g.index), g['A'])
 
         # corner cases
-        comb = float_frame.combine_first(DataFrame({}))
+        comb = float_frame.combine_first(DataFrame())
         assert_frame_equal(comb, float_frame)
 
-        comb = DataFrame({}).combine_first(float_frame)
+        comb = DataFrame().combine_first(float_frame)
         assert_frame_equal(comb, float_frame)
 
         comb = float_frame.combine_first(DataFrame(index=["faz", "boo"]))
@@ -594,7 +607,7 @@ class TestDataFrameCombineFirst():
 
         # #2525
         df = DataFrame({'a': [1]}, index=[datetime(2012, 1, 1)])
-        df2 = DataFrame({}, columns=['b'])
+        df2 = DataFrame(columns=['b'])
         result = df.combine_first(df2)
         assert 'b' in result
 

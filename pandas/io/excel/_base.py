@@ -8,7 +8,6 @@ import warnings
 from pandas._config import config
 
 import pandas.compat as compat
-from pandas.compat import add_metaclass, string_types
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -19,8 +18,8 @@ from pandas.core.frame import DataFrame
 
 from pandas.io.common import _NA_VALUES, _stringify_path, _validate_header_arg
 from pandas.io.excel._util import (
-    _fill_mi_header, _get_default_writer, _maybe_convert_to_string,
-    _maybe_convert_usecols, _pop_header_name, get_writer)
+    _fill_mi_header, _get_default_writer, _maybe_convert_usecols,
+    _pop_header_name, get_writer)
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -328,8 +327,7 @@ def read_excel(io,
         **kwds)
 
 
-@add_metaclass(abc.ABCMeta)
-class _BaseExcelReader(object):
+class _BaseExcelReader(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
@@ -394,7 +392,7 @@ class _BaseExcelReader(object):
             if verbose:
                 print("Reading sheet {sheet}".format(sheet=asheetname))
 
-            if isinstance(asheetname, compat.string_types):
+            if isinstance(asheetname, str):
                 sheet = self.get_sheet_by_name(asheetname)
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
@@ -476,9 +474,6 @@ class _BaseExcelReader(object):
                     if header_names:
                         output[asheetname].columns = output[
                             asheetname].columns.set_names(header_names)
-                    elif compat.PY2:
-                        output[asheetname].columns = _maybe_convert_to_string(
-                            output[asheetname].columns)
 
             except EmptyDataError:
                 # No Data, return an empty DataFrame
@@ -490,8 +485,7 @@ class _BaseExcelReader(object):
             return output[asheetname]
 
 
-@add_metaclass(abc.ABCMeta)
-class ExcelWriter(object):
+class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets, default is to use
     xlwt for xls, openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
@@ -579,9 +573,9 @@ class ExcelWriter(object):
         # only switch class if generic(ExcelWriter)
 
         if issubclass(cls, ExcelWriter):
-            if engine is None or (isinstance(engine, string_types) and
+            if engine is None or (isinstance(engine, str) and
                                   engine == 'auto'):
-                if isinstance(path, string_types):
+                if isinstance(path, str):
                     ext = os.path.splitext(path)[-1][1:]
                 else:
                     ext = 'xlsx'
@@ -603,14 +597,16 @@ class ExcelWriter(object):
     curr_sheet = None
     path = None
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def supported_extensions(self):
-        "extensions that writer engine supports"
+        """Extensions that writer engine supports."""
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def engine(self):
-        "name of engine"
+        """Name of engine."""
         pass
 
     @abc.abstractmethod
@@ -643,7 +639,7 @@ class ExcelWriter(object):
                  date_format=None, datetime_format=None, mode='w',
                  **engine_kwargs):
         # validate that this engine can handle the extension
-        if isinstance(path, string_types):
+        if isinstance(path, str):
             ext = os.path.splitext(path)[-1]
         else:
             ext = 'xls' if engine == 'xlwt' else 'xlsx'
@@ -735,7 +731,7 @@ class ExcelWriter(object):
         return self.save()
 
 
-class ExcelFile(object):
+class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
     Uses xlrd. See read_excel for more documentation

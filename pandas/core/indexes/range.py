@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import index as libindex, lib
 import pandas.compat as compat
-from pandas.compat import get_range_parameters, lrange
+from pandas.compat import lrange
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -126,13 +126,13 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def from_range(cls, data, name=None, dtype=None, **kwargs):
-        """ Create RangeIndex from a range (py3), or xrange (py2) object. """
+        """ Create RangeIndex from a range object. """
         if not isinstance(data, range):
             raise TypeError(
                 '{0}(...) must be called with object coercible to a '
                 'range, {1} was passed'.format(cls.__name__, repr(data)))
 
-        start, stop, step = get_range_parameters(data)
+        start, stop, step = data.start, data.stop, data.step
         return RangeIndex(start, stop, step, dtype=dtype, name=name, **kwargs)
 
     @classmethod
@@ -156,7 +156,7 @@ class RangeIndex(Int64Index):
         result._stop = stop or 0
         result._step = step or 1
         result.name = name
-        for k, v in compat.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(result, k, v)
 
         result._reset_identity()
@@ -463,7 +463,7 @@ class RangeIndex(Int64Index):
             old_t, t = t, old_t - quotient * t
         return old_r, old_s, old_t
 
-    def union(self, other):
+    def union(self, other, sort=None):
         """
         Form the union of two Index objects and sorts if possible
 
@@ -471,15 +471,23 @@ class RangeIndex(Int64Index):
         ----------
         other : Index or array-like
 
+        sort : False or None, default None
+            Whether to sort resulting index. ``sort=None`` returns a
+            mononotically increasing ``RangeIndex`` if possible or a sorted
+            ``Int64Index`` if not. ``sort=False`` always returns an
+            unsorted ``Int64Index``
+
+            .. versionadded:: 0.25.0
+
         Returns
         -------
         union : Index
         """
         self._assert_can_do_setop(other)
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(RangeIndex, self).union(other)
+            return super(RangeIndex, self).union(other, sort=sort)
 
-        if isinstance(other, RangeIndex):
+        if isinstance(other, RangeIndex) and sort is None:
             start_s, step_s = self._start, self._step
             end_s = self._start + self._step * (len(self) - 1)
             start_o, step_o = other._start, other._step
@@ -516,7 +524,7 @@ class RangeIndex(Int64Index):
                         (end_s - step_o <= end_o)):
                     return RangeIndex(start_r, end_r + step_o, step_o)
 
-        return self._int64index.union(other)
+        return self._int64index.union(other, sort=sort)
 
     @Appender(_index_shared_docs['join'])
     def join(self, other, how='left', level=None, return_indexers=False,
@@ -718,9 +726,6 @@ class RangeIndex(Int64Index):
                                                step=operator.truediv)
         cls.__rtruediv__ = _make_evaluate_binop(ops.rtruediv,
                                                 step=ops.rtruediv)
-        if not compat.PY3:
-            cls.__div__ = _make_evaluate_binop(operator.div, step=operator.div)
-            cls.__rdiv__ = _make_evaluate_binop(ops.rdiv, step=ops.rdiv)
 
 
 RangeIndex._add_numeric_methods()

@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
-from collections import OrderedDict
+from collections import OrderedDict, abc
 from datetime import datetime, timedelta
 import functools
 import itertools
@@ -18,8 +16,8 @@ from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Index, MultiIndex, Series, Timedelta, Timestamp,
-    compat, date_range, isna)
+    Categorical, DataFrame, Index, MultiIndex, RangeIndex, Series, Timedelta,
+    Timestamp, date_range, isna)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -30,12 +28,36 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
 
 class TestDataFrameConstructors(TestData):
 
-    def test_constructor(self):
-        df = DataFrame()
-        assert len(df.index) == 0
+    @pytest.mark.parametrize('constructor', [
+        lambda: DataFrame(),
+        lambda: DataFrame(None),
+        lambda: DataFrame({}),
+        lambda: DataFrame(()),
+        lambda: DataFrame([]),
+        lambda: DataFrame((x for x in [])),
+        lambda: DataFrame(data=None),
+        lambda: DataFrame(data={}),
+        lambda: DataFrame(data=()),
+        lambda: DataFrame(data=[]),
+        lambda: DataFrame(data=(x for x in []))
+    ])
+    def test_empty_constructor(self, constructor):
+        expected = DataFrame()
+        result = constructor()
+        assert len(result.index) == 0
+        assert len(result.columns) == 0
+        tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(data={})
-        assert len(df.index) == 0
+    @pytest.mark.parametrize('emptylike,expected_index,expected_columns', [
+        ([[]], RangeIndex(1), RangeIndex(0)),
+        ([[], []], RangeIndex(2), RangeIndex(0)),
+        ([(x for x in [])], RangeIndex(1), RangeIndex(0))
+    ])
+    def test_emptylike_constructor(
+            self, emptylike, expected_index, expected_columns):
+        expected = DataFrame(index=expected_index, columns=expected_columns)
+        result = DataFrame(emptylike)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_mixed(self):
         index, data = tm.getMixedTypeDict()
@@ -93,7 +115,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_list_frames(self):
         # see gh-3243
-        result = DataFrame([DataFrame([])])
+        result = DataFrame([DataFrame()])
         assert result.shape == (1, 0)
 
         result = DataFrame([DataFrame(dict(A=lrange(5)))])
@@ -260,7 +282,7 @@ class TestDataFrameConstructors(TestData):
         frame = DataFrame({}, index=idx)
         assert frame.index is idx
 
-        # empty with index and columns
+        # empty dict with index and columns
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx, columns=idx)
         assert frame.index is idx
@@ -440,11 +462,11 @@ class TestDataFrameConstructors(TestData):
         data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in range(10)),
                 'col2': tm.TestSubDict((x, 20.0 * x) for x in range(10))}
         df = DataFrame(data)
-        refdf = DataFrame({col: dict(compat.iteritems(val))
-                           for col, val in compat.iteritems(data)})
+        refdf = DataFrame({col: dict(val.items())
+                           for col, val in data.items()})
         tm.assert_frame_equal(refdf, df)
 
-        data = tm.TestSubDict(compat.iteritems(data))
+        data = tm.TestSubDict(data.items())
         df = DataFrame(data)
         tm.assert_frame_equal(refdf, df)
 
@@ -452,7 +474,7 @@ class TestDataFrameConstructors(TestData):
         from collections import defaultdict
         data = {}
         self.frame['B'][:10] = np.nan
-        for k, v in compat.iteritems(self.frame):
+        for k, v in self.frame.items():
             dct = defaultdict(dict)
             dct.update(v.to_dict())
             data[k] = dct
@@ -504,7 +526,7 @@ class TestDataFrameConstructors(TestData):
         data = {'a': (1, 2, 3), 'b': (4, 5, 6)}
 
         result = DataFrame(data)
-        expected = DataFrame({k: list(v) for k, v in compat.iteritems(data)})
+        expected = DataFrame({k: list(v) for k, v in data.items()})
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_dict_multiindex(self):
@@ -951,7 +973,7 @@ class TestDataFrameConstructors(TestData):
         # GH 3783
         # collections.Squence like
 
-        class DummyContainer(compat.Sequence):
+        class DummyContainer(abc.Sequence):
 
             def __init__(self, lst):
                 self._lst = lst
@@ -1107,7 +1129,7 @@ class TestDataFrameConstructors(TestData):
         result2 = DataFrame(data, index=np.arange(6))
         tm.assert_frame_equal(result, result2)
 
-        result = DataFrame([Series({})])
+        result = DataFrame([Series()])
         expected = DataFrame(index=[0])
         tm.assert_frame_equal(result, expected)
 
@@ -1187,12 +1209,26 @@ class TestDataFrameConstructors(TestData):
         expected = DataFrame([[1, 2], [3, 4]])
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_tuples(self):
+    @pytest.mark.parametrize("tuples,lists", [
+        ((), []),
+        ((()), []),
+        (((), ()), [(), ()]),
+        (((), ()), [[], []]),
+        (([], []), [[], []]),
+        (([1, 2, 3], [4, 5, 6]), [[1, 2, 3], [4, 5, 6]])
+    ])
+    def test_constructor_tuple(self, tuples, lists):
+        # GH 25691
+        result = DataFrame(tuples)
+        expected = DataFrame(lists)
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_tuples(self):
         result = DataFrame({'A': [(1, 2), (3, 4)]})
         expected = DataFrame({'A': Series([(1, 2), (3, 4)])})
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_namedtuples(self):
+    def test_constructor_list_of_namedtuples(self):
         # GH11181
         from collections import namedtuple
         named_tuple = namedtuple("Pandas", list('ab'))
@@ -2063,13 +2099,13 @@ class TestDataFrameConstructors(TestData):
         tuples = []
         columns = []
         dtypes = []
-        for dtype, b in compat.iteritems(blocks):
+        for dtype, b in blocks.items():
             columns.extend(b.columns)
             dtypes.extend([(c, np.dtype(dtype).descr[0][1])
                            for c in b.columns])
         for i in range(len(df.index)):
             tup = []
-            for _, b in compat.iteritems(blocks):
+            for _, b in blocks.items():
                 tup.extend(b.iloc[i].values)
             tuples.append(tuple(tup))
 
@@ -2136,11 +2172,11 @@ class TestDataFrameConstructors(TestData):
         # from the dict
         blocks = df._to_dict_of_blocks()
         columns = []
-        for dtype, b in compat.iteritems(blocks):
+        for dtype, b in blocks.items():
             columns.extend(b.columns)
 
-        asdict = {x: y for x, y in compat.iteritems(df)}
-        asdict2 = {x: y.values for x, y in compat.iteritems(df)}
+        asdict = {x: y for x, y in df.items()}
+        asdict2 = {x: y.values for x, y in df.items()}
 
         # dict of series & dict of ndarrays (have dtype info)
         results = []
@@ -2179,7 +2215,7 @@ class TestDataFrameConstructors(TestData):
             DataFrame.from_records(df, index=2)
 
     def test_from_records_non_tuple(self):
-        class Record(object):
+        class Record:
 
             def __init__(self, *args):
                 self.args = args

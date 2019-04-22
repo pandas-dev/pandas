@@ -38,7 +38,7 @@ def test_constructor_no_levels():
 
 def test_constructor_nonhashable_names():
     # GH 20527
-    levels = [[1, 2], [u'one', u'two']]
+    levels = [[1, 2], ['one', 'two']]
     codes = [[0, 0, 1, 1], [0, 1, 0, 1]]
     names = (['foo'], ['bar'])
     msg = r"MultiIndex\.name must be a hashable type"
@@ -46,7 +46,7 @@ def test_constructor_nonhashable_names():
         MultiIndex(levels=levels, codes=codes, names=names)
 
     # With .rename()
-    mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
+    mi = MultiIndex(levels=[[1, 2], ['one', 'two']],
                     codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                     names=('foo', 'bar'))
     renamed = [['foor'], ['barr']]

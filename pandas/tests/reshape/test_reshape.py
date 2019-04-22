@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101
-
 from collections import OrderedDict
 
 import numpy as np
@@ -16,7 +14,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
-class TestGetDummies(object):
+class TestGetDummies:
 
     @pytest.fixture
     def df(self):
@@ -364,17 +362,17 @@ class TestGetDummies(object):
         assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('get_dummies_kwargs,expected', [
-        ({'data': pd.DataFrame(({u'ä': ['a']}))},
-         pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)),
+        ({'data': pd.DataFrame(({'ä': ['a']}))},
+         pd.DataFrame({'ä_a': [1]}, dtype=np.uint8)),
 
-        ({'data': pd.DataFrame({'x': [u'ä']})},
-         pd.DataFrame({u'x_ä': [1]}, dtype=np.uint8)),
+        ({'data': pd.DataFrame({'x': ['ä']})},
+         pd.DataFrame({'x_ä': [1]}, dtype=np.uint8)),
 
-        ({'data': pd.DataFrame({'x': [u'a']}), 'prefix':u'ä'},
-         pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)),
+        ({'data': pd.DataFrame({'x': ['a']}), 'prefix':'ä'},
+         pd.DataFrame({'ä_a': [1]}, dtype=np.uint8)),
 
-        ({'data': pd.DataFrame({'x': [u'a']}), 'prefix_sep':u'ä'},
-         pd.DataFrame({u'xäa': [1]}, dtype=np.uint8))])
+        ({'data': pd.DataFrame({'x': ['a']}), 'prefix_sep':'ä'},
+         pd.DataFrame({'xäa': [1]}, dtype=np.uint8))])
     def test_dataframe_dummies_unicode(self, get_dummies_kwargs, expected):
         # GH22084 pd.get_dummies incorrectly encodes unicode characters
         # in dataframe column names
@@ -586,7 +584,7 @@ class TestGetDummies(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestCategoricalReshape(object):
+class TestCategoricalReshape:
 
     def test_reshaping_multi_index_categorical(self):
 
@@ -613,7 +611,7 @@ class TestCategoricalReshape(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestMakeAxisDummies(object):
+class TestMakeAxisDummies:
 
     def test_preserve_categorical_dtype(self):
         # GH13854

@@ -120,7 +120,7 @@ def test_mock_clipboard(mock_clipboard):
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")
 @pytest.mark.usefixtures("mock_clipboard")
-class TestClipboard(object):
+class TestClipboard:
 
     def check_round_trip_frame(self, data, excel=None, sep=None,
                                encoding=None):
@@ -227,7 +227,7 @@ class TestClipboard(object):
 @pytest.mark.clipboard
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")
-@pytest.mark.parametrize('data', [u'\U0001f44d...', u'Ωœ∑´...', 'abcd...'])
+@pytest.mark.parametrize('data', ['\U0001f44d...', 'Ωœ∑´...', 'abcd...'])
 def test_raw_roundtrip(data):
     # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
     clipboard_set(data)

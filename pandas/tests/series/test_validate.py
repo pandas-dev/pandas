@@ -1,7 +1,7 @@
 import pytest
 
 
-class TestSeriesValidate(object):
+class TestSeriesValidate:
     """Tests for error handling related to data types of method arguments."""
 
     @pytest.mark.parametrize("func", ["reset_index", "_set_name",
