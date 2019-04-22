@@ -361,8 +361,8 @@ class BaseGrouper:
             'cummax': 'group_cummax',
             'rank': {
                 'name': 'group_rank',
-                'f': lambda func, a, b, c, d, **kwargs: func(
-                    a, b, c, d,
+                'f': lambda func, a, b, c, d, e, **kwargs: func(
+                    a, b, c, e,
                     kwargs.get('ties_method', 'average'),
                     kwargs.get('ascending', True),
                     kwargs.get('pct', False),
@@ -600,9 +600,10 @@ class BaseGrouper:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
                 transform_func(result[:, :, i], values,
-                               comp_ids, is_datetimelike, **kwargs)
+                               comp_ids, ngroups, is_datetimelike, **kwargs)
         else:
-            transform_func(result, values, comp_ids, is_datetimelike, **kwargs)
+            transform_func(result, values, comp_ids, ngroups, is_datetimelike,
+                           **kwargs)
 
         return result
 
@@ -884,33 +885,10 @@ class FrameSplitter(DataSplitter):
             return sdata._slice(slice_obj, axis=1)  # .loc[:, slice_obj]
 
 
-class NDFrameSplitter(DataSplitter):
-
-    def __init__(self, data, labels, ngroups, axis=0):
-        super(NDFrameSplitter, self).__init__(data, labels, ngroups, axis=axis)
-
-        self.factory = data._constructor
-
-    def _get_sorted_data(self):
-        # this is the BlockManager
-        data = self.data._data
-
-        # this is sort of wasteful but...
-        sorted_axis = data.axes[self.axis].take(self.sort_idx)
-        sorted_data = data.reindex_axis(sorted_axis, axis=self.axis)
-
-        return sorted_data
-
-    def _chop(self, sdata, slice_obj):
-        return self.factory(sdata.get_slice(slice_obj, axis=self.axis))
-
-
 def get_splitter(data, *args, **kwargs):
     if isinstance(data, Series):
         klass = SeriesSplitter
     elif isinstance(data, DataFrame):
         klass = FrameSplitter
-    else:
-        klass = NDFrameSplitter
 
     return klass(data, *args, **kwargs)

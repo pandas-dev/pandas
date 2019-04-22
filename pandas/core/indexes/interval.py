@@ -8,9 +8,7 @@ from pandas._config import get_option
 
 from pandas._libs import Timedelta, Timestamp
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
-from pandas.compat import add_metaclass
 from pandas.util._decorators import Appender, cache_readonly
-from pandas.util._doctools import _WritableDoc
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
@@ -126,7 +124,6 @@ def _new_IntervalIndex(cls, d):
     """),
 
 ))
-@add_metaclass(_WritableDoc)
 class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
@@ -441,7 +438,7 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic increasing (only equal or
         increasing values), else False
         """
-        return self._multiindex.is_monotonic
+        return self.is_monotonic_increasing
 
     @cache_readonly
     def is_monotonic_increasing(self):
@@ -449,7 +446,7 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic increasing (only equal or
         increasing values), else False
         """
-        return self._multiindex.is_monotonic_increasing
+        return self._engine.is_monotonic_increasing
 
     @cache_readonly
     def is_monotonic_decreasing(self):
@@ -457,7 +454,7 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic decreasing (only equal or
         decreasing values), else False
         """
-        return self._multiindex.is_monotonic_decreasing
+        return self[::-1].is_monotonic_increasing
 
     @cache_readonly
     def is_unique(self):
