@@ -47,7 +47,7 @@ def tree(request, leaf_size):
     return IntervalTree(left, left + 2, leaf_size=leaf_size)
 
 
-class TestIntervalTree(object):
+class TestIntervalTree:
 
     def test_get_loc(self, tree):
         result = tree.get_loc(1)

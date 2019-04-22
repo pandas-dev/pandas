@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from pandas.compat import PY3, set_function_name
+from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
@@ -29,7 +29,7 @@ _not_implemented_message = "{} does not implement {}."
 _extension_array_shared_docs = dict()
 
 
-class ExtensionArray(object):
+class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
 
@@ -964,7 +964,7 @@ class ExtensionArray(object):
             name=name, dtype=self.dtype))
 
 
-class ExtensionOpsMixin(object):
+class ExtensionOpsMixin:
     """
     A base class for linking the operators to their dunder names.
 
@@ -991,10 +991,6 @@ class ExtensionOpsMixin(object):
         cls.__rfloordiv__ = cls._create_arithmetic_method(ops.rfloordiv)
         cls.__truediv__ = cls._create_arithmetic_method(operator.truediv)
         cls.__rtruediv__ = cls._create_arithmetic_method(ops.rtruediv)
-        if not PY3:
-            cls.__div__ = cls._create_arithmetic_method(operator.div)
-            cls.__rdiv__ = cls._create_arithmetic_method(ops.rdiv)
-
         cls.__divmod__ = cls._create_arithmetic_method(divmod)
         cls.__rdivmod__ = cls._create_arithmetic_method(ops.rdivmod)
 

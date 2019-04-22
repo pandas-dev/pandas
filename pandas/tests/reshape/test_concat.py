@@ -11,8 +11,6 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import iteritems
-
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -41,7 +39,7 @@ def sort_with_none(request):
     return request.param
 
 
-class ConcatenateBase(object):
+class ConcatenateBase:
 
     def setup_method(self, method):
         self.frame = DataFrame(tm.getSeriesData())
@@ -102,13 +100,13 @@ class TestConcatAppendCommon(ConcatenateBase):
 
     def test_dtypes(self):
         # to confirm test case covers intended dtypes
-        for typ, vals in iteritems(self.data):
+        for typ, vals in self.data.items():
             self._check_expected_dtype(pd.Index(vals), typ)
             self._check_expected_dtype(pd.Series(vals), typ)
 
     def test_concatlike_same_dtypes(self):
         # GH 13660
-        for typ1, vals1 in iteritems(self.data):
+        for typ1, vals1 in self.data.items():
 
             vals2 = vals1
             vals3 = vals1
@@ -214,8 +212,8 @@ class TestConcatAppendCommon(ConcatenateBase):
 
     def test_concatlike_dtypes_coercion(self):
         # GH 13660
-        for typ1, vals1 in iteritems(self.data):
-            for typ2, vals2 in iteritems(self.data):
+        for typ1, vals1 in self.data.items():
+            for typ2, vals2 in self.data.items():
 
                 vals3 = vals2
 
@@ -1730,7 +1728,7 @@ class TestConcatenate(ConcatenateBase):
         assert_frame_equal(
             concat(deque((df1, df2)), ignore_index=True), expected)
 
-        class CustomIterator1(object):
+        class CustomIterator1:
 
             def __len__(self):
                 return 2

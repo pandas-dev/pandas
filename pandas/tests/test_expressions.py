@@ -14,9 +14,6 @@ from pandas.util.testing import (
 
 from pandas.io.formats.printing import pprint_thing
 
-# pylint: disable-msg=W0612,E1101
-
-
 _frame = DataFrame(randn(10000, 4), columns=list('ABCD'), dtype='float64')
 _frame2 = DataFrame(randn(100, 4), columns=list('ABCD'), dtype='float64')
 _mixed = DataFrame({'A': _frame['A'].copy(),
@@ -36,7 +33,7 @@ _integer2 = DataFrame(np.random.randint(1, 100, size=(101, 4)),
 
 
 @pytest.mark.skipif(not expr._USE_NUMEXPR, reason='not using numexpr')
-class TestExpressions(object):
+class TestExpressions:
 
     def setup_method(self, method):
 

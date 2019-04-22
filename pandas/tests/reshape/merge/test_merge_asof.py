@@ -8,7 +8,7 @@ from pandas.core.reshape.merge import MergeError
 from pandas.util.testing import assert_frame_equal
 
 
-class TestAsOfMerge(object):
+class TestAsOfMerge:
 
     def read_data(self, datapath, name, dedupe=False):
         path = datapath('reshape', 'merge', 'data', name)
