@@ -422,7 +422,7 @@ class HDFStore(StringMixin):
             It is similar to ``'a'``, but the file must already exist.
     complevel : int, 0-9, default None
             Specifies a compression level for data.
-            A value of 0 disables compression.
+            A value of 0 or None disables compression.
     complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
             Specifies the compression library to be used.
             As of v0.20.2 these additional compressors for Blosc are supported
