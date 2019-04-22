@@ -3,12 +3,14 @@ from io import BytesIO
 from urllib.request import urlopen
 
 from pandas.core.dtypes.common import is_integer, is_list_like
+
 from pandas.core.frame import DataFrame
-from pandas.io.common import (_is_url, _validate_header_arg,
-                              get_filepath_or_buffer)
-from pandas.io.excel._base import (ExcelWriter, _BaseExcelReader,
-                                   _fill_mi_header,
-                                   _maybe_convert_usecols, _pop_header_name)
+
+from pandas.io.common import (
+    _is_url, _validate_header_arg, get_filepath_or_buffer)
+from pandas.io.excel._base import (
+    ExcelWriter, _BaseExcelReader, _fill_mi_header, _maybe_convert_usecols,
+    _pop_header_name)
 from pandas.io.excel._util import _validate_freeze_panes
 from pandas.io.parsers import _validate_usecols_arg, _validate_usecols_names
 
