@@ -2,7 +2,6 @@ from collections import OrderedDict
 from io import BytesIO
 from urllib.request import urlopen
 
-import pandas.compat as compat
 from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.frame import DataFrame
 from pandas.io.common import (_is_url, _validate_header_arg,
