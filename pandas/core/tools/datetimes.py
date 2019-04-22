@@ -22,8 +22,7 @@ from pandas._typing import (
     ArrayLike, IndexLike, IndexLikeOrNdarray, SeriesLike, Union)
 from pandas.core import algorithms
 
-
-# notations
+# annotations
 IntFltStrDateLisTuplArrSer = Union[int, float, str, list, tuple,
                                    datetime, ArrayLike, SeriesLike]
 
