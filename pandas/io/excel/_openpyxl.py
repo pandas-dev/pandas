@@ -502,13 +502,12 @@ class _OpenpyxlReader(_BaseExcelReader):
                 filepath_or_buffer.seek(0)
             self.book = openpyxl.load_workbook(
                 filepath_or_buffer, data_only=True)
-        elif isinstance(filepath_or_buffer, compat.string_types):
+        elif isinstance(filepath_or_buffer, str):
             self.book = openpyxl.load_workbook(
                 filepath_or_buffer, data_only=True)
         else:
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
-        
 
     @property
     def sheet_names(self):
@@ -581,7 +580,7 @@ class _OpenpyxlReader(_BaseExcelReader):
             if verbose:
                 print("Reading sheet {sheet}".format(sheet=asheetname))
 
-            if isinstance(asheetname, compat.string_types):
+            if isinstance(asheetname, str):
                 sheet = self.get_sheet_by_name(asheetname)
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
@@ -662,12 +661,12 @@ class _OpenpyxlReader(_BaseExcelReader):
                                 frame[column] = frame[column].astype('float64')
                             except (ValueError, TypeError):
                                 continue
-                    elif (convert_float and
-                            frame[column].dtype == float and
-                            all(frame[column] % 1 == 0)):
+                    elif (convert_float
+                            and frame[column].dtype >= float
+                            and all(frame[column] % 1 == 0)):
                         frame[column] = frame[column].astype('int64')
                     elif not convert_float:
-                        if frame[column].dtype == int:
+                        if frame[column].dtype >= int:
                             frame[column] = frame[column].astype('float64')
 
             if converters:
