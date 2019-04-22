@@ -503,7 +503,7 @@ class TestNestedToRecord:
         assert result == expected
 
     def test_with_max_level_none(self):
-        #GH23843 Enhanced JSON normalize
+        # GH23843: Enhanced JSON normalize
         data = [{
             'CreatedBy': {'Name': 'User001'},
             'Lookup': {'TextField': 'Some text',
