@@ -251,4 +251,22 @@ class ReadCSVMemoryGrowth(BaseIO):
             pass
 
 
+class ReadCSVParseSpecialDate(StringIORewind):
+    params = (['mY', 'mdY'],)
+    params_name = ['value']
+    objects = {
+        'mY': '01-2019\n10-2019\n02/2000\n',
+        'mdY': '12/02/2010\n'
+    }
+
+    def setup(self, value):
+        count_elem = 10000
+        data = self.objects[value] * count_elem
+        self.StringIO_input = StringIO(data)
+
+    def time_read_special_date(self, value):
+        read_csv(self.data(self.StringIO_input), sep=',', header=None,
+                 names=['Date'], parse_dates=['Date'])
+
+
 from ..pandas_vb_common import setup  # noqa: F401
