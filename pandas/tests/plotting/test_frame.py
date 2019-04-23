@@ -3001,8 +3001,8 @@ class TestDataFramePlots(TestPlotBase):
         # GH: 22334
         # GH: 15912
         df = pd.DataFrame({'sales': [3, 2, 3],
-                   'visits': [20, 42, 28],
-                   'day': ['Monday', 'Tuesday', 'Wednesday']})
+                           'visits': [20, 42, 28],
+                           'day': ['Monday', 'Tuesday', 'Wednesday']})
         ax = df.plot.area(x='day')
         ax.set_xlim(-1, 3)
         xticklabels = [t.get_text() for t in ax.get_xticklabels()]
