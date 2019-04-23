@@ -4771,7 +4771,7 @@ class TestHDFStore(Base):
         columns = [column_numeric, column_str_1, column_str_2, column_dt,
                    column_multi_1, column_multi_2]
 
-        data = np.arange(0, 16).reshape(4, 4)
+        data = np.arange(0, 16).reshape(4, 4).astype('int64')
 
         with ensure_clean_store(
                 datapath('io', 'data', 'legacy_hdf',
