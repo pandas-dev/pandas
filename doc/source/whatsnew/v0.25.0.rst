@@ -92,7 +92,7 @@ The repr now looks like this:
 
 Previously, outputting a :class:`MultiIndex` printed all the ``levels`` and
 ``codes`` of the ``MultiIndex``, which was visually unappealing and made
-the output more difficult to navigate:
+the output more difficult to navigate. For example (limiting the range to 5):
 
 .. code-block:: ipython
 

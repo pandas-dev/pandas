@@ -76,7 +76,7 @@ def test_repr_max_seq_item_setting(idx):
         assert '...' not in str(idx)
 
 
-class TestRepr(object):
+class TestRepr:
 
     def test_repr(self, idx):
         result = idx[:1].__repr__()
