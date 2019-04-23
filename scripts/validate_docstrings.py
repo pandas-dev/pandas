@@ -476,7 +476,7 @@ class Docstring:
         for funcs, desc in self.doc['See Also']:
             for func, _ in funcs:
                 result[func] = ''.join(desc)
-    
+
         return result
 
     @property
