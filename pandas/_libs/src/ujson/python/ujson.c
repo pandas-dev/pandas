@@ -45,12 +45,6 @@ void initObjToJSON(void);
 /* JSONToObj */
 PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs);
 
-/* objToJSONFile */
-PyObject *objToJSONFile(PyObject *self, PyObject *args, PyObject *kwargs);
-
-/* JSONFileToObj */
-PyObject *JSONFileToObj(PyObject *self, PyObject *args, PyObject *kwargs);
-
 #define ENCODER_HELP_TEXT                                                  \
     "Use ensure_ascii=false to output UTF-8. Pass in double_precision to " \
     "alter the maximum digit precision of doubles. Set "                   \
