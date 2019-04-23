@@ -35,10 +35,6 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
  * Copyright (c) 1994 Sun Microsystems, Inc.
 */
 
-// "py_defines.h" needs to be included first to
-// avoid compilation errors, but it does violate
-// styleguide checks with regards to include order.
-#include "py_defines.h"
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 #define NO_IMPORT_ARRAY
 #include <numpy/arrayobject.h>  // NOLINT(build/include_order)
@@ -470,7 +466,7 @@ JSOBJ Object_newArray(void *prv, void *decoder) { return PyList_New(0); }
 JSOBJ Object_endArray(void *prv, JSOBJ obj) { return obj; }
 
 JSOBJ Object_newInteger(void *prv, JSINT32 value) {
-    return PyInt_FromLong((long)value);
+    return PyLong_FromLong((long)value);
 }
 
 JSOBJ Object_newLong(void *prv, JSINT64 value) {
@@ -530,7 +526,7 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
         decoder->preciseFloat = 1;
     }
 
-    if (PyString_Check(arg)) {
+    if (PyBytes_Check(arg)) {
         sarg = arg;
     } else if (PyUnicode_Check(arg)) {
         sarg = PyUnicode_AsUTF8String(arg);
@@ -559,8 +555,8 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
         }
     }
 
-    ret = JSON_DecodeObject(decoder, PyString_AS_STRING(sarg),
-                            PyString_GET_SIZE(sarg));
+    ret = JSON_DecodeObject(decoder, PyBytes_AS_STRING(sarg),
+                            PyBytes_GET_SIZE(sarg));
 
     if (sarg != arg) {
         Py_DECREF(sarg);
