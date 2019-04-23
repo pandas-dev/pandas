@@ -36,12 +36,13 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 */
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
 #include <math.h>                 // NOLINT(build/include_order)
 #include <numpy/arrayobject.h>    // NOLINT(build/include_order)
 #include <numpy/arrayscalars.h>   // NOLINT(build/include_order)
 #include <numpy/ndarraytypes.h>   // NOLINT(build/include_order)
 #include <numpy/npy_math.h>       // NOLINT(build/include_order)
-#include <stdio.h>                // NOLINT(build/include_order)
 #include <ultrajson.h>            // NOLINT(build/include_order)
 #include <../../../tslibs/src/datetime/np_datetime.h>          // NOLINT(build/include_order)
 #include <../../../tslibs/src/datetime/np_datetime_strings.h>  // NOLINT(build/include_order)
@@ -1244,12 +1245,7 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
 
     for (; GET_TC(tc)->index < GET_TC(tc)->size; GET_TC(tc)->index++) {
         attrName = PyList_GET_ITEM(GET_TC(tc)->attrList, GET_TC(tc)->index);
-#if PY_MAJOR_VERSION >= 3
         attr = PyUnicode_AsUTF8String(attrName);
-#else
-        attr = attrName;
-        Py_INCREF(attr);
-#endif
         attrStr = PyBytes_AS_STRING(attr);
 
         if (attrStr[0] == '_') {
@@ -1303,7 +1299,7 @@ JSOBJ Dir_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
 
 char *Dir_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
     PRINTMARK();
-    *outLen = PyBytesGET_SIZE(GET_TC(tc)->itemName);
+    *outLen = PyBytes_GET_SIZE(GET_TC(tc)->itemName);
     return PyBytes_AS_STRING(GET_TC(tc)->itemName);
 }
 
@@ -1521,9 +1517,7 @@ void Dict_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 }
 
 int Dict_iterNext(JSOBJ obj, JSONTypeContext *tc) {
-#if PY_MAJOR_VERSION >= 3
     PyObject *itemNameTmp;
-#endif
 
     if (GET_TC(tc)->itemName) {
         Py_DECREF(GET_TC(tc)->itemName);
@@ -1540,11 +1534,9 @@ int Dict_iterNext(JSOBJ obj, JSONTypeContext *tc) {
         GET_TC(tc)->itemName = PyUnicode_AsUTF8String(GET_TC(tc)->itemName);
     } else if (!PyBytes_Check(GET_TC(tc)->itemName)) {
         GET_TC(tc)->itemName = PyObject_Str(GET_TC(tc)->itemName);
-#if PY_MAJOR_VERSION >= 3
         itemNameTmp = GET_TC(tc)->itemName;
         GET_TC(tc)->itemName = PyUnicode_AsUTF8String(GET_TC(tc)->itemName);
         Py_DECREF(itemNameTmp);
-#endif
     } else {
         Py_INCREF(GET_TC(tc)->itemName);
     }
