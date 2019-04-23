@@ -235,8 +235,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None,
 
     Parameters
     ----------
-    path_or_buf : str, path object, URL, a valid JSON str or file-like object,\
-                  default: None
+    path_or_buf : a valid JSON str, path object, URL or file-like object.
         The string could be a URL. Valid URL schemes include http, ftp, s3,
         gcs, and file. For file URLs, a host is expected. For instance, a local
         file could be ``file://localhost/path/to/table.json``
