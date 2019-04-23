@@ -472,8 +472,12 @@ class Docstring:
 
     @property
     def see_also(self):
-        return collections.OrderedDict((name, ''.join(desc))
-                                       for name, desc in self.doc['See Also'])
+        result = collections.OrderedDict()
+        for funcs, desc in self.doc['See Also']:
+            for func, _ in funcs:
+                result[func] = ''.join(desc)
+    
+        return result
 
     @property
     def examples(self):
