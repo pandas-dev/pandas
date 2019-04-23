@@ -402,6 +402,7 @@ Reshaping
 - Bug in :func:`merge` where merging with equivalent Categorical dtypes was raising an error (:issue:`22501`)
 - Bug in :class:`DataFrame` constructor when passing non-empty tuples would cause a segmentation fault (:issue:`25691`)
 - Bug in :func:`pandas.cut` where large bins could incorrectly raise an error due to an integer overflow (:issue:`26045`)
+- Bug in :meth:`Series.nlargest` treats ``True`` as smaller than ``False`` (:issue:`26154`)
 
 Sparse
 ^^^^^^
@@ -414,7 +415,6 @@ Sparse
 Other
 ^^^^^
 
--
 -
 
 

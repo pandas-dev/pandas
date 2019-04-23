@@ -1118,6 +1118,10 @@ class SelectNSeries(SelectN):
                 # GH 21426: ensure reverse ordering at boundaries
                 arr -= 1
 
+            elif is_bool_dtype(pandas_dtype):
+                # GH 26154: ensure False is smaller than True
+                arr = 1 - (-arr)
+
         if self.keep == 'last':
             arr = arr[::-1]
 
