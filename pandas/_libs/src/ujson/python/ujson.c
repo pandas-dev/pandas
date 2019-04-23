@@ -35,7 +35,6 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1994 Sun Microsystems, Inc.
 */
 
-#include "py_defines.h"
 #include "version.h"
 
 /* objToJSON */
@@ -113,7 +112,7 @@ PYMODINITFUNC {
         MODINITERROR;
     }
 
-    version_string = PyString_FromString(UJSON_VERSION);
+    version_string = PyUnicode_FromString(UJSON_VERSION);
     PyModule_AddObject(module, "__version__", version_string);
 
 #if PY_MAJOR_VERSION >= 3
