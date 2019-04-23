@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for Period dtype

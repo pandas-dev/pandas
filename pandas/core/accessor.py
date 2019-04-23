@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 
 accessor.py contains base classes for implementing accessor properties

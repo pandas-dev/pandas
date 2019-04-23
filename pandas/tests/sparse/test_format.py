@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 
 from pandas.compat import is_platform_32bit, is_platform_windows

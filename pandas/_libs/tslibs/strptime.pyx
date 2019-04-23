@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Strptime-related classes and functions.
 """
 import time
