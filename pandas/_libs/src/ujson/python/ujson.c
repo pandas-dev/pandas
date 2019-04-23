@@ -67,12 +67,6 @@ static PyMethodDef ujsonMethods[] = {
     {"loads", (PyCFunction)JSONToObj, METH_VARARGS | METH_KEYWORDS,
      "Converts JSON as string to dict object structure. Use precise_float=True "
      "to use high precision float decoder."},
-    {"dump", (PyCFunction)objToJSONFile, METH_VARARGS | METH_KEYWORDS,
-     "Converts arbitrary object recursively into JSON "
-     "file. " ENCODER_HELP_TEXT},
-    {"load", (PyCFunction)JSONFileToObj, METH_VARARGS | METH_KEYWORDS,
-     "Converts JSON as file to dict object structure. Use precise_float=True "
-     "to use high precision float decoder."},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
