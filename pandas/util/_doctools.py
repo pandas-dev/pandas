@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 
-class TablePlotter(object):
+class TablePlotter:
     """
     Layout some DataFrames in vertical/horizontal layout for explanation.
     Used in merging.rst
@@ -161,14 +161,6 @@ class TablePlotter(object):
 
         ax.set_title(title, size=self.font_size)
         ax.axis('off')
-
-
-class _WritableDoc(type):
-    # Remove this when Python2 support is dropped
-    # __doc__ is not mutable for new-style classes in Python2, which means
-    # we can't use @Appender to share class docstrings. This can be used
-    # with `add_metaclass` to make cls.__doc__ mutable.
-    pass
 
 
 if __name__ == "__main__":

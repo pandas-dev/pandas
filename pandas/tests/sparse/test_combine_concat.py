@@ -9,7 +9,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestSparseArrayConcat(object):
+class TestSparseArrayConcat:
     @pytest.mark.parametrize('kind', ['integer', 'block'])
     def test_basic(self, kind):
         a = pd.SparseArray([1, 0, 0, 2], kind=kind)
@@ -35,7 +35,7 @@ class TestSparseArrayConcat(object):
         assert result.kind == kind
 
 
-class TestSparseSeriesConcat(object):
+class TestSparseSeriesConcat:
 
     @pytest.mark.parametrize('kind', [
         'integer',
@@ -176,7 +176,7 @@ class TestSparseSeriesConcat(object):
         tm.assert_series_equal(res, exp)
 
 
-class TestSparseDataFrameConcat(object):
+class TestSparseDataFrameConcat:
 
     def setup_method(self, method):
 

@@ -6,7 +6,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestCategoricalWarnings(object):
+class TestCategoricalWarnings:
     def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip('IPython', minversion="6.0.0")
