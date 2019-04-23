@@ -15,16 +15,16 @@ from pandas.core.dtypes.common import (
     ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
     is_datetime64tz_dtype, is_float, is_integer, is_integer_dtype,
     is_list_like, is_numeric_dtype, is_scalar)
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCDatetimeIndex, ABCIndex, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.missing import notna
 
-from pandas._typing import (
-    ArrayLike, IndexLike, IndexLikeOrNdarray, SeriesLike, Union)
+from pandas._typing import ArrayLike, Union
 from pandas.core import algorithms
 
 # annotations
-IntFltStrDateLisTuplArrSer = Union[int, float, str, list, tuple,
-                                   datetime, ArrayLike, SeriesLike]
+DatetimeScalarOrArrayConvertible = Union[int, float, str, list, tuple,
+                                         datetime, ArrayLike, ABCSeries]
 
 
 def _guess_datetime_format_for_array(arr, **kwargs):
@@ -66,7 +66,8 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     return cache_array
 
 
-def _box_as_indexlike(dt_array: ArrayLike, tz=None, name=None) -> IndexLike:
+def _box_as_indexlike(dt_array: ArrayLike,
+                      tz=None, name=None) -> Union[ABCIndex, ABCDatetimeIndex]:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
     if it is possible or to generic Index instead
@@ -92,9 +93,10 @@ def _box_as_indexlike(dt_array: ArrayLike, tz=None, name=None) -> IndexLike:
     return Index(dt_array, name=name)
 
 
-def _convert_and_box_cache(arg: IntFltStrDateLisTuplArrSer,
-                           cache_array: SeriesLike,
-                           box: bool, name=None) -> IndexLikeOrNdarray:
+def _convert_and_box_cache(arg: DatetimeScalarOrArrayConvertible,
+                           cache_array: ABCSeries,
+                           box: bool, name=None) -> Union[ABCIndex,
+                                                          np.ndarray]:
     """
     Convert array of dates with a cache and box the result
 
@@ -111,8 +113,6 @@ def _convert_and_box_cache(arg: IntFltStrDateLisTuplArrSer,
     Returns
     -------
     result : datetime of converted dates
-        Returns:
-
         - Index-like if box=True
         - ndarray if box=False
     """
