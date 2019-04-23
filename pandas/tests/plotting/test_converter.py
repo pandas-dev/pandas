@@ -23,7 +23,7 @@ def test_timtetonum_accepts_unicode():
     assert (converter.time2num("00:01") == converter.time2num("00:01"))
 
 
-class TestRegistration(object):
+class TestRegistration:
 
     def test_register_by_default(self):
         # Run in subprocess to ensure a clean state
@@ -143,7 +143,7 @@ class TestRegistration(object):
                 str(w[0].message))
 
 
-class TestDateTimeConverter(object):
+class TestDateTimeConverter:
 
     def setup_method(self, method):
         self.dtc = converter.DatetimeConverter()
@@ -283,12 +283,12 @@ class TestDateTimeConverter(object):
         assert (np.array(result) == expected).all()
 
 
-class TestPeriodConverter(object):
+class TestPeriodConverter:
 
     def setup_method(self, method):
         self.pc = converter.PeriodConverter()
 
-        class Axis(object):
+        class Axis:
             pass
 
         self.axis = Axis()

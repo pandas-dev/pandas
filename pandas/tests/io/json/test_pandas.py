@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101
 from collections import OrderedDict
 from datetime import timedelta
+from io import StringIO
 import json
 import os
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, is_platform_32bit, lrange
+from pandas.compat import is_platform_32bit, lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json)
+from pandas import DataFrame, DatetimeIndex, Series, Timestamp, read_json
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_index_equal,
@@ -25,7 +24,7 @@ _tsd = tm.getTimeSeriesData()
 _frame = DataFrame(_seriesd)
 _frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
 _intframe = DataFrame({k: v.astype(np.int64)
-                       for k, v in compat.iteritems(_seriesd)})
+                       for k, v in _seriesd.items()})
 
 _tsframe = DataFrame(_tsd)
 _cat_frame = _frame.copy()
@@ -38,7 +37,7 @@ _cat_frame['sort'] = np.arange(len(_cat_frame), dtype='int64')
 _mixed_frame = _frame.copy()
 
 
-class TestPandasContainer(object):
+class TestPandasContainer:
 
     @pytest.fixture(scope="function", autouse=True)
     def setup(self, datapath):
@@ -536,7 +535,7 @@ class TestPandasContainer(object):
     def test_frame_nonprintable_bytes(self):
         # GH14256: failing column caused segfaults, if it is not the last one
 
-        class BinaryThing(object):
+        class BinaryThing:
 
             def __init__(self, hexed):
                 self.hexed = hexed

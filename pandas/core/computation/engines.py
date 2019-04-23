@@ -4,7 +4,6 @@ Engine classes for :func:`~pandas.eval`
 
 import abc
 
-from pandas import compat
 from pandas.core.computation.align import _align, _reconstruct_object
 from pandas.core.computation.ops import (
     UndefinedVariableError, _mathops, _reductions)
@@ -36,11 +35,8 @@ def _check_ne_builtin_clash(expr):
                                      .format(expr=expr, s=s))
 
 
-class AbstractEngine(object):
-
+class AbstractEngine(metaclass=abc.ABCMeta):
     """Object serving as a base class for all engines."""
-
-    __metaclass__ = abc.ABCMeta
 
     has_neg_frac = False
 
@@ -124,7 +120,7 @@ class NumExprEngine(AbstractEngine):
             try:
                 msg = e.message
             except AttributeError:
-                msg = compat.text_type(e)
+                msg = str(e)
             raise UndefinedVariableError(msg)
 
 

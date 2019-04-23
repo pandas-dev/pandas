@@ -11,8 +11,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import algos as libalgos, lib, ops as libops
-import pandas.compat as compat
-from pandas.compat import bind_method
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -165,7 +163,7 @@ def rmod(left, right):
     # check if right is a string as % is the string
     # formatting operation; this is a TypeError
     # otherwise perform the op
-    if isinstance(right, compat.string_types):
+    if isinstance(right, str):
         raise TypeError("{typ} cannot perform the operation mod".format(
             typ=type(left).__name__))
 
@@ -1545,7 +1543,7 @@ def add_methods(cls, new_methods):
         force = not (issubclass(cls, ABCSparseArray) and
                      name.startswith('__i'))
         if force or name not in cls.__dict__:
-            bind_method(cls, name, method)
+            setattr(cls, name, method)
 
 
 # ----------------------------------------------------------------------
@@ -1592,8 +1590,6 @@ def add_special_arithmetic_methods(cls):
              __ifloordiv__=_wrap_inplace_method(new_methods["__floordiv__"]),
              __imod__=_wrap_inplace_method(new_methods["__mod__"]),
              __ipow__=_wrap_inplace_method(new_methods["__pow__"])))
-    if not compat.PY3:
-        new_methods["__idiv__"] = _wrap_inplace_method(new_methods["__div__"])
 
     new_methods.update(
         dict(__iand__=_wrap_inplace_method(new_methods["__and__"]),

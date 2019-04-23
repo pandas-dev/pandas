@@ -4,11 +4,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Timedelta, TimedeltaIndex, compat, timedelta_range
+from pandas import Index, Timedelta, TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
 
 
-class TestGetItem(object):
+class TestGetItem:
     def test_ellipsis(self):
         # GH#21282
         idx = timedelta_range('1 day', '31 day', freq='D', name='idx')
@@ -59,12 +59,12 @@ class TestGetItem(object):
             tdi.get_loc(key)
 
 
-class TestWhere(object):
+class TestWhere:
     # placeholder for symmetry with DatetimeIndex and PeriodIndex tests
     pass
 
 
-class TestTake(object):
+class TestTake:
     def test_take(self):
         # GH 10295
         idx1 = timedelta_range('1 day', '31 day', freq='D', name='idx')
@@ -168,7 +168,7 @@ class TestTake(object):
             idx.take(np.array([1, -5]))
 
 
-class TestTimedeltaIndex(object):
+class TestTimedeltaIndex:
 
     def test_insert(self):
 
@@ -240,7 +240,7 @@ class TestTimedeltaIndex(object):
                  -1: expected_4,
                  4: expected_4,
                  1: expected_1}
-        for n, expected in compat.iteritems(cases):
+        for n, expected in cases.items():
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
@@ -267,7 +267,7 @@ class TestTimedeltaIndex(object):
         cases = {(0, 1, 2): expected_0_2,
                  (7, 8, 9): expected_7_9,
                  (3, 4, 5): expected_3_5}
-        for n, expected in compat.iteritems(cases):
+        for n, expected in cases.items():
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name

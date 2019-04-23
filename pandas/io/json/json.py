@@ -1,4 +1,4 @@
-# pylint: disable-msg=E1101,W0613,W0603
+from io import StringIO
 from itertools import islice
 import os
 
@@ -6,12 +6,12 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas.compat import StringIO, to_str
+from pandas.compat import to_str
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_period_dtype
 
-from pandas import DataFrame, MultiIndex, Series, compat, isna, to_datetime
+from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
@@ -64,7 +64,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
     if lines:
         s = _convert_to_line_delimits(s)
 
-    if isinstance(path_or_buf, compat.string_types):
+    if isinstance(path_or_buf, str):
         fh, handles = _get_handle(path_or_buf, 'w', compression=compression)
         try:
             fh.write(s)
@@ -76,7 +76,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
         path_or_buf.write(s)
 
 
-class Writer(object):
+class Writer:
     def __init__(self, obj, orient, date_format, double_precision,
                  ensure_ascii, date_unit, index, default_handler=None):
         self.obj = obj
@@ -523,7 +523,7 @@ class JsonReader(BaseIterator):
         data = filepath_or_buffer
 
         exists = False
-        if isinstance(data, compat.string_types):
+        if isinstance(data, str):
             try:
                 exists = os.path.exists(filepath_or_buffer)
             # gh-5874: if the filepath is too long will raise here
@@ -616,7 +616,7 @@ class JsonReader(BaseIterator):
         raise StopIteration
 
 
-class Parser(object):
+class Parser:
 
     _STAMP_UNITS = ('s', 'ms', 'us', 'ns')
     _MIN_STAMPS = {
@@ -822,8 +822,8 @@ class SeriesParser(Parser):
         json = self.json
         orient = self.orient
         if orient == "split":
-            decoded = {str(k): v for k, v in compat.iteritems(
-                loads(json, precise_float=self.precise_float))}
+            decoded = {str(k): v for k, v in loads(
+                json, precise_float=self.precise_float).items()}
             self.check_keys_split(decoded)
             self.obj = Series(dtype=None, **decoded)
         else:
@@ -837,7 +837,7 @@ class SeriesParser(Parser):
         if orient == "split":
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
-            decoded = {str(k): v for k, v in compat.iteritems(decoded)}
+            decoded = {str(k): v for k, v in decoded.items()}
             self.check_keys_split(decoded)
             self.obj = Series(**decoded)
         elif orient == "columns" or orient == "index":
@@ -875,7 +875,7 @@ class FrameParser(Parser):
         elif orient == "split":
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
-            decoded = {str(k): v for k, v in compat.iteritems(decoded)}
+            decoded = {str(k): v for k, v in decoded.items()}
             self.check_keys_split(decoded)
             self.obj = DataFrame(**decoded)
         elif orient == "values":
@@ -895,8 +895,8 @@ class FrameParser(Parser):
             self.obj = DataFrame(
                 loads(json, precise_float=self.precise_float), dtype=None)
         elif orient == "split":
-            decoded = {str(k): v for k, v in compat.iteritems(
-                loads(json, precise_float=self.precise_float))}
+            decoded = {str(k): v for k, v in loads(
+                json, precise_float=self.precise_float).items()}
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
@@ -957,7 +957,7 @@ class FrameParser(Parser):
             """
             Return if this col is ok to try for a date parse.
             """
-            if not isinstance(col, compat.string_types):
+            if not isinstance(col, str):
                 return False
 
             col_lower = col.lower()

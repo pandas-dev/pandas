@@ -53,7 +53,7 @@ def test_notna_notnull(notna_f):
             assert (isinstance(notna_f(s), Series))
 
 
-class TestIsNA(object):
+class TestIsNA:
 
     def test_0d_array(self):
         assert isna(np.array(np.nan))
@@ -337,7 +337,7 @@ def test_na_value_for_dtype(dtype, na_value):
     assert result is na_value
 
 
-class TestNAObj(object):
+class TestNAObj:
 
     _1d_methods = ['isnaobj', 'isnaobj_old']
     _2d_methods = ['isnaobj2d', 'isnaobj2d_old']
@@ -435,7 +435,7 @@ never_na_vals = [
 ]
 
 
-class TestLibMissing(object):
+class TestLibMissing:
     def test_checknull(self):
         for value in na_vals:
             assert libmissing.checknull(value)

@@ -15,7 +15,7 @@ from pandas.core.arrays.datetimes import sequence_to_dt64ns
 import pandas.util.testing as tm
 
 
-class TestDatetimeArrayConstructor(object):
+class TestDatetimeArrayConstructor:
     def test_freq_validation(self):
         # GH#24623 check that invalid instances cannot be created with the
         #  public constructor
@@ -85,7 +85,7 @@ class TestDatetimeArrayConstructor(object):
         assert arr._data is not data
 
 
-class TestDatetimeArrayComparisons(object):
+class TestDatetimeArrayComparisons:
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is
     #  sufficiently robust
 
@@ -118,7 +118,7 @@ class TestDatetimeArrayComparisons(object):
             tm.assert_numpy_array_equal(result, expected)
 
 
-class TestDatetimeArray(object):
+class TestDatetimeArray:
     def test_astype_to_same(self):
         arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
         result = arr.astype(DatetimeTZDtype(tz="US/Central"), copy=False)
@@ -240,7 +240,7 @@ class TestDatetimeArray(object):
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestSequenceToDT64NS(object):
+class TestSequenceToDT64NS:
 
     def test_tz_dtype_mismatch_raises(self):
         arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
@@ -254,7 +254,7 @@ class TestSequenceToDT64NS(object):
         tm.assert_numpy_array_equal(arr._data, result)
 
 
-class TestReductions(object):
+class TestReductions:
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_min_max(self, tz):

@@ -32,7 +32,7 @@ other_offsets = [pd.offsets.YearEnd(), pd.offsets.YearBegin(),
 offsets = non_apply + other_offsets
 
 
-class ApplyIndex(object):
+class ApplyIndex:
 
     params = other_offsets
     param_names = ['offset']
@@ -45,7 +45,7 @@ class ApplyIndex(object):
         offset.apply_index(self.rng)
 
 
-class OnOffset(object):
+class OnOffset:
 
     params = offsets
     param_names = ['offset']
@@ -61,7 +61,7 @@ class OnOffset(object):
             offset.onOffset(date)
 
 
-class OffsetSeriesArithmetic(object):
+class OffsetSeriesArithmetic:
 
     params = offsets
     param_names = ['offset']
@@ -76,7 +76,7 @@ class OffsetSeriesArithmetic(object):
             self.data + offset
 
 
-class OffsetDatetimeIndexArithmetic(object):
+class OffsetDatetimeIndexArithmetic:
 
     params = offsets
     param_names = ['offset']
@@ -90,7 +90,7 @@ class OffsetDatetimeIndexArithmetic(object):
             self.data + offset
 
 
-class OffestDatetimeArithmetic(object):
+class OffestDatetimeArithmetic:
 
     params = offsets
     param_names = ['offset']

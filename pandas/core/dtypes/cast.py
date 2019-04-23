@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
-from pandas.compat import PY3, string_types, text_type, to_str
+from pandas.compat import to_str
 
 from .common import (
     _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, ensure_int8,
@@ -73,7 +73,7 @@ def maybe_downcast_to_dtype(result, dtype):
     def trans(x):
         return x
 
-    if isinstance(dtype, string_types):
+    if isinstance(dtype, str):
         if dtype == 'infer':
             inferred_type = lib.infer_dtype(ensure_object(result.ravel()),
                                             skipna=False)
@@ -96,7 +96,7 @@ def maybe_downcast_to_dtype(result, dtype):
             else:
                 dtype = 'object'
 
-    if isinstance(dtype, string_types):
+    if isinstance(dtype, str):
         dtype = np.dtype(dtype)
 
     try:
@@ -328,7 +328,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         pass
     elif is_datetime64tz_dtype(dtype):
         pass
-    elif issubclass(np.dtype(dtype).type, string_types):
+    elif issubclass(np.dtype(dtype).type, str):
         dtype = np.object_
 
     return dtype, fill_value
@@ -374,7 +374,7 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
         dtype = val.dtype
         val = val.item()
 
-    elif isinstance(val, string_types):
+    elif isinstance(val, str):
 
         # If we create an empty array using a string to infer
         # the dtype, NumPy will only allocate one character per entry
@@ -635,12 +635,7 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
     if not isinstance(dtype, np.dtype):
         dtype = pandas_dtype(dtype)
 
-    if issubclass(dtype.type, text_type):
-        # in Py3 that's str, in Py2 that's unicode
-        return lib.astype_unicode(arr.ravel(),
-                                  skipna=skipna).reshape(arr.shape)
-
-    elif issubclass(dtype.type, string_types):
+    if issubclass(dtype.type, str):
         return lib.astype_str(arr.ravel(),
                               skipna=skipna).reshape(arr.shape)
 
@@ -664,9 +659,7 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
         elif dtype == np.int64:
             return arr.view(dtype)
 
-        # in py3, timedelta64[ns] are int64
-        if ((PY3 and dtype not in [_INT64_DTYPE, _TD_DTYPE]) or
-                (not PY3 and dtype != _TD_DTYPE)):
+        if dtype not in [_INT64_DTYPE, _TD_DTYPE]:
 
             # allow frequency conversions
             # we return a float here!
@@ -971,7 +964,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
     from pandas.core.tools.datetimes import to_datetime
 
     if dtype is not None:
-        if isinstance(dtype, string_types):
+        if isinstance(dtype, str):
             dtype = np.dtype(dtype)
 
         is_datetime64 = is_datetime64_dtype(dtype)
@@ -1024,7 +1017,12 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                                                                 dtype):
                     try:
                         if is_datetime64:
-                            value = to_datetime(value, errors=errors)._values
+                            value = to_datetime(value, errors=errors)
+                            # GH 25843: Remove tz information since the dtype
+                            # didn't specify one
+                            if value.tz is not None:
+                                value = value.tz_localize(None)
+                            value = value._values
                         elif is_datetime64tz:
                             # The string check can be removed once issue #13712
                             # is solved. String data that is passed with a

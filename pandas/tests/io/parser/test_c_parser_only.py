@@ -7,7 +7,7 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
-from io import TextIOWrapper
+from io import BytesIO, StringIO, TextIOWrapper
 import mmap
 import os
 import tarfile
@@ -15,7 +15,7 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import BytesIO, StringIO, lrange
+from pandas.compat import lrange
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -416,7 +416,7 @@ def test_read_nrows_large(c_parser_only):
 
 
 def test_float_precision_round_trip_with_text(c_parser_only):
-    # see gh-15140 - This should not segfault on Python 2.7+
+    # see gh-15140
     parser = c_parser_only
     df = parser.read_csv(StringIO("a"), header=None,
                          float_precision="round_trip")
