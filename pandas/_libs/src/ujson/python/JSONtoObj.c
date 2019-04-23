@@ -39,8 +39,8 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #define NO_IMPORT_ARRAY
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <numpy/arrayobject.h>  // NOLINT(build/include_order)
-#include <ultrajson.h>          // NOLINT(build/include_order)
+#include <numpy/arrayobject.h>
+#include <ultrajson.h>
 
 #define PRINTMARK()
 

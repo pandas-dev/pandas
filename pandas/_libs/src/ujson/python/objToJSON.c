@@ -38,14 +38,14 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <math.h>                 // NOLINT(build/include_order)
-#include <numpy/arrayobject.h>    // NOLINT(build/include_order)
-#include <numpy/arrayscalars.h>   // NOLINT(build/include_order)
-#include <numpy/ndarraytypes.h>   // NOLINT(build/include_order)
-#include <numpy/npy_math.h>       // NOLINT(build/include_order)
-#include <ultrajson.h>            // NOLINT(build/include_order)
-#include <../../../tslibs/src/datetime/np_datetime.h>          // NOLINT(build/include_order)
-#include <../../../tslibs/src/datetime/np_datetime_strings.h>  // NOLINT(build/include_order)
+#include <math.h>
+#include <numpy/arrayobject.h>
+#include <numpy/arrayscalars.h>
+#include <numpy/ndarraytypes.h>
+#include <numpy/npy_math.h>
+#include <ultrajson.h>
+#include <../../../tslibs/src/datetime/np_datetime.h>
+#include <../../../tslibs/src/datetime/np_datetime_strings.h>
 #include "datetime.h"
 
 static PyObject *type_decimal;
