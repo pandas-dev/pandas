@@ -4704,7 +4704,8 @@ Read only certain columns of a parquet file.
 
    result = pd.read_parquet('example_fp.parquet',
                             engine='fastparquet', columns=['a', 'b'])
-
+   result = pd.read_parquet('example_pa.parquet',
+                            engine='pyarrow', columns=['a', 'b'])
    result.dtypes
 
 
