@@ -1323,8 +1323,7 @@ class TestToDatetimeMisc:
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
 
         # GH 10636, default is now 'raise'
-        msg = (r"\(u?'Unknown string format:', '1/100/2000'\)|"
-               "day is out of range for month")
+        msg = (r"Unknown string format:|day is out of range for month")
         with pytest.raises(ValueError, match=msg):
             to_datetime(malformed, errors='raise', cache=cache)
 
