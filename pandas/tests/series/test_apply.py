@@ -1,13 +1,10 @@
 # coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from collections import Counter, OrderedDict, defaultdict
 from itertools import chain
 
 import numpy as np
 import pytest
 
-import pandas.compat as compat
 from pandas.compat import lrange
 
 import pandas as pd
@@ -432,13 +429,13 @@ class TestSeriesMap():
 
         merged = target.map(source)
 
-        for k, v in compat.iteritems(merged):
+        for k, v in merged.items():
             assert v == source[target[k]]
 
         # input could be a dict
         merged = target.map(source.to_dict())
 
-        for k, v in compat.iteritems(merged):
+        for k, v in merged.items():
             assert v == source[target[k]]
 
         # function

@@ -1,10 +1,11 @@
 """
 SparseArray data structure
 """
+from collections import abc
 import numbers
 import operator
 import re
-from typing import Any, Callable, Type, Union
+from typing import Any, Callable
 import warnings
 
 import numpy as np
@@ -30,6 +31,7 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
+from pandas._typing import Dtype
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
@@ -70,6 +72,14 @@ class SparseDtype(ExtensionDtype):
         =========== ==========
 
         The default value may be overridden by specifying a `fill_value`.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     # We include `_is_na_fill_value` in the metadata to avoid hash collisions
     # between SparseDtype(float, 0.0) and SparseDtype(float, nan).
@@ -79,7 +89,7 @@ class SparseDtype(ExtensionDtype):
 
     def __init__(
             self,
-            dtype: Union[str, np.dtype, ExtensionDtype, Type] = np.float64,
+            dtype: Dtype = np.float64,
             fill_value: Any = None
     ) -> None:
         from pandas.core.dtypes.missing import na_value_for_dtype
@@ -1377,7 +1387,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if isinstance(mapper, ABCSeries):
             mapper = mapper.to_dict()
 
-        if isinstance(mapper, compat.Mapping):
+        if isinstance(mapper, abc.Mapping):
             fill_value = mapper.get(self.fill_value, self.fill_value)
             sp_values = [mapper.get(x, None) for x in self.sp_values]
         else:
@@ -1591,8 +1601,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
                    'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
-        if compat.PY2:
-            special.add('div')
         aliases = {
             'subtract': 'sub',
             'multiply': 'mul',

@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
 import gzip
+import http.client
 import lzma
 import os
 import re
@@ -21,9 +22,7 @@ from pandas._config.localization import (  # noqa:F401
     can_set_locale, get_locales, set_locale)
 
 from pandas._libs import testing as _testing
-import pandas.compat as compat
-from pandas.compat import (
-    PY3, httplib, lmap, lrange, lzip, raise_with_traceback)
+from pandas.compat import lmap, lrange, lzip, raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -991,6 +990,12 @@ def assert_series_equal(left, right, check_dtype=True,
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare.
+
+        When comparing two numbers, if the first number has magnitude less
+        than 1e-5, we compare the two numbers directly and check whether
+        they are equivalent within the specified precision. Otherwise, we
+        compare the **ratio** of the second number to the first number and
+        check whether it is equivalent to 1 within the specified precision.
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
     check_exact : bool, default False
@@ -1132,6 +1137,12 @@ def assert_frame_equal(left, right, check_dtype=True,
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare.
+
+        When comparing two numbers, if the first number has magnitude less
+        than 1e-5, we compare the two numbers directly and check whether
+        they are equivalent within the specified precision. Otherwise, we
+        compare the **ratio** of the second number to the first number and
+        check whether it is equivalent to 1 within the specified precision.
     check_names : bool, default True
         Whether to check that the `names` attribute for both the `index`
         and `column` attributes of the DataFrame is identical, i.e.
@@ -1170,18 +1181,21 @@ def assert_frame_equal(left, right, check_dtype=True,
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 
     df1 equals itself.
+
     >>> assert_frame_equal(df1, df1)
 
     df1 differs from df2 as column 'b' is of a different type.
+
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
     AssertionError: Attributes are different
-
+    ...
     Attribute "dtype" are different
     [left]:  int64
     [right]: float64
 
     Ignore differing dtypes in columns with check_dtype.
+
     >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
     __tracebackhide__ = True
@@ -1496,7 +1510,7 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
     if check_fill_value:
         assert_attr_equal('default_fill_value', left, right, obj=obj)
 
-    for col, series in compat.iteritems(left):
+    for col, series in left.items():
         assert (col in right)
         # trade-off?
 
@@ -2048,10 +2062,7 @@ _network_errno_vals = (
 # servers.
 
 # and conditionally raise on these exception types
-_network_error_classes = (IOError, httplib.HTTPException)
-
-if PY3:
-    _network_error_classes += (TimeoutError,)  # noqa
+_network_error_classes = (IOError, http.client.HTTPException, TimeoutError)
 
 
 def can_connect(url, error_classes=_network_error_classes):
@@ -2264,7 +2275,7 @@ item assignment"
         return manager
 
 
-class _AssertRaisesContextmanager(object):
+class _AssertRaisesContextmanager:
     """
     Context manager behind `assert_raises_regex`.
     """
@@ -2459,7 +2470,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             )
 
 
-class RNGContext(object):
+class RNGContext:
     """
     Context manager to set the numpy random number generator speed. Returns
     to the original value upon exiting the context manager.

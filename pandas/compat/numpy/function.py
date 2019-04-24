@@ -30,7 +30,7 @@ from pandas.util._validators import (
 from typing_extensions import Final
 
 
-class CompatValidator(object):
+class CompatValidator:
 
     def __init__(self, defaults, fname=None, method=None,
                  max_fname_arg_count=None):

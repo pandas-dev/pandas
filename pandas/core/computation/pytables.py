@@ -6,7 +6,7 @@ from functools import partial
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta, Timestamp
-from pandas.compat import DeepChainMap
+from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -572,7 +572,7 @@ class Expr(expr.Expr):
         return self.condition, self.filter
 
 
-class TermValue(object):
+class TermValue:
 
     """ hold a term value the we use to construct a condition/filter """
 

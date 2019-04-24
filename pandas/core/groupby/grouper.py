@@ -25,7 +25,7 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 
-class Grouper(object):
+class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for a target
     object
@@ -204,7 +204,7 @@ class Grouper(object):
         return "{}({})".format(cls_name, attrs)
 
 
-class Grouping(object):
+class Grouping:
 
     """
     Holds the grouping information for a single key
@@ -301,6 +301,8 @@ class Grouping(object):
                 if observed:
                     codes = algorithms.unique1d(self.grouper.codes)
                     codes = codes[codes != -1]
+                    if sort or self.grouper.ordered:
+                        codes = np.sort(codes)
                 else:
                     codes = np.arange(len(categories))
 

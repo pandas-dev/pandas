@@ -1047,7 +1047,7 @@ def quantile(x, q, interpolation_method='fraction'):
 # select n        #
 # --------------- #
 
-class SelectN(object):
+class SelectN:
 
     def __init__(self, obj, n, keep):
         self.obj = obj
@@ -1117,6 +1117,10 @@ class SelectNSeries(SelectN):
             if is_integer_dtype(pandas_dtype):
                 # GH 21426: ensure reverse ordering at boundaries
                 arr -= 1
+
+            elif is_bool_dtype(pandas_dtype):
+                # GH 26154: ensure False is smaller than True
+                arr = 1 - (-arr)
 
         if self.keep == 'last':
             arr = arr[::-1]

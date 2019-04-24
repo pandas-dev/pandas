@@ -7,11 +7,11 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
+from pandas._libs.tslibs.c_timestamp import maybe_integer_op_deprecated
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
-from pandas._libs.tslibs.timestamps import (
-    RoundTo, maybe_integer_op_deprecated, round_nsint64)
+from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
@@ -39,7 +39,7 @@ from pandas.tseries.offsets import DateOffset, Tick
 from .base import ExtensionArray, ExtensionOpsMixin
 
 
-class AttributesMixin(object):
+class AttributesMixin:
 
     @property
     def _attributes(self):
@@ -135,7 +135,7 @@ class AttributesMixin(object):
         raise AbstractMethodError(self)
 
 
-class DatelikeOps(object):
+class DatelikeOps:
     """
     Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex.
     """
@@ -181,7 +181,7 @@ class DatelikeOps(object):
         return Index(self._format_native_types(date_format=date_format))
 
 
-class TimelikeOps(object):
+class TimelikeOps:
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
@@ -211,8 +211,8 @@ class TimelikeOps(object):
 
             .. versionadded:: 0.24.0
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
