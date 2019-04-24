@@ -143,6 +143,18 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
 
 
 cdef inline bint does_string_look_like_time(object parse_string):
+    """
+    Checks whether given string is a time: it has to start either from
+    H:MM or from HH:MM, and hour and minute values must be valid.
+
+    Parameters
+    ----------
+    date_string : str
+
+    Returns:
+    --------
+    whether given string is a time
+    """
     cdef:
         const char* buf
         Py_ssize_t length
