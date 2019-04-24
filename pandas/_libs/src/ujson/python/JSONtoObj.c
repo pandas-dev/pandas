@@ -537,7 +537,7 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
             return NULL;
         }
     } else {
-        PyErr_Format(PyExc_TypeError, "Expected String or Unicode");
+        PyErr_Format(PyExc_TypeError, "Expected 'str' or 'bytes'");
         return NULL;
     }
 

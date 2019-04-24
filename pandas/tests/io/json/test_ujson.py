@@ -621,7 +621,7 @@ class TestUltraJSONTests:
     def test_loads_non_str_bytes_raises(self):
         msg = "Expected 'str' or 'bytes'"
         with pytest.raises(TypeError, match=msg):
-            ujson.load(None)
+            ujson.loads(None)
 
     def test_version(self):
         assert re.match(r'^\d+\.\d+(\.\d+)?$', ujson.__version__), \
