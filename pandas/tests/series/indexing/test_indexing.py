@@ -1,4 +1,3 @@
-# coding=utf-8
 """ test get/set & misc """
 
 from datetime import timedelta

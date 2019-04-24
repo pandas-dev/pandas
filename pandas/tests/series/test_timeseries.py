@@ -1,4 +1,3 @@
-# coding=utf-8
 from datetime import datetime, time, timedelta
 from io import StringIO
 from itertools import product

@@ -1,4 +1,3 @@
-# coding=utf-8
 import calendar
 from datetime import date, datetime, time
 import locale

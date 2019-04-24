@@ -1,4 +1,3 @@
-# coding=utf-8
 from collections import Counter, OrderedDict, defaultdict
 from itertools import chain
 

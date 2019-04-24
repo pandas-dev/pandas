@@ -1,4 +1,3 @@
-# coding=utf-8
 import collections
 from datetime import datetime
 from io import StringIO
