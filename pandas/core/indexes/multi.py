@@ -2084,8 +2084,14 @@ class MultiIndex(Index):
             shape = list(self.levshape)
 
             # partition codes and shape
-            primary = tuple(codes.pop(lev - i) for i, lev in enumerate(level))
-            primshp = tuple(shape.pop(lev - i) for i, lev in enumerate(level))
+            primary = tuple(codes[lev] for lev in level)
+            primshp = tuple(shape[lev] for lev in level)
+
+            # Reverse sorted to retain the order of
+            # smaller indices that needs to be removed
+            for lev in sorted(level, reverse=True):
+                codes.pop(lev)
+                shape.pop(lev)
 
             if sort_remaining:
                 primary += primary + tuple(codes)
