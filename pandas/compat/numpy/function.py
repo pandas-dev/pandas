@@ -105,7 +105,7 @@ def validate_argmax_with_skipna(skipna, args, kwargs):
 
 
 ARGSORT_DEFAULTS = OrderedDict() \
-    # type: OrderedDict[str, Union[int, str, None]]
+    # type: OrderedDict[str, Optional[Union[int, str]]]
 ARGSORT_DEFAULTS['axis'] = -1
 ARGSORT_DEFAULTS['kind'] = 'quicksort'
 ARGSORT_DEFAULTS['order'] = None
@@ -220,7 +220,7 @@ ROUND_DEFAULTS = dict(out=None)  # type: Final[Dict[str, Any]]
 validate_round = CompatValidator(ROUND_DEFAULTS, fname='round',
                                  method='both', max_fname_arg_count=1)
 
-SORT_DEFAULTS = OrderedDict()  # type: OrderedDict[str, Union[int, str, None]]
+SORT_DEFAULTS = OrderedDict()  # type: OrderedDict[str, Optional[Union[int, str]]]
 SORT_DEFAULTS['axis'] = -1
 SORT_DEFAULTS['kind'] = 'quicksort'
 SORT_DEFAULTS['order'] = None
