@@ -17,7 +17,7 @@ class _XlwtWriter(ExcelWriter):
         if mode == 'a':
             raise ValueError('Append mode is not supported with xlwt!')
 
-        super(_XlwtWriter, self).__init__(path, mode=mode, **engine_kwargs)
+        super().__init__(path, mode=mode, **engine_kwargs)
 
         if encoding is None:
             encoding = 'ascii'

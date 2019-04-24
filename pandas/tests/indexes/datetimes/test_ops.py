@@ -21,7 +21,7 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 class TestDatetimeIndexOps(Ops):
 
     def setup_method(self, method):
-        super(TestDatetimeIndexOps, self).setup_method(method)
+        super().setup_method(method)
         mask = lambda x: (isinstance(x, DatetimeIndex) or
                           isinstance(x, PeriodIndex))
         self.is_valid_objs = [o for o in self.objs if mask(o)]

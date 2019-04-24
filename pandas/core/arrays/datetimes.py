@@ -580,7 +580,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
             # The default for tz-aware is object, to preserve tz info
             dtype = object
 
-        return super(DatetimeArray, self).__array__(dtype=dtype)
+        return super().__array__(dtype=dtype)
 
     def __iter__(self):
         """
@@ -771,7 +771,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         -------
         result : DatetimeArray
         """
-        new_values = super(DatetimeArray, self)._add_delta(delta)
+        new_values = super()._add_delta(delta)
         return type(self)._from_sequence(new_values, tz=self.tz, freq='infer')
 
     # -----------------------------------------------------------------

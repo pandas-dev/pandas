@@ -422,10 +422,10 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED, **kwargs):
         if mode in ['wb', 'rb']:
             mode = mode.replace('b', '')
-        super(BytesZipFile, self).__init__(file, mode, compression, **kwargs)
+        super().__init__(file, mode, compression, **kwargs)
 
     def write(self, data):
-        super(BytesZipFile, self).writestr(self.filename, data)
+        super().writestr(self.filename, data)
 
     @property
     def closed(self):

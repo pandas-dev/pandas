@@ -98,10 +98,10 @@ class NumExprEngine(AbstractEngine):
     has_neg_frac = True
 
     def __init__(self, expr):
-        super(NumExprEngine, self).__init__(expr)
+        super().__init__(expr)
 
     def convert(self):
-        return str(super(NumExprEngine, self).convert())
+        return str(super().convert())
 
     def _evaluate(self):
         import numexpr as ne
@@ -133,7 +133,7 @@ class PythonEngine(AbstractEngine):
     has_neg_frac = False
 
     def __init__(self, expr):
-        super(PythonEngine, self).__init__(expr)
+        super().__init__(expr)
 
     def evaluate(self):
         return self.expr()

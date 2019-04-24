@@ -694,15 +694,14 @@ class PandasExprVisitor(BaseExprVisitor):
                  preparser=partial(_preparse, f=_compose(
                      _replace_locals, _replace_booleans,
                      _clean_spaces_backtick_quoted_names))):
-        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
+        super().__init__(env, engine, parser, preparser)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
 class PythonExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser, preparser=lambda x: x):
-        super(PythonExprVisitor, self).__init__(env, engine, parser,
-                                                preparser=preparser)
+        super().__init__(env, engine, parser, preparser=preparser)
 
 
 class Expr(StringMixin):

@@ -2162,7 +2162,7 @@ class TestMomentsConsistency(Base):
     ]
 
     def _create_data(self):
-        super(TestMomentsConsistency, self)._create_data()
+        super()._create_data()
         self.data = _consistency_data
 
     def setup_method(self, method):

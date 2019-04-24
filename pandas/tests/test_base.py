@@ -257,7 +257,7 @@ class Ops:
 class TestIndexOps(Ops):
 
     def setup_method(self, method):
-        super(TestIndexOps, self).setup_method(method)
+        super().setup_method(method)
         self.is_valid_objs = self.objs
         self.not_valid_objs = []
 

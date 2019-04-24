@@ -31,7 +31,7 @@ class TestDataFrameSubclassing(TestData):
             """
 
             def __init__(self, *args, **kw):
-                super(CustomDataFrame, self).__init__(*args, **kw)
+                super().__init__(*args, **kw)
 
             @property
             def _constructor(self):

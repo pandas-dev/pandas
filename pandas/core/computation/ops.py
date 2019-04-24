@@ -43,7 +43,7 @@ class UndefinedVariableError(NameError):
             msg = 'local variable {0!r} is not defined'
         else:
             msg = 'name {0!r} is not defined'
-        super(UndefinedVariableError, self).__init__(msg.format(name))
+        super().__init__(msg.format(name))
 
 
 class Term(StringMixin):
@@ -161,8 +161,7 @@ class Term(StringMixin):
 class Constant(Term):
 
     def __init__(self, value, env, side=None, encoding=None):
-        super(Constant, self).__init__(value, env, side=side,
-                                       encoding=encoding)
+        super().__init__(value, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         return self._name
@@ -329,7 +328,7 @@ class BinOp(Op):
     """
 
     def __init__(self, op, lhs, rhs, **kwargs):
-        super(BinOp, self).__init__(op, (lhs, rhs))
+        super().__init__(op, (lhs, rhs))
         self.lhs = lhs
         self.rhs = rhs
 
@@ -462,7 +461,7 @@ class Div(BinOp):
     """
 
     def __init__(self, lhs, rhs, truediv, *args, **kwargs):
-        super(Div, self).__init__('/', lhs, rhs, *args, **kwargs)
+        super().__init__('/', lhs, rhs, *args, **kwargs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
             raise TypeError("unsupported operand type(s) for {0}:"
@@ -498,7 +497,7 @@ class UnaryOp(Op):
     """
 
     def __init__(self, op, operand):
-        super(UnaryOp, self).__init__(op, (operand,))
+        super().__init__(op, (operand,))
         self.operand = operand
 
         try:
@@ -528,7 +527,7 @@ class UnaryOp(Op):
 class MathCall(Op):
 
     def __init__(self, func, args):
-        super(MathCall, self).__init__(func.name, args)
+        super().__init__(func.name, args)
         self.func = func
 
     def __call__(self, env):

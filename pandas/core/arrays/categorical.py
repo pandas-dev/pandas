@@ -1549,7 +1549,7 @@ class Categorical(ExtensionArray, PandasObject):
         array([3, 0, 1, 2])
         """
         # Keep the implementation here just for the docstring.
-        return super(Categorical, self).argsort(*args, **kwargs)
+        return super().argsort(*args, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """

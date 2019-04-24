@@ -250,8 +250,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _shallow_copy(self, values=None, dtype=None, **kwargs):
         if dtype is None:
             dtype = self.dtype
-        return super(CategoricalIndex, self)._shallow_copy(
-            values=values, dtype=dtype, **kwargs)
+        return super()._shallow_copy(values=values, dtype=dtype, **kwargs)
 
     def _is_dtype_compat(self, other):
         """
@@ -397,7 +396,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
-        return super(CategoricalIndex, self).astype(dtype=dtype, copy=copy)
+        return super().astype(dtype=dtype, copy=copy)
 
     @cache_readonly
     def _isnan(self):
@@ -503,7 +502,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             pass
 
         # we might be a positional inexer
-        return super(CategoricalIndex, self).get_value(series, key)
+        return super().get_value(series, key)
 
     def _can_reindex(self, indexer):
         """ always allow reindexing """
@@ -666,8 +665,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if self.categories._defer_to_indexing:
             return self.categories._convert_scalar_indexer(key, kind=kind)
 
-        return super(CategoricalIndex, self)._convert_scalar_indexer(
-            key, kind=kind)
+        return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(_index_shared_docs['_convert_list_indexer'])
     def _convert_list_indexer(self, keyarr, kind=None):

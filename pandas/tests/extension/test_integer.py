@@ -94,8 +94,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
-        super(TestArithmeticOps, self).check_opname(s, op_name,
-                                                    other, exc=None)
+        super().check_opname(s, op_name, other, exc=None)
 
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
@@ -138,7 +137,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 op(s, other)
 
     def _check_divmod_op(self, s, op, other, exc=None):
-        super(TestArithmeticOps, self)._check_divmod_op(s, op, other, None)
+        super()._check_divmod_op(s, op, other, None)
 
     @pytest.mark.skip(reason="intNA does not error on ops")
     def test_error(self, data, all_arithmetic_operators):
@@ -149,8 +148,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 class TestComparisonOps(base.BaseComparisonOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
-        super(TestComparisonOps, self).check_opname(s, op_name,
-                                                    other, exc=None)
+        super().check_opname(s, op_name, other, exc=None)
 
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)

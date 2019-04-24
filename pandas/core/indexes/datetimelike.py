@@ -441,7 +441,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         Return a list of tuples of the (attr,formatted_value).
         """
-        attrs = super(DatetimeIndexOpsMixin, self)._format_attrs()
+        attrs = super()._format_attrs()
         for attrib in self._attributes:
             if attrib == 'freq':
                 freq = self.freqstr
@@ -475,8 +475,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             elif kind in ['ix', 'getitem'] and is_flt:
                 self._invalid_indexer('index', key)
 
-        return (super(DatetimeIndexOpsMixin, self)
-                ._convert_scalar_indexer(key, kind=kind))
+        return super()._convert_scalar_indexer(key, kind=kind)
 
     @classmethod
     def _add_datetimelike_methods(cls):

@@ -784,7 +784,7 @@ class BusinessHourMixin(BusinessMixin):
             return False
 
     def _repr_attrs(self):
-        out = super(BusinessHourMixin, self)._repr_attrs()
+        out = super()._repr_attrs()
         start = self.start.strftime('%H:%M')
         end = self.end.strftime('%H:%M')
         attrs = ['{prefix}={start}-{end}'.format(prefix=self._prefix,
@@ -806,7 +806,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     def __init__(self, n=1, normalize=False, start='09:00',
                  end='17:00', offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
-        super(BusinessHour, self).__init__(start=start, end=end, offset=offset)
+        super().__init__(start=start, end=end, offset=offset)
 
 
 class CustomBusinessDay(_CustomMixin, BusinessDay):

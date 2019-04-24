@@ -121,23 +121,23 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
 
     def test_concat_columns(self, data, na_value):
         self._check_unsupported(data)
-        super(TestReshaping, self).test_concat_columns(data, na_value)
+        super().test_concat_columns(data, na_value)
 
     def test_align(self, data, na_value):
         self._check_unsupported(data)
-        super(TestReshaping, self).test_align(data, na_value)
+        super().test_align(data, na_value)
 
     def test_align_frame(self, data, na_value):
         self._check_unsupported(data)
-        super(TestReshaping, self).test_align_frame(data, na_value)
+        super().test_align_frame(data, na_value)
 
     def test_align_series_frame(self, data, na_value):
         self._check_unsupported(data)
-        super(TestReshaping, self).test_align_series_frame(data, na_value)
+        super().test_align_series_frame(data, na_value)
 
     def test_merge(self, data, na_value):
         self._check_unsupported(data)
-        super(TestReshaping, self).test_merge(data, na_value)
+        super().test_merge(data, na_value)
 
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
@@ -152,7 +152,7 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 
     def test_reindex(self, data, na_value):
         self._check_unsupported(data)
-        super(TestGetitem, self).test_reindex(data, na_value)
+        super().test_reindex(data, na_value)
 
 
 # Skipping TestSetitem, since we don't implement it.
@@ -178,15 +178,15 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
     def test_fillna_limit_pad(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
-            super(TestMissing, self).test_fillna_limit_pad(data_missing)
+            super().test_fillna_limit_pad(data_missing)
 
     def test_fillna_limit_backfill(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
-            super(TestMissing, self).test_fillna_limit_backfill(data_missing)
+            super().test_fillna_limit_backfill(data_missing)
 
     def test_fillna_series_method(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
-            super(TestMissing, self).test_fillna_limit_backfill(data_missing)
+            super().test_fillna_limit_backfill(data_missing)
 
     @pytest.mark.skip(reason="Unsupported")
     def test_fillna_series(self):
@@ -290,12 +290,11 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
             # Right now this is upcasted to float, just like combine_first
             # for Series[int]
             pytest.skip("TODO(SparseArray.__setitem__ will preserve dtype.")
-        super(TestMethods, self).test_combine_first(data)
+        super().test_combine_first(data)
 
     def test_searchsorted(self, data_for_sorting, as_series):
         with tm.assert_produces_warning(PerformanceWarning):
-            super(TestMethods, self).test_searchsorted(data_for_sorting,
-                                                       as_series)
+            super().test_searchsorted(data_for_sorting, as_series)
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
@@ -320,17 +319,11 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
-        super(TestArithmeticOps, self).test_arith_series_with_scalar(
-            data,
-            all_arithmetic_operators
-        )
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
-        super(TestArithmeticOps, self).test_arith_series_with_array(
-            data,
-            all_arithmetic_operators
-        )
+        super().test_arith_series_with_array(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
@@ -363,7 +356,7 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
 class TestPrinting(BaseSparseTests, base.BasePrintingTests):
     @pytest.mark.xfail(reason='Different repr', strict=True)
     def test_array_repr(self, data, size):
-        super(TestPrinting, self).test_array_repr(data, size)
+        super().test_array_repr(data, size)
 
 
 class TestParsing(BaseSparseTests, base.BaseParsingTests):
@@ -371,4 +364,4 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
     def test_EA_types(self, engine, data):
         expected_msg = r'.*must implement _from_sequence_of_strings.*'
         with pytest.raises(NotImplementedError, match=expected_msg):
-            super(TestParsing, self).test_EA_types(engine, data)
+            super().test_EA_types(engine, data)

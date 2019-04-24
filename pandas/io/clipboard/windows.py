@@ -12,7 +12,7 @@ from .exceptions import PyperclipWindowsException
 class CheckedCall:
 
     def __init__(self, f):
-        super(CheckedCall, self).__setattr__("f", f)
+        super().__setattr__("f", f)
 
     def __call__(self, *args):
         ret = self.f(*args)

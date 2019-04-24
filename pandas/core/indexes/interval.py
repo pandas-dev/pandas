@@ -406,7 +406,7 @@ class IntervalIndex(IntervalMixin, Index):
             new_values = self.values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values.left, new_values.right)
-        return super(IntervalIndex, self).astype(dtype, copy=copy)
+        return super().astype(dtype, copy=copy)
 
     @cache_readonly
     def dtype(self):
@@ -527,8 +527,7 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
         if kind == 'iloc':
-            return super(IntervalIndex, self)._convert_scalar_indexer(
-                key, kind=kind)
+            return super()._convert_scalar_indexer(key, kind=kind)
         return key
 
     def _maybe_cast_slice_bound(self, label, side, kind):
@@ -912,7 +911,7 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = self._maybe_cast_indexed(ensure_index(target))
-        return super(IntervalIndex, self).get_indexer_non_unique(target)
+        return super().get_indexer_non_unique(target)
 
     @Appender(_index_shared_docs['where'])
     def where(self, cond, other=None):
@@ -987,7 +986,7 @@ class IntervalIndex(IntervalMixin, Index):
             msg = ('can only append two IntervalIndex objects '
                    'that are closed on the same side')
             raise ValueError(msg)
-        return super(IntervalIndex, self)._concat_same_dtype(to_concat, name)
+        return super()._concat_same_dtype(to_concat, name)
 
     @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,

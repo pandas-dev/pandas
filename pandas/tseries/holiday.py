@@ -344,7 +344,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         rules : array of Holiday objects
             A set of rules used to create the holidays.
         """
-        super(AbstractHolidayCalendar, self).__init__()
+        super().__init__()
         if name is None:
             name = self.__class__.__name__
         self.name = name

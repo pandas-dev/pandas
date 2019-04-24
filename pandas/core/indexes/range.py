@@ -366,7 +366,7 @@ class RangeIndex(Int64Index):
                     self._start == other._start and
                     self._step == other._step)
 
-        return super(RangeIndex, self).equals(other)
+        return super().equals(other)
 
     def intersection(self, other, sort=False):
         """
@@ -395,7 +395,7 @@ class RangeIndex(Int64Index):
             return self._get_reconciled_name_object(other)
 
         if not isinstance(other, RangeIndex):
-            return super(RangeIndex, self).intersection(other, sort=sort)
+            return super().intersection(other, sort=sort)
 
         if not len(self) or not len(other):
             return RangeIndex._simple_new(None)
@@ -485,7 +485,7 @@ class RangeIndex(Int64Index):
         """
         self._assert_can_do_setop(other)
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(RangeIndex, self).union(other, sort=sort)
+            return super().union(other, sort=sort)
 
         if isinstance(other, RangeIndex) and sort is None:
             start_s, step_s = self._start, self._step
@@ -534,8 +534,7 @@ class RangeIndex(Int64Index):
             return self._int64index.join(other, how, level, return_indexers,
                                          sort)
 
-        return super(RangeIndex, self).join(other, how, level, return_indexers,
-                                            sort)
+        return super().join(other, how, level, return_indexers, sort)
 
     def _concat_same_dtype(self, indexes, name):
         return _concat._concat_rangeindex_same_dtype(indexes).rename(name)
@@ -554,7 +553,7 @@ class RangeIndex(Int64Index):
         """
         Conserve RangeIndex type for scalar and slice keys.
         """
-        super_getitem = super(RangeIndex, self).__getitem__
+        super_getitem = super().__getitem__
 
         if is_scalar(key):
             if not lib.is_integer(key):

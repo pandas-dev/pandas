@@ -5144,7 +5144,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         additions = {c for c in self._info_axis.unique(level=0)[:100]
                      if isinstance(c, str) and c.isidentifier()}
-        return super(NDFrame, self)._dir_additions().union(additions)
+        return super()._dir_additions().union(additions)
 
     # ----------------------------------------------------------------------
     # Getting and setting elements

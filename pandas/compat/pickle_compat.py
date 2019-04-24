@@ -144,7 +144,7 @@ class Unpickler(pkl._Unpickler):  # type: ignore
         # override superclass
         key = (module, name)
         module, name = _class_locations_map.get(key, key)
-        return super(Unpickler, self).find_class(module, name)
+        return super().find_class(module, name)
 
 
 Unpickler.dispatch = copy.copy(Unpickler.dispatch)

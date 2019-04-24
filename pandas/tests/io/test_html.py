@@ -1138,7 +1138,7 @@ class TestReadHtml:
         class ErrorThread(threading.Thread):
             def run(self):
                 try:
-                    super(ErrorThread, self).run()
+                    super().run()
                 except Exception as e:
                     self.err = e
                 else:

@@ -358,11 +358,11 @@ class TestIntervalIndex(Base):
 
     @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_max_seq_item_setting(self):
-        super(TestIntervalIndex, self).test_repr_max_seq_item_setting()
+        super().test_repr_max_seq_item_setting()
 
     @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_roundtrip(self):
-        super(TestIntervalIndex, self).test_repr_roundtrip()
+        super().test_repr_roundtrip()
 
     def test_frame_repr(self):
         # https://github.com/pandas-dev/pandas/pull/24134/files

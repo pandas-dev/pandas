@@ -47,7 +47,7 @@ class FrozenList(PandasObject, list):
         """
         if isinstance(other, tuple):
             other = list(other)
-        return type(self)(super(FrozenList, self).__add__(other))
+        return type(self)(super().__add__(other))
 
     def difference(self, other):
         """
@@ -72,13 +72,13 @@ class FrozenList(PandasObject, list):
 
     # Python 2 compat
     def __getslice__(self, i, j):
-        return self.__class__(super(FrozenList, self).__getslice__(i, j))
+        return self.__class__(super().__getslice__(i, j))
 
     def __getitem__(self, n):
         # Python 3 compat
         if isinstance(n, slice):
-            return self.__class__(super(FrozenList, self).__getitem__(n))
-        return super(FrozenList, self).__getitem__(n)
+            return self.__class__(super().__getitem__(n))
+        return super().__getitem__(n)
 
     def __radd__(self, other):
         if isinstance(other, tuple):
@@ -88,12 +88,12 @@ class FrozenList(PandasObject, list):
     def __eq__(self, other):
         if isinstance(other, (tuple, FrozenList)):
             other = list(other)
-        return super(FrozenList, self).__eq__(other)
+        return super().__eq__(other)
 
     __req__ = __eq__
 
     def __mul__(self, other):
-        return self.__class__(super(FrozenList, self).__mul__(other))
+        return self.__class__(super().__mul__(other))
 
     __imul__ = __mul__
 
@@ -181,8 +181,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
         except ValueError:
             pass
 
-        return super(FrozenNDArray, self).searchsorted(
-            value, side=side, sorter=sorter)
+        return super().searchsorted(value, side=side, sorter=sorter)
 
 
 def _ensure_frozen(array_like, categories, copy=False):

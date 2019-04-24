@@ -284,7 +284,7 @@ class Panel(NDFrame):
         if isinstance(self._info_axis, MultiIndex):
             return self._getitem_multilevel(key)
         if not (is_list_like(key) or isinstance(key, slice)):
-            return super(Panel, self).__getitem__(key)
+            return super().__getitem__(key)
         return self.loc[key]
 
     def _getitem_multilevel(self, key):
@@ -1238,7 +1238,7 @@ class Panel(NDFrame):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", FutureWarning)
             # do not warn about constructing Panel when reindexing
-            result = super(Panel, self).reindex(**kwargs)
+            result = super().reindex(**kwargs)
         return result
 
     @Substitution(**_shared_doc_kwargs)
@@ -1248,16 +1248,15 @@ class Panel(NDFrame):
                       kwargs.pop('major', None))
         minor_axis = (minor_axis if minor_axis is not None else
                       kwargs.pop('minor', None))
-        return super(Panel, self).rename(items=items, major_axis=major_axis,
-                                         minor_axis=minor_axis, **kwargs)
+        return super().rename(items=items, major_axis=major_axis,
+                              minor_axis=minor_axis, **kwargs)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
                      limit=None, fill_value=np.nan):
-        return super(Panel, self).reindex_axis(labels=labels, axis=axis,
-                                               method=method, level=level,
-                                               copy=copy, limit=limit,
-                                               fill_value=fill_value)
+        return super().reindex_axis(labels=labels, axis=axis, method=method,
+                                    level=level, copy=copy, limit=limit,
+                                    fill_value=fill_value)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.transpose.__doc__)
@@ -1276,15 +1275,15 @@ class Panel(NDFrame):
         elif not axes:
             axes = kwargs.pop('axes', ())
 
-        return super(Panel, self).transpose(*axes, **kwargs)
+        return super().transpose(*axes, **kwargs)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
-        return super(Panel, self).fillna(value=value, method=method, axis=axis,
-                                         inplace=inplace, limit=limit,
-                                         downcast=downcast, **kwargs)
+        return super().fillna(value=value, method=method, axis=axis,
+                              inplace=inplace, limit=limit, downcast=downcast,
+                              **kwargs)
 
     def count(self, axis='major'):
         """
@@ -1328,10 +1327,10 @@ class Panel(NDFrame):
         if freq:
             return self.tshift(periods, freq, axis=axis)
 
-        return super(Panel, self).slice_shift(periods, axis=axis)
+        return super().slice_shift(periods, axis=axis)
 
     def tshift(self, periods=1, freq=None, axis='major'):
-        return super(Panel, self).tshift(periods, freq, axis)
+        return super().tshift(periods, freq, axis)
 
     def join(self, other, how='left', lsuffix='', rsuffix=''):
         """
@@ -1565,7 +1564,7 @@ class Panel(NDFrame):
         NOT IMPLEMENTED: do not call this method, as sorting values is not
         supported for Panel objects and will raise an error.
         """
-        super(Panel, self).sort_values(*args, **kwargs)
+        super().sort_values(*args, **kwargs)
 
 
 Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,

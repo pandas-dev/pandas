@@ -439,7 +439,7 @@ class TestPeriodIndex(DatetimeLike):
 
     @td.skip_if_32bit
     def test_ndarray_compat_properties(self):
-        super(TestPeriodIndex, self).test_ndarray_compat_properties()
+        super().test_ndarray_compat_properties()
 
     def test_negative_ordinals(self):
         Period(ordinal=-1000, freq='A')

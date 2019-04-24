@@ -82,7 +82,7 @@ class ArrowBoolArray(ExtensionArray):
             if copy:
                 return self.copy()
             return self
-        return super(ArrowBoolArray, self).astype(dtype, copy)
+        return super().astype(dtype, copy)
 
     @property
     def dtype(self):

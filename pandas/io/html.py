@@ -533,8 +533,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     """
 
     def __init__(self, *args, **kwargs):
-        super(_BeautifulSoupHtml5LibFrameParser, self).__init__(*args,
-                                                                **kwargs)
+        super().__init__(*args, **kwargs)
         from bs4 import SoupStrainer
         self._strainer = SoupStrainer('table')
 
@@ -644,7 +643,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
     """
 
     def __init__(self, *args, **kwargs):
-        super(_LxmlFrameParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _text_getter(self, obj):
         return obj.text_content()

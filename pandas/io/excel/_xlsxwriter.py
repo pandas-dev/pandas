@@ -160,11 +160,11 @@ class _XlsxWriter(ExcelWriter):
         if mode == 'a':
             raise ValueError('Append mode is not supported with xlsxwriter!')
 
-        super(_XlsxWriter, self).__init__(path, engine=engine,
-                                          date_format=date_format,
-                                          datetime_format=datetime_format,
-                                          mode=mode,
-                                          **engine_kwargs)
+        super().__init__(path, engine=engine,
+                         date_format=date_format,
+                         datetime_format=datetime_format,
+                         mode=mode,
+                         **engine_kwargs)
 
         self.book = xlsxwriter.Workbook(path, **engine_kwargs)
 

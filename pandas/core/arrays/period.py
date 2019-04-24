@@ -505,7 +505,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
-        return super(PeriodArray, self).astype(dtype, copy=copy)
+        return super().astype(dtype, copy=copy)
 
     @property
     def flags(self):
@@ -560,7 +560,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
         #  is an integer, delta_to_nanoseconds will return it unchanged.
-        result = super(PeriodArray, self)._add_timedeltalike_scalar(other.n)
+        result = super()._add_timedeltalike_scalar(other.n)
         return type(self)(result, freq=self.freq)
 
     def _add_timedeltalike_scalar(self, other):
@@ -584,7 +584,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
         #  is an integer, delta_to_nanoseconds will return it unchanged.
-        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(other)
+        ordinals = super()._add_timedeltalike_scalar(other)
         return ordinals
 
     def _add_delta_tdi(self, other):
@@ -620,7 +620,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             # We cannot add timedelta-like to non-tick PeriodArray
             _raise_on_incompatible(self, other)
 
-        new_ordinals = super(PeriodArray, self)._add_delta(other)
+        new_ordinals = super()._add_delta(other)
         return type(self)(new_ordinals, freq=self.freq)
 
     def _check_timedeltalike_freq_compat(self, other):
