@@ -401,6 +401,7 @@ class MPLPlot:
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
+        from matplotlib.ticker import FixedLocator, FixedFormatter
 
         def get_label(i):
             try:
@@ -413,7 +414,6 @@ class MPLPlot:
                 xticks = ax.get_xticks()
                 xticklabels = [get_label(x) for x in xticks]
                 ax.set_xticklabels(xticklabels)
-                from matplotlib.ticker import FixedLocator, FixedFormatter
                 ax.xaxis.set_major_locator(FixedLocator(xticks))
                 ax.xaxis.set_major_formatter(FixedFormatter(xticklabels))
 
@@ -430,7 +430,6 @@ class MPLPlot:
                 yticks = ax.get_yticks()
                 yticklabels = [get_label(y) for y in yticks]
                 ax.set_yticklabels(yticklabels)
-                from matplotlib.ticker import FixedLocator, FixedFormatter
                 ax.xaxis.set_major_locator(FixedLocator(yticks))
                 ax.xaxis.set_major_formatter(FixedFormatter(yticklabels))
             self._apply_axis_properties(ax.yaxis, rot=self.rot,
