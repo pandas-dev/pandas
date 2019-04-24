@@ -27,8 +27,6 @@ from pandas.errors import UnsupportedFunctionCall
 from pandas.util._validators import (
     validate_args, validate_args_and_kwargs, validate_kwargs)
 
-from typing_extensions import Final
-
 
 class CompatValidator:
 
@@ -139,7 +137,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     return ascending
 
 
-CLIP_DEFAULTS = dict(out=None)  # type Final[Dict[str, Any]]
+CLIP_DEFAULTS = dict(out=None)  # type Dict[str, Any]
 validate_clip = CompatValidator(CLIP_DEFAULTS, fname='clip',
                                 method='both', max_fname_arg_count=3)
 
@@ -208,19 +206,20 @@ validate_min = CompatValidator(MINMAX_DEFAULTS, fname='min',
 validate_max = CompatValidator(MINMAX_DEFAULTS, fname='max',
                                method='both', max_fname_arg_count=1)
 
-RESHAPE_DEFAULTS = dict(order='C')  # type: Final[Dict[str, str]]
+RESHAPE_DEFAULTS = dict(order='C')  # type: Dict[str, str]
 validate_reshape = CompatValidator(RESHAPE_DEFAULTS, fname='reshape',
                                    method='both', max_fname_arg_count=1)
 
-REPEAT_DEFAULTS = dict(axis=None)  # type: Final[Dict[str, Any]]
+REPEAT_DEFAULTS = dict(axis=None)  # type: Dict[str, Any]
 validate_repeat = CompatValidator(REPEAT_DEFAULTS, fname='repeat',
                                   method='both', max_fname_arg_count=1)
 
-ROUND_DEFAULTS = dict(out=None)  # type: Final[Dict[str, Any]]
+ROUND_DEFAULTS = dict(out=None)  # type: Dict[str, Any]
 validate_round = CompatValidator(ROUND_DEFAULTS, fname='round',
                                  method='both', max_fname_arg_count=1)
 
-SORT_DEFAULTS = OrderedDict()  # type: OrderedDict[str, Optional[Union[int, str]]]
+SORT_DEFAULTS = OrderedDict()  \
+    # type: OrderedDict[str, Optional[Union[int, str]]]
 SORT_DEFAULTS['axis'] = -1
 SORT_DEFAULTS['kind'] = 'quicksort'
 SORT_DEFAULTS['order'] = None
