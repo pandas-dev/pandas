@@ -947,7 +947,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         except KeyError as ek:
             # raise KeyError if number of indexers match
             # else IndexingError will be raised
-            if (len(tup) == self.obj.index.nlevels
+            if (len(tup) <= self.obj.index.nlevels
                     and len(tup) > self.obj.ndim):
                 raise ek
         except Exception as e1:
