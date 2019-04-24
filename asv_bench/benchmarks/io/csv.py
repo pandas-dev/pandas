@@ -252,11 +252,12 @@ class ReadCSVMemoryGrowth(BaseIO):
 
 
 class ReadCSVParseSpecialDate(StringIORewind):
-    params = (['mY', 'mdY'],)
+    params = (['mY', 'mdY', 'hm'],)
     params_name = ['value']
     objects = {
         'mY': '01-2019\n10-2019\n02/2000\n',
-        'mdY': '12/02/2010\n'
+        'mdY': '12/02/2010\n',
+        'hm': '21:34\n'
     }
 
     def setup(self, value):
