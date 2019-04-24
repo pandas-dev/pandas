@@ -110,29 +110,29 @@ class _Options(dict):
     def __init__(self, deprecated=False):
         self._deprecated = deprecated
         # self['xaxis.compat'] = False
-        super(_Options, self).__setitem__('xaxis.compat', False)
+        super().__setitem__('xaxis.compat', False)
 
     def __getitem__(self, key):
         key = self._get_canonical_key(key)
         if key not in self:
             raise ValueError(
                 '{key} is not a valid pandas plotting option'.format(key=key))
-        return super(_Options, self).__getitem__(key)
+        return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         key = self._get_canonical_key(key)
-        return super(_Options, self).__setitem__(key, value)
+        return super().__setitem__(key, value)
 
     def __delitem__(self, key):
         key = self._get_canonical_key(key)
         if key in self._DEFAULT_KEYS:
             raise ValueError(
                 'Cannot remove default parameter {key}'.format(key=key))
-        return super(_Options, self).__delitem__(key)
+        return super().__delitem__(key)
 
     def __contains__(self, key):
         key = self._get_canonical_key(key)
-        return super(_Options, self).__contains__(key)
+        return super().__contains__(key)
 
     def reset(self):
         """

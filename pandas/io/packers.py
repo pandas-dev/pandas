@@ -751,12 +751,11 @@ class Packer(_Packer):
                  use_single_float=False,
                  autoreset=1,
                  use_bin_type=1):
-        super(Packer, self).__init__(default=default,
-                                     encoding=encoding,
-                                     unicode_errors=unicode_errors,
-                                     use_single_float=use_single_float,
-                                     autoreset=autoreset,
-                                     use_bin_type=use_bin_type)
+        super().__init__(default=default, encoding=encoding,
+                         unicode_errors=unicode_errors,
+                         use_single_float=use_single_float,
+                         autoreset=autoreset,
+                         use_bin_type=use_bin_type)
 
 
 class Unpacker(_Unpacker):
@@ -765,16 +764,16 @@ class Unpacker(_Unpacker):
                  object_hook=decode,
                  object_pairs_hook=None, list_hook=None, encoding='utf-8',
                  unicode_errors='strict', max_buffer_size=0, ext_hook=ExtType):
-        super(Unpacker, self).__init__(file_like=file_like,
-                                       read_size=read_size,
-                                       use_list=use_list,
-                                       object_hook=object_hook,
-                                       object_pairs_hook=object_pairs_hook,
-                                       list_hook=list_hook,
-                                       encoding=encoding,
-                                       unicode_errors=unicode_errors,
-                                       max_buffer_size=max_buffer_size,
-                                       ext_hook=ext_hook)
+        super().__init__(file_like=file_like,
+                         read_size=read_size,
+                         use_list=use_list,
+                         object_hook=object_hook,
+                         object_pairs_hook=object_pairs_hook,
+                         list_hook=list_hook,
+                         encoding=encoding,
+                         unicode_errors=unicode_errors,
+                         max_buffer_size=max_buffer_size,
+                         ext_hook=ext_hook)
 
 
 class Iterator:

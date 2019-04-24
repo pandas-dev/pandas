@@ -955,7 +955,7 @@ class StataReader(StataParser, BaseIterator):
                  convert_missing=False, preserve_dtypes=True,
                  columns=None, order_categoricals=True,
                  encoding=None, chunksize=None):
-        super(StataReader, self).__init__()
+        super().__init__()
         self.col_sizes = ()
 
         # Arguments to the reader (can be temporarily overridden in
@@ -1997,7 +1997,7 @@ class StataWriter(StataParser):
     def __init__(self, fname, data, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
                  data_label=None, variable_labels=None):
-        super(StataWriter, self).__init__()
+        super().__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates
         self._write_index = write_index
         self._encoding = 'latin-1'
@@ -2750,11 +2750,10 @@ class StataWriter117(StataWriter):
         # Shallow copy since convert_strl might be modified later
         self._convert_strl = [] if convert_strl is None else convert_strl[:]
 
-        super(StataWriter117, self).__init__(fname, data, convert_dates,
-                                             write_index, byteorder=byteorder,
-                                             time_stamp=time_stamp,
-                                             data_label=data_label,
-                                             variable_labels=variable_labels)
+        super().__init__(fname, data, convert_dates, write_index,
+                         byteorder=byteorder, time_stamp=time_stamp,
+                         data_label=data_label,
+                         variable_labels=variable_labels)
         self._map = None
         self._strl_blob = None
 
