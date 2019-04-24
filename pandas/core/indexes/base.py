@@ -1995,7 +1995,7 @@ class Index(IndexOpsMixin, PandasObject):
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
-        result = super(Index, self).unique()
+        result = super().unique()
         return self._shallow_copy(result)
 
     def drop_duplicates(self, keep='first'):
@@ -2044,7 +2044,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.drop_duplicates(keep=False)
         Index(['cow', 'beetle', 'hippo'], dtype='object')
         """
-        return super(Index, self).drop_duplicates(keep=keep)
+        return super().drop_duplicates(keep=keep)
 
     def duplicated(self, keep='first'):
         """
@@ -2100,7 +2100,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.duplicated(keep=False)
         array([ True, False,  True, False,  True])
         """
-        return super(Index, self).duplicated(keep=keep)
+        return super().duplicated(keep=keep)
 
     def get_duplicates(self):
         """
@@ -3699,7 +3699,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
     def memory_usage(self, deep=False):
-        result = super(Index, self).memory_usage(deep=deep)
+        result = super().memory_usage(deep=deep)
 
         # include our engine hashtable
         result += self._engine.sizeof(deep=deep)
@@ -4507,8 +4507,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         from .multi import MultiIndex
-        new_values = super(Index, self)._map_values(
-            mapper, na_action=na_action)
+        new_values = super()._map_values(mapper, na_action=na_action)
 
         attributes = self._get_attributes_dict()
 
