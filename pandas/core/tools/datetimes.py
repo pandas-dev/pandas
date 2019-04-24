@@ -1,6 +1,7 @@
 from collections import abc
 from datetime import datetime, time
 from functools import partial
+from typing import Union
 
 import numpy as np
 
@@ -19,12 +20,12 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCIndex, ABCIndexClass, ABCSeries)
 from pandas.core.dtypes.missing import notna
 
-from pandas._typing import ArrayLike, Union
+from pandas._typing import ArrayLike, DatetimeScalar
 from pandas.core import algorithms
 
 # annotations
-DatetimeScalarOrArrayConvertible = Union[int, float, str, list, tuple,
-                                         datetime, ArrayLike, ABCSeries]
+DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, list, tuple,
+                                         ArrayLike, ABCSeries]
 
 
 def _guess_datetime_format_for_array(arr, **kwargs):
