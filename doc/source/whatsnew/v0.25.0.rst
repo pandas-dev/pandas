@@ -371,7 +371,7 @@ Plotting
 
 - Fixed bug where :class:`api.extensions.ExtensionArray` could not be used in matplotlib plotting (:issue:`25587`)
 - Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
--
+- If the index of a data frame is objects (i.e. non-numerical/non-datetime), the ticklabel position are now fixed using matplotlib.ticker.FixedLocator (:issue:`7612` :issue:`15912` :issue:`22334`)
 -
 -
 
