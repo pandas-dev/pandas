@@ -258,7 +258,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if isinstance(state, dict):
-            super(TimedeltaIndex, self).__setstate__(state)
+            super().__setstate__(state)
         else:
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
@@ -346,7 +346,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         self._assert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(TimedeltaIndex, self).union(other)
+            return super().union(other)
 
         if not isinstance(other, TimedeltaIndex):
             try:

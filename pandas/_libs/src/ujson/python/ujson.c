@@ -35,8 +35,9 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1994 Sun Microsystems, Inc.
 */
 
-#include "py_defines.h"
 #include "version.h"
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
 
 /* objToJSON */
 PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -76,8 +77,6 @@ static PyMethodDef ujsonMethods[] = {
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
-#if PY_MAJOR_VERSION >= 3
-
 static struct PyModuleDef moduledef = {
     PyModuleDef_HEAD_INIT,
     "_libjson",
@@ -94,14 +93,6 @@ static struct PyModuleDef moduledef = {
 #define PYMODULE_CREATE() PyModule_Create(&moduledef)
 #define MODINITERROR return NULL
 
-#else
-
-#define PYMODINITFUNC PyMODINIT_FUNC initjson(void)
-#define PYMODULE_CREATE() Py_InitModule("json", ujsonMethods)
-#define MODINITERROR return
-
-#endif
-
 PYMODINITFUNC {
     PyObject *module;
     PyObject *version_string;
@@ -113,10 +104,8 @@ PYMODINITFUNC {
         MODINITERROR;
     }
 
-    version_string = PyString_FromString(UJSON_VERSION);
+    version_string = PyUnicode_FromString(UJSON_VERSION);
     PyModule_AddObject(module, "__version__", version_string);
 
-#if PY_MAJOR_VERSION >= 3
     return module;
-#endif
 }

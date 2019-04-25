@@ -49,8 +49,7 @@ class TestUnpack:
         class MyUnpacker(Unpacker):
 
             def __init__(self):
-                super(MyUnpacker, self).__init__(ext_hook=self._hook,
-                                                 encoding='utf-8')
+                super().__init__(ext_hook=self._hook, encoding='utf-8')
 
             def _hook(self, code, data):
                 if code == 1:

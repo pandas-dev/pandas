@@ -618,6 +618,11 @@ class TestUltraJSONTests:
         with pytest.raises(TypeError):
             ujson.load("[]")
 
+    def test_loads_non_str_bytes_raises(self):
+        msg = "Expected 'str' or 'bytes'"
+        with pytest.raises(TypeError, match=msg):
+            ujson.loads(None)
+
     def test_version(self):
         assert re.match(r'^\d+\.\d+(\.\d+)?$', ujson.__version__), \
             "ujson.__version__ must be a string like '1.4.0'"

@@ -109,7 +109,7 @@ class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
             # np.asarray(DTA) is currently always tz-naive.
             pytest.skip("GH-23569")
         else:
-            super(TestInterface, self).test_array_interface(data)
+            super().test_array_interface(data)
 
 
 class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
@@ -122,9 +122,8 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
                               exc=None)
         else:
             # ... but not the rest.
-            super(TestArithmeticOps, self).test_arith_series_with_scalar(
-                data, all_arithmetic_operators
-            )
+            super().test_arith_series_with_scalar(data,
+                                                  all_arithmetic_operators)
 
     def test_add_series_with_extension_array(self, data):
         # Datetime + Datetime not implemented
@@ -140,9 +139,8 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
                               exc=None)
         else:
             # ... but not the rest.
-            super(TestArithmeticOps, self).test_arith_series_with_scalar(
-                data, all_arithmetic_operators
-            )
+            super().test_arith_series_with_scalar(data,
+                                                  all_arithmetic_operators)
 
     def test_error(self, data, all_arithmetic_operators):
         pass
@@ -197,7 +195,7 @@ class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
         # concat(Series[datetimetz], Series[category]) uses a
         # plain np.array(values) on the DatetimeArray, which
         # drops the tz.
-        super(TestReshaping, self).test_concat_mixed_dtypes(data)
+        super().test_concat_mixed_dtypes(data)
 
     @pytest.mark.parametrize("obj", ["series", "frame"])
     def test_unstack(self, obj):
