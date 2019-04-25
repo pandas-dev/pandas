@@ -7,7 +7,6 @@ except ImportError:
 import calendar
 import datetime
 import decimal
-from io import StringIO
 import locale
 import math
 import re
@@ -561,62 +560,6 @@ class TestUltraJSONTests:
     ])
     def test_decode_numeric_int_exp(self, int_exp):
         assert ujson.decode(int_exp) == json.loads(int_exp)
-
-    def test_dump_to_file(self):
-        f = StringIO()
-        ujson.dump([1, 2, 3], f)
-        assert "[1,2,3]" == f.getvalue()
-
-    def test_dump_to_file_like(self):
-        class FileLike:
-
-            def __init__(self):
-                self.bytes = ''
-
-            def write(self, data_bytes):
-                self.bytes += data_bytes
-
-        f = FileLike()
-        ujson.dump([1, 2, 3], f)
-        assert "[1,2,3]" == f.bytes
-
-    def test_dump_file_args_error(self):
-        with pytest.raises(TypeError):
-            ujson.dump([], "")
-
-    def test_load_file(self):
-        data = "[1,2,3,4]"
-        exp_data = [1, 2, 3, 4]
-
-        f = StringIO(data)
-        assert exp_data == ujson.load(f)
-
-        f = StringIO(data)
-        tm.assert_numpy_array_equal(np.array(exp_data),
-                                    ujson.load(f, numpy=True))
-
-    def test_load_file_like(self):
-        class FileLike:
-
-            def read(self):
-                try:
-                    self.end
-                except AttributeError:
-                    self.end = True
-                    return "[1,2,3,4]"
-
-        exp_data = [1, 2, 3, 4]
-
-        f = FileLike()
-        assert exp_data == ujson.load(f)
-
-        f = FileLike()
-        tm.assert_numpy_array_equal(np.array(exp_data),
-                                    ujson.load(f, numpy=True))
-
-    def test_load_file_args_error(self):
-        with pytest.raises(TypeError):
-            ujson.load("[]")
 
     def test_loads_non_str_bytes_raises(self):
         msg = "Expected 'str' or 'bytes'"

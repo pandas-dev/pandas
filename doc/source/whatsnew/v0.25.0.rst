@@ -417,7 +417,7 @@ Sparse
 Other
 ^^^^^
 
--
+- Removed unused C functions from vendored UltraJSON implementation (:issue:`26198`)
 
 
 .. _whatsnew_0.250.contributors:
