@@ -524,7 +524,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return self.to_timestamp(how=how).tz_localize(tz)
 
         # TODO: should probably raise on `how` here, so we don't ignore it.
-        return super(PeriodIndex, self).astype(dtype, copy=copy)
+        return super().astype(dtype, copy=copy)
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -576,7 +576,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         s = com.values_from_object(series)
         try:
             return com.maybe_box(self,
-                                 super(PeriodIndex, self).get_value(s, key),
+                                 super().get_value(s, key),
                                  series, key)
         except (KeyError, IndexError):
             try:
@@ -634,7 +634,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """
         wrap Index._get_unique_index to handle NaT
         """
-        res = super(PeriodIndex, self)._get_unique_index(dropna=dropna)
+        res = super()._get_unique_index(dropna=dropna)
         if dropna:
             res = res.dropna()
         return res
@@ -801,7 +801,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return self._apply_meta(result)
 
     def _assert_can_do_setop(self, other):
-        super(PeriodIndex, self)._assert_can_do_setop(other)
+        super()._assert_can_do_setop(other)
 
         if not isinstance(other, PeriodIndex):
             raise ValueError('can only call with other PeriodIndex-ed objects')
@@ -828,7 +828,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """Necessary for making this object picklable"""
 
         if isinstance(state, dict):
-            super(PeriodIndex, self).__setstate__(state)
+            super().__setstate__(state)
 
         elif isinstance(state, tuple):
 
