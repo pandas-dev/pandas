@@ -1381,9 +1381,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         if op:
             return op(axis=axis, skipna=skipna, **kwargs)
         else:
-            return super(DatetimeLikeArrayMixin, self)._reduce(
-                name, skipna, **kwargs
-            )
+            return super()._reduce(name, skipna, **kwargs)
 
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """

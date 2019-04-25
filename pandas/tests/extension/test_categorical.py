@@ -86,7 +86,7 @@ class TestInterface(base.BaseInterfaceTests):
     @pytest.mark.skip(reason="Memory usage doesn't match")
     def test_memory_usage(self, data):
         # Is this deliberate?
-        super(TestInterface, self).test_memory_usage(data)
+        super().test_memory_usage(data)
 
 
 class TestConstructors(base.BaseConstructorsTests):
@@ -105,12 +105,12 @@ class TestGetitem(base.BaseGetitemTests):
         # CategoricalDtype.type isn't "correct" since it should
         # be a parent of the elements (object). But don't want
         # to break things by changing.
-        super(TestGetitem, self).test_getitem_scalar(data)
+        super().test_getitem_scalar(data)
 
     @skip_take
     def test_take(self, data, na_value, na_cmp):
         # TODO remove this once Categorical.take is fixed
-        super(TestGetitem, self).test_take(data, na_value, na_cmp)
+        super().test_take(data, na_value, na_cmp)
 
     @skip_take
     def test_take_negative(self, data):
@@ -204,8 +204,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
         op_name = all_arithmetic_operators
         if op_name != '__rmod__':
-            super(TestArithmeticOps, self).test_arith_series_with_scalar(
-                data, op_name)
+            super().test_arith_series_with_scalar(data, op_name)
         else:
             pytest.skip('rmod never called when string is first argument')
 
@@ -220,9 +219,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         pass
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super(TestArithmeticOps, self)._check_divmod_op(
-            s, op, other, exc=TypeError
-        )
+        return super()._check_divmod_op(s, op, other, exc=TypeError)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
