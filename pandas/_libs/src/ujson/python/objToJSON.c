@@ -1750,17 +1750,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         }
 
         return;
-    } else if (PyLong_Check(obj)) {
-        PRINTMARK();
-
-#ifdef _LP64
-        pc->PyTypeToJSON = PyIntToINT64;
-        tc->type = JT_LONG;
-#else
-        pc->PyTypeToJSON = PyIntToINT32;
-        tc->type = JT_INT;
-#endif
-        return;
     } else if (PyFloat_Check(obj)) {
         PRINTMARK();
         val = PyFloat_AS_DOUBLE(obj);
