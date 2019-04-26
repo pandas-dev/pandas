@@ -44,8 +44,6 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
 
 cdef:
-    object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
-
     set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 # ----------------------------------------------------------------------
@@ -144,6 +142,38 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
     raise DateParseError("Invalid date specified ({}/{})".format(month, day))
 
 
+cdef inline bint does_string_look_like_time(object parse_string):
+    """
+    Checks whether given string is a time: it has to start either from
+    H:MM or from HH:MM, and hour and minute values must be valid.
+
+    Parameters
+    ----------
+    date_string : str
+
+    Returns:
+    --------
+    whether given string is a time
+    """
+    cdef:
+        const char* buf
+        Py_ssize_t length
+        int hour = -1, minute = -1
+
+    buf = get_c_string_buf_and_size(parse_string, &length)
+    if length >= 4:
+        if buf[1] == b':':
+            # h:MM format
+            hour = getdigit_ascii(buf[0], -1)
+            minute = _parse_2digit(buf + 2)
+        elif buf[2] == b':':
+            # HH:MM format
+            hour = _parse_2digit(buf)
+            minute = _parse_2digit(buf + 3)
+
+    return 0 <= hour <= 23 and 0 <= minute <= 59
+
+
 def parse_datetime_string(date_string, freq=None, dayfirst=False,
                           yearfirst=False, **kwargs):
     """parse datetime string, only returns datetime.
@@ -160,7 +190,7 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
     if not _does_string_look_like_datetime(date_string):
         raise ValueError('Given date string not likely a datetime.')
 
-    if _TIMEPAT.match(date_string):
+    if does_string_look_like_time(date_string):
         # use current datetime as default, not pass _DEFAULT_DATETIME
         dt = du_parse(date_string, dayfirst=dayfirst,
                       yearfirst=yearfirst, **kwargs)

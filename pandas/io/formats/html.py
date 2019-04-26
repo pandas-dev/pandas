@@ -540,6 +540,6 @@ class NotebookFormatter(HTMLFormatter):
     def render(self):
         self.write('<div>')
         self.write_style()
-        super(NotebookFormatter, self).render()
+        super().render()
         self.write('</div>')
         return self.elements
