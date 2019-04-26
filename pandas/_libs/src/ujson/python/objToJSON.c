@@ -627,44 +627,39 @@ void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         obj = (PyArrayObject *)_obj;
     }
 
-    if (PyArray_SIZE(obj) < 0) {
-        PRINTMARK();
-        GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-    } else {
-        PRINTMARK();
-        npyarr = PyObject_Malloc(sizeof(NpyArrContext));
-        GET_TC(tc)->npyarr = npyarr;
+    PRINTMARK();
+    npyarr = PyObject_Malloc(sizeof(NpyArrContext));
+    GET_TC(tc)->npyarr = npyarr;
 
-        if (!npyarr) {
-            PyErr_NoMemory();
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            return;
-        }
-
-        npyarr->array = (PyObject *)obj;
-        npyarr->getitem = (PyArray_GetItemFunc *)PyArray_DESCR(obj)->f->getitem;
-        npyarr->dataptr = PyArray_DATA(obj);
-        npyarr->ndim = PyArray_NDIM(obj) - 1;
-        npyarr->curdim = 0;
-        npyarr->type_num = PyArray_DESCR(obj)->type_num;
-
-        if (GET_TC(tc)->transpose) {
-            npyarr->dim = PyArray_DIM(obj, npyarr->ndim);
-            npyarr->stride = PyArray_STRIDE(obj, npyarr->ndim);
-            npyarr->stridedim = npyarr->ndim;
-            npyarr->index[npyarr->ndim] = 0;
-            npyarr->inc = -1;
-        } else {
-            npyarr->dim = PyArray_DIM(obj, 0);
-            npyarr->stride = PyArray_STRIDE(obj, 0);
-            npyarr->stridedim = 0;
-            npyarr->index[0] = 0;
-            npyarr->inc = 1;
-        }
-
-        npyarr->columnLabels = GET_TC(tc)->columnLabels;
-        npyarr->rowLabels = GET_TC(tc)->rowLabels;
+    if (!npyarr) {
+      PyErr_NoMemory();
+      GET_TC(tc)->iterNext = NpyArr_iterNextNone;
+      return;
     }
+
+    npyarr->array = (PyObject *)obj;
+    npyarr->getitem = (PyArray_GetItemFunc *)PyArray_DESCR(obj)->f->getitem;
+    npyarr->dataptr = PyArray_DATA(obj);
+    npyarr->ndim = PyArray_NDIM(obj) - 1;
+    npyarr->curdim = 0;
+    npyarr->type_num = PyArray_DESCR(obj)->type_num;
+
+    if (GET_TC(tc)->transpose) {
+      npyarr->dim = PyArray_DIM(obj, npyarr->ndim);
+      npyarr->stride = PyArray_STRIDE(obj, npyarr->ndim);
+      npyarr->stridedim = npyarr->ndim;
+      npyarr->index[npyarr->ndim] = 0;
+      npyarr->inc = -1;
+    } else {
+      npyarr->dim = PyArray_DIM(obj, 0);
+      npyarr->stride = PyArray_STRIDE(obj, 0);
+      npyarr->stridedim = 0;
+      npyarr->index[0] = 0;
+      npyarr->inc = 1;
+    }
+
+    npyarr->columnLabels = GET_TC(tc)->columnLabels;
+    npyarr->rowLabels = GET_TC(tc)->rowLabels;
 }
 
 void NpyArr_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
