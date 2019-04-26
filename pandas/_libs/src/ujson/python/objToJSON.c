@@ -62,10 +62,6 @@ npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 typedef void *(*PFN_PyTypeToJSON)(JSOBJ obj, JSONTypeContext *ti,
                                   void *outValue, size_t *_outLen);
 
-#if (PY_VERSION_HEX < 0x02050000)
-typedef ssize_t Py_ssize_t;
-#endif
-
 typedef struct __NpyArrContext {
     PyObject *array;
     char *dataptr;
@@ -153,12 +149,7 @@ enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
 
 int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
 
-// import_array() compat
-#if (PY_VERSION_HEX >= 0x03000000)
 void *initObjToJSON(void)
-#else
-void initObjToJSON(void)
-#endif
 {
     PyObject *mod_pandas;
     PyObject *mod_nattype;
@@ -426,14 +417,12 @@ static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     PyObject *obj, *newObj;
     obj = (PyObject *)_obj;
 
-#if (PY_VERSION_HEX >= 0x03030000)
     if (PyUnicode_IS_COMPACT_ASCII(obj)) {
         Py_ssize_t len;
         char *data = (char*)PyUnicode_AsUTF8AndSize(obj, &len);
         *_outLen = len;
         return data;
     }
-#endif
 
     newObj = PyUnicode_AsUTF8String(obj);
 
@@ -720,15 +709,7 @@ int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
 
     NpyArr_freeItemValue(obj, tc);
 
-#if NPY_API_VERSION < 0x00000007
-    if (PyArray_ISDATETIME(npyarr->array)) {
-        PRINTMARK();
-        GET_TC(tc)
-            ->itemValue = PyArray_ToScalar(npyarr->dataptr, npyarr->array);
-    } else if (PyArray_ISNUMBER(npyarr->array))  // NOLINT
-#else
-    if (PyArray_ISNUMBER(npyarr->array) || PyArray_ISDATETIME(npyarr->array))  // NOLINT
-#endif
+    if (PyArray_ISNUMBER(npyarr->array) || PyArray_ISDATETIME(npyarr->array))
     {
         PRINTMARK();
         GET_TC(tc)->itemValue = obj;
@@ -1619,13 +1600,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, JSONObjectEncoder *enc,
     type_num = PyArray_TYPE(labels);
 
     for (i = 0; i < num; i++) {
-#if NPY_API_VERSION < 0x00000007
-        if (PyTypeNum_ISDATETIME(type_num)) {
-            item = PyArray_ToScalar(dataptr, labels);
-        } else if (PyTypeNum_ISNUMBER(type_num))  // NOLINT
-#else
-        if (PyTypeNum_ISDATETIME(type_num) || PyTypeNum_ISNUMBER(type_num))  // NOLINT
-#endif
+        if (PyTypeNum_ISDATETIME(type_num) || PyTypeNum_ISNUMBER(type_num))
         {
             item = (PyObject *)labels;
             pyenc->npyType = type_num;
