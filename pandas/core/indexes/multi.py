@@ -1633,7 +1633,7 @@ class MultiIndex(Index):
                     # indexer to reorder the level codes
                     indexer = ensure_int64(indexer)
                     ri = lib.get_reverse_indexer(indexer, len(indexer))
-                    level_codes = algos.take_1d(ri, level_codes)
+                    level_codes = algos.take_1d(ri, level_codes, fill_value=-1)
 
             new_levels.append(lev)
             new_codes.append(level_codes)
