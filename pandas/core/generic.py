@@ -2149,13 +2149,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
-        max_rows = 2**20
-        max_cols = 2**14
+        excel_max_rows = 2**20
+        excel_max_cols = 2**14
         num_rows, num_cols = df.shape
-        if num_rows > max_rows or num_cols > max_cols:
+        if num_rows > excel_max_rows or num_cols > excel_max_cols:
             raise ValueError(f"This sheet is too large! Your sheet size is: "
                              f"{(num_rows, num_cols)}. "
-                             f"Max sheet size is: {(max_rows, max_cols)}.")
+                             f"Max sheet size is: {(excel_max_rows, excel_max_cols)}.")
 
         from pandas.io.formats.excel import ExcelFormatter
         formatter = ExcelFormatter(df, na_rep=na_rep, cols=columns,
