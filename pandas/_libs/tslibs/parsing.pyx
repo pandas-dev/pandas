@@ -660,7 +660,7 @@ def try_parse_datetime_components(object[:] years,
 # Thus, we port the class over so that both issues are resolved.
 #
 # Copyright (c) 2017 - dateutil contributors
-class _timelex(object):
+class _timelex:
     def __init__(self, instream):
         if getattr(instream, 'decode', None) is not None:
             instream = instream.decode()

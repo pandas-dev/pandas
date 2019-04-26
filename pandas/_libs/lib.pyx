@@ -935,7 +935,7 @@ except AttributeError:
     pass
 
 
-cdef class Seen(object):
+cdef class Seen:
     """
     Class for keeping track of the types of elements
     encountered when trying to perform type conversions.
