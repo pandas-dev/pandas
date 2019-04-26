@@ -11,7 +11,7 @@ import pytest
 
 from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -28,7 +28,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 
-class TestMatch(object):
+class TestMatch:
 
     def test_ints(self):
         values = np.array([0, 2, 1])
@@ -64,7 +64,7 @@ class TestMatch(object):
         tm.assert_series_equal(result, expected)
 
 
-class TestFactorize(object):
+class TestFactorize:
 
     def test_basic(self):
 
@@ -228,7 +228,11 @@ class TestFactorize(object):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        pytest.raises(TypeError, algos.factorize, x17[::-1], sort=True)
+        msg = ("unorderable types: .* [<>] .*"
+               "|"  # the above case happens for numpy < 1.14
+               "'[<>]' not supported between instances of .*")
+        with pytest.raises(TypeError, match=msg):
+            algos.factorize(x17[::-1], sort=True)
 
     def test_float64_factorize(self, writable):
         data = np.array([1.0, 1e8, 1.0, 1e-8, 1e8, 1.0], dtype=np.float64)
@@ -321,8 +325,23 @@ class TestFactorize(object):
         tm.assert_numpy_array_equal(l, expected_labels)
         tm.assert_numpy_array_equal(u, expected_uniques)
 
+    @pytest.mark.parametrize('sort', [True, False])
+    @pytest.mark.parametrize('na_sentinel', [-1, -10, 100])
+    def test_factorize_na_sentinel(self, sort, na_sentinel):
+        data = np.array(['b', 'a', None, 'b'], dtype=object)
+        labels, uniques = algos.factorize(data, sort=sort,
+                                          na_sentinel=na_sentinel)
+        if sort:
+            expected_labels = np.array([1, 0, na_sentinel, 1], dtype=np.intp)
+            expected_uniques = np.array(['a', 'b'], dtype=object)
+        else:
+            expected_labels = np.array([0, 1, na_sentinel, 0], dtype=np.intp)
+            expected_uniques = np.array(['b', 'a'], dtype=object)
+        tm.assert_numpy_array_equal(labels, expected_labels)
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-class TestUnique(object):
+
+class TestUnique:
 
     def test_ints(self):
         arr = np.random.randint(0, 100, size=50)
@@ -585,13 +604,18 @@ class TestUnique(object):
         assert a[1] is unique_nulls_fixture2
 
 
-class TestIsin(object):
+class TestIsin:
 
     def test_invalid(self):
 
-        pytest.raises(TypeError, lambda: algos.isin(1, 1))
-        pytest.raises(TypeError, lambda: algos.isin(1, [1]))
-        pytest.raises(TypeError, lambda: algos.isin([1], 1))
+        msg = (r"only list-like objects are allowed to be passed to isin\(\),"
+               r" you passed a \[int\]")
+        with pytest.raises(TypeError, match=msg):
+            algos.isin(1, 1)
+        with pytest.raises(TypeError, match=msg):
+            algos.isin(1, [1])
+        with pytest.raises(TypeError, match=msg):
+            algos.isin([1], 1)
 
     def test_basic(self):
 
@@ -696,7 +720,7 @@ class TestIsin(object):
         # the user however could define a custom class
         # with similar behavior, then we at least should
         # fall back to usual python's behavior: "a in [a] == True"
-        class LikeNan(object):
+        class LikeNan:
             def __eq__(self):
                 return False
 
@@ -780,7 +804,7 @@ class TestIsin(object):
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestValueCounts(object):
+class TestValueCounts:
 
     def test_value_counts(self):
         np.random.seed(1234)
@@ -819,8 +843,9 @@ class TestValueCounts(object):
         result = algos.value_counts(Series([1, 1., '1']))  # object
         assert len(result) == 2
 
-        pytest.raises(TypeError, lambda s: algos.value_counts(s, bins=1),
-                      ['1', 1])
+        msg = "bins argument only works with numeric data"
+        with pytest.raises(TypeError, match=msg):
+            algos.value_counts(['1', 1], bins=1)
 
     def test_value_counts_nat(self):
         td = Series([np.timedelta64(10000), pd.NaT], dtype='timedelta64[ns]')
@@ -968,7 +993,7 @@ class TestValueCounts(object):
             tm.assert_series_equal(result, expected)
 
 
-class TestDuplicated(object):
+class TestDuplicated:
 
     def test_duplicated_with_nas(self):
         keys = np.array([0, 1, np.nan, 0, 2, np.nan], dtype=object)
@@ -1135,7 +1160,7 @@ class TestDuplicated(object):
         tm.assert_numpy_array_equal(result, expected)
 
 
-class GroupVarTestMixin(object):
+class GroupVarTestMixin:
 
     def test_group_var_generic_1d(self):
         prng = RandomState(1234)
@@ -1222,7 +1247,7 @@ class GroupVarTestMixin(object):
 class TestGroupVarFloat64(GroupVarTestMixin):
     __test__ = True
 
-    algo = libgroupby.group_var_float64
+    algo = staticmethod(libgroupby.group_var_float64)
     dtype = np.float64
     rtol = 1e-5
 
@@ -1245,12 +1270,12 @@ class TestGroupVarFloat64(GroupVarTestMixin):
 class TestGroupVarFloat32(GroupVarTestMixin):
     __test__ = True
 
-    algo = libgroupby.group_var_float32
+    algo = staticmethod(libgroupby.group_var_float32)
     dtype = np.float32
     rtol = 1e-2
 
 
-class TestHashTable(object):
+class TestHashTable:
 
     def test_lookup_nan(self, writable):
         xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
@@ -1444,7 +1469,7 @@ def test_unique_label_indices():
                                 check_dtype=False)
 
 
-class TestRank(object):
+class TestRank:
 
     @td.skip_if_no_scipy
     def test_scipy_compat(self):
@@ -1484,6 +1509,7 @@ class TestRank(object):
             algos.rank(arr)
 
     @pytest.mark.single
+    @pytest.mark.high_memory
     @pytest.mark.parametrize('values', [
         np.arange(2**24 + 1),
         np.arange(2**25 + 2).reshape(2**24 + 1, 2)],
@@ -1522,7 +1548,7 @@ def test_arrmap():
     assert (result.dtype == np.bool_)
 
 
-class TestTseriesUtil(object):
+class TestTseriesUtil:
 
     def test_combineFunc(self):
         pass
@@ -1732,7 +1758,7 @@ def test_int64_add_overflow():
                                b_mask=np.array([False, True]))
 
 
-class TestMode(object):
+class TestMode:
 
     def test_no_mode(self):
         exp = Series([], dtype=np.float64)

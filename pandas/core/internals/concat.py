@@ -99,7 +99,7 @@ def get_mgr_concatenation_plan(mgr, indexers):
     return plan
 
 
-class JoinUnit(object):
+class JoinUnit:
 
     def __init__(self, block, shape, indexers=None):
         # Passing shape explicitly is required for cases when block is None.
@@ -189,6 +189,8 @@ class JoinUnit(object):
                 elif getattr(self.block, 'is_categorical', False):
                     pass
                 elif getattr(self.block, 'is_sparse', False):
+                    pass
+                elif getattr(self.block, 'is_extension', False):
                     pass
                 else:
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)

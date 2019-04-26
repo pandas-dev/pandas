@@ -7,8 +7,6 @@ import warnings
 
 import numpy as np
 
-import pandas.compat as compat
-from pandas.compat import callable, zip
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -27,7 +25,7 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 
-class Grouper(object):
+class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for a target
     object
@@ -54,14 +52,17 @@ class Grouper(object):
     axis : number/name of the axis, defaults to 0
     sort : boolean, default to False
         whether to sort the resulting labels
-
-    additional kwargs to control time-like groupers (when `freq` is passed)
-
-    closed : closed end of interval; 'left' or 'right'
-    label : interval boundary to use for labeling; 'left' or 'right'
+    closed : {'left' or 'right'}
+        Closed end of interval. Only when `freq` parameter is passed.
+    label : {'left' or 'right'}
+        Interval boundary to use for labeling.
+        Only when `freq` parameter is passed.
     convention : {'start', 'end', 'e', 's'}
-        If grouper is PeriodIndex
-    base, loffset
+        If grouper is PeriodIndex and `freq` parameter is passed.
+    base : int, default 0
+        Only when `freq` parameter is passed.
+    loffset : string, DateOffset, timedelta object
+        Only when `freq` parameter is passed.
 
     Returns
     -------
@@ -195,15 +196,15 @@ class Grouper(object):
         return self.grouper.groups
 
     def __repr__(self):
-        attrs_list = ["{}={!r}".format(attr_name, getattr(self, attr_name))
+        attrs_list = ("{}={!r}".format(attr_name, getattr(self, attr_name))
                       for attr_name in self._attributes
-                      if getattr(self, attr_name) is not None]
+                      if getattr(self, attr_name) is not None)
         attrs = ", ".join(attrs_list)
         cls_name = self.__class__.__name__
         return "{}({})".format(cls_name, attrs)
 
 
-class Grouping(object):
+class Grouping:
 
     """
     Holds the grouping information for a single key
@@ -300,6 +301,8 @@ class Grouping(object):
                 if observed:
                     codes = algorithms.unique1d(self.grouper.codes)
                     codes = codes[codes != -1]
+                    if sort or self.grouper.ordered:
+                        codes = np.sort(codes)
                 else:
                     codes = np.arange(len(categories))
 
@@ -460,7 +463,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
                     raise ValueError('multiple levels only valid with '
                                      'MultiIndex')
 
-            if isinstance(level, compat.string_types):
+            if isinstance(level, str):
                 if obj.index.name != level:
                     raise ValueError('level name {} is not the name of the '
                                      'index'.format(level))
@@ -523,6 +526,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         if isinstance(obj, DataFrame):
             all_in_columns_index = all(g in obj.columns or g in obj.index.names
                                        for g in keys)
+        elif isinstance(obj, Series):
+            all_in_columns_index = all(g in obj.index.names for g in keys)
         else:
             all_in_columns_index = False
     except Exception:
@@ -612,7 +617,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
 
 def _is_label_like(val):
-    return (isinstance(val, (compat.string_types, tuple)) or
+    return (isinstance(val, (str, tuple)) or
             (val is not None and is_scalar(val)))
 
 

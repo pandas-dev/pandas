@@ -1,5 +1,3 @@
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime
 import operator
 
@@ -8,13 +6,13 @@ from numpy import nan
 import pytest
 
 from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas.compat import PY36, range
+from pandas.compat import PY36
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
-    DataFrame, Series, SparseDtype, SparseSeries, bdate_range, compat, isna)
+    DataFrame, Series, SparseDtype, SparseSeries, bdate_range, isna)
 from pandas.core.reshape.util import cartesian_product
 import pandas.core.sparse.frame as spf
 from pandas.tests.series.test_api import SharedWithSparse
@@ -431,7 +429,7 @@ class TestSparseSeries(SharedWithSparse):
 
     def test_getitem(self):
         def _check_getitem(sp, dense):
-            for idx, val in compat.iteritems(dense):
+            for idx, val in dense.items():
                 tm.assert_almost_equal(val, sp[idx])
 
             for i in range(len(dense)):
@@ -452,12 +450,13 @@ class TestSparseSeries(SharedWithSparse):
         _check_getitem(self.ziseries, self.ziseries.to_dense())
 
         # exception handling
-        pytest.raises(Exception, self.bseries.__getitem__,
-                      len(self.bseries) + 1)
+        with pytest.raises(IndexError, match="Out of bounds access"):
+            self.bseries[len(self.bseries) + 1]
 
         # index not contained
-        pytest.raises(Exception, self.btseries.__getitem__,
-                      self.btseries.index[-1] + BDay())
+        msg = r"Timestamp\('2011-01-31 00:00:00', freq='B'\)"
+        with pytest.raises(KeyError, match=msg):
+            self.btseries[self.btseries.index[-1] + BDay()]
 
     def test_get_get_value(self):
         tm.assert_almost_equal(self.bseries.get(10), self.bseries[10])
@@ -523,8 +522,9 @@ class TestSparseSeries(SharedWithSparse):
 
         self._check_all(_compare_with_dense)
 
-        pytest.raises(Exception, self.bseries.take,
-                      [0, len(self.bseries) + 1])
+        msg = "index 21 is out of bounds for size 20"
+        with pytest.raises(IndexError, match=msg):
+            self.bseries.take([0, len(self.bseries) + 1])
 
         # Corner case
         # XXX: changed test. Why wsa this considered a corner case?
@@ -848,7 +848,7 @@ class TestSparseSeries(SharedWithSparse):
             # homogenized is only valid with NaN fill values
             homogenized = spf.homogenize(data)
 
-            for k, v in compat.iteritems(homogenized):
+            for k, v in homogenized.items():
                 assert (v.sp_index.equals(expected))
 
         indices1 = [BlockIndex(10, [2], [7]), BlockIndex(10, [1, 6], [3, 4]),
@@ -1032,7 +1032,7 @@ class TestSparseSeries(SharedWithSparse):
         assert sparse_usage < dense_usage
 
 
-class TestSparseHandlingMultiIndexes(object):
+class TestSparseHandlingMultiIndexes:
 
     def setup_method(self, method):
         miindex = pd.MultiIndex.from_product(
@@ -1062,7 +1062,7 @@ class TestSparseHandlingMultiIndexes(object):
 @pytest.mark.filterwarnings(
     "ignore:the matrix subclass:PendingDeprecationWarning"
 )
-class TestSparseSeriesScipyInteraction(object):
+class TestSparseSeriesScipyInteraction:
     # Issue 8048: add SparseSeries coo methods
 
     def setup_method(self, method):
@@ -1138,25 +1138,35 @@ class TestSparseSeriesScipyInteraction(object):
 
     def test_to_coo_bad_partition_nonnull_intersection(self):
         ss = self.sparse_series[0]
-        pytest.raises(ValueError, ss.to_coo, ['A', 'B', 'C'], ['C', 'D'])
+        msg = "Is not a partition because intersection is not null"
+        with pytest.raises(ValueError, match=msg):
+            ss.to_coo(['A', 'B', 'C'], ['C', 'D'])
 
     def test_to_coo_bad_partition_small_union(self):
         ss = self.sparse_series[0]
-        pytest.raises(ValueError, ss.to_coo, ['A'], ['C', 'D'])
+        msg = "Is not a partition because union is not the whole"
+        with pytest.raises(ValueError, match=msg):
+            ss.to_coo(['A'], ['C', 'D'])
 
     def test_to_coo_nlevels_less_than_two(self):
         ss = self.sparse_series[0]
         ss.index = np.arange(len(ss.index))
-        pytest.raises(ValueError, ss.to_coo)
+        msg = "to_coo requires MultiIndex with nlevels > 2"
+        with pytest.raises(ValueError, match=msg):
+            ss.to_coo()
 
     def test_to_coo_bad_ilevel(self):
         ss = self.sparse_series[0]
-        pytest.raises(KeyError, ss.to_coo, ['A', 'B'], ['C', 'D', 'E'])
+        with pytest.raises(KeyError, match="Level E not found"):
+            ss.to_coo(['A', 'B'], ['C', 'D', 'E'])
 
     def test_to_coo_duplicate_index_entries(self):
         ss = pd.concat([self.sparse_series[0],
                         self.sparse_series[0]]).to_sparse()
-        pytest.raises(ValueError, ss.to_coo, ['A', 'B'], ['C', 'D'])
+        msg = ("Duplicate index entries are not allowed in to_coo"
+               " transformation")
+        with pytest.raises(ValueError, match=msg):
+            ss.to_coo(['A', 'B'], ['C', 'D'])
 
     def test_from_coo_dense_index(self):
         ss = SparseSeries.from_coo(self.coo_matrices[0], dense_index=True)
@@ -1415,7 +1425,7 @@ def _dense_series_compare(s, f):
     tm.assert_series_equal(result.to_dense(), dense_result)
 
 
-class TestSparseSeriesAnalytics(object):
+class TestSparseSeriesAnalytics:
 
     def setup_method(self, method):
         arr, index = _test_data1()

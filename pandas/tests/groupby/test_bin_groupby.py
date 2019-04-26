@@ -48,7 +48,7 @@ def test_series_bin_grouper():
     assert_almost_equal(counts, exp_counts)
 
 
-class TestBinGroupers(object):
+class TestBinGroupers:
 
     def setup_method(self, method):
         self.obj = np.random.randn(10, 1)
@@ -121,11 +121,11 @@ def test_group_ohlc():
     _check('float64')
 
 
-class TestMoments(object):
+class TestMoments:
     pass
 
 
-class TestReducer(object):
+class TestReducer:
 
     def test_int_index(self):
         from pandas.core.series import Series

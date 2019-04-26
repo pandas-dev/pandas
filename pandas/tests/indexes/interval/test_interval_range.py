@@ -1,5 +1,3 @@
-from __future__ import division
-
 from datetime import timedelta
 
 import numpy as np
@@ -20,7 +18,7 @@ def name(request):
     return request.param
 
 
-class TestIntervalRange(object):
+class TestIntervalRange:
 
     @pytest.mark.parametrize('freq, periods', [
         (1, 100), (2.5, 40), (5, 20), (25, 4)])

@@ -16,7 +16,7 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-class TestCategoricalConstructors(object):
+class TestCategoricalConstructors:
 
     def test_validate_ordered(self):
         # see gh-14058
@@ -211,6 +211,18 @@ class TestCategoricalConstructors(object):
         with tm.assert_produces_warning(None):
             c = Categorical(np.array([], dtype='int64'),  # noqa
                             categories=[3, 2, 1], ordered=True)
+
+    def test_constructor_with_existing_categories(self):
+        # GH25318: constructing with pd.Series used to bogusly skip recoding
+        # categories
+        c0 = Categorical(["a", "b", "c", "a"])
+        c1 = Categorical(["a", "b", "c", "a"], categories=["b", "c"])
+
+        c2 = Categorical(c0, categories=c1.categories)
+        tm.assert_categorical_equal(c1, c2)
+
+        c3 = Categorical(Series(c0), categories=c1.categories)
+        tm.assert_categorical_equal(c1, c3)
 
     def test_constructor_not_sequence(self):
         # https://github.com/pandas-dev/pandas/issues/16022

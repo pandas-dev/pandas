@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -38,7 +38,7 @@ def test_constructor_no_levels():
 
 def test_constructor_nonhashable_names():
     # GH 20527
-    levels = [[1, 2], [u'one', u'two']]
+    levels = [[1, 2], ['one', 'two']]
     codes = [[0, 0, 1, 1], [0, 1, 0, 1]]
     names = (['foo'], ['bar'])
     msg = r"MultiIndex\.name must be a hashable type"
@@ -46,7 +46,7 @@ def test_constructor_nonhashable_names():
         MultiIndex(levels=levels, codes=codes, names=names)
 
     # With .rename()
-    mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
+    mi = MultiIndex(levels=[[1, 2], ['one', 'two']],
                     codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                     names=('foo', 'bar'))
     renamed = [['foor'], ['barr']]
@@ -140,6 +140,15 @@ def test_from_arrays_iterator(idx):
     msg = "Input must be a list / sequence of array-likes."
     with pytest.raises(TypeError, match=msg):
         MultiIndex.from_arrays(0)
+
+
+def test_from_arrays_tuples(idx):
+    arrays = tuple(tuple(np.asarray(lev).take(level_codes))
+                   for lev, level_codes in zip(idx.levels, idx.codes))
+
+    # tuple of tuples as input
+    result = MultiIndex.from_arrays(arrays, names=idx.names)
+    tm.assert_index_equal(result, idx)
 
 
 def test_from_arrays_index_series_datetimetz():
@@ -254,11 +263,13 @@ def test_from_arrays_empty():
 
 
 @pytest.mark.parametrize('invalid_sequence_of_arrays', [
-    1, [1], [1, 2], [[1], 2], 'a', ['a'], ['a', 'b'], [['a'], 'b']])
+    1, [1], [1, 2], [[1], 2], [1, [2]], 'a', ['a'], ['a', 'b'], [['a'], 'b'],
+    (1,), (1, 2), ([1], 2), (1, [2]), 'a', ('a',), ('a', 'b'), (['a'], 'b'),
+    [(1,), 2], [1, (2,)], [('a',), 'b'],
+    ((1,), 2), (1, (2,)), (('a',), 'b')
+])
 def test_from_arrays_invalid_input(invalid_sequence_of_arrays):
-    msg = (r"Input must be a list / sequence of array-likes|"
-           r"Input must be list-like|"
-           r"object of type 'int' has no len\(\)")
+    msg = "Input must be a list / sequence of array-likes"
     with pytest.raises(TypeError, match=msg):
         MultiIndex.from_arrays(arrays=invalid_sequence_of_arrays)
 

@@ -8,7 +8,7 @@ from pandas.core import common as com
 from pandas.util import testing as tm
 
 
-class TestCaching(object):
+class TestCaching:
 
     def test_slice_consolidate_invalidate_item_cache(self):
 
@@ -88,7 +88,7 @@ class TestCaching(object):
         tm.assert_series_equal(out['A'], expected['A'])
 
 
-class TestChaining(object):
+class TestChaining:
 
     def test_setitem_chained_setfault(self):
 
@@ -357,7 +357,6 @@ class TestChaining(object):
         check(result4, expected)
 
     @pytest.mark.filterwarnings("ignore::DeprecationWarning")
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
@@ -366,12 +365,6 @@ class TestChaining(object):
         df.ix["Hello Friend"] = df.ix[0]
         assert "Hello Friend" in df['A'].index
         assert "Hello Friend" in df['B'].index
-
-        panel = tm.makePanel()
-        panel.ix[0]  # get first item into cache
-        panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
-        assert "A+1" in panel.ix[0].columns
-        assert "A+1" in panel.ix[1].columns
 
         # 10264
         df = DataFrame(np.zeros((5, 5), dtype='int64'), columns=[

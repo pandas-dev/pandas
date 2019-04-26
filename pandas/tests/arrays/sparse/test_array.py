@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
-from pandas.compat import range
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -21,7 +20,7 @@ def kind(request):
     return request.param
 
 
-class TestSparseArray(object):
+class TestSparseArray:
 
     def setup_method(self, method):
         self.arr_data = np.array([np.nan, np.nan, 1, 2, 3,
@@ -815,7 +814,7 @@ class TestSparseArray(object):
         tm.assert_numpy_array_equal(expected, result)
 
 
-class TestSparseArrayAnalytics(object):
+class TestSparseArrayAnalytics:
 
     @pytest.mark.parametrize('data,pos,neg', [
         ([True, True, True], True, False),
@@ -1072,7 +1071,7 @@ class TestSparseArrayAnalytics(object):
         assert arr.npoints == 1
 
 
-class TestAccessor(object):
+class TestAccessor:
 
     @pytest.mark.parametrize('attr', [
         'npoints', 'density', 'fill_value', 'sp_values',
@@ -1091,11 +1090,11 @@ class TestAccessor(object):
         row = [0, 3, 1, 0]
         col = [0, 3, 1, 2]
         data = [4, 5, 7, 9]
-        sp_array = sparse.coo_matrix(data, (row, col))
+        sp_array = sparse.coo_matrix((data, (row, col)))
         result = pd.Series.sparse.from_coo(sp_array)
 
-        index = pd.MultiIndex.from_product([[0], [0, 1, 2, 3]])
-        expected = pd.Series(data, index=index, dtype='Sparse[int]')
+        index = pd.MultiIndex.from_arrays([[0, 0, 1, 3], [0, 2, 1, 3]])
+        expected = pd.Series([4, 9, 7, 5], index=index, dtype='Sparse[int]')
         tm.assert_series_equal(result, expected)
 
     def test_to_coo(self):

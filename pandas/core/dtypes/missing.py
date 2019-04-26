@@ -3,7 +3,8 @@ missing types & inference
 """
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import lib
+import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
 
 from .common import (
@@ -172,7 +173,7 @@ def _use_inf_as_na(key):
     * http://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     """
-    from pandas.core.config import get_option
+    from pandas._config import get_option
     flag = get_option(key)
     if flag:
         globals()['_isna'] = _isna_old
@@ -221,8 +222,8 @@ def _isna_ndarraylike(obj):
 
     # box
     if isinstance(obj, ABCSeries):
-        from pandas import Series
-        result = Series(result, index=obj.index, name=obj.name, copy=False)
+        result = obj._constructor(
+            result, index=obj.index, name=obj.name, copy=False)
 
     return result
 
@@ -250,8 +251,8 @@ def _isna_ndarraylike_old(obj):
 
     # box
     if isinstance(obj, ABCSeries):
-        from pandas import Series
-        result = Series(result, index=obj.index, name=obj.name, copy=False)
+        result = obj._constructor(
+            result, index=obj.index, name=obj.name, copy=False)
 
     return result
 

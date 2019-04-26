@@ -1,5 +1,3 @@
-# pylint: disable=E1103
-
 from collections import OrderedDict
 
 import numpy as np
@@ -78,7 +76,7 @@ def idx_cols_multi():
     return ['Origin', 'Destination', 'Period', 'TripPurp', 'LinkType']
 
 
-class TestMergeMulti(object):
+class TestMergeMulti:
 
     def setup_method(self):
         self.index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -583,7 +581,7 @@ class TestMergeMulti(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestJoinMultiMulti(object):
+class TestJoinMultiMulti:
 
     def test_join_multi_multi(self, left_multi, right_multi, join_type,
                               on_cols_multi, idx_cols_multi):
