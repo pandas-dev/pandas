@@ -1,7 +1,7 @@
 from collections import abc
 from datetime import datetime, time
 from functools import partial
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 
@@ -23,9 +23,16 @@ from pandas.core.dtypes.missing import notna
 from pandas._typing import ArrayLike, DatetimeScalar
 from pandas.core import algorithms
 
-# annotations
+
+# ---------------------------------------------------------------------
+# types used in annotations
+
+
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, list, tuple,
                                          ArrayLike, ABCSeries]
+
+
+# ---------------------------------------------------------------------
 
 
 def _guess_datetime_format_for_array(arr, **kwargs):
@@ -67,8 +74,11 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     return cache_array
 
 
-def _box_as_indexlike(dt_array: ArrayLike,
-                      tz=None, name=None) -> Union[ABCIndex, ABCDatetimeIndex]:
+def _box_as_indexlike(
+    dt_array: ArrayLike,
+    tz: Optional[object] = None,
+    name: Optional[str] = None
+) -> Union[ABCIndex, ABCDatetimeIndex]:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
     if it is possible or to generic Index instead
@@ -94,10 +104,12 @@ def _box_as_indexlike(dt_array: ArrayLike,
     return Index(dt_array, name=name)
 
 
-def _convert_and_box_cache(arg: DatetimeScalarOrArrayConvertible,
-                           cache_array: ABCSeries,
-                           box: bool, name=None) -> Union[ABCIndex,
-                                                          np.ndarray]:
+def _convert_and_box_cache(
+    arg: DatetimeScalarOrArrayConvertible,
+    cache_array: ABCSeries,
+    box: bool,
+    name: Optional[str] = None
+) -> Union[ABCIndex, np.ndarray]:
     """
     Convert array of dates with a cache and box the result
 
