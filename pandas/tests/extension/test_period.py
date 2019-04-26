@@ -93,9 +93,8 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
                               exc=None)
         else:
             # ... but not the rest.
-            super(TestArithmeticOps, self).test_arith_series_with_scalar(
-                data, all_arithmetic_operators
-            )
+            super().test_arith_series_with_scalar(
+                data, all_arithmetic_operators)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         if all_arithmetic_operators in self.implements:
@@ -104,14 +103,11 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
                               exc=None)
         else:
             # ... but not the rest.
-            super(TestArithmeticOps, self).test_arith_series_with_scalar(
-                data, all_arithmetic_operators
-            )
+            super().test_arith_series_with_scalar(
+                data, all_arithmetic_operators)
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        super(TestArithmeticOps, self)._check_divmod_op(
-            s, op, other, exc=TypeError
-        )
+        super()._check_divmod_op(s, op, other, exc=TypeError)
 
     def test_add_series_with_extension_array(self, data):
         # we don't implement + for Period
@@ -168,4 +164,4 @@ class TestParsing(BasePeriodTests, base.BaseParsingTests):
     def test_EA_types(self, engine, data):
         expected_msg = r'.*must implement _from_sequence_of_strings.*'
         with pytest.raises(NotImplementedError, match=expected_msg):
-            super(TestParsing, self).test_EA_types(engine, data)
+            super().test_EA_types(engine, data)
