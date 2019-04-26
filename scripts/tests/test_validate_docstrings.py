@@ -1054,7 +1054,8 @@ class TestDocstringClass:
 
     @pytest.mark.parametrize('name', [
         'pandas.Series.str.isdecimal', 'pandas.Series.str.islower'])
-    def test_encode_content_write_to_file(self, name):  # GH25466
+    def test_encode_content_write_to_file(self, name):
+        # GH25466
         docstr = validate_docstrings.Docstring(name).validate_pep8()
         assert len(list(docstr)) == 0
 
