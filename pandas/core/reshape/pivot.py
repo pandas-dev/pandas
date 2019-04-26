@@ -22,7 +22,7 @@ from pandas.core.series import Series
 @Appender(_shared_docs['pivot_table'], indents=1)
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 fill_value=None, margins=False, dropna=True,
-                margins_name='All'):
+                margins_name='All', observed=False):
     index = _convert_by(index)
     columns = _convert_by(columns)
 
@@ -34,7 +34,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                                 columns=columns,
                                 fill_value=fill_value, aggfunc=func,
                                 margins=margins, dropna=dropna,
-                                margins_name=margins_name)
+                                margins_name=margins_name,
+                                observed=observed)
             pieces.append(table)
             keys.append(getattr(func, '__name__', func))
 
@@ -77,7 +78,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys, observed=False)
+    grouped = data.groupby(keys, observed=observed)
     agged = grouped.agg(aggfunc)
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how='all')
