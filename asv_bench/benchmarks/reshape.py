@@ -127,6 +127,10 @@ class PivotTable:
                              'value1': np.random.randn(N),
                              'value2': np.random.randn(N),
                              'value3': np.random.randn(N)})
+        self.df2 = DataFrame({'col1': list('abcde'), 'col2': list('fghij'),
+                              'col3': [1, 2, 3, 4, 5]})
+        self.df2.col1 = self.df2.col1.astype('category')
+        self.df2.col2 = self.df2.col2.astype('category')
 
     def time_pivot_table(self):
         self.df.pivot_table(index='key1', columns=['key2', 'key3'])
@@ -138,6 +142,14 @@ class PivotTable:
     def time_pivot_table_margins(self):
         self.df.pivot_table(index='key1', columns=['key2', 'key3'],
                             margins=True)
+
+    def time_pivot_table_categorical(self):
+        self.df2.pivot_table(index='col1', values='col3', columns='col2',
+                             aggfunc=np.sum, fill_value=0)
+
+    def time_pivot_table_categorical_observed(self):
+        self.df2.pivot_table(index='col1', values='col3', columns='col2',
+                             aggfunc=np.sum, fill_value=0, observed=True)
 
 
 class Crosstab:
