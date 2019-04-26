@@ -327,6 +327,7 @@ Indexing
 ^^^^^^^^
 
 - Improved exception message when calling :meth:`DataFrame.iloc` with a list of non-numeric objects (:issue:`25753`).
+- Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` where ``KeyError`` was not raised for a ``MultiIndex`` when the key was less than or equal to the number of levels in the :class:`MultiIndex` (:issue:`14885`).
 - Bug in which :meth:`DataFrame.append` produced an erroneous warning indicating that a ``KeyError`` will be thrown in the future when the data to be appended contains new columns (:issue:`22252`).
 -
 
