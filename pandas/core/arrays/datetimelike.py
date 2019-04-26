@@ -463,7 +463,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     def __setitem__(
             self,
-
             key: Union[int, Sequence[int], Sequence[bool], slice],
             value: Union[NaTType, Any, Sequence[Any]]
     ) -> None:
