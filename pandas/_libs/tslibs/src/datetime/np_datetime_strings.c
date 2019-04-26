@@ -275,7 +275,8 @@ static int __parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (out->hour >= 24) {
             if (want_exc) {
                 PyErr_Format(PyExc_ValueError,
-                            "Hours out of range in datetime string \"%s\"", str);
+                             "Hours out of range in datetime string \"%s\"",
+                             str);
             }
             goto error;
         }
@@ -317,7 +318,8 @@ static int __parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (out->min >= 60) {
             if (want_exc) {
                 PyErr_Format(PyExc_ValueError,
-                            "Minutes out of range in datetime string \"%s\"", str);
+                             "Minutes out of range in datetime string \"%s\"",
+                             str);
             }
             goto error;
         }
@@ -356,7 +358,8 @@ static int __parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (out->sec >= 60) {
             if (want_exc) {
                 PyErr_Format(PyExc_ValueError,
-                            "Seconds out of range in datetime string \"%s\"", str);
+                             "Seconds out of range in datetime string \"%s\"",
+                             str);
             }
             goto error;
         }

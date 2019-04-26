@@ -19,9 +19,10 @@ from pandas._libs.util cimport (
 
 from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
-from pandas._libs.tslibs.np_datetime cimport (_string_to_dts_noexc,
-    check_dts_bounds, npy_datetimestruct, _string_to_dts, dt64_to_dtstruct,
-    dtstruct_to_dt64, pydatetime_to_dt64, pydate_to_dt64, get_datetime64_value)
+from pandas._libs.tslibs.np_datetime cimport (
+    _string_to_dts_noexc, check_dts_bounds, npy_datetimestruct, _string_to_dts,
+    dt64_to_dtstruct, dtstruct_to_dt64, pydatetime_to_dt64, pydate_to_dt64,
+    get_datetime64_value)
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.parsing import parse_datetime_string
