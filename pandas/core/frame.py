@@ -2630,7 +2630,7 @@ class DataFrame(NDFrame):
         dtype: object
         """
         nv.validate_transpose(args, dict())
-        return super(DataFrame, self).transpose(1, 0, **kwargs)
+        return super().transpose(1, 0, **kwargs)
 
     T = property(transpose)
 
@@ -3761,12 +3761,10 @@ class DataFrame(NDFrame):
     def align(self, other, join='outer', axis=None, level=None, copy=True,
               fill_value=None, method=None, limit=None, fill_axis=0,
               broadcast_axis=None):
-        return super(DataFrame, self).align(other, join=join, axis=axis,
-                                            level=level, copy=copy,
-                                            fill_value=fill_value,
-                                            method=method, limit=limit,
-                                            fill_axis=fill_axis,
-                                            broadcast_axis=broadcast_axis)
+        return super().align(other, join=join, axis=axis, level=level,
+                             copy=copy, fill_value=fill_value, method=method,
+                             limit=limit, fill_axis=fill_axis,
+                             broadcast_axis=broadcast_axis)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.reindex.__doc__)
@@ -3783,15 +3781,14 @@ class DataFrame(NDFrame):
         # Pop these, since the values are in `kwargs` under different names
         kwargs.pop('axis', None)
         kwargs.pop('labels', None)
-        return super(DataFrame, self).reindex(**kwargs)
+        return super().reindex(**kwargs)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
                      limit=None, fill_value=np.nan):
-        return super(DataFrame,
-                     self).reindex_axis(labels=labels, axis=axis,
-                                        method=method, level=level, copy=copy,
-                                        limit=limit, fill_value=fill_value)
+        return super().reindex_axis(labels=labels, axis=axis, method=method,
+                                    level=level, copy=copy, limit=limit,
+                                    fill_value=fill_value)
 
     def drop(self, labels=None, axis=0, index=None, columns=None,
              level=None, inplace=False, errors='raise'):
@@ -3917,10 +3914,9 @@ class DataFrame(NDFrame):
         falcon  speed   320.0   250.0
                 weight  1.0     0.8
         """
-        return super(DataFrame, self).drop(labels=labels, axis=axis,
-                                           index=index, columns=columns,
-                                           level=level, inplace=inplace,
-                                           errors=errors)
+        return super().drop(labels=labels, axis=axis, index=index,
+                            columns=columns, level=level, inplace=inplace,
+                            errors=errors)
 
     @rewrite_axis_style_signature('mapper', [('copy', True),
                                              ('inplace', False),
@@ -4029,29 +4025,27 @@ class DataFrame(NDFrame):
         # Pop these, since the values are in `kwargs` under different names
         kwargs.pop('axis', None)
         kwargs.pop('mapper', None)
-        return super(DataFrame, self).rename(**kwargs)
+        return super().rename(**kwargs)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
-        return super(DataFrame,
-                     self).fillna(value=value, method=method, axis=axis,
-                                  inplace=inplace, limit=limit,
-                                  downcast=downcast, **kwargs)
+        return super().fillna(value=value, method=method, axis=axis,
+                              inplace=inplace, limit=limit, downcast=downcast,
+                              **kwargs)
 
     @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
                 regex=False, method='pad'):
-        return super(DataFrame, self).replace(to_replace=to_replace,
-                                              value=value, inplace=inplace,
-                                              limit=limit, regex=regex,
-                                              method=method)
+        return super().replace(to_replace=to_replace, value=value,
+                               inplace=inplace, limit=limit, regex=regex,
+                               method=method)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None):
-        return super(DataFrame, self).shift(periods=periods, freq=freq,
-                                            axis=axis, fill_value=fill_value)
+        return super().shift(periods=periods, freq=freq, axis=axis,
+                             fill_value=fill_value)
 
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
@@ -4479,19 +4473,19 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
     def isna(self):
-        return super(DataFrame, self).isna()
+        return super().isna()
 
     @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
     def isnull(self):
-        return super(DataFrame, self).isnull()
+        return super().isnull()
 
     @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
     def notna(self):
-        return super(DataFrame, self).notna()
+        return super().notna()
 
     @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
     def notnull(self):
-        return super(DataFrame, self).notnull()
+        return super().notnull()
 
     def dropna(self, axis=0, how='any', thresh=None, subset=None,
                inplace=False):
@@ -5701,6 +5695,12 @@ class DataFrame(NDFrame):
         margins_name : string, default 'All'
             Name of the row / column that will contain the totals
             when margins is True.
+        observed : boolean, default False
+            This only applies if any of the groupers are Categoricals.
+            If True: only show observed values for categorical groupers.
+            If False: show all values for categorical groupers.
+
+            .. versionchanged :: 0.25.0
 
         Returns
         -------
@@ -5791,12 +5791,12 @@ class DataFrame(NDFrame):
     @Appender(_shared_docs['pivot_table'])
     def pivot_table(self, values=None, index=None, columns=None,
                     aggfunc='mean', fill_value=None, margins=False,
-                    dropna=True, margins_name='All'):
+                    dropna=True, margins_name='All', observed=False):
         from pandas.core.reshape.pivot import pivot_table
         return pivot_table(self, values=values, index=index, columns=columns,
                            aggfunc=aggfunc, fill_value=fill_value,
                            margins=margins, dropna=dropna,
-                           margins_name=margins_name)
+                           margins_name=margins_name, observed=observed)
 
     def stack(self, level=-1, dropna=True):
         """
@@ -6334,7 +6334,7 @@ class DataFrame(NDFrame):
                            ._aggregate(arg, *args, **kwargs))
             result = result.T if result is not None else result
             return result, how
-        return super(DataFrame, self)._aggregate(arg, *args, **kwargs)
+        return super()._aggregate(arg, *args, **kwargs)
 
     agg = aggregate
 
@@ -6343,7 +6343,7 @@ class DataFrame(NDFrame):
         axis = self._get_axis_number(axis)
         if axis == 1:
             return super(DataFrame, self.T).transform(func, *args, **kwargs).T
-        return super(DataFrame, self).transform(func, *args, **kwargs)
+        return super().transform(func, *args, **kwargs)
 
     def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
               result_type=None, args=(), **kwds):
@@ -6720,7 +6720,7 @@ class DataFrame(NDFrame):
         elif isinstance(other, list) and not isinstance(other[0], DataFrame):
             other = DataFrame(other)
             if (self.columns.get_indexer(other.columns) >= 0).all():
-                other = other.loc[:, self.columns]
+                other = other.reindex(columns=self.columns)
 
         from pandas.core.reshape.concat import concat
         if isinstance(other, (list, tuple)):

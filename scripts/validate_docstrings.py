@@ -472,9 +472,12 @@ class Docstring:
 
     @property
     def see_also(self):
-        return collections.OrderedDict((name, ''.join(desc))
-                                       for name, desc, _
-                                       in self.doc['See Also'])
+        result = collections.OrderedDict()
+        for funcs, desc in self.doc['See Also']:
+            for func, _ in funcs:
+                result[func] = ''.join(desc)
+
+        return result
 
     @property
     def examples(self):
@@ -731,7 +734,7 @@ def get_validation_data(doc):
             if doc.method_returns_something:
                 errs.append(error('RT01'))
         else:
-            if len(doc.returns) == 1 and doc.returns[0][1]:
+            if len(doc.returns) == 1 and doc.returns[0].name:
                 errs.append(error('RT02'))
             for name_or_type, type_, desc in doc.returns:
                 if not desc:

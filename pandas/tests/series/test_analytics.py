@@ -1,4 +1,3 @@
-# coding=utf-8
 from itertools import product
 import operator
 
@@ -1330,6 +1329,16 @@ class TestNLargestNSmallest:
         expected = Series([6, 7, 7, 7, 7], index=[7, 3, 4, 5, 6])
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('data,expected',
+                             [([True, False], [True]),
+                              ([True, False, True, True], [True])])
+    def test_boolean(self, data, expected):
+        # GH 26154 : ensure True > False
+        s = Series(data)
+        result = s.nlargest(1)
+        expected = Series(expected)
+        assert_series_equal(result, expected)
+
 
 class TestCategoricalSeriesAnalytics:
 
@@ -1404,7 +1413,7 @@ class TestCategoricalSeriesAnalytics:
         "dtype",
         ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
          pytest.param("datetime64[D]",
-                      marks=pytest.mark.xfail(reason="GH#7996"))]
+                      marks=pytest.mark.xfail(reason="GH#7996", strict=False))]
     )
     def test_drop_duplicates_categorical_non_bool(self, dtype,
                                                   ordered_fixture):
