@@ -48,10 +48,9 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <../../../tslibs/src/datetime/np_datetime_strings.h>
 #include "datetime.h"
 
-static PyObject *type_decimal;
-
 #define NPY_JSON_BUFSIZE 32768
 
+static PyTypeObject *type_decimal;
 static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
@@ -154,8 +153,8 @@ void *initObjToJSON(void)
     PyObject *mod_pandas;
     PyObject *mod_nattype;
     PyObject *mod_decimal = PyImport_ImportModule("decimal");
-    type_decimal = PyObject_GetAttrString(mod_decimal, "Decimal");
-    Py_INCREF(type_decimal);
+    type_decimal =
+      (PyTypeObject *)PyObject_GetAttrString(mod_decimal, "Decimal");
     Py_DECREF(mod_decimal);
 
     PyDateTime_IMPORT;
@@ -1782,7 +1781,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         pc->PyTypeToJSON = PyUnicodeToUTF8;
         tc->type = JT_UTF8;
         return;
-    } else if (PyObject_IsInstance(obj, type_decimal)) {
+    } else if (PyObject_TypeCheck(obj, type_decimal)) {
         PRINTMARK();
         pc->PyTypeToJSON = PyFloatToDOUBLE;
         tc->type = JT_DOUBLE;
