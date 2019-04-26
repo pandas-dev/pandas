@@ -11,7 +11,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     if mode is None:
         mode = 'rb'
 
-    fs = gcsfs.GCSFileSystem()
+    fs = gcsfs.GCSFileSystem(cache_timeout=0)
     filepath_or_buffer = fs.open(
         filepath_or_buffer, mode)  # type: gcsfs.GCSFile
     return filepath_or_buffer, None, compression, True
