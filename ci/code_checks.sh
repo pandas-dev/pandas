@@ -127,7 +127,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for python2-style file encodings' ; echo $MSG
-    invgrep -R --include="*."{py,pyx} -E "# -\*- coding: utf-8 -\*-" pandas scripts
+    invgrep -R --include="*.py" --include="*.pyx" -E "# -\*- coding: utf-8 -\*-" pandas scripts
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check for the following code in testing: `np.testing` and `np.array_equal`
