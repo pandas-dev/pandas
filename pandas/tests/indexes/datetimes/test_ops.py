@@ -21,7 +21,7 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 class TestDatetimeIndexOps(Ops):
 
     def setup_method(self, method):
-        super(TestDatetimeIndexOps, self).setup_method(method)
+        super().setup_method(method)
         mask = lambda x: (isinstance(x, DatetimeIndex) or
                           isinstance(x, PeriodIndex))
         self.is_valid_objs = [o for o in self.objs if mask(o)]
@@ -390,7 +390,7 @@ class TestDatetimeIndexOps(Ops):
             idx.offset = BDay()
 
 
-class TestBusinessDatetimeIndex(object):
+class TestBusinessDatetimeIndex:
 
     def setup_method(self, method):
         self.rng = bdate_range(START, END)
@@ -449,7 +449,7 @@ class TestBusinessDatetimeIndex(object):
         assert not t1.identical(t2v)
 
 
-class TestCustomDatetimeIndex(object):
+class TestCustomDatetimeIndex:
     def setup_method(self, method):
         self.rng = bdate_range(START, END, freq='C')
 

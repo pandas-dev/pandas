@@ -3565,13 +3565,6 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
    os.remove('file.h5')
 
 
-.. ipython:: python
-   :suppress:
-
-   os.remove('file.h5')
-
-
-
 .. _io.hdf5-fixed:
 
 Fixed Format
@@ -4711,7 +4704,8 @@ Read only certain columns of a parquet file.
 
    result = pd.read_parquet('example_fp.parquet',
                             engine='fastparquet', columns=['a', 'b'])
-
+   result = pd.read_parquet('example_pa.parquet',
+                            engine='pyarrow', columns=['a', 'b'])
    result.dtypes
 
 

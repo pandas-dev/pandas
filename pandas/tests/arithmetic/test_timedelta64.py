@@ -31,7 +31,7 @@ def get_upcast_box(box, vector):
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Comparisons
 
-class TestTimedelta64ArrayComparisons(object):
+class TestTimedelta64ArrayComparisons:
     # TODO: All of these need to be parametrized over box
 
     def test_compare_timedelta_series(self):
@@ -157,7 +157,7 @@ class TestTimedelta64ArrayComparisons(object):
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Arithmetic Operations
 
-class TestTimedelta64ArithmeticUnsorted(object):
+class TestTimedelta64ArithmeticUnsorted:
     # Tests moved from type-specific test files but not
     #  yet sorted/parametrized/de-duplicated
 
@@ -442,7 +442,7 @@ class TestTimedelta64ArithmeticUnsorted(object):
         tm.assert_index_equal(result2, result3)
 
 
-class TestAddSubNaTMasking(object):
+class TestAddSubNaTMasking:
     # TODO: parametrize over boxes
 
     def test_tdi_add_timestamp_nat_masking(self):
@@ -502,7 +502,7 @@ class TestAddSubNaTMasking(object):
         tm.assert_index_equal(result, exp)
 
 
-class TestTimedeltaArraylikeAddSubOps(object):
+class TestTimedeltaArraylikeAddSubOps:
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
 
     # TODO: moved from frame tests; needs parametrization/de-duplication
@@ -1399,7 +1399,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
                 anchored - tdi
 
 
-class TestTimedeltaArraylikeMulDivOps(object):
+class TestTimedeltaArraylikeMulDivOps:
     # Tests for timedelta64[ns]
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
 
@@ -1990,7 +1990,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
             tm.assert_equal(result, expected)
 
 
-class TestTimedeltaArraylikeInvalidArithmeticOps(object):
+class TestTimedeltaArraylikeInvalidArithmeticOps:
 
     def test_td64arr_pow_invalid(self, scalar_td, box_with_array):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)

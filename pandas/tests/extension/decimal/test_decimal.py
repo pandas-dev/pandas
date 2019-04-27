@@ -65,7 +65,7 @@ def data_for_grouping():
     return DecimalArray([b, b, na, na, a, a, b, c])
 
 
-class BaseDecimal(object):
+class BaseDecimal:
 
     def assert_series_equal(self, left, right, *args, **kwargs):
         def convert(x):
@@ -149,7 +149,7 @@ class TestMissing(BaseDecimal, base.BaseMissingTests):
     pass
 
 
-class Reduce(object):
+class Reduce:
 
     def check_reduce(self, s, op_name, skipna):
 
@@ -262,8 +262,7 @@ def test_astype_dispatches(frame):
 class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
-        super(TestArithmeticOps, self).check_opname(s, op_name,
-                                                    other, exc=None)
+        super().check_opname(s, op_name, other, exc=None)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators
@@ -289,9 +288,7 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
         # We implement divmod
-        super(TestArithmeticOps, self)._check_divmod_op(
-            s, op, other, exc=None
-        )
+        super()._check_divmod_op(s, op, other, exc=None)
 
     def test_error(self):
         pass
@@ -300,8 +297,7 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
-        super(TestComparisonOps, self).check_opname(s, op_name,
-                                                    other, exc=None)
+        super().check_opname(s, op_name, other, exc=None)
 
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)

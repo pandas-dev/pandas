@@ -60,7 +60,7 @@ def _gcf():
     return plt.gcf()
 
 
-class MPLPlot(object):
+class MPLPlot:
     """
     Base class for assembling a pandas plot using matplotlib
 
@@ -883,7 +883,7 @@ class ScatterPlot(PlanePlot):
             # hide the matplotlib default for size, in case we want to change
             # the handling of this argument later
             s = 20
-        super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
+        super().__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
         self.c = c
@@ -940,7 +940,7 @@ class HexBinPlot(PlanePlot):
     _kind = 'hexbin'
 
     def __init__(self, data, x, y, C=None, **kwargs):
-        super(HexBinPlot, self).__init__(data, x, y, **kwargs)
+        super().__init__(data, x, y, **kwargs)
         if is_integer(C) and not self.data.columns.holds_integer():
             C = self.data.columns[C]
         self.C = C
@@ -1723,7 +1723,7 @@ class BoxPlot(LinePlot):
     @property
     def result(self):
         if self.return_type is None:
-            return super(BoxPlot, self).result
+            return super().result
         else:
             return self._return_obj
 
@@ -2088,15 +2088,15 @@ _shared_docs['boxplot'] = """
     -----
     The return type depends on the `return_type` parameter:
 
-        * 'axes' : object of class matplotlib.axes.Axes
-        * 'dict' : dict of matplotlib.lines.Line2D objects
-        * 'both' : a namedtuple with structure (ax, lines)
+    * 'axes' : object of class matplotlib.axes.Axes
+    * 'dict' : dict of matplotlib.lines.Line2D objects
+    * 'both' : a namedtuple with structure (ax, lines)
 
-        For data grouped with ``by``:
+    For data grouped with ``by``, return a Series of the above or a numpy
+    array:
 
-        * :class:`~pandas.Series`
-        * :class:`~numpy.array` (for ``return_type = None``)
-        Return Series or numpy.array.
+    * :class:`~pandas.Series`
+    * :class:`~numpy.array` (for ``return_type = None``)
 
     Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines

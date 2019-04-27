@@ -1,4 +1,3 @@
-# coding=utf-8
 from datetime import datetime
 
 import numpy as np
@@ -10,7 +9,7 @@ from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
 import pandas.util.testing as tm
 
 
-class TestSeriesAlterAxes(object):
+class TestSeriesAlterAxes:
 
     def test_setindex(self, string_series):
         # wrong type

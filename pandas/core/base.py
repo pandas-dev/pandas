@@ -9,7 +9,6 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-import pandas.compat as compat
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -33,7 +32,7 @@ _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
                             unique='IndexOpsMixin', duplicated='IndexOpsMixin')
 
 
-class StringMixin(object):
+class StringMixin:
     """
     Implements string methods so long as object defines a `__unicode__` method.
     """
@@ -108,10 +107,10 @@ class PandasObject(StringMixin, DirNamesMixin):
 
         # no memory_usage attribute, so fall back to
         # object's 'sizeof'
-        return super(PandasObject, self).__sizeof__()
+        return super().__sizeof__()
 
 
-class NoNewAttributesMixin(object):
+class NoNewAttributesMixin:
     """Mixin which prevents adding new attributes.
 
     Prevents additional attributes via xxx.attribute = "something" after a
@@ -154,7 +153,7 @@ class SpecificationError(GroupByError):
     pass
 
 
-class SelectionMixin(object):
+class SelectionMixin:
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
@@ -362,7 +361,7 @@ class SelectionMixin(object):
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
-            if any(is_aggregator(x) for x in compat.itervalues(arg)):
+            if any(is_aggregator(x) for x in arg.values()):
                 new_arg = OrderedDict()
                 for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
@@ -493,13 +492,12 @@ class SelectionMixin(object):
 
             def is_any_series():
                 # return a boolean if we have *any* nested series
-                return any(isinstance(r, ABCSeries)
-                           for r in compat.itervalues(result))
+                return any(isinstance(r, ABCSeries) for r in result.values())
 
             def is_any_frame():
                 # return a boolean if we have *any* nested series
                 return any(isinstance(r, ABCDataFrame)
-                           for r in compat.itervalues(result))
+                           for r in result.values())
 
             if isinstance(result, list):
                 return concat(result, keys=keys, axis=1, sort=True), True
@@ -647,7 +645,7 @@ class SelectionMixin(object):
         return self._builtin_table.get(arg, arg)
 
 
-class IndexOpsMixin(object):
+class IndexOpsMixin:
     """ common ops mixin to support a unified interface / docs for Series /
     Index
     """
@@ -705,6 +703,8 @@ class IndexOpsMixin(object):
     def data(self):
         """
         Return the data pointer of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.data is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -715,6 +715,8 @@ class IndexOpsMixin(object):
     def itemsize(self):
         """
         Return the size of the dtype of the item of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.itemsize is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -732,6 +734,8 @@ class IndexOpsMixin(object):
     def strides(self):
         """
         Return the strides of the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.strides is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -749,6 +753,8 @@ class IndexOpsMixin(object):
     def flags(self):
         """
         Return the ndarray.flags for the underlying data.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.flags is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
@@ -759,6 +765,8 @@ class IndexOpsMixin(object):
     def base(self):
         """
         Return the base object if the memory of the underlying data is shared.
+
+        .. deprecated:: 0.23.0
         """
         warnings.warn("{obj}.base is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),

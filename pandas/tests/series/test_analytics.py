@@ -1,4 +1,3 @@
-# coding=utf-8
 from itertools import product
 import operator
 
@@ -21,7 +20,7 @@ from pandas.util.testing import (
     assert_series_equal)
 
 
-class TestSeriesAnalytics(object):
+class TestSeriesAnalytics:
 
     def test_describe(self):
         s = Series([0, 1, 2, 3, 4], name='int_data')
@@ -1211,7 +1210,7 @@ def assert_check_nselect_boundary(vals, dtype, method):
     tm.assert_series_equal(result, expected)
 
 
-class TestNLargestNSmallest(object):
+class TestNLargestNSmallest:
 
     @pytest.mark.parametrize(
         "r", [Series([3., 2, 1, 2, '5'], dtype='object'),
@@ -1330,8 +1329,18 @@ class TestNLargestNSmallest(object):
         expected = Series([6, 7, 7, 7, 7], index=[7, 3, 4, 5, 6])
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('data,expected',
+                             [([True, False], [True]),
+                              ([True, False, True, True], [True])])
+    def test_boolean(self, data, expected):
+        # GH 26154 : ensure True > False
+        s = Series(data)
+        result = s.nlargest(1)
+        expected = Series(expected)
+        assert_series_equal(result, expected)
 
-class TestCategoricalSeriesAnalytics(object):
+
+class TestCategoricalSeriesAnalytics:
 
     def test_count(self):
 
@@ -1404,16 +1413,16 @@ class TestCategoricalSeriesAnalytics(object):
         "dtype",
         ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
          pytest.param("datetime64[D]",
-                      marks=pytest.mark.xfail(reason="GH#7996"))]
+                      marks=pytest.mark.xfail(reason="GH#7996", strict=False))]
     )
-    @pytest.mark.parametrize("is_ordered", [True, False])
-    def test_drop_duplicates_categorical_non_bool(self, dtype, is_ordered):
+    def test_drop_duplicates_categorical_non_bool(self, dtype,
+                                                  ordered_fixture):
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
         # Test case 1
         input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
         tc1 = Series(Categorical(input1, categories=cat_array,
-                                 ordered=is_ordered))
+                                 ordered=ordered_fixture))
 
         expected = Series([False, False, False, True])
         tm.assert_series_equal(tc1.duplicated(), expected)
@@ -1440,7 +1449,7 @@ class TestCategoricalSeriesAnalytics(object):
         # Test case 2
         input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
         tc2 = Series(Categorical(
-            input2, categories=cat_array, ordered=is_ordered)
+            input2, categories=cat_array, ordered=ordered_fixture)
         )
 
         expected = Series([False, False, False, False, True, True, False])
@@ -1465,10 +1474,10 @@ class TestCategoricalSeriesAnalytics(object):
         sc.drop_duplicates(keep=False, inplace=True)
         tm.assert_series_equal(sc, tc2[~expected])
 
-    @pytest.mark.parametrize("is_ordered", [True, False])
-    def test_drop_duplicates_categorical_bool(self, is_ordered):
+    def test_drop_duplicates_categorical_bool(self, ordered_fixture):
         tc = Series(Categorical([True, False, True, False],
-                                categories=[True, False], ordered=is_ordered))
+                                categories=[True, False],
+                                ordered=ordered_fixture))
 
         expected = Series([False, False, True, True])
         tm.assert_series_equal(tc.duplicated(), expected)

@@ -7,7 +7,6 @@ except ImportError:
 import calendar
 import datetime
 import decimal
-from io import StringIO
 import locale
 import math
 import re
@@ -58,7 +57,7 @@ def numpy(request):
     return request.param
 
 
-class TestUltraJSONTests(object):
+class TestUltraJSONTests:
 
     @pytest.mark.skipif(compat.is_platform_32bit(),
                         reason="not compliant on 32-bit, xref #15865")
@@ -440,11 +439,11 @@ class TestUltraJSONTests(object):
     def test_encode_recursion_max(self):
         # 8 is the max recursion depth
 
-        class O2(object):
+        class O2:
             member = 0
             pass
 
-        class O1(object):
+        class O1:
             member = 0
             pass
 
@@ -562,61 +561,10 @@ class TestUltraJSONTests(object):
     def test_decode_numeric_int_exp(self, int_exp):
         assert ujson.decode(int_exp) == json.loads(int_exp)
 
-    def test_dump_to_file(self):
-        f = StringIO()
-        ujson.dump([1, 2, 3], f)
-        assert "[1,2,3]" == f.getvalue()
-
-    def test_dump_to_file_like(self):
-        class FileLike(object):
-
-            def __init__(self):
-                self.bytes = ''
-
-            def write(self, data_bytes):
-                self.bytes += data_bytes
-
-        f = FileLike()
-        ujson.dump([1, 2, 3], f)
-        assert "[1,2,3]" == f.bytes
-
-    def test_dump_file_args_error(self):
-        with pytest.raises(TypeError):
-            ujson.dump([], "")
-
-    def test_load_file(self):
-        data = "[1,2,3,4]"
-        exp_data = [1, 2, 3, 4]
-
-        f = StringIO(data)
-        assert exp_data == ujson.load(f)
-
-        f = StringIO(data)
-        tm.assert_numpy_array_equal(np.array(exp_data),
-                                    ujson.load(f, numpy=True))
-
-    def test_load_file_like(self):
-        class FileLike(object):
-
-            def read(self):
-                try:
-                    self.end
-                except AttributeError:
-                    self.end = True
-                    return "[1,2,3,4]"
-
-        exp_data = [1, 2, 3, 4]
-
-        f = FileLike()
-        assert exp_data == ujson.load(f)
-
-        f = FileLike()
-        tm.assert_numpy_array_equal(np.array(exp_data),
-                                    ujson.load(f, numpy=True))
-
-    def test_load_file_args_error(self):
-        with pytest.raises(TypeError):
-            ujson.load("[]")
+    def test_loads_non_str_bytes_raises(self):
+        msg = "Expected 'str' or 'bytes'"
+        with pytest.raises(TypeError, match=msg):
+            ujson.loads(None)
 
     def test_version(self):
         assert re.match(r'^\d+\.\d+(\.\d+)?$', ujson.__version__), \
@@ -627,7 +575,7 @@ class TestUltraJSONTests(object):
             ujson.encode(12839128391289382193812939)
 
     def test_encode_numeric_overflow_nested(self):
-        class Nested(object):
+        class Nested:
             x = 12839128391289382193812939
 
         for _ in range(0, 100):
@@ -662,7 +610,7 @@ class TestUltraJSONTests(object):
     def test_to_dict(self):
         d = {"key": 31337}
 
-        class DictTest(object):
+        class DictTest:
             def toDict(self):
                 return d
 
@@ -674,7 +622,7 @@ class TestUltraJSONTests(object):
 
     def test_default_handler(self):
 
-        class _TestObject(object):
+        class _TestObject:
 
             def __init__(self, val):
                 self.val = val
@@ -722,7 +670,7 @@ class TestUltraJSONTests(object):
                 ujson.decode(ujson.encode(obj_list, default_handler=str)))
 
 
-class TestNumpyJSONTests(object):
+class TestNumpyJSONTests:
 
     @pytest.mark.parametrize("bool_input", [True, False])
     def test_bool(self, bool_input):
@@ -885,7 +833,7 @@ class TestNumpyJSONTests(object):
         assert (np.array(["a", "b"]) == output[2]).all()
 
 
-class TestPandasJSONTests(object):
+class TestPandasJSONTests:
 
     def test_dataframe(self, orient, numpy):
         if orient == "records" and numpy:
