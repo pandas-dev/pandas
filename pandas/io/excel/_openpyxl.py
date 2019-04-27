@@ -516,6 +516,17 @@ class _OpenpyxlReader(_BaseExcelReader):
     def sheet_names(self):
         return self.book.sheetnames
 
+    def _handle_sheet_name(self, sheet_name):
+        """Handle the sheet_name keyword."""
+        # Keep sheetname to maintain backwards compatibility.
+        if isinstance(sheet_name, list):
+            sheets = sheet_name
+        elif sheet_name is None:
+            sheets = self.sheet_names
+        else:
+            sheets = [sheet_name]
+        return sheets
+
     def get_sheet_by_name(self, name):
         return self.book[name]
 
@@ -562,24 +573,14 @@ class _OpenpyxlReader(_BaseExcelReader):
 
         _validate_header_arg(header)
 
-        ret_dict = False
-
-        # Keep sheetname to maintain backwards compatibility.
-        if isinstance(sheet_name, list):
-            sheets = sheet_name
-            ret_dict = True
-        elif sheet_name is None:
-            sheets = self.sheet_names
-            ret_dict = True
-        else:
-            sheets = [sheet_name]
-
-        # handle same-type duplicates.
-        sheets = list(OrderedDict.fromkeys(sheets).keys())
-
+        sheets = self._handle_sheet_name(sheet_name)
+        ret_dict = len(sheets) != 1
         output = OrderedDict()
 
         for asheetname in sheets:
+            if asheetname in output.keys():
+                # skip duplicates in sheets
+                continue
             if verbose:
                 print("Reading sheet {sheet}".format(sheet=asheetname))
 
