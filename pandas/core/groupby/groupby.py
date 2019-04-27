@@ -1188,7 +1188,7 @@ class GroupBy(_GroupBy):
 
         # TODO: implement at Cython level?
         with _group_selection_context(self):
-            f = lambda x: x.std(axis=self.axis, **kwargs)
+            f = lambda x: x.std(ddof=ddof, **kwargs)
             return self._python_agg_general(f)
 
     @Substitution(name='groupby')
