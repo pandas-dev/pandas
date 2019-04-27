@@ -1007,6 +1007,10 @@ def assert_series_equal(left, right, check_dtype=True,
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+
+    Returns
+    -------
+    None
     """
     __tracebackhide__ = True
 
