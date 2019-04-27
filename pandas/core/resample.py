@@ -780,6 +780,11 @@ class Resampler(_GroupBy):
 
             .. versionadded:: 0.20.0
 
+        Returns
+        -------
+        DataFrame or Series
+            Values at the specified freq.
+
         See Also
         --------
         Series.asfreq
@@ -795,6 +800,11 @@ class Resampler(_GroupBy):
         ----------
         ddof : integer, default 1
             Degrees of freedom.
+
+        Returns
+        -------
+        DataFrame or Series
+            Standard deviation of values within each group.
         """
         nv.validate_resampler_func('std', args, kwargs)
         return self._downsample('std', ddof=ddof)
@@ -807,12 +817,23 @@ class Resampler(_GroupBy):
         ----------
         ddof : integer, default 1
             degrees of freedom
+
+        Returns
+        -------
+        DataFrame or Series
+            Variance of values within each group.
         """
         nv.validate_resampler_func('var', args, kwargs)
         return self._downsample('var', ddof=ddof)
 
     @Appender(GroupBy.size.__doc__)
     def size(self):
+        """
+        Returns
+        -------
+        Series
+            Number of rows in each group.
+        """
         # It's a special case as higher level does return
         # a copy of 0-len objects. GH14962
         result = self._downsample('size')
@@ -829,6 +850,11 @@ class Resampler(_GroupBy):
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
+
+        Returns
+        -------
+        DataFrame or Series
+            Quantile of values within each group.
 
         See Also
         --------

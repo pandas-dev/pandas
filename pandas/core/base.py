@@ -656,6 +656,10 @@ class IndexOpsMixin:
     def transpose(self, *args, **kwargs):
         """
         Return the transpose, which is by definition self.
+
+        Returns
+        -------
+        self: %(klass)s
         """
         nv.validate_transpose(args, kwargs)
         return self
@@ -696,6 +700,11 @@ class IndexOpsMixin:
     def item(self):
         """
         Return the first element of the underlying data as a python scalar.
+
+        Returns
+        -------
+        scalar
+            The first element of %(klass)s.
         """
         return self.values.item()
 
@@ -1016,6 +1025,11 @@ class IndexOpsMixin:
             Dummy argument for consistency with Series
         skipna : bool, default True
 
+        Returns
+        -------
+        numpy.ndarray
+            Indices of the maximum values.
+
         See Also
         --------
         numpy.ndarray.argmax
@@ -1116,6 +1130,10 @@ class IndexOpsMixin:
         These are each a scalar type, which is a Python scalar
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
+
+        Returns
+        -------
+        iterator
         """
         # We are explicity making element iterators.
         if is_datetimelike(self._values):

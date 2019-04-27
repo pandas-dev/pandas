@@ -1388,6 +1388,10 @@ class DataFrame(NDFrame):
             or string contents. This is useful for remote server
             authentication (eg. Jupyter/IPython notebook on remote host).
 
+        Returns
+        -------
+        None
+
         See Also
         --------
         pandas_gbq.to_gbq : This function in the pandas-gbq library.
@@ -3662,6 +3666,11 @@ class DataFrame(NDFrame):
             The row labels to use for lookup
         col_labels : sequence
             The column labels to use for lookup
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of the values corresponding to each (row, col) pair.
 
         Notes
         -----
@@ -6050,6 +6059,11 @@ class DataFrame(NDFrame):
         Name to use for the 'value' column.
     col_level : int or string, optional
         If columns are a MultiIndex then use this level to melt.
+
+    Returns
+    -------
+    DataFrame
+        Unpivoted DataFrame.
 
     See Also
     --------
