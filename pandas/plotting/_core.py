@@ -2477,6 +2477,11 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     `**kwds` : keywords
         To be passed to the actual plotting function
 
+    Returns
+    -------
+    axes: matplotlib.AxesSubplot
+        A histogram plot.
+
     See Also
     --------
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
