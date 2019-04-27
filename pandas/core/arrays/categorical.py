@@ -619,6 +619,10 @@ class Categorical(ExtensionArray, PandasObject):
                When `dtype` is provided, neither `categories` nor `ordered`
                should be provided.
 
+        Returns
+        -------
+        Categorical
+
         Examples
         --------
         >>> dtype = pd.CategoricalDtype(['a', 'b'], ordered=True)
