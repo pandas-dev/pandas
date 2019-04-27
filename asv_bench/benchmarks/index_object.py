@@ -191,8 +191,14 @@ class IntervalIndexMethod:
         self.intv = IntervalIndex.from_arrays(left, right)
         self.intv._engine
 
+        self.left = IntervalIndex.from_breaks(np.arange(N))
+        self.right = IntervalIndex.from_breaks(np.arange(N - 3, 2 * N - 3))
+
     def time_monotonic_inc(self, N):
         self.intv.is_monotonic_increasing
+
+    def time_intersection(self, N):
+        self.left.intersection(self.right)
 
 
 from .pandas_vb_common import setup  # noqa: F401
