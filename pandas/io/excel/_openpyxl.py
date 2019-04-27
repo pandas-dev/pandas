@@ -516,6 +516,19 @@ class _OpenpyxlReader(_BaseExcelReader):
     def sheet_names(self):
         return self.book.sheetnames
 
+    @staticmethod
+    def _handle_usecols(frame, usecols):
+        column_names = frame.columns.values
+        if usecols:
+            _validate_usecols_arg(usecols)
+            usecols = sorted(usecols)
+            if any(isinstance(i, str) for i in usecols):
+                _validate_usecols_names(usecols, column_names)
+                frame = frame[usecols]
+            else:
+                frame = frame.iloc[:, usecols]
+        return frame
+
     def _handle_sheet_name(self, sheet_name):
         """Handle the sheet_name keyword."""
         # Keep sheetname to maintain backwards compatibility.
@@ -640,14 +653,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         column_names = [cell for i, cell in enumerate(data.pop(0))]
 
         frame = DataFrame(data, columns=column_names)
-        if usecols:
-            _validate_usecols_arg(usecols)
-            usecols = sorted(usecols)
-            if any(isinstance(i, str) for i in usecols):
-                _validate_usecols_names(usecols, column_names)
-                frame = frame[usecols]
-            else:
-                frame = frame.iloc[:, usecols]
+        frame = self._handle_usecols(frame, usecols)
 
         if not converters:
             converters = dict()
