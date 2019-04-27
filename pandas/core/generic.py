@@ -9802,10 +9802,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         def describe_numeric_1d(series):
             stat_index = (['count', 'mean', 'std', 'min'] +
-                          formatted_percentiles + ['max', 'missing'])
+                          formatted_percentiles + ['max', 'size'])
             d = ([series.count(), series.mean(), series.std(), series.min()] +
                  series.quantile(percentiles).tolist() + [series.max(),
-                 series.isna().sum()])
+                 series.size])
             return pd.Series(d, index=stat_index, name=series.name)
 
         def describe_categorical_1d(data):
