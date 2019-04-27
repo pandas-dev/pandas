@@ -541,11 +541,138 @@ class _OpenpyxlReader(_BaseExcelReader):
                    else cell.value
                    for cell in row]
 
-    def get_sheet_data(self, sheet, convert_float):
+    def get_sheet_data(self, sheet):
         data = self._replace_type_error_with_nan(sheet.rows)
-        # TODO: support using iterator
-        # TODO: don't make strings out of data
         return list(data)
+
+    def _parse_sheet(self, sheet, convert_float, usecols, header, skiprows,
+                     index_col, converters, skipfooter, dtype, squeeze):
+        """Parse a signle sheet into a dataframe."""
+
+        data = self.get_sheet_data(sheet)
+        if not data or data == [[None]]:
+            return DataFrame()
+
+        usecols = _maybe_convert_usecols(usecols)
+
+        if is_list_like(header) and len(header) == 1:
+            header = header[0]
+
+        # TODO: scrutinize what is going here
+        # forward fill and pull out names for MultiIndex column
+        header_names = None
+        if header is not None and is_list_like(header):
+            header_names = []
+            control_row = [True] * len(data[0])
+
+            for row in header:
+                if is_integer(skiprows):
+                    row += skiprows
+
+                data[row], control_row = _fill_mi_header(data[row],
+                                                         control_row)
+
+                if index_col is not None:
+                    header_name, _ = _pop_header_name(data[row], index_col)
+                    header_names.append(header_name)
+
+        # TODO: implement whatever this should do
+        # has_index_names = is_list_like(header) and len(header) > 1
+
+        if skiprows:
+            data = [row for i, row in enumerate(data) if i not in skiprows]
+
+        if skipfooter:
+            data = data[:-skipfooter]
+
+        column_names = [cell for i, cell in enumerate(data.pop(0))]
+
+        frame = DataFrame(data, columns=column_names)
+        if usecols:
+            _validate_usecols_arg(usecols)
+            usecols = sorted(usecols)
+            if any(isinstance(i, str) for i in usecols):
+                _validate_usecols_names(usecols, column_names)
+                frame = frame[usecols]
+            else:
+                frame = frame.iloc[:, usecols]
+
+        if not converters:
+            converters = dict()
+        if not dtype:
+            dtype = dict()
+
+        # handle columns referenced by number so all references are by
+        #  column name
+        handled_converters = {}
+        for k, v in converters.items():
+            if k not in frame.columns and isinstance(k, int):
+                k = frame.columns[k]
+            handled_converters[k] = v
+        converters = handled_converters
+
+        # attempt to convert object columns to integer. Only because this
+        # is implicitly done when reading and excel file with xlrd
+        # TODO: question if this should be default behaviour
+        if len(frame) > 0:
+            for column in set(frame) - set(dtype.keys()):
+                if frame[column].dtype == object:
+                    try:
+                        frame[column] = frame[column].astype('int64')
+                    except (ValueError, TypeError):
+                        try:
+                            frame[column] = frame[column].astype('float64')
+                        except (ValueError, TypeError):
+                            continue
+                elif (convert_float
+                        and frame[column].dtype >= float
+                        and all(frame[column] % 1 == 0)):
+                    frame[column] = frame[column].astype('int64')
+                elif not convert_float:
+                    if frame[column].dtype >= int:
+                        frame[column] = frame[column].astype('float64')
+
+        if converters:
+            for k, v in converters.items():
+                # for compatibiliy reasons
+                if frame[k].dtype == float and convert_float:
+                    frame[k] = frame[k].fillna('')
+                frame[k] = frame[k].apply(v)
+
+        if dtype:
+            for k, v in dtype.items():
+                frame[k] = frame[k].astype(v)
+
+        if index_col is not None:
+            if is_list_like(index_col):
+                if any(isinstance(i, str) for i in index_col):
+                    # TODO: see if there is already a method for this in
+                    # pandas.io.parsers
+                    frame = frame.set_index(index_col)
+                    if len(index_col) == 1:
+                        # TODO: understand why this is needed
+                        raise TypeError(
+                            "list indices must be integers.*, not str")
+                else:
+                    frame = frame.set_index(
+                        [column_names[i] for i in index_col])
+            else:
+                if isinstance(index_col, str):
+                    frame = frame.set_index(index_col)
+                else:
+                    frame = frame.set_index(column_names[index_col])
+
+        if not squeeze or isinstance(frame, DataFrame):
+            if header_names:
+                frame = frame.columns.set_names(header_names)
+
+        # name unnamed columns
+        unnamed = 0
+        for i, col_name in enumerate(frame.columns.values):
+            if col_name is None:
+                frame.columns.values[i] = "Unnamed: {n}".format(n=unnamed)
+                unnamed += 1
+        return frame
 
     def parse(self,
               sheet_name=0,
@@ -589,132 +716,9 @@ class _OpenpyxlReader(_BaseExcelReader):
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
 
-            data = self.get_sheet_data(sheet, convert_float)
-            if not data or data == [[None]]:
-                output[asheetname] = DataFrame()
-                continue
-
-            usecols = _maybe_convert_usecols(usecols)
-
-            if is_list_like(header) and len(header) == 1:
-                header = header[0]
-
-            # TODO: scrutinize what is going here
-            # forward fill and pull out names for MultiIndex column
-            header_names = None
-            if header is not None and is_list_like(header):
-                header_names = []
-                control_row = [True] * len(data[0])
-
-                for row in header:
-                    if is_integer(skiprows):
-                        row += skiprows
-
-                    data[row], control_row = _fill_mi_header(data[row],
-                                                             control_row)
-
-                    if index_col is not None:
-                        header_name, _ = _pop_header_name(data[row], index_col)
-                        header_names.append(header_name)
-
-            # TODO: implement whatever this should do
-            # has_index_names = is_list_like(header) and len(header) > 1
-
-            if skiprows:
-                data = [row for i, row in enumerate(data) if i not in skiprows]
-
-            if skipfooter:
-                data = data[:-skipfooter]
-
-            column_names = [cell for i, cell in enumerate(data.pop(0))]
-
-            frame = DataFrame(data, columns=column_names)
-            if usecols:
-                _validate_usecols_arg(usecols)
-                usecols = sorted(usecols)
-                if any(isinstance(i, str) for i in usecols):
-                    _validate_usecols_names(usecols, column_names)
-                    frame = frame[usecols]
-                else:
-                    frame = frame.iloc[:, usecols]
-
-            if not converters:
-                converters = dict()
-            if not dtype:
-                dtype = dict()
-
-            # handle columns referenced by number so all references are by
-            #  column name
-            handled_converters = {}
-            for k, v in converters.items():
-                if k not in frame.columns and isinstance(k, int):
-                    k = frame.columns[k]
-                handled_converters[k] = v
-            converters = handled_converters
-
-            # attempt to convert object columns to integer. Only because this
-            # is implicitly done when reading and excel file with xlrd
-            # TODO: question if this should be default behaviour
-            if len(frame) > 0:
-                for column in set(frame) - set(dtype.keys()):
-                    if frame[column].dtype == object:
-                        try:
-                            frame[column] = frame[column].astype('int64')
-                        except (ValueError, TypeError):
-                            try:
-                                frame[column] = frame[column].astype('float64')
-                            except (ValueError, TypeError):
-                                continue
-                    elif (convert_float
-                            and frame[column].dtype >= float
-                            and all(frame[column] % 1 == 0)):
-                        frame[column] = frame[column].astype('int64')
-                    elif not convert_float:
-                        if frame[column].dtype >= int:
-                            frame[column] = frame[column].astype('float64')
-
-            if converters:
-                for k, v in converters.items():
-                    # for compatibiliy reasons
-                    if frame[k].dtype == float and convert_float:
-                        frame[k] = frame[k].fillna('')
-                    frame[k] = frame[k].apply(v)
-
-            if dtype:
-                for k, v in dtype.items():
-                    frame[k] = frame[k].astype(v)
-
-            if index_col is not None:
-                if is_list_like(index_col):
-                    if any(isinstance(i, str) for i in index_col):
-                        # TODO: see if there is already a method for this in
-                        # pandas.io.parsers
-                        frame = frame.set_index(index_col)
-                        if len(index_col) == 1:
-                            # TODO: understand why this is needed
-                            raise TypeError(
-                                "list indices must be integers.*, not str")
-                    else:
-                        frame = frame.set_index(
-                            [column_names[i] for i in index_col])
-                else:
-                    if isinstance(index_col, str):
-                        frame = frame.set_index(index_col)
-                    else:
-                        frame = frame.set_index(column_names[index_col])
-
-            output[asheetname] = frame
-            if not squeeze or isinstance(output[asheetname], DataFrame):
-                if header_names:
-                    output[asheetname].columns = output[
-                        asheetname].columns.set_names(header_names)
-
-            # name unnamed columns
-            unnamed = 0
-            for i, col_name in enumerate(frame.columns.values):
-                if col_name is None:
-                    frame.columns.values[i] = "Unnamed: {n}".format(n=unnamed)
-                    unnamed += 1
+            output[asheetname] = self._parse_sheet(
+                sheet, convert_float, usecols, header, skiprows, index_col,
+                converters, skipfooter, dtype, squeeze)
 
         if ret_dict:
             return output
