@@ -363,7 +363,7 @@ def _getlang():
     return locale.getlocale(locale.LC_TIME)
 
 
-class LocaleTime(object):
+class LocaleTime:
     """Stores and handles locale-specific information related to time.
 
     ATTRIBUTES:
@@ -528,7 +528,7 @@ class TimeRE(dict):
             self.locale_time = locale_time
         else:
             self.locale_time = LocaleTime()
-        base = super(TimeRE, self)
+        base = super()
         base.__init__({
             # The " \d" part of the regex is to make %c from ANSI C work
             'd': r"(?P<d>3[0-1]|[1-2]\d|0[1-9]|[1-9]| [1-9])",

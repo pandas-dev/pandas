@@ -57,7 +57,7 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
-class RoundTo(object):
+class RoundTo:
     """
     enumeration defining the available rounding modes
 

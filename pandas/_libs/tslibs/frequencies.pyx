@@ -22,7 +22,7 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 # Period codes
 
 
-class FreqGroup(object):
+class FreqGroup:
     FR_ANN = 1000
     FR_QTR = 2000
     FR_MTH = 3000

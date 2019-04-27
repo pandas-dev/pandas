@@ -1,4 +1,3 @@
-# coding=utf-8
 from datetime import datetime, timedelta
 from importlib import reload
 import string

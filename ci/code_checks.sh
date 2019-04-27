@@ -141,7 +141,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for python2 new-style classes' ; echo $MSG
-    invgrep -R --include="*.py" -E "class\s\S*\(object\):" pandas scripts
+    invgrep -R --include="*.py" --include="*.pyx" -E "class\s\S*\(object\):" pandas scripts
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG

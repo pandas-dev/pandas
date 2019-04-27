@@ -944,6 +944,12 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         except TypeError:
             # slices are unhashable
             pass
+        except KeyError as ek:
+            # raise KeyError if number of indexers match
+            # else IndexingError will be raised
+            if (len(tup) <= self.obj.index.nlevels
+                    and len(tup) > self.obj.ndim):
+                raise ek
         except Exception as e1:
             if isinstance(tup[0], (slice, Index)):
                 raise IndexingError("Handle elsewhere")
@@ -1414,7 +1420,7 @@ class _IXIndexer(_NDFrameIndexer):
     def __init__(self, name, obj):
         warnings.warn(self._ix_deprecation_warning,
                       DeprecationWarning, stacklevel=2)
-        super(_IXIndexer, self).__init__(name, obj)
+        super().__init__(name, obj)
 
     @Appender(_NDFrameIndexer._validate_key.__doc__)
     def _validate_key(self, key, axis):
