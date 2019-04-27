@@ -27,6 +27,11 @@ def register_extension_dtype(cls):
     This enables operations like ``.astype(name)`` for the name
     of the ExtensionDtype.
 
+    Returns
+    -------
+    callable
+        A class decorator.
+
     Examples
     --------
     >>> from pandas.api.extensions import register_extension_dtype
