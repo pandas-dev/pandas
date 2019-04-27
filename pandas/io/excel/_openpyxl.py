@@ -548,6 +548,30 @@ class _OpenpyxlReader(_BaseExcelReader):
                     header_names.append(header_name)
         return header_names
 
+    @staticmethod
+    def _handle_convert_float(series, convert_float):
+        """Handle the convert_float keyword."""
+        # attempt to convert object columns to integer. Only because this
+        # is implicitly done when reading and excel file with xlrd, that
+        # behaviour is replicated here.
+
+        if series.dtype == object:
+            try:
+                series = series.astype('int64')
+            except (ValueError, TypeError):
+                try:
+                    series = series.astype('float64')
+                except (ValueError, TypeError):
+                    return series
+        elif (convert_float
+                and series.dtype >= float
+                and all(series % 1 == 0)):
+            series = series.astype('int64')
+        elif not convert_float:
+            if series.dtype >= int:
+                series = series.astype('float64')
+        return series
+
     def get_sheet_by_name(self, name):
         return self.book[name]
 
@@ -617,26 +641,10 @@ class _OpenpyxlReader(_BaseExcelReader):
             handled_converters[k] = v
         converters = handled_converters
 
-        # attempt to convert object columns to integer. Only because this
-        # is implicitly done when reading and excel file with xlrd
-        # TODO: question if this should be default behaviour
         if len(frame) > 0:
             for column in set(frame) - set(dtype.keys()):
-                if frame[column].dtype == object:
-                    try:
-                        frame[column] = frame[column].astype('int64')
-                    except (ValueError, TypeError):
-                        try:
-                            frame[column] = frame[column].astype('float64')
-                        except (ValueError, TypeError):
-                            continue
-                elif (convert_float
-                        and frame[column].dtype >= float
-                        and all(frame[column] % 1 == 0)):
-                    frame[column] = frame[column].astype('int64')
-                elif not convert_float:
-                    if frame[column].dtype >= int:
-                        frame[column] = frame[column].astype('float64')
+                frame[column] = self._handle_convert_float(frame[column],
+                                                           convert_float)
 
         if converters:
             for k, v in converters.items():
