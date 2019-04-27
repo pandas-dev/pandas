@@ -572,6 +572,28 @@ class _OpenpyxlReader(_BaseExcelReader):
                 series = series.astype('float64')
         return series
 
+    @staticmethod
+    def _handle_index_col(frame, index_col):
+        column_names = frame.columns.values
+        if index_col is None:
+            return frame
+        if is_list_like(index_col):
+            if any(isinstance(i, str) for i in index_col):
+                # TODO: see if there is already a method for this in
+                # pandas.io.parsers
+                frame = frame.set_index(index_col)
+                if len(index_col) == 1:
+                    # TODO: understand why this is needed
+                    raise TypeError("list indices must be integers.*, not str")
+            else:
+                frame = frame.set_index([column_names[i] for i in index_col])
+        else:
+            if isinstance(index_col, str):
+                frame = frame.set_index(index_col)
+            else:
+                frame = frame.set_index(column_names[index_col])
+        return frame
+
     def get_sheet_by_name(self, name):
         return self.book[name]
 
@@ -657,24 +679,7 @@ class _OpenpyxlReader(_BaseExcelReader):
             for k, v in dtype.items():
                 frame[k] = frame[k].astype(v)
 
-        if index_col is not None:
-            if is_list_like(index_col):
-                if any(isinstance(i, str) for i in index_col):
-                    # TODO: see if there is already a method for this in
-                    # pandas.io.parsers
-                    frame = frame.set_index(index_col)
-                    if len(index_col) == 1:
-                        # TODO: understand why this is needed
-                        raise TypeError(
-                            "list indices must be integers.*, not str")
-                else:
-                    frame = frame.set_index(
-                        [column_names[i] for i in index_col])
-            else:
-                if isinstance(index_col, str):
-                    frame = frame.set_index(index_col)
-                else:
-                    frame = frame.set_index(column_names[index_col])
+        frame = self._handle_index_col(frame, index_col)
 
         if not squeeze or isinstance(frame, DataFrame):
             if header_names:
