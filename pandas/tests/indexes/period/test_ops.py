@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 class TestPeriodIndexOps(Ops):
 
     def setup_method(self, method):
-        super(TestPeriodIndexOps, self).setup_method(method)
+        super().setup_method(method)
         mask = lambda x: (isinstance(x, DatetimeIndex) or
                           isinstance(x, PeriodIndex))
         self.is_valid_objs = [o for o in self.objs if mask(o)]

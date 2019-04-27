@@ -2,7 +2,7 @@
 # cython: boundscheck=False, initializedcheck=False
 
 import numpy as np
-import sas_constants as const
+import pandas.io.sas.sas_constants as const
 
 ctypedef signed long long   int64_t
 ctypedef unsigned char      uint8_t
@@ -211,7 +211,7 @@ cdef:
     int subheader_pointers_offset = const.subheader_pointers_offset
 
 
-cdef class Parser(object):
+cdef class Parser:
 
     cdef:
         int column_count

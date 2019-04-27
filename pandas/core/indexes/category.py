@@ -3,6 +3,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import index as libindex
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -19,7 +21,6 @@ from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, contains
 import pandas.core.common as com
-from pandas.core.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 import pandas.core.missing as missing
@@ -237,7 +238,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         values = cls._create_categorical(values, dtype=dtype)
         result._data = values
         result.name = name
-        for k, v in compat.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(result, k, v)
 
         result._reset_identity()
@@ -249,8 +250,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _shallow_copy(self, values=None, dtype=None, **kwargs):
         if dtype is None:
             dtype = self.dtype
-        return super(CategoricalIndex, self)._shallow_copy(
-            values=values, dtype=dtype, **kwargs)
+        return super()._shallow_copy(values=values, dtype=dtype, **kwargs)
 
     def _is_dtype_compat(self, other):
         """
@@ -396,7 +396,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
-        return super(CategoricalIndex, self).astype(dtype=dtype, copy=copy)
+        return super().astype(dtype=dtype, copy=copy)
 
     @cache_readonly
     def _isnan(self):
@@ -502,7 +502,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             pass
 
         # we might be a positional inexer
-        return super(CategoricalIndex, self).get_value(series, key)
+        return super().get_value(series, key)
 
     def _can_reindex(self, indexer):
         """ always allow reindexing """
@@ -665,8 +665,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if self.categories._defer_to_indexing:
             return self.categories._convert_scalar_indexer(key, kind=kind)
 
-        return super(CategoricalIndex, self)._convert_scalar_indexer(
-            key, kind=kind)
+        return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(_index_shared_docs['_convert_list_indexer'])
     def _convert_list_indexer(self, keyarr, kind=None):

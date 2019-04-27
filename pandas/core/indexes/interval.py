@@ -4,11 +4,11 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import Timedelta, Timestamp
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
-from pandas.compat import add_metaclass
 from pandas.util._decorators import Appender, cache_readonly
-from pandas.util._doctools import _WritableDoc
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
@@ -21,7 +21,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
-from pandas.core.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, _index_shared_docs, default_pprint, ensure_index)
@@ -125,7 +124,6 @@ def _new_IntervalIndex(cls, d):
     """),
 
 ))
-@add_metaclass(_WritableDoc)
 class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
@@ -408,7 +406,7 @@ class IntervalIndex(IntervalMixin, Index):
             new_values = self.values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values.left, new_values.right)
-        return super(IntervalIndex, self).astype(dtype, copy=copy)
+        return super().astype(dtype, copy=copy)
 
     @cache_readonly
     def dtype(self):
@@ -440,7 +438,7 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic increasing (only equal or
         increasing values), else False
         """
-        return self._multiindex.is_monotonic
+        return self.is_monotonic_increasing
 
     @cache_readonly
     def is_monotonic_increasing(self):
@@ -448,7 +446,7 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic increasing (only equal or
         increasing values), else False
         """
-        return self._multiindex.is_monotonic_increasing
+        return self._engine.is_monotonic_increasing
 
     @cache_readonly
     def is_monotonic_decreasing(self):
@@ -456,7 +454,7 @@ class IntervalIndex(IntervalMixin, Index):
         Return True if the IntervalIndex is monotonic decreasing (only equal or
         decreasing values), else False
         """
-        return self._multiindex.is_monotonic_decreasing
+        return self[::-1].is_monotonic_increasing
 
     @cache_readonly
     def is_unique(self):
@@ -529,8 +527,7 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
         if kind == 'iloc':
-            return super(IntervalIndex, self)._convert_scalar_indexer(
-                key, kind=kind)
+            return super()._convert_scalar_indexer(key, kind=kind)
         return key
 
     def _maybe_cast_slice_bound(self, label, side, kind):
@@ -914,7 +911,7 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = self._maybe_cast_indexed(ensure_index(target))
-        return super(IntervalIndex, self).get_indexer_non_unique(target)
+        return super().get_indexer_non_unique(target)
 
     @Appender(_index_shared_docs['where'])
     def where(self, cond, other=None):
@@ -989,7 +986,7 @@ class IntervalIndex(IntervalMixin, Index):
             msg = ('can only append two IntervalIndex objects '
                    'that are closed on the same side')
             raise ValueError(msg)
-        return super(IntervalIndex, self)._concat_same_dtype(to_concat, name)
+        return super()._concat_same_dtype(to_concat, name)
 
     @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
@@ -1014,7 +1011,7 @@ class IntervalIndex(IntervalMixin, Index):
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
 
-    def _format_native_types(self, na_rep='', quoting=None, **kwargs):
+    def _format_native_types(self, na_rep='NaN', quoting=None, **kwargs):
         """ actually format my specific types """
         from pandas.io.formats.format import ExtensionArrayFormatter
         return ExtensionArrayFormatter(values=self,

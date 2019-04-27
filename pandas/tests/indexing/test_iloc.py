@@ -118,6 +118,21 @@ class TestiLoc(Base):
         with pytest.raises(IndexError, match=msg):
             dfl.iloc[:, 4]
 
+    @pytest.mark.parametrize("index,columns", [(np.arange(20), list('ABCDE'))])
+    @pytest.mark.parametrize("index_vals,column_vals", [
+        ([slice(None), ['A', 'D']]),
+        (['1', '2'], slice(None)),
+        ([pd.datetime(2019, 1, 1)], slice(None))])
+    def test_iloc_non_integer_raises(self, index, columns,
+                                     index_vals, column_vals):
+        # GH 25753
+        df = DataFrame(np.random.randn(len(index), len(columns)),
+                       index=index,
+                       columns=columns)
+        msg = '.iloc requires numeric indexers, got'
+        with pytest.raises(IndexError, match=msg):
+            df.iloc[index_vals, column_vals]
+
     def test_iloc_getitem_int(self):
 
         # integer
@@ -217,7 +232,6 @@ class TestiLoc(Base):
 
     def test_iloc_getitem_dups(self):
 
-        # no dups in panel (bug?)
         self.check_result('list int (dups)', 'iloc', [0, 1, 1, 3], 'ix',
                           {0: [0, 2, 2, 6], 1: [0, 3, 3, 9]},
                           objs=['series', 'frame'], typs=['ints', 'uints'])

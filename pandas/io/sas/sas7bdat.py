@@ -21,18 +21,17 @@ import numpy as np
 from pandas.errors import EmptyDataError
 
 import pandas as pd
-from pandas import compat
 
 from pandas.io.common import BaseIterator, get_filepath_or_buffer
 from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 
 
-class _subheader_pointer(object):
+class _subheader_pointer:
     pass
 
 
-class _column(object):
+class _column:
     pass
 
 
@@ -96,7 +95,7 @@ class SAS7BDATReader(BaseIterator):
         self._current_row_in_file_index = 0
 
         self._path_or_buf, _, _, _ = get_filepath_or_buffer(path_or_buf)
-        if isinstance(self._path_or_buf, compat.string_types):
+        if isinstance(self._path_or_buf, str):
             self._path_or_buf = open(self._path_or_buf, 'rb')
             self.handle = self._path_or_buf
 

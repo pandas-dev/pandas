@@ -5,7 +5,7 @@ from pandas import Int64Index, TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
 
 
-class TestTimedeltaIndex(object):
+class TestTimedeltaIndex:
 
     def test_union(self):
 

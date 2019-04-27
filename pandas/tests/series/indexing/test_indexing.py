@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 """ test get/set & misc """
 
 from datetime import timedelta
@@ -8,7 +5,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_scalar
 

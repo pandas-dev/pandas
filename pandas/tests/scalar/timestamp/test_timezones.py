@@ -19,7 +19,7 @@ from pandas import NaT, Timestamp
 import pandas.util.testing as tm
 
 
-class TestTimestampTZOperations(object):
+class TestTimestampTZOperations:
     # --------------------------------------------------------------
     # Timestamp.tz_localize
 

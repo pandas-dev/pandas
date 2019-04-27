@@ -322,13 +322,16 @@ which can be specified. These are computed from the starting point specified by 
                    1349720105400, 1349720105500], unit='ms')
 
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
-with the ``tz`` argument specified will localize the epoch timestamps to UTC
-first then convert the result to the specified time zone.
+with the ``tz`` argument specified will currently localize the epoch timestamps to UTC
+first then convert the result to the specified time zone. However, this behavior
+is :ref:`deprecated <whatsnew_0240.deprecations.integer_tz>`, and if you have
+epochs in wall time in another timezone, it is recommended to read the epochs
+as timezone-naive timestamps and then localize to the appropriate timezone:
 
 .. ipython:: python
 
-   pd.Timestamp(1262347200000000000, tz='US/Pacific')
-   pd.DatetimeIndex([1262347200000000000], tz='US/Pacific')
+   pd.Timestamp(1262347200000000000).tz_localize('US/Pacific')
+   pd.DatetimeIndex([1262347200000000000]).tz_localize('US/Pacific')
 
 .. note::
 
@@ -2149,12 +2152,9 @@ Time Zone Handling
 ------------------
 
 pandas provides rich support for working with timestamps in different time
-zones using the ``pytz`` and ``dateutil`` libraries.
+zones using the ``pytz`` and ``dateutil`` libraries or class:`datetime.timezone`
+objects from the standard library.
 
-.. note::
-
-    pandas does not yet support ``datetime.timezone`` objects from the standard
-    library.
 
 Working with Time Zones
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -2195,6 +2195,15 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
    # dateutil - utc special case
    rng_utc = pd.date_range('3/6/2012 00:00', periods=3, freq='D',
                            tz=dateutil.tz.tzutc())
+   rng_utc.tz
+
+.. versionadded:: 0.25.0
+
+.. ipython:: python
+
+   # datetime.timezone
+   rng_utc = pd.date_range('3/6/2012 00:00', periods=3, freq='D',
+                           tz=datetime.timezone.utc)
    rng_utc.tz
 
 Note that the ``UTC`` time zone is a special case in ``dateutil`` and should be constructed explicitly

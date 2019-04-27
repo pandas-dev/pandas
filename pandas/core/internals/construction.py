@@ -2,16 +2,14 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
-from collections import OrderedDict
+from collections import OrderedDict, abc
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
-import pandas.compat as compat
-from pandas.compat import (
-    get_range_parameters, lmap, lrange, raise_with_traceback, range)
+from pandas.compat import lmap, lrange, raise_with_traceback
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar, construct_1d_ndarray_preserving_na,
@@ -396,7 +394,7 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
-    elif isinstance(data[0], compat.Mapping):
+    elif isinstance(data[0], abc.Mapping):
         return _list_of_dict_to_arrays(data, columns,
                                        coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], ABCSeries):
@@ -612,8 +610,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
 
     elif isinstance(data, range):
         # GH#16804
-        start, stop, step = get_range_parameters(data)
-        arr = np.arange(start, stop, step, dtype='int64')
+        arr = np.arange(data.start, data.stop, data.step, dtype='int64')
         subarr = _try_cast(arr, False, dtype, copy, raise_cast_failure)
     else:
         subarr = _try_cast(data, False, dtype, copy, raise_cast_failure)
@@ -655,7 +652,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
-    if issubclass(subarr.dtype.type, compat.string_types):
+    if issubclass(subarr.dtype.type, str):
         # GH#16605
         # If not empty convert the data to dtype
         # GH#19853: If data is a scalar, subarr has already the result

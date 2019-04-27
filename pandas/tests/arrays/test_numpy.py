@@ -5,10 +5,7 @@ the interface tests.
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import compat
 from pandas.arrays import PandasArray
 from pandas.core.arrays.numpy_ import PandasDtype
 import pandas.util.testing as tm
@@ -42,8 +39,7 @@ def any_numpy_array(request):
     ('float', True),
     ('complex', True),
     ('str', False),
-    pytest.param('bytes', False,
-                 marks=pytest.mark.skipif(compat.PY2, reason="PY2")),
+    ('bytes', False),
     ('datetime64[ns]', False),
     ('object', False),
     ('void', False),
@@ -60,8 +56,7 @@ def test_is_numeric(dtype, expected):
     ('float', False),
     ('complex', False),
     ('str', False),
-    pytest.param('bytes', False,
-                 marks=pytest.mark.skipif(compat.PY2, reason="PY2")),
+    ('bytes', False),
     ('datetime64[ns]', False),
     ('object', False),
     ('void', False)
@@ -181,7 +176,7 @@ def test_validate_reduction_keyword_args():
 # ----------------------------------------------------------------------------
 # Ops
 
-@td.skip_if_no("numpy", min_version="1.13.0")
+
 def test_ufunc():
     arr = PandasArray(np.array([-1.0, 0.0, 1.0]))
     result = np.abs(arr)
@@ -196,7 +191,6 @@ def test_ufunc():
     tm.assert_extension_array_equal(r2, e2)
 
 
-@td.skip_if_no("numpy", min_version="1.13.0")
 def test_basic_binop():
     # Just a basic smoke test. The EA interface tests exercise this
     # more thoroughly.

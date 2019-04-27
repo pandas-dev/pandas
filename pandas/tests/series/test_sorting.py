@@ -1,11 +1,7 @@
-# coding=utf-8
-
 import random
 
 import numpy as np
 import pytest
-
-from pandas.compat import PY2
 
 from pandas import Categorical, DataFrame, IntervalIndex, MultiIndex, Series
 import pandas.util.testing as tm
@@ -90,7 +86,6 @@ class TestSeriesSorting(TestData):
         with pytest.raises(ValueError, match=msg):
             s.sort_values(inplace=True)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_sort_index(self):
         rindex = list(self.ts.index)
         random.shuffle(rindex)

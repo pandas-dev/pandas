@@ -1,16 +1,11 @@
 """
 Contains data structures designed for manipulating panel (3-dimensional) data
 """
-# pylint: disable=E1103,W0231,W0212,W0621
-from __future__ import division
-
 from collections import OrderedDict
 import warnings
 
 import numpy as np
 
-import pandas.compat as compat
-from pandas.compat import map, range, u, zip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_axis_style_args
@@ -203,13 +198,13 @@ class Panel(NDFrame):
         if haxis is not None:
             haxis = ensure_index(haxis)
             data = OrderedDict((k, v)
-                               for k, v in compat.iteritems(data)
+                               for k, v in data.items()
                                if k in haxis)
         else:
             keys = com.dict_keys_to_ordered_list(data)
             haxis = Index(keys)
 
-        for k, v in compat.iteritems(data):
+        for k, v in data.items():
             if isinstance(v, dict):
                 data[k] = self._constructor_sliced(v)
 
@@ -269,8 +264,8 @@ class Panel(NDFrame):
         orient = orient.lower()
         if orient == 'minor':
             new_data = defaultdict(OrderedDict)
-            for col, df in compat.iteritems(data):
-                for item, s in compat.iteritems(df):
+            for col, df in data.items():
+                for item, s in df.items():
                     new_data[item][col] = s
             data = new_data
         elif orient != 'items':  # pragma: no cover
@@ -289,7 +284,7 @@ class Panel(NDFrame):
         if isinstance(self._info_axis, MultiIndex):
             return self._getitem_multilevel(key)
         if not (is_list_like(key) or isinstance(key, slice)):
-            return super(Panel, self).__getitem__(key)
+            return super().__getitem__(key)
         return self.loc[key]
 
     def _getitem_multilevel(self, key):
@@ -348,26 +343,23 @@ class Panel(NDFrame):
 
     def __unicode__(self):
         """
-        Return a string representation for a particular Panel.
-
-        Invoked by unicode(df) in py2 only.
-        Yields a Unicode String in both py2/py3.
+        Return a unicode string representation for a particular Panel.
         """
 
         class_name = str(self.__class__)
 
-        dims = u('Dimensions: {dimensions}'.format(dimensions=' x '.join(
+        dims = 'Dimensions: {dimensions}'.format(dimensions=' x '.join(
             ["{shape} ({axis})".format(shape=shape, axis=axis) for axis, shape
-             in zip(self._AXIS_ORDERS, self.shape)])))
+             in zip(self._AXIS_ORDERS, self.shape)]))
 
         def axis_pretty(a):
             v = getattr(self, a)
             if len(v) > 0:
-                return u('{ax} axis: {x} to {y}'.format(ax=a.capitalize(),
-                                                        x=pprint_thing(v[0]),
-                                                        y=pprint_thing(v[-1])))
+                return '{ax} axis: {x} to {y}'.format(ax=a.capitalize(),
+                                                      x=pprint_thing(v[0]),
+                                                      y=pprint_thing(v[-1]))
             else:
-                return u('{ax} axis: None'.format(ax=a.capitalize()))
+                return '{ax} axis: None'.format(ax=a.capitalize())
 
         output = '\n'.join(
             [class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
@@ -454,7 +446,7 @@ class Panel(NDFrame):
         """
         from pandas.io.excel import ExcelWriter
 
-        if isinstance(path, compat.string_types):
+        if isinstance(path, str):
             writer = ExcelWriter(path, engine=engine)
         else:
             writer = path
@@ -1187,7 +1179,7 @@ class Panel(NDFrame):
         # need to assume they are the same
         if ndim is None:
             if isinstance(result, dict):
-                ndim = getattr(list(compat.itervalues(result))[0], 'ndim', 0)
+                ndim = getattr(list(result.values())[0], 'ndim', 0)
 
                 # have a dict, so top-level is +1 dim
                 if ndim != 0:
@@ -1246,7 +1238,7 @@ class Panel(NDFrame):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", FutureWarning)
             # do not warn about constructing Panel when reindexing
-            result = super(Panel, self).reindex(**kwargs)
+            result = super().reindex(**kwargs)
         return result
 
     @Substitution(**_shared_doc_kwargs)
@@ -1256,16 +1248,15 @@ class Panel(NDFrame):
                       kwargs.pop('major', None))
         minor_axis = (minor_axis if minor_axis is not None else
                       kwargs.pop('minor', None))
-        return super(Panel, self).rename(items=items, major_axis=major_axis,
-                                         minor_axis=minor_axis, **kwargs)
+        return super().rename(items=items, major_axis=major_axis,
+                              minor_axis=minor_axis, **kwargs)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
                      limit=None, fill_value=np.nan):
-        return super(Panel, self).reindex_axis(labels=labels, axis=axis,
-                                               method=method, level=level,
-                                               copy=copy, limit=limit,
-                                               fill_value=fill_value)
+        return super().reindex_axis(labels=labels, axis=axis, method=method,
+                                    level=level, copy=copy, limit=limit,
+                                    fill_value=fill_value)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.transpose.__doc__)
@@ -1284,15 +1275,15 @@ class Panel(NDFrame):
         elif not axes:
             axes = kwargs.pop('axes', ())
 
-        return super(Panel, self).transpose(*axes, **kwargs)
+        return super().transpose(*axes, **kwargs)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
-        return super(Panel, self).fillna(value=value, method=method, axis=axis,
-                                         inplace=inplace, limit=limit,
-                                         downcast=downcast, **kwargs)
+        return super().fillna(value=value, method=method, axis=axis,
+                              inplace=inplace, limit=limit, downcast=downcast,
+                              **kwargs)
 
     def count(self, axis='major'):
         """
@@ -1336,10 +1327,10 @@ class Panel(NDFrame):
         if freq:
             return self.tshift(periods, freq, axis=axis)
 
-        return super(Panel, self).slice_shift(periods, axis=axis)
+        return super().slice_shift(periods, axis=axis)
 
     def tshift(self, periods=1, freq=None, axis='major'):
-        return super(Panel, self).tshift(periods, freq, axis)
+        return super().tshift(periods, freq, axis)
 
     def join(self, other, how='left', lsuffix='', rsuffix=''):
         """
@@ -1469,7 +1460,7 @@ class Panel(NDFrame):
         if not isinstance(values, np.ndarray):
             values = np.asarray(values)
             # NumPy strings are a pain, convert to object
-            if issubclass(values.dtype.type, compat.string_types):
+            if issubclass(values.dtype.type, str):
                 values = np.array(values, dtype=object, copy=True)
         else:
             if copy:
@@ -1503,7 +1494,7 @@ class Panel(NDFrame):
             result = OrderedDict()
 
         adj_frames = OrderedDict()
-        for k, v in compat.iteritems(frames):
+        for k, v in frames.items():
             if isinstance(v, dict):
                 adj_frames[k] = self._constructor_sliced(v)
             else:
@@ -1515,7 +1506,7 @@ class Panel(NDFrame):
 
         reindex_dict = {self._AXIS_SLICEMAP[a]: axes_dict[a] for a in axes}
         reindex_dict['copy'] = False
-        for key, frame in compat.iteritems(adj_frames):
+        for key, frame in adj_frames.items():
             if frame is not None:
                 result[key] = frame.reindex(**reindex_dict)
             else:
@@ -1573,7 +1564,7 @@ class Panel(NDFrame):
         NOT IMPLEMENTED: do not call this method, as sorting values is not
         supported for Panel objects and will raise an error.
         """
-        super(Panel, self).sort_values(*args, **kwargs)
+        super().sort_values(*args, **kwargs)
 
 
 Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,

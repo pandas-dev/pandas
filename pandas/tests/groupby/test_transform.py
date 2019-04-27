@@ -1,16 +1,16 @@
 """ test with the .transform """
+from io import StringIO
 
 import numpy as np
 import pytest
 
 from pandas._libs import groupby
-from pandas.compat import StringIO
 
 from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, Timestamp, concat, date_range
-from pandas.core.config import option_context
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, Timestamp, concat, date_range)
 from pandas.core.groupby.groupby import DataError
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -445,7 +445,7 @@ def test_transform_mixed_type():
     assert result['d'].dtype == np.float64
 
     # this is by definition a mutating operation!
-    with option_context('mode.chained_assignment', None):
+    with pd.option_context('mode.chained_assignment', None):
         for key, group in grouped:
             res = f(group)
             assert_frame_equal(res, result.loc[key])
@@ -471,7 +471,8 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
     ans = np.zeros_like(data)
 
     labels = np.array([0, 0, 0, 0], dtype=np.int64)
-    pd_op(ans, data, labels, is_datetimelike)
+    ngroups = 1
+    pd_op(ans, data, labels, ngroups, is_datetimelike)
 
     tm.assert_numpy_array_equal(np_op(data), ans[:, 0],
                                 check_dtype=False)
@@ -497,17 +498,19 @@ def test_cython_group_transform_algos():
 
     # with nans
     labels = np.array([0, 0, 0, 0, 0], dtype=np.int64)
+    ngroups = 1
 
     data = np.array([[1], [2], [3], [np.nan], [4]], dtype='float64')
     actual = np.zeros_like(data)
     actual.fill(np.nan)
-    groupby.group_cumprod_float64(actual, data, labels, is_datetimelike)
+    groupby.group_cumprod_float64(actual, data, labels, ngroups,
+                                  is_datetimelike)
     expected = np.array([1, 2, 6, np.nan, 24], dtype='float64')
     tm.assert_numpy_array_equal(actual[:, 0], expected)
 
     actual = np.zeros_like(data)
     actual.fill(np.nan)
-    groupby.group_cumsum(actual, data, labels, is_datetimelike)
+    groupby.group_cumsum(actual, data, labels, ngroups, is_datetimelike)
     expected = np.array([1, 3, 6, np.nan, 10], dtype='float64')
     tm.assert_numpy_array_equal(actual[:, 0], expected)
 
@@ -516,7 +519,7 @@ def test_cython_group_transform_algos():
     data = np.array([np.timedelta64(1, 'ns')] * 5, dtype='m8[ns]')[:, None]
     actual = np.zeros_like(data, dtype='int64')
     groupby.group_cumsum(actual, data.view('int64'), labels,
-                         is_datetimelike)
+                         ngroups, is_datetimelike)
     expected = np.array([np.timedelta64(1, 'ns'), np.timedelta64(
         2, 'ns'), np.timedelta64(3, 'ns'), np.timedelta64(4, 'ns'),
         np.timedelta64(5, 'ns')])
@@ -845,3 +848,35 @@ def test_groupby_transform_timezone_column(func):
     expected = pd.DataFrame([[ts, 1, ts]], columns=['end_time', 'id',
                                                     'max_end_time'])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func, values", [
+    ("idxmin", ["1/1/2011"] * 2 + ["1/3/2011"] * 7 + ["1/10/2011"]),
+    ("idxmax", ["1/2/2011"] * 2 + ["1/9/2011"] * 7 + ["1/10/2011"])
+])
+def test_groupby_transform_with_datetimes(func, values):
+    # GH 15306
+    dates = pd.date_range('1/1/2011', periods=10, freq='D')
+
+    stocks = pd.DataFrame({'price': np.arange(10.0)}, index=dates)
+    stocks['week_id'] = pd.to_datetime(stocks.index).week
+
+    result = stocks.groupby(stocks['week_id'])['price'].transform(func)
+
+    expected = pd.Series(data=pd.to_datetime(values),
+                         index=dates, name="price")
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('func', ['cumsum', 'cumprod', 'cummin', 'cummax'])
+def test_transform_absent_categories(func):
+    # GH 16771
+    # cython transforms with more groups than rows
+    x_vals = [1]
+    x_cats = range(2)
+    y = [1]
+    df = DataFrame(dict(x=Categorical(x_vals, x_cats), y=y))
+    result = getattr(df.y.groupby(df.x), func)()
+    expected = df.y
+    assert_series_equal(result, expected)
