@@ -1091,33 +1091,6 @@ class IntervalIndex(IntervalMixin, Index):
     def overlaps(self, other):
         return self._data.overlaps(other)
 
-    def intersection2(self, other, sort=False):
-        other = self._as_like_interval_index(other)
-
-        # GH 19016: ensure set op will not return a prohibited dtype
-        subtypes = [self.dtype.subtype, other.dtype.subtype]
-        common_subtype = find_common_type(subtypes)
-        if is_object_dtype(common_subtype):
-            msg = ('can only do intersection between two IntervalIndex '
-                   'objects that have compatible dtypes')
-            raise TypeError(msg)
-
-        try:
-            lindexer = other.left.get_indexer(self.left)
-            rindexer = other.right.get_indexer(self.right)
-        except Exception:
-            # duplicates
-            lindexer = algos.unique1d(
-                other.left.get_indexer_non_unique(self.left)[0])
-            rindexer = algos.unique1d(
-                other.right.get_indexer_non_unique(self.right)[0])
-
-        match = (lindexer == rindexer) & (lindexer != -1)
-        indexer = lindexer.take(match.nonzero()[0])
-        taken = other.take(indexer)
-
-        return taken
-
     def intersection(self, other, sort=False):
         other = self._as_like_interval_index(other)
 
