@@ -44,7 +44,7 @@ cdef extern from "../../src/msgpack/pack.h":
 cdef int DEFAULT_RECURSE_LIMIT=511
 
 
-cdef class Packer(object):
+cdef class Packer:
     """
     MessagePack Packer
 

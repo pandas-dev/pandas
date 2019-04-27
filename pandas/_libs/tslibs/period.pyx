@@ -1557,7 +1557,7 @@ class IncompatibleFrequency(ValueError):
     pass
 
 
-cdef class _Period(object):
+cdef class _Period:
 
     cdef readonly:
         int64_t ordinal

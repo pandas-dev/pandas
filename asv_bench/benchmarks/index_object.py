@@ -181,7 +181,7 @@ class Float64IndexMethod:
         self.ind.get_loc(0)
 
 
-class IntervalIndexMethod(object):
+class IntervalIndexMethod:
     # GH 24813
     params = [10**3, 10**5]
 

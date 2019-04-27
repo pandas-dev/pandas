@@ -211,7 +211,7 @@ cdef:
     int subheader_pointers_offset = const.subheader_pointers_offset
 
 
-cdef class Parser(object):
+cdef class Parser:
 
     cdef:
         int column_count

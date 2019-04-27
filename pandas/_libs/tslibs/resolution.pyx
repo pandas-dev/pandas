@@ -133,7 +133,7 @@ def get_freq_group(freq):
     return (freq // 1000) * 1000
 
 
-class Resolution(object):
+class Resolution:
 
     # Note: cython won't allow us to reference the cdef versions at the
     # module level
