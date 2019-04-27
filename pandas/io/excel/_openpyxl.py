@@ -527,6 +527,27 @@ class _OpenpyxlReader(_BaseExcelReader):
             sheets = [sheet_name]
         return sheets
 
+    @staticmethod
+    def _handle_header_keywords(data, header, skiprows, index_col):
+        """Handle keywords relating to header parsing."""
+        # forward fill and pull out names for MultiIndex column
+        header_names = None
+        if header is not None and is_list_like(header):
+            header_names = []
+            control_row = [True] * len(data[0])
+
+            for row in header:
+                if is_integer(skiprows):
+                    row += skiprows
+
+                data[row], control_row = _fill_mi_header(data[row],
+                                                         control_row)
+
+                if index_col is not None:
+                    header_name, _ = _pop_header_name(data[row], index_col)
+                    header_names.append(header_name)
+        return header_names
+
     def get_sheet_by_name(self, name):
         return self.book[name]
 
@@ -558,23 +579,8 @@ class _OpenpyxlReader(_BaseExcelReader):
         if is_list_like(header) and len(header) == 1:
             header = header[0]
 
-        # TODO: scrutinize what is going here
-        # forward fill and pull out names for MultiIndex column
-        header_names = None
-        if header is not None and is_list_like(header):
-            header_names = []
-            control_row = [True] * len(data[0])
-
-            for row in header:
-                if is_integer(skiprows):
-                    row += skiprows
-
-                data[row], control_row = _fill_mi_header(data[row],
-                                                         control_row)
-
-                if index_col is not None:
-                    header_name, _ = _pop_header_name(data[row], index_col)
-                    header_names.append(header_name)
+        header_names = self._handle_header_keywords(data, header, skiprows,
+                                                    index_col)
 
         # TODO: implement whatever this should do
         # has_index_names = is_list_like(header) and len(header) > 1
