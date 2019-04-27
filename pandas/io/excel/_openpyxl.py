@@ -650,7 +650,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         if skipfooter:
             data = data[:-skipfooter]
 
-        column_names = [cell for i, cell in enumerate(data.pop(0))]
+        column_names = [cell for cell in data.pop(0)]
 
         frame = DataFrame(data, columns=column_names)
         frame = self._handle_usecols(frame, usecols)
@@ -661,7 +661,7 @@ class _OpenpyxlReader(_BaseExcelReader):
             dtype = dict()
 
         # handle columns referenced by number so all references are by
-        #  column name
+        # column name
         handled_converters = {}
         for k, v in converters.items():
             if k not in frame.columns and isinstance(k, int):
