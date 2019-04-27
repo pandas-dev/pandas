@@ -26,6 +26,31 @@ def test_repr():
     assert result == expected
 
 
+def test_groupby_std():
+    # GH10355
+    df = pd.DataFrame({
+        'a': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+        'b': [1, 2, 3, 3, 5, 7, 7, 8, 9],
+    })
+    result = df.groupby('a', as_index=False).std()
+    expected = pd.DataFrame({
+        'a': [1, 2, 3],
+        'b': [1, 2, 1]
+    })
+    assert_frame_equal(result, expected)
+
+    df = pd.DataFrame({
+        'a': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+        'b': [1, 2, 3, 3, 5, 7, 7, 8, 9],
+    })
+    result = df.groupby('a', as_index=True).std()
+    expected = pd.DataFrame({
+        'a': [1, 2, 3],
+        'b': [1, 2, 1]
+    }).set_index('a')
+    assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize('dtype', ['int64', 'int32', 'float64', 'float32'])
 def test_basic(dtype):
 

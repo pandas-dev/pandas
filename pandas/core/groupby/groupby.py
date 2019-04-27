@@ -1187,8 +1187,9 @@ class GroupBy(_GroupBy):
         """
 
         # TODO: implement at Cython level?
-        nv.validate_groupby_func('std', args, kwargs)
-        return np.sqrt(self.var(ddof=ddof, **kwargs))
+        with _group_selection_context(self):
+            f = lambda x: x.std(axis=self.axis, **kwargs)
+            return self._python_agg_general(f)
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
