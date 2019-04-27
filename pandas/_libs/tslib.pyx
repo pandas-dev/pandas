@@ -580,11 +580,11 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                         iresult[i] = NPY_NAT
                         continue
 
+                    string_to_dts_failed = _string_to_dts_noexc(
+                        val, &dts, &out_local,
+                        &out_tzoffset
+                    )
                     try:
-                        string_to_dts_failed = _string_to_dts_noexc(
-                            val, &dts, &out_local,
-                            &out_tzoffset
-                        )
                         if string_to_dts_failed:
                             # An error at this point is a _parsing_ error
                             # specifically _not_ OutOfBoundsDatetime
