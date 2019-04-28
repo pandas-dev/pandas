@@ -409,6 +409,7 @@ strings and apply several methods to it. These can be accessed like
    :template: autosummary/accessor_method.rst
 
    Series.str.capitalize
+   Series.str.casefold
    Series.str.cat
    Series.str.center
    Series.str.contains

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import long, lzip
+from pandas.compat import lzip
 
 import pandas as pd
 from pandas.core.indexes.api import Index, MultiIndex
@@ -39,7 +39,7 @@ zeros = [box([0] * 5, dtype=dtype)
          for dtype in [np.int64, np.uint64, np.float64]]
 zeros.extend([np.array(0, dtype=dtype)
               for dtype in [np.int64, np.uint64, np.float64]])
-zeros.extend([0, 0.0, long(0)])
+zeros.extend([0, 0.0])
 
 
 @pytest.fixture(params=zeros)

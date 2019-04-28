@@ -1,13 +1,10 @@
 # coding: utf-8
-from __future__ import (
-    absolute_import, division, print_function, unicode_literals)
-
 import pytest
 
 from pandas.io.msgpack import ExtType, Packer, Unpacker, packb, unpackb
 
 
-class TestLimits(object):
+class TestLimits:
 
     def test_integer(self):
         x = -(2 ** 63)

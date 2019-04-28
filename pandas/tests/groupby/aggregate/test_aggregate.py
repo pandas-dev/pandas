@@ -286,3 +286,32 @@ def test_multi_function_flexible_mix(df):
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = grouped.aggregate(d)
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_coercing_bools():
+    # issue 14873
+    dat = pd.DataFrame(
+        {'a': [1, 1, 2, 2], 'b': [0, 1, 2, 3], 'c': [None, None, 1, 1]})
+    gp = dat.groupby('a')
+
+    index = Index([1, 2], name='a')
+
+    result = gp['b'].aggregate(lambda x: (x != 0).all())
+    expected = Series([False, True], index=index, name='b')
+    tm.assert_series_equal(result, expected)
+
+    result = gp['c'].aggregate(lambda x: x.isnull().all())
+    expected = Series([True, False], index=index, name='c')
+    tm.assert_series_equal(result, expected)
+
+
+def test_order_aggregate_multiple_funcs():
+    # GH 25692
+    df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, 2, 3, 4]})
+
+    res = df.groupby('A').agg(['sum', 'max', 'mean', 'ohlc', 'min'])
+    result = res.columns.levels[1]
+
+    expected = pd.Index(['sum', 'max', 'mean', 'ohlc', 'min'])
+
+    tm.assert_index_equal(result, expected)

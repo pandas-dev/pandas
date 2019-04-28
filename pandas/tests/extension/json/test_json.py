@@ -3,15 +3,13 @@ import operator
 
 import pytest
 
-from pandas.compat import PY2, PY36
+from pandas.compat import PY36
 
 import pandas as pd
 from pandas.tests.extension import base
 import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
-
-pytestmark = pytest.mark.skipif(PY2, reason="Py2 doesn't have a UserDict")
 
 
 @pytest.fixture
@@ -73,7 +71,7 @@ def data_for_grouping():
     ])
 
 
-class BaseJSON(object):
+class BaseJSON:
     # NumPy doesn't handle an array of equal-length UserDicts.
     # The default assert_series_equal eventually does a
     # Series.values, which raises. We work around it by
@@ -190,24 +188,21 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
 
     @unstable
     def test_argsort(self, data_for_sorting):
-        super(TestMethods, self).test_argsort(data_for_sorting)
+        super().test_argsort(data_for_sorting)
 
     @unstable
     def test_argsort_missing(self, data_missing_for_sorting):
-        super(TestMethods, self).test_argsort_missing(
-            data_missing_for_sorting)
+        super().test_argsort_missing(data_missing_for_sorting)
 
     @unstable
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values(self, data_for_sorting, ascending):
-        super(TestMethods, self).test_sort_values(
-            data_for_sorting, ascending)
+        super().test_sort_values(data_for_sorting, ascending)
 
     @unstable
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values_missing(self, data_missing_for_sorting, ascending):
-        super(TestMethods, self).test_sort_values_missing(
-            data_missing_for_sorting, ascending)
+        super().test_sort_values_missing(data_missing_for_sorting, ascending)
 
     @pytest.mark.skip(reason="combine for JSONArray not supported")
     def test_combine_le(self, data_repeated):
@@ -234,7 +229,7 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
 
     @pytest.mark.skip(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
-        super(TestMethods, self).test_searchsorted(data_for_sorting)
+        super().test_searchsorted(data_for_sorting)
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
@@ -276,9 +271,7 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
     @unstable
     @pytest.mark.parametrize('as_index', [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        super(TestGroupby, self).test_groupby_extension_agg(
-            as_index, data_for_grouping
-        )
+        super().test_groupby_extension_agg(as_index, data_for_grouping)
 
 
 class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
@@ -290,10 +283,13 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
         with pytest.raises(TypeError, match="unsupported"):
             ser + data
 
+    def test_divmod_series_array(self):
+        # GH 23287
+        # skipping because it is not implemented
+        pass
+
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super(TestArithmeticOps, self)._check_divmod_op(
-            s, op, other, exc=TypeError
-        )
+        return super()._check_divmod_op(s, op, other, exc=TypeError)
 
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):

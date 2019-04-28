@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import u, zip
-
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
@@ -87,7 +85,8 @@ def test_series_getitem_returns_scalar(
 @pytest.mark.parametrize('indexer,expected_error,expected_error_msg', [
     (lambda s: s.__getitem__((2000, 3, 4)), KeyError, r"^356L?$"),
     (lambda s: s[(2000, 3, 4)], KeyError, r"^356L?$"),
-    (lambda s: s.loc[(2000, 3, 4)], IndexingError, 'Too many indexers'),
+    (lambda s: s.loc[(2000, 3, 4)], KeyError, r"^356L?$"),
+    (lambda s: s.loc[(2000, 3, 4, 5)], IndexingError, 'Too many indexers'),
     (lambda s: s.__getitem__(len(s)), IndexError, 'index out of bounds'),
     (lambda s: s[len(s)], IndexError, 'index out of bounds'),
     (lambda s: s.iloc[len(s)], IndexError,
@@ -156,18 +155,10 @@ def test_frame_getitem_toplevel(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize('unicode_strings', [True, False])
-def test_frame_mixed_depth_get(unicode_strings):
-    # If unicode_strings is True, the column labels in dataframe
-    # construction will use unicode strings in Python 2 (pull request
-    # #17099).
-
+def test_frame_mixed_depth_get():
     arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
               ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
               ['', 'wx', 'wy', '', '', '']]
-
-    if unicode_strings:
-        arrays = [[u(s) for s in arr] for arr in arrays]
 
     tuples = sorted(zip(*arrays))
     index = MultiIndex.from_tuples(tuples)

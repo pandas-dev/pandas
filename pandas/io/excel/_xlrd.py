@@ -1,10 +1,9 @@
 from datetime import time
 from distutils.version import LooseVersion
-from io import BytesIO
+from io import BufferedReader, BytesIO
 
 import numpy as np
 
-from pandas.compat import range, zip
 from pandas.io.excel._base import _BaseExcelReader
 
 
@@ -37,7 +36,8 @@ class _XlrdReader(_BaseExcelReader):
         return self._engine.Book
 
     def load_workbook(self, filepath_or_buffer):
-        if isinstance(filepath_or_buffer, BytesIO):
+
+        if isinstance(filepath_or_buffer, (BytesIO, BufferedReader)):
             data = filepath_or_buffer.read()
             return self._engine.open_workbook(file_contents=data)
         else:

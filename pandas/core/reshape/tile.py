@@ -163,7 +163,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     Use `drop` optional when bins is not unique
 
     >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
-    ...    right=False, duplicates='drop')
+    ...        right=False, duplicates='drop')
     ... # doctest: +ELLIPSIS
     (a    0.0
      b    1.0
@@ -230,7 +230,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         else:
             bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
-        if (np.diff(bins) < 0).any():
+
+        # GH 26045: cast to float64 to avoid an overflow
+        if (np.diff(bins.astype('float64')) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
     fac, bins = _bins_to_cuts(x, bins, right=right, labels=labels,

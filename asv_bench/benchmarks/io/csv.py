@@ -4,7 +4,7 @@ import string
 import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Categorical, date_range, read_csv
-from pandas.compat import cStringIO as StringIO
+from io import StringIO
 
 from ..pandas_vb_common import BaseIO
 
@@ -50,7 +50,25 @@ class ToCSVDatetime(BaseIO):
         self.data.to_csv(self.fname, date_format='%Y%m%d')
 
 
-class StringIORewind(object):
+class ToCSVDatetimeBig(BaseIO):
+
+    fname = '__test__.csv'
+    timeout = 1500
+    params = [1000, 10000, 100000]
+    param_names = ['obs']
+
+    def setup(self, obs):
+        d = '2018-11-29'
+        dt = '2018-11-26 11:18:27.0'
+        self.data = DataFrame({'dt': [np.datetime64(dt)] * obs,
+                               'd': [np.datetime64(d)] * obs,
+                               'r': [np.random.uniform()] * obs})
+
+    def time_frame(self, obs):
+        self.data.to_csv(self.fname)
+
+
+class StringIORewind:
 
     def data(self, stringio_object):
         stringio_object.seek(0)
@@ -231,6 +249,25 @@ class ReadCSVMemoryGrowth(BaseIO):
 
         for _ in result:
             pass
+
+
+class ReadCSVParseSpecialDate(StringIORewind):
+    params = (['mY', 'mdY', 'hm'],)
+    params_name = ['value']
+    objects = {
+        'mY': '01-2019\n10-2019\n02/2000\n',
+        'mdY': '12/02/2010\n',
+        'hm': '21:34\n'
+    }
+
+    def setup(self, value):
+        count_elem = 10000
+        data = self.objects[value] * count_elem
+        self.StringIO_input = StringIO(data)
+
+    def time_read_special_date(self, value):
+        read_csv(self.data(self.StringIO_input), sep=',', header=None,
+                 names=['Date'], parse_dates=['Date'])
 
 
 from ..pandas_vb_common import setup  # noqa: F401

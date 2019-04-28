@@ -1,6 +1,3 @@
-# pylint: disable=E1101
-from __future__ import division
-
 from datetime import datetime, time, timedelta
 import operator
 import warnings
@@ -10,7 +7,6 @@ import numpy as np
 from pandas._libs import (
     Timestamp, index as libindex, join as libjoin, lib, tslib as libts)
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
-import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -32,9 +28,8 @@ from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
 
-from pandas.tseries import offsets
 from pandas.tseries.frequencies import Resolution, to_offset
-from pandas.tseries.offsets import CDay, prefix_mapping
+from pandas.tseries.offsets import CDay, Nano, prefix_mapping
 
 
 def _new_DatetimeIndex(cls, d):
@@ -245,10 +240,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _comparables = ['name', 'freqstr', 'tz']
     _attributes = ['name', 'tz', 'freq']
 
-    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
-    # by returning NotImplemented
-    timetuple = None
-
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
@@ -392,7 +383,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if isinstance(state, dict):
-            super(DatetimeIndex, self).__setstate__(state)
+            super().__setstate__(state)
 
         elif isinstance(state, tuple):
 
@@ -460,7 +451,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def union(self, other):
+    def union(self, other, sort=None):
         """
         Specialized union for DatetimeIndex objects. If combine
         overlapping ranges with the same DateOffset, will be much
@@ -469,15 +460,29 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         Parameters
         ----------
         other : DatetimeIndex or array-like
+        sort : bool or None, default None
+            Whether to sort the resulting Index.
+
+            * None : Sort the result, except when
+
+              1. `self` and `other` are equal.
+              2. `self` or `other` has length 0.
+              3. Some values in `self` or `other` cannot be compared.
+                 A RuntimeWarning is issued in this case.
+
+            * False : do not sort the result
+
+            .. versionadded:: 0.25.0
 
         Returns
         -------
         y : Index or DatetimeIndex
         """
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(DatetimeIndex, self).union(other)
+            return super().union(other, sort=sort)
 
         if not isinstance(other, DatetimeIndex):
             try:
@@ -488,9 +493,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         this, other = self._maybe_utc_convert(other)
 
         if this._can_fast_union(other):
-            return this._fast_union(other)
+            return this._fast_union(other, sort=sort)
         else:
-            result = Index.union(this, other)
+            result = Index.union(this, other, sort=sort)
             if isinstance(result, DatetimeIndex):
                 # TODO: we shouldn't be setting attributes like this;
                 #  in all the tests this equality already holds
@@ -563,16 +568,28 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             # this will raise
             return False
 
-    def _fast_union(self, other):
+    def _fast_union(self, other, sort=None):
         if len(other) == 0:
             return self.view(type(self))
 
         if len(self) == 0:
             return other.view(type(self))
 
-        # to make our life easier, "sort" the two ranges
+        # Both DTIs are monotonic. Check if they are already
+        # in the "correct" order
         if self[0] <= other[0]:
             left, right = self, other
+        # DTIs are not in the "correct" order and we don't want
+        # to sort but want to remove overlaps
+        elif sort is False:
+            left, right = self, other
+            left_start = left[0]
+            loc = right.searchsorted(left_start, side='left')
+            right_chunk = right.values[:loc]
+            dates = _concat._concat_compat((left.values, right_chunk))
+            return self._shallow_copy(dates)
+        # DTIs are not in the "correct" order and we want
+        # to sort
         else:
             left, right = other, self
 
@@ -762,8 +779,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             snapped[i] = s
 
         # we know it conforms; skip check
-        return DatetimeIndex._simple_new(snapped, freq=freq)
-        # TODO: what about self.name?  tz? if so, use shallow_copy?
+        return DatetimeIndex._simple_new(snapped, name=self.name, tz=self.tz,
+                                         freq=freq)
 
     def join(self, other, how='left', level=None, return_indexers=False,
              sort=False):
@@ -826,54 +843,57 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         lower, upper: pd.Timestamp
 
         """
+        valid_resos = {'year', 'month', 'quarter', 'day', 'hour', 'minute',
+                       'second', 'minute', 'second', 'microsecond'}
+        if reso not in valid_resos:
+            raise KeyError
         if reso == 'year':
-            return (Timestamp(datetime(parsed.year, 1, 1), tz=self.tz),
-                    Timestamp(datetime(parsed.year, 12, 31, 23,
-                                       59, 59, 999999), tz=self.tz))
+            start = Timestamp(parsed.year, 1, 1)
+            end = Timestamp(parsed.year, 12, 31, 23, 59, 59, 999999)
         elif reso == 'month':
             d = ccalendar.get_days_in_month(parsed.year, parsed.month)
-            return (Timestamp(datetime(parsed.year, parsed.month, 1),
-                              tz=self.tz),
-                    Timestamp(datetime(parsed.year, parsed.month, d, 23,
-                                       59, 59, 999999), tz=self.tz))
+            start = Timestamp(parsed.year, parsed.month, 1)
+            end = Timestamp(parsed.year, parsed.month, d, 23, 59, 59, 999999)
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = ccalendar.get_days_in_month(parsed.year, qe)  # at end of month
-            return (Timestamp(datetime(parsed.year, parsed.month, 1),
-                              tz=self.tz),
-                    Timestamp(datetime(parsed.year, qe, d, 23, 59,
-                                       59, 999999), tz=self.tz))
+            start = Timestamp(parsed.year, parsed.month, 1)
+            end = Timestamp(parsed.year, qe, d, 23, 59, 59, 999999)
         elif reso == 'day':
-            st = datetime(parsed.year, parsed.month, parsed.day)
-            return (Timestamp(st, tz=self.tz),
-                    Timestamp(Timestamp(st + offsets.Day(),
-                                        tz=self.tz).value - 1))
+            start = Timestamp(parsed.year, parsed.month, parsed.day)
+            end = start + timedelta(days=1) - Nano(1)
         elif reso == 'hour':
-            st = datetime(parsed.year, parsed.month, parsed.day,
-                          hour=parsed.hour)
-            return (Timestamp(st, tz=self.tz),
-                    Timestamp(Timestamp(st + offsets.Hour(),
-                                        tz=self.tz).value - 1))
+            start = Timestamp(parsed.year, parsed.month, parsed.day,
+                              parsed.hour)
+            end = start + timedelta(hours=1) - Nano(1)
         elif reso == 'minute':
-            st = datetime(parsed.year, parsed.month, parsed.day,
-                          hour=parsed.hour, minute=parsed.minute)
-            return (Timestamp(st, tz=self.tz),
-                    Timestamp(Timestamp(st + offsets.Minute(),
-                                        tz=self.tz).value - 1))
+            start = Timestamp(parsed.year, parsed.month, parsed.day,
+                              parsed.hour, parsed.minute)
+            end = start + timedelta(minutes=1) - Nano(1)
         elif reso == 'second':
-            st = datetime(parsed.year, parsed.month, parsed.day,
-                          hour=parsed.hour, minute=parsed.minute,
-                          second=parsed.second)
-            return (Timestamp(st, tz=self.tz),
-                    Timestamp(Timestamp(st + offsets.Second(),
-                                        tz=self.tz).value - 1))
+            start = Timestamp(parsed.year, parsed.month, parsed.day,
+                              parsed.hour, parsed.minute, parsed.second)
+            end = start + timedelta(seconds=1) - Nano(1)
         elif reso == 'microsecond':
-            st = datetime(parsed.year, parsed.month, parsed.day,
-                          parsed.hour, parsed.minute, parsed.second,
-                          parsed.microsecond)
-            return (Timestamp(st, tz=self.tz), Timestamp(st, tz=self.tz))
-        else:
-            raise KeyError
+            start = Timestamp(parsed.year, parsed.month, parsed.day,
+                              parsed.hour, parsed.minute, parsed.second,
+                              parsed.microsecond)
+            end = start + timedelta(microseconds=1) - Nano(1)
+        # GH 24076
+        # If an incoming date string contained a UTC offset, need to localize
+        # the parsed date to this offset first before aligning with the index's
+        # timezone
+        if parsed.tzinfo is not None:
+            if self.tz is None:
+                raise ValueError("The index must be timezone aware "
+                                 "when indexing with a date string with a "
+                                 "UTC offset")
+            start = start.tz_localize(parsed.tzinfo).tz_convert(self.tz)
+            end = end.tz_localize(parsed.tzinfo).tz_convert(self.tz)
+        elif self.tz is not None:
+            start = start.tz_localize(self.tz)
+            end = end.tz_localize(self.tz)
+        return start, end
 
     def _partial_date_slice(self, reso, parsed, use_lhs=True, use_rhs=True):
         is_monotonic = self.is_monotonic
@@ -1010,7 +1030,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         except (KeyError, ValueError, TypeError):
             try:
                 return self._get_string_slice(key)
-            except (TypeError, KeyError, ValueError):
+            except (TypeError, KeyError, ValueError, OverflowError):
                 pass
 
             try:
@@ -1052,7 +1072,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if is_float(label) or isinstance(label, time) or is_integer(label):
             self._invalid_indexer('slice', label)
 
-        if isinstance(label, compat.string_types):
+        if isinstance(label, str):
             freq = getattr(self, 'freqstr',
                            getattr(self, 'inferred_freq', None))
             _, parsed, reso = parsing.parse_time_string(label, freq)
@@ -1108,8 +1128,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             # For historical reasons DatetimeIndex by default supports
             # value-based partial (aka string) slices on non-monotonic arrays,
             # let's try that.
-            if ((start is None or isinstance(start, compat.string_types)) and
-                    (end is None or isinstance(end, compat.string_types))):
+            if ((start is None or isinstance(start, str)) and
+                    (end is None or isinstance(end, str))):
                 mask = True
                 if start is not None:
                     start_casted = self._maybe_cast_slice_bound(
@@ -1248,7 +1268,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         except (AttributeError, TypeError):
 
             # fall back to object index
-            if isinstance(item, compat.string_types):
+            if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
             raise TypeError(
                 "cannot insert DatetimeIndex with incompatible label")
@@ -1302,20 +1322,19 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         --------
         indexer_between_time, DataFrame.at_time
         """
-        from dateutil.parser import parse
-
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
 
-        if isinstance(time, compat.string_types):
+        if isinstance(time, str):
+            from dateutil.parser import parse
             time = parse(time).time()
 
         if time.tzinfo:
-            # TODO
-            raise NotImplementedError("argument 'time' with timezone info is "
-                                      "not supported")
-
-        time_micros = self._get_time_micros()
+            if self.tz is None:
+                raise ValueError("Index must be timezone aware.")
+            time_micros = self.tz_convert(time.tzinfo)._get_time_micros()
+        else:
+            time_micros = self._get_time_micros()
         micros = _time_to_micros(time)
         return (micros == time_micros).nonzero()[0]
 

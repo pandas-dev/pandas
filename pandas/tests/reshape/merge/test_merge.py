@@ -1,5 +1,3 @@
-# pylint: disable=E1103
-
 from collections import OrderedDict
 from datetime import date, datetime
 import random
@@ -39,7 +37,55 @@ def get_test_data(ngroups=NGROUPS, n=N):
     return arr
 
 
-class TestMerge(object):
+def get_series():
+    return [
+        pd.Series([1], dtype='int64'),
+        pd.Series([1], dtype='Int64'),
+        pd.Series([1.23]),
+        pd.Series(['foo']),
+        pd.Series([True]),
+        pd.Series([pd.Timestamp('2018-01-01')]),
+        pd.Series([pd.Timestamp('2018-01-01', tz='US/Eastern')]),
+    ]
+
+
+def get_series_na():
+    return [
+        pd.Series([np.nan], dtype='Int64'),
+        pd.Series([np.nan], dtype='float'),
+        pd.Series([np.nan], dtype='object'),
+        pd.Series([pd.NaT]),
+    ]
+
+
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+def series_of_dtype(request):
+    """
+    A parametrized fixture returning a variety of Series of different
+    dtypes
+    """
+    return request.param
+
+
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+def series_of_dtype2(request):
+    """
+    A duplicate of the series_of_dtype fixture, so that it can be used
+    twice by a single function
+    """
+    return request.param
+
+
+@pytest.fixture(params=get_series_na(), ids=lambda x: x.dtype.name)
+def series_of_dtype_all_na(request):
+    """
+    A parametrized fixture returning a variety of Series with all NA
+    values
+    """
+    return request.param
+
+
+class TestMerge:
 
     def setup_method(self, method):
         # aggregate multiple columns
@@ -338,10 +384,10 @@ class TestMerge(object):
                               dict(left_on='a', right_on='x')])
     def test_merge_left_empty_right_empty(self, join_type, kwarg):
         # GH 10824
-        left = pd.DataFrame([], columns=['a', 'b', 'c'])
-        right = pd.DataFrame([], columns=['x', 'y', 'z'])
+        left = pd.DataFrame(columns=['a', 'b', 'c'])
+        right = pd.DataFrame(columns=['x', 'y', 'z'])
 
-        exp_in = pd.DataFrame([], columns=['a', 'b', 'c', 'x', 'y', 'z'],
+        exp_in = pd.DataFrame(columns=['a', 'b', 'c', 'x', 'y', 'z'],
                               index=pd.Index([], dtype=object),
                               dtype=object)
 
@@ -350,7 +396,7 @@ class TestMerge(object):
 
     def test_merge_left_empty_right_notempty(self):
         # GH 10824
-        left = pd.DataFrame([], columns=['a', 'b', 'c'])
+        left = pd.DataFrame(columns=['a', 'b', 'c'])
         right = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                              columns=['x', 'y', 'z'])
 
@@ -396,7 +442,7 @@ class TestMerge(object):
         # GH 10824
         left = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                             columns=['a', 'b', 'c'])
-        right = pd.DataFrame([], columns=['x', 'y', 'z'])
+        right = pd.DataFrame(columns=['x', 'y', 'z'])
 
         exp_out = pd.DataFrame({'a': [1, 4, 7],
                                 'b': [2, 5, 8],
@@ -427,6 +473,36 @@ class TestMerge(object):
                           dict(left_on='a', right_on='x')]:
                 check1(exp_in, kwarg)
                 check2(exp_out, kwarg)
+
+    def test_merge_empty_frame(self, series_of_dtype, series_of_dtype2):
+        # GH 25183
+        df = pd.DataFrame({'key': series_of_dtype, 'value': series_of_dtype2},
+                          columns=['key', 'value'])
+        df_empty = df[:0]
+        expected = pd.DataFrame({
+            'value_x': pd.Series(dtype=df.dtypes['value']),
+            'key': pd.Series(dtype=df.dtypes['key']),
+            'value_y': pd.Series(dtype=df.dtypes['value']),
+        }, columns=['value_x', 'key', 'value_y'])
+        actual = df_empty.merge(df, on='key')
+        assert_frame_equal(actual, expected)
+
+    def test_merge_all_na_column(self, series_of_dtype,
+                                 series_of_dtype_all_na):
+        # GH 25183
+        df_left = pd.DataFrame(
+            {'key': series_of_dtype, 'value': series_of_dtype_all_na},
+            columns=['key', 'value'])
+        df_right = pd.DataFrame(
+            {'key': series_of_dtype, 'value': series_of_dtype_all_na},
+            columns=['key', 'value'])
+        expected = pd.DataFrame({
+            'key': series_of_dtype,
+            'value_x': series_of_dtype_all_na,
+            'value_y': series_of_dtype_all_na,
+        }, columns=['key', 'value_x', 'value_y'])
+        actual = df_left.merge(df_right, on='key')
+        assert_frame_equal(actual, expected)
 
     def test_merge_nosort(self):
         # #2098, anything to do?
@@ -1004,7 +1080,7 @@ def _check_merge(x, y):
         assert_frame_equal(result, expected, check_names=False)
 
 
-class TestMergeDtypes(object):
+class TestMergeDtypes:
 
     @pytest.mark.parametrize('right_vals', [
         ['foo', 'bar'],
@@ -1152,7 +1228,7 @@ class TestMergeDtypes(object):
         (Series([1, 2], dtype='int32'), ["a", "b", "c"]),
         ([0, 1, 2], ["0", "1", "2"]),
         ([0.0, 1.0, 2.0], ["0", "1", "2"]),
-        ([0, 1, 2], [u"0", u"1", u"2"]),
+        ([0, 1, 2], ["0", "1", "2"]),
         (pd.date_range('1/1/2011', periods=2, freq='D'), ['2011-01-01',
                                                           '2011-01-02']),
         (pd.date_range('1/1/2011', periods=2, freq='D'), [0, 1]),
@@ -1204,7 +1280,7 @@ def right():
          'Z': [1, 2]})
 
 
-class TestMergeCategorical(object):
+class TestMergeCategorical:
 
     def test_identical(self, left):
         # merging on the same, should preserve dtypes
@@ -1437,7 +1513,7 @@ def right_df():
     return DataFrame({'b': [300, 100, 200]}, index=[3, 1, 2])
 
 
-class TestMergeOnIndexes(object):
+class TestMergeOnIndexes:
 
     @pytest.mark.parametrize(
         "how, sort, expected",
@@ -1588,3 +1664,68 @@ def test_merge_suffix_none_error(col1, col2, suffixes):
     msg = "iterable"
     with pytest.raises(TypeError, match=msg):
         pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+
+
+@pytest.mark.parametrize("cat_dtype", ["one", "two"])
+@pytest.mark.parametrize("reverse", [True, False])
+def test_merge_equal_cat_dtypes(cat_dtype, reverse):
+    # see gh-22501
+    cat_dtypes = {
+        "one": CategoricalDtype(categories=["a", "b", "c"], ordered=False),
+        "two": CategoricalDtype(categories=["a", "b", "c"], ordered=False),
+    }
+
+    df1 = DataFrame({
+        "foo": Series(["a", "b", "c"]).astype(cat_dtypes["one"]),
+        "left": [1, 2, 3],
+    }).set_index("foo")
+
+    data_foo = ["a", "b", "c"]
+    data_right = [1, 2, 3]
+
+    if reverse:
+        data_foo.reverse()
+        data_right.reverse()
+
+    df2 = DataFrame({
+        "foo": Series(data_foo).astype(cat_dtypes[cat_dtype]),
+        "right": data_right
+    }).set_index("foo")
+
+    result = df1.merge(df2, left_index=True, right_index=True)
+
+    expected = DataFrame({
+        "left": [1, 2, 3],
+        "right": [1, 2, 3],
+        "foo": Series(["a", "b", "c"]).astype(cat_dtypes["one"]),
+    }).set_index("foo")
+
+    # Categorical is unordered, so don't check ordering.
+    tm.assert_frame_equal(result, expected, check_categorical=False)
+
+
+def test_merge_equal_cat_dtypes2():
+    # see gh-22501
+    cat_dtype = CategoricalDtype(categories=["a", "b", "c"], ordered=False)
+
+    # Test Data
+    df1 = DataFrame({
+        "foo": Series(["a", "b"]).astype(cat_dtype),
+        "left": [1, 2],
+    }).set_index("foo")
+
+    df2 = DataFrame({
+        "foo": Series(["a", "b", "c"]).astype(cat_dtype),
+        "right": [3, 2, 1],
+    }).set_index("foo")
+
+    result = df1.merge(df2, left_index=True, right_index=True)
+
+    expected = DataFrame({
+        "left": [1, 2],
+        "right": [3, 2],
+        "foo": Series(["a", "b"]).astype(cat_dtype),
+    }).set_index("foo")
+
+    # Categorical is unordered, so don't check ordering.
+    tm.assert_frame_equal(result, expected, check_categorical=False)
