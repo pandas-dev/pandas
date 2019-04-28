@@ -490,6 +490,25 @@ def test_ops_general():
             raise
 
 
+@pytest.mark.parametrize('as_index', [True, False])
+def test_groupby_std(as_index):
+    # GH 10355: Test that std does not affect the groupby column
+    df = pd.DataFrame({
+        'a': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+        'b': [1, 2, 3, 3, 5, 7, 7, 8, 9],
+    })
+    result = df.groupby('a', as_index=as_index).std()
+    expected = pd.DataFrame({
+        'a': [1, 2, 3],
+        'b': [1, 2, 1]
+    })
+
+    if as_index:
+        expected = expected.set_index('a')
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_max_nan_bug():
     raw = """,Date,app,File
 -04-23,2013-04-23 00:00:00,,log080001.log
