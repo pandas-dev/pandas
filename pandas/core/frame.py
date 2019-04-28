@@ -839,12 +839,12 @@ class DataFrame(NDFrame):
             The name of the returned namedtuples or None to return regular
             tuples.
 
-        Yields
+        Returns
         -------
-        collections.namedtuple
-            Yields a namedtuple for each row in the DataFrame with the first
-            field possibly being the index and following fields being the
-            column values.
+        iterator
+            An object to iterate over namedtuples for each row in the
+            DataFrame with the first field possibly being the index and
+            following fields being the column values.
 
         See Also
         --------
