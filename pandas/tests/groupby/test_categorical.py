@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-
 from datetime import datetime
 
 import numpy as np
@@ -418,6 +415,71 @@ def test_observed_groups(observed):
                     'c': Index([1], dtype='int64')}
 
     tm.assert_dict_equal(result, expected)
+
+
+def test_observed_groups_with_nan(observed):
+    # GH 24740
+    df = pd.DataFrame({'cat': pd.Categorical(['a', np.nan, 'a'],
+                       categories=['a', 'b', 'd']),
+                       'vals': [1, 2, 3]})
+    g = df.groupby('cat', observed=observed)
+    result = g.groups
+    if observed:
+        expected = {'a': Index([0, 2], dtype='int64')}
+    else:
+        expected = {'a': Index([0, 2], dtype='int64'),
+                    'b': Index([], dtype='int64'),
+                    'd': Index([], dtype='int64')}
+    tm.assert_dict_equal(result, expected)
+
+
+def test_dataframe_categorical_with_nan(observed):
+    # GH 21151
+    s1 = pd.Categorical([np.nan, 'a', np.nan, 'a'],
+                        categories=['a', 'b', 'c'])
+    s2 = pd.Series([1, 2, 3, 4])
+    df = pd.DataFrame({'s1': s1, 's2': s2})
+    result = df.groupby('s1', observed=observed).first().reset_index()
+    if observed:
+        expected = DataFrame({'s1': pd.Categorical(['a'],
+                              categories=['a', 'b', 'c']), 's2': [2]})
+    else:
+        expected = DataFrame({'s1': pd.Categorical(['a', 'b', 'c'],
+                              categories=['a', 'b', 'c']),
+                              's2': [2, np.nan, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("ordered", [True, False])
+@pytest.mark.parametrize("observed", [True, False])
+@pytest.mark.parametrize("sort", [True, False])
+def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
+    # GH 25871: Fix groupby sorting on ordered Categoricals
+    # GH 25167: Groupby with observed=True doesn't sort
+
+    # Build a dataframe with cat having one unobserved category ('missing'),
+    # and a Series with identical values
+    label = pd.Categorical(['d', 'a', 'b', 'a', 'd', 'b'],
+                           categories=['a', 'b', 'missing', 'd'],
+                           ordered=ordered)
+    val = pd.Series(['d', 'a', 'b', 'a', 'd', 'b'])
+    df = pd.DataFrame({'label': label, 'val': val})
+
+    # aggregate on the Categorical
+    result = (df.groupby('label', observed=observed, sort=sort)['val']
+                .aggregate('first'))
+
+    # If ordering works, we expect index labels equal to aggregation results,
+    # except for 'observed=False': label 'missing' has aggregation None
+    label = pd.Series(result.index.array, dtype='object')
+    aggr = pd.Series(result.array)
+    if not observed:
+        aggr[aggr.isna()] = 'missing'
+    if not all(label == aggr):
+        msg = ('Labels and aggregation results not consistently sorted\n' +
+               'for (ordered={}, observed={}, sort={})\n' +
+               'Result:\n{}').format(ordered, observed, sort, result)
+        assert False, msg
 
 
 def test_datetime():

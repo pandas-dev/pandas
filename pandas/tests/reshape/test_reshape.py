@@ -1,13 +1,8 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101
-
 from collections import OrderedDict
 
 import numpy as np
 from numpy import nan
 import pytest
-
-from pandas.compat import u
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -18,7 +13,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
-class TestGetDummies(object):
+class TestGetDummies:
 
     @pytest.fixture
     def df(self):
@@ -170,7 +165,7 @@ class TestGetDummies(object):
         s = [e, eacute, eacute]
         res = get_dummies(s, prefix='letter', sparse=sparse)
         exp = DataFrame({'letter_e': [1, 0, 0],
-                         u('letter_%s') % eacute: [0, 1, 1]},
+                         'letter_%s' % eacute: [0, 1, 1]},
                         dtype=np.uint8)
         if sparse:
             exp = exp.apply(pd.SparseArray, fill_value=0)
@@ -366,17 +361,17 @@ class TestGetDummies(object):
         assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('get_dummies_kwargs,expected', [
-        ({'data': pd.DataFrame(({u'ä': ['a']}))},
-         pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)),
+        ({'data': pd.DataFrame(({'ä': ['a']}))},
+         pd.DataFrame({'ä_a': [1]}, dtype=np.uint8)),
 
-        ({'data': pd.DataFrame({'x': [u'ä']})},
-         pd.DataFrame({u'x_ä': [1]}, dtype=np.uint8)),
+        ({'data': pd.DataFrame({'x': ['ä']})},
+         pd.DataFrame({'x_ä': [1]}, dtype=np.uint8)),
 
-        ({'data': pd.DataFrame({'x': [u'a']}), 'prefix':u'ä'},
-         pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)),
+        ({'data': pd.DataFrame({'x': ['a']}), 'prefix':'ä'},
+         pd.DataFrame({'ä_a': [1]}, dtype=np.uint8)),
 
-        ({'data': pd.DataFrame({'x': [u'a']}), 'prefix_sep':u'ä'},
-         pd.DataFrame({u'xäa': [1]}, dtype=np.uint8))])
+        ({'data': pd.DataFrame({'x': ['a']}), 'prefix_sep':'ä'},
+         pd.DataFrame({'xäa': [1]}, dtype=np.uint8))])
     def test_dataframe_dummies_unicode(self, get_dummies_kwargs, expected):
         # GH22084 pd.get_dummies incorrectly encodes unicode characters
         # in dataframe column names
@@ -577,30 +572,45 @@ class TestGetDummies(object):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_get_dummies_all_sparse(self):
+        df = pd.DataFrame({"A": [1, 2]})
+        result = pd.get_dummies(df, columns=['A'], sparse=True)
+        dtype = SparseDtype('uint8', 0)
+        expected = pd.DataFrame({
+            'A_1': SparseArray([1, 0], dtype=dtype),
+            'A_2': SparseArray([0, 1], dtype=dtype),
+        })
+        tm.assert_frame_equal(result, expected)
 
-class TestCategoricalReshape(object):
 
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-    def test_reshaping_panel_categorical(self):
+class TestCategoricalReshape:
 
-        p = tm.makePanel()
-        p['str'] = 'foo'
-        df = p.to_frame()
+    def test_reshaping_multi_index_categorical(self):
+
+        # construct a MultiIndexed DataFrame formerly created
+        #  via `tm.makePanel().to_frame()`
+        cols = ['ItemA', 'ItemB', 'ItemC']
+        data = {c: tm.makeTimeDataFrame() for c in cols}
+        df = pd.concat({c: data[c].stack() for c in data}, axis='columns')
+        df.index.names = ['major', 'minor']
+        df['str'] = 'foo'
+
+        dti = df.index.levels[0]
 
         df['category'] = df['str'].astype('category')
         result = df['category'].unstack()
 
-        c = Categorical(['foo'] * len(p.major_axis))
+        c = Categorical(['foo'] * len(dti))
         expected = DataFrame({'A': c.copy(),
                               'B': c.copy(),
                               'C': c.copy(),
                               'D': c.copy()},
                              columns=Index(list('ABCD'), name='minor'),
-                             index=p.major_axis.set_names('major'))
+                             index=dti)
         tm.assert_frame_equal(result, expected)
 
 
-class TestMakeAxisDummies(object):
+class TestMakeAxisDummies:
 
     def test_preserve_categorical_dtype(self):
         # GH13854

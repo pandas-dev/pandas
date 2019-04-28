@@ -3,7 +3,6 @@
 from distutils.version import LooseVersion
 from warnings import catch_warnings
 
-from pandas.compat import string_types
 from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
@@ -43,7 +42,7 @@ def get_engine(engine):
         return FastParquetImpl()
 
 
-class BaseImpl(object):
+class BaseImpl:
 
     api = None  # module
 
@@ -59,7 +58,7 @@ class BaseImpl(object):
 
         # index level names must be strings
         valid_names = all(
-            isinstance(name, string_types)
+            isinstance(name, str)
             for name in df.index.names
             if name is not None
         )
@@ -262,16 +261,17 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     ----------
     path : string
         File path
-    columns : list, default=None
-        If not None, only these columns will be read from the file.
-
-        .. versionadded 0.21.1
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
-    kwargs are passed to the engine
+    columns : list, default=None
+        If not None, only these columns will be read from the file.
+
+        .. versionadded 0.21.1
+    **kwargs
+        Any additional kwargs are passed to the engine.
 
     Returns
     -------

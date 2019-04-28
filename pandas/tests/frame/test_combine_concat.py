@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 from datetime import datetime
 
 import numpy as np
@@ -11,12 +7,11 @@ from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestDataFrameConcatCommon(TestData):
+class TestDataFrameConcatCommon():
 
     def test_concat_multiple_frames_dtypes(self):
 
@@ -170,11 +165,26 @@ class TestDataFrameConcatCommon(TestData):
         expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
         assert_frame_equal(result, expected)
 
+    def test_append_missing_cols(self):
+        # GH22252
+        # exercise the conditional branch in append method where the data
+        # to be appended is a list and does not contain all columns that are in
+        # the target DataFrame
+        df = DataFrame(np.random.randn(5, 4),
+                       columns=['foo', 'bar', 'baz', 'qux'])
+
+        dicts = [{'foo': 9}, {'bar': 10}]
+        with tm.assert_produces_warning(None):
+            result = df.append(dicts, ignore_index=True, sort=True)
+
+        expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
+        assert_frame_equal(result, expected)
+
     def test_append_empty_dataframe(self):
 
         # Empty df append empty df
-        df1 = DataFrame([])
-        df2 = DataFrame([])
+        df1 = DataFrame()
+        df2 = DataFrame()
         result = df1.append(df2)
         expected = df1.copy()
         assert_frame_equal(result, expected)
@@ -358,6 +368,13 @@ class TestDataFrameConcatCommon(TestData):
 
         assert_frame_equal(df, expected)
 
+    def test_update_datetime_tz(self):
+        # GH 25807
+        result = DataFrame([pd.Timestamp('2019', tz='UTC')])
+        result.update(result)
+        expected = DataFrame([pd.Timestamp('2019', tz='UTC')])
+        assert_frame_equal(result, expected)
+
     def test_join_str_datetime(self):
         str_dates = ['20120209', '20120222']
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
@@ -504,8 +521,18 @@ class TestDataFrameConcatCommon(TestData):
                                                                 names=[1, 2]))
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_astype_dup_col(self):
+        # gh 23049
+        df = pd.DataFrame([{'a': 'b'}])
+        df = pd.concat([df, df], axis=1)
 
-class TestDataFrameCombineFirst(TestData):
+        result = df.astype('category')
+        expected = pd.DataFrame(np.array(["b", "b"]).reshape(1, 2),
+                                columns=["a", "a"]).astype("category")
+        tm.assert_frame_equal(result, expected)
+
+
+class TestDataFrameCombineFirst():
 
     def test_combine_first_mixed(self):
         a = Series(['a', 'b'], index=lrange(2))
@@ -521,22 +548,22 @@ class TestDataFrameCombineFirst(TestData):
         combined = f.combine_first(g)
         tm.assert_frame_equal(combined, exp)
 
-    def test_combine_first(self):
+    def test_combine_first(self, float_frame):
         # disjoint
-        head, tail = self.frame[:5], self.frame[5:]
+        head, tail = float_frame[:5], float_frame[5:]
 
         combined = head.combine_first(tail)
-        reordered_frame = self.frame.reindex(combined.index)
+        reordered_frame = float_frame.reindex(combined.index)
         assert_frame_equal(combined, reordered_frame)
-        assert tm.equalContents(combined.columns, self.frame.columns)
+        assert tm.equalContents(combined.columns, float_frame.columns)
         assert_series_equal(combined['A'], reordered_frame['A'])
 
         # same index
-        fcopy = self.frame.copy()
+        fcopy = float_frame.copy()
         fcopy['A'] = 1
         del fcopy['C']
 
-        fcopy2 = self.frame.copy()
+        fcopy2 = float_frame.copy()
         fcopy2['B'] = 0
         del fcopy2['D']
 
@@ -560,25 +587,25 @@ class TestDataFrameCombineFirst(TestData):
         assert (combined['A'][:10] == 0).all()
 
         # no overlap
-        f = self.frame[:10]
-        g = self.frame[10:]
+        f = float_frame[:10]
+        g = float_frame[10:]
         combined = f.combine_first(g)
         assert_series_equal(combined['A'].reindex(f.index), f['A'])
         assert_series_equal(combined['A'].reindex(g.index), g['A'])
 
         # corner cases
-        comb = self.frame.combine_first(self.empty)
-        assert_frame_equal(comb, self.frame)
+        comb = float_frame.combine_first(DataFrame())
+        assert_frame_equal(comb, float_frame)
 
-        comb = self.empty.combine_first(self.frame)
-        assert_frame_equal(comb, self.frame)
+        comb = DataFrame().combine_first(float_frame)
+        assert_frame_equal(comb, float_frame)
 
-        comb = self.frame.combine_first(DataFrame(index=["faz", "boo"]))
+        comb = float_frame.combine_first(DataFrame(index=["faz", "boo"]))
         assert "faz" in comb.index
 
         # #2525
         df = DataFrame({'a': [1]}, index=[datetime(2012, 1, 1)])
-        df2 = DataFrame({}, columns=['b'])
+        df2 = DataFrame(columns=['b'])
         result = df.combine_first(df2)
         assert 'b' in result
 
@@ -840,7 +867,7 @@ class TestDataFrameCombineFirst(TestData):
         pd.concat([df1, df2_obj])
 
 
-class TestDataFrameUpdate(TestData):
+class TestDataFrameUpdate():
 
     def test_update_nan(self):
         # #15593 #15617

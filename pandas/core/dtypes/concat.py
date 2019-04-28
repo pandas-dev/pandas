@@ -14,8 +14,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeArray, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex,
     ABCRangeIndex, ABCSparseDataFrame, ABCTimedeltaIndex)
 
-from pandas import compat
-
 
 def get_dtype_kinds(l):
     """
@@ -69,7 +67,7 @@ def _get_series_result_type(result, objs=None):
     if isinstance(result, dict):
         # concat Series with axis 1
         if all(isinstance(c, (SparseSeries, SparseDataFrame))
-               for c in compat.itervalues(result)):
+               for c in result.values()):
             return SparseDataFrame
         else:
             return DataFrame
@@ -89,8 +87,7 @@ def _get_frame_result_type(result, objs):
     """
 
     if (result.blocks and (
-            all(is_sparse(b) for b in result.blocks) or
-            all(isinstance(obj, ABCSparseDataFrame) for obj in objs))):
+            any(isinstance(obj, ABCSparseDataFrame) for obj in objs))):
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
@@ -123,8 +120,6 @@ def _concat_compat(to_concat, axis=0):
         except Exception:
             return True
 
-    nonempty = [x for x in to_concat if is_nonempty(x)]
-
     # If all arrays are empty, there's nothing to convert, just short-cut to
     # the concatenation, #3121.
     #
@@ -148,11 +143,11 @@ def _concat_compat(to_concat, axis=0):
     elif 'sparse' in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
 
-    extensions = [is_extension_array_dtype(x) for x in to_concat]
-    if any(extensions) and axis == 1:
+    all_empty = all(not is_nonempty(x) for x in to_concat)
+    if any(is_extension_array_dtype(x) for x in to_concat) and axis == 1:
         to_concat = [np.atleast_2d(x.astype('object')) for x in to_concat]
 
-    if not nonempty:
+    if all_empty:
         # we have all empties, but may need to coerce the result dtype to
         # object if we have non-numeric type operands (numpy would otherwise
         # cast this to float)

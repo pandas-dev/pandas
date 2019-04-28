@@ -6,7 +6,7 @@ from pandas import Series, Timedelta, timedelta_range
 from pandas.util.testing import assert_series_equal
 
 
-class TestSlicing(object):
+class TestSlicing:
     def test_slice_keeps_name(self):
         # GH4226
         dr = pd.timedelta_range('1d', '5d', freq='H', name='timebucket')
@@ -31,7 +31,9 @@ class TestSlicing(object):
         result = s['6 days, 23:11:12']
         assert result == s.iloc[133]
 
-        pytest.raises(KeyError, s.__getitem__, '50 days')
+        msg = r"^Timedelta\('50 days 00:00:00'\)$"
+        with pytest.raises(KeyError, match=msg):
+            s['50 days']
 
     def test_partial_slice_high_reso(self):
 

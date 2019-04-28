@@ -6,22 +6,23 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import iNaT, lib, tslibs
-import pandas.compat as compat
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
     _get_dtype, is_any_int_dtype, is_bool_dtype, is_complex, is_complex_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
     is_float, is_float_dtype, is_integer, is_integer_dtype, is_numeric_dtype,
-    is_object_dtype, is_scalar, is_timedelta64_dtype)
+    is_object_dtype, is_scalar, is_timedelta64_dtype, pandas_dtype)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.common as com
-from pandas.core.config import get_option
 
 _BOTTLENECK_INSTALLED = False
-_MIN_BOTTLENECK_VERSION = '1.0.0'
+_MIN_BOTTLENECK_VERSION = '1.2.1'
 
 try:
     import bottleneck as bn
@@ -53,11 +54,11 @@ def set_use_bottleneck(v=True):
 set_use_bottleneck(get_option('compute.use_bottleneck'))
 
 
-class disallow(object):
+class disallow:
 
     def __init__(self, *dtypes):
-        super(disallow, self).__init__()
-        self.dtypes = tuple(np.dtype(dtype).type for dtype in dtypes)
+        super().__init__()
+        self.dtypes = tuple(pandas_dtype(dtype).type for dtype in dtypes)
 
     def check(self, obj):
         return hasattr(obj, 'dtype') and issubclass(obj.dtype.type,
@@ -66,7 +67,7 @@ class disallow(object):
     def __call__(self, f):
         @functools.wraps(f)
         def _f(*args, **kwargs):
-            obj_iter = itertools.chain(args, compat.itervalues(kwargs))
+            obj_iter = itertools.chain(args, kwargs.values())
             if any(self.check(obj) for obj in obj_iter):
                 msg = 'reduction operation {name!r} not allowed for this dtype'
                 raise TypeError(msg.format(name=f.__name__.replace('nan', '')))
@@ -85,7 +86,7 @@ class disallow(object):
         return _f
 
 
-class bottleneck_switch(object):
+class bottleneck_switch:
 
     def __init__(self, **kwargs):
         self.kwargs = kwargs
@@ -101,7 +102,7 @@ class bottleneck_switch(object):
         @functools.wraps(alt)
         def f(values, axis=None, skipna=True, **kwds):
             if len(self.kwargs) > 0:
-                for k, v in compat.iteritems(self.kwargs):
+                for k, v in self.kwargs.items():
                     if k not in kwds:
                         kwds[k] = v
             try:
@@ -437,6 +438,7 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
     return _wrap_results(the_sum, dtype)
 
 
+@disallow('M8', DatetimeTZDtype)
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """

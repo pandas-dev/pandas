@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -132,7 +130,7 @@ def test_assert_almost_equal_dict_like_object(val):
     dict_val = 1
     real_dict = dict(a=val)
 
-    class DictLikeObj(object):
+    class DictLikeObj:
         def keys(self):
             return "a",
 
@@ -310,8 +308,8 @@ numpy array values are different \\(33\\.33333 %\\)
 \\[right\\]: \\[á, à, å\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_almost_equal(np.array([u"á", u"à", u"ä"]),
-                            np.array([u"á", u"à", u"å"]))
+        assert_almost_equal(np.array(["á", "à", "ä"]),
+                            np.array(["á", "à", "å"]))
 
 
 def test_assert_almost_equal_timestamp():

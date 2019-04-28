@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that apply specifically to the CParser. Unless specifically stated
 as a CParser-specific issue, the goal is to eventually move as many of
@@ -7,7 +5,7 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
-from io import TextIOWrapper
+from io import BytesIO, StringIO, TextIOWrapper
 import mmap
 import os
 import tarfile
@@ -15,7 +13,7 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import PY3, BytesIO, StringIO, lrange, range
+from pandas.compat import lrange
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -416,7 +414,7 @@ def test_read_nrows_large(c_parser_only):
 
 
 def test_float_precision_round_trip_with_text(c_parser_only):
-    # see gh-15140 - This should not segfault on Python 2.7+
+    # see gh-15140
     parser = c_parser_only
     df = parser.read_csv(StringIO("a"), header=None,
                          float_precision="round_trip")
@@ -500,17 +498,11 @@ def test_file_like_no_next(c_parser_only):
 
 def test_buffer_rd_bytes_bad_unicode(c_parser_only):
     # see gh-22748
-    parser = c_parser_only
     t = BytesIO(b"\xB0")
-
-    if PY3:
-        msg = "'utf-8' codec can't encode character"
-        t = TextIOWrapper(t, encoding="ascii", errors="surrogateescape")
-    else:
-        msg = "'utf8' codec can't decode byte"
-
+    t = TextIOWrapper(t, encoding="ascii", errors="surrogateescape")
+    msg = "'utf-8' codec can't encode character"
     with pytest.raises(UnicodeError, match=msg):
-        parser.read_csv(t, encoding="UTF-8")
+        c_parser_only.read_csv(t, encoding="UTF-8")
 
 
 @pytest.mark.parametrize("tar_suffix", [".tar", ".tar.gz"])
@@ -572,8 +564,7 @@ def test_file_handles_mmap(c_parser_only, csv1):
         m = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
         parser.read_csv(m)
 
-        if PY3:
-            assert not m.closed
+        assert not m.closed
         m.close()
 
 

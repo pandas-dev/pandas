@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 """
 Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
-
-from __future__ import division, print_function
 
 from contextlib import contextmanager
 from datetime import date, datetime, time
@@ -15,8 +12,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas.compat import (
-    map, raise_with_traceback, string_types, text_type, zip)
+from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype, is_dict_like, is_list_like)
@@ -48,24 +44,11 @@ def _is_sqlalchemy_connectable(con):
         try:
             import sqlalchemy
             _SQLALCHEMY_INSTALLED = True
-
-            from distutils.version import LooseVersion
-            ver = sqlalchemy.__version__
-            # For sqlalchemy versions < 0.8.2, the BIGINT type is recognized
-            # for a sqlite engine, which results in a warning when trying to
-            # read/write a DataFrame with int64 values. (GH7433)
-            if LooseVersion(ver) < LooseVersion('0.8.2'):
-                from sqlalchemy import BigInteger
-                from sqlalchemy.ext.compiler import compiles
-
-                @compiles(BigInteger, 'sqlite')
-                def compile_big_int_sqlite(type_, compiler, **kw):
-                    return 'INTEGER'
         except ImportError:
             _SQLALCHEMY_INSTALLED = False
 
     if _SQLALCHEMY_INSTALLED:
-        import sqlalchemy
+        import sqlalchemy  # noqa: F811
         return isinstance(con, sqlalchemy.engine.Connectable)
     else:
         return False
@@ -182,26 +165,28 @@ def execute(sql, con, cur=None, params=None):
 def read_sql_table(table_name, con, schema=None, index_col=None,
                    coerce_float=True, parse_dates=None, columns=None,
                    chunksize=None):
-    """Read SQL database table into a DataFrame.
+    """
+    Read SQL database table into a DataFrame.
 
     Given a table name and a SQLAlchemy connectable, returns a DataFrame.
     This function does not support DBAPI connections.
 
     Parameters
     ----------
-    table_name : string
+    table_name : str
         Name of SQL table in database.
-    con : SQLAlchemy connectable (or database string URI)
+    con : SQLAlchemy connectable or str
+        A database URI could be provided as as str.
         SQLite DBAPI connection mode not supported.
-    schema : string, default None
+    schema : str, default None
         Name of SQL schema in database to query (if database flavor
         supports this). Uses default schema if None (default).
-    index_col : string or list of strings, optional, default: None
+    index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
-    coerce_float : boolean, default True
+    coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Can result in loss of Precision.
-    parse_dates : list or dict, default: None
+    parse_dates : list or dict, default None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
           strftime compatible in case of parsing string times or is one of
@@ -210,8 +195,8 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
           to the keyword arguments of :func:`pandas.to_datetime`
           Especially useful with databases without native Datetime support,
           such as SQLite.
-    columns : list, default: None
-        List of column names to select from SQL table
+    columns : list, default None
+        List of column names to select from SQL table.
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
@@ -219,15 +204,21 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     Returns
     -------
     DataFrame
+        A SQL table is returned as two-dimensional data structure with labeled
+        axes.
 
     See Also
     --------
     read_sql_query : Read SQL query into a DataFrame.
-    read_sql
+    read_sql : Read SQL query or database table into a DataFrame.
 
     Notes
     -----
     Any datetime values with time zone information will be converted to UTC.
+
+    Examples
+    --------
+    >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
 
     con = _engine_builder(con)
@@ -381,7 +372,8 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
     try:
         _is_table_name = pandas_sql.has_table(sql)
-    except (ImportError, AttributeError):
+    except Exception:
+        # using generic exception to catch errors from sql drivers (GH24988)
         _is_table_name = False
 
     if _is_table_name:
@@ -492,7 +484,7 @@ def _engine_builder(con):
     else it just return con without modifying it.
     """
     global _SQLALCHEMY_INSTALLED
-    if isinstance(con, string_types):
+    if isinstance(con, str):
         try:
             import sqlalchemy
         except ImportError:
@@ -515,7 +507,7 @@ def pandasSQL_builder(con, schema=None, meta=None,
     con = _engine_builder(con)
     if _is_sqlalchemy_connectable(con):
         return SQLDatabase(con, schema=schema, meta=meta)
-    elif isinstance(con, string_types):
+    elif isinstance(con, str):
         raise ImportError("Using URI string without sqlalchemy installed.")
     else:
         return SQLiteDatabase(con, is_cursor=is_cursor)
@@ -619,7 +611,7 @@ class SQLTable(PandasObject):
         else:
             temp = self.frame
 
-        column_names = list(map(text_type, temp.columns))
+        column_names = list(map(str, temp.columns))
         ncols = len(column_names)
         data_list = [None] * ncols
         blocks = temp._data.blocks
@@ -757,7 +749,7 @@ class SQLTable(PandasObject):
                         for i, l in enumerate(self.frame.index.names)]
 
         # for reading: index=(list of) string to specify column to set as index
-        elif isinstance(index, string_types):
+        elif isinstance(index, str):
             return [index]
         elif isinstance(index, list):
             return index
@@ -770,11 +762,10 @@ class SQLTable(PandasObject):
             for i, idx_label in enumerate(self.index):
                 idx_type = dtype_mapper(
                     self.frame.index._get_level_values(i))
-                column_names_and_types.append((text_type(idx_label),
-                                              idx_type, True))
+                column_names_and_types.append((str(idx_label), idx_type, True))
 
         column_names_and_types += [
-            (text_type(self.frame.columns[i]),
+            (str(self.frame.columns[i]),
              dtype_mapper(self.frame.iloc[:, i]),
              False)
             for i in range(len(self.frame.columns))
@@ -1244,7 +1235,7 @@ _SQL_TYPES = {
 
 def _get_unicode_name(name):
     try:
-        uname = text_type(name).encode("utf-8", "strict").decode("utf-8")
+        uname = str(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError:
         raise ValueError(
             "Cannot convert identifier to UTF-8: '{name}'".format(name=name))
@@ -1287,7 +1278,7 @@ class SQLiteTable(SQLTable):
         # this will transform time(12,34,56,789) into '12:34:56.000789'
         # (this is what sqlalchemy does)
         sqlite3.register_adapter(time, lambda _: _.strftime("%H:%M:%S.%f"))
-        super(SQLiteTable, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def sql_schema(self):
         return str(";\n".join(self.table))
@@ -1298,7 +1289,7 @@ class SQLiteTable(SQLTable):
                 conn.execute(stmt)
 
     def insert_statement(self):
-        names = list(map(text_type, self.frame.columns))
+        names = list(map(str, self.frame.columns))
         wld = '?'  # wildcard char
         escape = _get_valid_sqlite_name
 
@@ -1309,7 +1300,7 @@ class SQLiteTable(SQLTable):
         col_names = ','.join(bracketed_names)
         wildcards = ','.join([wld] * len(names))
         insert_statement = \
-            u'INSERT INTO {table} ({columns}) VALUES ({wld})'.format(
+            'INSERT INTO {table} ({columns}) VALUES ({wld})'.format(
                 table=escape(self.name), columns=col_names, wld=wildcards)
         return insert_statement
 

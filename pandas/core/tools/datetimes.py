@@ -1,3 +1,4 @@
+from collections import abc
 from datetime import datetime, time
 from functools import partial
 
@@ -8,7 +9,7 @@ from pandas._libs.tslibs import Timestamp, conversion, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError, _format_is_iso, _guess_datetime_format, parse_time_string)
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas.compat import zip
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
@@ -17,7 +18,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import notna
 
-from pandas import compat
 from pandas.core import algorithms
 
 
@@ -52,9 +52,10 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     if cache:
         # Perform a quicker unique check
         from pandas import Index
-        if not Index(arg).is_unique:
-            unique_dates = algorithms.unique(arg)
-            cache_dates = convert_listlike(unique_dates, True, format)
+        unique_dates = Index(arg).unique()
+        if len(unique_dates) < len(arg):
+            cache_dates = convert_listlike(unique_dates.to_numpy(),
+                                           True, format)
             cache_array = Series(cache_dates, index=unique_dates)
     return cache_array
 
@@ -398,6 +399,7 @@ def _adjust_to_origin(arg, origin, unit):
     return arg
 
 
+@deprecate_kwarg(old_arg_name='box', new_arg_name=None)
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='unix',
@@ -444,9 +446,17 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         - If True returns a DatetimeIndex or Index-like object
         - If False returns ndarray of values.
+
+        .. deprecated:: 0.25.0
+            Use :meth:`.to_numpy` or :meth:`Timestamp.to_datetime64`
+            instead to get an ndarray of values or numpy.datetime64,
+            respectively.
+
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
         all the way up to nanoseconds.
+        See strftime documentation for more information on choices:
+        https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
     exact : boolean, True by default
 
         - If True, require an exact format match.
@@ -497,8 +507,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     See Also
     --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_timedelta : Convert argument to timedelta.
+    DataFrame.astype : Cast argument to a specified dtype.
+    to_timedelta : Convert argument to timedelta.
 
     Examples
     --------
@@ -588,10 +598,9 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         if not cache_array.empty:
             result = arg.map(cache_array)
         else:
-            from pandas import Series
             values = convert_listlike(arg._values, True, format)
-            result = Series(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (ABCDataFrame, compat.MutableMapping)):
+            result = arg._constructor(values, index=arg.index, name=arg.name)
+    elif isinstance(arg, (ABCDataFrame, abc.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, box, tz)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
@@ -827,7 +836,6 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
     -------
     datetime.time
     """
-    from pandas.core.series import Series
 
     def _convert_listlike(arg, format):
 
@@ -892,9 +900,9 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
         return arg
     elif isinstance(arg, time):
         return arg
-    elif isinstance(arg, Series):
+    elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, format)
-        return Series(values, index=arg.index, name=arg.name)
+        return arg._constructor(values, index=arg.index, name=arg.name)
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, format)
     elif is_list_like(arg):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for Year, Quarter, and Month-based DateOffset subclasses
 """
@@ -7,7 +6,7 @@ from datetime import datetime
 import pytest
 
 import pandas as pd
-from pandas import Timestamp, compat
+from pandas import Timestamp
 
 from pandas.tseries.offsets import (
     BMonthBegin, BMonthEnd, BQuarterBegin, BQuarterEnd, BYearBegin, BYearEnd,
@@ -105,7 +104,7 @@ class TestMonthBegin(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
 
@@ -164,7 +163,7 @@ class TestMonthEnd(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [(MonthEnd(), datetime(2007, 12, 31), True),
@@ -224,7 +223,7 @@ class TestBMonthBegin(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [(BMonthBegin(), datetime(2007, 12, 31), False),
@@ -289,7 +288,7 @@ class TestBMonthEnd(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [(BMonthEnd(), datetime(2007, 12, 31), True),
@@ -379,7 +378,7 @@ class TestQuarterBegin(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
 
@@ -458,7 +457,7 @@ class TestQuarterEnd(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [
@@ -590,7 +589,7 @@ class TestBQuarterBegin(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
 
@@ -668,7 +667,7 @@ class TestBQuarterEnd(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [
@@ -713,7 +712,8 @@ class TestYearBegin(Base):
     _offset = YearBegin
 
     def test_misspecified(self):
-        pytest.raises(ValueError, YearBegin, month=13)
+        with pytest.raises(ValueError, match="Month must go from 1 to 12"):
+            YearBegin(month=13)
 
     offset_cases = []
     offset_cases.append((YearBegin(), {
@@ -786,7 +786,7 @@ class TestYearBegin(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [(YearBegin(), datetime(2007, 1, 3), False),
@@ -804,7 +804,8 @@ class TestYearEnd(Base):
     _offset = YearEnd
 
     def test_misspecified(self):
-        pytest.raises(ValueError, YearEnd, month=13)
+        with pytest.raises(ValueError, match="Month must go from 1 to 12"):
+            YearEnd(month=13)
 
     offset_cases = []
     offset_cases.append((YearEnd(), {
@@ -836,7 +837,7 @@ class TestYearEnd(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [(YearEnd(), datetime(2007, 12, 31), True),
@@ -882,7 +883,7 @@ class TestYearEndDiffMonth(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [(YearEnd(month=3), datetime(2007, 3, 31), True),
@@ -900,8 +901,11 @@ class TestBYearBegin(Base):
     _offset = BYearBegin
 
     def test_misspecified(self):
-        pytest.raises(ValueError, BYearBegin, month=13)
-        pytest.raises(ValueError, BYearEnd, month=13)
+        msg = "Month must go from 1 to 12"
+        with pytest.raises(ValueError, match=msg):
+            BYearBegin(month=13)
+        with pytest.raises(ValueError, match=msg):
+            BYearEnd(month=13)
 
     offset_cases = []
     offset_cases.append((BYearBegin(), {
@@ -938,7 +942,7 @@ class TestBYearBegin(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
 
@@ -975,7 +979,7 @@ class TestBYearEnd(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [(BYearEnd(), datetime(2007, 12, 31), True),
@@ -993,8 +997,11 @@ class TestBYearEndLagged(Base):
     _offset = BYearEnd
 
     def test_bad_month_fail(self):
-        pytest.raises(Exception, BYearEnd, month=13)
-        pytest.raises(Exception, BYearEnd, month=0)
+        msg = "Month must go from 1 to 12"
+        with pytest.raises(ValueError, match=msg):
+            BYearEnd(month=13)
+        with pytest.raises(ValueError, match=msg):
+            BYearEnd(month=0)
 
     offset_cases = []
     offset_cases.append((BYearEnd(month=6), {
@@ -1008,7 +1015,7 @@ class TestBYearEndLagged(Base):
     @pytest.mark.parametrize('case', offset_cases)
     def test_offset(self, case):
         offset, cases = case
-        for base, expected in compat.iteritems(cases):
+        for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     def test_roll(self):
