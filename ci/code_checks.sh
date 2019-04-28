@@ -126,6 +126,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -r -E --include '*.py' "[[:space:]] pytest.raises" pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for python2-style file encodings' ; echo $MSG
+    invgrep -R --include="*.py" --include="*.pyx" -E "# -\*- coding: utf-8 -\*-" pandas scripts
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # Check for the following code in testing: `np.testing` and `np.array_equal`
     MSG='Check for invalid testing' ; echo $MSG
     invgrep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
