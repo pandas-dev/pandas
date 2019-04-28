@@ -1190,13 +1190,11 @@ class GroupBy(_GroupBy):
             try:
                 return self._cython_agg_general('std', **kwargs)
             except Exception:
-                f = lambda x: x.std(ddof=ddof, **kwargs)
-                with _group_selection_context(self):
-                    return self._python_agg_general(f)
-        else:
-            f = lambda x: x.std(ddof=ddof, **kwargs)
-            with _group_selection_context(self):
-                return self._python_agg_general(f)
+                pass
+
+        f = lambda x: x.std(ddof=ddof, **kwargs)
+        with _group_selection_context(self):
+            return self._python_agg_general(f)
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
@@ -1216,13 +1214,11 @@ class GroupBy(_GroupBy):
             try:
                 return self._cython_agg_general('var', **kwargs)
             except Exception:
-                f = lambda x: x.var(ddof=ddof, **kwargs)
-                with _group_selection_context(self):
-                    return self._python_agg_general(f)
-        else:
-            f = lambda x: x.var(ddof=ddof, **kwargs)
-            with _group_selection_context(self):
-                return self._python_agg_general(f)
+                pass
+
+        f = lambda x: x.var(ddof=ddof, **kwargs)
+        with _group_selection_context(self):
+            return self._python_agg_general(f)
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
