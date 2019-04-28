@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.

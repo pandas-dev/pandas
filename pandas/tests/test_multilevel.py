@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 from io import StringIO
 import itertools

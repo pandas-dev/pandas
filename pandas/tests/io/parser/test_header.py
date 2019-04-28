@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that the file header is properly handled or inferred
 during parsing for all of the parsers defined in parsers.py
