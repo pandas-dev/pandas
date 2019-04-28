@@ -522,6 +522,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     any_arraylike = any(isinstance(g, (list, tuple, Series, Index, np.ndarray))
                         for g in keys)
 
+    # is this an index replacement?
     if (not any_callable and not any_arraylike and not any_groupers and
             match_axis_length and level is None):
         if isinstance(obj, DataFrame):
