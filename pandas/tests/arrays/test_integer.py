@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -94,7 +93,7 @@ def test_repr_array_long():
     assert result == expected
 
 
-class TestConstructors(object):
+class TestConstructors:
 
     def test_from_dtype_from_float(self, data):
         # construct from our dtype & string dtype
@@ -120,7 +119,7 @@ class TestConstructors(object):
 class TestArithmeticOps(BaseOpsUtil):
 
     def _check_divmod_op(self, s, op, other, exc=None):
-        super(TestArithmeticOps, self)._check_divmod_op(s, op, other, None)
+        super()._check_divmod_op(s, op, other, None)
 
     def _check_op(self, s, op_name, other, exc=None):
         op = self.get_op_from_name(op_name)
@@ -365,7 +364,7 @@ class TestComparisonOps(BaseOpsUtil):
         self._compare_other(data, op_name, other)
 
 
-class TestCasting(object):
+class TestCasting:
     pass
 
     @pytest.mark.parametrize('dropna', [True, False])

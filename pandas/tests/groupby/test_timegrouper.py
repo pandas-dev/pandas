@@ -1,13 +1,12 @@
 """ test with the TimeGrouper / grouping with datetimes """
 
 from datetime import datetime
+from io import StringIO
 
 import numpy as np
 from numpy import nan
 import pytest
 import pytz
-
-from pandas.compat import StringIO
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
@@ -16,7 +15,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestGroupBy(object):
+class TestGroupBy:
 
     def test_groupby_with_timegrouper(self):
         # GH 4161

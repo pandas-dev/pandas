@@ -11,7 +11,7 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestPeriodIndex(object):
+class TestPeriodIndex:
 
     def test_joins(self, join_type):
         index = period_range('1/1/2000', '1/20/2000', freq='D')

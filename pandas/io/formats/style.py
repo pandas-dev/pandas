@@ -52,7 +52,7 @@ def _mpl(func):
         raise ImportError(no_mpl_message.format(func.__name__))
 
 
-class Styler(object):
+class Styler:
     """
     Helps style a DataFrame or Series according to the data with HTML and CSS.
 

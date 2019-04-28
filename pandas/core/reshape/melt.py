@@ -1,5 +1,3 @@
-# pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613,W0201
 import re
 
 import numpy as np
@@ -10,7 +8,6 @@ from pandas.core.dtypes.common import is_extension_type, is_list_like
 from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import notna
 
-from pandas import compat
 from pandas.core.arrays import Categorical
 from pandas.core.frame import _shared_docs
 from pandas.core.indexes.base import Index
@@ -173,7 +170,7 @@ def lreshape(data, groups, dropna=True, label=None):
         for c in pivot_cols:
             mask &= notna(mdata[c])
         if not mask.all():
-            mdata = {k: v[mask] for k, v in compat.iteritems(mdata)}
+            mdata = {k: v[mask] for k, v in mdata.items()}
 
     return data._constructor(mdata, columns=id_cols + pivot_cols)
 

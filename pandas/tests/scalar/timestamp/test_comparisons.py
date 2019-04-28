@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 import operator
 
@@ -8,7 +7,7 @@ import pytest
 from pandas import Timestamp
 
 
-class TestTimestampComparison(object):
+class TestTimestampComparison:
     def test_comparison_object_array(self):
         # GH#15183
         ts = Timestamp('2011-01-03 00:00:00-0500', tz='US/Eastern')
@@ -156,3 +155,33 @@ class TestTimestampComparison(object):
         assert stamp >= datetime(1600, 1, 1)
         assert stamp < datetime(2700, 1, 1)
         assert stamp <= datetime(2700, 1, 1)
+
+
+def test_rich_comparison_with_unsupported_type():
+    # Comparisons with unsupported objects should return NotImplemented
+    # (it previously raised TypeError, see #24011)
+
+    class Inf:
+        def __lt__(self, o):
+            return False
+
+        def __le__(self, o):
+            return isinstance(o, Inf)
+
+        def __gt__(self, o):
+            return not isinstance(o, Inf)
+
+        def __ge__(self, o):
+            return True
+
+        def __eq__(self, o):
+            return isinstance(o, Inf)
+
+    inf = Inf()
+    timestamp = Timestamp('2018-11-30')
+
+    for left, right in [(inf, timestamp), (timestamp, inf)]:
+        assert left > right or left < right
+        assert left >= right or left <= right
+        assert not (left == right)
+        assert left != right

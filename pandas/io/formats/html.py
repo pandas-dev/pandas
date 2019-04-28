@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Module for formatting output data in HTML.
 """
@@ -69,6 +68,9 @@ class HTMLFormatter(TableFormatter):
             return 1
         # not showing (row) index
         return 0
+
+    def _get_columns_formatted_values(self):
+        return self.columns
 
     @property
     def is_truncated(self):
@@ -292,7 +294,7 @@ class HTMLFormatter(TableFormatter):
                     row.append(self.columns.name or '')
                 else:
                     row.append('')
-            row.extend(self.columns)
+            row.extend(self._get_columns_formatted_values())
             align = self.fmt.justify
 
             if truncate_h:
@@ -494,6 +496,9 @@ class NotebookFormatter(HTMLFormatter):
     def _get_formatted_values(self):
         return {i: self.fmt._format_col(i) for i in range(self.ncols)}
 
+    def _get_columns_formatted_values(self):
+        return self.columns.format()
+
     def write_style(self):
         # We use the "scoped" attribute here so that the desired
         # style properties for the data frame are not then applied
@@ -534,6 +539,6 @@ class NotebookFormatter(HTMLFormatter):
     def render(self):
         self.write('<div>')
         self.write_style()
-        super(NotebookFormatter, self).render()
+        super().render()
         self.write('</div>')
         return self.elements

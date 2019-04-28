@@ -1,15 +1,14 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
+from io import StringIO
 import re
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange
+from pandas.compat import lrange
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, compat, date_range
+from pandas import DataFrame, Index, Series, Timestamp, date_range
 from pandas.tests.frame.common import TestData
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -808,8 +807,7 @@ class TestDataFrameReplace(TestData):
         df = DataFrame({'A': [np.nan, 0, np.inf], 'B': [0, 2, 5],
                         'C': ['', 'asdf', 'fd']})
         filled = df.replace(to_rep, values)
-        expected = {k: v.replace(to_rep[k], values[k])
-                    for k, v in compat.iteritems(df)}
+        expected = {k: v.replace(to_rep[k], values[k]) for k, v in df.items()}
         assert_frame_equal(filled, DataFrame(expected))
 
         result = df.replace([0, 2, 5], [5, 2, 0])
@@ -822,8 +820,7 @@ class TestDataFrameReplace(TestData):
         df = DataFrame({'A': [np.nan, 0, np.nan], 'B': [0, 2, 5],
                         'C': ['', 'asdf', 'fd']})
         filled = df.replace(np.nan, values)
-        expected = {k: v.replace(np.nan, values[k])
-                    for k, v in compat.iteritems(df)}
+        expected = {k: v.replace(np.nan, values[k]) for k, v in df.items()}
         assert_frame_equal(filled, DataFrame(expected))
 
         # list to list
@@ -846,8 +843,7 @@ class TestDataFrameReplace(TestData):
         # dict to scalar
         to_rep = {'A': np.nan, 'B': 0, 'C': ''}
         filled = df.replace(to_rep, 0)
-        expected = {k: v.replace(to_rep[k], 0)
-                    for k, v in compat.iteritems(df)}
+        expected = {k: v.replace(to_rep[k], 0) for k, v in df.items()}
         assert_frame_equal(filled, DataFrame(expected))
 
         msg = "value argument must be scalar, dict, or Series"

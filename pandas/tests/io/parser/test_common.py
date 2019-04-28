@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
@@ -9,6 +7,7 @@ import codecs
 from collections import OrderedDict
 import csv
 from datetime import datetime
+from io import BytesIO, StringIO
 import os
 import platform
 from tempfile import TemporaryFile
@@ -17,7 +16,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import BytesIO, StringIO, lrange
+from pandas.compat import lrange
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
@@ -1791,7 +1790,7 @@ def test_file_handles_with_open(all_parsers, csv1):
 
 def test_invalid_file_buffer_class(all_parsers):
     # see gh-15337
-    class InvalidBuffer(object):
+    class InvalidBuffer:
         pass
 
     parser = all_parsers

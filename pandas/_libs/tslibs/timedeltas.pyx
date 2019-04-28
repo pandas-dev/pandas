@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
 import collections
 import textwrap
 import warnings
-
-import sys
 
 import cython
 
@@ -14,8 +11,7 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
-from cpython.datetime cimport (datetime, timedelta,
-                               PyDateTime_CheckExact,
+from cpython.datetime cimport (timedelta,
                                PyDateTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
@@ -25,6 +21,8 @@ cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.util cimport (
     is_timedelta64_object, is_datetime64_object, is_integer_object,
     is_float_object)
+
+from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS
 
@@ -572,9 +570,10 @@ def _binary_op_method_timedeltalike(op, name):
             # has-dtype check before then
             pass
 
-        elif is_datetime64_object(other) or PyDateTime_CheckExact(other):
-            # the PyDateTime_CheckExact case is for a datetime object that
-            # is specifically *not* a Timestamp, as the Timestamp case will be
+        elif is_datetime64_object(other) or (
+           PyDateTime_Check(other) and not isinstance(other, _Timestamp)):
+            # this case is for a datetime object that is specifically
+            # *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
             from pandas._libs.tslibs.timestamps import Timestamp
             return op(self, Timestamp(other))
@@ -777,11 +776,14 @@ cdef class _Timedelta(timedelta):
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
-                if op == Py_EQ:
+                if other is NaT:
+                    return PyObject_RichCompare(other, self, reverse_ops[op])
+                elif op == Py_EQ:
                     return False
                 elif op == Py_NE:
                     return True
-                raise TypeError('Cannot compare type {cls} with type {other}'
+                raise TypeError('Cannot compare type {cls} with '
+                                'type {other}'
                                 .format(cls=type(self).__name__,
                                         other=type(other).__name__))
 

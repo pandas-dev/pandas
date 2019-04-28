@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # pandas documentation build configuration file, created by
 #

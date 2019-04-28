@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that dialects are properly handled during parsing
 for all of the parsers defined in parsers.py
 """
 
 import csv
+from io import StringIO
 
 import pytest
 
-from pandas.compat import StringIO
 from pandas.errors import ParserWarning
 
 from pandas import DataFrame
@@ -65,7 +63,7 @@ pear:tomato
 
 
 def test_invalid_dialect(all_parsers):
-    class InvalidDialect(object):
+    class InvalidDialect:
         pass
 
     data = "a\n1"

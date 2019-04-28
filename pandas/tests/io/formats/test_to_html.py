@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
-from io import open
+from io import StringIO
 import re
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, option_context
@@ -633,3 +631,13 @@ def test_to_html_invalid_classes_type(classes):
 
     with pytest.raises(TypeError, match=msg):
         df.to_html(classes=classes)
+
+
+def test_to_html_round_column_headers():
+    # GH 17280
+    df = DataFrame([1], columns=[0.55555])
+    with pd.option_context('display.precision', 3):
+        html = df.to_html(notebook=False)
+        notebook = df.to_html(notebook=True)
+    assert "0.55555" in html
+    assert "0.556" in notebook

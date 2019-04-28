@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """

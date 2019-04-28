@@ -1,5 +1,3 @@
-# pylint: disable=E1101,W0232
-
 from shutil import get_terminal_size
 import textwrap
 from warnings import warn
@@ -9,7 +7,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-import pandas.compat as compat
 from pandas.compat import lzip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -1317,7 +1314,7 @@ class Categorical(ExtensionArray, PandasObject):
             state['_dtype'] = CategoricalDtype(state['_categories'],
                                                state['_ordered'])
 
-        for k, v in compat.iteritems(state):
+        for k, v in state.items():
             setattr(self, k, v)
 
     @property
@@ -1552,7 +1549,7 @@ class Categorical(ExtensionArray, PandasObject):
         array([3, 0, 1, 2])
         """
         # Keep the implementation here just for the docstring.
-        return super(Categorical, self).argsort(*args, **kwargs)
+        return super().argsort(*args, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """
