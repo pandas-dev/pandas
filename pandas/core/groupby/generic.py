@@ -1188,7 +1188,7 @@ class SeriesGroupBy(GroupBy):
     def count(self):
         """
         Compute count of group, excluding missing values.
-        
+
         Returns
         -------
         Series
@@ -1493,7 +1493,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def count(self):
         """
         Compute count of group, excluding missing values
-        
+
         Returns
         -------
         DataFrame

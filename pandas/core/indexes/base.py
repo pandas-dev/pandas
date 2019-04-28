@@ -4379,7 +4379,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         scalar
-            A value in the series with the indice of the key value in self. 
+            A value in the series with the indice of the key value in self.
         """
 
         # if we have something that is Index-like, then

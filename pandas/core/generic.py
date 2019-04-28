@@ -1851,7 +1851,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __iter__(self):
         """Iterate over info axis
-        
+
         Returns
         -------
         iterator

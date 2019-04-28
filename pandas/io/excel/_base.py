@@ -798,7 +798,7 @@ class ExcelFile:
         Returns
         -------
         DataFrame or dict of DataFrames
-            DataFrame from the passed in Excel file.   
+            DataFrame from the passed in Excel file.
         """
 
         # Can't use _deprecate_kwarg since sheetname=None has a special meaning

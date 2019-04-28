@@ -1205,7 +1205,7 @@ class GroupBy(_GroupBy):
         ----------
         ddof : integer, default 1
             degrees of freedom
-     
+
         Returns
         -------
         Series or DataFrame
@@ -1297,7 +1297,7 @@ class GroupBy(_GroupBy):
 
             _local_template = """
             Compute %(f)s of group values
-            
+
             Returns
             -------
             Series or DataFrame
@@ -2195,7 +2195,7 @@ class GroupBy(_GroupBy):
             .. versionadded:: 0.24.0
 
         Returns
-        -------    
+        -------
         Series or DataFrame
             Object shifted within each group.
         """
@@ -2218,7 +2218,7 @@ class GroupBy(_GroupBy):
         Calculate pct_change of each value to previous entry in group.
 
         Returns
-        -------    
+        -------
         Series or DataFrame
             Percentage changes within each group.
         """
@@ -2243,7 +2243,7 @@ class GroupBy(_GroupBy):
         except ignores as_index flag.
 
         Returns
-        -------    
+        -------
         Series or DataFrame
         %(see_also)s
         Examples
@@ -2274,7 +2274,7 @@ class GroupBy(_GroupBy):
         except ignores as_index flag.
 
         Returns
-        -------    
+        -------
         Series or DataFrame
         %(see_also)s
         Examples

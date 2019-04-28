@@ -128,7 +128,7 @@ class RangeIndex(Int64Index):
     def from_range(cls, data, name=None, dtype=None, **kwargs):
         """
         Create RangeIndex from a range object.
-        
+
         Returns
         -------
         RangeIndex
