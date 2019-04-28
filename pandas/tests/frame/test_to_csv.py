@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import csv
 from io import StringIO
 import os

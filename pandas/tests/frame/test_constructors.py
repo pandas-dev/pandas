@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict, abc
 from datetime import datetime, timedelta
 import functools

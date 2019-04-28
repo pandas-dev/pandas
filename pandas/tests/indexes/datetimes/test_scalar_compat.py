@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for DatetimeIndex methods behaving like their Timestamp counterparts
 """

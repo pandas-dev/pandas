@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py

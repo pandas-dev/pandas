@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from itertools import product

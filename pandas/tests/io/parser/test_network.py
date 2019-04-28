@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests parsers ability to read and parse non-local files
 and hence require a network connection to be read.

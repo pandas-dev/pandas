@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import cython
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,

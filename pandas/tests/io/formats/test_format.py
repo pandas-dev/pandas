@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """

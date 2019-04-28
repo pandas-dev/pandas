@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from pandas.util._move import BadMove, move_into_mutable_buffer, stolenbuf

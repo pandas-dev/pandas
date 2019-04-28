@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 _Timestamp is a c-defined subclass of datetime.datetime
 

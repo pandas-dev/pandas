@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that NA values are properly handled during
 parsing for all of the parsers defined in parsers.py

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numbers
 from operator import le, lt
 

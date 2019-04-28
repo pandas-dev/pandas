@@ -577,7 +577,7 @@ class TestCategoricalSeries:
 
         # Series should delegate calls to '.categories', '.codes', '.ordered'
         # and the methods '.set_categories()' 'drop_unused_categories()' to the
-        # categorical# -*- coding: utf-8 -*-
+        # categorical
         s = Series(Categorical(["a", "b", "c", "a"], ordered=True))
         exp_categories = Index(["a", "b", "c"])
         tm.assert_index_equal(s.cat.categories, exp_categories)

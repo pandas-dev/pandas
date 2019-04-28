@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import date, datetime
 
 from dateutil.tz.tz import tzoffset

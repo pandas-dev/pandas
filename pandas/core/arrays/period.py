@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import timedelta
 import operator
 from typing import Any, Callable, Optional, Sequence, Union

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from copy import copy, deepcopy
 
 import pytest

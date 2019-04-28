@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests that the tslibs API is locked down"""
 
 from pandas._libs import tslibs

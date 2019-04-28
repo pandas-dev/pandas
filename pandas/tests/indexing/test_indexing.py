@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """ test fancy indexing & misc """
 
 from datetime import datetime

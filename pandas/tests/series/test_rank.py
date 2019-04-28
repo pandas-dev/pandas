@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from itertools import chain, product
 
 import numpy as np

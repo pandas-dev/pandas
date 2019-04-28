@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests multithreading behaviour for reading and
 parsing files for each parser defined in parsers.py

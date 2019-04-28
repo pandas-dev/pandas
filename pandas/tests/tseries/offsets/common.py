@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Assertion helpers for offsets tests
 """

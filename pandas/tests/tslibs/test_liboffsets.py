@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for helper functions in the cython tslibs.offsets
 """

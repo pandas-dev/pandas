@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections import deque
 from datetime import datetime
 import operator

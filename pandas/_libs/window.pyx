@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
 import cython

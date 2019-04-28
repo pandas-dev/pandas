@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that features that are currently unsupported in
 either the Python or C parser are actually enforced

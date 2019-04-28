@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for statistical reductions of 2nd moment or higher: var, skew, kurt, ...
 """

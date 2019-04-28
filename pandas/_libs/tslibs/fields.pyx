@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for Year, Quarter, and Month-based DateOffset subclasses
 """

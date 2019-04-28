@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import operator
 
 from cpython cimport (PyObject_RichCompareBool,
