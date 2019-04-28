@@ -760,6 +760,11 @@ class Categorical(ExtensionArray, PandasObject):
         inplace : bool, default False
            Whether or not to set the ordered attribute in-place or return
            a copy of this categorical with ordered set to True.
+
+        Returns
+        -------
+        Categorical
+            Ordered Categorical.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         return self.set_ordered(True, inplace=inplace)
@@ -767,6 +772,11 @@ class Categorical(ExtensionArray, PandasObject):
     def as_unordered(self, inplace=False):
         """
         Set the Categorical to be unordered.
+
+        Returns
+        -------
+        Categorical
+            Unordered Categorical.
 
         Parameters
         ----------

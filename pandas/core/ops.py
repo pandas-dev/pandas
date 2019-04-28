@@ -1025,6 +1025,15 @@ Returns
 Panel
 """
 
+_comp_doc_PANEL = """
+Wrapper for comparison method {name}
+
+Returns
+-------
+Panel of bool
+    Result of the comparison.
+"""
+
 
 def _make_flex_doc(op_name, typ):
     """
@@ -2327,7 +2336,7 @@ def _comp_method_PANEL(cls, op, special):
             result = mask_cmp_op(x, y, op, np.ndarray)
         return result
 
-    @Appender('Wrapper for comparison method {name}'.format(name=op_name))
+    @Appender(_comp_doc_PANEL.format(name=op_name))
     def f(self, other, axis=None):
         # Validate the axis parameter
         if axis is not None:

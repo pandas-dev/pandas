@@ -828,12 +828,6 @@ class Resampler(_GroupBy):
 
     @Appender(GroupBy.size.__doc__)
     def size(self):
-        """
-        Returns
-        -------
-        Series
-            Number of rows in each group.
-        """
         # It's a special case as higher level does return
         # a copy of 0-len objects. GH14962
         result = self._downsample('size')
