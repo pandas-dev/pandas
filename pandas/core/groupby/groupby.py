@@ -867,7 +867,7 @@ b  2""")
             try:
                 result, counts = self.grouper.agg_series(obj, f)
                 output[name] = self._try_cast(result, obj, numeric_only=True)
-            except TypeError:
+            except (IndexError, TypeError):
                 continue
 
         if len(output) == 0:
