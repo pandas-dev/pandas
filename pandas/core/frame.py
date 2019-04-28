@@ -3670,7 +3670,6 @@ class DataFrame(NDFrame):
         Returns
         -------
         numpy.ndarray
-            Array of the values corresponding to each (row, col) pair.
 
         Notes
         -----
