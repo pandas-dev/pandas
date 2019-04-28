@@ -983,7 +983,7 @@ default 'raise'
         return create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
 
     def isoformat(self, sep='T'):
-        base = super(_Timestamp, self).isoformat(sep=sep)
+        base = super().isoformat(sep=sep)
         if self.nanosecond == 0:
             return base
 

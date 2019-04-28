@@ -483,44 +483,43 @@ cdef class TimedeltaEngine(DatetimeEngine):
 cdef class PeriodEngine(Int64Engine):
 
     cdef _get_index_values(self):
-        return super(PeriodEngine, self).vgetter()
+        return super().vgetter()
 
     cpdef _call_map_locations(self, values):
-        super(PeriodEngine, self)._call_map_locations(values.view('i8'))
+        super()._call_map_locations(values.view('i8'))
 
     def _call_monotonic(self, values):
-        return super(PeriodEngine, self)._call_monotonic(values.view('i8'))
+        return super()._call_monotonic(values.view('i8'))
 
     def get_indexer(self, values):
         cdef ndarray[int64_t, ndim=1] ordinals
 
-        super(PeriodEngine, self)._ensure_mapping_populated()
+        super()._ensure_mapping_populated()
 
-        freq = super(PeriodEngine, self).vgetter().freq
+        freq = super().vgetter().freq
         ordinals = periodlib.extract_ordinals(values, freq)
 
         return self.mapping.lookup(ordinals)
 
     def get_pad_indexer(self, other, limit=None):
-        freq = super(PeriodEngine, self).vgetter().freq
+        freq = super().vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 
         return algos.pad(self._get_index_values(),
                          np.asarray(ordinal), limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        freq = super(PeriodEngine, self).vgetter().freq
+        freq = super().vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 
         return algos.backfill(self._get_index_values(),
                               np.asarray(ordinal), limit=limit)
 
     def get_indexer_non_unique(self, targets):
-        freq = super(PeriodEngine, self).vgetter().freq
+        freq = super().vgetter().freq
         ordinal = periodlib.extract_ordinals(targets, freq)
         ordinal_array = np.asarray(ordinal)
-
-        return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
+        return super().get_indexer_non_unique(ordinal_array)
 
 
 cpdef convert_scalar(ndarray arr, object value):
