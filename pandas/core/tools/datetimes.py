@@ -23,7 +23,6 @@ from pandas.core.dtypes.missing import notna
 from pandas._typing import ArrayLike, DatetimeScalar
 from pandas.core import algorithms
 
-
 # ---------------------------------------------------------------------
 # types used in annotations
 

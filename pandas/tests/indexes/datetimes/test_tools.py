@@ -537,11 +537,7 @@ class TestToDatetime:
 
         cache_on = _get_answer(cache=True)
         cache_off = _get_answer(cache=False)
-        assert type(cache_on) == type(cache_off)
-        if isinstance(cache_on, pd.Index):
-            tm.assert_index_equal(cache_on, cache_off)
-        else:
-            assert cache_on == cache_off
+        tm.assert_almost_equal(cache_on, cache_off)
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_tz_pytz(self, cache):
