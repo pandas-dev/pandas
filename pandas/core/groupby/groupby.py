@@ -1301,7 +1301,7 @@ class GroupBy(_GroupBy):
             Returns
             -------
             Series or DataFrame
-                %(f)s of values within each group.
+                Computed %(f)s of values within each group.
             """
 
             @Substitution(name='groupby', f=name)

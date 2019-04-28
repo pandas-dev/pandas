@@ -4819,16 +4819,16 @@ class Index(IndexOpsMixin, PandasObject):
         Returns leftmost (one-past-the-rightmost if ``side=='right'``) position
         of given label.
 
-        Returns
-        -------
-        int
-            Indice of label.
-
         Parameters
         ----------
         label : object
         side : {'left', 'right'}
         kind : {'ix', 'loc', 'getitem'}
+
+        Returns
+        -------
+        int
+            Indice of label.
         """
         assert kind in ['ix', 'loc', 'getitem', None]
 

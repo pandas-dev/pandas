@@ -9322,7 +9322,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         %(klass)s
-            %(klass)s with time zone converted axis.
+            Object with time zone converted axis.
 
         Raises
         ------
