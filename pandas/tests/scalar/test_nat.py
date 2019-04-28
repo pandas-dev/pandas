@@ -348,3 +348,12 @@ def test_to_numpy_alias():
     result = NaT.to_numpy()
 
     assert isna(expected) and isna(result)
+
+
+@pytest.mark.parametrize("other", [
+    Timedelta(0), Timestamp(0)
+])
+def test_nat_comparisons(compare_operators_no_eq_ne, other):
+    # GH 26039
+    assert getattr(NaT, compare_operators_no_eq_ne)(other) is False
+    assert getattr(other, compare_operators_no_eq_ne)(NaT) is False

@@ -275,7 +275,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 
--
+- Bug with comparisons between :class:`Timedelta` and ``NaT`` raising ``TypeError`` (:issue:`26039`)
 -
 -
 
