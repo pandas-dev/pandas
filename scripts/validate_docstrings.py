@@ -506,8 +506,6 @@ class Docstring(object):
                     return True
                 elif desc_line[0:2] != '  ':
                     return False
-                else:
-                    pass
             return False
 
     @property
