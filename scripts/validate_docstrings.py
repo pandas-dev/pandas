@@ -490,7 +490,7 @@ class Docstring(object):
                     break
         return desc_list
 
-    def parameter_correct_end(self, param):
+    def has_proper_punctuation(self, param):
         """Return True if a parameter description is terminated correctly.
 
         A parameter description should always be terminated with a period, a
@@ -761,7 +761,7 @@ def get_validation_data(doc):
         else:
             if not doc.parameter_desc(param)[0].isupper():
                 errs.append(error('PR08', param_name=param))
-            if not doc.parameter_correct_end(param):
+            if not doc.has_proper_punctuation(param):
                 errs.append(error('PR09', param_name=param))
 
     if doc.is_function_or_method:
