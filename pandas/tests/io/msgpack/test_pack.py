@@ -8,7 +8,7 @@ import pytest
 from pandas.io.msgpack import Packer, Unpacker, packb, unpackb
 
 
-class TestPack(object):
+class TestPack:
 
     def check(self, data, use_list=False):
         re = unpackb(packb(data), use_list=use_list)

@@ -17,7 +17,7 @@ pyarrow_version = LooseVersion(pyarrow.__version__)
 
 
 @pytest.mark.single
-class TestFeather(object):
+class TestFeather:
 
     def check_error_on_write(self, df, exc):
         # check that we are raising the exception

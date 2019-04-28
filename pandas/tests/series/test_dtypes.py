@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, timedelta
 from importlib import reload
 import string
@@ -19,7 +16,7 @@ from pandas.api.types import CategoricalDtype
 import pandas.util.testing as tm
 
 
-class TestSeriesDtypes(object):
+class TestSeriesDtypes:
 
     def test_dt64_series_astype_object(self):
         dt64ser = Series(date_range('20130101', periods=3))

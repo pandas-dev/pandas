@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 import operator
 from typing import Any, Sequence, Tuple, Type, Union
@@ -39,7 +38,7 @@ from pandas.tseries.offsets import DateOffset, Tick
 from .base import ExtensionArray, ExtensionOpsMixin
 
 
-class AttributesMixin(object):
+class AttributesMixin:
 
     @property
     def _attributes(self):
@@ -135,7 +134,7 @@ class AttributesMixin(object):
         raise AbstractMethodError(self)
 
 
-class DatelikeOps(object):
+class DatelikeOps:
     """
     Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex.
     """
@@ -181,7 +180,7 @@ class DatelikeOps(object):
         return Index(self._format_native_types(date_format=date_format))
 
 
-class TimelikeOps(object):
+class TimelikeOps:
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
@@ -211,8 +210,8 @@ class TimelikeOps(object):
 
             .. versionadded:: 0.24.0
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
@@ -1381,9 +1380,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         if op:
             return op(axis=axis, skipna=skipna, **kwargs)
         else:
-            return super(DatetimeLikeArrayMixin, self)._reduce(
-                name, skipna, **kwargs
-            )
+            return super()._reduce(name, skipna, **kwargs)
 
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """

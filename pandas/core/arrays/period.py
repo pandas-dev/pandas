@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import timedelta
 import operator
 from typing import Any, Callable, Optional, Sequence, Union
@@ -439,19 +438,16 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         --------
         >>> pidx = pd.period_range('2010-01-01', '2015-01-01', freq='A')
         >>> pidx
-        <class 'pandas.core.indexes.period.PeriodIndex'>
-        [2010, ..., 2015]
-        Length: 6, Freq: A-DEC
+        PeriodIndex(['2010', '2011', '2012', '2013', '2014', '2015'],
+        dtype='period[A-DEC]', freq='A-DEC')
 
         >>> pidx.asfreq('M')
-        <class 'pandas.core.indexes.period.PeriodIndex'>
-        [2010-12, ..., 2015-12]
-        Length: 6, Freq: M
+        PeriodIndex(['2010-12', '2011-12', '2012-12', '2013-12', '2014-12',
+        '2015-12'], dtype='period[M]', freq='M')
 
         >>> pidx.asfreq('M', how='S')
-        <class 'pandas.core.indexes.period.PeriodIndex'>
-        [2010-01, ..., 2015-01]
-        Length: 6, Freq: M
+        PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
+        '2015-01'], dtype='period[M]', freq='M')
         """
         how = libperiod._validate_end_alias(how)
 
@@ -508,7 +504,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
-        return super(PeriodArray, self).astype(dtype, copy=copy)
+        return super().astype(dtype, copy=copy)
 
     @property
     def flags(self):
@@ -563,7 +559,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
         #  is an integer, delta_to_nanoseconds will return it unchanged.
-        result = super(PeriodArray, self)._add_timedeltalike_scalar(other.n)
+        result = super()._add_timedeltalike_scalar(other.n)
         return type(self)(result, freq=self.freq)
 
     def _add_timedeltalike_scalar(self, other):
@@ -587,7 +583,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
         #  is an integer, delta_to_nanoseconds will return it unchanged.
-        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(other)
+        ordinals = super()._add_timedeltalike_scalar(other)
         return ordinals
 
     def _add_delta_tdi(self, other):
@@ -623,7 +619,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             # We cannot add timedelta-like to non-tick PeriodArray
             _raise_on_incompatible(self, other)
 
-        new_ordinals = super(PeriodArray, self)._add_delta(other)
+        new_ordinals = super()._add_delta(other)
         return type(self)(new_ordinals, freq=self.freq)
 
     def _check_timedeltalike_freq_compat(self, other):

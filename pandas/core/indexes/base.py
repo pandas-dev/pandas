@@ -13,7 +13,6 @@ from pandas._libs import (
 from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-import pandas.compat as compat
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -537,7 +536,7 @@ class Index(IndexOpsMixin, PandasObject):
         # we actually set this value too.
         result._index_data = values
         result.name = name
-        for k, v in compat.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(result, k, v)
         return result._reset_identity()
 
@@ -923,10 +922,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __unicode__(self):
         """
-        Return a string representation for this object.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a unicode string representation for this object.
         """
         klass = self.__class__.__name__
         data = self._format_data()
@@ -1756,7 +1752,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(state, dict):
             self._data = state.pop('data')
-            for k, v in compat.iteritems(state):
+            for k, v in state.items():
                 setattr(self, k, v)
 
         elif isinstance(state, tuple):
@@ -2001,7 +1997,7 @@ class Index(IndexOpsMixin, PandasObject):
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
-        result = super(Index, self).unique()
+        result = super().unique()
         return self._shallow_copy(result)
 
     def drop_duplicates(self, keep='first'):
@@ -2050,7 +2046,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.drop_duplicates(keep=False)
         Index(['cow', 'beetle', 'hippo'], dtype='object')
         """
-        return super(Index, self).drop_duplicates(keep=keep)
+        return super().drop_duplicates(keep=keep)
 
     def duplicated(self, keep='first'):
         """
@@ -2106,7 +2102,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.duplicated(keep=False)
         array([ True, False,  True, False,  True])
         """
-        return super(Index, self).duplicated(keep=keep)
+        return super().duplicated(keep=keep)
 
     def get_duplicates(self):
         """
@@ -3626,8 +3622,6 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
-
-        Return the underlying data as an ndarray.
         """
         return self._data.view(np.ndarray)
 
@@ -3707,7 +3701,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
     def memory_usage(self, deep=False):
-        result = super(Index, self).memory_usage(deep=deep)
+        result = super().memory_usage(deep=deep)
 
         # include our engine hashtable
         result += self._engine.sizeof(deep=deep)
@@ -4490,7 +4484,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = values._reverse_indexer()
 
         # map to the label
-        result = {k: self.take(v) for k, v in compat.iteritems(result)}
+        result = {k: self.take(v) for k, v in result.items()}
 
         return IndexGroupbyGroups(result)
 
@@ -4515,8 +4509,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         from .multi import MultiIndex
-        new_values = super(Index, self)._map_values(
-            mapper, na_action=na_action)
+        new_values = super()._map_values(mapper, na_action=na_action)
 
         attributes = self._get_attributes_dict()
 
@@ -5046,9 +5039,6 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__rfloordiv__ = make_invalid_op('__rfloordiv__')
         cls.__truediv__ = make_invalid_op('__truediv__')
         cls.__rtruediv__ = make_invalid_op('__rtruediv__')
-        if not compat.PY3:
-            cls.__div__ = make_invalid_op('__div__')
-            cls.__rdiv__ = make_invalid_op('__rdiv__')
         cls.__mod__ = make_invalid_op('__mod__')
         cls.__divmod__ = make_invalid_op('__divmod__')
         cls.__neg__ = make_invalid_op('__neg__')
@@ -5130,9 +5120,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
         cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
-        if not compat.PY3:
-            cls.__div__ = _make_arithmetic_op(operator.div, cls)
-            cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
 
         # TODO: rmod? rdivmod?
         cls.__mod__ = _make_arithmetic_op(operator.mod, cls)

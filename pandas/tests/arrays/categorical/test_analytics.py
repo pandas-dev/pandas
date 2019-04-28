@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import sys
 
 import numpy as np
@@ -12,7 +10,7 @@ from pandas.api.types import is_scalar
 import pandas.util.testing as tm
 
 
-class TestCategoricalAnalytics(object):
+class TestCategoricalAnalytics:
 
     def test_min_max(self):
 

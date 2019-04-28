@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for DataFrame timezone-related methods
 """
@@ -18,7 +17,7 @@ from pandas.core.indexes.datetimes import date_range
 import pandas.util.testing as tm
 
 
-class TestDataFrameTimezones(object):
+class TestDataFrameTimezones:
 
     def test_frame_values_with_tz(self):
         tz = "US/Central"
@@ -195,4 +194,12 @@ class TestDataFrameTimezones(object):
         expected = DataFrame(np.arange(0, 5),
                              index=date_range('20131027', periods=5,
                                               freq='1H', tz=tz))
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
+        # GH 25843
+        tz = tz_aware_fixture
+        result = DataFrame({'d': [pd.Timestamp('2019', tz=tz)]},
+                           dtype='datetime64[ns]')
+        expected = DataFrame({'d': [pd.Timestamp('2019')]})
         tm.assert_frame_equal(result, expected)

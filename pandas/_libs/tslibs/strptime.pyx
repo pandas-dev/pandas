@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Strptime-related classes and functions.
 """
 import time
@@ -7,19 +6,7 @@ import calendar
 import re
 from datetime import date as datetime_date
 
-
-# Python 2 vs Python 3
-try:
-    from thread import allocate_lock as _thread_allocate_lock
-except:
-    try:
-        from _thread import allocate_lock as _thread_allocate_lock
-    except:
-        try:
-            from dummy_thread import allocate_lock as _thread_allocate_lock
-        except:
-            from _dummy_thread import allocate_lock as _thread_allocate_lock
-
+from _thread import allocate_lock as _thread_allocate_lock
 
 import pytz
 
@@ -375,7 +362,7 @@ def _getlang():
     return locale.getlocale(locale.LC_TIME)
 
 
-class LocaleTime(object):
+class LocaleTime:
     """Stores and handles locale-specific information related to time.
 
     ATTRIBUTES:
@@ -540,7 +527,7 @@ class TimeRE(dict):
             self.locale_time = locale_time
         else:
             self.locale_time = LocaleTime()
-        base = super(TimeRE, self)
+        base = super()
         base.__init__({
             # The " \d" part of the regex is to make %c from ANSI C work
             'd': r"(?P<d>3[0-1]|[1-2]\d|0[1-9]|[1-9]| [1-9])",

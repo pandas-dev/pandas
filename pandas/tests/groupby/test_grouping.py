@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """ test where we are determining what we are grouping, or getting groups """
 
 import numpy as np
@@ -9,7 +7,7 @@ from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
-    CategoricalIndex, DataFrame, Index, MultiIndex, Series, Timestamp, compat,
+    CategoricalIndex, DataFrame, Index, MultiIndex, Series, Timestamp,
     date_range)
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
@@ -20,7 +18,7 @@ from pandas.util.testing import (
 # --------------------------------
 
 
-class TestSelection(object):
+class TestSelection:
 
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
@@ -671,14 +669,14 @@ class TestIteration():
         groups = grouped.groups
         assert groups is grouped.groups  # caching works
 
-        for k, v in compat.iteritems(grouped.groups):
+        for k, v in grouped.groups.items():
             assert (df.loc[v]['A'] == k).all()
 
         grouped = df.groupby(['A', 'B'])
         groups = grouped.groups
         assert groups is grouped.groups  # caching works
 
-        for k, v in compat.iteritems(grouped.groups):
+        for k, v in grouped.groups.items():
             assert (df.loc[v]['A'] == k[0]).all()
             assert (df.loc[v]['B'] == k[1]).all()
 

@@ -203,6 +203,11 @@ AUTHOR = "The PyData Development Team"
 EMAIL = "pydata@googlegroups.com"
 URL = "http://pandas.pydata.org"
 DOWNLOAD_URL = ''
+PROJECT_URLS = {
+    'Bug Tracker': 'https://github.com/pandas-dev/pandas/issues',
+    'Documentation': 'http://pandas.pydata.org/pandas-docs/stable/',
+    'Source Code': 'https://github.com/pandas-dev/pandas'
+}
 CLASSIFIERS = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
@@ -772,6 +777,7 @@ setup(name=DISTNAME,
       cmdclass=cmdclass,
       url=URL,
       download_url=DOWNLOAD_URL,
+      project_urls=PROJECT_URLS,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',

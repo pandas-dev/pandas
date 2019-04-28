@@ -177,7 +177,7 @@ SQL_STRINGS = {
 }
 
 
-class MixInBase(object):
+class MixInBase:
 
     def teardown_method(self, method):
         # if setup fails, there may not be a connection to close.
@@ -239,7 +239,7 @@ class SQLAlchemyMixIn(MixInBase):
         pass
 
 
-class PandasSQLTest(object):
+class PandasSQLTest:
     """
     Base class with common private methods for SQLAlchemy and fallback cases.
 
@@ -1034,14 +1034,14 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         assert all_names == {'Iris-setosa'}
 
 
-class _EngineToConnMixin(object):
+class _EngineToConnMixin:
     """
     A mixin that causes setup_connect to create a conn rather than an engine.
     """
 
     @pytest.fixture(autouse=True)
     def setup_method(self, load_iris_data):
-        super(_EngineToConnMixin, self).load_test_data_and_sql()
+        super().load_test_data_and_sql()
         engine = self.conn
         conn = engine.connect()
         self.__tx = conn.begin()
@@ -1056,7 +1056,7 @@ class _EngineToConnMixin(object):
         self.conn = self.__engine
         self.pandasSQL = sql.SQLDatabase(self.__engine)
         # XXX:
-        # super(_EngineToConnMixin, self).teardown_method(method)
+        # super().teardown_method(method)
 
 
 @pytest.mark.single
@@ -1734,7 +1734,7 @@ class _TestSQLAlchemyConn(_EngineToConnMixin, _TestSQLAlchemy):
             "Nested transactions rollbacks don't work with Pandas")
 
 
-class _TestSQLiteAlchemy(object):
+class _TestSQLiteAlchemy:
     """
     Test the sqlalchemy backend against an in-memory sqlite database.
 
@@ -1782,7 +1782,7 @@ class _TestSQLiteAlchemy(object):
             assert len(w) == 0
 
 
-class _TestMySQLAlchemy(object):
+class _TestMySQLAlchemy:
     """
     Test the sqlalchemy backend against an MySQL database.
 
@@ -1849,7 +1849,7 @@ class _TestMySQLAlchemy(object):
         tm.assert_frame_equal(df, res2)
 
 
-class _TestPostgreSQLAlchemy(object):
+class _TestPostgreSQLAlchemy:
     """
     Test the sqlalchemy backend against an PostgreSQL database.
 

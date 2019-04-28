@@ -1,4 +1,3 @@
-# pylint: disable=E1101
 from datetime import datetime, time, timedelta
 import operator
 import warnings
@@ -241,10 +240,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _comparables = ['name', 'freqstr', 'tz']
     _attributes = ['name', 'tz', 'freq']
 
-    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
-    # by returning NotImplemented
-    timetuple = None
-
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
@@ -388,7 +383,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if isinstance(state, dict):
-            super(DatetimeIndex, self).__setstate__(state)
+            super().__setstate__(state)
 
         elif isinstance(state, tuple):
 
@@ -487,7 +482,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         self._assert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(DatetimeIndex, self).union(other, sort=sort)
+            return super().union(other, sort=sort)
 
         if not isinstance(other, DatetimeIndex):
             try:
