@@ -346,6 +346,10 @@ class BaseGrouper:
                 'name': 'group_median'
             },
             'var': 'group_var',
+            'std': {
+                'name' : 'group_var_bin',
+                'f' : lambda func, a: np.sqrt(func(a)),
+            },
             'first': {
                 'name': 'group_nth',
                 'f': lambda func, a, b, c, d, e: func(a, b, c, d, 1, -1)
