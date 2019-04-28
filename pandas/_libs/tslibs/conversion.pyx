@@ -443,47 +443,57 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
         ts = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
     else:
-        try:
-            _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
-            obj.value = dtstruct_to_dt64(&obj.dts)
-            check_dts_bounds(&obj.dts)
-            if out_local == 1:
-                obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-                obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
-                if tz is None:
-                    check_dts_bounds(&obj.dts)
-                    check_overflows(obj)
-                    return obj
-                else:
-                    # Keep the converter same as PyDateTime's
-                    obj = convert_to_tsobject(obj.value, obj.tzinfo,
-                                              None, 0, 0)
-                    dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
-                                  obj.dts.hour, obj.dts.min, obj.dts.sec,
-                                  obj.dts.us, obj.tzinfo)
-                    obj = convert_datetime_to_tsobject(
-                        dt, tz, nanos=obj.dts.ps // 1000)
-                    return obj
-
-            else:
-                ts = obj.value
-                if tz is not None:
-                    # shift for localize_tso
-                    ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
-                                            ambiguous='raise')[0]
-
-        except OutOfBoundsDatetime:
-            # GH#19382 for just-barely-OutOfBounds falling back to dateutil
-            # parser will return incorrect result because it will ignore
-            # nanoseconds
-            raise
-
-        except ValueError:
+        string_to_dts_failed = _string_to_dts(
+            ts, &obj.dts, &out_local,
+            &out_tzoffset
+        )
+        if string_to_dts_failed:
             try:
                 ts = parse_datetime_string(ts, dayfirst=dayfirst,
                                            yearfirst=yearfirst)
             except Exception:
                 raise ValueError("could not convert string to Timestamp")
+        else:
+            try:
+                obj.value = dtstruct_to_dt64(&obj.dts)
+                check_dts_bounds(&obj.dts)
+                if out_local == 1:
+                    obj.tzinfo = pytz.FixedOffset(out_tzoffset)
+                    obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
+                    if tz is None:
+                        check_dts_bounds(&obj.dts)
+                        check_overflows(obj)
+                        return obj
+                    else:
+                        # Keep the converter same as PyDateTime's
+                        obj = convert_to_tsobject(obj.value, obj.tzinfo,
+                                                None, 0, 0)
+                        dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
+                                    obj.dts.hour, obj.dts.min, obj.dts.sec,
+                                    obj.dts.us, obj.tzinfo)
+                        obj = convert_datetime_to_tsobject(
+                            dt, tz, nanos=obj.dts.ps // 1000)
+                        return obj
+
+                else:
+                    ts = obj.value
+                    if tz is not None:
+                        # shift for localize_tso
+                        ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
+                                                ambiguous='raise')[0]
+
+            except OutOfBoundsDatetime:
+                # GH#19382 for just-barely-OutOfBounds falling back to dateutil
+                # parser will return incorrect result because it will ignore
+                # nanoseconds
+                raise
+
+            except ValueError:
+                try:
+                    ts = parse_datetime_string(ts, dayfirst=dayfirst,
+                                               yearfirst=yearfirst)
+                except Exception:
+                    raise ValueError("could not convert string to Timestamp")
 
     return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 

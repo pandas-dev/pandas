@@ -54,17 +54,10 @@ This file implements string parsing and creation for NumPy datetime.
  * Returns 0 on success, -1 on failure.
  */
 int
-parse_iso_8601_datetime(const char *str, int len,
+parse_iso_8601_datetime(const char *str, int len, int want_exc,
                         npy_datetimestruct *out,
                         int *out_local,
                         int *out_tzoffset);
-// slightly faster version of parse_iso_8601_datetime which
-// doesn't set Python exceptions but still returns -1 on error
-int
-parse_iso_8601_datetime_noexc(const char *str, int len,
-                              npy_datetimestruct *out,
-                              int *out_local,
-                              int *out_tzoffset);
 
 /*
  * Provides a string length to use for converting datetime

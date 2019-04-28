@@ -20,7 +20,7 @@ from pandas._libs.util cimport (
 from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.tslibs.np_datetime cimport (
-    _string_to_dts_noexc, check_dts_bounds, npy_datetimestruct, _string_to_dts,
+    check_dts_bounds, npy_datetimestruct, _string_to_dts,
     dt64_to_dtstruct, dtstruct_to_dt64, pydatetime_to_dt64, pydate_to_dt64,
     get_datetime64_value)
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
@@ -205,7 +205,8 @@ def _test_parse_iso8601(object ts):
     elif ts == 'today':
         return Timestamp.now().normalize()
 
-    _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
+    if _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset) == -1:
+        raise ValueError
     obj.value = dtstruct_to_dt64(&obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
@@ -580,7 +581,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                         iresult[i] = NPY_NAT
                         continue
 
-                    string_to_dts_failed = _string_to_dts_noexc(
+                    string_to_dts_failed = _string_to_dts(
                         val, &dts, &out_local,
                         &out_tzoffset
                     )

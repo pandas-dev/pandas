@@ -1,4 +1,4 @@
-from cpython cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE, PyErr_Clear
+from cpython cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
 
 from cpython.datetime cimport (datetime, date,
                                PyDateTime_IMPORT,
@@ -31,12 +31,9 @@ cdef extern from "src/datetime/np_datetime.h":
     npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
 cdef extern from "src/datetime/np_datetime_strings.h":
-    int parse_iso_8601_datetime(const char *str, int len,
+    int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                                 npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)
-    int parse_iso_8601_datetime_noexc(const char *str, int len,
-                                      npy_datetimestruct *out,
-                                      int *out_local, int *out_tzoffset)
 
 
 # ----------------------------------------------------------------------
@@ -173,30 +170,11 @@ cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
 
 
 cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
-                               int* out_local, int* out_tzoffset) except? -1:
+                               int* out_local, int* out_tzoffset):
     cdef:
         Py_ssize_t length
         const char* buf
 
     buf = get_c_string_buf_and_size(val, &length)
-    return parse_iso_8601_datetime(buf, length,
+    return parse_iso_8601_datetime(buf, length, 0,
                                    dts, out_local, out_tzoffset)
-
-
-# Slightly faster version that doesn't raise a ValueError
-# if a date cannot be parsed, it reports various errors via return result.
-# Caller must check that return value == 0 to determine if parsing succeeded.
-cdef inline int _string_to_dts_noexc(object val, npy_datetimestruct* dts,
-                                     int* out_local, int* out_tzoffset):
-    cdef:
-        Py_ssize_t length
-        const char* buf
-
-    buf = get_c_string_buf_and_size(val, &length)
-    if buf == NULL:
-        PyErr_Clear()
-        return -1
-
-    result = parse_iso_8601_datetime_noexc(buf, length,
-                                           dts, out_local, out_tzoffset);
-    return result
