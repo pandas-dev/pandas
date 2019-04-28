@@ -347,8 +347,8 @@ class BaseGrouper:
             },
             'var': 'group_var',
             'std': {
-                'name' : 'group_var_bin',
-                'f' : lambda func, a: np.sqrt(func(a)),
+                'name': 'group_var_bin',
+                'f': lambda func, a: np.sqrt(func(a)),
             },
             'first': {
                 'name': 'group_nth',
