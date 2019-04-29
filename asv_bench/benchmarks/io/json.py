@@ -128,10 +128,20 @@ class ToJSONMem:
 
     def setup_cache(self):
         df = DataFrame([[1]])
+        frames = {
+            'int': df,
+            'float': df.astype(float),
+        }
 
-        return df
+        return frames
 
-    def peakmem_numeric(self, df):
+    def peakmem_int(self, frames):
+        df = frames['int']
+        for _ in range(100_000):
+            df.to_json()
+
+    def peakmem_float(self, frames):
+        df = frames['float']
         for _ in range(100_000):
             df.to_json()
 
