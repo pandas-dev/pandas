@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """

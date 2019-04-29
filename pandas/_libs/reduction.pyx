@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t

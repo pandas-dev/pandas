@@ -1,4 +1,3 @@
-# coding=utf-8
 from itertools import product
 import operator
 
@@ -1328,6 +1327,16 @@ class TestNLargestNSmallest:
 
         result = s.nsmallest(2, keep='all')
         expected = Series([6, 7, 7, 7, 7], index=[7, 3, 4, 5, 6])
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('data,expected',
+                             [([True, False], [True]),
+                              ([True, False, True, True], [True])])
+    def test_boolean(self, data, expected):
+        # GH 26154 : ensure True > False
+        s = Series(data)
+        result = s.nlargest(1)
+        expected = Series(expected)
         assert_series_equal(result, expected)
 
 

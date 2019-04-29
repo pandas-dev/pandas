@@ -188,24 +188,21 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
 
     @unstable
     def test_argsort(self, data_for_sorting):
-        super(TestMethods, self).test_argsort(data_for_sorting)
+        super().test_argsort(data_for_sorting)
 
     @unstable
     def test_argsort_missing(self, data_missing_for_sorting):
-        super(TestMethods, self).test_argsort_missing(
-            data_missing_for_sorting)
+        super().test_argsort_missing(data_missing_for_sorting)
 
     @unstable
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values(self, data_for_sorting, ascending):
-        super(TestMethods, self).test_sort_values(
-            data_for_sorting, ascending)
+        super().test_sort_values(data_for_sorting, ascending)
 
     @unstable
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values_missing(self, data_missing_for_sorting, ascending):
-        super(TestMethods, self).test_sort_values_missing(
-            data_missing_for_sorting, ascending)
+        super().test_sort_values_missing(data_missing_for_sorting, ascending)
 
     @pytest.mark.skip(reason="combine for JSONArray not supported")
     def test_combine_le(self, data_repeated):
@@ -232,7 +229,7 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
 
     @pytest.mark.skip(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
-        super(TestMethods, self).test_searchsorted(data_for_sorting)
+        super().test_searchsorted(data_for_sorting)
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
@@ -274,9 +271,7 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
     @unstable
     @pytest.mark.parametrize('as_index', [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        super(TestGroupby, self).test_groupby_extension_agg(
-            as_index, data_for_grouping
-        )
+        super().test_groupby_extension_agg(as_index, data_for_grouping)
 
 
 class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
@@ -294,9 +289,7 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
         pass
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super(TestArithmeticOps, self)._check_divmod_op(
-            s, op, other, exc=TypeError
-        )
+        return super()._check_divmod_op(s, op, other, exc=TypeError)
 
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):

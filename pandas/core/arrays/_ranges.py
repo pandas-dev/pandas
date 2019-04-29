@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)
