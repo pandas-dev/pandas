@@ -1967,7 +1967,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        self: %(klass)s
+        %(klass)s
             Dense %(klass)s.
         """
         # compat

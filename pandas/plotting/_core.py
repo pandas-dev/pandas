@@ -2479,7 +2479,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
 
     Returns
     -------
-    axes: matplotlib.AxesSubplot
+    matplotlib.AxesSubplot
         A histogram plot.
 
     See Also

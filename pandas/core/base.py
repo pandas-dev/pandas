@@ -659,7 +659,7 @@ class IndexOpsMixin:
 
         Returns
         -------
-        self: %(klass)s
+        %(klass)s
         """
         nv.validate_transpose(args, kwargs)
         return self

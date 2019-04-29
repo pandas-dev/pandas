@@ -46,7 +46,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     Returns
     -------
-    axes: numpy.ndarray
+    numpy.ndarray
         A matrix of scatter plots.
 
     Examples

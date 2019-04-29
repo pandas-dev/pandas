@@ -694,7 +694,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        result: numpy.ndarray
+        numpy.ndarray
             Flattened array.
 
         See Also
@@ -789,7 +789,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        taken: numpy.ndarray
+        numpy.ndarray
             Elements of given indices.
 
         See Also

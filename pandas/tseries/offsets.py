@@ -337,7 +337,7 @@ class DateOffset(BaseOffset):
 
         Returns
         -------
-        dt: TimeStamp
+        TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = as_timestamp(dt)
@@ -351,7 +351,7 @@ class DateOffset(BaseOffset):
 
         Returns
         -------
-        dt: TimeStamp
+        TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = as_timestamp(dt)
