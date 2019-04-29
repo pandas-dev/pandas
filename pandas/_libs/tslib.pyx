@@ -205,8 +205,7 @@ def _test_parse_iso8601(object ts):
     elif ts == 'today':
         return Timestamp.now().normalize()
 
-    if _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset) == -1:
-        raise ValueError
+    _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset, True)
     obj.value = dtstruct_to_dt64(&obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
@@ -583,62 +582,55 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
 
                     string_to_dts_failed = _string_to_dts(
                         val, &dts, &out_local,
-                        &out_tzoffset
+                        &out_tzoffset, False
                     )
-                    try:
-                        if string_to_dts_failed:
-                            # An error at this point is a _parsing_ error
-                            # specifically _not_ OutOfBoundsDatetime
-                            if _parse_today_now(val, &iresult[i]):
-                                continue
-                            elif require_iso8601:
-                                # if requiring iso8601 strings, skip trying
-                                # other formats
-                                if is_coerce:
-                                    iresult[i] = NPY_NAT
-                                    continue
-                                elif is_raise:
-                                    raise ValueError("time data {val} doesn't "
-                                                     "match format specified"
-                                                     .format(val=val))
-                                return values, tz_out
-
-                            try:
-                                py_dt = parse_datetime_string(
-                                    val,
-                                    dayfirst=dayfirst,
-                                    yearfirst=yearfirst
-                                )
-                            except Exception:
-                                if is_coerce:
-                                    iresult[i] = NPY_NAT
-                                    continue
-                                raise TypeError("invalid string coercion to "
-                                                "datetime")
-
-                            # If the dateutil parser returned tzinfo,
-                            # capture it to check if all arguments
-                            # have the same tzinfo
-                            tz = py_dt.utcoffset()
-                            if tz is not None:
-                                seen_datetime_offset = 1
-                                # dateutil timezone objects cannot be hashed,
-                                # so store the UTC offsets in seconds instead
-                                out_tzoffset_vals.add(tz.total_seconds())
-                            else:
-                                # Add a marker for naive string,
-                                # to track if we are
-                                # parsing mixed naive and aware strings
-                                out_tzoffset_vals.add('naive')
-
-                            _ts = convert_datetime_to_tsobject(py_dt, None)
-                            iresult[i] = _ts.value
-                    except:
-                        # TODO: What exception are we concerned with here?
-                        if is_coerce:
-                            iresult[i] = NPY_NAT
+                    if string_to_dts_failed:
+                        # An error at this point is a _parsing_ error
+                        # specifically _not_ OutOfBoundsDatetime
+                        if _parse_today_now(val, &iresult[i]):
                             continue
-                        raise
+                        elif require_iso8601:
+                            # if requiring iso8601 strings, skip trying
+                            # other formats
+                            if is_coerce:
+                                iresult[i] = NPY_NAT
+                                continue
+                            elif is_raise:
+                                raise ValueError("time data {val} doesn't "
+                                                    "match format specified"
+                                                    .format(val=val))
+                            return values, tz_out
+
+                        try:
+                            py_dt = parse_datetime_string(
+                                val,
+                                dayfirst=dayfirst,
+                                yearfirst=yearfirst
+                            )
+                        except Exception:
+                            if is_coerce:
+                                iresult[i] = NPY_NAT
+                                continue
+                            raise TypeError("invalid string coercion to "
+                                            "datetime")
+
+                        # If the dateutil parser returned tzinfo,
+                        # capture it to check if all arguments
+                        # have the same tzinfo
+                        tz = py_dt.utcoffset()
+                        if tz is not None:
+                            seen_datetime_offset = 1
+                            # dateutil timezone objects cannot be hashed,
+                            # so store the UTC offsets in seconds instead
+                            out_tzoffset_vals.add(tz.total_seconds())
+                        else:
+                            # Add a marker for naive string,
+                            # to track if we are
+                            # parsing mixed naive and aware strings
+                            out_tzoffset_vals.add('naive')
+
+                        _ts = convert_datetime_to_tsobject(py_dt, None)
+                        iresult[i] = _ts.value
                     if not string_to_dts_failed:
                         # No error reported by string_to_dts, pick back up
                         # where we left off
