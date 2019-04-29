@@ -4,6 +4,7 @@ import pickle
 import sys
 
 import numpy as np
+import itertools
 import pytest
 
 from pandas.compat import lrange
@@ -28,6 +29,8 @@ class TestTSPlot(TestPlotBase):
         TestPlotBase.setup_method(self, method)
 
         freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
+        mults = [1, 5, 23]
+        freq = [str(mlt) + frq for frq, mlt in itertools.product(freq, mults)]
         idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
         self.period_ser = [Series(np.random.randn(len(x)), x) for x in idx]
         self.period_df = [DataFrame(np.random.randn(len(x), 3), index=x,
