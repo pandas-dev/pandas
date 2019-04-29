@@ -29,11 +29,12 @@ class _XlrdReader(_BaseExcelReader):
                                   ". Current version " + xlrd.__VERSION__)
 
         self._engine = xlrd
-        super(_XlrdReader, self).__init__(filepath_or_buffer)
+        super().__init__(filepath_or_buffer)
 
     @property
     def _workbook_class(self):
-        return self._engine.Book
+        from xlrd import Book
+        return Book
 
     def load_workbook(self, filepath_or_buffer):
 
