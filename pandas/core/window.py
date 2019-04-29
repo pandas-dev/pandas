@@ -504,7 +504,8 @@ class Window(_Window):
     * ``kaiser`` (needs beta)
     * ``gaussian`` (needs std)
     * ``general_gaussian`` (needs power, width)
-    * ``slepian`` (needs width).
+    * ``slepian`` (needs width)
+    * ``exponential`` (needs tau), center is set to None.
 
     If ``win_type=None`` all points are evenly weighted. To learn more about
     different window types see `scipy.signal window functions
@@ -623,20 +624,30 @@ class Window(_Window):
                 arg_map = {'kaiser': ['beta'],
                            'gaussian': ['std'],
                            'general_gaussian': ['power', 'width'],
-                           'slepian': ['width']}
+                           'slepian': ['width'],
+                           'exponential': ['center', 'tau']}
+                immutable_args_map = {'exponential': {'center': None}}
+
                 if win_type in arg_map:
+                    immutable_args = immutable_args_map.get(win_type, {})
                     return tuple([win_type] + _pop_args(win_type,
                                                         arg_map[win_type],
+                                                        immutable_args,
                                                         kwargs))
+
                 return win_type
 
-            def _pop_args(win_type, arg_names, kwargs):
+            def _pop_args(win_type, arg_names, immutable_args, kwargs):
                 msg = '%s window requires %%s' % win_type
                 all_args = []
                 for n in arg_names:
-                    if n not in kwargs:
+                    if n in immutable_args:
+                        value = immutable_args[n]
+                    elif n in kwargs:
+                        value = kwargs.pop(n)
+                    else:
                         raise ValueError(msg % n)
-                    all_args.append(kwargs.pop(n))
+                    all_args.append(value)
                 return all_args
 
             win_type = _validate_win_type(self.win_type, kwargs)
