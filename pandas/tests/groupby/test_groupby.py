@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal

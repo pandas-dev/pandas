@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from cpython cimport (
     PyObject_RichCompare,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)

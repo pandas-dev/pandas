@@ -658,7 +658,9 @@ class DataFrame(NDFrame):
 
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
-                         'column names')
+                         'column names',
+                  col_space_type='int',
+                  col_space='The minimum width of each column')
     @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
@@ -2138,7 +2140,12 @@ class DataFrame(NDFrame):
                    compression=compression, index=index,
                    partition_cols=partition_cols, **kwargs)
 
-    @Substitution(header='Whether to print column labels, default True')
+    @Substitution(header='Whether to print column labels, default True',
+                  col_space_type='str or int',
+                  col_space='The minimum width of each column in CSS length '
+                            'units.  An int is assumed to be px units.\n\n'
+                            '            .. versionadded:: 0.25.0\n'
+                            '                Abillity to use str')
     @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
@@ -5695,6 +5702,12 @@ class DataFrame(NDFrame):
         margins_name : string, default 'All'
             Name of the row / column that will contain the totals
             when margins is True.
+        observed : boolean, default False
+            This only applies if any of the groupers are Categoricals.
+            If True: only show observed values for categorical groupers.
+            If False: show all values for categorical groupers.
+
+            .. versionchanged :: 0.25.0
 
         Returns
         -------
@@ -5785,12 +5798,12 @@ class DataFrame(NDFrame):
     @Appender(_shared_docs['pivot_table'])
     def pivot_table(self, values=None, index=None, columns=None,
                     aggfunc='mean', fill_value=None, margins=False,
-                    dropna=True, margins_name='All'):
+                    dropna=True, margins_name='All', observed=False):
         from pandas.core.reshape.pivot import pivot_table
         return pivot_table(self, values=values, index=index, columns=columns,
                            aggfunc=aggfunc, fill_value=fill_value,
                            margins=margins, dropna=dropna,
-                           margins_name=margins_name)
+                           margins_name=margins_name, observed=observed)
 
     def stack(self, level=-1, dropna=True):
         """
