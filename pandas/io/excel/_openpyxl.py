@@ -1,13 +1,11 @@
 from collections import OrderedDict
-from io import BytesIO
-from urllib.request import urlopen
+from distutils.version import LooseVersion
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import (
-    _is_url, _validate_header_arg, get_filepath_or_buffer)
+from pandas.io.common import _validate_header_arg
 from pandas.io.excel._base import (
     ExcelWriter, _BaseExcelReader, _fill_mi_header, _maybe_convert_usecols,
     _pop_header_name)
@@ -476,41 +474,26 @@ class _OpenpyxlReader(_BaseExcelReader):
         filepath_or_buffer : string, path object or Workbook
             Object to be parsed.
         """
-        err_msg = "Install xlrd >= 1.0.0 for Excel support"
+        err_msg = "Install openpyxl >= 2.4.0 for Excel with Openpyxl support"
 
         try:
             import openpyxl
         except ImportError:
             raise ImportError(err_msg)
-        try:
-            from openpyxl.cell.cell import TYPE_ERROR as CELL_TYPE_ERROR
-        except ImportError:
-            CELL_TYPE_ERROR = 'e'
-        self.CELL_TYPE_ERROR = CELL_TYPE_ERROR
-
-        from pandas.io.excel._base import ExcelFile
-        # If filepath_or_buffer is a url, want to keep the data as bytes so
-        # can't pass to get_filepath_or_buffer()
-        if _is_url(filepath_or_buffer):
-            filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
-        elif not isinstance(filepath_or_buffer,
-                            (ExcelFile, openpyxl.Workbook)):
-            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
-                filepath_or_buffer)
-
-        if isinstance(filepath_or_buffer, openpyxl.Workbook):
-            self.book = filepath_or_buffer
-        elif hasattr(filepath_or_buffer, "read"):
-            if hasattr(filepath_or_buffer, 'seek'):
-                filepath_or_buffer.seek(0)
-            self.book = openpyxl.load_workbook(
-                filepath_or_buffer, data_only=True)
-        elif isinstance(filepath_or_buffer, str):
-            self.book = openpyxl.load_workbook(
-                filepath_or_buffer, data_only=True)
         else:
-            raise ValueError('Must explicitly set engine if not passing in'
-                             ' buffer or path for io.')
+            if openpyxl.__version__ < LooseVersion('2.4.0'):
+                raise ImportError(err_msg +
+                                  ". Current version " + openpyxl.__version__)
+        super().__init__(filepath_or_buffer)
+
+    @property
+    def _workbook_class(self):
+        from openpyxl import Workbook
+        return Workbook
+
+    def load_workbook(self, filepath_or_buffer):
+        from openpyxl import load_workbook
+        return load_workbook(filepath_or_buffer, data_only=True)
 
     @property
     def sheet_names(self):
@@ -614,10 +597,11 @@ class _OpenpyxlReader(_BaseExcelReader):
         return self.book.worksheets[index]
 
     def _replace_type_error_with_nan(self, rows):
+        from openpyxl.cell.cell import TYPE_ERROR
         nan = float('nan')
         for row in rows:
             yield [nan
-                   if cell.data_type == self.CELL_TYPE_ERROR
+                   if cell.data_type == TYPE_ERROR
                    else cell.value
                    for cell in row]
 
