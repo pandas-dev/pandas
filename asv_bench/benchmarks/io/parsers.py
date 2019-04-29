@@ -15,10 +15,7 @@ class DoesStringLookLikeDatetime(object):
 
     def time_check_datetimes(self, value):
         for obj in self.objects:
-            try:
-                _does_string_look_like_datetime(obj)
-            except ValueError:
-                pass
+            _does_string_look_like_datetime(obj)
 
 
 class ConcatDateCols(object):
