@@ -1041,7 +1041,7 @@ class _EngineToConnMixin:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, load_iris_data):
-        super(_EngineToConnMixin, self).load_test_data_and_sql()
+        super().load_test_data_and_sql()
         engine = self.conn
         conn = engine.connect()
         self.__tx = conn.begin()
@@ -1056,7 +1056,7 @@ class _EngineToConnMixin:
         self.conn = self.__engine
         self.pandasSQL = sql.SQLDatabase(self.__engine)
         # XXX:
-        # super(_EngineToConnMixin, self).teardown_method(method)
+        # super().teardown_method(method)
 
 
 @pytest.mark.single

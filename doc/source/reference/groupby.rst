@@ -50,6 +50,10 @@ Computations / Descriptive Stats
    GroupBy.bfill
    GroupBy.count
    GroupBy.cumcount
+   GroupBy.cummax
+   GroupBy.cummin
+   GroupBy.cumprod
+   GroupBy.cumsum
    GroupBy.ffill
    GroupBy.first
    GroupBy.head

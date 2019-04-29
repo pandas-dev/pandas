@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """ test where we are determining what we are grouping, or getting groups """
 
 import numpy as np
