@@ -1850,7 +1850,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         ' hashed'.format(self.__class__.__name__))
 
     def __iter__(self):
-        """Iterate over info axis
+        """Iterate over info axis.
 
         Returns
         -------

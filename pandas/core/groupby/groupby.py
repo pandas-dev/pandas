@@ -1296,7 +1296,7 @@ class GroupBy(_GroupBy):
                              min_count=-1):
 
             _local_template = """
-            Compute %(f)s of group values
+            Compute %(f)s of group values.
 
             Returns
             -------

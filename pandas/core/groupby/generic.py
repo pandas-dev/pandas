@@ -1492,7 +1492,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     def count(self):
         """
-        Compute count of group, excluding missing values
+        Compute count of group, excluding missing values.
 
         Returns
         -------
