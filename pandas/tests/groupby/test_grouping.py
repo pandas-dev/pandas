@@ -305,14 +305,14 @@ class TestGrouping():
 
     def test_grouper_base(self):
         # GH25161
-        s = Series(np.arange(10),
-                   index=pd.date_range(
-                       "2018-11-26 16:17:43.51",
-                       periods=10, freq="1S"))
-        base = t0.minute + (t0.second + t0.microsecond / 1e6) / 60
-        g = s.groupby(pd.Grouper(freq="10min", base=base))
+        dt = pd.to_datetime(["2018-11-26 16:17:43.51",
+                             "2018-11-26 16:17:44.51",
+                             "2018-11-26 16:17:45.51"])
+        s = Series(np.arange(3), index=dt)
+        base = 17 + 43.51 / 60
+        g = s.groupby(pd.Grouper(freq="3min", base=base))
         result = g.size()
-        expected = pd.Series(10, index=Index([t0]))
+        expected = Series(3, index=[dt[0]])
         assert_series_equal(result, expected)
 
     def test_empty_groups(self, df):
