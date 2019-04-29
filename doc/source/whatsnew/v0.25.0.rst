@@ -275,7 +275,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 
--
+- Bug with comparisons between :class:`Timedelta` and ``NaT`` raising ``TypeError`` (:issue:`26039`)
 -
 -
 
@@ -365,6 +365,7 @@ I/O
 - Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
 - Improved the explanation for the failure when value labels are repeated in Stata dta files and suggested work-arounds (:issue:`25772`)
 - Improved :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` to read incorrectly formatted 118 format files saved by Stata (:issue:`25960`)
+- Improved the ``col_space`` parameter in :meth:`DataFrame.to_html` to accept a string so CSS length values can be set correctly (:issue:`25941`)
 - Fixed bug in loading objects from S3 that contain ``#`` characters in the URL (:issue:`25945`)
 - Adds ``use_bqstorage_api`` parameter to :func:`read_gbq` to speed up downloads of large data frames. This feature requires version 0.10.0 of the ``pandas-gbq`` library as well as the ``google-cloud-bigquery-storage`` and ``fastavro`` libraries. (:issue:`26104`)
 
@@ -389,6 +390,7 @@ Groupby/Resample/Rolling
 - Ensured that ordering of outputs in ``groupby`` aggregation functions is consistent across all versions of Python (:issue:`25692`)
 - Ensured that result group order is correct when grouping on an ordered ``Categorical`` and specifying ``observed=True`` (:issue:`25871`, :issue:`25167`)
 - Bug in :meth:`pandas.core.window.Rolling.min` and :meth:`pandas.core.window.Rolling.max` that caused a memory leak (:issue:`25893`)
+- Bug in :meth:`pandas.core.window.Rolling.count` and `pandas.core.window.Expanding.count` was previously ignoring the axis keyword (:issue:`13503`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.idxmax` and :meth:`pandas.core.groupby.GroupBy.idxmin` with datetime column would return incorrect dtype (:issue:`25444`, :issue:`15306`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.cumsum`, :meth:`pandas.core.groupby.GroupBy.cumprod`, :meth:`pandas.core.groupby.GroupBy.cummin` and :meth:`pandas.core.groupby.GroupBy.cummax` with categorical column having absent categories, would return incorrect result or segfault (:issue:`16771`)
 
