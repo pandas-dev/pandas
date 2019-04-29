@@ -189,9 +189,11 @@ class TestSparseArray:
         expected = mat.toarray().ravel()
         tm.assert_numpy_array_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_from_spmatrix_raises(self):
-        sparse = pytest.importorskip('scipy.sparse')
-        mat = sparse.eye(5, 4, format='csc')
+        import scipy.sparse
+
+        mat = scipy.sparse.eye(5, 4, format='csc')
 
         with pytest.raises(ValueError, match="not '4'"):
             SparseArray.from_spmatrix(mat)
@@ -1109,27 +1111,29 @@ class TestAccessor:
         expected = getattr(arr, attr)
         assert result == expected
 
+    @td.skip_if_no_scipy
     def test_from_coo(self):
-        sparse = pytest.importorskip("scipy.sparse")
+        import scipy.sparse
 
         row = [0, 3, 1, 0]
         col = [0, 3, 1, 2]
         data = [4, 5, 7, 9]
-        sp_array = sparse.coo_matrix((data, (row, col)))
+        sp_array = scipy.sparse.coo_matrix((data, (row, col)))
         result = pd.Series.sparse.from_coo(sp_array)
 
         index = pd.MultiIndex.from_arrays([[0, 0, 1, 3], [0, 2, 1, 3]])
         expected = pd.Series([4, 9, 7, 5], index=index, dtype='Sparse[int]')
         tm.assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_to_coo(self):
-        sparse = pytest.importorskip("scipy.sparse")
+        import scipy.sparse
         ser = pd.Series([1, 2, 3],
                         index=pd.MultiIndex.from_product([[0], [1, 2, 3]],
                                                          names=['a', 'b']),
                         dtype='Sparse[int]')
         A, _, _ = ser.sparse.to_coo()
-        assert isinstance(A, sparse.coo.coo_matrix)
+        assert isinstance(A, scipy.sparse.coo.coo_matrix)
 
     def test_non_sparse_raises(self):
         ser = pd.Series([1, 2, 3])

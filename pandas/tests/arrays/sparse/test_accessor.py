@@ -54,10 +54,11 @@ class TestFrameAccessor:
         ['a', 'a'],
     ])
     def test_from_spmatrix_columns(self, columns):
-        sparse = pytest.importorskip('scipy.sparse')
+        import scipy.sparse
+
         dtype = pd.SparseDtype('float64', 0.0)
 
-        mat = sparse.random(10, 2, density=0.5)
+        mat = scipy.sparse.random(10, 2, density=0.5)
         result = pd.DataFrame.sparse.from_spmatrix(mat, columns=columns)
         expected = pd.DataFrame(
             mat.toarray(), columns=columns
