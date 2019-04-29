@@ -4075,7 +4075,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        boolean
+        bool
             If two Index objects have equal elements True, otherwise False.
         """
         if self.is_(other):
@@ -4101,7 +4101,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        boolean
+        bool
             If two Index objects have equal elements and same type True,
             otherwise False.
         """

@@ -1074,7 +1074,7 @@ class GroupBy(_GroupBy):
 
         Returns
         -------
-        boolean
+        bool
         """
         return self._bool_agg('any', skipna)
 
@@ -1091,7 +1091,7 @@ class GroupBy(_GroupBy):
 
         Returns
         -------
-        boolean
+        bool
         """
         return self._bool_agg('all', skipna)
 

@@ -287,7 +287,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         Returns
         -------
-        boolean
+        bool
             If two CategorialIndex objects have equal elements True,
             otherwise False.
         """

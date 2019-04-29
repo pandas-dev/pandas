@@ -1521,7 +1521,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        boolean
+        bool
             Same single boolean value converted to bool type.
         """
         v = self.squeeze()

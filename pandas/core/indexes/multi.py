@@ -1565,7 +1565,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        boolean
+        bool
         """
         return self.lexsort_depth == self.nlevels
 
