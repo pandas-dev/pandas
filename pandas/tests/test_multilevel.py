@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 from io import StringIO
 import itertools
@@ -23,7 +22,7 @@ AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
                  'std', 'var', 'sem']
 
 
-class Base(object):
+class Base:
 
     def setup_method(self, method):
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from collections import defaultdict
 from datetime import datetime, timedelta
 from io import StringIO
@@ -221,7 +219,7 @@ class TestIndex(Base):
         # GH 5460#issuecomment-44474502
         # it should be possible to convert any object that satisfies the numpy
         # ndarray interface directly into an Index
-        class ArrayLike(object):
+        class ArrayLike:
             def __init__(self, array):
                 self.array = array
 
@@ -2406,7 +2404,7 @@ class TestMixedIntIndex(Base):
         tm.assert_index_equal(result, expected)
 
 
-class TestIndexUtils(object):
+class TestIndexUtils:
 
     @pytest.mark.parametrize('data, names, expected', [
         ([[1, 2, 3]], None, Index([1, 2, 3])),

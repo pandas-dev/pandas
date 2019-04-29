@@ -54,10 +54,10 @@ def set_use_bottleneck(v=True):
 set_use_bottleneck(get_option('compute.use_bottleneck'))
 
 
-class disallow(object):
+class disallow:
 
     def __init__(self, *dtypes):
-        super(disallow, self).__init__()
+        super().__init__()
         self.dtypes = tuple(pandas_dtype(dtype).type for dtype in dtypes)
 
     def check(self, obj):
@@ -86,7 +86,7 @@ class disallow(object):
         return _f
 
 
-class bottleneck_switch(object):
+class bottleneck_switch:
 
     def __init__(self, **kwargs):
         self.kwargs = kwargs

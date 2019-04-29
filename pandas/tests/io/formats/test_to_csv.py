@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 import sys
 
@@ -11,7 +9,7 @@ from pandas import DataFrame, compat
 from pandas.util import testing as tm
 
 
-class TestToCSV(object):
+class TestToCSV:
 
     @pytest.mark.xfail((3, 6, 5) > sys.version_info >= (3, 5),
                        reason=("Python csv library bug "

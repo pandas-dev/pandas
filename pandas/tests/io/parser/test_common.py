@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
@@ -1792,7 +1790,7 @@ def test_file_handles_with_open(all_parsers, csv1):
 
 def test_invalid_file_buffer_class(all_parsers):
     # see gh-15337
-    class InvalidBuffer(object):
+    class InvalidBuffer:
         pass
 
     parser = all_parsers

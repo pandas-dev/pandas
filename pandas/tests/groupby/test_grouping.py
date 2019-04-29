@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """ test where we are determining what we are grouping, or getting groups """
 
 import numpy as np
@@ -20,7 +18,7 @@ from pandas.util.testing import (
 # --------------------------------
 
 
-class TestSelection(object):
+class TestSelection:
 
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])

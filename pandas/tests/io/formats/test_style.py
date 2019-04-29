@@ -15,7 +15,7 @@ jinja2 = pytest.importorskip('jinja2')
 from pandas.io.formats.style import Styler, _get_level_lengths  # noqa  # isort:skip
 
 
-class TestStyler(object):
+class TestStyler:
 
     def setup_method(self, method):
         np.random.seed(24)
@@ -1219,7 +1219,7 @@ class TestStyler(object):
 
 
 @td.skip_if_no_mpl
-class TestStylerMatplotlibDep(object):
+class TestStylerMatplotlibDep:
 
     def test_background_gradient(self):
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])

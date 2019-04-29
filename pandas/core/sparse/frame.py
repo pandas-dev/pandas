@@ -293,7 +293,7 @@ class SparseDataFrame(DataFrame):
         """
         Make a copy of this SparseDataFrame
         """
-        result = super(SparseDataFrame, self).copy(deep=deep)
+        result = super().copy(deep=deep)
         result._default_fill_value = self._default_fill_value
         result._default_kind = self._default_kind
         return result
@@ -319,10 +319,9 @@ class SparseDataFrame(DataFrame):
 
     def fillna(self, value=None, method=None, axis=0, inplace=False,
                limit=None, downcast=None):
-        new_self = super(SparseDataFrame,
-                         self).fillna(value=value, method=method, axis=axis,
-                                      inplace=inplace, limit=limit,
-                                      downcast=downcast)
+        new_self = super().fillna(value=value, method=method, axis=axis,
+                                  inplace=inplace, limit=limit,
+                                  downcast=downcast)
         if not inplace:
             self = new_self
 

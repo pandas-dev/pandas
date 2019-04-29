@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from itertools import product
@@ -21,7 +19,7 @@ def dropna(request):
     return request.param
 
 
-class TestPivotTable(object):
+class TestPivotTable:
 
     def setup_method(self, method):
         self.data = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
@@ -37,18 +35,18 @@ class TestPivotTable(object):
                                'E': np.random.randn(11),
                                'F': np.random.randn(11)})
 
-    def test_pivot_table(self):
+    def test_pivot_table(self, observed):
         index = ['A', 'B']
         columns = 'C'
         table = pivot_table(self.data, values='D',
-                            index=index, columns=columns)
+                            index=index, columns=columns, observed=observed)
 
         table2 = self.data.pivot_table(
-            values='D', index=index, columns=columns)
+            values='D', index=index, columns=columns, observed=observed)
         tm.assert_frame_equal(table, table2)
 
         # this works
-        pivot_table(self.data, values='D', index=index)
+        pivot_table(self.data, values='D', index=index, observed=observed)
 
         if len(index) > 1:
             assert table.index.names == tuple(index)
@@ -63,6 +61,28 @@ class TestPivotTable(object):
         expected = self.data.groupby(
             index + [columns])['D'].agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
+
+    def test_pivot_table_categorical_observed_equal(self, observed):
+        # issue #24923
+        df = pd.DataFrame({'col1': list('abcde'),
+                           'col2': list('fghij'),
+                           'col3': [1, 2, 3, 4, 5]})
+
+        expected = df.pivot_table(index='col1', values='col3',
+                                  columns='col2', aggfunc=np.sum,
+                                  fill_value=0)
+
+        expected.index = expected.index.astype('category')
+        expected.columns = expected.columns.astype('category')
+
+        df.col1 = df.col1.astype('category')
+        df.col2 = df.col2.astype('category')
+
+        result = df.pivot_table(index='col1', values='col3',
+                                columns='col2', aggfunc=np.sum,
+                                fill_value=0, observed=observed)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_nocols(self):
         df = DataFrame({'rows': ['a', 'b', 'c'],
@@ -1338,7 +1358,7 @@ class TestPivotTable(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestCrosstab(object):
+class TestCrosstab:
 
     def setup_method(self, method):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',

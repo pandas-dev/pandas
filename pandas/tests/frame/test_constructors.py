@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict, abc
 from datetime import datetime, timedelta
 import functools
@@ -2215,7 +2213,7 @@ class TestDataFrameConstructors(TestData):
             DataFrame.from_records(df, index=2)
 
     def test_from_records_non_tuple(self):
-        class Record(object):
+        class Record:
 
             def __init__(self, *args):
                 self.args = args

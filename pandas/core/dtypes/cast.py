@@ -636,10 +636,6 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
         dtype = pandas_dtype(dtype)
 
     if issubclass(dtype.type, str):
-        return lib.astype_unicode(arr.ravel(),
-                                  skipna=skipna).reshape(arr.shape)
-
-    elif issubclass(dtype.type, str):
         return lib.astype_str(arr.ravel(),
                               skipna=skipna).reshape(arr.shape)
 
@@ -1021,7 +1017,12 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                                                                 dtype):
                     try:
                         if is_datetime64:
-                            value = to_datetime(value, errors=errors)._values
+                            value = to_datetime(value, errors=errors)
+                            # GH 25843: Remove tz information since the dtype
+                            # didn't specify one
+                            if value.tz is not None:
+                                value = value.tz_localize(None)
+                            value = value._values
                         elif is_datetime64tz:
                             # The string check can be removed once issue #13712
                             # is solved. String data that is passed with a

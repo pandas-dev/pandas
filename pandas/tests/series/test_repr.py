@@ -1,4 +1,3 @@
-# coding=utf-8
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -198,7 +197,7 @@ class TestSeriesRepr(TestData):
         assert repr(s) == exp
 
 
-class TestCategoricalRepr(object):
+class TestCategoricalRepr:
 
     def test_categorical_repr_unicode(self):
         # see gh-21002

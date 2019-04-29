@@ -37,7 +37,7 @@ _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard('')
 
 
-class BaseIterator(object):
+class BaseIterator:
     """Subclass this and provide a "__next__()" method to obtain an iterator.
     Useful only when the object being iterated is non-reusable (e.g. OK for a
     parser, not for an in-memory table, yes for its iterator)."""
@@ -422,10 +422,10 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED, **kwargs):
         if mode in ['wb', 'rb']:
             mode = mode.replace('b', '')
-        super(BytesZipFile, self).__init__(file, mode, compression, **kwargs)
+        super().__init__(file, mode, compression, **kwargs)
 
     def write(self, data):
-        super(BytesZipFile, self).writestr(self.filename, data)
+        super().writestr(self.filename, data)
 
     @property
     def closed(self):

@@ -722,7 +722,7 @@ class SeriesGroupBy(GroupBy):
               .format(input='series',
                       examples=_apply_docs['series_examples']))
     def apply(self, func, *args, **kwargs):
-        return super(SeriesGroupBy, self).apply(func, *args, **kwargs)
+        return super().apply(func, *args, **kwargs)
 
     @Substitution(see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
@@ -1290,7 +1290,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
                   axis='')
     @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
-        return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
+        return super().aggregate(arg, *args, **kwargs)
 
     agg = aggregate
 
@@ -1471,7 +1471,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     def _fill(self, direction, limit=None):
         """Overridden method to join grouped columns in output"""
-        res = super(DataFrameGroupBy, self)._fill(direction, limit=limit)
+        res = super()._fill(direction, limit=limit)
         output = OrderedDict(
             (grp.name, grp.grouper) for grp in self.grouper.groupings)
 

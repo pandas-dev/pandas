@@ -1,4 +1,3 @@
-# coding=utf-8
 import numpy as np
 
 import pandas as pd
@@ -6,7 +5,7 @@ from pandas import SparseDtype
 import pandas.util.testing as tm
 
 
-class TestSeriesSubclassing(object):
+class TestSeriesSubclassing:
 
     def test_indexing_sliced(self):
         s = tm.SubclassedSeries([1, 2, 3, 4], index=list('abcd'))
@@ -40,7 +39,7 @@ class TestSeriesSubclassing(object):
         tm.assert_frame_equal(res, exp)
 
 
-class TestSparseSeriesSubclassing(object):
+class TestSparseSeriesSubclassing:
 
     def test_subclass_sparse_slice(self):
         # int64

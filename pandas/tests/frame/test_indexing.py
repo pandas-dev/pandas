@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import date, datetime, time, timedelta
 from warnings import catch_warnings, simplefilter
 
@@ -3363,7 +3361,7 @@ class TestDataFrameIndexingUInt64(TestData):
         assert_frame_equal(result, expected)
 
 
-class TestDataFrameIndexingCategorical(object):
+class TestDataFrameIndexingCategorical:
 
     def test_assignment(self):
         # assignment
