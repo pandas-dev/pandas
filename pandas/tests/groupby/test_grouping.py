@@ -203,6 +203,18 @@ class TestGrouping():
         expected = s.groupby(level='one').sum()
         assert_series_equal(result, expected)
 
+        # GH25161
+        s = Series(np.arange(10),
+                   index=pd.date_range(
+                       "2018-11-26 16:17:43.51",
+                       periods=10, freq="1S"))
+        t0 = s.index[0]
+        base = t0.minute + (t0.second + t0.microsecond / 1e6) / 60
+        g = s.groupby(pd.Grouper(freq="10min", base=base))
+        result = g.size()
+        expected = pd.Series(10, index=Index([t0]))
+        assert_series_equal(result, expected)
+
     def test_grouper_column_and_index(self):
         # GH 14327
 
