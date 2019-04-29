@@ -2357,19 +2357,15 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
                                                  Py_ssize_t col_count,
                                                  bint keep_trivial_numbers):
     """
-    Concatenates `rows_count` elements from each `col_count` numpy arrays
-    in `date_cols` into strings.
-
-    Note
-    ----
-    This function speeds up concatenation for numpy arrays.
-    You also can use `_concat_date_cols_sequence` function.
+    Concatenates elements from numpy arrays into strings.
 
     Parameters
     ----------
     date_cols : tuple of numpy arrays
     rows_count : Py_ssize_t
+        count of elements from arrays that will be concatenated
     col_count : Py_ssize_t
+        count of arrays whose elements will be concatenated
     keep_trivial_numbers : bool, default False
         if True and len(date_cols) == 1, then
         conversion (to string from integer/float zero) is not performed
@@ -2377,6 +2373,11 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
     Returns
     -------
     arr_of_rows : ndarray (dtype=object)
+
+    Notes
+    -----
+    This function speeds up concatenation for numpy arrays.
+    You also can use `_concat_date_cols_sequence` function.
     """
     cdef:
         Py_ssize_t col_idx, row_idx
@@ -2402,11 +2403,13 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
         # create fixed size list - more effecient memory allocation
         list_to_join = [None] * col_count
         iters = np.zeros(col_count, dtype=object)
+
         # create memoryview of iters ndarray, that will contain some
         # flatiter's for each array in `date_cols` - more effecient indexing
         iters_view = iters
         for col_idx, array in enumerate(date_cols):
             iters_view[col_idx] = PyArray_IterNew(array)
+
         # array elements that are on the same line are converted to one string
         for row_idx in range(rows_count):
             for col_idx, array in enumerate(date_cols):
@@ -2428,14 +2431,15 @@ cdef cnp.ndarray[object] _concat_date_cols_sequence(tuple date_cols,
                                                     Py_ssize_t col_count,
                                                     bint keep_trivial_numbers):
     """
-    Concatenates `rows_count` elements from each `col_count` sequences
-    in `date_cols` into strings.
+    Concatenates elements from sequences into strings.
 
     Parameters
     ----------
     date_cols : tuple of sequences
     rows_count : Py_ssize_t
+        count of elements from sequences that will be concatenated
     col_count : Py_ssize_t
+        count of sequences whose elements will be concatenated
     keep_trivial_numbers : bool, default False
         if True and len(date_cols) == 1, then
         conversion (to string from integer/float zero) is not performed
@@ -2451,6 +2455,7 @@ cdef cnp.ndarray[object] _concat_date_cols_sequence(tuple date_cols,
         object[:] result_view
 
     result = np.zeros(rows_count, dtype=object)
+
     # create memoryview of result ndarray - more effecient indexing
     result_view = result
 
