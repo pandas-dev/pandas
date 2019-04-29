@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from pandas.core.dtypes.cast import construct_1d_arraylike_from_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
 

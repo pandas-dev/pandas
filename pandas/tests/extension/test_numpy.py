@@ -145,7 +145,7 @@ class TestCasting(BaseNumPyTests, base.BaseCastingTests):
     @skip_nested
     def test_astype_str(self, data):
         # ValueError: setting an array element with a sequence
-        super(TestCasting, self).test_astype_str(data)
+        super().test_astype_str(data)
 
 
 class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
@@ -157,7 +157,7 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
     @skip_nested
     def test_array_from_scalars(self, data):
         # ValueError: PandasArray must be 1-dimensional.
-        super(TestConstructors, self).test_array_from_scalars(data)
+        super().test_array_from_scalars(data)
 
 
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
@@ -173,12 +173,12 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
     @skip_nested
     def test_getitem_scalar(self, data):
         # AssertionError
-        super(TestGetitem, self).test_getitem_scalar(data)
+        super().test_getitem_scalar(data)
 
     @skip_nested
     def test_take_series(self, data):
         # ValueError: PandasArray must be 1-dimensional.
-        super(TestGetitem, self).test_take_series(data)
+        super().test_take_series(data)
 
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
@@ -186,15 +186,15 @@ class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
     def test_groupby_extension_apply(
             self, data_for_grouping, groupby_apply_op):
         # ValueError: Names should be list-like for a MultiIndex
-        super(TestGroupby, self).test_groupby_extension_apply(
-            data_for_grouping, groupby_apply_op)
+        super().test_groupby_extension_apply(data_for_grouping,
+                                             groupby_apply_op)
 
 
 class TestInterface(BaseNumPyTests, base.BaseInterfaceTests):
     @skip_nested
     def test_array_interface(self, data):
         # NumPy array shape inference
-        super(TestInterface, self).test_array_interface(data)
+        super().test_array_interface(data)
 
 
 class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
@@ -207,56 +207,55 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     # We have a bool dtype, so the result is an ExtensionArray
     # but expected is not
     def test_combine_le(self, data_repeated):
-        super(TestMethods, self).test_combine_le(data_repeated)
+        super().test_combine_le(data_repeated)
 
     @skip_nested
     def test_combine_add(self, data_repeated):
         # Not numeric
-        super(TestMethods, self).test_combine_add(data_repeated)
+        super().test_combine_add(data_repeated)
 
     @skip_nested
     def test_shift_fill_value(self, data):
         # np.array shape inference. Shift implementation fails.
-        super(TestMethods, self).test_shift_fill_value(data)
+        super().test_shift_fill_value(data)
 
     @skip_nested
     @pytest.mark.parametrize('box', [pd.Series, lambda x: x])
     @pytest.mark.parametrize('method', [lambda x: x.unique(), pd.unique])
     def test_unique(self, data, box, method):
         # Fails creating expected
-        super(TestMethods, self).test_unique(data, box, method)
+        super().test_unique(data, box, method)
 
     @skip_nested
     def test_fillna_copy_frame(self, data_missing):
         # The "scalar" for this array isn't a scalar.
-        super(TestMethods, self).test_fillna_copy_frame(data_missing)
+        super().test_fillna_copy_frame(data_missing)
 
     @skip_nested
     def test_fillna_copy_series(self, data_missing):
         # The "scalar" for this array isn't a scalar.
-        super(TestMethods, self).test_fillna_copy_series(data_missing)
+        super().test_fillna_copy_series(data_missing)
 
     @skip_nested
     def test_hash_pandas_object_works(self, data, as_frame):
         # ndarray of tuples not hashable
-        super(TestMethods, self).test_hash_pandas_object_works(data, as_frame)
+        super().test_hash_pandas_object_works(data, as_frame)
 
     @skip_nested
     def test_searchsorted(self, data_for_sorting, as_series):
         # Test setup fails.
-        super(TestMethods, self).test_searchsorted(data_for_sorting, as_series)
+        super().test_searchsorted(data_for_sorting, as_series)
 
     @skip_nested
     def test_where_series(self, data, na_value, as_frame):
         # Test setup fails.
-        super(TestMethods, self).test_where_series(data, na_value, as_frame)
+        super().test_where_series(data, na_value, as_frame)
 
     @skip_nested
     @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
     def test_repeat(self, data, repeats, as_series, use_numpy):
         # Fails creating expected
-        super(TestMethods, self).test_repeat(
-            data, repeats, as_series, use_numpy)
+        super().test_repeat(data, repeats, as_series, use_numpy)
 
 
 @skip_nested
@@ -275,14 +274,10 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
         pass
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        super(TestArithmetics, self).test_arith_series_with_scalar(
-            data, all_arithmetic_operators
-        )
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        super(TestArithmetics, self).test_arith_series_with_array(
-            data, all_arithmetic_operators
-        )
+        super().test_arith_series_with_array(data, all_arithmetic_operators)
 
 
 class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
@@ -309,23 +304,23 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     @skip_nested
     def test_fillna_scalar(self, data_missing):
         # Non-scalar "scalar" values.
-        super(TestMissing, self).test_fillna_scalar(data_missing)
+        super().test_fillna_scalar(data_missing)
 
     @skip_nested
     def test_fillna_series_method(self, data_missing, fillna_method):
         # Non-scalar "scalar" values.
-        super(TestMissing, self).test_fillna_series_method(
+        super().test_fillna_series_method(
             data_missing, fillna_method)
 
     @skip_nested
     def test_fillna_series(self, data_missing):
         # Non-scalar "scalar" values.
-        super(TestMissing, self).test_fillna_series(data_missing)
+        super().test_fillna_series(data_missing)
 
     @skip_nested
     def test_fillna_frame(self, data_missing):
         # Non-scalar "scalar" values.
-        super(TestMissing, self).test_fillna_frame(data_missing)
+        super().test_fillna_frame(data_missing)
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
@@ -333,23 +328,22 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
     @pytest.mark.skip("Incorrect parent test")
     # not actually a mixed concat, since we concat int and int.
     def test_concat_mixed_dtypes(self, data):
-        super(TestReshaping, self).test_concat_mixed_dtypes(data)
+        super().test_concat_mixed_dtypes(data)
 
     @skip_nested
     def test_merge(self, data, na_value):
         # Fails creating expected
-        super(TestReshaping, self).test_merge(data, na_value)
+        super().test_merge(data, na_value)
 
     @skip_nested
     def test_merge_on_extension_array(self, data):
         # Fails creating expected
-        super(TestReshaping, self).test_merge_on_extension_array(data)
+        super().test_merge_on_extension_array(data)
 
     @skip_nested
     def test_merge_on_extension_array_duplicates(self, data):
         # Fails creating expected
-        super(TestReshaping, self).test_merge_on_extension_array_duplicates(
-            data)
+        super().test_merge_on_extension_array_duplicates(data)
 
 
 class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
@@ -357,61 +351,56 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     @skip_nested
     def test_setitem_scalar_series(self, data, box_in_series):
         # AssertionError
-        super(TestSetitem, self).test_setitem_scalar_series(
-            data, box_in_series)
+        super().test_setitem_scalar_series(data, box_in_series)
 
     @skip_nested
     def test_setitem_sequence(self, data, box_in_series):
         # ValueError: shape mismatch: value array of shape (2,1) could not
         # be broadcast to indexing result of shape (2,)
-        super(TestSetitem, self).test_setitem_sequence(data, box_in_series)
+        super().test_setitem_sequence(data, box_in_series)
 
     @skip_nested
     def test_setitem_sequence_mismatched_length_raises(self, data, as_array):
         # ValueError: PandasArray must be 1-dimensional.
-        (super(TestSetitem, self).
-         test_setitem_sequence_mismatched_length_raises(data, as_array))
+        super().test_setitem_sequence_mismatched_length_raises(data, as_array)
 
     @skip_nested
     def test_setitem_sequence_broadcasts(self, data, box_in_series):
         # ValueError: cannot set using a list-like indexer with a different
         # length than the value
-        super(TestSetitem, self).test_setitem_sequence_broadcasts(
-            data, box_in_series)
+        super().test_setitem_sequence_broadcasts(data, box_in_series)
 
     @skip_nested
     def test_setitem_loc_scalar_mixed(self, data):
         # AssertionError
-        super(TestSetitem, self).test_setitem_loc_scalar_mixed(data)
+        super().test_setitem_loc_scalar_mixed(data)
 
     @skip_nested
     def test_setitem_loc_scalar_multiple_homogoneous(self, data):
         # AssertionError
-        super(TestSetitem, self).test_setitem_loc_scalar_multiple_homogoneous(
-            data)
+        super().test_setitem_loc_scalar_multiple_homogoneous(data)
 
     @skip_nested
     def test_setitem_iloc_scalar_mixed(self, data):
         # AssertionError
-        super(TestSetitem, self).test_setitem_iloc_scalar_mixed(data)
+        super().test_setitem_iloc_scalar_mixed(data)
 
     @skip_nested
     def test_setitem_iloc_scalar_multiple_homogoneous(self, data):
         # AssertionError
-        super(TestSetitem, self).test_setitem_iloc_scalar_multiple_homogoneous(
-            data)
+        super().test_setitem_iloc_scalar_multiple_homogoneous(data)
 
     @skip_nested
     @pytest.mark.parametrize('setter', ['loc', None])
     def test_setitem_mask_broadcast(self, data, setter):
         # ValueError: cannot set using a list-like indexer with a different
         # length than the value
-        super(TestSetitem, self).test_setitem_mask_broadcast(data, setter)
+        super().test_setitem_mask_broadcast(data, setter)
 
     @skip_nested
     def test_setitem_scalar_key_sequence_raise(self, data):
         # Failed: DID NOT RAISE <class 'ValueError'>
-        super(TestSetitem, self).test_setitem_scalar_key_sequence_raise(data)
+        super().test_setitem_scalar_key_sequence_raise(data)
 
 
 @skip_nested

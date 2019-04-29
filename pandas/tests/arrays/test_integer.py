@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -120,7 +119,7 @@ class TestConstructors:
 class TestArithmeticOps(BaseOpsUtil):
 
     def _check_divmod_op(self, s, op, other, exc=None):
-        super(TestArithmeticOps, self)._check_divmod_op(s, op, other, None)
+        super()._check_divmod_op(s, op, other, None)
 
     def _check_op(self, s, op_name, other, exc=None):
         op = self.get_op_from_name(op_name)
