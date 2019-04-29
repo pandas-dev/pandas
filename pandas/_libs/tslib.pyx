@@ -20,9 +20,8 @@ from pandas._libs.util cimport (
 from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.tslibs.np_datetime cimport (
-    check_dts_bounds, npy_datetimestruct, _string_to_dts,
-    dt64_to_dtstruct, dtstruct_to_dt64, pydatetime_to_dt64, pydate_to_dt64,
-    get_datetime64_value)
+    check_dts_bounds, npy_datetimestruct, _string_to_dts, dt64_to_dtstruct,
+    dtstruct_to_dt64, pydatetime_to_dt64, pydate_to_dt64, get_datetime64_value)
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.parsing import parse_datetime_string
@@ -597,8 +596,8 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                                 continue
                             elif is_raise:
                                 raise ValueError("time data {val} doesn't "
-                                                    "match format specified"
-                                                    .format(val=val))
+                                                 "match format specified"
+                                                 .format(val=val))
                             return values, tz_out
 
                         try:
@@ -614,18 +613,16 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                             raise TypeError("invalid string coercion to "
                                             "datetime")
 
-                        # If the dateutil parser returned tzinfo,
-                        # capture it to check if all arguments
-                        # have the same tzinfo
+                        # If the dateutil parser returned tzinfo, capture it
+                        # to check if all arguments have the same tzinfo
                         tz = py_dt.utcoffset()
                         if tz is not None:
                             seen_datetime_offset = 1
-                            # dateutil timezone objects cannot be hashed,
-                            # so store the UTC offsets in seconds instead
+                            # dateutil timezone objects cannot be hashed, so
+                            # store the UTC offsets in seconds instead
                             out_tzoffset_vals.add(tz.total_seconds())
                         else:
-                            # Add a marker for naive string,
-                            # to track if we are
+                            # Add a marker for naive string, to track if we are
                             # parsing mixed naive and aware strings
                             out_tzoffset_vals.add('naive')
 
