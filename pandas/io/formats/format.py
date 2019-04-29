@@ -41,8 +41,8 @@ common_docstring = """
             Buffer to write to.
         columns : sequence, optional, default None
             The subset of columns to write. Writes all columns by default.
-        col_space : int, optional
-            The minimum width of each column.
+        col_space : %(col_space_type)s, optional
+            %(col_space)s.
         header : bool, optional
             %(header)s.
         index : bool, optional, default True

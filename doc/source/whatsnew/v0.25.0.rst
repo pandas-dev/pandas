@@ -365,6 +365,7 @@ I/O
 - Bug in ``read_csv`` which would not raise ``ValueError`` if a column index in ``usecols`` was out of bounds (:issue:`25623`)
 - Improved the explanation for the failure when value labels are repeated in Stata dta files and suggested work-arounds (:issue:`25772`)
 - Improved :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` to read incorrectly formatted 118 format files saved by Stata (:issue:`25960`)
+- Improved the ``col_space`` parameter in :meth:`DataFrame.to_html` to accept a string so CSS length values can be set correctly (:issue:`25941`)
 - Fixed bug in loading objects from S3 that contain ``#`` characters in the URL (:issue:`25945`)
 - Adds ``use_bqstorage_api`` parameter to :func:`read_gbq` to speed up downloads of large data frames. This feature requires version 0.10.0 of the ``pandas-gbq`` library as well as the ``google-cloud-bigquery-storage`` and ``fastavro`` libraries. (:issue:`26104`)
 
