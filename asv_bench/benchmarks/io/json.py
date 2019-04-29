@@ -124,4 +124,16 @@ class ToJSON(BaseIO):
         self.df_int_float_str.to_json(self.fname, orient='records', lines=True)
 
 
+class ToJSONMem:
+
+    def setup_cache(self):
+        df = DataFrame([[1]])
+
+        return df
+
+    def peakmem_numeric(self, df):
+        for _ in range(100_000):
+            df.to_json()
+
+
 from ..pandas_vb_common import setup  # noqa: F401
