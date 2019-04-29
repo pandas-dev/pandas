@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 These the test the public routines exposed in types/common.py
 related to inference and not otherwise tested in types/test_common.py

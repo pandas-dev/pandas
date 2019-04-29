@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 cimport cython
 
 from cpython cimport (PyObject, Py_INCREF,

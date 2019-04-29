@@ -10,7 +10,7 @@ class MockEncoding:  # TODO(py27): replace with mock
     side effect should be an exception that will be raised.
     """
     def __init__(self, encoding):
-        super(MockEncoding, self).__init__()
+        super().__init__()
         self.val = encoding
 
     @property

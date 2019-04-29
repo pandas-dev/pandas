@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
@@ -42,8 +41,8 @@ common_docstring = """
             Buffer to write to.
         columns : sequence, optional, default None
             The subset of columns to write. Writes all columns by default.
-        col_space : int, optional
-            The minimum width of each column.
+        col_space : %(col_space_type)s, optional
+            %(col_space)s.
         header : bool, optional
             %(header)s.
         index : bool, optional, default True
@@ -309,7 +308,7 @@ class TextAdjustment:
 class EastAsianTextAdjustment(TextAdjustment):
 
     def __init__(self):
-        super(EastAsianTextAdjustment, self).__init__()
+        super().__init__()
         if get_option("display.unicode.ambiguous_as_wide"):
             self.ambiguous_width = 2
         else:
@@ -1160,7 +1159,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 class Datetime64Formatter(GenericArrayFormatter):
 
     def __init__(self, values, nat_rep='NaT', date_format=None, **kwargs):
-        super(Datetime64Formatter, self).__init__(values, **kwargs)
+        super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.date_format = date_format
 
@@ -1346,7 +1345,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
 class Timedelta64Formatter(GenericArrayFormatter):
 
     def __init__(self, values, nat_rep='NaT', box=False, **kwargs):
-        super(Timedelta64Formatter, self).__init__(values, **kwargs)
+        super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.box = box
 

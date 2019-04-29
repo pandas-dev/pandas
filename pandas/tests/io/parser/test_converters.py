@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests column conversion functionality during parsing
 for all of the parsers defined in parsers.py
