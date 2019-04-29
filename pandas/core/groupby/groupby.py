@@ -1650,70 +1650,70 @@ class GroupBy(_GroupBy):
 
             return out.sort_index() if self.sort else out
 
+        # dropna is truthy
+        if isinstance(n, valid_containers):
+            raise ValueError(
+                "dropna option with a list of nth values is not supported")
+
+        if dropna not in ['any', 'all']:
+            if isinstance(self._selected_obj, Series) and dropna is True:
+                warnings.warn("the dropna={dropna} keyword is deprecated,"
+                              "use dropna='all' instead. "
+                              "For a Series groupby, dropna must be "
+                              "either None, 'any' or 'all'.".format(
+                                  dropna=dropna),
+                              FutureWarning,
+                              stacklevel=2)
+                dropna = 'all'
+            else:
+                # Note: when agg-ing picker doesn't raise this,
+                # just returns NaN
+                raise ValueError("For a DataFrame groupby, dropna must be "
+                                 "either None, 'any' or 'all', "
+                                 "(was passed {dropna}).".format(
+                                     dropna=dropna))
+
+        # old behaviour, but with all and any support for DataFrames.
+        # modified in GH 7559 to have better perf
+        max_len = n if n >= 0 else - 1 - n
+        dropped = self.obj.dropna(how=dropna, axis=self.axis)
+
+        # get a new grouper for our dropped obj
+        if self.keys is None and self.level is None:
+
+            # we don't have the grouper info available
+            # (e.g. we have selected out
+            # a column that is not in the current object)
+            axis = self.grouper.axis
+            grouper = axis[axis.isin(dropped.index)]
+
         else:
-            if isinstance(n, valid_containers):
-                raise ValueError(
-                    "dropna option with a list of nth values is not supported")
 
-            if dropna not in ['any', 'all']:
-                if isinstance(self._selected_obj, Series) and dropna is True:
-                    warnings.warn("the dropna={dropna} keyword is deprecated,"
-                                  "use dropna='all' instead. "
-                                  "For a Series groupby, dropna must be "
-                                  "either None, 'any' or 'all'.".format(
-                                      dropna=dropna),
-                                  FutureWarning,
-                                  stacklevel=2)
-                    dropna = 'all'
-                else:
-                    # Note: when agg-ing picker doesn't raise this,
-                    # just returns NaN
-                    raise ValueError("For a DataFrame groupby, dropna must be "
-                                     "either None, 'any' or 'all', "
-                                     "(was passed {dropna}).".format(
-                                         dropna=dropna))
+            # create a grouper with the original parameters, but on dropped
+            # object
+            from pandas.core.groupby.grouper import _get_grouper
+            grouper, _, _ = _get_grouper(dropped, key=self.keys,
+                                         axis=self.axis, level=self.level,
+                                         sort=self.sort,
+                                         mutated=self.mutated)
 
-            # old behaviour, but with all and any support for DataFrames.
-            # modified in GH 7559 to have better perf
-            max_len = n if n >= 0 else - 1 - n
-            dropped = self.obj.dropna(how=dropna, axis=self.axis)
+        grb = dropped.groupby(
+            grouper, as_index=self.as_index, sort=self.sort)
+        sizes, result = grb.size(), grb.nth(n)
+        mask = (sizes < max_len).values
 
-            # get a new grouper for our dropped obj
-            if self.keys is None and self.level is None:
+        # set the results which don't meet the criteria
+        if len(result) and mask.any():
+            result.loc[mask] = np.nan
 
-                # we don't have the grouper info available
-                # (e.g. we have selected out
-                # a column that is not in the current object)
-                axis = self.grouper.axis
-                grouper = axis[axis.isin(dropped.index)]
+        # reset/reindex to the original groups
+        if (len(self.obj) == len(dropped) or
+                len(result) == len(self.grouper.result_index)):
+            result.index = self.grouper.result_index
+        else:
+            result = result.reindex(self.grouper.result_index)
 
-            else:
-
-                # create a grouper with the original parameters, but on dropped
-                # object
-                from pandas.core.groupby.grouper import _get_grouper
-                grouper, _, _ = _get_grouper(dropped, key=self.keys,
-                                             axis=self.axis, level=self.level,
-                                             sort=self.sort,
-                                             mutated=self.mutated)
-
-            grb = dropped.groupby(
-                grouper, as_index=self.as_index, sort=self.sort)
-            sizes, result = grb.size(), grb.nth(n)
-            mask = (sizes < max_len).values
-
-            # set the results which don't meet the criteria
-            if len(result) and mask.any():
-                result.loc[mask] = np.nan
-
-            # reset/reindex to the original groups
-            if (len(self.obj) == len(dropped) or
-                    len(result) == len(self.grouper.result_index)):
-                result.index = self.grouper.result_index
-            else:
-                result = result.reindex(self.grouper.result_index)
-
-            return result
+        return result
 
     def quantile(self, q=0.5, interpolation='linear'):
         """
