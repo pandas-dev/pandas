@@ -2178,8 +2178,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             SparseArray.from_spmatrix(data[:, i])
             for i in range(data.shape[1])
         ]
-        data = dict(zip(columns, sparrays))
-        return DataFrame(data, index=index)
+        data = dict(enumerate(sparrays))
+        result = DataFrame(data, index=index)
+        result.columns = columns
+        return result
 
     def to_dense(self):
         """
