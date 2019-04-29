@@ -53,6 +53,7 @@ class TestFrameAccessor:
         pd.MultiIndex.from_product([['A'], ['a', 'b']]),
         ['a', 'a'],
     ])
+    @td.skip_if_no_scipy
     def test_from_spmatrix_columns(self, columns):
         import scipy.sparse
 
