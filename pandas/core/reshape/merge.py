@@ -1446,10 +1446,18 @@ class _AsOfMerge(_OrderedMerge):
         # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
             if not is_dtype_equal(lk.dtype, rk.dtype):
-                raise MergeError("incompatible merge keys [{i}] {lkdtype} and "
-                                 "{rkdtype}, must be the same type"
-                                 .format(i=i, lkdtype=lk.dtype,
-                                         rkdtype=rk.dtype))
+                if (is_categorical_dtype(lk.dtype) and
+                        is_categorical_dtype(rk.dtype)):
+                    # The generic error message is confusing for categoricals.
+                    msg = ("incompatible merge keys [{i}] both sides "
+                           "category, but not equal ones"
+                           .format(i=i))
+                else:
+                    msg = ("incompatible merge keys [{i}] {lkdtype} and "
+                           "{rkdtype}, must be the same type"
+                           .format(i=i, lkdtype=lk.dtype,
+                                   rkdtype=rk.dtype))
+                raise MergeError(msg)
 
         # validate tolerance; must be a Timedelta if we have a DTI
         if self.tolerance is not None:
