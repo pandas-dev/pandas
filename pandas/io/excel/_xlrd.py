@@ -28,7 +28,6 @@ class _XlrdReader(_BaseExcelReader):
                 raise ImportError(err_msg +
                                   ". Current version " + xlrd.__VERSION__)
 
-        self._engine = xlrd
         super().__init__(filepath_or_buffer)
 
     @property
@@ -37,12 +36,12 @@ class _XlrdReader(_BaseExcelReader):
         return Book
 
     def load_workbook(self, filepath_or_buffer):
-
+        from xlrd import open_workbook
         if isinstance(filepath_or_buffer, (BytesIO, BufferedReader)):
             data = filepath_or_buffer.read()
-            return self._engine.open_workbook(file_contents=data)
+            return open_workbook(file_contents=data)
         else:
-            return self._engine.open_workbook(filepath_or_buffer)
+            return open_workbook(filepath_or_buffer)
 
     @property
     def sheet_names(self):
