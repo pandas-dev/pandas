@@ -278,7 +278,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 
-- Bug in :func:`TimedeltaIndex.intersection` where for non-monotonic indicies in some cases an empty ``Index`` was returned when in fact an intersection existed (:issue:`25913`)
+- Bug in :func:`TimedeltaIndex.intersection` where for non-monotonic indices in some cases an empty ``Index`` was returned when in fact an intersection existed (:issue:`25913`)
 -
 -
 

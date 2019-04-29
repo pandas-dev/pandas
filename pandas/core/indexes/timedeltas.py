@@ -403,7 +403,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
 
         Returns
         -------
-        y : Index or DatetimeIndex or TimedeltaIndex
+        y : Index or  TimedeltaIndex
         """
         return super(TimedeltaIndex, self).intersection(other, sort=sort)
 
