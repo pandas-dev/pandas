@@ -276,7 +276,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def dtype(self):
         return self._dtype
 
-    @property  # type: ignore # read-only property overwriting read/write
+    # read-only property overwriting read/write
+    @property  # type: ignore
     def freq(self):
         """
         Return the frequency object for this PeriodArray.
@@ -779,6 +780,7 @@ def period_array(
     data = np.asarray(data)
 
     if freq:
+        # typed Optional here because the else block below assigns None
         dtype = PeriodDtype(freq)  # type: Optional[PeriodDtype]
     else:
         dtype = None

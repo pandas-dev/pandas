@@ -11,6 +11,6 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray
 
 ArrayLike = Union[ABCExtensionArray, np.ndarray]
-DatetimeLike = Type[Union[Period, Timestamp, Timedelta]]
+DatetimeLikeScalar = Type[Union[Period, Timestamp, Timedelta]]
 Dtype = Union[str, np.dtype, ExtensionDtype]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]

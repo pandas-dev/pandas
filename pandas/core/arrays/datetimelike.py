@@ -27,7 +27,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import DatetimeLike
+from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
 from pandas.core.algorithms import (
     checked_add_with_arr, take, unique1d, value_counts)
@@ -58,7 +58,7 @@ class AttributesMixin:
         return {k: getattr(self, k, None) for k in self._attributes}
 
     @property
-    def _scalar_type(self) -> DatetimeLike:
+    def _scalar_type(self) -> DatetimeLikeScalar:
         """The scalar associated with this datelike
 
         * PeriodArray : Period
@@ -487,7 +487,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
                            "not match indexing result of length '{}'.")
                     raise ValueError(msg.format(
                         len(key), len(value)))
-                if len(key) == 0:
+                elif not len(key):
                     return
 
             value = type(self)._from_sequence(value, dtype=self.dtype)
