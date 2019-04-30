@@ -1,10 +1,10 @@
 """ Test cases for time series specific (freq conversion, etc) """
 from datetime import date, datetime, time, timedelta
+import itertools
 import pickle
 import sys
 
 import numpy as np
-import itertools
 import pytest
 
 from pandas.compat import lrange
