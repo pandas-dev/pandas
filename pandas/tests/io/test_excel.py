@@ -739,11 +739,33 @@ class ReadingTestsBase(SharedItems):
         url_table = read_excel(url)
         local_table = self.get_exceldf('test1', ext)
 
-        if (url_table.columns[0] not in local_table.columns
-                and url_table.columns[0] == local_table.columns[0]):
-            pytest.skip('?!? what is going on here?')
+        try:
+            tm.assert_frame_equal(url_table, local_table)
+        except AssertionError:
+            # some code to demonstrate dig into why the test fails
 
-        tm.assert_frame_equal(url_table, local_table)
+            # frames appear equal
+            assert url_table.equals(local_table)
+            assert local_table.equals(url_table)
+
+            # frame columns also
+            assert url_table.columns[0] == 'Unnamed: 0'
+            assert local_table.columns[0] == 'Unnamed: 0'
+            assert url_table.columns.equals(local_table.columns)
+
+            # expected behaviour for url_table
+            assert 'Unnamed: 0' in url_table.columns
+
+            # however this is really weird, why is this not true?
+            assert 'Unnamed: 0' not in local_table.columns
+
+            # but this is
+            assert 'Unnamed: 0' in list(local_table.columns)
+
+            local_table.columns = list(local_table.columns)
+            tm.assert_frame_equal(url_table, local_table)
+            # mark the test as skipped
+            pytest.skip('?!? what is going on here?')
 
     @td.skip_if_not_us_locale
     def test_read_from_s3_url(self, ext, s3_resource):
@@ -758,11 +780,33 @@ class ReadingTestsBase(SharedItems):
         url_table = read_excel(url)
         local_table = self.get_exceldf('test1', ext)
 
-        if (url_table.columns[0] not in local_table.columns
-                and url_table.columns[0] == local_table.columns[0]):
-            pytest.skip('?!? what is going on here?')
+        try:
+            tm.assert_frame_equal(url_table, local_table)
+        except AssertionError:
+            # some code to demonstrate dig into why the test fails
 
-        tm.assert_frame_equal(url_table, local_table)
+            # frames appear equal
+            assert url_table.equals(local_table)
+            assert local_table.equals(url_table)
+
+            # frame columns also
+            assert url_table.columns[0] == 'Unnamed: 0'
+            assert local_table.columns[0] == 'Unnamed: 0'
+            assert url_table.columns.equals(local_table.columns)
+
+            # expected behaviour for url_table
+            assert 'Unnamed: 0' in url_table.columns
+
+            # however this is really weird, why is this not true?
+            assert 'Unnamed: 0' not in local_table.columns
+
+            # but this is
+            assert 'Unnamed: 0' in list(local_table.columns)
+
+            local_table.columns = list(local_table.columns)
+            tm.assert_frame_equal(url_table, local_table)
+            # mark the test as skipped
+            pytest.skip('?!? what is going on here?')
 
     @pytest.mark.slow
     # ignore warning from old xlrd
