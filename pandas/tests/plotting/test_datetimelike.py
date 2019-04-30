@@ -125,7 +125,7 @@ class TestTSPlot(TestPlotBase):
                 return tsplot(s, self.plt.Axes.plot, *args, **kwds)
 
         for s in self.period_ser:
-            _check_plot_works(f, s.index.freq, ax=ax, series=s)
+            _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
 
         for s in self.datetime_ser:
             _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
