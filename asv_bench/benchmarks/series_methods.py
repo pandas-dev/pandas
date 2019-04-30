@@ -201,4 +201,46 @@ class SeriesGetattr:
         getattr(self.s, 'a', None)
 
 
+class All(object):
+
+    params = [[10**3, 10**6], ['fast', 'slow']]
+    param_names = ['N', 'case']
+
+    def setup(self, N, case):
+        val = case != 'fast'
+        self.s = Series([val] * N)
+
+    def time_all(self, N, case):
+        self.s.all()
+
+
+class Any(object):
+
+    params = [[10**3, 10**6], ['fast', 'slow']]
+    param_names = ['N', 'case']
+
+    def setup(self, N, case):
+        val = case == 'fast'
+        self.s = Series([val] * N)
+
+    def time_any(self, N, case):
+        self.s.any()
+
+
+class NanOps(object):
+
+    params = [['var', 'mean', 'median', 'max', 'min', 'sum', 'std', 'sem',
+               'argmax', 'skew', 'kurt', 'prod'],
+              [10**3, 10**6],
+              ['int8', 'int32', 'int64', 'float64']]
+    param_names = ['func', 'N', 'dtype']
+
+    def setup(self, func, N, dtype):
+        self.s = Series([1] * N, dtype=dtype)
+        self.func = getattr(self.s, func)
+
+    def time_func(self, func, N, dtype):
+        self.func()
+
+
 from .pandas_vb_common import setup  # noqa: F401
