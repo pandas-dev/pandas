@@ -583,15 +583,6 @@ class Generic(object):
 class TestNDFrame(object):
     # tests that don't fit elsewhere
 
-    def test_to_excel_size(self):
-        BREAKING_SHAPE = (2**20 + 1, 2**14 + 1)
-        arr = np.zeros(shape=BREAKING_SHAPE)
-        df = pd.DataFrame(arr)
-        filepath = 'test.xlsx'
-
-        with pytest.raises(ValueError):
-            df.to_excel(filepath)
-
     def test_sample(sel):
         # Fixes issue: 2419
         # additional specific object based tests
