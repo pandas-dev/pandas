@@ -1443,16 +1443,8 @@ class _AsOfMerge(_OrderedMerge):
          right_join_keys,
          join_names) = super()._get_merge_keys()
 
-        # validate index types are the same & are not unordered categoricals
+        # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
-            # TODO Wrong place to put this. By the time we get here, the "by"
-            # keys (which *can* be unordered) have been added to the join keys.
-            if any(is_categorical_dtype(dtype) and not dtype.ordered for
-                   dtype in [lk, rk]):
-                raise MergeError("incompatible merge keys [{i}] unordered "
-                                 "category, must be ordered".format(i=i))
-
-
             if not is_dtype_equal(lk.dtype, rk.dtype):
                 if (is_categorical_dtype(lk.dtype) and
                         is_categorical_dtype(rk.dtype)):

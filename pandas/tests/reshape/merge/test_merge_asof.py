@@ -1009,22 +1009,9 @@ class TestAsOfMerge:
         msg = r'merge keys \[0\] both sides category, but not equal ones'
 
         left = pd.DataFrame({'left_val': [1, 5, 10],
-                             'a': pd.Categorical(['a', 'b', 'c'],
-                                                 ordered=True)})
-        right = pd.DataFrame({'right_val': [1, 2, 3, 6, 7],
-                              'a': pd.Categorical(['a', 'X', 'c', 'X', 'b'],
-                                                  ordered=True)})
-
-        with pytest.raises(MergeError, match=msg):
-            merge_asof(left, right, on='a')
-
-    def test_merge_datatype_unordered_categorical_raises(self):
-        msg = r'merge keys \[0\] unordered category, must be ordered'
-
-        left = pd.DataFrame({'left_val': [1, 5, 10],
                              'a': pd.Categorical(['a', 'b', 'c'])})
         right = pd.DataFrame({'right_val': [1, 2, 3, 6, 7],
-                              'a': pd.Categorical(['a', 'c', 'b', 'a', 'b'])})
+                              'a': pd.Categorical(['a', 'X', 'c', 'X', 'b'])})
 
         with pytest.raises(MergeError, match=msg):
             merge_asof(left, right, on='a')
