@@ -1396,13 +1396,12 @@ class DataFrame(NDFrame):
         read_gbq : Read a DataFrame from Google BigQuery.
         """
         from pandas.io import gbq
-        return gbq.to_gbq(
-            self, destination_table, project_id=project_id,
-            chunksize=chunksize, reauth=reauth, if_exists=if_exists,
-            auth_local_webserver=auth_local_webserver,
-            table_schema=table_schema, location=location,
-            progress_bar=progress_bar, credentials=credentials,
-            verbose=verbose, private_key=private_key)
+        gbq.to_gbq(self, destination_table, project_id=project_id,
+                   chunksize=chunksize, reauth=reauth, if_exists=if_exists,
+                   auth_local_webserver=auth_local_webserver,
+                   table_schema=table_schema, location=location,
+                   progress_bar=progress_bar, credentials=credentials,
+                   verbose=verbose, private_key=private_key)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
