@@ -401,6 +401,7 @@ class MPLPlot:
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
+        from matplotlib.ticker import FixedLocator, FixedFormatter
 
         def get_label(i):
             try:
@@ -410,8 +411,12 @@ class MPLPlot:
 
         if self.orientation == 'vertical' or self.orientation is None:
             if self._need_to_set_index:
-                xticklabels = [get_label(x) for x in ax.get_xticks()]
+                xticks = ax.get_xticks()
+                xticklabels = [get_label(x) for x in xticks]
                 ax.set_xticklabels(xticklabels)
+                ax.xaxis.set_major_locator(FixedLocator(xticks))
+                ax.xaxis.set_major_formatter(FixedFormatter(xticklabels))
+
             self._apply_axis_properties(ax.xaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
@@ -422,8 +427,11 @@ class MPLPlot:
 
         elif self.orientation == 'horizontal':
             if self._need_to_set_index:
-                yticklabels = [get_label(y) for y in ax.get_yticks()]
+                yticks = ax.get_yticks()
+                yticklabels = [get_label(y) for y in yticks]
                 ax.set_yticklabels(yticklabels)
+                ax.xaxis.set_major_locator(FixedLocator(yticks))
+                ax.xaxis.set_major_formatter(FixedFormatter(yticklabels))
             self._apply_axis_properties(ax.yaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.xaxis, fontsize=self.fontsize)
