@@ -29,13 +29,18 @@ class TestTSPlot(TestPlotBase):
         TestPlotBase.setup_method(self, method)
 
         freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
-        mults = [1, 5, 23]
-        freq = [str(mlt) + frq for frq, mlt in itertools.product(freq, mults)]
         idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
         self.period_ser = [Series(np.random.randn(len(x)), x) for x in idx]
         self.period_df = [DataFrame(np.random.randn(len(x), 3), index=x,
                                     columns=['A', 'B', 'C'])
                           for x in idx]
+        mults = [1, 23]  # setup periods with multiples of freq.rule_code
+        freq = [str(mlt) + frq for frq, mlt in itertools.product(freq, mults)]
+        idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
+        self.period_mlt_ser = [Series(np.random.randn(len(x)), x) for x in idx]
+        self.period_mlt_df = [DataFrame(np.random.randn(len(x), 3), index=x,
+                                        columns=['A', 'B', 'C'])
+                              for x in idx]
 
         freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q-DEC', 'A', '1B30Min']
         idx = [date_range('12/31/1999', freq=x, periods=100) for x in freq]
@@ -125,7 +130,7 @@ class TestTSPlot(TestPlotBase):
                 return tsplot(s, self.plt.Axes.plot, *args, **kwds)
 
         for s in self.period_ser:
-            _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
+            _check_plot_works(f, s.index.freq, ax=ax, series=s)
 
         for s in self.datetime_ser:
             _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
@@ -211,6 +216,11 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_line_plot_period_series(self):
         for s in self.period_ser:
+            _check_plot_works(s.plot, s.index.freq)
+
+    @pytest.mark.slow
+    def test_line_plot_period_mlt_series(self):
+        for s in self.period_mlt_ser:
             _check_plot_works(s.plot, s.index.freq.rule_code)
 
     @pytest.mark.slow
@@ -221,6 +231,11 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_line_plot_period_frame(self):
         for df in self.period_df:
+            _check_plot_works(df.plot, df.index.freq)
+
+    @pytest.mark.slow
+    def test_line_plot_period_mlt_frame(self):
+        for df in self.period_mlt_df:
             freq = df.index.asfreq(df.index.freq.rule_code).freq
             _check_plot_works(df.plot, freq)
 
