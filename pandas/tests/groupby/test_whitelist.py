@@ -8,7 +8,7 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series, date_range
+from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series, date_range
 from pandas.util import testing as tm
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
@@ -164,33 +164,39 @@ def raw_frame():
 @pytest.mark.parametrize('axis', [0, 1])
 @pytest.mark.parametrize('skipna', [True, False])
 @pytest.mark.parametrize('sort', [True, False])
+@pytest.mark.parametrize('as_index', [True, False])
 def test_regression_whitelist_methods(
         raw_frame, op, level,
-        axis, skipna, sort):
+        axis, skipna, sort, as_index):
     # GH6944
     # GH 17537
     # explicitly test the whitelist methods
+
+    if not as_index and axis == 1:
+        pytest.skip('as_index=False only valid for axis=0')
 
     if axis == 0:
         frame = raw_frame
     else:
         frame = raw_frame.T
 
+    groupby_kwargs = {'level': level, 'axis': axis, 'sort': sort} #, 'as_index': as_index}
+    group_op_kwargs = {}
+    frame_op_kwargs = {'level': level, 'axis': axis}
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
-        grouped = frame.groupby(level=level, axis=axis, sort=sort)
-        result = getattr(grouped, op)(skipna=skipna)
-        expected = getattr(frame, op)(level=level, axis=axis,
-                                      skipna=skipna)
-        if sort:
-            expected = expected.sort_index(axis=axis, level=level)
-        tm.assert_frame_equal(result, expected)
-    else:
-        grouped = frame.groupby(level=level, axis=axis, sort=sort)
-        result = getattr(grouped, op)()
-        expected = getattr(frame, op)(level=level, axis=axis)
-        if sort:
-            expected = expected.sort_index(axis=axis, level=level)
-        tm.assert_frame_equal(result, expected)
+        group_op_kwargs['skipna'] = skipna
+        frame_op_kwargs['skipna'] = skipna
+
+    grouped = frame.groupby(**groupby_kwargs)
+    result = getattr(grouped, op)(**group_op_kwargs)
+    expected = getattr(frame, op)(**frame_op_kwargs)
+    if as_index:
+        pass
+
+    if sort:
+        expected = expected.sort_index(axis=axis, level=level)
+
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_blacklist(df_letters):
