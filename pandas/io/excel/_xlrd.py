@@ -1,11 +1,8 @@
 from datetime import time
 from distutils.version import LooseVersion
-from io import UnsupportedOperation
-from urllib.request import urlopen
 
 import numpy as np
 
-from pandas.io.common import _is_url, get_filepath_or_buffer
 from pandas.io.excel._base import _BaseExcelReader
 
 
@@ -30,35 +27,20 @@ class _XlrdReader(_BaseExcelReader):
                 raise ImportError(err_msg +
                                   ". Current version " + xlrd.__VERSION__)
 
-        from pandas.io.excel._base import ExcelFile
-        # If filepath_or_buffer is a url, want to keep the data as bytes so
-        # can't pass to get_filepath_or_buffer()
-        if _is_url(filepath_or_buffer):
-            filepath_or_buffer = urlopen(filepath_or_buffer)
-        elif not isinstance(filepath_or_buffer, (ExcelFile, xlrd.Book)):
-            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
-                filepath_or_buffer)
+        super().__init__(filepath_or_buffer)
 
-        if isinstance(filepath_or_buffer, xlrd.Book):
-            self.book = filepath_or_buffer
-        elif hasattr(filepath_or_buffer, "read"):
-            # N.B. xlrd.Book has a read attribute too
-            if hasattr(filepath_or_buffer, 'seek'):
-                try:
-                    # GH 19779
-                    filepath_or_buffer.seek(0)
-                except UnsupportedOperation:
-                    # HTTPResponse does not support seek()
-                    # GH 20434
-                    pass
+    @property
+    def _workbook_class(self):
+        from xlrd import Book
+        return Book
 
+    def load_workbook(self, filepath_or_buffer):
+        from xlrd import open_workbook
+        if hasattr(filepath_or_buffer, "read"):
             data = filepath_or_buffer.read()
-            self.book = xlrd.open_workbook(file_contents=data)
-        elif isinstance(filepath_or_buffer, str):
-            self.book = xlrd.open_workbook(filepath_or_buffer)
+            return open_workbook(file_contents=data)
         else:
-            raise ValueError('Must explicitly set engine if not passing in'
-                             ' buffer or path for io.')
+            return open_workbook(filepath_or_buffer)
 
     @property
     def sheet_names(self):
