@@ -1,6 +1,5 @@
 from datetime import time
 from distutils.version import LooseVersion
-from io import BufferedReader, BytesIO
 
 import numpy as np
 
@@ -37,7 +36,7 @@ class _XlrdReader(_BaseExcelReader):
 
     def load_workbook(self, filepath_or_buffer):
         from xlrd import open_workbook
-        if isinstance(filepath_or_buffer, (BytesIO, BufferedReader)):
+        if hasattr(filepath_or_buffer, "read"):
             data = filepath_or_buffer.read()
             return open_workbook(file_contents=data)
         else:
