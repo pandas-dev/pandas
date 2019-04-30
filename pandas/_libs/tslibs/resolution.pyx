@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 from numpy cimport ndarray, int64_t, int32_t
 
@@ -133,7 +131,7 @@ def get_freq_group(freq):
     return (freq // 1000) * 1000
 
 
-class Resolution(object):
+class Resolution:
 
     # Note: cython won't allow us to reference the cdef versions at the
     # module level

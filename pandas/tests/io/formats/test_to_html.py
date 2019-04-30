@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
 from io import StringIO
 import re
@@ -643,3 +641,17 @@ def test_to_html_round_column_headers():
         notebook = df.to_html(notebook=True)
     assert "0.55555" in html
     assert "0.556" in notebook
+
+
+@pytest.mark.parametrize("unit", ['100px', '10%', '5em', 150])
+def test_to_html_with_col_space_units(unit):
+    # GH 25941
+    df = DataFrame(np.random.random(size=(1, 3)))
+    result = df.to_html(col_space=unit)
+    result = result.split('tbody')[0]
+    hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
+    if isinstance(unit, int):
+        unit = str(unit) + 'px'
+    for h in hdrs:
+        expected = '<th style="min-width: {unit};">'.format(unit=unit)
+        assert expected in h

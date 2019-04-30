@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import date, datetime, time, timedelta
 from warnings import catch_warnings, simplefilter
 
