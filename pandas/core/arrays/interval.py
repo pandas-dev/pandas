@@ -939,8 +939,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         points) and is either monotonic increasing or monotonic decreasing,
         else False
         """
-
-    @property
+    # https://github.com/python/mypy/issues/1362
+    # Mypy does not support decorated properties
+    @property  # type: ignore
     @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
               % _shared_docs_kwargs)
     def is_non_overlapping_monotonic(self):
