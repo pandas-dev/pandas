@@ -564,6 +564,9 @@ def invalidate_string_dtypes(dtype_set):
 
 def coerce_indexer_dtype(indexer, categories):
     """ coerce the indexer input array to the smallest dtype possible """
+    indexer = np.array(indexer)
+    if not is_integer_dtype(indexer) and len(indexer):
+        raise TypeError("Categorical indexer must be of integer type")
     length = len(categories)
     if length < _int8_max:
         return ensure_int8(indexer)
