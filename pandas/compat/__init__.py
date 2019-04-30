@@ -74,11 +74,9 @@ def raise_with_traceback(exc, traceback=Ellipsis):
     raise exc.with_traceback(traceback)
 
 
-# In Python 3.7, the private re._pattern_type is removed.
-# Python 3.5+ have typing.re.Pattern
 if PY36:
-    import typing
-    re_type = typing.re.Pattern
+    from typing import Pattern, Type
+    re_type = Pattern  # type: Type[Pattern]
 else:
     re_type = type(re.compile(''))
 
