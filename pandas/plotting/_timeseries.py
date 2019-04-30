@@ -282,7 +282,7 @@ def _maybe_convert_index(ax, data):
         if isinstance(data.index, ABCDatetimeIndex):
             data = data.to_period(freq=freq)
         elif isinstance(data.index, ABCPeriodIndex):
-            data.index = data.index.asfreq(freq)
+            data.index = data.index.asfreq(freq=freq)
     return data
 
 
