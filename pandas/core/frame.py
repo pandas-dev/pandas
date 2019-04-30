@@ -3996,19 +3996,19 @@ class DataFrame(NDFrame):
         intent.
 
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
+        >>> df.rename(columns={"A": "a", "B": "c"})
            a  c
         0  1  4
         1  2  5
         2  3  6
 
-        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
+        >>> df.rename(columns={"A": "a", "C": "c"})
            a  B
         0  1  4
         1  2  5
         2  3  6
 
-        >>> df.rename(index=str, columns={"A": "a", "C": "c"}, errors="raise")
+        >>> df.rename(columns={"A": "a", "C": "c"}, errors="raise")
         Traceback (most recent call last):
         KeyError: ['C'] not found in axis
 
