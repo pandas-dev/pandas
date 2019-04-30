@@ -709,7 +709,7 @@ int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
 
     NpyArr_freeItemValue(obj, tc);
 
-    if (PyArray_ISNUMBER(npyarr->array) || PyArray_ISDATETIME(npyarr->array))
+    if (PyArray_ISDATETIME(npyarr->array))
     {
         PRINTMARK();
         GET_TC(tc)->itemValue = obj;
