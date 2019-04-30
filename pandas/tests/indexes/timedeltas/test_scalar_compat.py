@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for TimedeltaIndex methods behaving like their Timedelta counterparts
 """

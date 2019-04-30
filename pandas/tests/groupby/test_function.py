@@ -1044,7 +1044,7 @@ def test_count_uses_size_on_exception():
     class RaisingObject:
 
         def __init__(self, msg='I will raise inside Cython'):
-            super(RaisingObject, self).__init__()
+            super().__init__()
             self.msg = msg
 
         def __eq__(self, other):

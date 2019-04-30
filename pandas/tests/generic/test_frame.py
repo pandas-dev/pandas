@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from copy import deepcopy
 from distutils.version import LooseVersion
 from operator import methodcaller
