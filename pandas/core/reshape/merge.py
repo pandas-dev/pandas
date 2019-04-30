@@ -1449,6 +1449,13 @@ class _AsOfMerge(_OrderedMerge):
                 if (is_categorical_dtype(lk.dtype) and
                         is_categorical_dtype(rk.dtype)):
                     # The generic error message is confusing for categoricals.
+                    #
+                    # In this function, the join keys include both the original
+                    # ones of the merge_asof() call, and also the keys passed
+                    # to its by= argument. Unordered but equal categories
+                    # are not supported for the former, but will fail
+                    # later with a ValueError, so we don't *need* to check
+                    # for them here.
                     msg = ("incompatible merge keys [{i}] both sides "
                            "category, but not equal ones"
                            .format(i=i))
