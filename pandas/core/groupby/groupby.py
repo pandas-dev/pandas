@@ -1117,7 +1117,6 @@ class GroupBy(_GroupBy):
         each group.
 
         >>> df.groupby('A').mean()
-        >>>
              B         C
         A
         1  3.0  1.333333
@@ -1126,7 +1125,6 @@ class GroupBy(_GroupBy):
         Groupby two columns and return the mean of the remaining column.
 
         >>> df.groupby(['A', 'B']).mean()
-        >>>
                C
         A B
         1 2.0  2
@@ -1138,7 +1136,6 @@ class GroupBy(_GroupBy):
         the group.
 
         >>> df.groupby('A')['B'].mean()
-        >>>
         A
         1    3.0
         2    4.0
