@@ -11,9 +11,9 @@ Other items:
 * platform checker
 """
 import platform
-import re
 import struct
 import sys
+from typing import Pattern
 
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
@@ -74,11 +74,7 @@ def raise_with_traceback(exc, traceback=Ellipsis):
     raise exc.with_traceback(traceback)
 
 
-if PY36:
-    from typing import Pattern, Type
-    re_type = Pattern  # type: Type[Pattern]
-else:
-    re_type = type(re.compile(''))
+re_type = Pattern
 
 
 # https://github.com/pandas-dev/pandas/pull/9123
