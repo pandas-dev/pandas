@@ -3995,12 +3995,28 @@ class DataFrame(NDFrame):
         We *highly* recommend using keyword arguments to clarify your
         intent.
 
+        Rename columns using a mapping:
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename(columns={"A": "a", "B": "c"})
            a  c
         0  1  4
         1  2  5
         2  3  6
+
+        Rename rows using a mapping:
+        >>> df = pd.DataFrame(data={"A": [1, 2, 3], "B": [4, 5, 6]}, index=["X", "Y", "Z"])
+        >>> df.rename(index={"X": "x", "Y": "y", "Z": "z"})
+           A  B
+        x  1  4
+        y  2  5
+        z  3  6
+
+        Cast index labels to a different type:
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df.index
+        RangeIndex(start=0, stop=3, step=1)
+        >>> df.rename(index=str).index
+        Index(['0', '1', '2'], dtype='object')
 
         >>> df.rename(columns={"A": "a", "C": "c"})
            a  B
