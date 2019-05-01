@@ -19,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_interval_dtype, is_list_like, is_number, is_object_dtype, is_scalar)
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.algorithms as algos
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
