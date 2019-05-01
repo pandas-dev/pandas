@@ -1102,19 +1102,24 @@ class IntervalIndex(IntervalMixin, Index):
                    'objects that have compatible dtypes')
             raise TypeError(msg)
 
-        try:
+        if self.left.is_unique and self.right.is_unique:
             lindexer = self.left.get_indexer(other.left)
             rindexer = self.right.get_indexer(other.right)
-        except Exception:
+            match = (lindexer == rindexer) & (lindexer != -1)
+            indexer = lindexer.take(match.nonzero()[0])
+            taken = self.take(indexer)
+        else:
             # duplicates
-            lindexer = algos.unique1d(
-                self.left.get_indexer_non_unique(other.left)[0])
-            rindexer = algos.unique1d(
-                self.right.get_indexer_non_unique(other.right)[0])
+            lmiss = other.left.get_indexer_non_unique(self.left)[1]
+            lindexer = np.setdiff1d(np.arange(len(self)), lmiss)
+            rmiss = other.right.get_indexer_non_unique(self.right)[1]
+            rindexer = np.setdiff1d(np.arange(len(self)), rmiss)
+            indexer = np.intersect1d(lindexer, rindexer)
+            taken = self[indexer]
 
-        match = (lindexer == rindexer) & (lindexer != -1)
-        indexer = lindexer.take(match.nonzero()[0])
-        taken = self.take(indexer)
+        #match = (lindexer == rindexer) & (lindexer != -1)
+        #indexer = lindexer.take(match.nonzero()[0])
+        #taken = self.take(indexer)
 
         if sort is None:
             taken = taken.sort_values()
