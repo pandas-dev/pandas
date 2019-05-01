@@ -227,10 +227,12 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests generic.py' ; echo $MSG
-    pytest -q --doctest-modules \
-        pandas/core/generic.py \
-        pandas/core/groupby/groupby.py \
+    pytest -q --doctest-modules pandas/core/generic.py \
         -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_json -transpose -values -xs -to_clipboard"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests groupby.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/groupby/groupby.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests top-level reshaping functions' ; echo $MSG
