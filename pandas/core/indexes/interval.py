@@ -1111,15 +1111,11 @@ class IntervalIndex(IntervalMixin, Index):
         else:
             # duplicates
             lmiss = other.left.get_indexer_non_unique(self.left)[1]
-            lindexer = np.setdiff1d(np.arange(len(self)), lmiss)
             rmiss = other.right.get_indexer_non_unique(self.right)[1]
-            rindexer = np.setdiff1d(np.arange(len(self)), rmiss)
-            indexer = np.intersect1d(lindexer, rindexer)
+            import functools
+            indexer = functools.reduce(np.setdiff1d, (np.arange(len(self)),
+                                                      lmiss, rmiss))
             taken = self[indexer]
-
-        #match = (lindexer == rindexer) & (lindexer != -1)
-        #indexer = lindexer.take(match.nonzero()[0])
-        #taken = self.take(indexer)
 
         if sort is None:
             taken = taken.sort_values()
