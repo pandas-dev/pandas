@@ -222,9 +222,7 @@ class DecimalArray2(DecimalArray):
         if isinstance(scalars, (pd.Series, pd.Index)):
             raise TypeError
 
-        return super(DecimalArray2, cls)._from_sequence(
-            scalars, dtype=dtype, copy=copy
-        )
+        return super()._from_sequence(scalars, dtype=dtype, copy=copy)
 
 
 @pytest.mark.parametrize("box", [pd.Series, pd.Index])

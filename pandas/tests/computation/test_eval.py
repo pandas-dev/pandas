@@ -712,7 +712,7 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
 
     @classmethod
     def setup_class(cls):
-        super(TestEvalNumexprPython, cls).setup_class()
+        super().setup_class()
         import numexpr as ne
         cls.ne = ne
         cls.engine = 'numexpr'
@@ -738,7 +738,7 @@ class TestEvalPythonPython(TestEvalNumexprPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestEvalPythonPython, cls).setup_class()
+        super().setup_class()
         cls.engine = 'python'
         cls.parser = 'python'
 
@@ -768,7 +768,7 @@ class TestEvalPythonPandas(TestEvalPythonPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestEvalPythonPandas, cls).setup_class()
+        super().setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
 
@@ -1494,7 +1494,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     @classmethod
     def setup_class(cls):
-        super(TestOperationsNumExprPython, cls).setup_class()
+        super().setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
@@ -1570,7 +1570,7 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestOperationsPythonPython, cls).setup_class()
+        super().setup_class()
         cls.engine = cls.parser = 'python'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
         cls.arith_ops = filter(lambda x: x not in ('in', 'not in'),
@@ -1581,7 +1581,7 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
 
     @classmethod
     def setup_class(cls):
-        super(TestOperationsPythonPandas, cls).setup_class()
+        super().setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
@@ -1708,7 +1708,7 @@ class TestMathPythonPandas(TestMathPythonPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestMathPythonPandas, cls).setup_class()
+        super().setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
 
@@ -1717,7 +1717,7 @@ class TestMathNumExprPandas(TestMathPythonPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestMathNumExprPandas, cls).setup_class()
+        super().setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
 
@@ -1726,7 +1726,7 @@ class TestMathNumExprPython(TestMathPythonPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestMathNumExprPython, cls).setup_class()
+        super().setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
 

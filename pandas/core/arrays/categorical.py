@@ -2025,8 +2025,8 @@ class Categorical(ExtensionArray, PandasObject):
         return result
 
     def __repr__(self):
-        # We want PandasObject.__repr__, which dispatches to __unicode__
-        return super(ExtensionArray, self).__repr__()
+        # We want to bypass the ExtensionArray.__repr__
+        return str(self)
 
     def _maybe_coerce_indexer(self, indexer):
         """

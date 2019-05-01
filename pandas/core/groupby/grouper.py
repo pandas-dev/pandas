@@ -90,7 +90,7 @@ class Grouper:
         if kwargs.get('freq') is not None:
             from pandas.core.resample import TimeGrouper
             cls = TimeGrouper
-        return super(Grouper, cls).__new__(cls)
+        return super().__new__(cls)
 
     def __init__(self, key=None, level=None, freq=None, axis=0, sort=False):
         self.key = key

@@ -15,7 +15,7 @@ class ExtType(namedtuple('ExtType', 'code data')):
             raise TypeError("data must be bytes")
         if not 0 <= code <= 127:
             raise ValueError("code must be 0~127")
-        return super(ExtType, cls).__new__(cls, code, data)
+        return super().__new__(cls, code, data)
 
 import os  # noqa
 

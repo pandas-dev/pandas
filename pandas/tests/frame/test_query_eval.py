@@ -693,7 +693,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     @classmethod
     def setup_class(cls):
-        super(TestDataFrameQueryNumExprPython, cls).setup_class()
+        super().setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
         cls.frame = TestData().frame
@@ -793,7 +793,7 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
 
     @classmethod
     def setup_class(cls):
-        super(TestDataFrameQueryPythonPandas, cls).setup_class()
+        super().setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
         cls.frame = TestData().frame
@@ -814,7 +814,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestDataFrameQueryPythonPython, cls).setup_class()
+        super().setup_class()
         cls.engine = cls.parser = 'python'
         cls.frame = TestData().frame
 
