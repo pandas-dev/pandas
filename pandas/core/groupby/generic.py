@@ -1003,7 +1003,7 @@ class SeriesGroupBy(GroupBy):
         Returns
         -------
         Series
-            Numver of unique values within each group.
+            Number of unique values within each group.
         """
         ids, _, _ = self.grouper.group_info
 
