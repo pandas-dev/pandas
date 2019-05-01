@@ -159,7 +159,7 @@ class TestArithmeticOps(BaseOpsUtil):
 
         # integer result type
         else:
-            rs = pd.Series(s.values._data)
+            rs = pd.Series(s.values._data, name=s.name)
             expected = op(rs, other)
             self._check_op_integer(result, expected, mask, s, op_name, other)
 
