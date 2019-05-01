@@ -1627,7 +1627,7 @@ class GroupBy(_GroupBy):
         Returns
         -------
         Series or DataFrame
-            Nth value within each group.
+            N-th value within each group.
         %(see_also)s
         Examples
         --------

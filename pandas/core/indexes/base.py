@@ -4379,7 +4379,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         scalar
-            A value in the series with the indice of the key value in self.
+            A value in the Series with the index of the key value in self.
         """
 
         # if we have something that is Index-like, then
@@ -4828,7 +4828,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         int
-            Indice of label.
+            Index of label.
         """
         assert kind in ['ix', 'loc', 'getitem', None]
 
