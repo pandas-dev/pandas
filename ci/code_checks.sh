@@ -235,6 +235,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_json -transpose -values -xs -to_clipboard"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests groupby.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests top-level reshaping functions' ; echo $MSG
     pytest -q --doctest-modules \
         pandas/core/reshape/concat.py \
