@@ -1102,24 +1102,34 @@ class IntervalIndex(IntervalMixin, Index):
             raise TypeError(msg)
 
         if self.left.is_unique and self.right.is_unique:
-            lindexer = self.left.get_indexer(other.left)
-            rindexer = self.right.get_indexer(other.right)
-            match = (lindexer == rindexer) & (lindexer != -1)
-            indexer = lindexer.take(match.nonzero()[0])
-            taken = self.take(indexer)
+            taken = self._intersection_unique(other)
         else:
             # duplicates
-            lmiss = other.left.get_indexer_non_unique(self.left)[1]
-            rmiss = other.right.get_indexer_non_unique(self.right)[1]
-            import functools
-            indexer = functools.reduce(np.setdiff1d, (np.arange(len(self)),
-                                                      lmiss, rmiss))
-            taken = self[indexer]
+            taken = self._intersection_non_unique(other)
 
         if sort is None:
             taken = taken.sort_values()
 
         return taken
+
+    def _intersection_unique(self, other):
+        lindexer = self.left.get_indexer(other.left)
+        rindexer = self.right.get_indexer(other.right)
+
+        match = (lindexer == rindexer) & (lindexer != -1)
+        indexer = lindexer.take(match.nonzero()[0])
+
+        return self.take(indexer)
+
+    def _intersection_non_unique(self, other):
+        lmiss = other.left.get_indexer_non_unique(self.left)[1]
+        rmiss = other.right.get_indexer_non_unique(self.right)[1]
+
+        import functools
+        indexer = functools.reduce(np.setdiff1d, (np.arange(len(self)),
+                                                  lmiss, rmiss))
+
+        return self[indexer]
 
     def _setop(op_name, sort=None):
         def func(self, other, sort=sort):
