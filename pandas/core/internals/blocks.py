@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import date, datetime, timedelta
 import functools
 import inspect
@@ -10,7 +9,6 @@ import numpy as np
 
 from pandas._libs import internals as libinternals, lib, tslib, tslibs
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
-import pandas.compat as compat
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -29,13 +27,13 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype, ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
-    ABCSeries)
+    ABCPandasArray, ABCSeries)
 from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, isna, notna)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
-    Categorical, DatetimeArray, ExtensionArray, TimedeltaArray)
+    Categorical, DatetimeArray, ExtensionArray, PandasDtype, TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -578,22 +576,13 @@ class Block(PandasObject):
 
             return self.make_block(Categorical(self.values, dtype=dtype))
 
-        # convert dtypes if needed
         dtype = pandas_dtype(dtype)
+
         # astype processing
         if is_dtype_equal(self.dtype, dtype):
             if copy:
                 return self.copy()
             return self
-
-        klass = None
-        if is_sparse(self.values):
-            # special case sparse, Series[Sparse].astype(object) is sparse
-            klass = ExtensionBlock
-        elif is_object_dtype(dtype):
-            klass = ObjectBlock
-        elif is_extension_array_dtype(dtype):
-            klass = ExtensionBlock
 
         try:
             # force the copy here
@@ -602,8 +591,7 @@ class Block(PandasObject):
                 if self.is_extension:
                     values = self.values.astype(dtype)
                 else:
-                    if issubclass(dtype.type,
-                                  (compat.text_type, compat.string_types)):
+                    if issubclass(dtype.type, str):
 
                         # use native type formatting for datetime/tz/timedelta
                         if self.is_datelike:
@@ -627,7 +615,7 @@ class Block(PandasObject):
                     pass
 
             newb = make_block(values, placement=self.mgr_locs,
-                              klass=klass, ndim=self.ndim)
+                              ndim=self.ndim)
         except Exception:  # noqa: E722
             if errors == 'raise':
                 raise
@@ -672,7 +660,7 @@ class Block(PandasObject):
         elif self.is_float and result.dtype == self.dtype:
 
             # protect against a bool/object showing up here
-            if isinstance(dtype, compat.string_types) and dtype == 'infer':
+            if isinstance(dtype, str) and dtype == 'infer':
                 return result
             if not isinstance(dtype, type):
                 dtype = dtype.type
@@ -1521,7 +1509,7 @@ class Block(PandasObject):
         return self
 
 
-class NonConsolidatableMixIn(object):
+class NonConsolidatableMixIn:
     """ hold methods for the nonconsolidatable blocks """
     _can_consolidate = False
     _verify_integrity = False
@@ -1546,8 +1534,7 @@ class NonConsolidatableMixIn(object):
                 ndim = 1
             else:
                 ndim = 2
-        super(NonConsolidatableMixIn, self).__init__(values, placement,
-                                                     ndim=ndim)
+        super().__init__(values, placement, ndim=ndim)
 
     @property
     def shape(self):
@@ -1659,7 +1646,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def __init__(self, values, placement, ndim=None):
         values = self._maybe_coerce_values(values)
-        super(ExtensionBlock, self).__init__(values, placement, ndim)
+        super().__init__(values, placement, ndim)
 
     def _maybe_coerce_values(self, values):
         """Unbox to an extension array.
@@ -1827,10 +1814,9 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             placement=self.mgr_locs)
 
     def shift(self,
-              periods,                  # type: int
-              axis=0,                   # type: libinternals.BlockPlacement
-              fill_value=None):         # type: Any
-        # type: (...) -> List[ExtensionBlock]
+              periods: int,
+              axis: libinternals.BlockPlacement = 0,
+              fill_value: Any = None) -> List['ExtensionBlock']:
         """
         Shift the block by `periods`.
 
@@ -2036,7 +2022,7 @@ class IntBlock(NumericBlock):
         return is_integer_dtype(value) and value.dtype == self.dtype
 
 
-class DatetimeLikeBlockMixin(object):
+class DatetimeLikeBlockMixin:
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
     @property
@@ -2069,8 +2055,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def __init__(self, values, placement, ndim=None):
         values = self._maybe_coerce_values(values)
-        super(DatetimeBlock, self).__init__(values,
-                                            placement=placement, ndim=ndim)
+        super().__init__(values, placement=placement, ndim=ndim)
 
     def _maybe_coerce_values(self, values):
         """Input validation for values passed to __init__. Ensure that
@@ -2112,7 +2097,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             return self.make_block(values)
 
         # delegate
-        return super(DatetimeBlock, self)._astype(dtype=dtype, **kwargs)
+        return super()._astype(dtype=dtype, **kwargs)
 
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
@@ -2181,6 +2166,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         i8values = self.values.view('i8')
 
         if slicer is not None:
+            values = values[..., slicer]
             i8values = i8values[..., slicer]
 
         from pandas.io.formats.format import _get_format_datetime64_from_values
@@ -2413,16 +2399,13 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             if self.ndim > 1:
                 values = np.atleast_2d(values)
             return ObjectBlock(values, ndim=self.ndim, placement=placement)
-        return super(DatetimeTZBlock, self).concat_same_type(to_concat,
-                                                             placement)
+        return super().concat_same_type(to_concat, placement)
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
         try:
-            return super(DatetimeTZBlock, self).fillna(
-                value, limit, inplace, downcast
-            )
+            return super().fillna(value, limit, inplace, downcast)
         except (ValueError, TypeError):
             # different timezones, or a non-tz
             return self.astype(object).fillna(
@@ -2434,7 +2417,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # Need a dedicated setitem until #24020 (type promotion in setitem
         # for extension arrays) is designed and implemented.
         try:
-            return super(DatetimeTZBlock, self).setitem(indexer, value)
+            return super().setitem(indexer, value)
         except (ValueError, TypeError):
             newb = make_block(self.values.astype(object),
                               placement=self.mgr_locs,
@@ -2460,8 +2443,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         if isinstance(values, TimedeltaArray):
             values = values._data
         assert isinstance(values, np.ndarray), type(values)
-        super(TimeDeltaBlock, self).__init__(values,
-                                             placement=placement, ndim=ndim)
+        super().__init__(values, placement=placement, ndim=ndim)
 
     @property
     def _holder(self):
@@ -2490,7 +2472,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
                           "instead.",
                           FutureWarning, stacklevel=6)
             value = Timedelta(value, unit='s')
-        return super(TimeDeltaBlock, self).fillna(value, **kwargs)
+        return super().fillna(value, **kwargs)
 
     def _try_coerce_args(self, values, other):
         """
@@ -2589,9 +2571,8 @@ class BoolBlock(NumericBlock):
         to_replace_values = np.atleast_1d(to_replace)
         if not np.can_cast(to_replace_values, bool):
             return self
-        return super(BoolBlock, self).replace(to_replace, value,
-                                              inplace=inplace, filter=filter,
-                                              regex=regex, convert=convert)
+        return super().replace(to_replace, value, inplace=inplace,
+                               filter=filter, regex=regex, convert=convert)
 
 
 class ObjectBlock(Block):
@@ -2600,11 +2581,10 @@ class ObjectBlock(Block):
     _can_hold_na = True
 
     def __init__(self, values, placement=None, ndim=2):
-        if issubclass(values.dtype.type, compat.string_types):
+        if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
 
-        super(ObjectBlock, self).__init__(values, ndim=ndim,
-                                          placement=placement)
+        super().__init__(values, ndim=ndim, placement=placement)
 
     @property
     def is_bool(self):
@@ -2733,10 +2713,8 @@ class ObjectBlock(Block):
                                         filter=filter, regex=True,
                                         convert=convert)
         elif not (either_list or regex):
-            return super(ObjectBlock, self).replace(to_replace, value,
-                                                    inplace=inplace,
-                                                    filter=filter, regex=regex,
-                                                    convert=convert)
+            return super().replace(to_replace, value, inplace=inplace,
+                                   filter=filter, regex=regex, convert=convert)
         elif both_lists:
             for to_rep, v in zip(to_replace, value):
                 result_blocks = []
@@ -2821,15 +2799,14 @@ class ObjectBlock(Block):
         else:
             # if the thing to replace is not a string or compiled regex call
             # the superclass method -> to_replace is some kind of object
-            return super(ObjectBlock, self).replace(to_replace, value,
-                                                    inplace=inplace,
-                                                    filter=filter, regex=regex)
+            return super().replace(to_replace, value, inplace=inplace,
+                                   filter=filter, regex=regex)
 
         new_values = self.values if inplace else self.values.copy()
 
         # deal with replacing values with objects (strings) that match but
         # whose replacement is not a string (numeric, nan, object)
-        if isna(value) or not isinstance(value, compat.string_types):
+        if isna(value) or not isinstance(value, str):
 
             def re_replacer(s):
                 try:
@@ -2889,7 +2866,7 @@ class ObjectBlock(Block):
         A new block if there is anything to replace or the original block.
         """
         if mask.any():
-            block = super(ObjectBlock, self)._replace_coerce(
+            block = super()._replace_coerce(
                 to_replace=to_replace, value=value, inplace=inplace,
                 regex=regex, convert=convert, mask=mask)
             if convert:
@@ -2910,9 +2887,9 @@ class CategoricalBlock(ExtensionBlock):
         from pandas.core.arrays.categorical import _maybe_to_categorical
 
         # coerce to categorical if we can
-        super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
-                                               placement=placement,
-                                               ndim=ndim)
+        super().__init__(_maybe_to_categorical(values),
+                         placement=placement,
+                         ndim=ndim)
 
     @property
     def _holder(self):
@@ -2992,7 +2969,7 @@ class CategoricalBlock(ExtensionBlock):
         )
         try:
             # Attempt to do preserve categorical dtype.
-            result = super(CategoricalBlock, self).where(
+            result = super().where(
                 other, cond, align, errors, try_cast, axis, transpose
             )
         except (TypeError, ValueError):
@@ -3055,6 +3032,13 @@ def get_block_type(values, dtype=None):
 
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
                fastpath=None):
+    # Ensure that we don't allow PandasArray / PandasDtype in internals.
+    # For now, blocks should be backed by ndarrays when possible.
+    if isinstance(values, ABCPandasArray):
+        values = values.to_numpy()
+    if isinstance(dtype, PandasDtype):
+        dtype = dtype.numpy_dtype
+
     if fastpath is not None:
         # GH#19265 pyarrow is passing this
         warnings.warn("fastpath argument is deprecated, will be removed "

@@ -1,4 +1,3 @@
-# pylint: disable=E1101,E1103,W0232
 from collections import OrderedDict
 import datetime
 from sys import getsizeof
@@ -10,7 +9,6 @@ from pandas._config import get_option
 
 from pandas._libs import (
     Timestamp, algos as libalgos, index as libindex, lib, tslibs)
-import pandas.compat as compat
 from pandas.compat import lrange, lzip
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
@@ -1261,7 +1259,7 @@ class MultiIndex(Index):
             raise KeyError
 
         def f(k, stringify):
-            if stringify and not isinstance(k, compat.string_types):
+            if stringify and not isinstance(k, str):
                 k = str(k)
             return k
         key = tuple(f(k, stringify)
@@ -1340,8 +1338,7 @@ class MultiIndex(Index):
             # rather than a KeyError, try it here
             # note that a string that 'looks' like a Timestamp will raise
             # a KeyError! (GH5725)
-            if (isinstance(key, (datetime.datetime, np.datetime64)) or
-                    (compat.PY3 and isinstance(key, compat.string_types))):
+            if isinstance(key, (datetime.datetime, np.datetime64, str)):
                 try:
                     return _try_mi(key)
                 except KeyError:
@@ -1424,7 +1421,7 @@ class MultiIndex(Index):
     def unique(self, level=None):
 
         if level is None:
-            return super(MultiIndex, self).unique()
+            return super().unique()
         else:
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
@@ -2066,7 +2063,7 @@ class MultiIndex(Index):
         """
         from pandas.core.sorting import indexer_from_factorized
 
-        if isinstance(level, (compat.string_types, int)):
+        if isinstance(level, (str, int)):
             level = [level]
         level = [self._get_level_number(lev) for lev in level]
         sortorder = None
@@ -2087,8 +2084,14 @@ class MultiIndex(Index):
             shape = list(self.levshape)
 
             # partition codes and shape
-            primary = tuple(codes.pop(lev - i) for i, lev in enumerate(level))
-            primshp = tuple(shape.pop(lev - i) for i, lev in enumerate(level))
+            primary = tuple(codes[lev] for lev in level)
+            primshp = tuple(shape[lev] for lev in level)
+
+            # Reverse sorted to retain the order of
+            # smaller indices that needs to be removed
+            for lev in sorted(level, reverse=True):
+                codes.pop(lev)
+                shape.pop(lev)
 
             if sort_remaining:
                 primary += primary + tuple(codes)
@@ -2124,8 +2127,7 @@ class MultiIndex(Index):
             indexer is an ndarray or None if cannot convert
             keyarr are tuple-safe keys
         """
-        indexer, keyarr = super(MultiIndex, self)._convert_listlike_indexer(
-            keyarr, kind=kind)
+        indexer, keyarr = super()._convert_listlike_indexer(keyarr, kind=kind)
 
         # are we indexing a specific level
         if indexer is None and len(keyarr) and not isinstance(keyarr[0],
@@ -2184,7 +2186,7 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        return super(MultiIndex, self).get_indexer_non_unique(target)
+        return super().get_indexer_non_unique(target)
 
     def reindex(self, target, method=None, level=None, limit=None,
                 tolerance=None):
@@ -2309,7 +2311,7 @@ class MultiIndex(Index):
         """
         # This function adds nothing to its parent implementation (the magic
         # happens in get_slice_bound method), but it adds meaningful doc.
-        return super(MultiIndex, self).slice_locs(start, end, step, kind=kind)
+        return super().slice_locs(start, end, step, kind=kind)
 
     def _partial_tup_index(self, tup, side='left'):
         if len(tup) > self.lexsort_depth:

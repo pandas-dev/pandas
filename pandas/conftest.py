@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
-from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -127,6 +126,12 @@ def observed(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False, None])
+def ordered_fixture(request):
+    """Boolean 'ordered' parameter for Categorical."""
+    return request.param
+
+
 _all_arithmetic_operators = ['__add__', '__radd__',
                              '__sub__', '__rsub__',
                              '__mul__', '__rmul__',
@@ -134,8 +139,6 @@ _all_arithmetic_operators = ['__add__', '__radd__',
                              '__truediv__', '__rtruediv__',
                              '__pow__', '__rpow__',
                              '__mod__', '__rmod__']
-if not PY3:
-    _all_arithmetic_operators.extend(['__div__', '__rdiv__'])
 
 
 @pytest.fixture(params=_all_arithmetic_operators)
@@ -218,8 +221,20 @@ def all_compare_operators(request):
     return request.param
 
 
-@pytest.fixture(params=[None, 'gzip', 'bz2', 'zip',
-                        pytest.param('xz', marks=td.skip_if_no_lzma)])
+@pytest.fixture(params=['__le__', '__lt__', '__ge__', '__gt__'])
+def compare_operators_no_eq_ne(request):
+    """
+    Fixture for dunder names for compare operations except == and !=
+
+    * >=
+    * >
+    * <
+    * <=
+    """
+    return request.param
+
+
+@pytest.fixture(params=[None, 'gzip', 'bz2', 'zip', 'xz'])
 def compression(request):
     """
     Fixture for trying common compression types in compression tests
@@ -227,8 +242,7 @@ def compression(request):
     return request.param
 
 
-@pytest.fixture(params=['gzip', 'bz2', 'zip',
-                        pytest.param('xz', marks=td.skip_if_no_lzma)])
+@pytest.fixture(params=['gzip', 'bz2', 'zip', 'xz'])
 def compression_only(request):
     """
     Fixture for trying common compression types in compression tests excluding
@@ -250,12 +264,7 @@ def datetime_tz_utc():
     return timezone.utc
 
 
-utc_objs = ['utc', 'dateutil/UTC', utc, tzutc()]
-if PY3:
-    utc_objs.append(timezone.utc)
-
-
-@pytest.fixture(params=utc_objs)
+@pytest.fixture(params=['utc', 'dateutil/UTC', utc, tzutc(), timezone.utc])
 def utc_fixture(request):
     """
     Fixture to provide variants of UTC timezone strings and tzinfo objects
@@ -408,9 +417,9 @@ BYTES_DTYPES = [bytes, 'bytes']
 OBJECT_DTYPES = [object, 'object']
 
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
-ALL_NUMPY_DTYPES = (ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES
-                    + DATETIME_DTYPES + TIMEDELTA_DTYPES + BOOL_DTYPES
-                    + OBJECT_DTYPES + BYTES_DTYPES * PY3)  # bytes only for PY3
+ALL_NUMPY_DTYPES = (ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES +
+                    DATETIME_DTYPES + TIMEDELTA_DTYPES + BOOL_DTYPES +
+                    OBJECT_DTYPES + BYTES_DTYPES)
 
 
 @pytest.fixture(params=STRING_DTYPES)
@@ -561,8 +570,7 @@ def any_numpy_dtype(request):
 # categoricals are handled separately
 _any_skipna_inferred_dtype = [
     ('string', ['a', np.nan, 'c']),
-    ('unicode' if not PY3 else 'string', ['a', np.nan, 'c']),
-    ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
+    ('bytes', [b'a', np.nan, b'c']),
     ('empty', [np.nan, np.nan, np.nan]),
     ('empty', []),
     ('mixed-integer', ['a', np.nan, 2]),
@@ -594,9 +602,8 @@ def any_skipna_inferred_dtype(request):
 
     The covered (inferred) types are:
     * 'string'
-    * 'unicode' (if PY2)
     * 'empty'
-    * 'bytes' (if PY3)
+    * 'bytes'
     * 'mixed'
     * 'mixed-integer'
     * 'mixed-integer-float'

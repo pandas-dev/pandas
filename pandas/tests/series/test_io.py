@@ -1,13 +1,9 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 import collections
 from datetime import datetime
+from io import StringIO
 
 import numpy as np
 import pytest
-
-from pandas.compat import StringIO
 
 import pandas as pd
 from pandas import DataFrame, Series

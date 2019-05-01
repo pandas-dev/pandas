@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-
-import collections
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, abc, defaultdict
 from datetime import datetime
 
 import numpy as np
@@ -9,8 +6,7 @@ import pytest
 import pytz
 
 from pandas import (
-    CategoricalDtype, DataFrame, MultiIndex, Series, Timestamp, compat,
-    date_range)
+    CategoricalDtype, DataFrame, MultiIndex, Series, Timestamp, date_range)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -119,7 +115,7 @@ class TestDataFrameConvertTo(TestData):
         import email
         from email.parser import Parser
 
-        compat.Mapping.register(email.message.Message)
+        abc.Mapping.register(email.message.Message)
 
         headers = Parser().parsestr('From: <user@example.com>\n'
                                     'To: <someone_else@example.com>\n'
@@ -339,7 +335,7 @@ class TestDataFrameConvertTo(TestData):
 
     def test_to_records_dict_like(self):
         # see gh-18146
-        class DictLike(object):
+        class DictLike:
             def __init__(self, **kwargs):
                 self.d = kwargs.copy()
 
@@ -365,10 +361,7 @@ class TestDataFrameConvertTo(TestData):
                                        ("B", "<f4"), ("C", "O")])
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize('mapping', [
-        dict,
-        collections.defaultdict(list),
-        collections.OrderedDict])
+    @pytest.mark.parametrize('mapping', [dict, defaultdict(list), OrderedDict])
     def test_to_dict(self, mapping):
         test_data = {
             'A': {'1': 1, '2': 2},
@@ -378,20 +371,20 @@ class TestDataFrameConvertTo(TestData):
         # GH16122
         recons_data = DataFrame(test_data).to_dict(into=mapping)
 
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
+        for k, v in test_data.items():
+            for k2, v2 in v.items():
                 assert (v2 == recons_data[k][k2])
 
         recons_data = DataFrame(test_data).to_dict("l", mapping)
 
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
+        for k, v in test_data.items():
+            for k2, v2 in v.items():
                 assert (v2 == recons_data[k][int(k2) - 1])
 
         recons_data = DataFrame(test_data).to_dict("s", mapping)
 
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
+        for k, v in test_data.items():
+            for k2, v2 in v.items():
                 assert (v2 == recons_data[k][k2])
 
         recons_data = DataFrame(test_data).to_dict("sp", mapping)
@@ -411,8 +404,8 @@ class TestDataFrameConvertTo(TestData):
         # GH10844
         recons_data = DataFrame(test_data).to_dict("i")
 
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
+        for k, v in test_data.items():
+            for k2, v2 in v.items():
                 assert (v2 == recons_data[k2][k])
 
         df = DataFrame(test_data)
@@ -420,14 +413,11 @@ class TestDataFrameConvertTo(TestData):
         recons_data = df.to_dict("i")
         comp_data = test_data.copy()
         comp_data['duped'] = comp_data[df.columns[0]]
-        for k, v in compat.iteritems(comp_data):
-            for k2, v2 in compat.iteritems(v):
+        for k, v in comp_data.items():
+            for k2, v2 in v.items():
                 assert (v2 == recons_data[k2][k])
 
-    @pytest.mark.parametrize('mapping', [
-        list,
-        collections.defaultdict,
-        []])
+    @pytest.mark.parametrize('mapping', [list, defaultdict, []])
     def test_to_dict_errors(self, mapping):
         # GH16122
         df = DataFrame(np.random.randn(3, 3))

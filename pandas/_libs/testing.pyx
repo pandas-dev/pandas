@@ -1,6 +1,5 @@
 import numpy as np
 
-from pandas import compat
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -108,8 +107,7 @@ cpdef assert_almost_equal(a, b,
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
 
-    if (isinstance(a, compat.string_types) or
-            isinstance(b, compat.string_types)):
+    if isinstance(a, str) or isinstance(b, str):
         assert a == b, "%r != %r" % (a, b)
         return True
 

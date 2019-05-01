@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 
 import pytest
@@ -11,7 +10,7 @@ from pandas import DatetimeIndex, Series, date_range
 import pandas.util.testing as tm
 
 
-class TestDatetimeIndexArithmetic(object):
+class TestDatetimeIndexArithmetic:
 
     # -------------------------------------------------------------
     # DatetimeIndex.shift is used in integer addition

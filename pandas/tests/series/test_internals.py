@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime
 
 import numpy as np
@@ -13,7 +10,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
-class TestSeriesInternals(object):
+class TestSeriesInternals:
 
     def test_convert_objects(self):
 
@@ -314,6 +311,14 @@ class TestSeriesInternals(object):
         result = pd.Series(ser.array)
         tm.assert_series_equal(ser, result)
         assert isinstance(result._data.blocks[0], IntBlock)
+
+    def test_astype_no_pandas_dtype(self):
+        # https://github.com/pandas-dev/pandas/pull/24866
+        ser = pd.Series([1, 2], dtype="int64")
+        # Don't have PandasDtype in the public API, so we use `.array.dtype`,
+        # which is a PandasDtype.
+        result = ser.astype(ser.array.dtype)
+        tm.assert_series_equal(result, ser)
 
     def test_from_array(self):
         result = pd.Series(pd.array(['1H', '2H'], dtype='timedelta64[ns]'))

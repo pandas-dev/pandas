@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
 import pandas as pd
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
 
 
-class TestSeriesBlockInternals(object):
+class TestSeriesBlockInternals:
 
     def test_setitem_invalidates_datetime_index_freq(self):
         # GH#24096 altering a datetime64tz Series inplace invalidates the

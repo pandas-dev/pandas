@@ -34,11 +34,10 @@ run under the older AND the newer version.
 
 """
 
-from __future__ import print_function
-
 from datetime import timedelta
 from distutils.version import LooseVersion
 import os
+import pickle
 import platform as pl
 import sys
 
@@ -287,11 +286,6 @@ def platform_name():
 def write_legacy_pickles(output_dir):
 
     # make sure we are < 0.13 compat (in py3)
-    try:
-        from pandas.compat import cPickle as pickle  # noqa
-    except ImportError:
-        import pickle
-
     version = pandas.__version__
 
     print("This script generates a storage file for the current arch, system, "

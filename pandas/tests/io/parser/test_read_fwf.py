@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests the 'read_fwf' function in parsers.py. This
 test suite is independent of the others because the
@@ -7,11 +5,10 @@ engine is set to 'python-fwf' internally.
 """
 
 from datetime import datetime
+from io import BytesIO, StringIO
 
 import numpy as np
 import pytest
-
-from pandas.compat import BytesIO, StringIO
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex

@@ -11,7 +11,7 @@ class DummyException(Exception):
     pass
 
 
-class TestExceptions(object):
+class TestExceptions:
 
     def test_raise_on_find_unsupported_value(self):
         msg = "can\'t serialize datetime"

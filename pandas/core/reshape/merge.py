@@ -9,7 +9,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import hashtable as libhashtable, join as libjoin, lib
-import pandas.compat as compat
 from pandas.compat import lzip
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
@@ -470,7 +469,7 @@ def merge_asof(left, right, on=None,
 
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
-class _MergeOperation(object):
+class _MergeOperation:
     """
     Perform a database (SQL) merge operation between two DataFrame objects
     using either columns as keys or their row indexes
@@ -502,7 +501,7 @@ class _MergeOperation(object):
 
         self.indicator = indicator
 
-        if isinstance(self.indicator, compat.string_types):
+        if isinstance(self.indicator, str):
             self.indicator_name = self.indicator
         elif isinstance(self.indicator, bool):
             self.indicator_name = '_merge' if self.indicator else None
@@ -1387,7 +1386,7 @@ class _AsOfMerge(_OrderedMerge):
                                fill_method=fill_method)
 
     def _validate_specification(self):
-        super(_AsOfMerge, self)._validate_specification()
+        super()._validate_specification()
 
         # we only allow on to be a single item for on
         if len(self.left_on) != 1 and not self.left_index:
@@ -1442,7 +1441,7 @@ class _AsOfMerge(_OrderedMerge):
         # note this function has side effects
         (left_join_keys,
          right_join_keys,
-         join_names) = super(_AsOfMerge, self)._get_merge_keys()
+         join_names) = super()._get_merge_keys()
 
         # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
@@ -1776,8 +1775,7 @@ def _get_join_keys(llab, rlab, shape, sort):
 
 
 def _should_fill(lname, rname):
-    if (not isinstance(lname, compat.string_types) or
-            not isinstance(rname, compat.string_types)):
+    if not isinstance(lname, str) or not isinstance(rname, str):
         return True
     return lname == rname
 

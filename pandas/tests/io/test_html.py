@@ -1,6 +1,6 @@
-from __future__ import print_function
-
 from functools import partial
+from importlib import reload
+from io import BytesIO, StringIO
 import os
 import re
 import threading
@@ -9,7 +9,7 @@ import numpy as np
 from numpy.random import rand
 import pytest
 
-from pandas.compat import BytesIO, StringIO, is_platform_windows, reload
+from pandas.compat import is_platform_windows
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -81,7 +81,7 @@ def test_same_ordering(datapath):
         not td.safe_import('lxml'), reason='No bs4')),
     pytest.param('lxml', marks=pytest.mark.skipif(
         not td.safe_import('lxml'), reason='No lxml'))], scope="class")
-class TestReadHtml(object):
+class TestReadHtml:
 
     @pytest.fixture(autouse=True)
     def set_files(self, datapath):
@@ -1109,7 +1109,7 @@ class TestReadHtml(object):
     def test_parse_failure_rewinds(self):
         # Issue #17975
 
-        class MockFile(object):
+        class MockFile:
             def __init__(self, data):
                 self.data = data
                 self.at_end = False
@@ -1138,7 +1138,7 @@ class TestReadHtml(object):
         class ErrorThread(threading.Thread):
             def run(self):
                 try:
-                    super(ErrorThread, self).run()
+                    super().run()
                 except Exception as e:
                     self.err = e
                 else:

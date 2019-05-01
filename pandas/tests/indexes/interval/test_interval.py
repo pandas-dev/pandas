@@ -1,5 +1,3 @@
-from __future__ import division
-
 from itertools import permutations
 import re
 
@@ -360,11 +358,11 @@ class TestIntervalIndex(Base):
 
     @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_max_seq_item_setting(self):
-        super(TestIntervalIndex, self).test_repr_max_seq_item_setting()
+        super().test_repr_max_seq_item_setting()
 
     @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_roundtrip(self):
-        super(TestIntervalIndex, self).test_repr_roundtrip()
+        super().test_repr_roundtrip()
 
     def test_frame_repr(self):
         # https://github.com/pandas-dev/pandas/pull/24134/files
@@ -378,6 +376,23 @@ class TestIntervalIndex(Base):
             '(2, 3]  3\n'
             '(3, 4]  4'
         )
+        assert result == expected
+
+    @pytest.mark.parametrize('constructor,expected', [
+        (pd.Series, ('(0.0, 1.0]    a\n'
+                     'NaN           b\n'
+                     '(2.0, 3.0]    c\n'
+                     'dtype: object')),
+        (pd.DataFrame, ('            0\n'
+                        '(0.0, 1.0]  a\n'
+                        'NaN         b\n'
+                        '(2.0, 3.0]  c'))
+    ])
+    def test_repr_missing(self, constructor, expected):
+        # GH 25984
+        index = IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)])
+        obj = constructor(list('abc'), index=index)
+        result = repr(obj)
         assert result == expected
 
         # TODO: check this behavior is consistent with test_interval_new.py

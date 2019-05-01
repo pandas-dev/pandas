@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, timedelta
 import re
 
@@ -8,8 +5,6 @@ import numpy as np
 from numpy import nan as NA
 from numpy.random import randint
 import pytest
-
-import pandas.compat as compat
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
@@ -163,7 +158,7 @@ def any_allowed_skipna_inferred_dtype(request):
     return inferred_dtype, values
 
 
-class TestStringMethods(object):
+class TestStringMethods:
 
     def test_api(self):
 
@@ -302,7 +297,7 @@ class TestStringMethods(object):
 
             for el in s:
                 # each element of the series is either a basestring/str or nan
-                assert isinstance(el, compat.string_types) or isna(el)
+                assert isinstance(el, str) or isna(el)
 
         # desired behavior is to iterate until everything would be nan on the
         # next iter so make sure the last element of the iterator was 'l' in
@@ -1792,7 +1787,7 @@ class TestStringMethods(object):
 
     def test_empty_str_methods_to_frame(self):
         empty = Series(dtype=str)
-        empty_df = DataFrame([])
+        empty_df = DataFrame()
         tm.assert_frame_equal(empty_df, empty.str.partition('a'))
         tm.assert_frame_equal(empty_df, empty.str.rpartition('a'))
 
@@ -2163,10 +2158,6 @@ class TestStringMethods(object):
             expected = klass(['cdedefg', 'cdee', 'edddfg', 'edefggg'])
             _check(result, expected)
 
-            msg = "deletechars is not a valid argument"
-            with pytest.raises(ValueError, match=msg):
-                result = s.str.translate(table, deletechars='fg')
-
         # Series with non-string values
         s = Series(['a', 'b', 'c', 1.2])
         expected = Series(['c', 'd', 'e', np.nan])
@@ -2356,7 +2347,7 @@ class TestStringMethods(object):
         # expand blank split GH 20067
         values = Series([''], name='test')
         result = values.str.split(expand=True)
-        exp = DataFrame([[]])
+        exp = DataFrame([[]])  # NOTE: this is NOT an empty DataFrame
         tm.assert_frame_equal(result, exp)
 
         values = Series(['a b c', 'a b', '', ' '], name='test')

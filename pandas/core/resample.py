@@ -9,7 +9,6 @@ from pandas._libs import lib
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
@@ -113,7 +112,7 @@ class Resampler(_GroupBy):
         GroupBy.__iter__
         """
         self._set_binner()
-        return super(Resampler, self).__iter__()
+        return super().__iter__()
 
     @property
     def obj(self):
@@ -208,7 +207,7 @@ class Resampler(_GroupBy):
     """)
     @Appender(_pipe_template)
     def pipe(self, func, *args, **kwargs):
-        return super(Resampler, self).pipe(func, *args, **kwargs)
+        return super().pipe(func, *args, **kwargs)
 
     _agg_see_also_doc = dedent("""
     See Also
@@ -884,7 +883,7 @@ def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
     if how is not None:
 
         # .resample(..., how='sum')
-        if isinstance(how, compat.string_types):
+        if isinstance(how, str):
             method = "{0}()".format(how)
 
             # .resample(..., how=lambda x: ....)
@@ -939,7 +938,7 @@ class _GroupByMixin(GroupByMixin):
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
 
-        super(_GroupByMixin, self).__init__(None)
+        super().__init__(None)
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
@@ -954,7 +953,7 @@ class _GroupByMixin(GroupByMixin):
         def func(x):
             x = self._shallow_copy(x, groupby=self.groupby)
 
-            if isinstance(f, compat.string_types):
+            if isinstance(f, str):
                 return getattr(x, f)(**kwargs)
 
             return x.apply(f, *args, **kwargs)
@@ -1070,7 +1069,7 @@ class DatetimeIndexResampler(Resampler):
         return self._wrap_result(result)
 
     def _wrap_result(self, result):
-        result = super(DatetimeIndexResampler, self)._wrap_result(result)
+        result = super()._wrap_result(result)
 
         # we may have a different kind that we were asked originally
         # convert if needed
@@ -1098,11 +1097,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     def _get_binner_for_time(self):
         if self.kind == 'timestamp':
-            return super(PeriodIndexResampler, self)._get_binner_for_time()
+            return super()._get_binner_for_time()
         return self.groupby._get_period_bins(self.ax)
 
     def _convert_obj(self, obj):
-        obj = super(PeriodIndexResampler, self)._convert_obj(obj)
+        obj = super()._convert_obj(obj)
 
         if self._from_selection:
             # see GH 14008, GH 12871
@@ -1134,7 +1133,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         # we may need to actually resample as if we are timestamps
         if self.kind == 'timestamp':
-            return super(PeriodIndexResampler, self)._downsample(how, **kwargs)
+            return super()._downsample(how, **kwargs)
 
         how = self._is_cython_func(how) or how
         ax = self.ax
@@ -1178,8 +1177,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         # we may need to actually resample as if we are timestamps
         if self.kind == 'timestamp':
-            return super(PeriodIndexResampler, self)._upsample(
-                method, limit=limit, fill_value=fill_value)
+            return super()._upsample(method, limit=limit,
+                                     fill_value=fill_value)
 
         self._set_binner()
         ax = self.ax
@@ -1318,7 +1317,7 @@ class TimeGrouper(Grouper):
         self.convention = convention or 'E'
         self.convention = self.convention.lower()
 
-        if isinstance(loffset, compat.string_types):
+        if isinstance(loffset, str):
             loffset = to_offset(loffset)
         self.loffset = loffset
 
@@ -1330,7 +1329,7 @@ class TimeGrouper(Grouper):
         # always sort time groupers
         kwargs['sort'] = True
 
-        super(TimeGrouper, self).__init__(freq=freq, axis=axis, **kwargs)
+        super().__init__(freq=freq, axis=axis, **kwargs)
 
     def _get_resampler(self, obj, kind=None):
         """

@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 from datetime import datetime, timedelta
 import inspect
 
@@ -302,7 +298,7 @@ class TestDataFrameAlterAxes():
     def test_set_index_custom_label_type(self):
         # GH 24969
 
-        class Thing(object):
+        class Thing:
             def __init__(self, name, color):
                 self.name = name
                 self.color = color
@@ -1378,7 +1374,7 @@ class TestDataFrameAlterAxes():
         tm.assert_frame_equal(result, expected)
 
 
-class TestIntervalIndex(object):
+class TestIntervalIndex:
 
     def test_setitem(self):
 

@@ -1,6 +1,3 @@
-# pylint: disable=E1101
-from __future__ import division
-
 from datetime import datetime, time, timedelta
 import operator
 import warnings
@@ -10,7 +7,6 @@ import numpy as np
 from pandas._libs import (
     Timestamp, index as libindex, join as libjoin, lib, tslib as libts)
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
-import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -244,10 +240,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _comparables = ['name', 'freqstr', 'tz']
     _attributes = ['name', 'tz', 'freq']
 
-    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
-    # by returning NotImplemented
-    timetuple = None
-
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
@@ -391,7 +383,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if isinstance(state, dict):
-            super(DatetimeIndex, self).__setstate__(state)
+            super().__setstate__(state)
 
         elif isinstance(state, tuple):
 
@@ -490,7 +482,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         self._assert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(DatetimeIndex, self).union(other, sort=sort)
+            return super().union(other, sort=sort)
 
         if not isinstance(other, DatetimeIndex):
             try:
@@ -615,14 +607,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         else:
             return left
 
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
-
     def intersection(self, other, sort=False):
         """
-        Specialized intersection for DatetimeIndex objects. May be much faster
-        than Index.intersection
+        Specialized intersection for DatetimeIndex objects.
+        May be much faster than Index.intersection
 
         Parameters
         ----------
@@ -639,58 +627,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         Returns
         -------
-        y : Index or DatetimeIndex
+        y : Index or DatetimeIndex or TimedeltaIndex
         """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
+        return super(DatetimeIndex, self).intersection(other, sort=sort)
 
-        if self.equals(other):
-            return self._get_reconciled_name_object(other)
-
-        if not isinstance(other, DatetimeIndex):
-            try:
-                other = DatetimeIndex(other)
-            except (TypeError, ValueError):
-                pass
-            result = Index.intersection(self, other, sort=sort)
-            if isinstance(result, DatetimeIndex):
-                if result.freq is None:
-                    result.freq = to_offset(result.inferred_freq)
-            return result
-
-        elif (other.freq is None or self.freq is None or
-              other.freq != self.freq or
-              not other.freq.isAnchored() or
-              (not self.is_monotonic or not other.is_monotonic)):
-            result = Index.intersection(self, other, sort=sort)
-            # Invalidate the freq of `result`, which may not be correct at
-            # this point, depending on the values.
-            result.freq = None
-            result = self._shallow_copy(result._values, name=result.name,
-                                        tz=result.tz, freq=None)
-            if result.freq is None:
-                result.freq = to_offset(result.inferred_freq)
-            return result
-
-        if len(self) == 0:
-            return self
-        if len(other) == 0:
-            return other
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        else:
-            left, right = other, self
-
-        end = min(left[-1], right[-1])
-        start = right[0]
-
-        if end < start:
-            return type(self)(data=[])
-        else:
-            lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left.values[lslice]
-            return self._shallow_copy(left_chunk)
+    def _wrap_setop_result(self, other, result):
+        name = get_op_result_name(self, other)
+        return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
 
     # --------------------------------------------------------------------
 
@@ -1080,7 +1023,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if is_float(label) or isinstance(label, time) or is_integer(label):
             self._invalid_indexer('slice', label)
 
-        if isinstance(label, compat.string_types):
+        if isinstance(label, str):
             freq = getattr(self, 'freqstr',
                            getattr(self, 'inferred_freq', None))
             _, parsed, reso = parsing.parse_time_string(label, freq)
@@ -1136,8 +1079,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             # For historical reasons DatetimeIndex by default supports
             # value-based partial (aka string) slices on non-monotonic arrays,
             # let's try that.
-            if ((start is None or isinstance(start, compat.string_types)) and
-                    (end is None or isinstance(end, compat.string_types))):
+            if ((start is None or isinstance(start, str)) and
+                    (end is None or isinstance(end, str))):
                 mask = True
                 if start is not None:
                     start_casted = self._maybe_cast_slice_bound(
@@ -1276,7 +1219,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         except (AttributeError, TypeError):
 
             # fall back to object index
-            if isinstance(item, compat.string_types):
+            if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
             raise TypeError(
                 "cannot insert DatetimeIndex with incompatible label")
@@ -1333,7 +1276,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
 
-        if isinstance(time, compat.string_types):
+        if isinstance(time, str):
             from dateutil.parser import parse
             time = parse(time).time()
 

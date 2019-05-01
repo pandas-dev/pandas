@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from decimal import Decimal
 from fractions import Fraction
 from numbers import Number
@@ -73,7 +72,6 @@ cdef:
     object oINT64_MIN = <int64_t>INT64_MIN
     object oUINT64_MAX = <uint64_t>UINT64_MAX
 
-    bint PY2 = sys.version_info[0] == 2
     float64_t NaN = <float64_t>np.NaN
 
 
@@ -552,41 +550,6 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_unicode(arr: ndarray, skipna: bool=False) -> ndarray[object]:
-    """
-    Convert all elements in an array to unicode.
-
-    Parameters
-    ----------
-    arr : ndarray
-        The array whose elements we are casting.
-    skipna : bool, default False
-        Whether or not to coerce nulls to their stringified form
-        (e.g. NaN becomes 'nan').
-
-    Returns
-    -------
-    casted_arr : ndarray
-        A new array with the input array's elements casted.
-    """
-    cdef:
-        object arr_i
-        Py_ssize_t i, n = arr.size
-        ndarray[object] result = np.empty(n, dtype=object)
-
-    for i in range(n):
-        arr_i = arr[i]
-
-        if not (skipna and checknull(arr_i)):
-            arr_i = unicode(arr_i)
-
-        result[i] = arr_i
-
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
     """
     Convert all elements in an array to string.
@@ -942,10 +905,9 @@ _TYPE_MAP = {
     'complex64': 'complex',
     'complex128': 'complex',
     'c': 'complex',
-    'string': 'string' if PY2 else 'bytes',
-    'S': 'string' if PY2 else 'bytes',
-    'unicode': 'unicode' if PY2 else 'string',
-    'U': 'unicode' if PY2 else 'string',
+    'string': 'bytes',
+    'S': 'bytes',
+    'U': 'string',
     'bool': 'boolean',
     'b': 'boolean',
     'datetime64[ns]': 'datetime64',
@@ -972,7 +934,7 @@ except AttributeError:
     pass
 
 
-cdef class Seen(object):
+cdef class Seen:
     """
     Class for keeping track of the types of elements
     encountered when trying to perform type conversions.
@@ -1323,10 +1285,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         if is_string_array(values, skipna=skipna):
             return 'string'
 
-    elif isinstance(val, unicode):
-        if is_unicode_array(values, skipna=skipna):
-            return 'unicode'
-
     elif isinstance(val, bytes):
         if is_bytes_array(values, skipna=skipna):
             return 'bytes'
@@ -1379,7 +1337,7 @@ def infer_datetimelike_array(arr: object) -> object:
 
     for i in range(n):
         v = arr[i]
-        if util.is_string_object(v):
+        if isinstance(v, str):
             objs.append(v)
 
             if len(objs) == 3:
@@ -1595,22 +1553,6 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
         StringValidator validator = StringValidator(len(values),
                                                     values.dtype,
                                                     skipna=skipna)
-    return validator.validate(values)
-
-
-cdef class UnicodeValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
-        return isinstance(value, unicode)
-
-    cdef inline bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.unicode_)
-
-
-cdef bint is_unicode_array(ndarray values, bint skipna=False):
-    cdef:
-        UnicodeValidator validator = UnicodeValidator(len(values),
-                                                      values.dtype,
-                                                      skipna=skipna)
     return validator.validate(values)
 
 
@@ -2072,7 +2014,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             else:
                 seen.object_ = 1
                 break
-        elif try_float and not util.is_string_object(val):
+        elif try_float and not isinstance(val, str):
             # this will convert Decimal objects
             try:
                 floats[i] = float(val)
@@ -2266,22 +2208,21 @@ def to_object_array(rows: object, int min_width=0):
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
-        list input_rows
         list row
 
-    input_rows = <list>rows
-    n = len(input_rows)
+    rows = list(rows)
+    n = len(rows)
 
     k = min_width
     for i in range(n):
-        tmp = len(input_rows[i])
+        tmp = len(rows[i])
         if tmp > k:
             k = tmp
 
     result = np.empty((n, k), dtype=object)
 
     for i in range(n):
-        row = list(input_rows[i])
+        row = list(rows[i])
 
         for j in range(len(row)):
             result[i, j] = row[j]
@@ -2306,12 +2247,26 @@ def tuples_to_object_array(ndarray[object] tuples):
     return result
 
 
-def to_object_array_tuples(rows: list):
+def to_object_array_tuples(rows: object):
+    """
+    Convert a list of tuples into an object array. Any subclass of
+    tuple in `rows` will be casted to tuple.
+
+    Parameters
+    ----------
+    rows : 2-d array (N, K)
+        A list of tuples to be converted into an array.
+
+    Returns
+    -------
+    obj_array : numpy array of the object dtype
+    """
     cdef:
         Py_ssize_t i, j, n, k, tmp
         ndarray[object, ndim=2] result
         tuple row
 
+    rows = list(rows)
     n = len(rows)
 
     k = 0

@@ -2,8 +2,6 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
-from __future__ import division
-
 from textwrap import dedent
 from warnings import catch_warnings, simplefilter, warn
 
@@ -1049,7 +1047,7 @@ def quantile(x, q, interpolation_method='fraction'):
 # select n        #
 # --------------- #
 
-class SelectN(object):
+class SelectN:
 
     def __init__(self, obj, n, keep):
         self.obj = obj
@@ -1120,6 +1118,10 @@ class SelectNSeries(SelectN):
                 # GH 21426: ensure reverse ordering at boundaries
                 arr -= 1
 
+            elif is_bool_dtype(pandas_dtype):
+                # GH 26154: ensure False is smaller than True
+                arr = 1 - (-arr)
+
         if self.keep == 'last':
             arr = arr[::-1]
 
@@ -1157,7 +1159,7 @@ class SelectNFrame(SelectN):
     """
 
     def __init__(self, obj, n, keep, columns):
-        super(SelectNFrame, self).__init__(obj, n, keep)
+        super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
         columns = list(columns)

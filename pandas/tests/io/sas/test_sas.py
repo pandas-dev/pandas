@@ -1,12 +1,12 @@
-import pytest
+from io import StringIO
 
-from pandas.compat import StringIO
+import pytest
 
 from pandas import read_sas
 import pandas.util.testing as tm
 
 
-class TestSas(object):
+class TestSas:
 
     def test_sas_buffer_format(self):
         # see gh-14947
