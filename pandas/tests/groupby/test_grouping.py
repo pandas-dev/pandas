@@ -303,18 +303,6 @@ class TestGrouping():
     def test_grouper_iter(self, df):
         assert sorted(df.groupby('A').grouper) == ['bar', 'foo']
 
-    def test_grouper_base(self):
-        # GH25161
-        dt = pd.to_datetime(["2018-11-26 16:17:43.51",
-                             "2018-11-26 16:17:44.51",
-                             "2018-11-26 16:17:45.51"])
-        s = Series(np.arange(3), index=dt)
-        base = 17 + 43.51 / 60
-        g = s.groupby(pd.Grouper(freq="3min", base=base))
-        result = g.size()
-        expected = Series(3, index=[dt[0]])
-        assert_series_equal(result, expected)
-
     def test_empty_groups(self, df):
         # see gh-1048
         with pytest.raises(ValueError, match="No group keys passed!"):
