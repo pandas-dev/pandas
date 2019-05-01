@@ -617,7 +617,7 @@ class _OpenpyxlReader(_BaseExcelReader):
 
     def _parse_sheet(self, sheet, convert_float, usecols, header, skiprows,
                      index_col, converters, skipfooter, dtype, squeeze):
-        """Parse a signle sheet into a dataframe."""
+        """Parse a single sheet into a dataframe."""
 
         data = self.get_sheet_data(sheet)
         if not data or data == [[None]]:
@@ -720,9 +720,6 @@ class _OpenpyxlReader(_BaseExcelReader):
         output = OrderedDict()
 
         for asheetname in sheets:
-            if asheetname in output.keys():
-                # skip duplicates in sheets
-                continue
             if verbose:
                 print("Reading sheet {sheet}".format(sheet=asheetname))
 
