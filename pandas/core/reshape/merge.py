@@ -1456,14 +1456,15 @@ class _AsOfMerge(_OrderedMerge):
                     # are not supported for the former, but will fail
                     # later with a ValueError, so we don't *need* to check
                     # for them here.
-                    msg = ("incompatible merge keys [{i}] both sides "
-                           "category, but not equal ones"
-                           .format(i=i))
+                    msg = ("incompatible merge keys [{i}] {lkdtype} and "
+                           "{rkdtype}, both sides category, but not equal ones"
+                           .format(i=i, lkdtype=repr(lk.dtype),
+                                   rkdtype=repr(rk.dtype)))
                 else:
                     msg = ("incompatible merge keys [{i}] {lkdtype} and "
                            "{rkdtype}, must be the same type"
-                           .format(i=i, lkdtype=lk.dtype,
-                                   rkdtype=rk.dtype))
+                           .format(i=i, lkdtype=repr(lk.dtype),
+                                   rkdtype=repr(rk.dtype)))
                 raise MergeError(msg)
 
         # validate tolerance; must be a Timedelta if we have a DTI
@@ -1477,7 +1478,7 @@ class _AsOfMerge(_OrderedMerge):
             msg = ("incompatible tolerance {tolerance}, must be compat "
                    "with type {lkdtype}".format(
                        tolerance=type(self.tolerance),
-                       lkdtype=lt.dtype))
+                       lkdtype=repr(lt.dtype)))
 
             if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
                 if not isinstance(self.tolerance, Timedelta):
