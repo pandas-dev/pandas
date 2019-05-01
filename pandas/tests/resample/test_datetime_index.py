@@ -757,11 +757,11 @@ def test_resample_float_base():
                          "2018-11-26 16:17:44.51",
                          "2018-11-26 16:17:45.51"])
     s = Series(np.arange(3), index=dt)
+
     base = 17 + 43.51 / 60
-    g = s.groupby(pd.Grouper(freq="3min", base=base))
-    result = g.size()
-    expected = Series(3, index=[dt[0]])
-    assert_series_equal(result, expected)
+    resampled = s.resample("3min", base=base).mean()
+    exp_index = DatetimeIndex(["2018-11-26 16:17:43.51"])
+    tm.assert_index_equal(resampled.index, exp_index)
 
 
 def test_resample_daily_anchored():
