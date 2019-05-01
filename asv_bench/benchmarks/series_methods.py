@@ -145,16 +145,27 @@ class SearchSorted:
 
 class Map:
 
-    params = ['dict', 'Series']
+    params = (['dict', 'Series', 'lambda'], ['object', 'category', 'int'])
     param_names = 'mapper'
 
-    def setup(self, mapper):
+    def setup(self, mapper, dtype):
         map_size = 1000
-        map_data = Series(map_size - np.arange(map_size))
-        self.map_data = map_data if mapper == 'Series' else map_data.to_dict()
-        self.s = Series(np.random.randint(0, map_size, 10000))
+        map_data = Series(map_size - np.arange(map_size), dtype=dtype)
 
-    def time_map(self, mapper):
+        # construct mapper
+        if mapper == 'Series':
+            self.map_data = map_data
+        elif mapper == 'dict':
+            self.map_data = map_data.to_dict()
+        elif mapper == 'lambda':
+            map_dict = map_data.to_dict()
+            self.map_data = lambda x: map_dict[x]
+        else:
+            raise NotImplementedError
+
+        self.s = Series(np.random.randint(0, map_size, 10000), dtype=dtype)
+
+    def time_map(self, mapper, *args, **kwargs):
         self.s.map(self.map_data)
 
 

@@ -245,10 +245,11 @@ Performance Improvements
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
 - Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
-- Imporved performance of :meth:`IntervalIndex.is_monotonic`, :meth:`IntervalIndex.is_monotonic_increasing` and :meth:`IntervalIndex.is_monotonic_decreasing` by removing conversion to :class:`MultiIndex` (:issue:`24813`)
+- Improved performance of :meth:`IntervalIndex.is_monotonic`, :meth:`IntervalIndex.is_monotonic_increasing` and :meth:`IntervalIndex.is_monotonic_decreasing` by removing conversion to :class:`MultiIndex` (:issue:`24813`)
 - Improved performance of :meth:`DataFrame.to_csv` when writing datetime dtypes (:issue:`25708`)
 - Improved performance of :meth:`read_csv` by much faster parsing of ``MM/YYYY`` and ``DD/MM/YYYY`` datetime formats (:issue:`25922`)
 - Improved performance of nanops for dtypes that cannot store NaNs. Speedup is particularly prominent for :meth:`Series.all` and :meth:`Series.any` (:issue:`25070`)
+- Improved performance of :meth:`Series.map` for dictionary mappers on categorical series by mapping the categories instead of mapping all values (:issue:`23785`)
 
 .. _whatsnew_0250.bug_fixes:
 
