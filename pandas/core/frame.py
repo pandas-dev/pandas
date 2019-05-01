@@ -4005,7 +4005,7 @@ class DataFrame(NDFrame):
 
         Rename rows using a mapping:
         >>> df = pd.DataFrame(data={"A": [1, 2, 3], "B": [4, 5, 6]},
-                              index=["X", "Y", "Z"])
+        ...                   index=["X", "Y", "Z"])
         >>> df.rename(index={"X": "x", "Y": "y", "Z": "z"})
            A  B
         x  1  4
