@@ -2142,7 +2142,7 @@ class GroupBy(_GroupBy):
         --------
 
         >>> df = pd.DataFrame([[1, 2], [1, 4], [5, 6]],
-                              columns=['A', 'B'])
+        ...                   columns=['A', 'B'])
         >>> df.groupby('A', as_index=False).head(1)
            A  B
         0  1  2
@@ -2169,7 +2169,7 @@ class GroupBy(_GroupBy):
         --------
 
         >>> df = pd.DataFrame([['a', 1], ['a', 2], ['b', 1], ['b', 2]],
-                              columns=['A', 'B'])
+        ...                   columns=['A', 'B'])
         >>> df.groupby('A').tail(1)
            A  B
         1  a  2

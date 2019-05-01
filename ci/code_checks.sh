@@ -232,7 +232,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests groupby.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/groupby/groupby.py
+    pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests top-level reshaping functions' ; echo $MSG
