@@ -7,15 +7,8 @@ Distributed under the terms of the BSD Simplified License.
 The full license is in the LICENSE file, distributed with this software.
 */
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
-
-/* alias this because it is not aliased in Python 3 */
-#define PyString_CheckExact PyBytes_CheckExact
-#define PyString_AS_STRING PyBytes_AS_STRING
-#define PyString_GET_SIZE PyBytes_GET_SIZE
-
-/* in python 3, we cannot intern bytes objects so this is always false */
-#define PyString_CHECK_INTERNED(cs) 0
 
 #ifndef Py_TPFLAGS_HAVE_GETCHARBUFFER
 #define Py_TPFLAGS_HAVE_GETCHARBUFFER 0
@@ -45,8 +38,8 @@ static int
 stolenbuf_getbuffer(stolenbufobject *self, Py_buffer *view, int flags) {
     return PyBuffer_FillInfo(view,
                              (PyObject*) self,
-                             (void*) PyString_AS_STRING(self->invalid_bytes),
-                             PyString_GET_SIZE(self->invalid_bytes),
+                             (void*) PyBytes_AS_STRING(self->invalid_bytes),
+                             PyBytes_GET_SIZE(self->invalid_bytes),
                              0,  /* not readonly */
                              flags);
 }
@@ -128,15 +121,14 @@ static PyObject*
 move_into_mutable_buffer(PyObject *self, PyObject *bytes_rvalue) {
     stolenbufobject *ret;
 
-    if (!PyString_CheckExact(bytes_rvalue)) {
+    if (!PyBytes_CheckExact(bytes_rvalue)) {
         PyErr_SetString(PyExc_TypeError,
                         "stolenbuf can only steal from bytes objects");
         return NULL;
     }
 
-    if (Py_REFCNT(bytes_rvalue) != 1 || PyString_CHECK_INTERNED(bytes_rvalue)) {
-        /* there is a reference other than the caller's stack or the string is
-           interned */
+    if (Py_REFCNT(bytes_rvalue) != 1) {
+        // there is a reference other than the caller's stack
         PyErr_SetObject(badmove, bytes_rvalue);
         return NULL;
     }
