@@ -393,9 +393,10 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 
 
 cdef _TSObject create_tsobject_tz_using_offset(int64_t value,
-                                               object tz, int tzoffset):
+                                               int tzoffset, object tz=None):
     """
-    Create tsobject from numpy datetime64 using initial timezone offset
+    Convert a numpy datetime64 `value`, along with initial timezone offset
+    `tzoffset` to a _TSObject (with timezone object `tz` - optional).
 
     Parameters
     ----------
@@ -406,9 +407,8 @@ cdef _TSObject create_tsobject_tz_using_offset(int64_t value,
     tzoffset: int
 
     Returns
-    obj : _TSObject
     -------
-
+    obj : _TSObject
     """
     cdef:
         _TSObject obj
@@ -489,8 +489,8 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                 check_dts_bounds(&dts)
                 value = dtstruct_to_dt64(&dts)
                 if out_local == 1:
-                    return create_tsobject_tz_using_offset(value, tz,
-                                                           out_tzoffset)
+                    return create_tsobject_tz_using_offset(value,
+                                                           out_tzoffset, tz)
                 else:
                     ts = value
                     if tz is not None:
