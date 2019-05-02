@@ -107,6 +107,13 @@ def test_copy_in_constructor():
     assert mi.levels[0][0] == val
 
 
+def test_constructor_bad_codes():
+    levels = [['a', 'b'], [1, 2]]
+    codes = [[0, 0.5, 1], np.array([0, np.nan, -1])]
+    with pytest.raises(TypeError):
+        MultiIndex(levels=levels, codes=codes)
+
+
 # ----------------------------------------------------------------------------
 # from_arrays
 # ----------------------------------------------------------------------------
