@@ -84,11 +84,6 @@ cdef extern from "headers/portable.h":
     # loudly.
     pass
 
-try:
-    basestring
-except NameError:
-    basestring = str
-
 
 cdef extern from "parser/tokenizer.h":
 
@@ -632,7 +627,7 @@ cdef class TextReader:
 
         if self.compression:
             if self.compression == 'gzip':
-                if isinstance(source, basestring):
+                if isinstance(source, str):
                     source = gzip.GzipFile(source, 'rb')
                 else:
                     source = gzip.GzipFile(fileobj=source)
@@ -653,7 +648,7 @@ cdef class TextReader:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
-                if isinstance(source, basestring):
+                if isinstance(source, str):
                     source = lzma.LZMAFile(source, 'rb')
                 else:
                     source = lzma.LZMAFile(filename=source)
@@ -671,11 +666,10 @@ cdef class TextReader:
 
             self.handle = source
 
-        if isinstance(source, basestring):
-            if not isinstance(source, bytes):
-                encoding = sys.getfilesystemencoding() or "utf-8"
+        if isinstance(source, str):
+            encoding = sys.getfilesystemencoding() or "utf-8"
 
-                source = source.encode(encoding)
+            source = source.encode(encoding)
 
             if self.memory_map:
                 ptr = new_mmap(source)
