@@ -1707,7 +1707,7 @@ class MultiIndex(Index):
                 # ... and reassigned value -1:
                 code_mapping[uniques] = np.arange(len(uniques)) - has_na
 
-                level_codes = code_mapping[level_codes]
+                level_codes = code_mapping[level_codes].astype(int)
 
                 # new levels are simple
                 lev = lev.take(uniques[has_na:])
