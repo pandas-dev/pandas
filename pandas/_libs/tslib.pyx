@@ -601,11 +601,9 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                             return values, tz_out
 
                         try:
-                            py_dt = parse_datetime_string(
-                                val,
-                                dayfirst=dayfirst,
-                                yearfirst=yearfirst
-                            )
+                            py_dt = parse_datetime_string(val,
+                                                          dayfirst=dayfirst,
+                                                          yearfirst=yearfirst)
                         except Exception:
                             if is_coerce:
                                 iresult[i] = NPY_NAT
