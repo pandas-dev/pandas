@@ -392,6 +392,25 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     return obj
 
 
+cdef _TSObject setup_tsobject_tz_using_offset(_TSObject obj,
+                                              object tz, int tzoffset):
+    obj.tzinfo = pytz.FixedOffset(tzoffset)
+    obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
+    if tz is None:
+        check_overflows(obj)
+        return obj
+    else:
+        # Keep the converter same as PyDateTime's
+        obj = convert_to_tsobject(obj.value, obj.tzinfo,
+                                  None, 0, 0)
+        dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
+                      obj.dts.hour, obj.dts.min, obj.dts.sec,
+                      obj.dts.us, obj.tzinfo)
+        obj = convert_datetime_to_tsobject(
+            dt, tz, nanos=obj.dts.ps // 1000)
+        return obj
+
+
 cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                                        bint dayfirst=False,
                                        bint yearfirst=False):
@@ -450,25 +469,11 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
         )
         try:
             if not string_to_dts_failed:
-                obj.value = dtstruct_to_dt64(&obj.dts)
                 check_dts_bounds(&obj.dts)
+                obj.value = dtstruct_to_dt64(&obj.dts)
                 if out_local == 1:
-                    obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-                    obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
-                    if tz is None:
-                        check_overflows(obj)
-                        return obj
-                    else:
-                        # Keep the converter same as PyDateTime's
-                        obj = convert_to_tsobject(obj.value, obj.tzinfo,
-                                                  None, 0, 0)
-                        dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
-                                      obj.dts.hour, obj.dts.min, obj.dts.sec,
-                                      obj.dts.us, obj.tzinfo)
-                        obj = convert_datetime_to_tsobject(
-                            dt, tz, nanos=obj.dts.ps // 1000)
-                        return obj
-
+                    return setup_tsobject_tz_using_offset(obj, tz,
+                                                          out_tzoffset)
                 else:
                     ts = obj.value
                     if tz is not None:
@@ -485,13 +490,12 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
         except ValueError:
             do_parse_datetime_string = True
 
-        finally:
-            if string_to_dts_failed or do_parse_datetime_string:
-                try:
-                    ts = parse_datetime_string(ts, dayfirst=dayfirst,
-                                               yearfirst=yearfirst)
-                except Exception:
-                    raise ValueError("could not convert string to Timestamp")
+        if string_to_dts_failed or do_parse_datetime_string:
+            try:
+                ts = parse_datetime_string(ts, dayfirst=dayfirst,
+                                           yearfirst=yearfirst)
+            except Exception:
+                raise ValueError("could not convert string to Timestamp")
 
     return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
