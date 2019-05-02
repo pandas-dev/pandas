@@ -1383,7 +1383,7 @@ cdef:
 def _ensure_encoded(list lst):
     cdef list result = []
     for x in lst:
-        if isinstance(x, unicode):
+        if isinstance(x, str):
             x = PyUnicode_AsUTF8String(x)
         elif not isinstance(x, bytes):
             x = str(x).encode('utf-8')
