@@ -759,9 +759,9 @@ def test_resample_float_base():
     s = Series(np.arange(3), index=dt)
 
     base = 17 + 43.51 / 60
-    resampled = s.resample("3min", base=base).mean()
-    exp_index = DatetimeIndex(["2018-11-26 16:17:43.51"])
-    tm.assert_index_equal(resampled.index, exp_index)
+    result = s.resample("3min", base=base).size()
+    expected = Series(3, index=pd.DatetimeIndex(["2018-11-26 16:17:43.51"]))
+    assert_series_equal(result, expected)
 
 
 def test_resample_daily_anchored():
