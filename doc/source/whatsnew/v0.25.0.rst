@@ -427,7 +427,7 @@ Other
 ^^^^^
 
 - Removed unused C functions from vendored UltraJSON implementation (:issue:`26198`)
-- Removed usage of register keyword in C extension modules (:issue:`26263`)
+- Removed usage of ``register`` keyword in C extension modules (:issue:`26263`)
 
 
 .. _whatsnew_0.250.contributors:
