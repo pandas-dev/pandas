@@ -423,6 +423,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
         _TSObject obj
         int out_local = 0, out_tzoffset = 0
         datetime dt
+        bint do_parse_datetime_string = False
 
     if tz is not None:
         tz = maybe_get_tz(tz)
@@ -447,21 +448,14 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
             ts, &obj.dts, &out_local,
             &out_tzoffset, False
         )
-        if string_to_dts_failed:
-            try:
-                ts = parse_datetime_string(ts, dayfirst=dayfirst,
-                                           yearfirst=yearfirst)
-            except Exception:
-                raise ValueError("could not convert string to Timestamp")
-        else:
-            try:
+        try:
+            if not string_to_dts_failed:
                 obj.value = dtstruct_to_dt64(&obj.dts)
                 check_dts_bounds(&obj.dts)
                 if out_local == 1:
                     obj.tzinfo = pytz.FixedOffset(out_tzoffset)
                     obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
                     if tz is None:
-                        check_dts_bounds(&obj.dts)
                         check_overflows(obj)
                         return obj
                     else:
@@ -482,13 +476,17 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                         ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
                                                 ambiguous='raise')[0]
 
-            except OutOfBoundsDatetime:
-                # GH#19382 for just-barely-OutOfBounds falling back to dateutil
-                # parser will return incorrect result because it will ignore
-                # nanoseconds
-                raise
+        except OutOfBoundsDatetime:
+            # GH#19382 for just-barely-OutOfBounds falling back to dateutil
+            # parser will return incorrect result because it will ignore
+            # nanoseconds
+            raise
 
-            except ValueError:
+        except ValueError:
+            do_parse_datetime_string = True
+
+        finally:
+            if string_to_dts_failed or do_parse_datetime_string:
                 try:
                     ts = parse_datetime_string(ts, dayfirst=dayfirst,
                                                yearfirst=yearfirst)
