@@ -43,7 +43,7 @@ DataFrame Assign
 ^^^^^^^^^^^^^^^^
 
 Inspired by `dplyr's
-<http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html#mutate>`__ ``mutate`` verb, DataFrame has a new
+<https://dplyr.tidyverse.org/articles/dplyr.html#mutating-operations>`__ ``mutate`` verb, DataFrame has a new
 :meth:`~pandas.DataFrame.assign` method.
 The function signature for ``assign`` is simply ``**kwargs``. The keys
 are the column names for the new fields, and the values are either a value
