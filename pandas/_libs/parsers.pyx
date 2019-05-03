@@ -21,15 +21,13 @@ from cython import Py_ssize_t
 from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString,
                       PyUnicode_AsUTF8String,
-                      PyErr_Occurred, PyErr_Fetch)
+                      PyErr_Occurred, PyErr_Fetch,
+                      PyUnicode_Decode)
 from cpython.ref cimport Py_XDECREF
 
 
 cdef extern from "Python.h":
     object PyUnicode_FromString(char *v)
-
-    object PyUnicode_Decode(char *v, Py_ssize_t size, char *encoding,
-                            char *errors)
 
 
 import numpy as np
