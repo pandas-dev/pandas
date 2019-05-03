@@ -1,11 +1,12 @@
 import copy
 import sys
-from typing import Type
+from typing import Sequence, Type
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import Dtype
 from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
@@ -304,9 +305,18 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return integer_array(scalars, dtype=dtype, copy=copy)
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
-        scalars = to_numeric(strings, errors="raise")
-        return cls._from_sequence(scalars, dtype, copy)
+    def _from_sequence_of_strings(cls,
+                                  strings: Sequence[str],
+                                  dtype: Dtype = None,
+                                  copy: bool = False) -> 'IntegerArray':
+        # Mask the NA location before sending to to_numeric to prevent
+        # undesirable cast to float which may lose precision
+        mask = isna(strings)
+        masked_strings = np.where(mask, 0, strings)
+
+        scalars = to_numeric(masked_strings, errors="raise")
+
+        return IntegerArray(scalars, mask)
 
     @classmethod
     def _from_factorized(cls, values, original):
