@@ -245,6 +245,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         pandas/core/reshape/pivot.py \
         pandas/core/reshape/reshape.py \
         pandas/core/reshape/tile.py \
+        pandas/core/reshape/melt.py \
         -k"-crosstab -pivot_table -cut"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
