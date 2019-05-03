@@ -509,3 +509,27 @@ def test_numeric_dtype(all_parsers, dtype):
 
     result = parser.read_csv(StringIO(data), header=None, dtype=dtype)
     tm.assert_frame_equal(expected, result)
+
+
+def test_intna_precision(all_parsers):
+    parser = all_parsers
+    data = "1556559573141592653\n1556559573141592654\n\n1556559573141592655"
+    dtype = 'Int64'
+
+    expected = DataFrame([
+        [1556559573141592653],
+        [1556559573141592654],
+        [0],
+        [1556559573141592655],
+    ], dtype=dtype)
+    expected.iloc[2] = np.nan  # TODO: fix general bug on df construction
+
+    result = parser.read_csv(StringIO(data), header=None, dtype=dtype,
+                             skip_blank_lines=False)
+    
+    tm.assert_frame_equal(result, expected)
+
+    # See why tm.assert_frame_equal doesn't fail...
+    for i in range(len(result)):
+        assert result.iloc[i] == expected.iloc[i]
+
