@@ -371,19 +371,19 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     ...     'ht_two': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
     ... })
     >>> df
-       birth  famid  ht_one  ht_two
+       famid  birth  ht_one  ht_two
     0      1      1     2.8     3.4
-    1      2      1     2.9     3.8
-    2      3      1     2.2     2.9
-    3      1      2     2.0     3.2
+    1      1      2     2.9     3.8
+    2      1      3     2.2     2.9
+    3      2      1     2.0     3.2
     4      2      2     1.8     2.8
-    5      3      2     1.9     2.4
-    6      1      3     2.2     3.3
-    7      2      3     2.3     3.4
+    5      2      3     1.9     2.4
+    6      3      1     2.2     3.3
+    7      3      2     2.3     3.4
     8      3      3     2.1     2.9
 
     >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age',
-                            sep='_', suffix='\w')
+    ...                     sep='_', suffix='\w+')
     >>> l
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht
