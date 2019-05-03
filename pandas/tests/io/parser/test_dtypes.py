@@ -530,6 +530,6 @@ def test_intna_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
     # See why tm.assert_frame_equal doesn't fail...
-    for i in range(len(result)):
-        assert result.iloc[i] == expected.iloc[i]
-
+    assert result.iloc[0] == expected.iloc[0]
+    assert result.iloc[1] == expected.iloc[1]
+    assert result.iloc[3] == expected.iloc[3]
