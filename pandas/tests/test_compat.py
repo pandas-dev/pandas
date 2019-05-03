@@ -2,9 +2,8 @@
 Testing that functions from compat work as expected
 """
 import builtins
-import re
 
-from pandas.compat import lmap, lrange, lzip, re_type
+from pandas.compat import lmap, lrange, lzip
 
 
 class TestBuiltinIterators:
@@ -40,7 +39,3 @@ class TestBuiltinIterators:
         expecteds = list(builtins.zip(*lst)),
         lengths = 10,
         self.check_results(results, expecteds, lengths)
-
-
-def test_re_type():
-    assert isinstance(re.compile(''), re_type)
