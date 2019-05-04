@@ -625,29 +625,27 @@ class Window(_Window):
                            'gaussian': ['std'],
                            'general_gaussian': ['power', 'width'],
                            'slepian': ['width'],
-                           'exponential': ['center', 'tau']}
-                immutable_args_map = {'exponential': {'center': None}}
+                           'exponential': ['tau'],
+                           }
 
                 if win_type in arg_map:
-                    immutable_args = immutable_args_map.get(win_type, {})
-                    return tuple([win_type] + _pop_args(win_type,
-                                                        arg_map[win_type],
-                                                        immutable_args,
-                                                        kwargs))
+                    win_args = _pop_args(win_type, arg_map[win_type], kwargs)
+                    if win_type == 'exponential':
+                        # exponential window requires the first arg (center)
+                        # to be set to None (necessary for symmetric window)
+                        win_args.insert(0, None)
+
+                    return tuple([win_type] + win_args)
 
                 return win_type
 
-            def _pop_args(win_type, arg_names, immutable_args, kwargs):
+            def _pop_args(win_type, arg_names, kwargs):
                 msg = '%s window requires %%s' % win_type
                 all_args = []
                 for n in arg_names:
-                    if n in immutable_args:
-                        value = immutable_args[n]
-                    elif n in kwargs:
-                        value = kwargs.pop(n)
-                    else:
+                    if n not in kwargs:
                         raise ValueError(msg % n)
-                    all_args.append(value)
+                    all_args.append(kwargs.pop(n))
                 return all_args
 
             win_type = _validate_win_type(self.win_type, kwargs)
