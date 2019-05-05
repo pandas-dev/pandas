@@ -249,11 +249,10 @@ def test_len():
 
 def test_basic_regression():
     # regression
-    T = [1.0 * x for x in list(range(1, 10)) * 10][:1095]
-    result = Series(T)
+    result = Series([1.0 * x for x in list(range(1, 10)) * 10])
 
-    groupings = np.random.random((1100, ))
-    groupings = Series(groupings) * 10.
+    data = np.random.random(1100) * 10.
+    groupings = Series(data)
 
     grouped = result.groupby(groupings)
     grouped.mean()

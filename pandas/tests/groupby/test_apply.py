@@ -350,7 +350,7 @@ def test_apply_chunk_view():
 def test_apply_no_name_column_conflict():
     df = DataFrame({'name': [1, 1, 1, 1, 1, 1, 2, 2, 2, 2],
                     'name2': [0, 0, 0, 1, 1, 1, 0, 0, 1, 1],
-                    'value': list(range(10))[::-1]})
+                    'value': range(9, -1, -1)})
 
     # it works! #2605
     grouped = df.groupby(['name', 'name2'])
