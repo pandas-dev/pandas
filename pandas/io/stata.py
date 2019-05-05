@@ -23,7 +23,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import lmap, lrange, lzip
+from pandas.compat import lmap, lzip
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -874,7 +874,7 @@ class StataParser:
                     (65530, np.int8)
                 ]
             )
-        self.TYPE_MAP = lrange(251) + list('bhlfd')
+        self.TYPE_MAP = list(range(251)) + list('bhlfd')
         self.TYPE_MAP_XML = \
             dict(
                 [

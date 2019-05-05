@@ -452,7 +452,7 @@ class _Concatenator:
                                      "to {length}".format(length=ndim - 1))
 
             # ufff...
-            indices = compat.lrange(ndim)
+            indices = list(range(ndim))
             indices.remove(self.axis)
 
             for i, ax in zip(indices, self.join_axes):

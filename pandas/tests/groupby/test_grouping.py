@@ -3,8 +3,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import (
     CategoricalIndex, DataFrame, Index, MultiIndex, Series, Timestamp,
@@ -481,7 +479,7 @@ class TestGrouping():
     def test_groupby_level_index_names(self):
         # GH4014 this used to raise ValueError since 'exp'>1 (in py2)
         df = DataFrame({'exp': ['A'] * 3 + ['B'] * 3,
-                        'var1': lrange(6), }).set_index('exp')
+                        'var1': range(6), }).set_index('exp')
         df.groupby(level='exp')
         msg = "level name foo is not the name of the index"
         with pytest.raises(ValueError, match=msg):

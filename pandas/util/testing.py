@@ -22,7 +22,7 @@ from pandas._config.localization import (  # noqa:F401
     can_set_locale, get_locales, set_locale)
 
 from pandas._libs import testing as _testing
-from pandas.compat import lmap, lrange, lzip, raise_with_traceback
+from pandas.compat import lmap, lzip, raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -364,7 +364,7 @@ def randbool(size=(), p=0.5):
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits),
                        dtype=(np.str_, 1))
-RANDU_CHARS = np.array(list("".join(map(chr, lrange(1488, 1488 + 26))) +
+RANDU_CHARS = np.array(list("".join(map(chr, range(1488, 1488 + 26))) +
                             string.digits), dtype=(np.unicode_, 1))
 
 
@@ -1592,11 +1592,11 @@ def makeBoolIndex(k=10, name=None):
 
 
 def makeIntIndex(k=10, name=None):
-    return Index(lrange(k), name=name)
+    return Index(list(range(k)), name=name)
 
 
 def makeUIntIndex(k=10, name=None):
-    return Index([2**63 + i for i in lrange(k)], name=name)
+    return Index([2**63 + i for i in range(k)], name=name)
 
 
 def makeRangeIndex(k=10, name=None, **kwargs):

@@ -9,7 +9,7 @@ from numpy.random import randn
 import pytest
 import pytz
 
-from pandas.compat import lrange, lzip
+from pandas.compat import lzip
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
@@ -127,8 +127,8 @@ class TestMultiLevel(Base):
         multi = Series(1., index=[['a', 'a', 'b', 'b'], ['x', 'y', 'x', 'y']])
         assert isinstance(multi.index, MultiIndex)
 
-        multi = Series(lrange(4), index=[['a', 'a', 'b', 'b'],
-                                         ['x', 'y', 'x', 'y']])
+        multi = Series(range(4), index=[['a', 'a', 'b', 'b'],
+                                        ['x', 'y', 'x', 'y']])
         assert isinstance(multi.index, MultiIndex)
 
     def test_reindex_level(self):
@@ -1317,7 +1317,7 @@ Thur,Lunch,Yes,51.51,17"""
         index = MultiIndex.from_tuples([(0, 0), (1, 1)],
                                        names=['\u0394', 'i1'])
 
-        s = Series(lrange(2), index=index)
+        s = Series(range(2), index=index)
         df = DataFrame(np.random.randn(2, 4), index=index)
         repr(s)
         repr(df)

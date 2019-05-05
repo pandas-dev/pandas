@@ -15,7 +15,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import Timestamp, iNaT, properties
-from pandas.compat import lrange, lzip, set_function_name, to_str
+from pandas.compat import lzip, set_function_name, to_str
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -1101,7 +1101,7 @@ class NDFrame(PandasObject, SelectionMixin):
         result = self if inplace else self.copy(deep=copy)
 
         # start in the axis order to eliminate too many copies
-        for axis in lrange(self._AXIS_LEN):
+        for axis in range(self._AXIS_LEN):
             v = axes.get(self._AXIS_NAMES[axis])
             if v is None:
                 continue
@@ -1294,7 +1294,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # is specified
             result = self if inplace else self.copy(deep=copy)
 
-            for axis in lrange(self._AXIS_LEN):
+            for axis in range(self._AXIS_LEN):
                 v = axes.get(self._AXIS_NAMES[axis])
                 if v is sentinel:
                     continue

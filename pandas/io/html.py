@@ -9,7 +9,7 @@ import numbers
 import os
 import re
 
-from pandas.compat import lmap, lrange, raise_with_traceback
+from pandas.compat import lmap, raise_with_traceback
 from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
@@ -101,7 +101,8 @@ def _get_skiprows(skiprows):
         A proper iterator to use to skip rows of a DataFrame.
     """
     if isinstance(skiprows, slice):
-        return lrange(skiprows.start or 0, skiprows.stop, skiprows.step or 1)
+        start, step = skiprows.start or 0, skiprows.step or 1
+        return list(range(start, skiprows.stop, step))
     elif isinstance(skiprows, numbers.Integral) or is_list_like(skiprows):
         return skiprows
     elif skiprows is None:

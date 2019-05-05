@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
 from pandas.util.testing import (
@@ -84,9 +82,9 @@ def test_first_last_nth_dtypes(df_mixed_floats):
     assert_frame_equal(nth, expected)
 
     # GH 2763, first/last shifting dtypes
-    idx = lrange(10)
+    idx = list(range(10))
     idx.append(9)
-    s = Series(data=lrange(11), index=idx, name='IntCol')
+    s = Series(data=range(11), index=idx, name='IntCol')
     assert s.dtype == 'int64'
     f = s.groupby(level=0).first()
     assert f.dtype == 'int64'
