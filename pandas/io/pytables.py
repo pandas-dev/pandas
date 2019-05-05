@@ -18,7 +18,6 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -4101,7 +4100,7 @@ class AppendableTable(LegacyTable):
             # we must remove in reverse order!
             pg = groups.pop()
             for g in reversed(groups):
-                rows = sorted_series.take(lrange(g, pg))
+                rows = sorted_series.take(range(g, pg))
                 table.remove_rows(start=rows[rows.index[0]
                                              ], stop=rows[rows.index[-1]] + 1)
                 pg = g

@@ -9,7 +9,7 @@ from pandas._config import get_option
 
 from pandas._libs import (
     Timestamp, algos as libalgos, index as libindex, lib, tslibs)
-from pandas.compat import lrange, lzip
+from pandas.compat import lzip
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
@@ -1913,7 +1913,7 @@ class MultiIndex(Index):
                 if isinstance(loc, int):
                     inds.append(loc)
                 elif isinstance(loc, slice):
-                    inds.extend(lrange(loc.start, loc.stop))
+                    inds.extend(range(loc.start, loc.stop))
                 elif com.is_bool_indexer(loc):
                     if self.lexsort_depth == 0:
                         warnings.warn('dropping on a non-lexsorted multi-index'
