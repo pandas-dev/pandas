@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Module for formatting output data in HTML.
 """
@@ -46,6 +45,9 @@ class HTMLFormatter(TableFormatter):
         self.border = border
         self.table_id = self.fmt.table_id
         self.render_links = self.fmt.render_links
+        if isinstance(self.fmt.col_space, int):
+            self.fmt.col_space = ('{colspace}px'
+                                  .format(colspace=self.fmt.col_space))
 
     @property
     def show_row_idx_names(self):
@@ -85,8 +87,30 @@ class HTMLFormatter(TableFormatter):
         rs = pprint_thing(s)
         self.elements.append(' ' * indent + rs)
 
-    def write_th(self, s, indent=0, tags=None):
-        if self.fmt.col_space is not None and self.fmt.col_space > 0:
+    def write_th(self, s, header=False, indent=0, tags=None):
+        """
+        Method for writting a formatted <th> cell.
+
+        If col_space is set on the formatter then that is used for
+        the value of min-width.
+
+        Parameters
+        ----------
+        s : object
+            The data to be written inside the cell.
+        header : boolean, default False
+            Set to True if the <th> is for use inside <thead>.  This will
+            cause min-width to be set if there is one.
+        indent : int, default 0
+            The indentation level of the cell.
+        tags : string, default None
+            Tags to include in the cell.
+
+        Returns
+        -------
+        A written <th> cell.
+        """
+        if header and self.fmt.col_space is not None:
             tags = (tags or "")
             tags += ('style="min-width: {colspace};"'
                      .format(colspace=self.fmt.col_space))
@@ -137,7 +161,7 @@ class HTMLFormatter(TableFormatter):
         for i, s in enumerate(line):
             val_tag = tags.get(i, None)
             if header or (self.bold_rows and i < nindex_levels):
-                self.write_th(s, indent, tags=val_tag)
+                self.write_th(s, indent=indent, header=header, tags=val_tag)
             else:
                 self.write_td(s, indent, tags=val_tag)
 

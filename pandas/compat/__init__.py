@@ -11,7 +11,6 @@ Other items:
 * platform checker
 """
 import platform
-import re
 import struct
 import sys
 
@@ -72,15 +71,6 @@ def raise_with_traceback(exc, traceback=Ellipsis):
     if traceback == Ellipsis:
         _, _, traceback = sys.exc_info()
     raise exc.with_traceback(traceback)
-
-
-# In Python 3.7, the private re._pattern_type is removed.
-# Python 3.5+ have typing.re.Pattern
-if PY36:
-    import typing
-    re_type = typing.re.Pattern
-else:
-    re_type = type(re.compile(''))
 
 
 # https://github.com/pandas-dev/pandas/pull/9123

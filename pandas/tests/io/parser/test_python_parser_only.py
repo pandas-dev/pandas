@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that apply specifically to the Python parser. Unless specifically
 stated as a Python-specific issue, the goal is to eventually move as many of

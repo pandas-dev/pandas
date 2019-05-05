@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from textwrap import dedent
 
 import numpy as np

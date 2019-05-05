@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import date, datetime, timedelta
 import functools
 import inspect
@@ -28,13 +27,13 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype, ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
-    ABCSeries)
+    ABCPandasArray, ABCSeries)
 from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, isna, notna)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
-    Categorical, DatetimeArray, ExtensionArray, TimedeltaArray)
+    Categorical, DatetimeArray, ExtensionArray, PandasDtype, TimedeltaArray)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -577,22 +576,13 @@ class Block(PandasObject):
 
             return self.make_block(Categorical(self.values, dtype=dtype))
 
-        # convert dtypes if needed
         dtype = pandas_dtype(dtype)
+
         # astype processing
         if is_dtype_equal(self.dtype, dtype):
             if copy:
                 return self.copy()
             return self
-
-        klass = None
-        if is_sparse(self.values):
-            # special case sparse, Series[Sparse].astype(object) is sparse
-            klass = ExtensionBlock
-        elif is_object_dtype(dtype):
-            klass = ObjectBlock
-        elif is_extension_array_dtype(dtype):
-            klass = ExtensionBlock
 
         try:
             # force the copy here
@@ -625,7 +615,7 @@ class Block(PandasObject):
                     pass
 
             newb = make_block(values, placement=self.mgr_locs,
-                              klass=klass, ndim=self.ndim)
+                              ndim=self.ndim)
         except Exception:  # noqa: E722
             if errors == 'raise':
                 raise
@@ -3042,6 +3032,13 @@ def get_block_type(values, dtype=None):
 
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
                fastpath=None):
+    # Ensure that we don't allow PandasArray / PandasDtype in internals.
+    # For now, blocks should be backed by ndarrays when possible.
+    if isinstance(values, ABCPandasArray):
+        values = values.to_numpy()
+    if isinstance(dtype, PandasDtype):
+        dtype = dtype.numpy_dtype
+
     if fastpath is not None:
         # GH#19265 pyarrow is passing this
         warnings.warn("fastpath argument is deprecated, will be removed "
