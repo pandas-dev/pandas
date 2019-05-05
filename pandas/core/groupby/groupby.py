@@ -12,7 +12,7 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import FrozenSet, Optional, Tuple, Type
+from typing import FrozenSet, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -1543,15 +1543,16 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Substitution(see_also=_common_see_also)
-    def nth(self, n, dropna=None):
+    def nth(self,
+            n: Union[int, List[int]],
+            dropna: Optional[str] = None) -> DataFrame:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.
 
         If dropna, will take the nth non-null row, dropna is either
-        Truthy (if a Series) or 'all', 'any' (if a DataFrame);
-        this is equivalent to calling dropna(how=dropna) before the
-        groupby.
+        'all' or 'any'; this is equivalent to calling dropna(how=dropna)
+        before the groupby.
 
         Parameters
         ----------
@@ -1614,33 +1615,42 @@ class GroupBy(_GroupBy):
         4  2  5.0
         """
 
-        if isinstance(n, int):
-            nth_values = [n]
-        elif isinstance(n, (set, list, tuple)):
-            nth_values = list(set(n))
-            if dropna is not None:
-                raise ValueError(
-                    "dropna option with a list of nth values is not supported")
-        else:
+        valid_containers = (set, list, tuple)
+        if not isinstance(n, (valid_containers, int)):
             raise TypeError("n needs to be an int or a list/set/tuple of ints")
 
-        nth_values = np.array(nth_values, dtype=np.intp)
-        self._set_group_selection()
-
         if not dropna:
-            mask_left = np.in1d(self._cumcount_array(), nth_values)
+
+            if isinstance(n, int):
+                nth_values = [n]
+            elif isinstance(n, valid_containers):
+                nth_values = list(set(n))
+
+            nth_array = np.array(nth_values, dtype=np.intp)
+            self._set_group_selection()
+
+            mask_left = np.in1d(self._cumcount_array(), nth_array)
             mask_right = np.in1d(self._cumcount_array(ascending=False) + 1,
-                                 -nth_values)
+                                 -nth_array)
             mask = mask_left | mask_right
+
+            ids, _, _ = self.grouper.group_info
+
+            # Drop NA values in grouping
+            mask = mask & (ids != -1)
 
             out = self._selected_obj[mask]
             if not self.as_index:
                 return out
 
-            ids, _, _ = self.grouper.group_info
             out.index = self.grouper.result_index[ids[mask]]
 
             return out.sort_index() if self.sort else out
+
+        # dropna is truthy
+        if isinstance(n, valid_containers):
+            raise ValueError(
+                "dropna option with a list of nth values is not supported")
 
         if dropna not in ['any', 'all']:
             if isinstance(self._selected_obj, Series) and dropna is True:
@@ -1676,7 +1686,7 @@ class GroupBy(_GroupBy):
 
         else:
 
-            # create a grouper with the original parameters, but on the dropped
+            # create a grouper with the original parameters, but on dropped
             # object
             from pandas.core.groupby.grouper import _get_grouper
             grouper, _, _ = _get_grouper(dropped, key=self.keys,
@@ -1684,7 +1694,8 @@ class GroupBy(_GroupBy):
                                          sort=self.sort,
                                          mutated=self.mutated)
 
-        grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
+        grb = dropped.groupby(
+            grouper, as_index=self.as_index, sort=self.sort)
         sizes, result = grb.size(), grb.nth(n)
         mask = (sizes < max_len).values
 

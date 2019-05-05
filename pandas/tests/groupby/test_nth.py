@@ -432,3 +432,20 @@ def test_nth_column_order():
                          columns=['C', 'B'],
                          index=Index([1, 2], name='A'))
     assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [None, 'any', 'all'])
+def test_nth_nan_in_grouper(dropna):
+    # GH 26011
+    df = DataFrame([
+        [np.nan, 0, 1],
+        ['abc', 2, 3],
+        [np.nan, 4, 5],
+        ['def', 6, 7],
+        [np.nan, 8, 9],
+    ], columns=list('abc'))
+    result = df.groupby('a').nth(0, dropna=dropna)
+    expected = pd.DataFrame([[2, 3], [6, 7]], columns=list('bc'),
+                            index=Index(['abc', 'def'], name='a'))
+
+    assert_frame_equal(result, expected)
