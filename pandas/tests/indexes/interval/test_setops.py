@@ -10,17 +10,23 @@ def name(request):
     return request.param
 
 
-class TestIntervalIndex:
+def monotonic_index(start, end, dtype='int64', closed='right'):
+    return IntervalIndex.from_breaks(np.arange(start, end, dtype=dtype),
+                                     closed=closed)
 
-    def create_index(self, closed='right'):
-        return IntervalIndex.from_breaks(range(11), closed=closed)
+
+def empty_index(dtype='int64', closed='right'):
+    return IntervalIndex(np.array([], dtype=dtype), closed=closed)
+
+
+class TestIntervalIndex:
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_union(self, closed, sort):
-        index = self.create_index(closed=closed)
-        other = IntervalIndex.from_breaks(range(5, 13), closed=closed)
+        index = monotonic_index(0, 11, closed=closed)
+        other = monotonic_index(5, 13, closed=closed)
 
-        expected = IntervalIndex.from_breaks(range(13), closed=closed)
+        expected = monotonic_index(0, 13, closed=closed)
         result = index[::-1].union(other, sort=sort)
         if sort is None:
             tm.assert_index_equal(result, expected)
@@ -35,21 +41,21 @@ class TestIntervalIndex:
         tm.assert_index_equal(index.union(index[:1], sort=sort), index)
 
         # GH 19101: empty result, same dtype
-        index = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        index = empty_index(dtype='int64', closed=closed)
         result = index.union(index, sort=sort)
         tm.assert_index_equal(result, index)
 
         # GH 19101: empty result, different dtypes
-        other = IntervalIndex(np.array([], dtype='float64'), closed=closed)
+        other = empty_index(dtype='float64', closed=closed)
         result = index.union(other, sort=sort)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, closed, sort):
-        index = self.create_index(closed=closed)
-        other = IntervalIndex.from_breaks(range(5, 13), closed=closed)
+        index = monotonic_index(0, 11, closed=closed)
+        other = monotonic_index(5, 13, closed=closed)
 
-        expected = IntervalIndex.from_breaks(range(5, 11), closed=closed)
+        expected = monotonic_index(5, 11, closed=closed)
         result = index[::-1].intersection(other, sort=sort)
         if sort is None:
             tm.assert_index_equal(result, expected)
@@ -63,14 +69,13 @@ class TestIntervalIndex:
         tm.assert_index_equal(index.intersection(index, sort=sort), index)
 
         # GH 19101: empty result, same dtype
-        other = IntervalIndex.from_breaks(range(300, 314), closed=closed)
-        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        other = monotonic_index(300, 314, closed=closed)
+        expected = empty_index(dtype='int64', closed=closed)
         result = index.intersection(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
         # GH 19101: empty result, different dtypes
-        breaks = np.arange(300, 314, dtype='float64')
-        other = IntervalIndex.from_breaks(breaks, closed=closed)
+        other = monotonic_index(300, 314, dtype='float64', closed=closed)
         result = index.intersection(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
@@ -101,7 +106,7 @@ class TestIntervalIndex:
 
         # GH 19101: empty result, same dtype
         result = index.difference(index, sort=sort)
-        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        expected = empty_index(dtype='int64', closed=closed)
         tm.assert_index_equal(result, expected)
 
         # GH 19101: empty result, different dtypes
@@ -112,7 +117,7 @@ class TestIntervalIndex:
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_symmetric_difference(self, closed, sort):
-        index = self.create_index(closed=closed)
+        index = monotonic_index(0, 11, closed=closed)
         result = index[1:].symmetric_difference(index[:-1], sort=sort)
         expected = IntervalIndex([index[0], index[-1]])
         if sort is None:
@@ -121,7 +126,7 @@ class TestIntervalIndex:
 
         # GH 19101: empty result, same dtype
         result = index.symmetric_difference(index, sort=sort)
-        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        expected = empty_index(dtype='int64', closed=closed)
         if sort is None:
             tm.assert_index_equal(result, expected)
         assert tm.equalContents(result, expected)
@@ -136,7 +141,7 @@ class TestIntervalIndex:
         'union', 'intersection', 'difference', 'symmetric_difference'])
     @pytest.mark.parametrize("sort", [None, False])
     def test_set_operation_errors(self, closed, op_name, sort):
-        index = self.create_index(closed=closed)
+        index = monotonic_index(0, 11, closed=closed)
         set_op = getattr(index, op_name)
 
         # non-IntervalIndex
@@ -149,7 +154,7 @@ class TestIntervalIndex:
         msg = ('can only do set operations between two IntervalIndex objects '
                'that are closed on the same side')
         for other_closed in {'right', 'left', 'both', 'neither'} - {closed}:
-            other = self.create_index(closed=other_closed)
+            other = monotonic_index(0, 11, closed=other_closed)
             with pytest.raises(ValueError, match=msg):
                 set_op(other, sort=sort)
 
