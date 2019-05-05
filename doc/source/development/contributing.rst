@@ -351,11 +351,11 @@ Some other important things to know about the docs:
 
     The ``.rst`` files are used to automatically generate Markdown and HTML versions
     of the docs. For this reason, please do not edit ``CONTRIBUTING.md`` directly,
-    but instead make any changes to ``doc/source/contributing.rst``. Then, to
+    but instead make any changes to ``doc/source/development/contributing.rst``. Then, to
     generate ``CONTRIBUTING.md``, use `pandoc <http://johnmacfarlane.net/pandoc/>`_
     with the following command::
 
-      pandoc doc/source/contributing.rst -t markdown_github > CONTRIBUTING.md
+      pandoc doc/source/development/contributing.rst -t markdown_github > CONTRIBUTING.md
 
 The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
 summary of the API documentation. And also validate common errors in the docstring
