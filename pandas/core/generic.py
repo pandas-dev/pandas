@@ -2970,13 +2970,14 @@ class NDFrame(PandasObject, SelectionMixin):
             detect compression mode from the following extensions: '.gz',
             '.bz2', '.zip' or '.xz'. (otherwise no compression). If dict given
             and mode is 'zip' or inferred as 'zip', other entries passed as
-            kwargs to ByteZipFile.
+            additional compression options.
 
             .. versionchanged:: 0.25.0
 
                May now be a dict with key 'method' as compression mode
-               and other entries as ByteZipFile kwargs if compression mode
-               is 'zip'
+               and other entries as additional compression options if
+               compression mode is 'zip'.
+
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
             then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
@@ -3028,10 +3029,10 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    'weapon': ['sai', 'bo staff']})
         >>> df.to_csv(index=False)
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
+
+        # create 'out.zip' containing 'out.csv'
         >>> compression_opts = dict(method='zip', archive_name='out.csv')
         >>> df.to_csv('out.zip', index=False, compression=compression_opts)
-
-        # creates 'out.zip' containing 'out.csv'
         """
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()

@@ -338,12 +338,12 @@ def _get_handle(path_or_buf, mode, encoding=None,
         and `filepath_or_buffer` is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise
         no compression). If dict and compression mode is 'zip' or inferred as
-        'zip', other entries passed as kwargs to ByteZipFile.
+        'zip', other entries passed as additional compression options.
 
         .. versionchanged:: 0.25.0
 
            May now be a dict with key 'method' as compression mode
-           and other keys as kwargs for ByteZipFile if compression
+           and other keys as compression options if compression
            mode is 'zip'.
 
     memory_map : boolean, default False
