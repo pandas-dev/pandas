@@ -246,9 +246,12 @@ class LatexFormatter(TableFormatter):
 
         This can be a tabular environment or nested table/tabular environments
         including caption/label depending on the arguments passed to
-        ``LatexFormatter.__init__()``.
+        `LatexFormatter.__init__()`.
 
-        :return: string to be written to ``buf``
+        Returns
+        -------
+        string
+            to be written to `buf`
         """
         str_ = ''
         if self.longtable:
@@ -301,9 +304,12 @@ class LatexFormatter(TableFormatter):
         Write the end of the latex environment.
 
         This can be a tabular environment or nested table/tabular environments
-        depending on the arguments passed to ``LatexFormatter.__init__()``.
+        depending on the arguments passed to `LatexFormatter.__init__()`.
 
-        :return: string to be written to ``buf``
+        Returns
+        -------
+        string
+            to be written to `buf`
         """
         str_ = ''
 
