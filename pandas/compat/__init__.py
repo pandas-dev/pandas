@@ -13,7 +13,6 @@ Other items:
 import platform
 import struct
 import sys
-from typing import Pattern
 
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
@@ -72,9 +71,6 @@ def raise_with_traceback(exc, traceback=Ellipsis):
     if traceback == Ellipsis:
         _, _, traceback = sys.exc_info()
     raise exc.with_traceback(traceback)
-
-
-re_type = Pattern
 
 
 # https://github.com/pandas-dev/pandas/pull/9123
