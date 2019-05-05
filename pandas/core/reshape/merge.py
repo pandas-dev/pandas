@@ -803,22 +803,18 @@ class _MergeOperation:
         -------
         join_index
         """
-        join_index = index.take(indexer)
         if (self.how in (how, 'outer') and
                 not isinstance(other_index, MultiIndex)):
             # if final index requires values in other_index but not target
             # index, indexer may hold missing (-1) values, causing Index.take
-            # to take the final value in target index
+            # to take the final value in target index. So, we set the last
+            # element to be the desired fill value. We do not use allow_fill
+            # and fill_value because it throws a ValueError on integer indices
             mask = indexer == -1
             if np.any(mask):
-                # if values missing (-1) from target index,
-                # take from other_index instead
-                join_list = join_index.to_numpy()
-                other_list = other_index.take(other_indexer).to_numpy()
-                join_list[mask] = other_list[mask]
-                join_index = Index(join_list, dtype=join_index.dtype,
-                                   name=join_index.name)
-        return join_index
+                fill_value = na_value_for_dtype(index.dtype, compat=False)
+                index = index.append(Index([fill_value]))
+        return index.take(indexer)
 
     def _get_merge_keys(self):
         """
