@@ -38,6 +38,7 @@ Other Enhancements
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
+- :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -245,10 +246,11 @@ Performance Improvements
 - Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
 - Improved performance of :meth:`read_csv` by faster parsing of N/A and boolean values (:issue:`25804`)
-- Imporved performance of :meth:`IntervalIndex.is_monotonic`, :meth:`IntervalIndex.is_monotonic_increasing` and :meth:`IntervalIndex.is_monotonic_decreasing` by removing conversion to :class:`MultiIndex` (:issue:`24813`)
+- Improved performance of :meth:`IntervalIndex.is_monotonic`, :meth:`IntervalIndex.is_monotonic_increasing` and :meth:`IntervalIndex.is_monotonic_decreasing` by removing conversion to :class:`MultiIndex` (:issue:`24813`)
 - Improved performance of :meth:`DataFrame.to_csv` when writing datetime dtypes (:issue:`25708`)
 - Improved performance of :meth:`read_csv` by much faster parsing of ``MM/YYYY`` and ``DD/MM/YYYY`` datetime formats (:issue:`25922`)
 - Improved performance of nanops for dtypes that cannot store NaNs. Speedup is particularly prominent for :meth:`Series.all` and :meth:`Series.any` (:issue:`25070`)
+- Improved performance of :meth:`Series.map` for dictionary mappers on categorical series by mapping the categories instead of mapping all values (:issue:`23785`)
 
 .. _whatsnew_0250.bug_fixes:
 
@@ -396,13 +398,14 @@ Groupby/Resample/Rolling
 - Bug in :meth:`pandas.core.window.Rolling.count` and `pandas.core.window.Expanding.count` was previously ignoring the axis keyword (:issue:`13503`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.idxmax` and :meth:`pandas.core.groupby.GroupBy.idxmin` with datetime column would return incorrect dtype (:issue:`25444`, :issue:`15306`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.cumsum`, :meth:`pandas.core.groupby.GroupBy.cumprod`, :meth:`pandas.core.groupby.GroupBy.cummin` and :meth:`pandas.core.groupby.GroupBy.cummax` with categorical column having absent categories, would return incorrect result or segfault (:issue:`16771`)
+- Bug in :meth:`pandas.core.groupby.GroupBy.nth` where NA values in the grouping would return incorrect results (:issue:`26011`)
 
 
 Reshaping
 ^^^^^^^^^
 
 - Bug in :func:`pandas.merge` adds a string of ``None``, if ``None`` is assigned in suffixes instead of remain the column name as-is (:issue:`24782`).
-- Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (:issue:`24212`)
+- Bug in :func:`merge` when merging by index name would sometimes result in an incorrectly numbered index (missing index values are now assigned NA) (:issue:`24212`, :issue:`25009`)
 - :func:`to_records` now accepts dtypes to its ``column_dtypes`` parameter (:issue:`24895`)
 - Bug in :func:`concat` where order of ``OrderedDict`` (and ``dict`` in Python 3.6+) is not respected, when passed in as  ``objs`` argument (:issue:`21510`)
 - Bug in :func:`pivot_table` where columns with ``NaN`` values are dropped even if ``dropna`` argument is ``False``, when the ``aggfunc`` argument contains a ``list`` (:issue:`22159`)

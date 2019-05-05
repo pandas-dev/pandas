@@ -401,22 +401,8 @@ class MPLPlot:
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
-        from matplotlib.ticker import FixedLocator, FixedFormatter
-
-        def get_label(i):
-            try:
-                return pprint_thing(data.index[i])
-            except Exception:
-                return ''
 
         if self.orientation == 'vertical' or self.orientation is None:
-            if self._need_to_set_index:
-                xticks = ax.get_xticks()
-                xticklabels = [get_label(x) for x in xticks]
-                ax.set_xticklabels(xticklabels)
-                ax.xaxis.set_major_locator(FixedLocator(xticks))
-                ax.xaxis.set_major_formatter(FixedFormatter(xticklabels))
-
             self._apply_axis_properties(ax.xaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
@@ -426,12 +412,6 @@ class MPLPlot:
                                             fontsize=self.fontsize)
 
         elif self.orientation == 'horizontal':
-            if self._need_to_set_index:
-                yticks = ax.get_yticks()
-                yticklabels = [get_label(y) for y in yticks]
-                ax.set_yticklabels(yticklabels)
-                ax.xaxis.set_major_locator(FixedLocator(yticks))
-                ax.xaxis.set_major_formatter(FixedFormatter(yticklabels))
             self._apply_axis_properties(ax.yaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.xaxis, fontsize=self.fontsize)
@@ -1115,6 +1095,20 @@ class LinePlot(MPLPlot):
             ax._stacker_neg_prior[stacking_id] += values
 
     def _post_plot_logic(self, ax, data):
+        from matplotlib.ticker import FixedLocator
+
+        def get_label(i):
+            try:
+                return pprint_thing(data.index[i])
+            except Exception:
+                return ''
+
+        if self._need_to_set_index:
+            xticks = ax.get_xticks()
+            xticklabels = [get_label(x) for x in xticks]
+            ax.set_xticklabels(xticklabels)
+            ax.xaxis.set_major_locator(FixedLocator(xticks))
+
         condition = (not self._use_dynamic_x() and
                      data.index.is_all_dates and
                      not self.subplots or

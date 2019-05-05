@@ -2255,7 +2255,7 @@ class StringMethods(NoNewAttributesMixin):
                             name=self._orig.name)
         return result
 
-    _shared_docs['str_split'] = ("""
+    _shared_docs['str_split'] = (r"""
     Split strings around given separator/delimiter.
 
     Splits the string in the Series/Index from the %(side)s,
@@ -2370,6 +2370,15 @@ class StringMethods(NoNewAttributesMixin):
     0          this is a regular sentence        None
     1  https://docs.python.org/3/tutorial  index.html
     2                                 NaN         NaN
+
+    Remember to escape special characters when explicitly using regular
+    expressions.
+
+    >>> s = pd.Series(["1+1=2"])
+
+    >>> s.str.split(r"\+|=", expand=True)
+         0    1    2
+    0    1    1    2
     """)
 
     @Appender(_shared_docs['str_split'] % {
