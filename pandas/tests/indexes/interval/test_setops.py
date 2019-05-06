@@ -10,6 +10,11 @@ def name(request):
     return request.param
 
 
+@pytest.fixture(params=[None, False])
+def sort(request):
+    return request.param
+
+
 def monotonic_index(start, end, dtype='int64', closed='right'):
     return IntervalIndex.from_breaks(np.arange(start, end, dtype=dtype),
                                      closed=closed)
@@ -21,7 +26,6 @@ def empty_index(dtype='int64', closed='right'):
 
 class TestIntervalIndex:
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union(self, closed, sort):
         index = monotonic_index(0, 11, closed=closed)
         other = monotonic_index(5, 13, closed=closed)
@@ -50,7 +54,6 @@ class TestIntervalIndex:
         result = index.union(other, sort=sort)
         tm.assert_index_equal(result, index)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, closed, sort):
         index = monotonic_index(0, 11, closed=closed)
         other = monotonic_index(5, 13, closed=closed)
@@ -93,7 +96,6 @@ class TestIntervalIndex:
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference(self, closed, sort):
         index = IntervalIndex.from_arrays([1, 0, 3, 2],
                                           [1, 2, 3, 4],
@@ -115,7 +117,6 @@ class TestIntervalIndex:
         result = index.difference(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_symmetric_difference(self, closed, sort):
         index = monotonic_index(0, 11, closed=closed)
         result = index[1:].symmetric_difference(index[:-1], sort=sort)
@@ -139,7 +140,6 @@ class TestIntervalIndex:
 
     @pytest.mark.parametrize('op_name', [
         'union', 'intersection', 'difference', 'symmetric_difference'])
-    @pytest.mark.parametrize("sort", [None, False])
     def test_set_operation_errors(self, closed, op_name, sort):
         index = monotonic_index(0, 11, closed=closed)
         set_op = getattr(index, op_name)
