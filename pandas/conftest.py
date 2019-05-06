@@ -221,6 +221,19 @@ def all_compare_operators(request):
     return request.param
 
 
+@pytest.fixture(params=['__le__', '__lt__', '__ge__', '__gt__'])
+def compare_operators_no_eq_ne(request):
+    """
+    Fixture for dunder names for compare operations except == and !=
+
+    * >=
+    * >
+    * <
+    * <=
+    """
+    return request.param
+
+
 @pytest.fixture(params=[None, 'gzip', 'bz2', 'zip', 'xz'])
 def compression(request):
     """

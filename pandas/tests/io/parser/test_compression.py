@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests compressed data parsing functionality for all
 of the parsers defined in parsers.py

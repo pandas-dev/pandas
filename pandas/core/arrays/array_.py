@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, cast
 
 import numpy as np
 
@@ -229,7 +229,7 @@ def array(data: Sequence[object],
         dtype = registry.find(dtype) or dtype
 
     if is_extension_array_dtype(dtype):
-        cls = dtype.construct_array_type()
+        cls = cast(ExtensionDtype, dtype).construct_array_type()
         return cls._from_sequence(data, dtype=dtype, copy=copy)
 
     if dtype is None:

@@ -1,5 +1,6 @@
 import copy
 import sys
+from typing import Type
 import warnings
 
 import numpy as np
@@ -31,9 +32,9 @@ class _IntegerDtype(ExtensionDtype):
 
     The attributes name & type are set when these subclasses are created.
     """
-    name = None
+    name = None  # type: str
     base = None
-    type = None
+    type = None  # type: Type
     na_value = np.nan
 
     def __repr__(self):
