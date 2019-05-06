@@ -1574,6 +1574,4 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
                            'minor_axis': 'columns'},
                   docs={})
 
-ops.add_special_arithmetic_methods(Panel)
-ops.add_flex_arithmetic_methods(Panel)
 Panel._add_numeric_operations()

@@ -288,20 +288,7 @@ validate_transpose = CompatValidator(TRANSPOSE_DEFAULTS, fname='transpose',
 
 
 def validate_transpose_for_generic(inst, kwargs):
-    try:
-        validate_transpose(tuple(), kwargs)
-    except ValueError as e:
-        klass = type(inst).__name__
-        msg = str(e)
-
-        # the Panel class actual relies on the 'axes' parameter if called
-        # via the 'numpy' library, so let's make sure the error is specific
-        # about saying that the parameter is not supported for particular
-        # implementations of 'transpose'
-        if "the 'axes' parameter is not supported" in msg:
-            msg += " for {klass} instances".format(klass=klass)
-
-        raise ValueError(msg)
+    validate_transpose(tuple(), kwargs)
 
 
 def validate_window_func(name, args, kwargs):
