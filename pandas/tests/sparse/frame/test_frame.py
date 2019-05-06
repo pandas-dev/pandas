@@ -1061,6 +1061,7 @@ class TestSparseDataFrame(SharedWithSparse):
             from_dense_lp = frame.stack().to_frame()
 
             from_sparse_lp = spf.stack_sparse_frame(frame)
+
             tm.assert_numpy_array_equal(from_dense_lp.values,
                                         from_sparse_lp.values)
 

@@ -512,7 +512,6 @@ def test_frame_multi_key_function_list():
 @pytest.mark.parametrize('op', [lambda x: x.sum(), lambda x: x.mean()])
 def test_groupby_multiple_columns(df, op):
     data = df
-
     grouped = data.groupby(['A', 'B'])
 
     result1 = op(grouped)
