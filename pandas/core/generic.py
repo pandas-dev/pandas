@@ -3061,8 +3061,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def get(self, key, default=None):
         """
-        Get item from object for given key (ex: DataFrame column). 
-        
+        Get item from object for given key (ex: DataFrame column).
+
         Returns default value if not found.
 
         Parameters
