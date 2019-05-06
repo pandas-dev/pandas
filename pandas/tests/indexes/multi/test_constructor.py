@@ -107,7 +107,8 @@ def test_copy_in_constructor():
     assert mi.levels[0][0] == val
 
 
-def test_constructor_bad_codes():
+def test_constructor_invalid_codes():
+    """GH # 26210"""
     levels = [['a', 'b'], [1, 2]]
     codes = [[0, 0.5, 1], np.array([0, np.nan, -1])]
     with pytest.raises(TypeError):
