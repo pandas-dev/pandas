@@ -402,9 +402,9 @@ cdef _TSObject create_tsobject_tz_using_offset(int64_t value,
     ----------
     value: int64_t
         numpy dt64
+    tzoffset: int
     tz : tzinfo or None
         timezone for the timezone-aware output.
-    tzoffset: int
 
     Returns
     -------
