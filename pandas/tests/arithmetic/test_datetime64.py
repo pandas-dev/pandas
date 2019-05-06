@@ -1370,6 +1370,14 @@ class TestDatetime64DateOffsetArithmetic:
         tm.assert_equal(result, exp)
         tm.assert_equal(result2, exp)
 
+        # GH 26258
+        date = date_range(start='01 Jan 2014', end='01 Jan 2017', freq='AS')
+        offset = pd.DateOffset(months=3, days=10)
+        result = date + offset
+        exp = DatetimeIndex([Timestamp('2014-04-11'), Timestamp('2015-04-11'),
+                             Timestamp('2016-04-11'), Timestamp('2017-04-11')])
+        tm.assert_equal(result, exp)
+
     # TODO: __sub__, __rsub__
     def test_dt64arr_add_mixed_offset_array(self, box_with_array):
         # GH#10699
