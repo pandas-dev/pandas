@@ -2424,59 +2424,9 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
     return result
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef cnp.ndarray[object] _concat_date_cols_sequence(tuple date_cols,
-                                                    Py_ssize_t rows_count,
-                                                    Py_ssize_t col_count,
-                                                    bint keep_trivial_numbers):
-    """
-    Concatenates elements from sequences into strings.
-
-    Parameters
-    ----------
-    date_cols : tuple of sequences
-    rows_count : Py_ssize_t
-        count of elements from sequences that will be concatenated
-    col_count : Py_ssize_t
-        count of sequences whose elements will be concatenated
-    keep_trivial_numbers : bool, default False
-        if True and len(date_cols) == 1, then
-        conversion (to string from integer/float zero) is not performed
-
-    Returns
-    -------
-    arr_of_rows : ndarray (dtype=object)
-    """
-    cdef:
-        Py_ssize_t col_idx, row_idx
-        list list_to_join
-        cnp.ndarray[object] result
-        object[:] result_view
-
-    result = np.zeros(rows_count, dtype=object)
-
-    # create memoryview of result ndarray - more effecient indexing
-    result_view = result
-
-    if col_count == 1:
-        for row_idx, item in enumerate(date_cols[0]):
-            result_view[row_idx] = convert_to_unicode(item,
-                                                      keep_trivial_numbers)
-    else:
-        list_to_join = [None] * col_count
-        for row_idx in range(rows_count):
-            for col_idx, array in enumerate(date_cols):
-                list_to_join[col_idx] = convert_to_unicode(array[row_idx],
-                                                           False)
-            result_view[row_idx] = PyUnicode_Join(' ', list_to_join)
-
-    return result
-
-
 def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
     """
-    Concatenates elements from sequences in `date_cols` into strings.
+    Concatenates elements from numpy arrays in `date_cols` into strings.
 
     Parameters
     ----------
@@ -2506,9 +2456,6 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
     rows_count = min(len(array) for array in date_cols)
 
     if all(util.is_array(array) for array in date_cols):
-        # call specialized function to increase performance
         return _concat_date_cols_numpy(date_cols, rows_count, col_count,
                                        keep_trivial_numbers)
-    else:
-        return _concat_date_cols_sequence(date_cols, rows_count, col_count,
-                                          keep_trivial_numbers)
+    raise ValueError("not all elements from date_cols are numpy arrays")
