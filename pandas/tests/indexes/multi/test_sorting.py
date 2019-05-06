@@ -263,3 +263,27 @@ def test_argsort(idx):
     result = idx.argsort()
     expected = idx.values.argsort()
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_sort_levels_monotonic_with_negatives():
+    """GH # 26210"""
+    ix = MultiIndex(levels=[['B', 'A'], ['x']],
+                    codes=[[-1, 0, 1], [0, 0, 0]])
+    res = ix._sort_levels_monotonic()
+    expected = MultiIndex(levels=[['A', 'B'], ['x']],
+                          codes=[[-1, 1, 0], [0, 0, 0]])
+    tm.assert_index_equal(res, expected)
+
+
+@pytest.mark.parametrize('na_position', ['first', 'last'])
+def test_sort_index_with_nans(na_position):
+    """GH # 26210"""
+    ix = MultiIndex(levels=[['B', 'A'], ['x']],
+                    codes=[[-1, 0, 1], [0, 0, 0]])
+    s = pd.Series([1, 2, 3], ix)
+    sorted = s.sort_index(na_position=na_position)
+    if na_position == 'first':
+        expected = pd.Series([1, 3, 2], [[np.nan, 'A', 'B'], ['x', 'x', 'x']])
+    else:
+        expected = pd.Series([3, 2, 1], [['A', 'B', np.nan], ['x', 'x', 'x']])
+    tm.assert_series_equal(sorted, expected)

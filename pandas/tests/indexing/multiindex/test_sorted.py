@@ -91,23 +91,3 @@ class TestMultiIndexSorted:
         expected.index = expected.index.droplevel(0)
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
-
-    def test_sort_levels_monotonic_with_negatives(self):
-        ix = MultiIndex(levels=[['B', 'A'], ['x']],
-                        codes=[[-1, 0, 1], [0, 0, 0]])
-        res = ix._sort_levels_monotonic()
-        expected = MultiIndex(levels=[['A', 'B'], ['x']],
-                              codes=[[-1, 1, 0], [0, 0, 0]])
-        tm.assert_index_equal(res, expected)
-
-    @pytest.mark.parametrize('na_position', ['first', 'last'])
-    def test_sort_index_with_nans(self, na_position):
-        ix = MultiIndex(levels=[['B', 'A'], ['x']],
-                        codes=[[-1, 0, 1], [0, 0, 0]])
-        s = Series([1, 2, 3], ix)
-        sorted = s.sort_index(na_position=na_position)
-        if na_position == 'first':
-            expected = Series([1, 3, 2], [[np.nan, 'A', 'B'], ['x', 'x', 'x']])
-        else:
-            expected = Series([3, 2, 1], [['A', 'B', np.nan], ['x', 'x', 'x']])
-        tm.assert_series_equal(sorted, expected)
