@@ -24,7 +24,7 @@ class ConcatDateCols(object):
     param_names = ['value', 'dim']
 
     def setup(self, value, dim):
-        count_elem = 100000
+        count_elem = 10000
         if dim == 1:
             self.object = (np.array([value] * count_elem),)
         if dim == 2:

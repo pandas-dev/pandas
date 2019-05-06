@@ -2352,21 +2352,14 @@ cdef inline object convert_to_unicode(object item,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
-                                                 Py_ssize_t rows_count,
-                                                 Py_ssize_t col_count,
-                                                 bint keep_trivial_numbers):
+def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
     """
-    Concatenates elements from numpy arrays into strings.
+    Concatenates elements from numpy arrays in `date_cols` into strings.
 
     Parameters
     ----------
     date_cols : tuple of numpy arrays
-    rows_count : Py_ssize_t
-        count of elements from arrays that will be concatenated
-    col_count : Py_ssize_t
-        count of arrays whose elements will be concatenated
-    keep_trivial_numbers : bool, default False
+    keep_trivial_numbers : bool, default True
         if True and len(date_cols) == 1, then
         conversion (to string from integer/float zero) is not performed
 
@@ -2374,12 +2367,16 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
     -------
     arr_of_rows : ndarray (dtype=object)
 
-    Notes
-    -----
-    This function speeds up concatenation for numpy arrays.
-    You also can use `_concat_date_cols_sequence` function.
+    Examples
+    --------
+    >>> dates=np.array(['3/31/2019', '4/31/2019'], dtype=object)
+    >>> times=np.array(['11:20', '10:45'], dtype=object)
+    >>> result = _concat_date_cols((dates, times))
+    >>> result
+    array(['3/31/2019 11:20', '4/31/2019 10:45'], dtype=object)
     """
     cdef:
+        Py_ssize_t rows_count = 0, col_count = len(date_cols)
         Py_ssize_t col_idx, row_idx
         list list_to_join
         cnp.ndarray[object] iters
@@ -2388,6 +2385,14 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
         cnp.ndarray[object] result
         object[:] result_view
 
+    if col_count == 0:
+        return np.zeros(0, dtype=object)
+
+
+    if not all(util.is_array(array) for array in date_cols):
+        raise ValueError("not all elements from date_cols are numpy arrays")
+
+    rows_count = min(len(array) for array in date_cols)
     result = np.zeros(rows_count, dtype=object)
     result_view = result
 
@@ -2422,40 +2427,3 @@ cdef cnp.ndarray[object] _concat_date_cols_numpy(tuple date_cols,
             result_view[row_idx] = PyUnicode_Join(' ', list_to_join)
 
     return result
-
-
-def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
-    """
-    Concatenates elements from numpy arrays in `date_cols` into strings.
-
-    Parameters
-    ----------
-    date_cols : tuple of sequences
-    keep_trivial_numbers : bool, default True
-        if True and len(date_cols) == 1, then
-        conversion (to string from integer/float zero) is not performed
-
-    Returns
-    -------
-    arr_of_rows : ndarray (dtype=object)
-
-    Examples
-    --------
-    >>> dates=np.array(['3/31/2019', '4/31/2019'], dtype=object)
-    >>> times=np.array(['11:20', '10:45'], dtype=object)
-    >>> result = _concat_date_cols((dates, times))
-    >>> result
-    array(['3/31/2019 11:20', '4/31/2019 10:45'], dtype=object)
-    """
-    cdef:
-        Py_ssize_t rows_count = 0, col_count = len(date_cols)
-
-    if col_count == 0:
-        return np.zeros(0, dtype=object)
-
-    rows_count = min(len(array) for array in date_cols)
-
-    if all(util.is_array(array) for array in date_cols):
-        return _concat_date_cols_numpy(date_cols, rows_count, col_count,
-                                       keep_trivial_numbers)
-    raise ValueError("not all elements from date_cols are numpy arrays")
