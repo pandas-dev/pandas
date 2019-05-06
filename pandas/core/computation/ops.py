@@ -166,7 +166,8 @@ class Constant(Term):
     def _resolve_name(self):
         return self._name
 
-    @property
+    # read-only property overwriting read/write
+    @property  # type: ignore
     def name(self):
         return self.value
 
