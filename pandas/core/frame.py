@@ -4016,13 +4016,7 @@ class DataFrame(NDFrame):
         >>> df.rename(index=str).index
         Index(['0', '1', '2'], dtype='object')
 
-        >>> df.rename(columns={"A": "a", "C": "c"})
-           a  B
-        0  1  4
-        1  2  5
-        2  3  6
-
-        >>> df.rename(columns={"A": "a", "C": "c"}, errors="raise")
+        >>> df.rename(columns={"A": "a", "B": "b", "C": "c"}, errors="raise")
         Traceback (most recent call last):
         KeyError: ['C'] not found in axis
 
