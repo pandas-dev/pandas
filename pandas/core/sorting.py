@@ -404,7 +404,7 @@ def _reorder_by_uniques(uniques, labels):
     return uniques, labels
 
 
-def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False, 
+def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False,
               verify=True):
     """
     Sort ``values`` and reorder corresponding ``labels``.
