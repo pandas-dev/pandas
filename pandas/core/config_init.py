@@ -9,6 +9,8 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
+from typing import Dict
+
 import pandas._config.config as cf
 from pandas._config.config import (
     is_bool, is_callable, is_instance_factory, is_int, is_one_of_factory,
@@ -277,7 +279,7 @@ pc_latex_multirow = """
     Valid values: False,True
 """
 
-style_backup = dict()
+style_backup = dict()  # type: Dict
 
 
 def table_schema_cb(key):
