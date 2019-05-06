@@ -4004,16 +4004,13 @@ class DataFrame(NDFrame):
         2  3  6
 
         Rename rows using a mapping:
-        >>> df = pd.DataFrame(data={"A": [1, 2, 3], "B": [4, 5, 6]},
-        ...                   index=["X", "Y", "Z"])
-        >>> df.rename(index={"X": "x", "Y": "y", "Z": "z"})
+        >>> df.rename(index={0: "x", 1: "y", 2: "z"})
            A  B
         x  1  4
         y  2  5
         z  3  6
 
         Cast index labels to a different type:
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.index
         RangeIndex(start=0, stop=3, step=1)
         >>> df.rename(index=str).index
