@@ -719,3 +719,11 @@ class TestCategoricalIndex:
         output = cur_index.map(mapper)
         # Order of categories in output can be different
         tm.assert_index_equal(expected, output)
+
+    def test_at_with_categorical_index(self):
+        # GH 20629
+        s = Series([1, 2, 3], index=pd.CategoricalIndex(["A", "B", "C"]))
+        assert s.at['A'] == 1
+        df = DataFrame([[1, 2], [3, 4], [5, 6]],
+                       index=pd.CategoricalIndex(["A", "B", "C"]))
+        assert df.at['B', 1] == 4

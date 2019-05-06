@@ -498,6 +498,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             k = self._convert_scalar_indexer(k, kind='getitem')
             indexer = self.get_loc(k)
             return series.iloc[indexer]
+        except AttributeError:
+            return super().get_value(series, indexer)
         except (KeyError, TypeError):
             pass
 

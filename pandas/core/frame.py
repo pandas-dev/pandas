@@ -2710,13 +2710,19 @@ class DataFrame(NDFrame):
 
         try:
             return engine.get_value(series._values, index)
+        except KeyError as e:
+            if self.index.nlevels > 1:
+                raise e  # partial indexing forbidden
+            else:
+                pass  # GH 20629
         except (TypeError, ValueError):
+            pass
 
-            # we cannot handle direct indexing
-            # use positional
-            col = self.columns.get_loc(col)
-            index = self.index.get_loc(index)
-            return self._get_value(index, col, takeable=True)
+        # we cannot handle direct indexing
+        # use positional
+        col = self.columns.get_loc(col)
+        index = self.index.get_loc(index)
+        return self._get_value(index, col, takeable=True)
     _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
