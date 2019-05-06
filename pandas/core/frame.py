@@ -4003,7 +4003,7 @@ class DataFrame(NDFrame):
         1  2  5
         2  3  6
 
-        Rename rows using a mapping:
+        Rename index using a mapping:
         >>> df.rename(index={0: "x", 1: "y", 2: "z"})
            A  B
         x  1  4
