@@ -1052,12 +1052,13 @@ class TestDocstringClass:
         with pytest.raises(AttributeError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 
-    @pytest.mark.parametrize('name', [
-        'pandas.Series.str.isdecimal', 'pandas.Series.str.islower'])
+    @pytest.mark.parametrize('name', ['pandas.Series.str.isdecimal',
+                                      'pandas.Series.str.islower'])
     def test_encode_content_write_to_file(self, name):
         # GH25466
         docstr = validate_docstrings.Docstring(name).validate_pep8()
-        assert len(list(docstr)) == 0
+        # the list of pep8 errors should be empty
+        assert not list(docstr)
 
 
 class TestMainFunction:
