@@ -1705,9 +1705,10 @@ class MultiIndex(Index):
                 # -1 (if present) is mapped to last position
                 code_mapping = np.zeros(len(lev) + has_na)
                 # ... and reassigned value -1:
-                code_mapping[uniques] = np.arange(len(uniques)) - has_na
+                code_mapping[uniques] = np.arange(len(uniques),
+                                                  dtype=int) - has_na
 
-                level_codes = code_mapping[level_codes].astype(int)
+                level_codes = code_mapping[level_codes]
 
                 # new levels are simple
                 lev = lev.take(uniques[has_na:])
