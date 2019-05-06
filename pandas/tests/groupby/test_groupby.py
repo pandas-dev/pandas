@@ -1,4 +1,4 @@
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from datetime import datetime
 from decimal import Decimal
 from io import StringIO
