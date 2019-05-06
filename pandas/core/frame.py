@@ -842,7 +842,7 @@ class DataFrame(NDFrame):
             tuples.
 
         Yields
-        -------
+        ------
         collections.namedtuple
             Yields a namedtuple for each row in the DataFrame with the first
             field possibly being the index and following fields being the
@@ -7252,7 +7252,7 @@ class DataFrame(NDFrame):
             Pairwise correlations.
 
         See Also
-        -------
+        --------
         DataFrame.corr
         """
         axis = self._get_axis_number(axis)

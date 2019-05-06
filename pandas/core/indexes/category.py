@@ -468,7 +468,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         KeyError : if the key is not in the index
 
         Examples
-        ---------
+        --------
         >>> unique_index = pd.CategoricalIndex(list('abc'))
         >>> unique_index.get_loc('b')
         1

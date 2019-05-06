@@ -213,7 +213,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     been deprecated in favor of :func:`date_range`.
 
     See Also
-    ---------
+    --------
     Index : The base pandas Index type.
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.

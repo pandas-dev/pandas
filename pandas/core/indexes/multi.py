@@ -58,7 +58,7 @@ class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine,
             Combinations of integers (one per row)
 
         Returns
-        ------
+        -------
         int_keys : scalar or 1-dimensional array, of dtype uint64
             Integer(s) representing one combination (each).
         """
@@ -98,7 +98,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
             Combinations of integers (one per row)
 
         Returns
-        ------
+        -------
         int_keys : int, or 1-dimensional array of dtype object
             Integer(s) representing one combination (each).
         """
@@ -181,7 +181,7 @@ class MultiIndex(Index):
     Index : The base pandas Index type.
 
     Examples
-    ---------
+    --------
     A new ``MultiIndex`` is typically constructed using one of the helper
     methods :meth:`MultiIndex.from_arrays`, :meth:`MultiIndex.from_product`
     and :meth:`MultiIndex.from_tuples`. For example (using ``.from_arrays``):
@@ -1399,7 +1399,7 @@ class MultiIndex(Index):
             a single :class:`Index` (or subclass thereof).
 
         Examples
-        ---------
+        --------
 
         Create a MultiIndex:
 
@@ -2361,7 +2361,7 @@ class MultiIndex(Index):
             boolean mask array, otherwise it is always a slice or int.
 
         Examples
-        ---------
+        --------
         >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')])
 
         >>> mi.get_loc('b')
@@ -2371,7 +2371,7 @@ class MultiIndex(Index):
         1
 
         Notes
-        ------
+        -----
         The key cannot be a slice, list of same-level labels, a boolean mask,
         or a sequence of such. If you want to use those, use
         :meth:`MultiIndex.get_locs` instead.
@@ -2479,7 +2479,7 @@ class MultiIndex(Index):
         (1, None)
 
         See Also
-        ---------
+        --------
         MultiIndex.get_loc  : Get location for a label or a tuple of labels.
         MultiIndex.get_locs : Get location for a label/slice/list/mask or a
                               sequence of such.
@@ -2691,7 +2691,7 @@ class MultiIndex(Index):
         locs : array of integers suitable for passing to iloc
 
         Examples
-        ---------
+        --------
         >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')])
 
         >>> mi.get_locs('b')
