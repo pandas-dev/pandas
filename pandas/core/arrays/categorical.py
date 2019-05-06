@@ -2127,8 +2127,8 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         dict of categories -> indexers
 
-        Example
-        -------
+        Examples
+        --------
         In [1]: c = pd.Categorical(list('aabca'))
 
         In [2]: c
