@@ -72,6 +72,14 @@ class SparseDtype(ExtensionDtype):
         =========== ==========
 
         The default value may be overridden by specifying a `fill_value`.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     # We include `_is_na_fill_value` in the metadata to avoid hash collisions
     # between SparseDtype(float, 0.0) and SparseDtype(float, nan).
@@ -110,7 +118,7 @@ class SparseDtype(ExtensionDtype):
     def __hash__(self):
         # Python3 doesn't inherit __hash__ when a base class overrides
         # __eq__, so we explicitly do it here.
-        return super(SparseDtype, self).__hash__()
+        return super().__hash__()
 
     def __eq__(self, other):
         # We have to override __eq__ to handle NA values in _metadata.
@@ -1593,8 +1601,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
                    'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
-        if compat.PY2:
-            special.add('div')
         aliases = {
             'subtract': 'sub',
             'multiply': 'mul',
@@ -1763,7 +1769,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def _add_comparison_ops(cls):
         cls.__and__ = cls._create_comparison_method(operator.and_)
         cls.__or__ = cls._create_comparison_method(operator.or_)
-        super(SparseArray, cls)._add_comparison_ops()
+        super()._add_comparison_ops()
 
     # ----------
     # Formatting

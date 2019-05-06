@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 
 from cpython cimport (
@@ -1557,7 +1556,7 @@ class IncompatibleFrequency(ValueError):
     pass
 
 
-cdef class _Period(object):
+cdef class _Period:
 
     cdef readonly:
         int64_t ordinal
@@ -2224,10 +2223,7 @@ cdef class _Period(object):
 
     def __unicode__(self):
         """
-        Return a string representation for a particular DataFrame
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a unicode string representation for a particular DataFrame
         """
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)

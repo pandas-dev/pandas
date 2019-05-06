@@ -229,7 +229,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     return op.get_result()
 
 
-class _Concatenator(object):
+class _Concatenator:
     """
     Orchestrates a concatenation operation for BlockManagers
     """
@@ -452,7 +452,7 @@ class _Concatenator(object):
                                      "to {length}".format(length=ndim - 1))
 
             # ufff...
-            indices = compat.lrange(ndim)
+            indices = list(range(ndim))
             indices.remove(self.axis)
 
             for i, ax in zip(indices, self.join_axes):

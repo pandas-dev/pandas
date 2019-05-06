@@ -22,8 +22,7 @@ from pandas._config.localization import (  # noqa:F401
     can_set_locale, get_locales, set_locale)
 
 from pandas._libs import testing as _testing
-import pandas.compat as compat
-from pandas.compat import lmap, lrange, lzip, raise_with_traceback
+from pandas.compat import lmap, lzip, raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -365,7 +364,7 @@ def randbool(size=(), p=0.5):
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits),
                        dtype=(np.str_, 1))
-RANDU_CHARS = np.array(list("".join(map(chr, lrange(1488, 1488 + 26))) +
+RANDU_CHARS = np.array(list("".join(map(chr, range(1488, 1488 + 26))) +
                             string.digits), dtype=(np.unicode_, 1))
 
 
@@ -991,6 +990,12 @@ def assert_series_equal(left, right, check_dtype=True,
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare.
+
+        When comparing two numbers, if the first number has magnitude less
+        than 1e-5, we compare the two numbers directly and check whether
+        they are equivalent within the specified precision. Otherwise, we
+        compare the **ratio** of the second number to the first number and
+        check whether it is equivalent to 1 within the specified precision.
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
     check_exact : bool, default False
@@ -1132,6 +1137,12 @@ def assert_frame_equal(left, right, check_dtype=True,
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare.
+
+        When comparing two numbers, if the first number has magnitude less
+        than 1e-5, we compare the two numbers directly and check whether
+        they are equivalent within the specified precision. Otherwise, we
+        compare the **ratio** of the second number to the first number and
+        check whether it is equivalent to 1 within the specified precision.
     check_names : bool, default True
         Whether to check that the `names` attribute for both the `index`
         and `column` attributes of the DataFrame is identical, i.e.
@@ -1499,7 +1510,7 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
     if check_fill_value:
         assert_attr_equal('default_fill_value', left, right, obj=obj)
 
-    for col, series in compat.iteritems(left):
+    for col, series in left.items():
         assert (col in right)
         # trade-off?
 
@@ -1581,11 +1592,11 @@ def makeBoolIndex(k=10, name=None):
 
 
 def makeIntIndex(k=10, name=None):
-    return Index(lrange(k), name=name)
+    return Index(list(range(k)), name=name)
 
 
 def makeUIntIndex(k=10, name=None):
-    return Index([2**63 + i for i in lrange(k)], name=name)
+    return Index([2**63 + i for i in range(k)], name=name)
 
 
 def makeRangeIndex(k=10, name=None, **kwargs):
@@ -2264,7 +2275,7 @@ item assignment"
         return manager
 
 
-class _AssertRaisesContextmanager(object):
+class _AssertRaisesContextmanager:
     """
     Context manager behind `assert_raises_regex`.
     """
@@ -2459,7 +2470,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             )
 
 
-class RNGContext(object):
+class RNGContext:
     """
     Context manager to set the numpy random number generator speed. Returns
     to the original value upon exiting the context manager.

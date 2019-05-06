@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
 
 import numpy as np
@@ -164,6 +162,21 @@ class TestDataFrameConcatCommon():
         dicts = [{'foo': 1, 'bar': 2, 'baz': 3, 'peekaboo': 4},
                  {'foo': 5, 'bar': 6, 'baz': 7, 'peekaboo': 8}]
         result = df.append(dicts, ignore_index=True, sort=True)
+        expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
+        assert_frame_equal(result, expected)
+
+    def test_append_missing_cols(self):
+        # GH22252
+        # exercise the conditional branch in append method where the data
+        # to be appended is a list and does not contain all columns that are in
+        # the target DataFrame
+        df = DataFrame(np.random.randn(5, 4),
+                       columns=['foo', 'bar', 'baz', 'qux'])
+
+        dicts = [{'foo': 9}, {'bar': 10}]
+        with tm.assert_produces_warning(None):
+            result = df.append(dicts, ignore_index=True, sort=True)
+
         expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
         assert_frame_equal(result, expected)
 

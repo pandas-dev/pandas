@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -8,7 +6,7 @@ from pandas import PeriodIndex, period_range
 import pandas.util.testing as tm
 
 
-class TestPeriodIndexArithmetic(object):
+class TestPeriodIndexArithmetic:
     # ---------------------------------------------------------------
     # PeriodIndex.shift is used by __add__ and __sub__
 

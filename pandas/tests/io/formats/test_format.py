@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
@@ -103,7 +101,7 @@ def has_expanded_repr(df):
     return False
 
 
-class TestDataFrameFormatting(object):
+class TestDataFrameFormatting:
 
     def setup_method(self, method):
         self.warn_filters = warnings.filters
@@ -1370,6 +1368,19 @@ class TestDataFrameFormatting(object):
                     '5.0  4')
         assert result == expected
 
+    def test_to_string_complex_float_formatting(self):
+        # GH #25514
+        with pd.option_context('display.precision', 5):
+            df = DataFrame({'x': [
+                (0.4467846931321966 + 0.0715185102060818j),
+                (0.2739442392974528 + 0.23515228785438969j),
+                (0.26974928742135185 + 0.3250604054898979j)]})
+            result = df.to_string()
+            expected = ('                  x\n0  0.44678+0.07152j\n'
+                        '1  0.27394+0.23515j\n'
+                        '2  0.26975+0.32506j')
+            assert result == expected
+
     def test_to_string_ascii_error(self):
         data = [('0  ', '                        .gitignore ', '     5 ',
                  ' \xe2\x80\xa2\xe2\x80\xa2\xe2\x80'
@@ -1706,7 +1717,7 @@ c  10  11  12  13  14\
         If the test fails, it at least won't hang.
         """
 
-        class A(object):
+        class A:
             def __getitem__(self, key):
                 return 3  # obviously simplified
 
@@ -1759,7 +1770,7 @@ def gen_series_formatting():
     return test_sers
 
 
-class TestSeriesFormatting(object):
+class TestSeriesFormatting:
 
     def setup_method(self, method):
         self.ts = tm.makeTimeSeries()
@@ -2342,7 +2353,7 @@ def _three_digit_exp():
     return '{x:.4g}'.format(x=1.7e8) == '1.7e+008'
 
 
-class TestFloatArrayFormatter(object):
+class TestFloatArrayFormatter:
 
     def test_misc(self):
         obj = fmt.FloatArrayFormatter(np.array([], dtype=np.float64))
@@ -2428,7 +2439,7 @@ class TestFloatArrayFormatter(object):
             assert str(df) == '            x\n0  1.2346e+04\n1  2.0000e+06'
 
 
-class TestRepr_timedelta64(object):
+class TestRepr_timedelta64:
 
     def test_none(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2494,7 +2505,7 @@ class TestRepr_timedelta64(object):
         assert drepr(-delta_1d + delta_1ns) == "-1 days +00:00:00.000000001"
 
 
-class TestTimedelta64Formatter(object):
+class TestTimedelta64Formatter:
 
     def test_days(self):
         x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
@@ -2540,7 +2551,7 @@ class TestTimedelta64Formatter(object):
         assert result[0].strip() == "'0 days'"
 
 
-class TestDatetime64Formatter(object):
+class TestDatetime64Formatter:
 
     def test_mixed(self):
         x = Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])
@@ -2621,7 +2632,7 @@ class TestDatetime64Formatter(object):
         assert result == ['10:10', '12:12']
 
 
-class TestNaTFormatting(object):
+class TestNaTFormatting:
 
     def test_repr(self):
         assert repr(pd.NaT) == "NaT"
@@ -2630,7 +2641,7 @@ class TestNaTFormatting(object):
         assert str(pd.NaT) == "NaT"
 
 
-class TestDatetimeIndexFormat(object):
+class TestDatetimeIndexFormat:
 
     def test_datetime(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1, 12), pd.NaT]).format()
@@ -2657,7 +2668,7 @@ class TestDatetimeIndexFormat(object):
         assert formatted[1] == "UT"
 
 
-class TestDatetimeIndexUnicode(object):
+class TestDatetimeIndexUnicode:
 
     def test_dates(self):
         text = str(pd.to_datetime([datetime(2013, 1, 1), datetime(2014, 1, 1)
@@ -2672,7 +2683,7 @@ class TestDatetimeIndexUnicode(object):
         assert "'2014-01-01 00:00:00']" in text
 
 
-class TestStringRepTimestamp(object):
+class TestStringRepTimestamp:
 
     def test_no_tz(self):
         dt_date = datetime(2013, 1, 2)

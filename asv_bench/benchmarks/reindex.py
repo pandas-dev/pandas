@@ -5,7 +5,7 @@ from pandas import (DataFrame, Series, MultiIndex, Index, date_range,
 from .pandas_vb_common import lib
 
 
-class Reindex(object):
+class Reindex:
 
     def setup(self):
         rng = date_range(start='1/1/1970', periods=10000, freq='1min')
@@ -33,7 +33,7 @@ class Reindex(object):
         self.s.reindex(self.s_subset.index)
 
 
-class ReindexMethod(object):
+class ReindexMethod:
 
     params = [['pad', 'backfill'], [date_range, period_range]]
     param_names = ['method', 'constructor']
@@ -47,7 +47,7 @@ class ReindexMethod(object):
         self.ts.reindex(self.idx, method=method)
 
 
-class Fillna(object):
+class Fillna:
 
     params = ['pad', 'backfill']
     param_names = ['method']
@@ -66,7 +66,7 @@ class Fillna(object):
         self.ts_float32.fillna(method=method)
 
 
-class LevelAlign(object):
+class LevelAlign:
 
     def setup(self):
         self.index = MultiIndex(
@@ -86,7 +86,7 @@ class LevelAlign(object):
         self.df_level.reindex(self.index, level=1)
 
 
-class DropDuplicates(object):
+class DropDuplicates:
 
     params = [True, False]
     param_names = ['inplace']
@@ -130,7 +130,7 @@ class DropDuplicates(object):
         self.df_bool.drop_duplicates(inplace=inplace)
 
 
-class Align(object):
+class Align:
     # blog "pandas escaped the zoo"
     def setup(self):
         n = 50000
@@ -145,7 +145,7 @@ class Align(object):
         self.x + self.y
 
 
-class LibFastZip(object):
+class LibFastZip:
 
     def setup(self):
         N = 10000

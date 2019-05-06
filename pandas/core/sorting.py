@@ -5,7 +5,6 @@ import numpy as np
 
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
-from pandas.compat import PY3
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
@@ -285,7 +284,7 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
     return indexer
 
 
-class _KeyMapper(object):
+class _KeyMapper:
 
     """
     Ease my suffering. Map compressed group id -> key tuple

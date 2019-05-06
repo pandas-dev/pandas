@@ -245,16 +245,34 @@ class TestDataFramePlots(TestPlotBase):
         # TODO add MultiIndex test
 
     @pytest.mark.slow
-    def test_logscales(self):
+    @pytest.mark.parametrize("input_log, expected_log", [
+        (True, 'log'),
+        ('sym', 'symlog')
+    ])
+    def test_logscales(self, input_log, expected_log):
         df = DataFrame({'a': np.arange(100)}, index=np.arange(100))
-        ax = df.plot(logy=True)
-        self._check_ax_scales(ax, yaxis='log')
 
-        ax = df.plot(logx=True)
-        self._check_ax_scales(ax, xaxis='log')
+        ax = df.plot(logy=input_log)
+        self._check_ax_scales(ax, yaxis=expected_log)
+        assert ax.get_yscale() == expected_log
 
-        ax = df.plot(loglog=True)
-        self._check_ax_scales(ax, xaxis='log', yaxis='log')
+        ax = df.plot(logx=input_log)
+        self._check_ax_scales(ax, xaxis=expected_log)
+        assert ax.get_xscale() == expected_log
+
+        ax = df.plot(loglog=input_log)
+        self._check_ax_scales(ax, xaxis=expected_log, yaxis=expected_log)
+        assert ax.get_xscale() == expected_log
+        assert ax.get_yscale() == expected_log
+
+    @pytest.mark.parametrize("input_param", ["logx", "logy", "loglog"])
+    def test_invalid_logscale(self, input_param):
+        # GH: 24867
+        df = DataFrame({'a': np.arange(100)}, index=np.arange(100))
+
+        msg = "Boolean, None and 'sym' are valid options, 'sm' is given."
+        with pytest.raises(ValueError, match=msg):
+            df.plot(**{input_param: "sm"})
 
     @pytest.mark.slow
     def test_xcompat(self):
@@ -2976,6 +2994,40 @@ class TestDataFramePlots(TestPlotBase):
         ax = getattr(df.plot, method)(**kwargs)
         self._check_ticks_props(axes=ax.right_ax,
                                 ylabelsize=fontsize)
+
+    @pytest.mark.slow
+    def test_x_string_values_ticks(self):
+        # Test if string plot index have a fixed xtick position
+        # GH: 7612, GH: 22334
+        df = pd.DataFrame({'sales': [3, 2, 3],
+                           'visits': [20, 42, 28],
+                           'day': ['Monday', 'Tuesday', 'Wednesday']})
+        ax = df.plot.area(x='day')
+        ax.set_xlim(-1, 3)
+        xticklabels = [t.get_text() for t in ax.get_xticklabels()]
+        labels_position = dict(zip(xticklabels, ax.get_xticks()))
+        # Testing if the label stayed at the right position
+        assert labels_position['Monday'] == 0.0
+        assert labels_position['Tuesday'] == 1.0
+        assert labels_position['Wednesday'] == 2.0
+
+    @pytest.mark.slow
+    def test_x_multiindex_values_ticks(self):
+        # Test if multiindex plot index have a fixed xtick position
+        # GH: 15912
+        index = pd.MultiIndex.from_product([[2012, 2013], [1, 2]])
+        df = pd.DataFrame(np.random.randn(4, 2),
+                          columns=['A', 'B'],
+                          index=index)
+        ax = df.plot()
+        ax.set_xlim(-1, 4)
+        xticklabels = [t.get_text() for t in ax.get_xticklabels()]
+        labels_position = dict(zip(xticklabels, ax.get_xticks()))
+        # Testing if the label stayed at the right position
+        assert labels_position['(2012, 1)'] == 0.0
+        assert labels_position['(2012, 2)'] == 1.0
+        assert labels_position['(2013, 1)'] == 2.0
+        assert labels_position['(2013, 2)'] == 3.0
 
 
 def _generate_4_axes_via_gridspec():

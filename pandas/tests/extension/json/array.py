@@ -27,12 +27,7 @@ from pandas.core.arrays import ExtensionArray
 class JSONDtype(ExtensionDtype):
     type = abc.Mapping
     name = 'json'
-
-    try:
-        na_value = UserDict()
-    except AttributeError:
-        # source compatibility with Py2.
-        na_value = {}
+    na_value = UserDict()
 
     @classmethod
     def construct_array_type(cls):

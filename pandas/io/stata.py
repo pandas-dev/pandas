@@ -23,15 +23,15 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import lmap, lrange, lzip
+from pandas.compat import lmap, lzip
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_datetime64_dtype)
 
 from pandas import (
-    Categorical, DatetimeIndex, NaT, Timestamp, compat, concat, isna,
-    to_datetime, to_timedelta)
+    Categorical, DatetimeIndex, NaT, Timestamp, concat, isna, to_datetime,
+    to_timedelta)
 from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
@@ -592,7 +592,7 @@ def _cast_to_stata_types(data):
     return data
 
 
-class StataValueLabel(object):
+class StataValueLabel:
     """
     Parse a categorical column and prepare formatted output
 
@@ -833,7 +833,7 @@ class StataMissingValue(StringMixin):
         return value
 
 
-class StataParser(object):
+class StataParser:
 
     def __init__(self):
 
@@ -874,7 +874,7 @@ class StataParser(object):
                     (65530, np.int8)
                 ]
             )
-        self.TYPE_MAP = lrange(251) + list('bhlfd')
+        self.TYPE_MAP = list(range(251)) + list('bhlfd')
         self.TYPE_MAP_XML = \
             dict(
                 [
@@ -955,7 +955,7 @@ class StataReader(StataParser, BaseIterator):
                  convert_missing=False, preserve_dtypes=True,
                  columns=None, order_categoricals=True,
                  encoding=None, chunksize=None):
-        super(StataReader, self).__init__()
+        super().__init__()
         self.col_sizes = ()
 
         # Arguments to the reader (can be temporarily overridden in
@@ -1700,7 +1700,7 @@ the string values returned are correct."""
         """
         Converts categorical columns to Categorical type.
         """
-        value_labels = list(compat.iterkeys(value_label_dict))
+        value_labels = list(value_label_dict.keys())
         cat_converted_data = []
         for col, label in zip(data, lbllist):
             if label in value_labels:
@@ -1997,7 +1997,7 @@ class StataWriter(StataParser):
     def __init__(self, fname, data, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
                  data_label=None, variable_labels=None):
-        super(StataWriter, self).__init__()
+        super().__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates
         self._write_index = write_index
         self._encoding = 'latin-1'
@@ -2483,7 +2483,7 @@ def _pad_bytes_new(name, length):
     return name + b'\x00' * (length - len(name))
 
 
-class StataStrLWriter(object):
+class StataStrLWriter:
     """
     Converter for Stata StrLs
 
@@ -2750,11 +2750,10 @@ class StataWriter117(StataWriter):
         # Shallow copy since convert_strl might be modified later
         self._convert_strl = [] if convert_strl is None else convert_strl[:]
 
-        super(StataWriter117, self).__init__(fname, data, convert_dates,
-                                             write_index, byteorder=byteorder,
-                                             time_stamp=time_stamp,
-                                             data_label=data_label,
-                                             variable_labels=variable_labels)
+        super().__init__(fname, data, convert_dates, write_index,
+                         byteorder=byteorder, time_stamp=time_stamp,
+                         data_label=data_label,
+                         variable_labels=variable_labels)
         self._map = None
         self._strl_blob = None
 

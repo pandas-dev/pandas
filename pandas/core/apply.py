@@ -31,7 +31,7 @@ def frame_apply(obj, func, axis=0, broadcast=None,
                  args=args, kwds=kwds)
 
 
-class FrameApply(object):
+class FrameApply:
 
     def __init__(self, obj, func, broadcast, raw, reduce, result_type,
                  ignore_failures, args, kwds):
@@ -317,7 +317,7 @@ class FrameRowApply(FrameApply):
     axis = 0
 
     def apply_broadcast(self):
-        return super(FrameRowApply, self).apply_broadcast(self.obj)
+        return super().apply_broadcast(self.obj)
 
     @property
     def series_generator(self):
@@ -356,7 +356,7 @@ class FrameColumnApply(FrameApply):
     axis = 1
 
     def apply_broadcast(self):
-        result = super(FrameColumnApply, self).apply_broadcast(self.obj.T)
+        result = super().apply_broadcast(self.obj.T)
         return result.T
 
     @property

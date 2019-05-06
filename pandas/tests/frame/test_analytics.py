@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import timedelta
 import operator
 from string import ascii_lowercase
@@ -231,7 +229,7 @@ def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
         getattr(bool_frame_with_na, opname)(axis=1, bool_only=False)
 
 
-class TestDataFrameAnalytics(object):
+class TestDataFrameAnalytics:
 
     # ---------------------------------------------------------------------
     # Correlation and covariance
@@ -2242,7 +2240,7 @@ def df_main_dtypes():
                  'timedelta'])
 
 
-class TestNLargestNSmallest(object):
+class TestNLargestNSmallest:
 
     dtype_error_msg_template = ("Column {column!r} has dtype {dtype}, cannot "
                                 "use method {method!r} with this dtype")

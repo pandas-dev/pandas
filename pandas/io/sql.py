@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
@@ -188,7 +187,6 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
         Attempts to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Can result in loss of Precision.
     parse_dates : list or dict, default None
-        The behavior is as follows:
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
           strftime compatible in case of parsing string times or is one of
@@ -1280,7 +1278,7 @@ class SQLiteTable(SQLTable):
         # this will transform time(12,34,56,789) into '12:34:56.000789'
         # (this is what sqlalchemy does)
         sqlite3.register_adapter(time, lambda _: _.strftime("%H:%M:%S.%f"))
-        super(SQLiteTable, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def sql_schema(self):
         return str(";\n".join(self.table))
