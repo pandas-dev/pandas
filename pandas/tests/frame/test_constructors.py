@@ -7,7 +7,7 @@ import numpy as np
 import numpy.ma as ma
 import pytest
 
-from pandas.compat import PY36, is_platform_little_endian, lmap, lrange, lzip
+from pandas.compat import PY36, is_platform_little_endian, lmap, lrange
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
@@ -132,12 +132,11 @@ class TestDataFrameConstructors(TestData):
                 arrays = [np.array(np.random.randint(
                     10, size=10), dtype=d) for d in dtypes]
 
-            zipper = lzip(dtypes, arrays)
-            for d, a in zipper:
+            for d, a in zip(dtypes, arrays):
                 assert(a.dtype == d)
             if ad is None:
                 ad = dict()
-            ad.update({d: a for d, a in zipper})
+            ad.update({d: a for d, a in zip(dtypes, arrays)})
             return DataFrame(ad)
 
         def _check_mixed_dtypes(df, dtypes=None):
