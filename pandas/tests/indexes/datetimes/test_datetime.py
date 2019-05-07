@@ -4,8 +4,6 @@ import dateutil
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets)
@@ -102,7 +100,7 @@ class TestDatetimeIndex:
         # GH#2658
         start = '2013-01-07'
         idx = date_range(start=start, freq="1d", periods=10, tz='US/Eastern')
-        df = DataFrame(lrange(10), index=idx)
+        df = DataFrame(np.arange(10), index=idx)
         df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
 
     def test_append_join_nondatetimeindex(self):

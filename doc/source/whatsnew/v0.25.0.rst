@@ -274,7 +274,7 @@ Datetimelike
 - Bug in :class:`DataFrame` and :class:`Series` where timezone aware data with ``dtype='datetime64[ns]`` was not cast to naive (:issue:`25843`)
 - Improved :class:`Timestamp` type checking in various datetime functions to prevent exceptions when using a subclassed ``datetime`` (:issue:`25851`)
 - Bug in :class:`Series` and :class:`DataFrame` repr where ``np.datetime64('NaT')`` and ``np.timedelta64('NaT')`` with ``dtype=object`` would be represented as ``NaN`` (:issue:`25445`)
--
+- Bug in :func:`to_datetime` which does not replace the invalid argument with ``NaT`` when error is set to coerce (:issue:`26122`)
 
 Timedelta
 ^^^^^^^^^
@@ -428,6 +428,7 @@ Other
 ^^^^^
 
 - Removed unused C functions from vendored UltraJSON implementation (:issue:`26198`)
+- Bug in :func:`factorize` when passing an ``ExtensionArray`` with a custom ``na_sentinel`` (:issue:`25696`).
 
 
 .. _whatsnew_0.250.contributors:

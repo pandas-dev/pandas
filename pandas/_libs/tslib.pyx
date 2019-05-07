@@ -204,7 +204,7 @@ def _test_parse_iso8601(object ts):
     elif ts == 'today':
         return Timestamp.now().normalize()
 
-    _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
+    _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset, True)
     obj.value = dtstruct_to_dt64(&obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
@@ -511,6 +511,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
         int out_local=0, out_tzoffset=0
         float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
+        bint string_to_dts_failed
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
@@ -578,10 +579,12 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                         iresult[i] = NPY_NAT
                         continue
 
-                    try:
-                        _string_to_dts(val, &dts, &out_local, &out_tzoffset)
-                    except ValueError:
-                        # A ValueError at this point is a _parsing_ error
+                    string_to_dts_failed = _string_to_dts(
+                        val, &dts, &out_local,
+                        &out_tzoffset, False
+                    )
+                    if string_to_dts_failed:
+                        # An error at this point is a _parsing_ error
                         # specifically _not_ OutOfBoundsDatetime
                         if _parse_today_now(val, &iresult[i]):
                             continue
@@ -623,14 +626,8 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
 
                         _ts = convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
-                    except:
-                        # TODO: What exception are we concerned with here?
-                        if is_coerce:
-                            iresult[i] = NPY_NAT
-                            continue
-                        raise
-                    else:
-                        # No error raised by string_to_dts, pick back up
+                    if not string_to_dts_failed:
+                        # No error reported by string_to_dts, pick back up
                         # where we left off
                         value = dtstruct_to_dt64(&dts)
                         if out_local == 1:
@@ -682,7 +679,8 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
         return ignore_errors_out_of_bounds_fallback(values), tz_out
 
     except TypeError:
-        return array_to_datetime_object(values, is_raise, dayfirst, yearfirst)
+        return array_to_datetime_object(values, errors,
+                                        dayfirst, yearfirst)
 
     if seen_datetime and seen_integer:
         # we have mixed datetimes & integers
@@ -697,7 +695,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
         elif is_raise:
             raise ValueError("mixed datetimes and integers in passed array")
         else:
-            return array_to_datetime_object(values, is_raise,
+            return array_to_datetime_object(values, errors,
                                             dayfirst, yearfirst)
 
     if seen_datetime_offset and not utc_convert:
@@ -709,7 +707,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
         #    (with individual dateutil.tzoffsets) are returned
         is_same_offsets = len(out_tzoffset_vals) == 1
         if not is_same_offsets:
-            return array_to_datetime_object(values, is_raise,
+            return array_to_datetime_object(values, errors,
                                             dayfirst, yearfirst)
         else:
             tz_offset = out_tzoffset_vals.pop()
@@ -757,7 +755,7 @@ cdef inline ignore_errors_out_of_bounds_fallback(ndarray[object] values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
+cdef array_to_datetime_object(ndarray[object] values, str errors,
                               bint dayfirst=False, bint yearfirst=False):
     """
     Fall back function for array_to_datetime
@@ -769,7 +767,7 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
     ----------
     values : ndarray of object
          date-like objects to convert
-    is_raise : bool
+    errors : str, default 'raise'
          error behavior when parsing
     dayfirst : bool, default False
          dayfirst parsing behavior when encountering datetime strings
@@ -783,8 +781,13 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
     cdef:
         Py_ssize_t i, n = len(values)
         object val,
+        bint is_ignore = errors == 'ignore'
+        bint is_coerce = errors == 'coerce'
+        bint is_raise = errors == 'raise'
         ndarray[object] oresult
         npy_datetimestruct dts
+
+    assert is_raise or is_ignore or is_coerce
 
     oresult = np.empty(n, dtype=object)
 
@@ -806,6 +809,9 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
                 pydatetime_to_dt64(oresult[i], &dts)
                 check_dts_bounds(&dts)
             except (ValueError, OverflowError):
+                if is_coerce:
+                    oresult[i] = NaT
+                    continue
                 if is_raise:
                     raise
                 return values, None
