@@ -8,7 +8,7 @@ from textwrap import dedent
 import warnings
 
 import numpy as np
-import pandas as pd
+
 from pandas._config import get_option
 
 from pandas._libs import iNaT, index as libindex, lib, tslibs
@@ -28,6 +28,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import (
     isna, na_value_for_dtype, notna, remove_na_arraylike)
 
+import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, SparseArray
@@ -3679,10 +3680,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 mapped = lib.map_infer(values, f, convert=convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], Series):
-            from pandas.core.frame import DataFrame
             # GH 25959 use pd.array instead of tolist
             # so extension arrays can be used
-            return DataFrame(pd.array(mapped), index=self.index)
+            return pd.DataFrame(pd.array(mapped), index=self.index)
         else:
             return self._constructor(mapped,
                                      index=self.index).__finalize__(self)
