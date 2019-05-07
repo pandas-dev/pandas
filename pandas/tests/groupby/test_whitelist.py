@@ -180,7 +180,7 @@ def test_regression_whitelist_methods(
     else:
         frame = raw_frame.T
 
-    groupby_kwargs = {'level': level, 'axis': axis, 'sort': sort} #, 'as_index': as_index}
+    groupby_kwargs = {'level': level, 'axis': axis, 'sort': sort, 'as_index': as_index}
     group_op_kwargs = {}
     frame_op_kwargs = {'level': level, 'axis': axis}
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
@@ -190,11 +190,16 @@ def test_regression_whitelist_methods(
     grouped = frame.groupby(**groupby_kwargs)
     result = getattr(grouped, op)(**group_op_kwargs)
     expected = getattr(frame, op)(**frame_op_kwargs)
-    if as_index:
-        pass
 
     if sort:
         expected = expected.sort_index(axis=axis, level=level)
+
+    if not as_index:
+        expected = expected.reset_index()
+        if level == 0:
+            expected = expected.drop(columns=['first'])
+        if level == 1:
+            expected = expected.drop(columns=['second'])
 
     tm.assert_frame_equal(result, expected)
 
