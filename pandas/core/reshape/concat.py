@@ -34,7 +34,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     Parameters
     ----------
-    objs : a sequence or mapping of Series, DataFrame, or Panel objects
+    objs : a sequence or mapping of Series or DataFrame objects
         If a dict is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless

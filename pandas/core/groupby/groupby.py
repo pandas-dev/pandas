@@ -51,7 +51,6 @@ _common_see_also = """
         --------
         Series.%(name)s
         DataFrame.%(name)s
-        Panel.%(name)s
 """
 
 _apply_docs = dict(
