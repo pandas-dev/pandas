@@ -2691,4 +2691,4 @@ def _factorize_from_iterables(iterables):
     if len(iterables) == 0:
         # For consistency, it should return a list of 2 lists.
         return [[], []]
-    return map(list, zip(*[_factorize_from_iterable(it) for it in iterables]))
+    return map(list, zip(*(_factorize_from_iterable(it) for it in iterables)))

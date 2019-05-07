@@ -6502,7 +6502,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 regex = True
 
             items = list(to_replace.items())
-            keys, values = zip(*items) if len(items) else ([], [])
+            keys, values = zip(*items) if items else ([], [])
 
             are_mappings = [is_dict_like(v) for v in values]
 
