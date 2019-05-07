@@ -39,6 +39,7 @@ Other Enhancements
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
+- :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
 
 .. _whatsnew_0250.api_breaking:
 
