@@ -7924,7 +7924,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        rule : DateOffset object or str
+        rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
         how : str
             Method for down/re-sampling, default to 'mean' for downsampling.
