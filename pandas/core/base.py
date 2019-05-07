@@ -837,7 +837,10 @@ class IndexOpsMixin:
         [a, b, a]
         Categories (2, object): [a, b]
         """
-        result = self._values
+        # As a mixin, we depend on the mixing class having _values.
+        # Special mixin syntax may be developed in the future:
+        # https://github.com/python/typing/issues/246
+        result = self._values  # type: ignore
 
         if is_datetime64_ns_dtype(result.dtype):
             from pandas.arrays import DatetimeArray
@@ -960,7 +963,10 @@ class IndexOpsMixin:
         """
         if is_extension_array_dtype(self):
             return self.array._ndarray_values
-        return self.values
+        # As a mixin, we depend on the mixing class having values.
+        # Special mixin syntax may be developed in the future:
+        # https://github.com/python/typing/issues/246
+        return self.values  # type: ignore
 
     @property
     def empty(self):
