@@ -2,6 +2,8 @@
 Tests for scalar Timedelta arithmetic ops
 """
 from datetime import datetime, timedelta
+from hypothesis import given
+import hypothesis.strategies as st
 import operator
 
 import numpy as np
@@ -11,6 +13,17 @@ import pandas as pd
 from pandas import NaT, Timedelta, Timestamp
 from pandas.core import ops
 import pandas.util.testing as tm
+
+from sys import maxsize
+
+
+# Min/max 64-bit int size to construct Timestamps for Hypothesis testing
+MIN_TIMESTAMP_INT = -maxsize + 808
+MAX_TIMESTAMP_INT = maxsize
+
+# Min/max 64-bit int size to construct Timedeltas for Hypothesis testing
+MIN_TIMEDELTA_INT = -maxsize + 808
+MAX_TIMEDELTA_INT = maxsize
 
 
 class TestTimedeltaAdditionSubtraction:
@@ -237,6 +250,33 @@ class TestTimedeltaAdditionSubtraction:
                         Timedelta('2D')])
         res = op(arr, Timedelta('1D'))
         tm.assert_numpy_array_equal(res, exp)
+
+    @given(ts_constructor=st.integers(min_value=MIN_TIMESTAMP_INT,
+                                      max_value=MAX_TIMESTAMP_INT),
+           td_constructor=st.integers(min_value=MIN_TIMEDELTA_INT,
+                                      max_value=MAX_TIMEDELTA_INT))
+    def test_add_sub_hypothesis(self, ts_constructor, td_constructor):
+        """Test Timedelta addition and subtraction, using the Hypothesis
+        property-testing library."""
+
+        timestamp = pd.Timestamp(ts_constructor)
+        timedelta = pd.Timedelta(td_constructor)
+
+        # If our constructed Timestamp + Timedelta < pd.Timestamp.max,
+        # addition should work
+        try:
+            assert timestamp + timedelta == \
+                pd.Timestamp(ts_constructor + td_constructor)
+        except(OverflowError):
+            pass
+
+        # If our constructed Timestamp - Timedelta < pd.Timestamp.min,
+        # subtraction should work
+        try:
+            assert timestamp - timedelta == \
+                pd.Timestamp(ts_constructor - td_constructor)
+        except(OverflowError):
+            pass
 
 
 class TestTimedeltaMultiplicationDivision:
