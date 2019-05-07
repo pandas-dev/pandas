@@ -2329,22 +2329,21 @@ cdef inline object convert_to_unicode(object item,
 
     Returns
     -------
-    str
+    str or int or float
     """
     cdef:
-        bint do_convert = 1
         float64_t float_item
 
     if keep_trivial_numbers:
         if isinstance(item, int):
             if <int>item == 0:
-                do_convert = 0
+                return item
         elif isinstance(item, float):
             float_item = item
             if float_item == 0.0 or float_item != float_item:
-                do_convert = 0
+                return item
 
-    if do_convert and not isinstance(item, str):
+    if not isinstance(item, str):
         item = PyObject_Str(item)
 
     return item
@@ -2387,7 +2386,6 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
 
     if col_count == 0:
         return np.zeros(0, dtype=object)
-
 
     if not all(util.is_array(array) for array in date_cols):
         raise ValueError("not all elements from date_cols are numpy arrays")
