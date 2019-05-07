@@ -40,10 +40,9 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
-<<<<<<< HEAD
 # When changing the version numbers here, also adjust them in `pyproject.toml`
 numpy_requires = [
-    "numpy>=1.13; python_version<'3.7'",
+    "numpy>=1.13.3; python_version<'3.7'",
     "numpy>=1.14; python_version>='3.7'",
 ]
 setuptools_kwargs = {
@@ -52,16 +51,6 @@ setuptools_kwargs = {
         'pytz >= 2011k',
     ] + numpy_requires,
     'setup_requires': numpy_requires,
-=======
-min_numpy_ver = '1.13.3'
-setuptools_kwargs = {
-    'install_requires': [
-        'python-dateutil >= 2.5.0',
-        'pytz >= 2015.4',
-        'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
-    ],
-    'setup_requires': ['numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver)],
->>>>>>> master
     'zip_safe': False,
 }
 
