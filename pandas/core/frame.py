@@ -1388,10 +1388,6 @@ class DataFrame(NDFrame):
             or string contents. This is useful for remote server
             authentication (eg. Jupyter/IPython notebook on remote host).
 
-        Returns
-        -------
-        None
-
         See Also
         --------
         pandas_gbq.to_gbq : This function in the pandas-gbq library.

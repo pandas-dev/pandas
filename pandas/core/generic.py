@@ -2392,10 +2392,6 @@ class NDFrame(PandasObject, SelectionMixin):
             See the errors argument for :func:`open` for a full list
             of options.
 
-        Returns
-        -------
-        None
-
         See Also
         --------
         DataFrame.read_hdf : Read from HDF file.
@@ -2620,10 +2616,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. [1] https://docs.python.org/3/library/pickle.html
             .. versionadded:: 0.21.0
-
-        Returns
-        -------
-        None
 
         See Also
         --------
