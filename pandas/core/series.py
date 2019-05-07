@@ -2440,8 +2440,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        concat : General function to concatenate DataFrame, Series
-            or Panel objects.
+        concat : General function to concatenate DataFrame or Series objects.
 
         Notes
         -----

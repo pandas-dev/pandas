@@ -23,7 +23,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_list_like, is_object_dtype, is_period_dtype,
     is_scalar, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndex, ABCIndexClass, ABCPanel, ABCSeries, ABCSparseArray,
+    ABCDataFrame, ABCIndex, ABCIndexClass, ABCSeries, ABCSparseArray,
     ABCSparseSeries)
 from pandas.core.dtypes.missing import isna, notna
 
@@ -234,7 +234,7 @@ def _gen_eval_kwargs(name):
     """
     kwargs = {}
 
-    # Series and Panel appear to only pass __add__, __radd__, ...
+    # Series appear to only pass __add__, __radd__, ...
     # but DataFrame gets both these dunder names _and_ non-dunder names
     # add, radd, ...
     name = name.replace('__', '')
@@ -991,40 +991,6 @@ Q2 A  False     True
    C   True    False
 """
 
-_flex_doc_PANEL = """
-Return {desc} of series and other, element-wise (binary operator `{op_name}`).
-Equivalent to ``{equiv}``.
-
-Parameters
-----------
-other : DataFrame or Panel
-axis : {{items, major_axis, minor_axis}}
-    Axis to broadcast over
-
-Returns
--------
-Panel
-
-See Also
---------
-Panel.{reverse}
-"""
-
-
-_agg_doc_PANEL = """
-Wrapper method for {op_name}
-
-Parameters
-----------
-other : DataFrame or Panel
-axis : {{items, major_axis, minor_axis}}
-    Axis to broadcast over
-
-Returns
--------
-Panel
-"""
-
 
 def _make_flex_doc(op_name, typ):
     """
@@ -1063,14 +1029,6 @@ def _make_flex_doc(op_name, typ):
             doc = doc_no_examples
     elif typ == 'dataframe':
         base_doc = _flex_doc_FRAME
-        doc = base_doc.format(
-            desc=op_desc['desc'],
-            op_name=op_name,
-            equiv=equiv,
-            reverse=op_desc['reverse']
-        )
-    elif typ == 'panel':
-        base_doc = _flex_doc_PANEL
         doc = base_doc.format(
             desc=op_desc['desc'],
             op_name=op_name,
@@ -1457,12 +1415,6 @@ def _get_method_wrappers(cls):
         arith_special = _arith_method_SPARSE_ARRAY
         comp_special = _arith_method_SPARSE_ARRAY
         bool_special = _arith_method_SPARSE_ARRAY
-    elif issubclass(cls, ABCPanel):
-        arith_flex = _flex_method_PANEL
-        comp_flex = _comp_method_PANEL
-        arith_special = _arith_method_PANEL
-        comp_special = _comp_method_PANEL
-        bool_special = _arith_method_PANEL
     elif issubclass(cls, ABCDataFrame):
         # Same for DataFrame and SparseDataFrame
         arith_flex = _arith_method_FRAME
@@ -2292,94 +2244,6 @@ def _comp_method_FRAME(cls, func, special):
 
     f.__name__ = op_name
 
-    return f
-
-
-# -----------------------------------------------------------------------------
-# Panel
-
-def _arith_method_PANEL(cls, op, special):
-    # work only for scalars
-    op_name = _get_op_name(op, special)
-
-    def f(self, other):
-        if not is_scalar(other):
-            raise ValueError('Simple arithmetic with {name} can only be '
-                             'done with scalar values'
-                             .format(name=self._constructor.__name__))
-
-        return self._combine(other, op)
-
-    f.__name__ = op_name
-    return f
-
-
-def _comp_method_PANEL(cls, op, special):
-    str_rep = _get_opstr(op, cls)
-    op_name = _get_op_name(op, special)
-
-    def na_op(x, y):
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y)
-        except TypeError:
-            result = mask_cmp_op(x, y, op, np.ndarray)
-        return result
-
-    @Appender('Wrapper for comparison method {name}'.format(name=op_name))
-    def f(self, other, axis=None):
-        # Validate the axis parameter
-        if axis is not None:
-            self._get_axis_number(axis)
-
-        if isinstance(other, self._constructor):
-            return self._compare_constructor(other, na_op)
-        elif isinstance(other, (self._constructor_sliced, ABCDataFrame,
-                                ABCSeries)):
-            raise Exception("input needs alignment for this object [{object}]"
-                            .format(object=self._constructor))
-        else:
-            return self._combine_const(other, na_op)
-
-    f.__name__ = op_name
-
-    return f
-
-
-def _flex_method_PANEL(cls, op, special):
-    str_rep = _get_opstr(op, cls)
-    op_name = _get_op_name(op, special)
-    eval_kwargs = _gen_eval_kwargs(op_name)
-    fill_zeros = _gen_fill_zeros(op_name)
-
-    def na_op(x, y):
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          errors='raise',
-                                          **eval_kwargs)
-        except TypeError:
-            result = op(x, y)
-
-        # handles discrepancy between numpy and numexpr on division/mod
-        # by 0 though, given that these are generally (always?)
-        # non-scalars, I'm not sure whether it's worth it at the moment
-        result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
-
-    if op_name in _op_descriptions:
-        doc = _make_flex_doc(op_name, 'panel')
-    else:
-        # doc strings substitors
-        doc = _agg_doc_PANEL.format(op_name=op_name)
-
-    @Appender(doc)
-    def f(self, other, axis=0):
-        return self._combine(other, na_op, axis=axis)
-
-    f.__name__ = op_name
     return f
 
 

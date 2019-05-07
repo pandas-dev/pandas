@@ -3876,8 +3876,6 @@ class LegacyTable(Table):
         if not self.read_axes(where=where, **kwargs):
             return None
 
-        raise NotImplementedError("Panel is removed in pandas 0.25.0")
-
 
 class AppendableTable(LegacyTable):
     """ support the new appendable table formats """

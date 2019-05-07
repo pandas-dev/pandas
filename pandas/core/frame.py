@@ -368,9 +368,7 @@ class DataFrame(NDFrame):
 
     @property
     def _constructor_expanddim(self):
-        # TODO: Raise NotImplementedError or change note in extending.rst
-        from pandas.core.panel import Panel
-        return Panel
+        raise NotImplementedError("Not supported for DataFrames!")
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -1933,22 +1931,6 @@ class DataFrame(NDFrame):
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,
                                default_fill_value=fill_value)
-
-    def to_panel(self):
-        """
-        Transform long (stacked) format (DataFrame) into wide (3D, Panel)
-        format.
-
-        .. deprecated:: 0.20.0
-
-        Currently the index of the DataFrame must be a 2-level MultiIndex. This
-        may be generalized later
-
-        Returns
-        -------
-        Panel
-        """
-        raise NotImplementedError("Panel is being removed in pandas 0.25.0.")
 
     @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,
@@ -6638,8 +6620,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        concat : General function to concatenate DataFrame, Series
-            or Panel objects.
+        concat : General function to concatenate DataFrame or Series objects.
 
         Notes
         -----
