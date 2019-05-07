@@ -368,9 +368,7 @@ class DataFrame(NDFrame):
 
     @property
     def _constructor_expanddim(self):
-        # TODO: Raise NotImplementedError or change note in extending.rst
-        from pandas.core.panel import Panel
-        return Panel
+        raise NotImplementedError("Not supported for DataFrames!")
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -1933,22 +1931,6 @@ class DataFrame(NDFrame):
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,
                                default_fill_value=fill_value)
-
-    def to_panel(self):
-        """
-        Transform long (stacked) format (DataFrame) into wide (3D, Panel)
-        format.
-
-        .. deprecated:: 0.20.0
-
-        Currently the index of the DataFrame must be a 2-level MultiIndex. This
-        may be generalized later
-
-        Returns
-        -------
-        Panel
-        """
-        raise NotImplementedError("Panel is being removed in pandas 0.25.0.")
 
     @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,
@@ -3995,20 +3977,28 @@ class DataFrame(NDFrame):
         We *highly* recommend using keyword arguments to clarify your
         intent.
 
+        Rename columns using a mapping:
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
+        >>> df.rename(columns={"A": "a", "B": "c"})
            a  c
         0  1  4
         1  2  5
         2  3  6
 
-        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
-           a  B
-        0  1  4
-        1  2  5
-        2  3  6
+        Rename index using a mapping:
+        >>> df.rename(index={0: "x", 1: "y", 2: "z"})
+           A  B
+        x  1  4
+        y  2  5
+        z  3  6
 
-        >>> df.rename(index=str, columns={"A": "a", "C": "c"}, errors="raise")
+        Cast index labels to a different type:
+        >>> df.index
+        RangeIndex(start=0, stop=3, step=1)
+        >>> df.rename(index=str).index
+        Index(['0', '1', '2'], dtype='object')
+
+        >>> df.rename(columns={"A": "a", "B": "b", "C": "c"}, errors="raise")
         Traceback (most recent call last):
         KeyError: ['C'] not found in axis
 
@@ -6630,8 +6620,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        concat : General function to concatenate DataFrame, Series
-            or Panel objects.
+        concat : General function to concatenate DataFrame or Series objects.
 
         Notes
         -----

@@ -236,7 +236,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
 
     Parameters
     ----------
-    data : DataFrame or Panel
+    data : DataFrame
     args : tuple
         All positional arguments from the user
     kwargs : dict
