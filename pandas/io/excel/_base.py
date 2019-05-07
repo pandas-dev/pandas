@@ -1,13 +1,14 @@
 import abc
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
+from io import BytesIO
 import os
 from textwrap import fill
+from urllib.request import urlopen
 import warnings
 
 from pandas._config import config
 
-import pandas.compat as compat
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -16,7 +17,9 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import _NA_VALUES, _stringify_path, _validate_header_arg
+from pandas.io.common import (
+    _NA_VALUES, _is_url, _stringify_path, _validate_header_arg,
+    get_filepath_or_buffer)
 from pandas.io.excel._util import (
     _fill_mi_header, _get_default_writer, _maybe_convert_usecols,
     _pop_header_name, get_writer)
@@ -328,6 +331,36 @@ def read_excel(io,
 
 
 class _BaseExcelReader(metaclass=abc.ABCMeta):
+
+    def __init__(self, filepath_or_buffer):
+        # If filepath_or_buffer is a url, load the data into a BytesIO
+        if _is_url(filepath_or_buffer):
+            filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
+        elif not isinstance(filepath_or_buffer,
+                            (ExcelFile, self._workbook_class)):
+            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+                filepath_or_buffer)
+
+        if isinstance(filepath_or_buffer, self._workbook_class):
+            self.book = filepath_or_buffer
+        elif hasattr(filepath_or_buffer, "read"):
+            # N.B. xlrd.Book has a read attribute too
+            filepath_or_buffer.seek(0)
+            self.book = self.load_workbook(filepath_or_buffer)
+        elif isinstance(filepath_or_buffer, str):
+            self.book = self.load_workbook(filepath_or_buffer)
+        else:
+            raise ValueError('Must explicitly set engine if not passing in'
+                             ' buffer or path for io.')
+
+    @property
+    @abc.abstractmethod
+    def _workbook_class(self):
+        pass
+
+    @abc.abstractmethod
+    def load_workbook(self, filepath_or_buffer):
+        pass
 
     @property
     @abc.abstractmethod
@@ -701,7 +734,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             val = val.total_seconds() / float(86400)
             fmt = '0'
         else:
-            val = compat.to_str(val)
+            val = str(val)
 
         return val, fmt
 

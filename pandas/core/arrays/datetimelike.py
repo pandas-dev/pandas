@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Tuple, Type, Union
+from typing import Any, Sequence, Union, cast
 import warnings
 
 import numpy as np
@@ -27,6 +27,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
 from pandas.core.algorithms import (
     checked_add_with_arr, take, unique1d, value_counts)
@@ -39,6 +40,7 @@ from .base import ExtensionArray, ExtensionOpsMixin
 
 
 class AttributesMixin:
+    _data = None  # type: np.ndarray
 
     @property
     def _attributes(self):
@@ -56,7 +58,7 @@ class AttributesMixin:
         return {k: getattr(self, k, None) for k in self._attributes}
 
     @property
-    def _scalar_type(self) -> Union[Type, Tuple[Type]]:
+    def _scalar_type(self) -> DatetimeLikeScalar:
         """The scalar associated with this datelike
 
         * PeriodArray : Period
@@ -477,14 +479,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             if lib.is_scalar(key):
                 raise ValueError("setting an array element with a sequence.")
 
-            if (not is_slice
-                    and len(key) != len(value)
-                    and not com.is_bool_indexer(key)):
-                msg = ("shape mismatch: value array of length '{}' does not "
-                       "match indexing result of length '{}'.")
-                raise ValueError(msg.format(len(key), len(value)))
-            if not is_slice and len(key) == 0:
-                return
+            if not is_slice:
+                key = cast(Sequence, key)
+                if (len(key) != len(value)
+                        and not com.is_bool_indexer(key)):
+                    msg = ("shape mismatch: value array of length '{}' does "
+                           "not match indexing result of length '{}'.")
+                    raise ValueError(msg.format(
+                        len(key), len(value)))
+                elif not len(key):
+                    return
 
             value = type(self)._from_sequence(value, dtype=self.dtype)
             self._check_compatible_with(value)

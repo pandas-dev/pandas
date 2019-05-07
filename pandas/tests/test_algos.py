@@ -9,7 +9,6 @@ import pytest
 
 from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
-from pandas.compat import lrange
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -22,6 +21,7 @@ from pandas import (
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
+from pandas.core.sorting import safe_sort
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
@@ -325,18 +325,26 @@ class TestFactorize:
 
     @pytest.mark.parametrize('sort', [True, False])
     @pytest.mark.parametrize('na_sentinel', [-1, -10, 100])
-    def test_factorize_na_sentinel(self, sort, na_sentinel):
-        data = np.array(['b', 'a', None, 'b'], dtype=object)
+    @pytest.mark.parametrize('data, uniques', [
+        (np.array(['b', 'a', None, 'b'], dtype=object),
+         np.array(['b', 'a'], dtype=object)),
+        (pd.array([2, 1, np.nan, 2], dtype='Int64'),
+         pd.array([2, 1], dtype='Int64'))],
+        ids=['numpy_array', 'extension_array'])
+    def test_factorize_na_sentinel(self, sort, na_sentinel, data, uniques):
         labels, uniques = algos.factorize(data, sort=sort,
                                           na_sentinel=na_sentinel)
         if sort:
             expected_labels = np.array([1, 0, na_sentinel, 1], dtype=np.intp)
-            expected_uniques = np.array(['a', 'b'], dtype=object)
+            expected_uniques = safe_sort(uniques)
         else:
             expected_labels = np.array([0, 1, na_sentinel, 0], dtype=np.intp)
-            expected_uniques = np.array(['b', 'a'], dtype=object)
+            expected_uniques = uniques
         tm.assert_numpy_array_equal(labels, expected_labels)
-        tm.assert_numpy_array_equal(uniques, expected_uniques)
+        if isinstance(data, np.ndarray):
+            tm.assert_numpy_array_equal(uniques, expected_uniques)
+        else:
+            tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
 class TestUnique:
@@ -1565,7 +1573,7 @@ class TestTseriesUtil:
 
     def test_backfill(self):
         old = Index([1, 5, 10])
-        new = Index(lrange(12))
+        new = Index(list(range(12)))
 
         filler = libalgos.backfill["int64_t"](old.values, new.values)
 
@@ -1575,7 +1583,7 @@ class TestTseriesUtil:
 
         # corner case
         old = Index([1, 4])
-        new = Index(lrange(5, 10))
+        new = Index(list(range(5, 10)))
         filler = libalgos.backfill["int64_t"](old.values, new.values)
 
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
@@ -1583,7 +1591,7 @@ class TestTseriesUtil:
 
     def test_pad(self):
         old = Index([1, 5, 10])
-        new = Index(lrange(12))
+        new = Index(list(range(12)))
 
         filler = libalgos.pad["int64_t"](old.values, new.values)
 
@@ -1593,7 +1601,7 @@ class TestTseriesUtil:
 
         # corner case
         old = Index([5, 10])
-        new = Index(lrange(5))
+        new = Index(np.arange(5))
         filler = libalgos.pad["int64_t"](old.values, new.values)
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(filler, expect_filler)

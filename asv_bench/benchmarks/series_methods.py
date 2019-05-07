@@ -145,16 +145,27 @@ class SearchSorted:
 
 class Map:
 
-    params = ['dict', 'Series']
+    params = (['dict', 'Series', 'lambda'], ['object', 'category', 'int'])
     param_names = 'mapper'
 
-    def setup(self, mapper):
+    def setup(self, mapper, dtype):
         map_size = 1000
-        map_data = Series(map_size - np.arange(map_size))
-        self.map_data = map_data if mapper == 'Series' else map_data.to_dict()
-        self.s = Series(np.random.randint(0, map_size, 10000))
+        map_data = Series(map_size - np.arange(map_size), dtype=dtype)
 
-    def time_map(self, mapper):
+        # construct mapper
+        if mapper == 'Series':
+            self.map_data = map_data
+        elif mapper == 'dict':
+            self.map_data = map_data.to_dict()
+        elif mapper == 'lambda':
+            map_dict = map_data.to_dict()
+            self.map_data = lambda x: map_dict[x]
+        else:
+            raise NotImplementedError
+
+        self.s = Series(np.random.randint(0, map_size, 10000), dtype=dtype)
+
+    def time_map(self, mapper, *args, **kwargs):
         self.s.map(self.map_data)
 
 
@@ -199,6 +210,48 @@ class SeriesGetattr:
 
     def time_series_datetimeindex_repr(self):
         getattr(self.s, 'a', None)
+
+
+class All(object):
+
+    params = [[10**3, 10**6], ['fast', 'slow']]
+    param_names = ['N', 'case']
+
+    def setup(self, N, case):
+        val = case != 'fast'
+        self.s = Series([val] * N)
+
+    def time_all(self, N, case):
+        self.s.all()
+
+
+class Any(object):
+
+    params = [[10**3, 10**6], ['fast', 'slow']]
+    param_names = ['N', 'case']
+
+    def setup(self, N, case):
+        val = case == 'fast'
+        self.s = Series([val] * N)
+
+    def time_any(self, N, case):
+        self.s.any()
+
+
+class NanOps(object):
+
+    params = [['var', 'mean', 'median', 'max', 'min', 'sum', 'std', 'sem',
+               'argmax', 'skew', 'kurt', 'prod'],
+              [10**3, 10**6],
+              ['int8', 'int32', 'int64', 'float64']]
+    param_names = ['func', 'N', 'dtype']
+
+    def setup(self, func, N, dtype):
+        self.s = Series([1] * N, dtype=dtype)
+        self.func = getattr(self.s, func)
+
+    def time_func(self, func, N, dtype):
+        self.func()
 
 
 from .pandas_vb_common import setup  # noqa: F401
