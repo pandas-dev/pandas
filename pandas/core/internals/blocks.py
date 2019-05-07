@@ -2212,8 +2212,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """Input validation for values passed to __init__. Ensure that
         we have datetime64TZ, coercing if necessary.
 
-        Parametetrs
-        -----------
+        Parameters
+        ----------
         values : array-like
             Must be convertible to datetime64
 
