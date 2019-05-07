@@ -287,10 +287,6 @@ validate_transpose = CompatValidator(TRANSPOSE_DEFAULTS, fname='transpose',
                                      method='both', max_fname_arg_count=0)
 
 
-def validate_transpose_for_generic(inst, kwargs):
-    validate_transpose(tuple(), kwargs)
-
-
 def validate_window_func(name, args, kwargs):
     numpy_args = ('axis', 'dtype', 'out')
     msg = ("numpy operations are not "
