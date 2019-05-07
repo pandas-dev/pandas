@@ -658,7 +658,9 @@ class DataFrame(NDFrame):
 
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
-                         'column names')
+                         'column names',
+                  col_space_type='int',
+                  col_space='The minimum width of each column')
     @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
@@ -1394,13 +1396,12 @@ class DataFrame(NDFrame):
         read_gbq : Read a DataFrame from Google BigQuery.
         """
         from pandas.io import gbq
-        return gbq.to_gbq(
-            self, destination_table, project_id=project_id,
-            chunksize=chunksize, reauth=reauth, if_exists=if_exists,
-            auth_local_webserver=auth_local_webserver,
-            table_schema=table_schema, location=location,
-            progress_bar=progress_bar, credentials=credentials,
-            verbose=verbose, private_key=private_key)
+        gbq.to_gbq(self, destination_table, project_id=project_id,
+                   chunksize=chunksize, reauth=reauth, if_exists=if_exists,
+                   auth_local_webserver=auth_local_webserver,
+                   table_schema=table_schema, location=location,
+                   progress_bar=progress_bar, credentials=credentials,
+                   verbose=verbose, private_key=private_key)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
@@ -2138,7 +2139,12 @@ class DataFrame(NDFrame):
                    compression=compression, index=index,
                    partition_cols=partition_cols, **kwargs)
 
-    @Substitution(header='Whether to print column labels, default True')
+    @Substitution(header='Whether to print column labels, default True',
+                  col_space_type='str or int',
+                  col_space='The minimum width of each column in CSS length '
+                            'units.  An int is assumed to be px units.\n\n'
+                            '            .. versionadded:: 0.25.0\n'
+                            '                Abillity to use str')
     @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
@@ -3993,20 +3999,28 @@ class DataFrame(NDFrame):
         We *highly* recommend using keyword arguments to clarify your
         intent.
 
+        Rename columns using a mapping:
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
+        >>> df.rename(columns={"A": "a", "B": "c"})
            a  c
         0  1  4
         1  2  5
         2  3  6
 
-        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
-           a  B
-        0  1  4
-        1  2  5
-        2  3  6
+        Rename index using a mapping:
+        >>> df.rename(index={0: "x", 1: "y", 2: "z"})
+           A  B
+        x  1  4
+        y  2  5
+        z  3  6
 
-        >>> df.rename(index=str, columns={"A": "a", "C": "c"}, errors="raise")
+        Cast index labels to a different type:
+        >>> df.index
+        RangeIndex(start=0, stop=3, step=1)
+        >>> df.rename(index=str).index
+        Index(['0', '1', '2'], dtype='object')
+
+        >>> df.rename(columns={"A": "a", "B": "b", "C": "c"}, errors="raise")
         Traceback (most recent call last):
         KeyError: ['C'] not found in axis
 
@@ -5699,6 +5713,12 @@ class DataFrame(NDFrame):
         margins_name : string, default 'All'
             Name of the row / column that will contain the totals
             when margins is True.
+        observed : boolean, default False
+            This only applies if any of the groupers are Categoricals.
+            If True: only show observed values for categorical groupers.
+            If False: show all values for categorical groupers.
+
+            .. versionchanged :: 0.25.0
 
         Returns
         -------
@@ -5789,12 +5809,12 @@ class DataFrame(NDFrame):
     @Appender(_shared_docs['pivot_table'])
     def pivot_table(self, values=None, index=None, columns=None,
                     aggfunc='mean', fill_value=None, margins=False,
-                    dropna=True, margins_name='All'):
+                    dropna=True, margins_name='All', observed=False):
         from pandas.core.reshape.pivot import pivot_table
         return pivot_table(self, values=values, index=index, columns=columns,
                            aggfunc=aggfunc, fill_value=fill_value,
                            margins=margins, dropna=dropna,
-                           margins_name=margins_name)
+                           margins_name=margins_name, observed=observed)
 
     def stack(self, level=-1, dropna=True):
         """
@@ -6333,8 +6353,7 @@ class DataFrame(NDFrame):
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
-            result, how = (super(DataFrame, self.T)
-                           ._aggregate(arg, *args, **kwargs))
+            result, how = self.T._aggregate(arg, *args, **kwargs)
             result = result.T if result is not None else result
             return result, how
         return super()._aggregate(arg, *args, **kwargs)
@@ -6345,7 +6364,7 @@ class DataFrame(NDFrame):
     def transform(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
         if axis == 1:
-            return super(DataFrame, self.T).transform(func, *args, **kwargs).T
+            return self.T.transform(func, *args, **kwargs).T
         return super().transform(func, *args, **kwargs)
 
     def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,

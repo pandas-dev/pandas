@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Strptime-related classes and functions.
 """
 import time
@@ -363,7 +362,7 @@ def _getlang():
     return locale.getlocale(locale.LC_TIME)
 
 
-class LocaleTime(object):
+class LocaleTime:
     """Stores and handles locale-specific information related to time.
 
     ATTRIBUTES:

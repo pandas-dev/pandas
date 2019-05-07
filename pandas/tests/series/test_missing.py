@@ -1440,12 +1440,10 @@ class TestSeriesInterpolateData():
         if method == "pchip":
             _skip_if_no_pchip()
 
-        if method in {"linear"}:
+        if method in {"linear", "pchip"}:
             result = df[0].interpolate(method=method, **kwargs)
             expected = pd.Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
             assert_series_equal(result, expected)
-        elif method in {"pchip"}:
-            pytest.xfail(reason="gh-26189: broken on scipy master")
         else:
             pytest.skip(
                 "This interpolation method is not supported for "

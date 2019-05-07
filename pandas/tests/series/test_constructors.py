@@ -1058,7 +1058,7 @@ class TestSeriesConstructors:
         data = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
 
         series = Series(data)
-        assert tm.is_sorted(series.index)
+        tm.assert_is_sorted(series.index)
 
         data = {'a': 0, 'b': '1', 'c': '2', 'd': datetime.now()}
         series = Series(data)

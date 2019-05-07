@@ -884,7 +884,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
                     return False
             else:
                 return False
-        return super(PeriodDtype, cls).is_dtype(dtype)
+        return super().is_dtype(dtype)
 
     @classmethod
     def construct_array_type(cls):
@@ -1052,4 +1052,4 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                     return False
             else:
                 return False
-        return super(IntervalDtype, cls).is_dtype(dtype)
+        return super().is_dtype(dtype)

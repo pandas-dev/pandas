@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import collections
 from functools import partial
 import string

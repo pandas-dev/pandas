@@ -803,22 +803,18 @@ class _MergeOperation:
         -------
         join_index
         """
-        join_index = index.take(indexer)
         if (self.how in (how, 'outer') and
                 not isinstance(other_index, MultiIndex)):
             # if final index requires values in other_index but not target
             # index, indexer may hold missing (-1) values, causing Index.take
-            # to take the final value in target index
+            # to take the final value in target index. So, we set the last
+            # element to be the desired fill value. We do not use allow_fill
+            # and fill_value because it throws a ValueError on integer indices
             mask = indexer == -1
             if np.any(mask):
-                # if values missing (-1) from target index,
-                # take from other_index instead
-                join_list = join_index.to_numpy()
-                other_list = other_index.take(other_indexer).to_numpy()
-                join_list[mask] = other_list[mask]
-                join_index = Index(join_list, dtype=join_index.dtype,
-                                   name=join_index.name)
-        return join_index
+                fill_value = na_value_for_dtype(index.dtype, compat=False)
+                index = index.append(Index([fill_value]))
+        return index.take(indexer)
 
     def _get_merge_keys(self):
         """
@@ -1446,10 +1442,26 @@ class _AsOfMerge(_OrderedMerge):
         # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
             if not is_dtype_equal(lk.dtype, rk.dtype):
-                raise MergeError("incompatible merge keys [{i}] {lkdtype} and "
-                                 "{rkdtype}, must be the same type"
-                                 .format(i=i, lkdtype=lk.dtype,
-                                         rkdtype=rk.dtype))
+                if (is_categorical_dtype(lk.dtype) and
+                        is_categorical_dtype(rk.dtype)):
+                    # The generic error message is confusing for categoricals.
+                    #
+                    # In this function, the join keys include both the original
+                    # ones of the merge_asof() call, and also the keys passed
+                    # to its by= argument. Unordered but equal categories
+                    # are not supported for the former, but will fail
+                    # later with a ValueError, so we don't *need* to check
+                    # for them here.
+                    msg = ("incompatible merge keys [{i}] {lkdtype} and "
+                           "{rkdtype}, both sides category, but not equal ones"
+                           .format(i=i, lkdtype=repr(lk.dtype),
+                                   rkdtype=repr(rk.dtype)))
+                else:
+                    msg = ("incompatible merge keys [{i}] {lkdtype} and "
+                           "{rkdtype}, must be the same type"
+                           .format(i=i, lkdtype=repr(lk.dtype),
+                                   rkdtype=repr(rk.dtype)))
+                raise MergeError(msg)
 
         # validate tolerance; must be a Timedelta if we have a DTI
         if self.tolerance is not None:
@@ -1462,7 +1474,7 @@ class _AsOfMerge(_OrderedMerge):
             msg = ("incompatible tolerance {tolerance}, must be compat "
                    "with type {lkdtype}".format(
                        tolerance=type(self.tolerance),
-                       lkdtype=lt.dtype))
+                       lkdtype=repr(lt.dtype)))
 
             if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
                 if not isinstance(self.tolerance, Timedelta):

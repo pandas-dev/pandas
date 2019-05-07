@@ -7,7 +7,6 @@ import numpy as np
 
 from pandas._libs import index as libindex, lib
 import pandas.compat as compat
-from pandas.compat import lrange
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -298,7 +297,7 @@ class RangeIndex(Int64Index):
         return False
 
     def tolist(self):
-        return lrange(self._start, self._stop, self._step)
+        return list(range(self._start, self._stop, self._step))
 
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
