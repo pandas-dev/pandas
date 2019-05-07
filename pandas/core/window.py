@@ -504,7 +504,8 @@ class Window(_Window):
     * ``kaiser`` (needs beta)
     * ``gaussian`` (needs std)
     * ``general_gaussian`` (needs power, width)
-    * ``slepian`` (needs width).
+    * ``slepian`` (needs width)
+    * ``exponential`` (needs tau), center is set to None.
 
     If ``win_type=None`` all points are evenly weighted. To learn more about
     different window types see `scipy.signal window functions
@@ -623,11 +624,19 @@ class Window(_Window):
                 arg_map = {'kaiser': ['beta'],
                            'gaussian': ['std'],
                            'general_gaussian': ['power', 'width'],
-                           'slepian': ['width']}
+                           'slepian': ['width'],
+                           'exponential': ['tau'],
+                           }
+
                 if win_type in arg_map:
-                    return tuple([win_type] + _pop_args(win_type,
-                                                        arg_map[win_type],
-                                                        kwargs))
+                    win_args = _pop_args(win_type, arg_map[win_type], kwargs)
+                    if win_type == 'exponential':
+                        # exponential window requires the first arg (center)
+                        # to be set to None (necessary for symmetric window)
+                        win_args.insert(0, None)
+
+                    return tuple([win_type] + win_args)
+
                 return win_type
 
             def _pop_args(win_type, arg_names, kwargs):

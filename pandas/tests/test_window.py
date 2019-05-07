@@ -42,7 +42,8 @@ def win_types(request):
     return request.param
 
 
-@pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian'])
+@pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian',
+                        'exponential'])
 def win_types_special(request):
     return request.param
 
@@ -1260,7 +1261,8 @@ class TestMoments(Base):
         kwds = {
             'kaiser': {'beta': 1.},
             'gaussian': {'std': 1.},
-            'general_gaussian': {'power': 2., 'width': 2.}}
+            'general_gaussian': {'power': 2., 'width': 2.},
+            'exponential': {'tau': 10}}
 
         vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48,
                          10.63, 14.48])
@@ -1271,7 +1273,9 @@ class TestMoments(Base):
             'general_gaussian': [np.nan, np.nan, 9.85011, 10.71589, 11.73161,
                                  13.08516, 12.95111, 12.74577, np.nan, np.nan],
             'kaiser': [np.nan, np.nan, 9.86851, 11.02969, 11.65161, 12.75129,
-                       12.90702, 12.83757, np.nan, np.nan]
+                       12.90702, 12.83757, np.nan, np.nan],
+            'exponential': [np.nan, np.nan, 9.83364, 11.10472, 11.64551,
+                            12.66138, 12.92379, 12.83770, np.nan, np.nan],
         }
 
         xp = Series(xps[win_types_special])
@@ -1287,7 +1291,8 @@ class TestMoments(Base):
             'kaiser': {'beta': 1.},
             'gaussian': {'std': 1.},
             'general_gaussian': {'power': 2., 'width': 2.},
-            'slepian': {'width': 0.5}}
+            'slepian': {'width': 0.5},
+            'exponential': {'tau': 10}}
 
         vals = np.array(range(10), dtype=np.float)
         xp = vals.copy()
