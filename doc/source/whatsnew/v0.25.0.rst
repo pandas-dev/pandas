@@ -428,6 +428,7 @@ Other
 ^^^^^
 
 - Removed unused C functions from vendored UltraJSON implementation (:issue:`26198`)
+- Bug in :func:`factorize` when passing an ``ExtensionArray`` with a custom ``na_sentinel`` (:issue:`25696`).
 
 
 .. _whatsnew_0.250.contributors:
