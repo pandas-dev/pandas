@@ -1,8 +1,7 @@
 import numpy as np
 
-from pandas._libs.tslibs.parsing import _does_string_look_like_datetime
-
-from pandas.io.parsers import _concat_date_cols
+from pandas._libs.tslibs.parsing import (
+    _concat_date_cols, _does_string_look_like_datetime)
 
 
 class DoesStringLookLikeDatetime(object):

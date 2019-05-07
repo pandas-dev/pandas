@@ -7,11 +7,19 @@ from io import StringIO
 
 from libc.string cimport strchr
 
+import cython
+
+from cpython cimport PyObject_Str, PyUnicode_Join
+
 from cpython.datetime cimport datetime, datetime_new, import_datetime
 from cpython.version cimport PY_VERSION_HEX
 import_datetime()
 
 import numpy as np
+cimport numpy as cnp
+from numpy cimport (PyArray_GETITEM, PyArray_ITER_DATA, PyArray_ITER_NEXT,
+                    PyArray_IterNew, flatiter, float64_t)
+cnp.import_array()
 
 # dateutil compat
 from dateutil.tz import (tzoffset,
@@ -26,7 +34,7 @@ from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 from pandas._libs.tslibs.nattype import nat_strings, NaT
-from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
+from pandas._libs.tslibs.util cimport is_array, get_c_string_buf_and_size
 
 cdef extern from "../src/headers/portable.h":
     int getdigit_ascii(char c, int default) nogil
@@ -880,3 +888,117 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
         return guessed_format
     else:
         return None
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline object convert_to_unicode(object item,
+                                      bint keep_trivial_numbers):
+    """
+    Convert `item` to str.
+
+    Parameters
+    ----------
+    item : object
+    keep_trivial_numbers : bool
+        if True, then conversion (to string from integer/float zero)
+        is not performed
+
+    Returns
+    -------
+    str or int or float
+    """
+    cdef:
+        float64_t float_item
+
+    if keep_trivial_numbers:
+        if isinstance(item, int):
+            if <int>item == 0:
+                return item
+        elif isinstance(item, float):
+            float_item = item
+            if float_item == 0.0 or float_item != float_item:
+                return item
+
+    if not isinstance(item, str):
+        item = PyObject_Str(item)
+
+    return item
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
+    """
+    Concatenates elements from numpy arrays in `date_cols` into strings.
+
+    Parameters
+    ----------
+    date_cols : tuple of numpy arrays
+    keep_trivial_numbers : bool, default True
+        if True and len(date_cols) == 1, then
+        conversion (to string from integer/float zero) is not performed
+
+    Returns
+    -------
+    arr_of_rows : ndarray (dtype=object)
+
+    Examples
+    --------
+    >>> dates=np.array(['3/31/2019', '4/31/2019'], dtype=object)
+    >>> times=np.array(['11:20', '10:45'], dtype=object)
+    >>> result = _concat_date_cols((dates, times))
+    >>> result
+    array(['3/31/2019 11:20', '4/31/2019 10:45'], dtype=object)
+    """
+    cdef:
+        Py_ssize_t rows_count = 0, col_count = len(date_cols)
+        Py_ssize_t col_idx, row_idx
+        list list_to_join
+        cnp.ndarray[object] iters
+        object[::1] iters_view
+        flatiter it
+        cnp.ndarray[object] result
+        object[:] result_view
+
+    if col_count == 0:
+        return np.zeros(0, dtype=object)
+
+    if not all(is_array(array) for array in date_cols):
+        raise ValueError("not all elements from date_cols are numpy arrays")
+
+    rows_count = min(len(array) for array in date_cols)
+    result = np.zeros(rows_count, dtype=object)
+    result_view = result
+
+    if col_count == 1:
+        array = date_cols[0]
+        it = <flatiter>PyArray_IterNew(array)
+        for row_idx in range(rows_count):
+            item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
+            result_view[row_idx] = convert_to_unicode(item,
+                                                      keep_trivial_numbers)
+            PyArray_ITER_NEXT(it)
+    else:
+        # create fixed size list - more effecient memory allocation
+        list_to_join = [None] * col_count
+        iters = np.zeros(col_count, dtype=object)
+
+        # create memoryview of iters ndarray, that will contain some
+        # flatiter's for each array in `date_cols` - more effecient indexing
+        iters_view = iters
+        for col_idx, array in enumerate(date_cols):
+            iters_view[col_idx] = PyArray_IterNew(array)
+
+        # array elements that are on the same line are converted to one string
+        for row_idx in range(rows_count):
+            for col_idx, array in enumerate(date_cols):
+                # this cast is needed, because we did not find a way
+                # to efficiently store `flatiter` type objects in ndarray
+                it = <flatiter>iters_view[col_idx]
+                item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
+                list_to_join[col_idx] = convert_to_unicode(item, False)
+                PyArray_ITER_NEXT(it)
+            result_view[row_idx] = PyUnicode_Join(' ', list_to_join)
+
+    return result

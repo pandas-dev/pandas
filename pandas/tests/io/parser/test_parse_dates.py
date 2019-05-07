@@ -76,7 +76,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         -------
         parsed : Series
         """
-        return parsing.try_parse_dates(parsers._concat_date_cols(date_cols))
+        return parsing.try_parse_dates(parsing._concat_date_cols(date_cols))
 
     result = parser.read_csv(StringIO(data), header=None,
                              date_parser=date_parser, prefix="X",
