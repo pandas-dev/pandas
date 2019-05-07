@@ -48,7 +48,7 @@ numpy_requires = [
 setuptools_kwargs = {
     'install_requires': [
         'python-dateutil >= 2.5.0',
-        'pytz >= 2011k',
+        'pytz >= 2015.4',
     ] + numpy_requires,
     'setup_requires': numpy_requires,
     'zip_safe': False,
