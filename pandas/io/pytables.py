@@ -3470,8 +3470,8 @@ class Table(Fixed):
         leagcy tables create an indexable column, indexable index,
         non-indexable fields
 
-            Parameters:
-            -----------
+            Parameters
+            ----------
             axes: a list of the axes in order to create (names or numbers of
                 the axes)
             obj : the object to create axes on
