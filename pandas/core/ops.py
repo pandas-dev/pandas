@@ -991,6 +991,7 @@ Q2 A  False     True
    C   True    False
 """
 
+
 def _make_flex_doc(op_name, typ):
     """
     Make the appropriate substitutions for the given operation and class-typ
@@ -1028,14 +1029,6 @@ def _make_flex_doc(op_name, typ):
             doc = doc_no_examples
     elif typ == 'dataframe':
         base_doc = _flex_doc_FRAME
-        doc = base_doc.format(
-            desc=op_desc['desc'],
-            op_name=op_name,
-            equiv=equiv,
-            reverse=op_desc['reverse']
-        )
-    elif typ == 'panel':
-        base_doc = _flex_doc_PANEL
         doc = base_doc.format(
             desc=op_desc['desc'],
             op_name=op_name,

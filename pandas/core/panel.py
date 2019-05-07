@@ -26,7 +26,6 @@ from pandas.core.indexing import maybe_droplevels
 from pandas.core.internals import (
     BlockManager, create_block_manager_from_arrays,
     create_block_manager_from_blocks)
-import pandas.core.ops as ops
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
