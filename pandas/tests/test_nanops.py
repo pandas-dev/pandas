@@ -1,13 +1,9 @@
-# -*- coding: utf-8 -*-
-from __future__ import division, print_function
-
 from functools import partial
 import warnings
 
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p13
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -21,7 +17,7 @@ import pandas.util.testing as tm
 use_bn = nanops._USE_BOTTLENECK
 
 
-class TestnanopsDataFrame(object):
+class TestnanopsDataFrame:
 
     def setup_method(self, method):
         np.random.seed(11235)
@@ -347,7 +343,7 @@ class TestnanopsDataFrame(object):
                         allow_str=False, allow_date=False,
                         allow_tdelta=True, allow_obj='convert', ddof=ddof)
 
-    @td.skip_if_no('scipy', min_version='0.17.0')
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize('ddof', range(3))
     def test_nansem(self, ddof):
         from scipy.stats import sem
@@ -416,7 +412,7 @@ class TestnanopsDataFrame(object):
             return 0.
         return result
 
-    @td.skip_if_no('scipy', min_version='0.17.0')
+    @td.skip_if_no_scipy
     def test_nanskew(self):
         from scipy.stats import skew
         func = partial(self._skew_kurt_wrap, func=skew)
@@ -425,7 +421,7 @@ class TestnanopsDataFrame(object):
                             allow_str=False, allow_date=False,
                             allow_tdelta=False)
 
-    @td.skip_if_no('scipy', min_version='0.17.0')
+    @td.skip_if_no_scipy
     def test_nankurt(self):
         from scipy.stats import kurtosis
         func1 = partial(kurtosis, fisher=True)
@@ -716,7 +712,7 @@ class TestnanopsDataFrame(object):
         assert not nanops._bn_ok_dtype(self.arr_obj.dtype, 'test')
 
 
-class TestEnsureNumeric(object):
+class TestEnsureNumeric:
 
     def test_numeric_values(self):
         # Test integer
@@ -743,7 +739,9 @@ class TestEnsureNumeric(object):
 
         # Test non-convertible string ndarray
         s_values = np.array(['foo', 'bar', 'baz'], dtype=object)
-        pytest.raises(ValueError, lambda: nanops._ensure_numeric(s_values))
+        msg = r"could not convert string to float: '(foo|baz)'"
+        with pytest.raises(ValueError, match=msg):
+            nanops._ensure_numeric(s_values)
 
     def test_convertable_values(self):
         assert np.allclose(nanops._ensure_numeric('1'), 1.0)
@@ -751,12 +749,18 @@ class TestEnsureNumeric(object):
         assert np.allclose(nanops._ensure_numeric('1+1j'), 1 + 1j)
 
     def test_non_convertable_values(self):
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric('foo'))
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric({}))
-        pytest.raises(TypeError, lambda: nanops._ensure_numeric([]))
+        msg = "Could not convert foo to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric('foo')
+        msg = "Could not convert {} to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric({})
+        msg = r"Could not convert \[\] to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric([])
 
 
-class TestNanvarFixedValues(object):
+class TestNanvarFixedValues:
 
     # xref GH10242
 
@@ -869,7 +873,7 @@ class TestNanvarFixedValues(object):
         return np.random.RandomState(1234)
 
 
-class TestNanskewFixedValues(object):
+class TestNanskewFixedValues:
 
     # xref GH 11974
 
@@ -919,7 +923,7 @@ class TestNanskewFixedValues(object):
         return np.random.RandomState(1234)
 
 
-class TestNankurtFixedValues(object):
+class TestNankurtFixedValues:
 
     # xref GH 11974
 
@@ -969,7 +973,7 @@ class TestNankurtFixedValues(object):
         return np.random.RandomState(1234)
 
 
-class TestDatetime64NaNOps(object):
+class TestDatetime64NaNOps:
     @pytest.mark.parametrize('tz', [None, 'UTC'])
     @pytest.mark.xfail(reason="disabled")
     # Enabling mean changes the behavior of DataFrame.mean
@@ -1011,26 +1015,13 @@ def test_use_bottleneck():
     (np.nanmedian, 2.5),
     (np.min, 1),
     (np.max, 4),
+    (np.nanmin, 1),
+    (np.nanmax, 4)
 ])
 def test_numpy_ops(numpy_op, expected):
     # GH8383
     result = numpy_op(pd.Series([1, 2, 3, 4]))
     assert result == expected
-
-
-@pytest.mark.parametrize("numpy_op, expected", [
-    (np.nanmin, 1),
-    (np.nanmax, 4),
-])
-def test_numpy_ops_np_version_under1p13(numpy_op, expected):
-    # GH8383
-    result = numpy_op(pd.Series([1, 2, 3, 4]))
-    if _np_version_under1p13:
-        # bug for numpy < 1.13, where result is a series, should be a scalar
-        with pytest.raises(ValueError):
-            assert result == expected
-    else:
-        assert result == expected
 
 
 @pytest.mark.parametrize("operation", [

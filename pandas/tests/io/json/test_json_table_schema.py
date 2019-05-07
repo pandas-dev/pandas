@@ -17,7 +17,7 @@ from pandas.io.json.table_schema import (
     convert_pandas_type_to_json_field, set_default_names)
 
 
-class TestBuildSchema(object):
+class TestBuildSchema:
 
     def setup_method(self, method):
         self.df = DataFrame(
@@ -85,7 +85,7 @@ class TestBuildSchema(object):
         assert result == expected
 
 
-class TestTableSchemaType(object):
+class TestTableSchemaType:
 
     @pytest.mark.parametrize('int_type', [
         np.int, np.int16, np.int32, np.int64])
@@ -172,7 +172,7 @@ class TestTableSchemaType(object):
         assert as_json_table_type(CategoricalDtype()) == 'any'
 
 
-class TestTableOrient(object):
+class TestTableOrient:
 
     def setup_method(self, method):
         self.df = DataFrame(
@@ -459,7 +459,7 @@ class TestTableOrient(object):
     ])
     def test_warns_non_roundtrippable_names(self, idx):
         # GH 19130
-        df = pd.DataFrame([[]], index=idx)
+        df = pd.DataFrame(index=idx)
         df.index.name = 'index'
         with tm.assert_produces_warning():
             set_default_names(df)
@@ -491,7 +491,7 @@ class TestTableOrient(object):
         assert result == ['level_0', 'level_1', 0, 1, 2, 3]
 
 
-class TestTableOrientReader(object):
+class TestTableOrientReader:
 
     @pytest.mark.parametrize("index_nm", [
         None,
@@ -502,12 +502,12 @@ class TestTableOrientReader(object):
     @pytest.mark.parametrize("vals", [
         {'ints': [1, 2, 3, 4]},
         {'objects': ['a', 'b', 'c', 'd']},
+        {'objects': ['1', '2', '3', '4']},
         {'date_ranges': pd.date_range('2016-01-01', freq='d', periods=4)},
         {'categoricals': pd.Series(pd.Categorical(['a', 'b', 'c', 'c']))},
         {'ordered_cats': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'],
                                                   ordered=True))},
-        pytest.param({'floats': [1., 2., 3., 4.]},
-                     marks=pytest.mark.xfail),
+        {'floats': [1., 2., 3., 4.]},
         {'floats': [1.1, 2.2, 3.3, 4.4]},
         {'bools': [True, False, False, True]}])
     def test_read_json_table_orient(self, index_nm, vals, recwarn):
@@ -564,17 +564,10 @@ class TestTableOrientReader(object):
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.parametrize("strict_check", [
-        pytest.param(True, marks=pytest.mark.xfail),
-        False
-    ])
-    def test_empty_frame_roundtrip(self, strict_check):
+    def test_empty_frame_roundtrip(self):
         # GH 21287
-        df = pd.DataFrame([], columns=['a', 'b', 'c'])
+        df = pd.DataFrame(columns=['a', 'b', 'c'])
         expected = df.copy()
         out = df.to_json(orient='table')
         result = pd.read_json(out, orient='table')
-        # TODO: When DF coercion issue (#21345) is resolved tighten type checks
-        tm.assert_frame_equal(expected, result,
-                              check_dtype=strict_check,
-                              check_index_type=strict_check)
+        tm.assert_frame_equal(expected, result)

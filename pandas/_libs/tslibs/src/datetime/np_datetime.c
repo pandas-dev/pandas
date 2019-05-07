@@ -30,7 +30,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 #if PY_MAJOR_VERSION >= 3
 #define PyInt_AsLong PyLong_AsLong
-#endif
+#endif  // PyInt_AsLong
 
 const npy_datetimestruct _NS_MIN_DTS = {
     1677, 9, 21, 0, 12, 43, 145225, 0, 0};

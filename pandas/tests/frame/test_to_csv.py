@@ -1,20 +1,17 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 import csv
+from io import StringIO
 import os
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, range, u
+from pandas.compat import lmap
 from pandas.errors import ParserError
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range,
-    read_csv, to_datetime)
+    DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv,
+    to_datetime)
 import pandas.core.common as com
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
@@ -72,8 +69,8 @@ class TestDataFrameToCSV(TestData):
             assert_almost_equal(self.tsframe.values, recons.values)
 
             # corner case
-            dm = DataFrame({'s1': Series(lrange(3), lrange(3)),
-                            's2': Series(lrange(2), lrange(2))})
+            dm = DataFrame({'s1': Series(range(3), index=np.arange(3)),
+                            's2': Series(range(2), index=np.arange(2))})
             dm.to_csv(path)
 
             recons = self.read_csv(path)
@@ -109,8 +106,9 @@ class TestDataFrameToCSV(TestData):
             xp.columns = col_aliases
             assert_frame_equal(xp, rs)
 
-            pytest.raises(ValueError, self.frame2.to_csv, path,
-                          header=['AA', 'X'])
+            msg = "Writing 4 cols but got 2 aliases"
+            with pytest.raises(ValueError, match=msg):
+                self.frame2.to_csv(path, header=['AA', 'X'])
 
     def test_to_csv_from_csv3(self):
 
@@ -261,8 +259,8 @@ class TestDataFrameToCSV(TestData):
             kwargs = dict(parse_dates=False)
             if cnlvl:
                 if rnlvl is not None:
-                    kwargs['index_col'] = lrange(rnlvl)
-                kwargs['header'] = lrange(cnlvl)
+                    kwargs['index_col'] = list(range(rnlvl))
+                kwargs['header'] = list(range(cnlvl))
 
                 with ensure_clean('__tmp_to_csv_moar__') as path:
                     df.to_csv(path, encoding='utf8',
@@ -276,7 +274,7 @@ class TestDataFrameToCSV(TestData):
                     recons = self.read_csv(path, **kwargs)
 
             def _to_uni(x):
-                if not isinstance(x, compat.text_type):
+                if not isinstance(x, str):
                     return x.decode('utf8')
                 return x
             if dupe_col:
@@ -394,7 +392,7 @@ class TestDataFrameToCSV(TestData):
             df.columns = cols
             _do_test(df, dupe_col=True)
 
-        _do_test(DataFrame(index=lrange(10)))
+        _do_test(DataFrame(index=np.arange(10)))
         _do_test(mkdf(chunksize // 2 + 1, 2, r_idx_nlevels=2), rnlvl=2)
         for ncols in [2, 3, 4]:
             base = int(chunksize // ncols)
@@ -619,7 +617,7 @@ class TestDataFrameToCSV(TestData):
             for i in [6, 7]:
                 msg = 'len of {i}, but only 5 lines in file'.format(i=i)
                 with pytest.raises(ParserError, match=msg):
-                    read_csv(path, header=lrange(i), index_col=0)
+                    read_csv(path, header=list(range(i)), index_col=0)
 
             # write with cols
             msg = 'cannot specify cols with a MultiIndex'
@@ -697,8 +695,9 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_dups_cols(self):
 
-        df = DataFrame(np.random.randn(1000, 30), columns=lrange(
-            15) + lrange(15), dtype='float64')
+        df = DataFrame(np.random.randn(1000, 30),
+                       columns=list(range(15)) + list(range(15)),
+                       dtype='float64')
 
         with ensure_clean() as filename:
             df.to_csv(filename)  # single dtype, fine
@@ -708,10 +707,10 @@ class TestDataFrameToCSV(TestData):
 
         df_float = DataFrame(np.random.randn(1000, 3), dtype='float64')
         df_int = DataFrame(np.random.randn(1000, 3), dtype='int64')
-        df_bool = DataFrame(True, index=df_float.index, columns=lrange(3))
-        df_object = DataFrame('foo', index=df_float.index, columns=lrange(3))
+        df_bool = DataFrame(True, index=df_float.index, columns=range(3))
+        df_object = DataFrame('foo', index=df_float.index, columns=range(3))
         df_dt = DataFrame(Timestamp('20010101'),
-                          index=df_float.index, columns=lrange(3))
+                          index=df_float.index, columns=range(3))
         df = pd.concat([df_float, df_int, df_bool, df_object,
                         df_dt], axis=1, ignore_index=True)
 
@@ -748,7 +747,7 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_chunking(self):
 
-        aa = DataFrame({'A': lrange(100000)})
+        aa = DataFrame({'A': range(100000)})
         aa['B'] = aa.A + 1.0
         aa['C'] = aa.A + 2.0
         aa['D'] = aa.A + 3.0
@@ -782,7 +781,7 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_unicode(self):
 
-        df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
+        df = DataFrame({'c/\u03c3': [1, 2, 3]})
         with ensure_clean() as path:
 
             df.to_csv(path, encoding='UTF-8')
@@ -796,10 +795,10 @@ class TestDataFrameToCSV(TestData):
     def test_to_csv_unicode_index_col(self):
         buf = StringIO('')
         df = DataFrame(
-            [[u("\u05d0"), "d2", "d3", "d4"], ["a1", "a2", "a3", "a4"]],
-            columns=[u("\u05d0"),
-                     u("\u05d1"), u("\u05d2"), u("\u05d3")],
-            index=[u("\u05d0"), u("\u05d1")])
+            [["\u05d0", "d2", "d3", "d4"], ["a1", "a2", "a3", "a4"]],
+            columns=["\u05d0",
+                     "\u05d1", "\u05d2", "\u05d3"],
+            index=["\u05d0", "\u05d1"])
 
         df.to_csv(buf, encoding='UTF-8')
         buf.seek(0)
@@ -946,9 +945,9 @@ class TestDataFrameToCSV(TestData):
                    index=['A', 'B'], columns=['X', 'Y', 'Z']), None),
         # GH 21241, 21118
         (DataFrame([['abc', 'def', 'ghi']], columns=['X', 'Y', 'Z']), 'ascii'),
-        (DataFrame(5 * [[123, u"你好", u"世界"]],
+        (DataFrame(5 * [[123, "你好", "世界"]],
                    columns=['X', 'Y', 'Z']), 'gb2312'),
-        (DataFrame(5 * [[123, u"Γειά σου", u"Κόσμε"]],
+        (DataFrame(5 * [[123, "Γειά σου", "Κόσμε"]],
                    columns=['X', 'Y', 'Z']), 'cp737')
     ])
     def test_to_csv_compression(self, df, encoding, compression):
@@ -1219,4 +1218,16 @@ class TestDataFrameToCSV(TestData):
                          '0,1,2,3,4',
                          '1,5,6,7,8']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected
+
+    def test_gz_lineend(self):
+        # GH 25311
+        df = pd.DataFrame({'a': [1, 2]})
+        expected_rows = ['a', '1', '2']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        with ensure_clean('__test_gz_lineend.csv.gz') as path:
+            df.to_csv(path, index=False)
+            with tm.decompress_file(path, compression='gzip') as f:
+                result = f.read().decode('utf-8')
+
         assert result == expected

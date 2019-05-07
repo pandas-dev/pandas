@@ -3,15 +3,13 @@ HTML IO.
 
 """
 
+from collections import abc
 from distutils.version import LooseVersion
 import numbers
 import os
 import re
 
-import pandas.compat as compat
-from pandas.compat import (
-    binary_type, iteritems, lmap, lrange, raise_with_traceback, string_types,
-    u)
+from pandas.compat import lmap, raise_with_traceback
 from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
@@ -65,9 +63,6 @@ def _importers():
 _RE_WHITESPACE = re.compile(r'[\r\n]+|\s{2,}')
 
 
-char_types = string_types + (binary_type,)
-
-
 def _remove_whitespace(s, regex=_RE_WHITESPACE):
     """Replace extra whitespace inside of a string with a single space.
 
@@ -106,7 +101,8 @@ def _get_skiprows(skiprows):
         A proper iterator to use to skip rows of a DataFrame.
     """
     if isinstance(skiprows, slice):
-        return lrange(skiprows.start or 0, skiprows.stop, skiprows.step or 1)
+        start, step = skiprows.start or 0, skiprows.step or 1
+        return list(range(start, skiprows.stop, step))
     elif isinstance(skiprows, numbers.Integral) or is_list_like(skiprows):
         return skiprows
     elif skiprows is None:
@@ -131,7 +127,7 @@ def _read(obj):
             text = url.read()
     elif hasattr(obj, 'read'):
         text = obj.read()
-    elif isinstance(obj, char_types):
+    elif isinstance(obj, (str, bytes)):
         text = obj
         try:
             if os.path.isfile(text):
@@ -144,7 +140,7 @@ def _read(obj):
     return text
 
 
-class _HtmlFrameParser(object):
+class _HtmlFrameParser:
     """Base class for parsers that parse HTML into DataFrames.
 
     Parameters
@@ -538,8 +534,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     """
 
     def __init__(self, *args, **kwargs):
-        super(_BeautifulSoupHtml5LibFrameParser, self).__init__(*args,
-                                                                **kwargs)
+        super().__init__(*args, **kwargs)
         from bs4 import SoupStrainer
         self._strainer = SoupStrainer('table')
 
@@ -622,8 +617,8 @@ def _build_xpath_expr(attrs):
     if 'class_' in attrs:
         attrs['class'] = attrs.pop('class_')
 
-    s = [u("@{key}={val!r}").format(key=k, val=v) for k, v in iteritems(attrs)]
-    return u('[{expr}]').format(expr=' and '.join(s))
+    s = ["@{key}={val!r}".format(key=k, val=v) for k, v in attrs.items()]
+    return '[{expr}]'.format(expr=' and '.join(s))
 
 
 _re_namespace = {'re': 'http://exslt.org/regular-expressions'}
@@ -649,7 +644,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
     """
 
     def __init__(self, *args, **kwargs):
-        super(_LxmlFrameParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _text_getter(self, obj):
         return obj.text_content()
@@ -665,7 +660,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         # 1. check all descendants for the given pattern and only search tables
         # 2. go up the tree until we find a table
         query = '//table//*[re:test(text(), {patt!r})]/ancestor::table'
-        xpath_expr = u(query).format(patt=pattern)
+        xpath_expr = query.format(patt=pattern)
 
         # if any table attributes were given build an xpath expression to
         # search for them
@@ -774,7 +769,7 @@ def _expand_elements(body):
     not_max = lens[lens != lens_max]
 
     empty = ['']
-    for ind, length in iteritems(not_max):
+    for ind, length in not_max.items():
         body[ind] += empty * (lens_max - length)
 
 
@@ -860,15 +855,15 @@ def _print_as_set(s):
 def _validate_flavor(flavor):
     if flavor is None:
         flavor = 'lxml', 'bs4'
-    elif isinstance(flavor, string_types):
+    elif isinstance(flavor, str):
         flavor = flavor,
-    elif isinstance(flavor, compat.Iterable):
-        if not all(isinstance(flav, string_types) for flav in flavor):
+    elif isinstance(flavor, abc.Iterable):
+        if not all(isinstance(flav, str) for flav in flavor):
             raise TypeError('Object of type {typ!r} is not an iterable of '
                             'strings'
                             .format(typ=type(flavor).__name__))
     else:
-        fmt = '{flavor!r}' if isinstance(flavor, string_types) else '{flavor}'
+        fmt = '{flavor!r}' if isinstance(flavor, str) else '{flavor}'
         fmt += ' is not a valid flavor'
         raise ValueError(fmt.format(flavor=flavor))
 

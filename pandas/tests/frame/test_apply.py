@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
@@ -14,8 +10,7 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
-    DataFrame, MultiIndex, Series, Timestamp, compat, date_range, notna)
+from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 from pandas.conftest import _get_cython_table_params
 from pandas.core.apply import frame_apply
 import pandas.util.testing as tm
@@ -74,8 +69,10 @@ class TestDataFrameApply():
         result = df.apply(lambda x: x, axis=1)
         assert_frame_equal(result, df)
 
-    def test_apply_empty(self, float_frame, empty_frame):
+    def test_apply_empty(self, float_frame):
         # empty
+        empty_frame = DataFrame()
+
         applied = empty_frame.apply(np.sqrt)
         assert applied.empty
 
@@ -97,8 +94,10 @@ class TestDataFrameApply():
         result = expected.apply(lambda x: x['a'], axis=1)
         assert_frame_equal(expected, result)
 
-    def test_apply_with_reduce_empty(self, empty_frame):
+    def test_apply_with_reduce_empty(self):
         # reduce with an empty DataFrame
+        empty_frame = DataFrame()
+
         x = []
         result = empty_frame.apply(x.append, axis=1, result_type='expand')
         assert_frame_equal(result, empty_frame)
@@ -116,7 +115,9 @@ class TestDataFrameApply():
         # Ensure that x.append hasn't been called
         assert x == []
 
-    def test_apply_deprecate_reduce(self, empty_frame):
+    def test_apply_deprecate_reduce(self):
+        empty_frame = DataFrame()
+
         x = []
         with tm.assert_produces_warning(FutureWarning):
             empty_frame.apply(x.append, axis=1, reduce=True)
@@ -330,13 +331,13 @@ class TestDataFrameApply():
 
         result0 = df.apply(Series.describe, axis=0)
         expected0 = DataFrame({i: v.describe()
-                               for i, v in compat.iteritems(df)},
+                               for i, v in df.items()},
                               columns=df.columns)
         assert_frame_equal(result0, expected0)
 
         result1 = df.apply(Series.describe, axis=1)
         expected1 = DataFrame({i: v.describe()
-                               for i, v in compat.iteritems(df.T)},
+                               for i, v in df.T.items()},
                               columns=df.index).T
         assert_frame_equal(result1, expected1)
 
@@ -576,7 +577,7 @@ class TestDataFrameApply():
         tm.assert_frame_equal(result, expected)
 
 
-class TestInferOutputShape(object):
+class TestInferOutputShape:
     # the user has supplied an opaque UDF where
     # they are transforming the input that requires
     # us to infer the output

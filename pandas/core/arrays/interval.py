@@ -3,12 +3,12 @@ import textwrap
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs.interval import (
     Interval, IntervalMixin, intervals_to_interval_bounds)
-from pandas.compat import add_metaclass
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
-from pandas.util._doctools import _WritableDoc
 
 from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (
@@ -24,7 +24,6 @@ from pandas.core.arrays.base import (
     ExtensionArray, _extension_array_shared_docs)
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, ensure_index
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
@@ -126,7 +125,6 @@ for more.
     :meth:`IntervalArray.from_breaks`, and :meth:`IntervalArray.from_tuples`.
     """),
 ))
-@add_metaclass(_WritableDoc)
 class IntervalArray(IntervalMixin, ExtensionArray):
     dtype = IntervalDtype()
     ndim = 1
@@ -941,8 +939,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         points) and is either monotonic increasing or monotonic decreasing,
         else False
         """
-
-    @property
+    # https://github.com/python/mypy/issues/1362
+    # Mypy does not support decorated properties
+    @property  # type: ignore
     @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
               % _shared_docs_kwargs)
     def is_non_overlapping_monotonic(self):

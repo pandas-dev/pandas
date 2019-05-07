@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, lzip, range
+from pandas.compat import lrange, lzip
 
 import pandas as pd
 from pandas import Index, MultiIndex, Series

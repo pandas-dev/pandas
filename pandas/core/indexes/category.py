@@ -3,6 +3,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import index as libindex
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -19,7 +21,6 @@ from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, contains
 import pandas.core.common as com
-from pandas.core.config import get_option
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 import pandas.core.missing as missing
@@ -42,20 +43,35 @@ _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
     typ='method', overwrite=True)
 class CategoricalIndex(Index, accessor.PandasDelegate):
     """
-    Immutable Index implementing an ordered, sliceable set. CategoricalIndex
-    represents a sparsely populated Index with an underlying Categorical.
+    Index based on an underlying :class:`Categorical`.
+
+    CategoricalIndex, like Categorical, can only take on a limited,
+    and usually fixed, number of possible values (`categories`). Also,
+    like Categorical, it might have an order, but numerical operations
+    (additions, divisions, ...) are not possible.
 
     Parameters
     ----------
-    data : array-like or Categorical, (1-dimensional)
-    categories : optional, array-like
-        categories for the CategoricalIndex
-    ordered : boolean,
-        designating if the categories are ordered
-    copy : bool
-        Make a copy of input ndarray
-    name : object
-        Name to be stored in the index
+    data : array-like (1-dimensional)
+        The values of the categorical. If `categories` are given, values not in
+        `categories` will be replaced with NaN.
+    categories : index-like, optional
+        The categories for the categorical. Items need to be unique.
+        If the categories are not given here (and also not in `dtype`), they
+        will be inferred from the `data`.
+    ordered : bool, optional
+        Whether or not this categorical is treated as an ordered
+        categorical. If not given here or in `dtype`, the resulting
+        categorical will be unordered.
+    dtype : CategoricalDtype or the string "category", optional
+        If :class:`CategoricalDtype`, cannot be used together with
+        `categories` or `ordered`.
+
+        .. versionadded:: 0.21.0
+    copy : bool, default False
+        Make a copy of input ndarray.
+    name : object, optional
+        Name to be stored in the index.
 
     Attributes
     ----------
@@ -75,9 +91,45 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     as_unordered
     map
 
+    Raises
+    ------
+    ValueError
+        If the categories do not validate.
+    TypeError
+        If an explicit ``ordered=True`` is given but no `categories` and the
+        `values` are not sortable.
+
     See Also
     --------
-    Categorical, Index
+    Index : The base pandas Index type.
+    Categorical : A categorical array.
+    CategoricalDtype : Type for categorical data.
+
+    Notes
+    -----
+    See the `user guide
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
+    for more.
+
+    Examples
+    --------
+    >>> pd.CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'])
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+
+    ``CategoricalIndex`` can also be instantiated from a ``Categorical``:
+
+    >>> c = pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
+    >>> pd.CategoricalIndex(c)
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['a', 'b', 'c'], ordered=False, dtype='category')  # noqa
+
+    Ordered ``CategoricalIndex`` can have a min and max value.
+
+    >>> ci = pd.CategoricalIndex(['a','b','c','a','b','c'], ordered=True,
+    ...                          categories=['c', 'b', 'a'])
+    >>> ci
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['c', 'b', 'a'], ordered=True, dtype='category')  # noqa
+    >>> ci.min()
+    'c'
     """
 
     _typ = 'categoricalindex'
@@ -186,7 +238,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         values = cls._create_categorical(values, dtype=dtype)
         result._data = values
         result.name = name
-        for k, v in compat.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(result, k, v)
 
         result._reset_identity()
@@ -198,8 +250,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _shallow_copy(self, values=None, dtype=None, **kwargs):
         if dtype is None:
             dtype = self.dtype
-        return super(CategoricalIndex, self)._shallow_copy(
-            values=values, dtype=dtype, **kwargs)
+        return super()._shallow_copy(values=values, dtype=dtype, **kwargs)
 
     def _is_dtype_compat(self, other):
         """
@@ -345,7 +396,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
-        return super(CategoricalIndex, self).astype(dtype=dtype, copy=copy)
+        return super().astype(dtype=dtype, copy=copy)
 
     @cache_readonly
     def _isnan(self):
@@ -451,7 +502,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             pass
 
         # we might be a positional inexer
-        return super(CategoricalIndex, self).get_value(series, key)
+        return super().get_value(series, key)
 
     def _can_reindex(self, indexer):
         """ always allow reindexing """
@@ -614,8 +665,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if self.categories._defer_to_indexing:
             return self.categories._convert_scalar_indexer(key, kind=kind)
 
-        return super(CategoricalIndex, self)._convert_scalar_indexer(
-            key, kind=kind)
+        return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(_index_shared_docs['_convert_list_indexer'])
     def _convert_list_indexer(self, keyarr, kind=None):

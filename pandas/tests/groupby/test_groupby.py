@@ -1,19 +1,17 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-
 from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal
+from io import StringIO
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lmap, lrange, lzip, map, range, zip
+from pandas.compat import lmap, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, compat, date_range,
+    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, date_range,
     read_csv)
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -86,7 +84,7 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
 
     # GH 3911, mixed frame non-conversion
     df = df_mixed_floats.copy()
-    df['value'] = lrange(len(df))
+    df['value'] = range(len(df))
 
     def max_value(group):
         return group.loc[group['value'].idxmax()]
@@ -208,7 +206,7 @@ def test_pass_args_kwargs(ts, tsframe):
     trans_expected = ts_grouped.transform(g)
 
     assert_series_equal(apply_result, agg_expected)
-    assert_series_equal(agg_result, agg_expected, check_names=False)
+    assert_series_equal(agg_result, agg_expected)
     assert_series_equal(trans_result, trans_expected)
 
     agg_result = ts_grouped.agg(f, q=80)
@@ -223,13 +221,13 @@ def test_pass_args_kwargs(ts, tsframe):
     agg_result = df_grouped.agg(np.percentile, 80, axis=0)
     apply_result = df_grouped.apply(DataFrame.quantile, .8)
     expected = df_grouped.quantile(.8)
-    assert_frame_equal(apply_result, expected)
-    assert_frame_equal(agg_result, expected, check_names=False)
+    assert_frame_equal(apply_result, expected, check_names=False)
+    assert_frame_equal(agg_result, expected)
 
     agg_result = df_grouped.agg(f, q=80)
     apply_result = df_grouped.apply(DataFrame.quantile, q=.8)
-    assert_frame_equal(agg_result, expected, check_names=False)
-    assert_frame_equal(apply_result, expected)
+    assert_frame_equal(agg_result, expected)
+    assert_frame_equal(apply_result, expected, check_names=False)
 
 
 def test_len():
@@ -251,11 +249,10 @@ def test_len():
 
 def test_basic_regression():
     # regression
-    T = [1.0 * x for x in lrange(1, 10) * 10][:1095]
-    result = Series(T, lrange(0, len(T)))
+    result = Series([1.0 * x for x in list(range(1, 10)) * 10])
 
-    groupings = np.random.random((1100, ))
-    groupings = Series(groupings, lrange(0, len(groupings))) * 10.
+    data = np.random.random(1100) * 10.
+    groupings = Series(data)
 
     grouped = result.groupby(groupings)
     grouped.mean()
@@ -298,7 +295,7 @@ def test_indices_concatenation_order():
         if y.empty:
             multiindex = MultiIndex(levels=[[]] * 2, codes=[[]] * 2,
                                     names=['b', 'c'])
-            res = DataFrame(None, columns=['a'], index=multiindex)
+            res = DataFrame(columns=['a'], index=multiindex)
             return res
         else:
             y = y.set_index(['b', 'c'])
@@ -317,14 +314,14 @@ def test_indices_concatenation_order():
         if y.empty:
             multiindex = MultiIndex(levels=[[]] * 2, codes=[[]] * 2,
                                     names=['foo', 'bar'])
-            res = DataFrame(None, columns=['a', 'b'], index=multiindex)
+            res = DataFrame(columns=['a', 'b'], index=multiindex)
             return res
         else:
             return y
 
-    df = DataFrame({'a': [1, 2, 2, 2], 'b': lrange(4), 'c': lrange(5, 9)})
+    df = DataFrame({'a': [1, 2, 2, 2], 'b': range(4), 'c': range(5, 9)})
 
-    df2 = DataFrame({'a': [3, 2, 2, 2], 'b': lrange(4), 'c': lrange(5, 9)})
+    df2 = DataFrame({'a': [3, 2, 2, 2], 'b': range(4), 'c': range(5, 9)})
 
     # correct result
     result1 = df.groupby('a').apply(f1)
@@ -404,7 +401,7 @@ def test_frame_groupby(tsframe):
     groups = grouped.groups
     indices = grouped.indices
 
-    for k, v in compat.iteritems(groups):
+    for k, v in groups.items():
         samething = tsframe.index.take(indices[k])
         assert (samething == v).all()
 
@@ -525,7 +522,7 @@ def test_groupby_multiple_columns(df, op):
         for n2, gp2 in gp1.groupby('B'):
             expected[n1][n2] = op(gp2.loc[:, ['C', 'D']])
     expected = {k: DataFrame(v)
-                for k, v in compat.iteritems(expected)}
+                for k, v in expected.items()}
     expected = Panel.fromDict(expected).swapaxes(0, 1)
     expected.major_axis.name, expected.minor_axis.name = 'A', 'B'
 
@@ -770,7 +767,7 @@ def test_empty_groups_corner(mframe):
 
 def test_nonsense_func():
     df = DataFrame([0])
-    msg = r"unsupported operand type\(s\) for \+: '(int|long)' and 'str'"
+    msg = r"unsupported operand type\(s\) for \+: 'int' and 'str'"
     with pytest.raises(TypeError, match=msg):
         df.groupby(lambda x: x + 'foo')
 
@@ -877,7 +874,7 @@ def test_mutate_groups():
         'cat1': ['a'] * 8 + ['b'] * 6,
         'cat2': ['c'] * 2 + ['d'] * 2 + ['e'] * 2 + ['f'] * 2 + ['c'] * 2 +
         ['d'] * 2 + ['e'] * 2,
-        'cat3': lmap(lambda x: 'g%s' % x, lrange(1, 15)),
+        'cat3': lmap(lambda x: 'g%s' % x, range(1, 15)),
         'val': np.random.randint(100, size=14),
     })
 
@@ -1065,8 +1062,8 @@ def test_groupby_mixed_type_columns():
 def test_cython_grouper_series_bug_noncontig():
     arr = np.empty((100, 100))
     arr.fill(np.nan)
-    obj = Series(arr[:, 0], index=lrange(100))
-    inds = np.tile(lrange(10), 10)
+    obj = Series(arr[:, 0])
+    inds = np.tile(range(10), 10)
 
     result = obj.groupby(inds).agg(Series.median)
     assert result.isna().all()
@@ -1088,7 +1085,7 @@ def test_series_grouper_noncontig_index():
 
 def test_convert_objects_leave_decimal_alone():
 
-    s = Series(lrange(5))
+    s = Series(range(5))
     labels = np.array(['a', 'b', 'c', 'd', 'e'], dtype='O')
 
     def convert_fast(x):
@@ -1219,7 +1216,7 @@ def test_groupby_nat_exclude():
 
 
 def test_groupby_2d_malformed():
-    d = DataFrame(index=lrange(2))
+    d = DataFrame(index=range(2))
     d['group'] = ['g1', 'g2']
     d['zeros'] = [0, 0]
     d['ones'] = [1, 1]
@@ -1276,7 +1273,7 @@ def test_groupby_sort_multi():
         tups = lmap(tuple, df[keys].values)
         tups = com.asarray_tuplesafe(tups)
         expected = f(df.groupby(tups)[field])
-        for k, v in compat.iteritems(expected):
+        for k, v in expected.items():
             assert (result[k] == v)
 
     _check_groupby(df, result, ['a', 'b'], 'd')
@@ -1381,11 +1378,9 @@ def test_group_name_available_in_inference_pass():
     def f(group):
         names.append(group.name)
         return group.copy()
-
     df.groupby('a', sort=False, group_keys=False).apply(f)
-    # we expect 2 zeros because we call ``f`` once to see if a faster route
-    # can be used.
-    expected_names = [0, 0, 1, 2]
+
+    expected_names = [0, 1, 2]
     assert names == expected_names
 
 
@@ -1690,11 +1685,56 @@ def test_groupby_agg_ohlc_non_first():
         [1, 1, 1, 1, 1],
         [1, 1, 1, 1, 1]
     ], columns=pd.MultiIndex.from_tuples((
-        ('foo', 'ohlc', 'open'), ('foo', 'ohlc', 'high'),
-        ('foo', 'ohlc', 'low'), ('foo', 'ohlc', 'close'),
-        ('foo', 'sum', 'foo'))), index=pd.date_range(
+        ('foo', 'sum', 'foo'), ('foo', 'ohlc', 'open'),
+        ('foo', 'ohlc', 'high'), ('foo', 'ohlc', 'low'),
+        ('foo', 'ohlc', 'close'))), index=pd.date_range(
             '2018-01-01', periods=2, freq='D'))
 
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_multiindex_nat():
+    # GH 9236
+    values = [
+        (pd.NaT, 'a'),
+        (datetime(2012, 1, 2), 'a'),
+        (datetime(2012, 1, 2), 'b'),
+        (datetime(2012, 1, 3), 'a')
+    ]
+    mi = pd.MultiIndex.from_tuples(values, names=['date', None])
+    ser = pd.Series([3, 2, 2.5, 4], index=mi)
+
+    result = ser.groupby(level=1).mean()
+    expected = pd.Series([3., 2.5], index=["a", "b"])
+    assert_series_equal(result, expected)
+
+
+def test_groupby_empty_list_raises():
+    # GH 5289
+    values = zip(range(10), range(10))
+    df = DataFrame(values, columns=['apple', 'b'])
+    msg = "Grouper and axis must be same length"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby([[]])
+
+
+def test_groupby_multiindex_series_keys_len_equal_group_axis():
+    # GH 25704
+    index_array = [
+        ['x', 'x'],
+        ['a', 'b'],
+        ['k', 'k']
+    ]
+    index_names = ['first', 'second', 'third']
+    ri = pd.MultiIndex.from_arrays(index_array, names=index_names)
+    s = pd.Series(data=[1, 2], index=ri)
+    result = s.groupby(['first', 'third']).sum()
+
+    index_array = [['x'], ['k']]
+    index_names = ['first', 'third']
+    ei = pd.MultiIndex.from_arrays(index_array, names=index_names)
+    expected = pd.Series([3], index=ei)
+
+    assert_series_equal(result, expected)

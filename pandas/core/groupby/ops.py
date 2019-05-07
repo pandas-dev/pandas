@@ -10,8 +10,10 @@ import collections
 
 import numpy as np
 
-from pandas._libs import NaT, groupby as libgroupby, iNaT, lib, reduction
-from pandas.compat import lzip, range, zip
+from pandas._libs import NaT, iNaT, lib
+import pandas._libs.groupby as libgroupby
+import pandas._libs.reduction as reduction
+from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -87,7 +89,7 @@ def generate_bins_generic(values, binner, closed):
     return bins
 
 
-class BaseGrouper(object):
+class BaseGrouper:
     """
     This is an internal Grouper class, which actually holds
     the generated groups
@@ -165,25 +167,44 @@ class BaseGrouper(object):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
+        result_values = None
 
         # oh boy
         f_name = com.get_callable_name(f)
         if (f_name not in base.plotting_methods and
                 hasattr(splitter, 'fast_apply') and axis == 0):
             try:
-                values, mutated = splitter.fast_apply(f, group_keys)
-                return group_keys, values, mutated
+                result_values, mutated = splitter.fast_apply(f, group_keys)
+
+                # If the fast apply path could be used we can return here.
+                # Otherwise we need to fall back to the slow implementation.
+                if len(result_values) == len(group_keys):
+                    return group_keys, result_values, mutated
+
             except reduction.InvalidApply:
-                # we detect a mutation of some kind
-                # so take slow path
+                # Cannot fast apply on MultiIndex (_has_complex_internals).
+                # This Exception is also raised if `f` triggers an exception
+                # but it is preferable to raise the exception in Python.
                 pass
             except Exception:
                 # raise this error to the caller
                 pass
 
-        result_values = []
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, 'name', key)
+
+            # result_values is None if fast apply path wasn't taken
+            # or fast apply aborted with an unexpected exception.
+            # In either case, initialize the result list and perform
+            # the slow iteration.
+            if result_values is None:
+                result_values = []
+
+            # If result_values is not None we're in the case that the
+            # fast apply loop was broken prematurely but we have
+            # already the result for the first group which we can reuse.
+            elif i == 0:
+                continue
 
             # group might be modified
             group_axes = _get_axes(group)
@@ -227,7 +248,7 @@ class BaseGrouper(object):
         if ngroup:
             out = np.bincount(ids[ids != -1], minlength=ngroup)
         else:
-            out = ids
+            out = []
         return Series(out,
                       index=self.result_index,
                       dtype='int64')
@@ -340,8 +361,8 @@ class BaseGrouper(object):
             'cummax': 'group_cummax',
             'rank': {
                 'name': 'group_rank',
-                'f': lambda func, a, b, c, d, **kwargs: func(
-                    a, b, c, d,
+                'f': lambda func, a, b, c, d, e, **kwargs: func(
+                    a, b, c, e,
                     kwargs.get('ties_method', 'average'),
                     kwargs.get('ascending', True),
                     kwargs.get('pct', False),
@@ -579,9 +600,10 @@ class BaseGrouper(object):
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
                 transform_func(result[:, :, i], values,
-                               comp_ids, is_datetimelike, **kwargs)
+                               comp_ids, ngroups, is_datetimelike, **kwargs)
         else:
-            transform_func(result, values, comp_ids, is_datetimelike, **kwargs)
+            transform_func(result, values, comp_ids, ngroups, is_datetimelike,
+                           **kwargs)
 
         return result
 
@@ -789,7 +811,7 @@ def _is_indexed_like(obj, axes):
 # Splitting / application
 
 
-class DataSplitter(object):
+class DataSplitter:
 
     def __init__(self, data, labels, ngroups, axis=0):
         self.data = data
@@ -854,10 +876,7 @@ class FrameSplitter(DataSplitter):
             return [], True
 
         sdata = self._get_sorted_data()
-        results, mutated = reduction.apply_frame_axis0(sdata, f, names,
-                                                       starts, ends)
-
-        return results, mutated
+        return reduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata, slice_obj):
         if self.axis == 0:
@@ -866,33 +885,10 @@ class FrameSplitter(DataSplitter):
             return sdata._slice(slice_obj, axis=1)  # .loc[:, slice_obj]
 
 
-class NDFrameSplitter(DataSplitter):
-
-    def __init__(self, data, labels, ngroups, axis=0):
-        super(NDFrameSplitter, self).__init__(data, labels, ngroups, axis=axis)
-
-        self.factory = data._constructor
-
-    def _get_sorted_data(self):
-        # this is the BlockManager
-        data = self.data._data
-
-        # this is sort of wasteful but...
-        sorted_axis = data.axes[self.axis].take(self.sort_idx)
-        sorted_data = data.reindex_axis(sorted_axis, axis=self.axis)
-
-        return sorted_data
-
-    def _chop(self, sdata, slice_obj):
-        return self.factory(sdata.get_slice(slice_obj, axis=self.axis))
-
-
 def get_splitter(data, *args, **kwargs):
     if isinstance(data, Series):
         klass = SeriesSplitter
     elif isinstance(data, DataFrame):
         klass = FrameSplitter
-    else:
-        klass = NDFrameSplitter
 
     return klass(data, *args, **kwargs)

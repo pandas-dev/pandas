@@ -59,7 +59,7 @@ def to_numeric(arg, errors='raise', downcast=None):
     Returns
     -------
     ret : numeric if parsing succeeded.
-        Return type depends on input.  Series if Series, otherwise ndarray
+        Return type depends on input.  Series if Series, otherwise ndarray.
 
     See Also
     --------

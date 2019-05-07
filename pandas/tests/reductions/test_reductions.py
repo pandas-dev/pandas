@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -7,7 +6,7 @@ import pytest
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, NaT, Period, PeriodIndex,
-    RangeIndex, Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna,
+    RangeIndex, Series, Timedelta, TimedeltaIndex, Timestamp, isna,
     timedelta_range, to_timedelta)
 from pandas.core import nanops
 import pandas.util.testing as tm
@@ -35,7 +34,7 @@ def get_objs():
 objs = get_objs()
 
 
-class TestReductions(object):
+class TestReductions:
 
     @pytest.mark.parametrize('opname', ['max', 'min'])
     @pytest.mark.parametrize('obj', objs)
@@ -148,11 +147,11 @@ class TestReductions(object):
                        columns=['a'])
         df['b'] = df.a.subtract(pd.Timedelta(seconds=3600))
         result = getattr(df, op)(axis=1)
-        expected = df[expected_col]
+        expected = df[expected_col].rename(None)
         tm.assert_series_equal(result, expected)
 
 
-class TestIndexReductions(object):
+class TestIndexReductions:
     # Note: the name TestIndexReductions indicates these tests
     #  were moved from a Index-specific test file, _not_ that these tests are
     #  intended long-term to be Index-specific
@@ -276,7 +275,9 @@ class TestIndexReductions(object):
 
         # invalid ops
         for op in ['skew', 'kurt', 'sem', 'prod']:
-            pytest.raises(TypeError, getattr(td, op))
+            msg = "reduction operation '{}' not allowed for this dtype"
+            with pytest.raises(TypeError, match=msg.format(op)):
+                getattr(td, op)()
 
         # GH#10040
         # make sure NaT is properly handled by median()
@@ -412,7 +413,7 @@ class TestIndexReductions(object):
         assert ci.max() == 'b'
 
 
-class TestSeriesReductions(object):
+class TestSeriesReductions:
     # Note: the name TestSeriesReductions indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific
@@ -862,7 +863,7 @@ class TestSeriesReductions(object):
             np.isnan(s.idxmax(skipna=False))
 
 
-class TestDatetime64SeriesReductions(object):
+class TestDatetime64SeriesReductions:
     # Note: the name TestDatetime64SeriesReductions indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific
@@ -919,7 +920,7 @@ class TestDatetime64SeriesReductions(object):
         assert result == exp
 
 
-class TestCategoricalSeriesReductions(object):
+class TestCategoricalSeriesReductions:
     # Note: the name TestCategoricalSeriesReductions indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific
@@ -960,8 +961,29 @@ class TestCategoricalSeriesReductions(object):
         assert np.isnan(_min)
         assert _max == 1
 
+    def test_min_max_numeric_only(self):
+        # TODO deprecate numeric_only argument for Categorical and use
+        # skipna as well, see GH25303
+        cat = Series(Categorical(
+            ["a", "b", np.nan, "a"], categories=['b', 'a'], ordered=True))
 
-class TestSeriesMode(object):
+        _min = cat.min()
+        _max = cat.max()
+        assert np.isnan(_min)
+        assert _max == "a"
+
+        _min = cat.min(numeric_only=True)
+        _max = cat.max(numeric_only=True)
+        assert _min == "b"
+        assert _max == "a"
+
+        _min = cat.min(numeric_only=False)
+        _max = cat.max(numeric_only=False)
+        assert np.isnan(_min)
+        assert _max == "a"
+
+
+class TestSeriesMode:
     # Note: the name TestSeriesMode indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific
@@ -1123,7 +1145,6 @@ class TestSeriesMode(object):
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)
 
-    @pytest.mark.skipif(not compat.PY3, reason="only PY3")
     def test_mode_sortwarning(self):
         # Check for the warning that is raised when the mode
         # results cannot be sorted

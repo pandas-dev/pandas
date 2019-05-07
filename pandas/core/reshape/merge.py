@@ -9,8 +9,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import hashtable as libhashtable, join as libjoin, lib
-import pandas.compat as compat
-from pandas.compat import filter, lzip, map, range, zip
+from pandas.compat import lzip
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -470,7 +469,7 @@ def merge_asof(left, right, on=None,
 
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
-class _MergeOperation(object):
+class _MergeOperation:
     """
     Perform a database (SQL) merge operation between two DataFrame objects
     using either columns as keys or their row indexes
@@ -502,7 +501,7 @@ class _MergeOperation(object):
 
         self.indicator = indicator
 
-        if isinstance(self.indicator, compat.string_types):
+        if isinstance(self.indicator, str):
             self.indicator_name = self.indicator
         elif isinstance(self.indicator, bool):
             self.indicator_name = '_merge' if self.indicator else None
@@ -804,22 +803,18 @@ class _MergeOperation(object):
         -------
         join_index
         """
-        join_index = index.take(indexer)
         if (self.how in (how, 'outer') and
                 not isinstance(other_index, MultiIndex)):
             # if final index requires values in other_index but not target
             # index, indexer may hold missing (-1) values, causing Index.take
-            # to take the final value in target index
+            # to take the final value in target index. So, we set the last
+            # element to be the desired fill value. We do not use allow_fill
+            # and fill_value because it throws a ValueError on integer indices
             mask = indexer == -1
             if np.any(mask):
-                # if values missing (-1) from target index,
-                # take from other_index instead
-                join_list = join_index.to_numpy()
-                other_list = other_index.take(other_indexer).to_numpy()
-                join_list[mask] = other_list[mask]
-                join_index = Index(join_list, dtype=join_index.dtype,
-                                   name=join_index.name)
-        return join_index
+                fill_value = na_value_for_dtype(index.dtype, compat=False)
+                index = index.append(Index([fill_value]))
+        return index.take(indexer)
 
     def _get_merge_keys(self):
         """
@@ -1387,7 +1382,7 @@ class _AsOfMerge(_OrderedMerge):
                                fill_method=fill_method)
 
     def _validate_specification(self):
-        super(_AsOfMerge, self)._validate_specification()
+        super()._validate_specification()
 
         # we only allow on to be a single item for on
         if len(self.left_on) != 1 and not self.left_index:
@@ -1442,15 +1437,31 @@ class _AsOfMerge(_OrderedMerge):
         # note this function has side effects
         (left_join_keys,
          right_join_keys,
-         join_names) = super(_AsOfMerge, self)._get_merge_keys()
+         join_names) = super()._get_merge_keys()
 
         # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
             if not is_dtype_equal(lk.dtype, rk.dtype):
-                raise MergeError("incompatible merge keys [{i}] {lkdtype} and "
-                                 "{rkdtype}, must be the same type"
-                                 .format(i=i, lkdtype=lk.dtype,
-                                         rkdtype=rk.dtype))
+                if (is_categorical_dtype(lk.dtype) and
+                        is_categorical_dtype(rk.dtype)):
+                    # The generic error message is confusing for categoricals.
+                    #
+                    # In this function, the join keys include both the original
+                    # ones of the merge_asof() call, and also the keys passed
+                    # to its by= argument. Unordered but equal categories
+                    # are not supported for the former, but will fail
+                    # later with a ValueError, so we don't *need* to check
+                    # for them here.
+                    msg = ("incompatible merge keys [{i}] {lkdtype} and "
+                           "{rkdtype}, both sides category, but not equal ones"
+                           .format(i=i, lkdtype=repr(lk.dtype),
+                                   rkdtype=repr(rk.dtype)))
+                else:
+                    msg = ("incompatible merge keys [{i}] {lkdtype} and "
+                           "{rkdtype}, must be the same type"
+                           .format(i=i, lkdtype=repr(lk.dtype),
+                                   rkdtype=repr(rk.dtype)))
+                raise MergeError(msg)
 
         # validate tolerance; must be a Timedelta if we have a DTI
         if self.tolerance is not None:
@@ -1463,7 +1474,7 @@ class _AsOfMerge(_OrderedMerge):
             msg = ("incompatible tolerance {tolerance}, must be compat "
                    "with type {lkdtype}".format(
                        tolerance=type(self.tolerance),
-                       lkdtype=lt.dtype))
+                       lkdtype=repr(lt.dtype)))
 
             if is_datetime64_dtype(lt) or is_datetime64tz_dtype(lt):
                 if not isinstance(self.tolerance, Timedelta):
@@ -1776,8 +1787,7 @@ def _get_join_keys(llab, rlab, shape, sort):
 
 
 def _should_fill(lname, rname):
-    if (not isinstance(lname, compat.string_types) or
-            not isinstance(rname, compat.string_types)):
+    if not isinstance(lname, str) or not isinstance(rname, str):
         return True
     return lname == rname
 

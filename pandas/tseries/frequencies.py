@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 from datetime import timedelta
 import re
+from typing import Dict
 
 import numpy as np
 from pytz import AmbiguousTimeError
@@ -8,15 +8,13 @@ from pytz import AmbiguousTimeError
 from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import Timedelta, Timestamp
 from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday
-from pandas._libs.tslibs.conversion import tz_convert
 from pandas._libs.tslibs.fields import build_field_sarray
 import pandas._libs.tslibs.frequencies as libfreqs
 from pandas._libs.tslibs.offsets import _offset_to_period_map
 import pandas._libs.tslibs.resolution as libresolution
 from pandas._libs.tslibs.resolution import Resolution
 from pandas._libs.tslibs.timezones import UTC
-import pandas.compat as compat
-from pandas.compat import zip
+from pandas._libs.tslibs.tzconversion import tz_convert
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -39,7 +37,7 @@ _ONE_DAY = (24 * _ONE_HOUR)
 # Offset names ("time rules") and related functions
 
 #: cache of previously seen offsets
-_offset_map = {}
+_offset_map = {}  # type: Dict[str, DateOffset]
 
 
 def get_period_alias(offset_str):
@@ -67,8 +65,8 @@ def to_offset(freq):
 
     Returns
     -------
-    delta : DateOffset
-        None if freq is None
+    DateOffset
+        None if freq is None.
 
     Raises
     ------
@@ -108,7 +106,7 @@ def to_offset(freq):
     if isinstance(freq, tuple):
         name = freq[0]
         stride = freq[1]
-        if isinstance(stride, compat.string_types):
+        if isinstance(stride, str):
             name, stride = stride, name
         name, _ = libfreqs._base_and_stride(name)
         delta = get_offset(name) * stride
@@ -214,7 +212,7 @@ def infer_freq(index, warn=True):
 
     Returns
     -------
-    freq : string or None
+    str or None
         None if no discernible frequency
         TypeError if the index is not datetime-like
         ValueError if there are less than three values.
@@ -254,7 +252,7 @@ def infer_freq(index, warn=True):
     return inferer.get_freq()
 
 
-class _FrequencyInferer(object):
+class _FrequencyInferer:
     """
     Not sure if I can avoid the state machine here
     """
@@ -300,7 +298,7 @@ class _FrequencyInferer(object):
 
         Returns
         -------
-        freqstr : str or None
+        str or None
         """
         if not self.is_monotonic or not self.index._is_unique:
             return None

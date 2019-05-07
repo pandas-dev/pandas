@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import compat
 from pandas.tests.extension import base
 import pandas.util.testing as tm
 
@@ -21,6 +20,11 @@ def dtype():
 @pytest.fixture
 def data():
     return DecimalArray(make_data())
+
+
+@pytest.fixture
+def data_for_twos():
+    return DecimalArray([decimal.Decimal(2) for _ in range(100)])
 
 
 @pytest.fixture
@@ -61,7 +65,7 @@ def data_for_grouping():
     return DecimalArray([b, b, na, na, a, a, b, c])
 
 
-class BaseDecimal(object):
+class BaseDecimal:
 
     def assert_series_equal(self, left, right, *args, **kwargs):
         def convert(x):
@@ -109,15 +113,12 @@ class BaseDecimal(object):
 
 
 class TestDtype(BaseDecimal, base.BaseDtypeTests):
-    @pytest.mark.skipif(compat.PY2, reason="Context not hashable.")
     def test_hashable(self, dtype):
         pass
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
-
-    pytestmark = pytest.mark.skipif(compat.PY2,
-                                    reason="Unhashble dtype in Py2.")
+    pass
 
 
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
@@ -129,8 +130,7 @@ class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
 
 
 class TestReshaping(BaseDecimal, base.BaseReshapingTests):
-    pytestmark = pytest.mark.skipif(compat.PY2,
-                                    reason="Unhashble dtype in Py2.")
+    pass
 
 
 class TestGetitem(BaseDecimal, base.BaseGetitemTests):
@@ -149,7 +149,7 @@ class TestMissing(BaseDecimal, base.BaseMissingTests):
     pass
 
 
-class Reduce(object):
+class Reduce:
 
     def check_reduce(self, s, op_name, skipna):
 
@@ -188,13 +188,11 @@ class TestMethods(BaseDecimal, base.BaseMethodsTests):
 
 
 class TestCasting(BaseDecimal, base.BaseCastingTests):
-    pytestmark = pytest.mark.skipif(compat.PY2,
-                                    reason="Unhashble dtype in Py2.")
+    pass
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
-    pytestmark = pytest.mark.skipif(compat.PY2,
-                                    reason="Unhashble dtype in Py2.")
+    pass
 
 
 class TestSetitem(BaseDecimal, base.BaseSetitemTests):
@@ -202,8 +200,7 @@ class TestSetitem(BaseDecimal, base.BaseSetitemTests):
 
 
 class TestPrinting(BaseDecimal, base.BasePrintingTests):
-    pytestmark = pytest.mark.skipif(compat.PY2,
-                                    reason="Unhashble dtype in Py2.")
+    pass
 
 
 # TODO(extension)
@@ -265,8 +262,7 @@ def test_astype_dispatches(frame):
 class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
-        super(TestArithmeticOps, self).check_opname(s, op_name,
-                                                    other, exc=None)
+        super().check_opname(s, op_name, other, exc=None)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators
@@ -292,9 +288,7 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
         # We implement divmod
-        super(TestArithmeticOps, self)._check_divmod_op(
-            s, op, other, exc=None
-        )
+        super()._check_divmod_op(s, op, other, exc=None)
 
     def test_error(self):
         pass
@@ -303,8 +297,7 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
-        super(TestComparisonOps, self).check_opname(s, op_name,
-                                                    other, exc=None)
+        super().check_opname(s, op_name, other, exc=None)
 
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)
@@ -393,9 +386,6 @@ def test_formatting_values_deprecated():
             return np.array(self)
 
     ser = pd.Series(DecimalArray2([decimal.Decimal('1.0')]))
-    # different levels for 2 vs. 3
-    check_stacklevel = compat.PY3
 
-    with tm.assert_produces_warning(DeprecationWarning,
-                                    check_stacklevel=check_stacklevel):
+    with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=True):
         repr(ser)
