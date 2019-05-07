@@ -180,6 +180,11 @@ class MultiIndex(Index):
     MultiIndex.from_frame   : Make a MultiIndex from a DataFrame.
     Index : The base pandas Index type.
 
+    Notes
+    -----
+    See the `user guide
+    <http://pandas.pydata.org/pandas-docs/stable/advanced.html>`_ for more.
+
     Examples
     --------
     A new ``MultiIndex`` is typically constructed using one of the helper
@@ -194,11 +199,6 @@ class MultiIndex(Index):
 
     See further examples for how to construct a MultiIndex in the doc strings
     of the mentioned helper methods.
-
-    Notes
-    -----
-    See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/advanced.html>`_ for more.
     """
 
     # initialize to zero-length tuples to make everything work
@@ -2360,6 +2360,20 @@ class MultiIndex(Index):
             If the key is past the lexsort depth, the return may be a
             boolean mask array, otherwise it is always a slice or int.
 
+        See Also
+        --------
+        Index.get_loc : The get_loc method for (single-level) index.
+        MultiIndex.slice_locs : Get slice location given start label(s) and
+                                end label(s).
+        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+                              sequence of such.
+
+        Notes
+        -----
+        The key cannot be a slice, list of same-level labels, a boolean mask,
+        or a sequence of such. If you want to use those, use
+        :meth:`MultiIndex.get_locs` instead.
+
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')])
@@ -2369,20 +2383,6 @@ class MultiIndex(Index):
 
         >>> mi.get_loc(('b', 'e'))
         1
-
-        Notes
-        -----
-        The key cannot be a slice, list of same-level labels, a boolean mask,
-        or a sequence of such. If you want to use those, use
-        :meth:`MultiIndex.get_locs` instead.
-
-        See Also
-        --------
-        Index.get_loc : The get_loc method for (single-level) index.
-        MultiIndex.slice_locs : Get slice location given start label(s) and
-                                end label(s).
-        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
-                              sequence of such.
         """
         if method is not None:
             raise NotImplementedError('only the default get_loc method is '
@@ -2463,6 +2463,12 @@ class MultiIndex(Index):
               Element 1: The resulting sliced multiindex/index. If the key
               contains all levels, this will be ``None``.
 
+        See Also
+        --------
+        MultiIndex.get_loc  : Get location for a label or a tuple of labels.
+        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+                              sequence of such.
+
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')],
@@ -2477,12 +2483,6 @@ class MultiIndex(Index):
 
         >>> mi.get_loc_level(['b', 'e'])
         (1, None)
-
-        See Also
-        --------
-        MultiIndex.get_loc  : Get location for a label or a tuple of labels.
-        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
-                              sequence of such.
         """
 
         def maybe_droplevels(indexer, levels, drop_level):

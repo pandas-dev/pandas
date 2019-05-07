@@ -204,14 +204,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     month_name
     day_name
 
-    Notes
-    -----
-    To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    Creating a DatetimeIndex based on `start`, `periods`, and `end` has
-    been deprecated in favor of :func:`date_range`.
-
     See Also
     --------
     Index : The base pandas Index type.
@@ -219,6 +211,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     PeriodIndex : Index of Period data.
     to_datetime : Convert argument to datetime.
     date_range : Create a fixed-frequency DatetimeIndex.
+
+    Notes
+    -----
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    Creating a DatetimeIndex based on `start`, `periods`, and `end` has
+    been deprecated in favor of :func:`date_range`.
     """
     _typ = 'datetimeindex'
     _join_precedence = 10
