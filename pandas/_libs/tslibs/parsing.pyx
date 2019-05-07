@@ -58,8 +58,6 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
 cdef:
     set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
-    set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
-
 # ----------------------------------------------------------------------
 cdef:
     const char* delimiters = " /-."
