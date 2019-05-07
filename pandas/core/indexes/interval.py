@@ -1,6 +1,7 @@
 """ define the IntervalIndex """
 import textwrap
 import warnings
+import functools
 
 import numpy as np
 
@@ -95,6 +96,27 @@ def _new_IntervalIndex(cls, d):
     arguments and breaks __new__
     """
     return cls.from_arrays(**d)
+
+
+class _setop_check(object):
+
+    def __init__(self, op_name):
+        self.op_name = op_name
+
+    def __call__(self, setop):
+        def func(intvidx_self, other, sort=False):
+            other = intvidx_self._as_like_interval_index(other)
+
+            # GH 19016: ensure set op will not return a prohibited dtype
+            subtypes = [intvidx_self.dtype.subtype, other.dtype.subtype]
+            common_subtype = find_common_type(subtypes)
+            if is_object_dtype(common_subtype):
+                msg = ('can only do {op} between two IntervalIndex '
+                       'objects that have compatible dtypes')
+                raise TypeError(msg.format(op=self.op_name))
+
+            return setop(intvidx_self, other, sort)
+        return func
 
 
 @Appender(_interval_shared_docs['class'] % dict(
@@ -1090,16 +1112,8 @@ class IntervalIndex(IntervalMixin, Index):
     def overlaps(self, other):
         return self._data.overlaps(other)
 
+    @_setop_check(op_name='intersection')
     def intersection(self, other, sort=False):
-        other = self._as_like_interval_index(other)
-
-        # GH 19016: ensure set op will not return a prohibited dtype
-        subtypes = [self.dtype.subtype, other.dtype.subtype]
-        common_subtype = find_common_type(subtypes)
-        if is_object_dtype(common_subtype):
-            msg = ('can only do intersection between two IntervalIndex '
-                   'objects that have compatible dtypes')
-            raise TypeError(msg)
 
         if self.left.is_unique and self.right.is_unique:
             taken = self._intersection_unique(other)
@@ -1113,6 +1127,19 @@ class IntervalIndex(IntervalMixin, Index):
         return taken
 
     def _intersection_unique(self, other):
+        """
+        Get integer location, slice or boolean mask for requested label.
+
+        Parameters
+        ----------
+        key : label
+        method : {None}, optional
+            * default: matches where the label is within an interval only.
+
+        Returns
+        -------
+        loc : int if unique index, slice if monotonic index, else mask
+        """
         lindexer = self.left.get_indexer(other.left)
         rindexer = self.right.get_indexer(other.right)
 
@@ -1125,24 +1152,14 @@ class IntervalIndex(IntervalMixin, Index):
         lmiss = other.left.get_indexer_non_unique(self.left)[1]
         rmiss = other.right.get_indexer_non_unique(self.right)[1]
 
-        import functools
         indexer = functools.reduce(np.setdiff1d, (np.arange(len(self)),
                                                   lmiss, rmiss))
 
         return self[indexer]
 
     def _setop(op_name, sort=None):
+        @_setop_check(op_name=op_name)
         def func(self, other, sort=sort):
-            other = self._as_like_interval_index(other)
-
-            # GH 19016: ensure set op will not return a prohibited dtype
-            subtypes = [self.dtype.subtype, other.dtype.subtype]
-            common_subtype = find_common_type(subtypes)
-            if is_object_dtype(common_subtype):
-                msg = ('can only do {op} between two IntervalIndex '
-                       'objects that have compatible dtypes')
-                raise TypeError(msg.format(op=op_name))
-
             result = getattr(self._multiindex, op_name)(other._multiindex,
                                                         sort=sort)
             result_name = get_op_result_name(self, other)
