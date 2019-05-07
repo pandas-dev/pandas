@@ -2710,11 +2710,11 @@ class DataFrame(NDFrame):
 
         try:
             return engine.get_value(series._values, index)
-        except KeyError as e:
+        except KeyError:
+            # GH 20629
             if self.index.nlevels > 1:
-                raise e  # partial indexing forbidden
-            else:
-                pass  # GH 20629
+                # partial indexing forbidden
+                raise
         except (TypeError, ValueError):
             pass
 
