@@ -311,6 +311,10 @@ def array_with_unit_to_datetime(ndarray values, object unit,
       - ignore: return non-convertible values as the same unit
       - coerce: NaT for non-convertibles
 
+    Returns
+    -------
+    result : ndarray of m8 values
+    tz : parsed timezone offset or None
     """
     cdef:
         Py_ssize_t i, j, n=len(values)
@@ -323,13 +327,15 @@ def array_with_unit_to_datetime(ndarray values, object unit,
         bint need_to_iterate = True
         ndarray[int64_t] iresult
         ndarray[object] oresult
+        object tz = None
 
     assert is_ignore or is_coerce or is_raise
 
     if unit == 'ns':
         if issubclass(values.dtype.type, np.integer):
-            return values.astype('M8[ns]')
-        return array_to_datetime(values.astype(object), errors=errors)[0]
+            return values.astype('M8[ns]'), tz
+        # This will return a tz
+        return array_to_datetime(values.astype(object), errors=errors)
 
     m = cast_from_unit(None, unit)
 
@@ -357,7 +363,7 @@ def array_with_unit_to_datetime(ndarray values, object unit,
             result = (iresult * m).astype('M8[ns]')
             iresult = result.view('i8')
             iresult[mask] = NPY_NAT
-            return result
+            return result, tz
 
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
@@ -419,7 +425,7 @@ def array_with_unit_to_datetime(ndarray values, object unit,
 
                 iresult[i] = NPY_NAT
 
-        return result
+        return result, tz
 
     except AssertionError:
         pass
@@ -451,7 +457,7 @@ def array_with_unit_to_datetime(ndarray values, object unit,
             else:
                 oresult[i] = val
 
-    return oresult
+    return oresult, tz
 
 
 @cython.wraparound(False)
