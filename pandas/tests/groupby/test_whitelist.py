@@ -180,17 +180,15 @@ def test_regression_whitelist_methods(
     else:
         frame = raw_frame.T
 
-    groupby_kwargs = {'level': level, 'axis': axis, 'sort': sort,
-        'as_index': as_index}
-    group_op_kwargs = {}
-    frame_op_kwargs = {'level': level, 'axis': axis}
-    if op in AGG_FUNCTIONS_WITH_SKIPNA:
-        group_op_kwargs['skipna'] = skipna
-        frame_op_kwargs['skipna'] = skipna
+    grouped = frame.groupby(level=level, axis=axis, sort=sort,
+                            as_index=as_index)
 
-    grouped = frame.groupby(**groupby_kwargs)
-    result = getattr(grouped, op)(**group_op_kwargs)
-    expected = getattr(frame, op)(**frame_op_kwargs)
+    if op in AGG_FUNCTIONS_WITH_SKIPNA:
+        result = getattr(grouped, op)(skipna=skipna)
+        expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
+    else:
+        result = getattr(grouped, op)()
+        expected = getattr(frame, op)(level=level, axis=axis)
 
     if sort:
         expected = expected.sort_index(axis=axis, level=level)
