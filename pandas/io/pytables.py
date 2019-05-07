@@ -10,6 +10,7 @@ import itertools
 import os
 import re
 import time
+from typing import Optional, List, Type, Union
 import warnings
 
 import numpy as np
@@ -2285,9 +2286,9 @@ class Fixed(StringMixin):
         parent : my parent HDFStore
         group  : the group node where the table resides
         """
-    pandas_kind = None
-    obj_type = None
-    ndim = None
+    pandas_kind = None  # type: Optional[str]
+    obj_type = None  # type: Optional[Type[Union[DataFrame, Series]]]
+    ndim = None  # type: Optional[int]
     is_table = False
 
     def __init__(self, parent, group, encoding=None, errors='strict',
@@ -2447,7 +2448,7 @@ class GenericFixed(Fixed):
     """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime', PeriodIndex: 'period'}
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
-    attributes = []
+    attributes = []  # type: List
 
     # indexer helpders
     def _class_to_alias(self, cls):
@@ -3040,7 +3041,7 @@ class Table(Fixed):
 
         """
     pandas_kind = 'wide_table'
-    table_type = None
+    table_type = None  # type: Optional[str]
     levels = 1
     is_table = True
     is_shape_reversed = False
@@ -3861,7 +3862,7 @@ class LegacyTable(Table):
         IndexCol(name='index', axis=1, pos=0),
         IndexCol(name='column', axis=2, pos=1, index_kind='columns_kind'),
         DataCol(name='fields', cname='values', kind_attr='fields', pos=2)
-    ]
+    ]  # type: Optional[List[IndexCol]]
     table_type = 'legacy'
     ndim = 3
 
@@ -4116,7 +4117,7 @@ class AppendableFrameTable(AppendableTable):
     pandas_kind = 'frame_table'
     table_type = 'appendable_frame'
     ndim = 2
-    obj_type = DataFrame
+    obj_type = DataFrame  # type: Type[Union[DataFrame, Series]]
 
     @property
     def is_transposed(self):
