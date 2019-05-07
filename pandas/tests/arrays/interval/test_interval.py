@@ -58,10 +58,3 @@ class TestSetitem:
         expected = IntervalArray.from_arrays(expected_left, expected_right)
 
         tm.assert_extension_array_equal(result, expected)
-
-
-def test_repr_matches():
-    idx = IntervalIndex.from_breaks([1, 2, 3])
-    a = repr(idx)
-    b = repr(idx.values)
-    assert a.replace("Index", "Array") == b
