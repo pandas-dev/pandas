@@ -116,9 +116,9 @@ for more.
     ``Interval`` objects:
 
     >>> pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
-    IntervalArray([(0, 1], (1, 5]],
-                  closed='right',
-                  dtype='interval[int64]')
+    <IntervalArray>
+    [(0, 1], (1, 5]]
+    Length: 2, closed: right, dtype: interval[int64]
 
     It may also be constructed using one of the constructor
     methods: :meth:`IntervalArray.from_arrays`,
@@ -842,15 +842,31 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return summary
 
+    #def __repr__(self):
+    #    tpl = textwrap.dedent("""\
+    #    {cls}({data},
+    #    {lead}closed='{closed}',
+    #    {lead}dtype='{dtype}')""")
+    #    return tpl.format(cls=self.__class__.__name__,
+    #                      data=self._format_data(),
+    #                      lead=' ' * len(self.__class__.__name__) + ' ',
+    #                      closed=self.closed, dtype=self.dtype)
+
     def __repr__(self):
-        tpl = textwrap.dedent("""\
-        {cls}({data},
-        {lead}closed='{closed}',
-        {lead}dtype='{dtype}')""")
-        return tpl.format(cls=self.__class__.__name__,
-                          data=self._format_data(),
-                          lead=' ' * len(self.__class__.__name__) + ' ',
-                          closed=self.closed, dtype=self.dtype)
+        template = (
+            '{class_name}'
+            '{data}\n'
+            'Length: {length}, closed: {closed}, dtype: {dtype}'
+        )
+        # the short repr has no trailing newline, while the truncated
+        # repr does. So we include a newline in our template, and strip
+        # any trailing newlines from format_object_summary
+        data = self._format_data()
+        class_name = '<{}>\n'.format(self.__class__.__name__)
+        return template.format(class_name=class_name, data=data,
+                               length=len(self),
+                               closed=self.closed,
+                               dtype=self.dtype)
 
     def _format_space(self):
         space = ' ' * (len(self.__class__.__name__) + 1)
@@ -1049,9 +1065,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         --------
         >>> intervals = pd.%(qualname)s.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals
-        %(klass)s([(0, 1], (1, 3], (2, 4]],
-              closed='right',
-              dtype='interval[int64]')
+        <%(klass)s>
+        [(0, 1], (1, 3], (2, 4]]
+        Length: 3, closed: right, dtype: interval[int64]
+
         >>> intervals.overlaps(pd.Interval(0.5, 1.5))
         array([ True,  True, False])
 

@@ -1086,8 +1086,52 @@ class IntervalIndex(IntervalMixin, Index):
                 self.right.equals(other.right) and
                 self.closed == other.closed)
 
-    @Appender(_interval_shared_docs['overlaps'] % _index_doc_kwargs)
     def overlaps(self, other):
+        """
+        Check elementwise if an Interval overlaps the values in the
+        IntervalIndex.
+
+        Two intervals overlap if they share a common point, including closed
+        endpoints. Intervals that only have an open endpoint in common do not
+        overlap.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        other : Interval
+            Interval to check against for an overlap.
+
+        Returns
+        -------
+        ndarray
+            Boolean array positionally indicating where an overlap occurs.
+
+        See Also
+        --------
+        Interval.overlaps : Check whether two Interval objects overlap.
+
+        Examples
+        --------
+        >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals
+        IntervalIndex([(0, 1], (1, 3], (2, 4]],
+              closed='right',
+              dtype='interval[int64]')
+
+        >>> intervals.overlaps(pd.Interval(0.5, 1.5))
+        array([ True,  True, False])
+
+        Intervals that share closed endpoints overlap:
+
+        >>> intervals.overlaps(pd.Interval(1, 3, closed='left'))
+        array([ True,  True, True])
+
+        Intervals that only have an open endpoint in common do not overlap:
+
+        >>> intervals.overlaps(pd.Interval(1, 2, closed='right'))
+        array([False,  True, False])
+        """
         return self._data.overlaps(other)
 
     def _setop(op_name, sort=None):
