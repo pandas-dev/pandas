@@ -8,7 +8,7 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series, date_range
+from pandas import DataFrame, Index, MultiIndex, Series, date_range
 from pandas.util import testing as tm
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
@@ -180,7 +180,8 @@ def test_regression_whitelist_methods(
     else:
         frame = raw_frame.T
 
-    groupby_kwargs = {'level': level, 'axis': axis, 'sort': sort, 'as_index': as_index}
+    groupby_kwargs = {'level': level, 'axis': axis, 'sort': sort,
+        'as_index': as_index}
     group_op_kwargs = {}
     frame_op_kwargs = {'level': level, 'axis': axis}
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
