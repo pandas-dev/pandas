@@ -9,7 +9,6 @@ import pytest
 
 from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
-from pandas.compat import lrange
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -1565,7 +1564,7 @@ class TestTseriesUtil:
 
     def test_backfill(self):
         old = Index([1, 5, 10])
-        new = Index(lrange(12))
+        new = Index(list(range(12)))
 
         filler = libalgos.backfill["int64_t"](old.values, new.values)
 
@@ -1575,7 +1574,7 @@ class TestTseriesUtil:
 
         # corner case
         old = Index([1, 4])
-        new = Index(lrange(5, 10))
+        new = Index(list(range(5, 10)))
         filler = libalgos.backfill["int64_t"](old.values, new.values)
 
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
@@ -1583,7 +1582,7 @@ class TestTseriesUtil:
 
     def test_pad(self):
         old = Index([1, 5, 10])
-        new = Index(lrange(12))
+        new = Index(list(range(12)))
 
         filler = libalgos.pad["int64_t"](old.values, new.values)
 
@@ -1593,7 +1592,7 @@ class TestTseriesUtil:
 
         # corner case
         old = Index([5, 10])
-        new = Index(lrange(5))
+        new = Index(np.arange(5))
         filler = libalgos.pad["int64_t"](old.values, new.values)
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(filler, expect_filler)

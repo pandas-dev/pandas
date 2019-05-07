@@ -18,7 +18,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
 import pandas.compat as compat
-from pandas.compat import lrange, lzip
+from pandas.compat import lzip
 from pandas.errors import (
     AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender
@@ -1105,7 +1105,7 @@ class TextFileReader(BaseIterator):
         # c-engine, so only need for python parsers
         if engine != 'c':
             if is_integer(skiprows):
-                skiprows = lrange(skiprows)
+                skiprows = list(range(skiprows))
             if skiprows is None:
                 skiprows = set()
             elif not callable(skiprows):
@@ -1883,7 +1883,7 @@ class CParserWrapper(ParserBase):
                 self.names = ['{prefix}{i}'.format(prefix=self.prefix, i=i)
                               for i in range(self._reader.table_width)]
             else:
-                self.names = lrange(self._reader.table_width)
+                self.names = list(range(self._reader.table_width))
 
         # gh-9755
         #
@@ -1906,7 +1906,7 @@ class CParserWrapper(ParserBase):
             # GH 25623
             # validate that column indices in usecols are not out of bounds
             elif self.usecols_dtype == 'integer':
-                indices = lrange(self._reader.table_width)
+                indices = range(self._reader.table_width)
                 _validate_usecols_names(usecols, indices)
 
             if len(self.names) > len(usecols):
@@ -2607,7 +2607,7 @@ class PythonParser(ParserBase):
             # validate that column indices in usecols are not out of bounds
             if self.usecols_dtype == 'integer':
                 for col in columns:
-                    indices = lrange(len(col))
+                    indices = range(len(col))
                     _validate_usecols_names(self.usecols, indices)
 
             if names is not None:
@@ -2648,14 +2648,14 @@ class PythonParser(ParserBase):
             # GH 25623
             # validate that column indices in usecols are not out of bounds
             if self.usecols_dtype == 'integer':
-                _validate_usecols_names(self.usecols, lrange(ncols))
+                _validate_usecols_names(self.usecols, range(ncols))
 
             if not names:
                 if self.prefix:
                     columns = [['{prefix}{idx}'.format(
                         prefix=self.prefix, idx=i) for i in range(ncols)]]
                 else:
-                    columns = [lrange(ncols)]
+                    columns = [list(range(ncols))]
                 columns = self._handle_usecols(columns, columns[0])
             else:
                 if self.usecols is None or len(names) >= num_original_columns:
@@ -3007,7 +3007,7 @@ class PythonParser(ParserBase):
             if next_line is not None:
                 if len(next_line) == len(line) + self.num_original_columns:
                     # column and index names on diff rows
-                    self.index_col = lrange(len(line))
+                    self.index_col = list(range(len(line)))
                     self.buf = self.buf[1:]
 
                     for c in reversed(line):
@@ -3022,7 +3022,7 @@ class PythonParser(ParserBase):
             # Case 1
             self._implicit_index = True
             if self.index_col is None:
-                self.index_col = lrange(implicit_first_cols)
+                self.index_col = list(range(implicit_first_cols))
 
             index_name = None
 

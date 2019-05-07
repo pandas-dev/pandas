@@ -5,7 +5,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import lmap, lrange
+from pandas.compat import lmap
 from pandas.errors import ParserError
 
 import pandas as pd
@@ -69,8 +69,8 @@ class TestDataFrameToCSV(TestData):
             assert_almost_equal(self.tsframe.values, recons.values)
 
             # corner case
-            dm = DataFrame({'s1': Series(lrange(3), lrange(3)),
-                            's2': Series(lrange(2), lrange(2))})
+            dm = DataFrame({'s1': Series(range(3), index=np.arange(3)),
+                            's2': Series(range(2), index=np.arange(2))})
             dm.to_csv(path)
 
             recons = self.read_csv(path)
@@ -259,8 +259,8 @@ class TestDataFrameToCSV(TestData):
             kwargs = dict(parse_dates=False)
             if cnlvl:
                 if rnlvl is not None:
-                    kwargs['index_col'] = lrange(rnlvl)
-                kwargs['header'] = lrange(cnlvl)
+                    kwargs['index_col'] = list(range(rnlvl))
+                kwargs['header'] = list(range(cnlvl))
 
                 with ensure_clean('__tmp_to_csv_moar__') as path:
                     df.to_csv(path, encoding='utf8',
@@ -392,7 +392,7 @@ class TestDataFrameToCSV(TestData):
             df.columns = cols
             _do_test(df, dupe_col=True)
 
-        _do_test(DataFrame(index=lrange(10)))
+        _do_test(DataFrame(index=np.arange(10)))
         _do_test(mkdf(chunksize // 2 + 1, 2, r_idx_nlevels=2), rnlvl=2)
         for ncols in [2, 3, 4]:
             base = int(chunksize // ncols)
@@ -617,7 +617,7 @@ class TestDataFrameToCSV(TestData):
             for i in [6, 7]:
                 msg = 'len of {i}, but only 5 lines in file'.format(i=i)
                 with pytest.raises(ParserError, match=msg):
-                    read_csv(path, header=lrange(i), index_col=0)
+                    read_csv(path, header=list(range(i)), index_col=0)
 
             # write with cols
             msg = 'cannot specify cols with a MultiIndex'
@@ -695,8 +695,9 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_dups_cols(self):
 
-        df = DataFrame(np.random.randn(1000, 30), columns=lrange(
-            15) + lrange(15), dtype='float64')
+        df = DataFrame(np.random.randn(1000, 30),
+                       columns=list(range(15)) + list(range(15)),
+                       dtype='float64')
 
         with ensure_clean() as filename:
             df.to_csv(filename)  # single dtype, fine
@@ -706,10 +707,10 @@ class TestDataFrameToCSV(TestData):
 
         df_float = DataFrame(np.random.randn(1000, 3), dtype='float64')
         df_int = DataFrame(np.random.randn(1000, 3), dtype='int64')
-        df_bool = DataFrame(True, index=df_float.index, columns=lrange(3))
-        df_object = DataFrame('foo', index=df_float.index, columns=lrange(3))
+        df_bool = DataFrame(True, index=df_float.index, columns=range(3))
+        df_object = DataFrame('foo', index=df_float.index, columns=range(3))
         df_dt = DataFrame(Timestamp('20010101'),
-                          index=df_float.index, columns=lrange(3))
+                          index=df_float.index, columns=range(3))
         df = pd.concat([df_float, df_int, df_bool, df_object,
                         df_dt], axis=1, ignore_index=True)
 
@@ -746,7 +747,7 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_chunking(self):
 
-        aa = DataFrame({'A': lrange(100000)})
+        aa = DataFrame({'A': range(100000)})
         aa['B'] = aa.A + 1.0
         aa['C'] = aa.A + 2.0
         aa['D'] = aa.A + 3.0

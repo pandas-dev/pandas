@@ -7,7 +7,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_32bit, lrange
+from pandas.compat import is_platform_32bit
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -647,7 +647,7 @@ class TestPandasContainer:
         _check_all_orients(self.ts)
 
         # dtype
-        s = Series(lrange(6), index=['a', 'b', 'c', 'd', 'e', 'f'])
+        s = Series(range(6), index=['a', 'b', 'c', 'd', 'e', 'f'])
         _check_all_orients(Series(s, dtype=np.float64), dtype=np.float64)
         _check_all_orients(Series(s, dtype=np.int), dtype=np.int)
 
@@ -677,8 +677,8 @@ class TestPandasContainer:
 
     def test_typ(self):
 
-        s = Series(lrange(6), index=['a', 'b', 'c',
-                                     'd', 'e', 'f'], dtype='int64')
+        s = Series(range(6), index=['a', 'b', 'c',
+                                    'd', 'e', 'f'], dtype='int64')
         result = read_json(s.to_json(), typ=None)
         assert_series_equal(result, s)
 
@@ -841,7 +841,7 @@ class TestPandasContainer:
     def test_doc_example(self):
         dfj2 = DataFrame(np.random.randn(5, 2), columns=list('AB'))
         dfj2['date'] = Timestamp('20130101')
-        dfj2['ints'] = lrange(5)
+        dfj2['ints'] = range(5)
         dfj2['bools'] = True
         dfj2.index = pd.date_range('20130101', periods=5)
 
