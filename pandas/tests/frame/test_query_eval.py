@@ -4,7 +4,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -460,8 +459,8 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_query_syntax_error(self):
         engine, parser = self.engine, self.parser
-        df = DataFrame({"i": lrange(10), "+": lrange(3, 13),
-                        "r": lrange(4, 14)})
+        df = DataFrame({"i": range(10), "+": range(3, 13),
+                        "r": range(4, 14)})
         with pytest.raises(SyntaxError):
             df.query('i - +', engine=engine, parser=parser)
 
