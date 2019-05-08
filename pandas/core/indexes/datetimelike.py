@@ -2,8 +2,8 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
-import warnings
 from typing import Set
+import warnings
 
 import numpy as np
 
