@@ -44,6 +44,11 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
+    Returns
+    -------
+    numpy.ndarray
+        A matrix of scatter plots.
+
     Examples
     --------
     >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
