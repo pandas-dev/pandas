@@ -1370,14 +1370,6 @@ class TestDatetime64DateOffsetArithmetic:
         tm.assert_equal(result, exp)
         tm.assert_equal(result2, exp)
 
-        # GH 26258
-        date = date_range(start='01 Jan 2014', end='01 Jan 2017', freq='AS')
-        offset = pd.DateOffset(months=3, days=10)
-        result = date + offset
-        exp = DatetimeIndex([Timestamp('2014-04-11'), Timestamp('2015-04-11'),
-                             Timestamp('2016-04-11'), Timestamp('2017-04-11')])
-        tm.assert_equal(result, exp)
-
     # TODO: __sub__, __rsub__
     def test_dt64arr_add_mixed_offset_array(self, box_with_array):
         # GH#10699
@@ -1442,6 +1434,28 @@ class TestDatetime64DateOffsetArithmetic:
                                  name=dti.name, freq='infer')
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(res, expected)
+
+    @pytest.mark.parametrize("op, offset, exp", [
+        ('__add__', pd.DateOffset(months=3, days=10),
+         DatetimeIndex([Timestamp('2014-04-11'), Timestamp('2015-04-11'),
+                        Timestamp('2016-04-11'), Timestamp('2017-04-11')])),
+        ('__add__', pd.DateOffset(months=3),
+         DatetimeIndex([Timestamp('2014-04-01'), Timestamp('2015-04-01'),
+                        Timestamp('2016-04-01'), Timestamp('2017-04-01')])),
+        ('__sub__', pd.DateOffset(months=3, days=10),
+         DatetimeIndex([Timestamp('2013-09-21'), Timestamp('2014-09-21'),
+                        Timestamp('2015-09-21'), Timestamp('2016-09-21')])),
+        ('__sub__', pd.DateOffset(months=3),
+         DatetimeIndex([Timestamp('2013-10-01'), Timestamp('2014-10-01'),
+                        Timestamp('2015-10-01'), Timestamp('2016-10-01')]))
+
+    ])
+    def test_dti_add_sub_nonzero_mth_offset(self, op, offset, exp):
+        # GH 26258
+        date = date_range(start='01 Jan 2014', end='01 Jan 2017', freq='AS')
+        mth = getattr(date, op)
+        result = mth(offset)
+        tm.assert_equal(result, exp)
 
 
 class TestDatetime64OverflowHandling:
