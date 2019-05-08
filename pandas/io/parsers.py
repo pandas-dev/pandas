@@ -1737,8 +1737,8 @@ class ParserBase:
         try_num_bool : bool, default try
            try to cast values to numeric (first preference) or boolean
 
-        Returns:
-        --------
+        Returns
+        -------
         converted : ndarray
         na_count : int
         """

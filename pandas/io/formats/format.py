@@ -1610,7 +1610,7 @@ def get_level_lengths(levels, sentinel=''):
         Value which states that no new index starts on there.
 
     Returns
-    ----------
+    -------
     Returns list of maps. For each level returns map of indexes (key is index
     in row and value is length of index).
     """

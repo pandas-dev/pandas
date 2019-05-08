@@ -799,13 +799,13 @@ b  2""")
 
     def _transform_should_cast(self, func_nm):
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         func_nm: str
             The name of the aggregation function being performed
 
-        Returns:
-        --------
+        Returns
+        -------
         bool
             Whether transform should attempt to cast the result of aggregation
         """

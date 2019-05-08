@@ -884,7 +884,7 @@ DataFrame.gt : Compare DataFrames for strictly greater than
     inequality elementwise.
 
 Notes
---------
+-----
 Mismatched indices will be unioned together.
 `NaN` values are considered different (i.e. `NaN` != `NaN`).
 
