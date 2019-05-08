@@ -333,6 +333,11 @@ class DateOffset(BaseOffset):
     def rollback(self, dt):
         """
         Roll provided date backward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
@@ -342,6 +347,11 @@ class DateOffset(BaseOffset):
     def rollforward(self, dt):
         """
         Roll provided date forward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):

@@ -712,6 +712,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def snap(self, freq='S'):
         """
         Snap time stamps to nearest occurring frequency
+
+        Returns
+        -------
+        DatetimeIndex
         """
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)

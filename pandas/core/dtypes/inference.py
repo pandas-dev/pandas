@@ -435,6 +435,10 @@ def is_hashable(obj):
     Distinguish between these and other types by trying the call to hash() and
     seeing if they raise TypeError.
 
+    Returns
+    -------
+    bool
+
     Examples
     --------
     >>> a = ([],)

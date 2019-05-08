@@ -534,6 +534,10 @@ class HDFStore(StringMixin):
         Return a (potentially unordered) list of the keys corresponding to the
         objects stored in the HDFStore. These are ABSOLUTE path-names (e.g.
         have the leading '/'
+
+        Returns
+        -------
+        list
         """
         return [n._v_pathname for n in self.groups()]
 
@@ -1079,6 +1083,10 @@ class HDFStore(StringMixin):
     def groups(self):
         """return a list of all the top-level nodes (that are not themselves a
         pandas storage object)
+
+        Returns
+        -------
+        list
         """
         _tables()
         self._check_if_open()
@@ -1213,6 +1221,10 @@ class HDFStore(StringMixin):
         Print detailed information on the store.
 
         .. versionadded:: 0.21.0
+
+        Returns
+        -------
+        str
         """
         output = '{type}\nFile path: {path}\n'.format(
             type=type(self), path=pprint_thing(self._path))

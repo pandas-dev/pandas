@@ -1562,6 +1562,10 @@ class MultiIndex(Index):
     def is_lexsorted(self):
         """
         Return True if the codes are lexicographically sorted
+
+        Returns
+        -------
+        bool
         """
         return self.lexsort_depth == self.nlevels
 
@@ -2004,6 +2008,10 @@ class MultiIndex(Index):
 
         Parameters
         ----------
+
+        Returns
+        -------
+        MultiIndex
         """
         order = [self._get_level_number(i) for i in order]
         if len(order) != self.nlevels:
