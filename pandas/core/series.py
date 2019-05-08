@@ -319,6 +319,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated :: 0.23.0
             Use pd.Series(..) constructor instead.
+
+        Returns
+        -------
+        Series
+            Constructed Series.
         """
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.Series(..) "
@@ -486,6 +491,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def get_values(self):
         """
         Same as values (but handles sparseness conversions); is a view.
+
+        Returns
+        -------
+        numpy.ndarray
+            Data of the Series.
         """
         return self._data.get_values()
 
@@ -526,6 +536,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated:: 0.24.0
 
+        Returns
+        -------
+        Series
+            Series without the slices for which condition is false.
+
         See Also
         --------
         numpy.ndarray.compress
@@ -549,6 +564,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         the same (a tuple with an array of indices for each dimension),
         but it will always be a one-item tuple because series only have
         one dimension.
+
+        Returns
+        -------
+        numpy.ndarray
+            Indices of elements that are non-zero.
 
         See Also
         --------
@@ -1479,6 +1499,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def keys(self):
         """
         Return alias for index.
+
+        Returns
+        -------
+        Index
+            Index of the Series.
         """
         return self.index
 
@@ -3942,6 +3967,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated:: 0.21.0
             Use ``Series.reindex`` instead.
+
+        Returns
+        -------
+        Series
+            Reindexed Series.
         """
         # for compatibility with higher dims
         if axis != 0:
@@ -4405,6 +4435,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated:: 0.23.0
             Use :meth:`Series.dropna` instead.
+
+        Returns
+        -------
+        Series
+            Series without null values.
         """
         warnings.warn("Method .valid will be removed in a future version. "
                       "Use .dropna instead.", FutureWarning, stacklevel=2)

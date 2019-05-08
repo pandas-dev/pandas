@@ -1750,6 +1750,10 @@ The repeated labels are:
         """
         Return variable labels as a dict, associating each variable name
         with corresponding label.
+
+        Returns
+        -------
+        dict
         """
         return dict(zip(self.varlist, self._variable_labels))
 
@@ -1757,6 +1761,10 @@ The repeated labels are:
         """
         Return a dict, associating each variable name a dict, associating
         each value its corresponding label.
+
+        Returns
+        -------
+        dict
         """
         if not self._value_labels_read:
             self._read_value_labels()

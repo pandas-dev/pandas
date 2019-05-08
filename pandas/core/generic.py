@@ -1518,6 +1518,11 @@ class NDFrame(PandasObject, SelectionMixin):
         This must be a boolean scalar value, either True or False.  Raise a
         ValueError if the PandasObject does not have exactly 1 element, or that
         element is not boolean
+
+        Returns
+        -------
+        bool
+            Same single boolean value converted to bool type.
         """
         v = self.squeeze()
         if isinstance(v, (bool, np.bool_)):
@@ -1845,7 +1850,14 @@ class NDFrame(PandasObject, SelectionMixin):
                         ' hashed'.format(self.__class__.__name__))
 
     def __iter__(self):
-        """Iterate over info axis"""
+        """
+        Iterate over info axis.
+
+        Returns
+        -------
+        iterator
+            Info axis as iterator.
+        """
         return iter(self._info_axis)
 
     # can we get a better explanation of this?
@@ -1853,6 +1865,11 @@ class NDFrame(PandasObject, SelectionMixin):
         """Get the 'info axis' (see Indexing for more)
 
         This is index for Series, columns for DataFrame.
+
+        Returns
+        -------
+        Index
+            Info axis.
         """
         return self._info_axis
 
@@ -1946,6 +1963,11 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_dense(self):
         """
         Return dense representation of NDFrame (as opposed to sparse).
+
+        Returns
+        -------
+        %(klass)s
+            Dense %(klass)s.
         """
         # compat
         return self
@@ -2238,6 +2260,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.23.0
 
+        Returns
+        -------
+        None or str
+            If path_or_buf is None, returns the resulting json format as a
+            string. Otherwise returns None.
+
         See Also
         --------
         read_json
@@ -2418,6 +2446,12 @@ class NDFrame(PandasObject, SelectionMixin):
             (default is False)
         compress : type of compressor (zlib or blosc), default to None (no
             compression)
+
+        Returns
+        -------
+        None or str
+            If path_or_buf is None, returns the resulting msgpack format as a
+            string. Otherwise returns None.
         """
 
         from pandas.io import packers
@@ -6167,6 +6201,11 @@ class NDFrame(PandasObject, SelectionMixin):
     def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
+
+        Returns
+        -------
+        %(klass)s
+            Object with missing values filled.
         """
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
@@ -6174,6 +6213,11 @@ class NDFrame(PandasObject, SelectionMixin):
     def bfill(self, axis=None, inplace=False, limit=None, downcast=None):
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
+
+        Returns
+        -------
+        %(klass)s
+            Object with missing values filled.
         """
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
@@ -9313,6 +9357,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
+        %(klass)s
+            Object with time zone converted axis.
 
         Raises
         ------

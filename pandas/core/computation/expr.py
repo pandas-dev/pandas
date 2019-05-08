@@ -7,6 +7,7 @@ from io import StringIO
 import itertools as it
 import operator
 import tokenize
+from typing import Type
 
 import numpy as np
 
@@ -327,7 +328,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     parser : str
     preparser : callable
     """
-    const_type = Constant
+    const_type = Constant  # type: Type[Term]
     term_type = Term
 
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
