@@ -234,14 +234,18 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
 .. code-block:: ipython
 
-   In [4]: %timeit apply_integrate_f(df['a'].to_numpy(), df['b'].to_numpy(), df['N'].to_numpy())
+   In [4]: %timeit apply_integrate_f(df['a'].to_numpy(),
+                                     df['b'].to_numpy(),
+                                     df['N'].to_numpy())
    1000 loops, best of 3: 1.25 ms per loop
 
 We've gotten another big improvement. Let's check again where the time is spent:
 
 .. ipython:: python
 
-   %prun -l 4 apply_integrate_f(df['a'].to_numpy(), df['b'].to_numpy(), df['N'].to_numpy())
+   %prun -l 4 apply_integrate_f(df['a'].to_numpy(),
+                                df['b'].to_numpy(),
+                                df['N'].to_numpy())
 
 As one might expect, the majority of the time is now spent in ``apply_integrate_f``,
 so if we wanted to make anymore efficiencies we must continue to concentrate our
@@ -286,7 +290,9 @@ advanced Cython techniques:
 
 .. code-block:: ipython
 
-   In [4]: %timeit apply_integrate_f_wrap(df['a'].to_numpy(), df['b'].to_numpy(), df['N'].to_numpy())
+   In [4]: %timeit apply_integrate_f_wrap(df['a'].to_numpy(),
+                                          df['b'].to_numpy(),
+                                          df['N'].to_numpy())
    1000 loops, best of 3: 987 us per loop
 
 Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
@@ -349,7 +355,8 @@ take the plain Python code from above and annotate with the ``@jit`` decorator.
 
 
    def compute_numba(df):
-       result = apply_integrate_f_numba(df['a'].to_numpy(), df['b'].to_numpy(),
+       result = apply_integrate_f_numba(df['a'].to_numpy(),
+                                        df['b'].to_numpy(),
                                         df['N'].to_numpy())
        return pd.Series(result, index=df.index, name='result')
 
