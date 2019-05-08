@@ -56,7 +56,8 @@ class Term(ops.Term):
         except UndefinedVariableError:
             return self.name
 
-    @property
+    # read-only property overwriting read/write property
+    @property  # type: ignore
     def value(self):
         return self._value
 
