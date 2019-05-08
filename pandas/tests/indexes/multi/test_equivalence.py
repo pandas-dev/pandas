@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, lzip
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import Index, MultiIndex, Series
@@ -163,7 +163,7 @@ def test_equals_missing_values():
 
 
 def test_is_():
-    mi = MultiIndex.from_tuples(lzip(range(10), range(10)))
+    mi = MultiIndex.from_tuples(zip(range(10), range(10)))
     assert mi.is_(mi)
     assert mi.is_(mi.view())
     assert mi.is_(mi.view().view().view().view())

@@ -7,7 +7,6 @@ import numpy as np
 from numpy import random
 import pytest
 
-from pandas.compat import lzip
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, MultiIndex, Series
@@ -177,7 +176,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_boxplot_legacy2(self):
-        tuples = lzip(string.ascii_letters[:10], range(10))
+        tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
         grouped = df.groupby(level=1)
@@ -191,7 +190,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_boxplot_legacy3(self):
-        tuples = lzip(string.ascii_letters[:10], range(10))
+        tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
         grouped = df.unstack(level=1).groupby(level=0, axis=1)

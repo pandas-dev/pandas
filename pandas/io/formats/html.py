@@ -7,8 +7,6 @@ from textwrap import dedent
 
 from pandas._config import get_option
 
-from pandas.compat import lzip
-
 from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import option_context
@@ -414,7 +412,7 @@ class HTMLFormatter(TableFormatter):
 
         idx_values = frame.index.format(sparsify=False, adjoin=False,
                                         names=False)
-        idx_values = lzip(*idx_values)
+        idx_values = list(zip(*idx_values))
 
         if self.fmt.sparsify:
             # GH3547

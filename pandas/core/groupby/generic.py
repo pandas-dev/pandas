@@ -15,7 +15,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
@@ -781,13 +780,13 @@ class SeriesGroupBy(GroupBy):
                     FutureWarning, stacklevel=3)
 
             columns = list(arg.keys())
-            arg = list(arg.items())
+            arg = arg.items()
         elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x
                    for x in arg]
 
             # indicated column order
-            columns = lzip(*arg)[0]
+            columns = next(zip(*arg))
         else:
             # list of functions / function names
             columns = []
@@ -797,7 +796,7 @@ class SeriesGroupBy(GroupBy):
                 else:
                     # protect against callables without names
                     columns.append(com.get_callable_name(f))
-            arg = lzip(columns, arg)
+            arg = zip(columns, arg)
 
         results = OrderedDict()
         for name, func in arg:

@@ -7,7 +7,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas.compat import lzip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
@@ -2706,4 +2705,4 @@ def _factorize_from_iterables(iterables):
     if len(iterables) == 0:
         # For consistency, it should return a list of 2 lists.
         return [[], []]
-    return map(list, lzip(*[_factorize_from_iterable(it) for it in iterables]))
+    return map(list, zip(*(_factorize_from_iterable(it) for it in iterables)))

@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import is_platform_32bit, is_platform_windows, lrange, lzip
+from pandas.compat import is_platform_32bit, is_platform_windows, lrange
 
 import pandas as pd
 from pandas import (
@@ -161,7 +161,7 @@ class TestDataFrameFormatting:
     def test_repr_tuples(self):
         buf = StringIO()
 
-        df = DataFrame({'tups': lzip(range(10), range(10))})
+        df = DataFrame({'tups': list(zip(range(10), range(10)))})
         repr(df)
         df.to_string(col_space=10, buf=buf)
 
@@ -177,7 +177,7 @@ class TestDataFrameFormatting:
 
             adj = fmt._get_adjustment()
 
-            for line, value in lzip(r.split('\n'), df['B']):
+            for line, value in zip(r.split('\n'), df['B']):
                 if adj.len(value) + 1 > max_len:
                     assert '...' in line
                 else:
@@ -508,7 +508,7 @@ class TestDataFrameFormatting:
                       ('float', lambda x: '[{x: 4.1f}]'.format(x=x)),
                       ('object', lambda x: '-{x!s}-'.format(x=x))]
         result = df.to_string(formatters=dict(formatters))
-        result2 = df.to_string(formatters=lzip(*formatters)[1])
+        result2 = df.to_string(formatters=list(zip(*formatters))[1])
         assert result == ('  int  float    object\n'
                           '0 0x1 [ 1.0]  -(1, 2)-\n'
                           '1 0x2 [ 2.0]    -True-\n'

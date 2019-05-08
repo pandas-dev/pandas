@@ -23,7 +23,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import lmap, lzip
+from pandas.compat import lmap
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -852,17 +852,16 @@ class StataParser:
         # NOTE: the byte type seems to be reserved for categorical variables
         # with a label, but the underlying variable is -127 to 100
         # we're going to drop the label and cast to int
-        self.DTYPE_MAP = \
-            dict(
-                lzip(range(1, 245), ['a' + str(i) for i in range(1, 245)]) +
-                [
-                    (251, np.int8),
-                    (252, np.int16),
-                    (253, np.int32),
-                    (254, np.float32),
-                    (255, np.float64)
-                ]
-            )
+        self.DTYPE_MAP = dict(
+            list(zip(range(1, 245), ['a' + str(i) for i in range(1, 245)])) +
+            [
+                (251, np.int8),
+                (252, np.int16),
+                (253, np.int32),
+                (254, np.float32),
+                (255, np.float64)
+            ]
+        )
         self.DTYPE_MAP_XML = \
             dict(
                 [
