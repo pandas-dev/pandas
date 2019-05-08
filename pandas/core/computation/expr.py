@@ -11,8 +11,6 @@ from typing import Type
 
 import numpy as np
 
-from pandas.compat import lmap
-
 import pandas as pd
 from pandas.core import common as com
 from pandas.core.base import StringMixin
@@ -180,7 +178,7 @@ def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), 'f must be callable'
-    return tokenize.untokenize(lmap(f, tokenize_string(source)))
+    return tokenize.untokenize((f(x) for x in tokenize_string(source)))
 
 
 def _is_type(t):
