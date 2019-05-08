@@ -264,7 +264,7 @@ class Index(IndexOpsMixin, PandasObject):
             if fastpath:
                 return cls._simple_new(data, name)
 
-        from pandas.core.indexes.range import RangeIndex
+        from pandas import RangeIndex
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
             data = data.to_numpy()
@@ -285,7 +285,7 @@ class Index(IndexOpsMixin, PandasObject):
         # interval
         elif ((is_interval_dtype(data) or is_interval_dtype(dtype)) and
               not is_object_dtype(dtype)):
-            from pandas.core.indexes.interval import IntervalIndex
+            from pandas import IntervalIndex
             closed = kwargs.get('closed', None)
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
                                  closed=closed)
@@ -476,7 +476,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if data and all(isinstance(e, tuple) for e in data):
                     # we must be all tuples, otherwise don't construct
                     # 10697
-                    from pandas.core.indexes.multi import MultiIndex
+                    from pandas import MultiIndex
                     return MultiIndex.from_tuples(
                         data, names=name or kwargs.get('names'))
             # other iterable of some kind
