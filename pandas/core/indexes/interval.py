@@ -1112,6 +1112,7 @@ class IntervalIndex(IntervalMixin, Index):
     def overlaps(self, other):
         return self._data.overlaps(other)
 
+    @Appender(_index_shared_docs['intersection'])
     @_setop_check(op_name='intersection')
     def intersection(self, other, sort=False):
 
