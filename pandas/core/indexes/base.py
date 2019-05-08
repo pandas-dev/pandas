@@ -264,7 +264,7 @@ class Index(IndexOpsMixin, PandasObject):
             if fastpath:
                 return cls._simple_new(data, name)
 
-        from .range import RangeIndex
+        from pandas.core.indexes.range import RangeIndex
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
             data = data.to_numpy()
@@ -278,14 +278,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         # categorical
         elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
-            from .category import CategoricalIndex
+            from pandas import CategoricalIndex
             return CategoricalIndex(data, dtype=dtype, copy=copy, name=name,
                                     **kwargs)
 
         # interval
         elif ((is_interval_dtype(data) or is_interval_dtype(dtype)) and
               not is_object_dtype(dtype)):
-            from .interval import IntervalIndex
+            from pandas.core.indexes.interval import IntervalIndex
             closed = kwargs.get('closed', None)
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
                                  closed=closed)
@@ -373,7 +373,7 @@ class Index(IndexOpsMixin, PandasObject):
                                 pass
 
                             # Return an actual float index.
-                            from .numeric import Float64Index
+                            from pandas import Float64Index
                             return Float64Index(data, copy=copy, dtype=dtype,
                                                 name=name)
 
@@ -431,10 +431,10 @@ class Index(IndexOpsMixin, PandasObject):
                     return Index(subarr, copy=copy,
                                  dtype=object, name=name)
                 elif inferred in ['floating', 'mixed-integer-float']:
-                    from .numeric import Float64Index
+                    from pandas import Float64Index
                     return Float64Index(subarr, copy=copy, name=name)
                 elif inferred == 'interval':
-                    from .interval import IntervalIndex
+                    from pandas import IntervalIndex
                     return IntervalIndex(subarr, name=name, copy=copy)
                 elif inferred == 'boolean':
                     # don't support boolean explicitly ATM
@@ -476,7 +476,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if data and all(isinstance(e, tuple) for e in data):
                     # we must be all tuples, otherwise don't construct
                     # 10697
-                    from .multi import MultiIndex
+                    from pandas.core.indexes.multi import MultiIndex
                     return MultiIndex.from_tuples(
                         data, names=name or kwargs.get('names'))
             # other iterable of some kind
@@ -1556,7 +1556,7 @@ class Index(IndexOpsMixin, PandasObject):
             result.name = new_names[0]
             return result
         else:
-            from .multi import MultiIndex
+            from pandas import MultiIndex
             return MultiIndex(levels=new_levels, codes=new_codes,
                               names=new_names, verify_integrity=False)
 
