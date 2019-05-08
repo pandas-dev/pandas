@@ -44,6 +44,11 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
+    Returns
+    -------
+    numpy.ndarray
+        A matrix of scatter plots.
+
     Examples
     --------
     >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
@@ -597,15 +602,15 @@ def autocorrelation_plot(series, ax=None, **kwds):
     """
     Autocorrelation plot for time series.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     series: Time series
     ax: Matplotlib axis object, optional
     kwds : keywords
         Options to pass to matplotlib plotting method
 
-    Returns:
-    -----------
+    Returns
+    -------
     class:`matplotlib.axis.Axes`
     """
     import matplotlib.pyplot as plt

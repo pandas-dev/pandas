@@ -2212,8 +2212,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """Input validation for values passed to __init__. Ensure that
         we have datetime64TZ, coercing if necessary.
 
-        Parametetrs
-        -----------
+        Parameters
+        ----------
         values : array-like
             Must be convertible to datetime64
 
@@ -2367,12 +2367,12 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         n : int, number of periods to diff
         axis : int, axis to diff upon. default 0
 
-        Return
-        ------
+        Returns
+        -------
         A list with a new TimeDeltaBlock.
 
-        Note
-        ----
+        Notes
+        -----
         The arguments here are mimicking shift so they are called correctly
         by apply.
         """

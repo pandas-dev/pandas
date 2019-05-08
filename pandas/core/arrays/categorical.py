@@ -7,7 +7,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas.compat import lzip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
@@ -619,6 +618,10 @@ class Categorical(ExtensionArray, PandasObject):
                When `dtype` is provided, neither `categories` nor `ordered`
                should be provided.
 
+        Returns
+        -------
+        Categorical
+
         Examples
         --------
         >>> dtype = pd.CategoricalDtype(['a', 'b'], ordered=True)
@@ -756,6 +759,11 @@ class Categorical(ExtensionArray, PandasObject):
         inplace : bool, default False
            Whether or not to set the ordered attribute in-place or return
            a copy of this categorical with ordered set to True.
+
+        Returns
+        -------
+        Categorical
+            Ordered Categorical.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         return self.set_ordered(True, inplace=inplace)
@@ -769,6 +777,11 @@ class Categorical(ExtensionArray, PandasObject):
         inplace : bool, default False
            Whether or not to set the ordered attribute in-place or return
            a copy of this categorical with ordered set to False.
+
+        Returns
+        -------
+        Categorical
+            Unordered Categorical.
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         return self.set_ordered(False, inplace=inplace)
@@ -2127,23 +2140,18 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         dict of categories -> indexers
 
-        Example
-        -------
-        In [1]: c = pd.Categorical(list('aabca'))
-
-        In [2]: c
-        Out[2]:
+        Examples
+        --------
+        >>> c = pd.Categorical(list('aabca'))
+        >>> c
         [a, a, b, c, a]
         Categories (3, object): [a, b, c]
-
-        In [3]: c.categories
-        Out[3]: Index(['a', 'b', 'c'], dtype='object')
-
-        In [4]: c.codes
-        Out[4]: array([0, 0, 1, 2, 0], dtype=int8)
-
-        In [5]: c._reverse_indexer()
-        Out[5]: {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
+        >>> c.categories
+        Index(['a', 'b', 'c'], dtype='object')
+        >>> c.codes
+        array([0, 0, 1, 2, 0], dtype=int8)
+        >>> c._reverse_indexer()
+        {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
 
         """
         categories = self.categories
@@ -2692,4 +2700,4 @@ def _factorize_from_iterables(iterables):
     if len(iterables) == 0:
         # For consistency, it should return a list of 2 lists.
         return [[], []]
-    return map(list, lzip(*[_factorize_from_iterable(it) for it in iterables]))
+    return map(list, zip(*(_factorize_from_iterable(it) for it in iterables)))

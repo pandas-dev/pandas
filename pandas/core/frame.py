@@ -31,7 +31,7 @@ from pandas.util._decorators import (Appender, Substitution,
 from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
-from pandas.compat import PY36, lmap, lzip, raise_with_traceback
+from pandas.compat import PY36, lmap, raise_with_traceback
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
     maybe_upcast,
@@ -368,9 +368,7 @@ class DataFrame(NDFrame):
 
     @property
     def _constructor_expanddim(self):
-        # TODO: Raise NotImplementedError or change note in extending.rst
-        from pandas.core.panel import Panel
-        return Panel
+        raise NotImplementedError("Not supported for DataFrames!")
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -841,12 +839,12 @@ class DataFrame(NDFrame):
             The name of the returned namedtuples or None to return regular
             tuples.
 
-        Yields
+        Returns
         -------
-        collections.namedtuple
-            Yields a namedtuple for each row in the DataFrame with the first
-            field possibly being the index and following fields being the
-            column values.
+        iterator
+            An object to iterate over namedtuples for each row in the
+            DataFrame with the first field possibly being the index and
+            following fields being the column values.
 
         See Also
         --------
@@ -1754,7 +1752,7 @@ class DataFrame(NDFrame):
                       "preserve the key order.",
                       FutureWarning, stacklevel=2)
 
-        keys, values = lzip(*items)
+        keys, values = zip(*items)
 
         if orient == 'columns':
             if columns is not None:
@@ -1933,22 +1931,6 @@ class DataFrame(NDFrame):
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,
                                default_fill_value=fill_value)
-
-    def to_panel(self):
-        """
-        Transform long (stacked) format (DataFrame) into wide (3D, Panel)
-        format.
-
-        .. deprecated:: 0.20.0
-
-        Currently the index of the DataFrame must be a 2-level MultiIndex. This
-        may be generalized later
-
-        Returns
-        -------
-        Panel
-        """
-        raise NotImplementedError("Panel is being removed in pandas 0.25.0.")
 
     @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,
@@ -3669,6 +3651,10 @@ class DataFrame(NDFrame):
         col_labels : sequence
             The column labels to use for lookup
 
+        Returns
+        -------
+        numpy.ndarray
+
         Notes
         -----
         Akin to::
@@ -3995,20 +3981,28 @@ class DataFrame(NDFrame):
         We *highly* recommend using keyword arguments to clarify your
         intent.
 
+        Rename columns using a mapping:
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
+        >>> df.rename(columns={"A": "a", "B": "c"})
            a  c
         0  1  4
         1  2  5
         2  3  6
 
-        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
-           a  B
-        0  1  4
-        1  2  5
-        2  3  6
+        Rename index using a mapping:
+        >>> df.rename(index={0: "x", 1: "y", 2: "z"})
+           A  B
+        x  1  4
+        y  2  5
+        z  3  6
 
-        >>> df.rename(index=str, columns={"A": "a", "C": "c"}, errors="raise")
+        Cast index labels to a different type:
+        >>> df.index
+        RangeIndex(start=0, stop=3, step=1)
+        >>> df.rename(index=str).index
+        Index(['0', '1', '2'], dtype='object')
+
+        >>> df.rename(columns={"A": "a", "B": "b", "C": "c"}, errors="raise")
         Traceback (most recent call last):
         KeyError: ['C'] not found in axis
 
@@ -4439,7 +4433,7 @@ class DataFrame(NDFrame):
             if isinstance(self.index, MultiIndex):
                 names = [n if n is not None else ('level_%d' % i)
                          for (i, n) in enumerate(self.index.names)]
-                to_insert = lzip(self.index.levels, self.index.codes)
+                to_insert = zip(self.index.levels, self.index.codes)
             else:
                 default = 'index' if 'index' not in self else 'level_0'
                 names = ([default] if self.index.name is None
@@ -6063,6 +6057,11 @@ class DataFrame(NDFrame):
     col_level : int or string, optional
         If columns are a MultiIndex then use this level to melt.
 
+    Returns
+    -------
+    DataFrame
+        Unpivoted DataFrame.
+
     See Also
     --------
     %(other)s
@@ -6630,8 +6629,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        concat : General function to concatenate DataFrame, Series
-            or Panel objects.
+        concat : General function to concatenate DataFrame or Series objects.
 
         Notes
         -----
@@ -7252,7 +7250,7 @@ class DataFrame(NDFrame):
             Pairwise correlations.
 
         See Also
-        -------
+        --------
         DataFrame.corr
         """
         axis = self._get_axis_number(axis)

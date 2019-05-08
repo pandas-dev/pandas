@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, lzip
+from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -100,7 +100,7 @@ class TestDataFrameSelectReindex(TestData):
                            simple[['B']])
 
         # non-unique - wheee!
-        nu_df = DataFrame(lzip(range(3), range(-3, 1), list('abc')),
+        nu_df = DataFrame(list(zip(range(3), range(-3, 1), list('abc'))),
                           columns=['a', 'a', 'b'])
         assert_frame_equal(nu_df.drop('a', axis=1), nu_df[['b']])
         assert_frame_equal(nu_df.drop('b', axis='columns'), nu_df['a'])

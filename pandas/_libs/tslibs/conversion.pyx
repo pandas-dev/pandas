@@ -392,6 +392,44 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     return obj
 
 
+cdef _TSObject create_tsobject_tz_using_offset(int64_t value,
+                                               int tzoffset, object tz=None):
+    """
+    Convert a numpy datetime64 `value`, along with initial timezone offset
+    `tzoffset` to a _TSObject (with timezone object `tz` - optional).
+
+    Parameters
+    ----------
+    value: int64_t
+        numpy dt64
+    tzoffset: int
+    tz : tzinfo or None
+        timezone for the timezone-aware output.
+
+    Returns
+    -------
+    obj : _TSObject
+    """
+    cdef:
+        _TSObject obj
+        datetime dt
+
+    tzinfo = pytz.FixedOffset(tzoffset)
+    value = tz_convert_single(value, tzinfo, UTC)
+    obj = convert_to_tsobject(value, tzinfo, None, 0, 0)
+    if tz is None:
+        check_overflows(obj)
+        return obj
+
+    # Keep the converter same as PyDateTime's
+    dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
+                  obj.dts.hour, obj.dts.min, obj.dts.sec,
+                  obj.dts.us, obj.tzinfo)
+    obj = convert_datetime_to_tsobject(
+        dt, tz, nanos=obj.dts.ps // 1000)
+    return obj
+
+
 cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                                        bint dayfirst=False,
                                        bint yearfirst=False):
@@ -420,14 +458,13 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
     obj : _TSObject
     """
     cdef:
-        _TSObject obj
+        npy_datetimestruct dts
+        int64_t value  # numpy dt64
         int out_local = 0, out_tzoffset = 0
-        datetime dt
+        bint do_parse_datetime_string = False
 
     if tz is not None:
         tz = maybe_get_tz(tz)
-
-    obj = _TSObject()
 
     assert isinstance(ts, str)
 
@@ -443,34 +480,23 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
         ts = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
     else:
+        string_to_dts_failed = _string_to_dts(
+            ts, &dts, &out_local,
+            &out_tzoffset, False
+        )
         try:
-            _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
-            obj.value = dtstruct_to_dt64(&obj.dts)
-            check_dts_bounds(&obj.dts)
-            if out_local == 1:
-                obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-                obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
-                if tz is None:
-                    check_dts_bounds(&obj.dts)
-                    check_overflows(obj)
-                    return obj
+            if not string_to_dts_failed:
+                check_dts_bounds(&dts)
+                value = dtstruct_to_dt64(&dts)
+                if out_local == 1:
+                    return create_tsobject_tz_using_offset(value,
+                                                           out_tzoffset, tz)
                 else:
-                    # Keep the converter same as PyDateTime's
-                    obj = convert_to_tsobject(obj.value, obj.tzinfo,
-                                              None, 0, 0)
-                    dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
-                                  obj.dts.hour, obj.dts.min, obj.dts.sec,
-                                  obj.dts.us, obj.tzinfo)
-                    obj = convert_datetime_to_tsobject(
-                        dt, tz, nanos=obj.dts.ps // 1000)
-                    return obj
-
-            else:
-                ts = obj.value
-                if tz is not None:
-                    # shift for localize_tso
-                    ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
-                                            ambiguous='raise')[0]
+                    ts = value
+                    if tz is not None:
+                        # shift for localize_tso
+                        ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
+                                                ambiguous='raise')[0]
 
         except OutOfBoundsDatetime:
             # GH#19382 for just-barely-OutOfBounds falling back to dateutil
@@ -479,6 +505,9 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
             raise
 
         except ValueError:
+            do_parse_datetime_string = True
+
+        if string_to_dts_failed or do_parse_datetime_string:
             try:
                 ts = parse_datetime_string(ts, dayfirst=dayfirst,
                                            yearfirst=yearfirst)

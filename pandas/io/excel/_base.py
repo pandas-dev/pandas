@@ -827,6 +827,11 @@ class ExcelFile:
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters
+
+        Returns
+        -------
+        DataFrame or dict of DataFrames
+            DataFrame from the passed in Excel file.
         """
 
         # Can't use _deprecate_kwarg since sheetname=None has a special meaning

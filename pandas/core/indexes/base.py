@@ -183,7 +183,7 @@ class Index(IndexOpsMixin, PandasObject):
         When True, attempt to create a MultiIndex if possible
 
     See Also
-    ---------
+    --------
     RangeIndex : Index implementing a monotonic integer range.
     CategoricalIndex : Index of :class:`Categorical` s.
     MultiIndex : A multi-level, or hierarchical, Index.
@@ -692,6 +692,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return an ndarray of the flattened values of the underlying data.
 
+        Returns
+        -------
+        numpy.ndarray
+            Flattened array.
+
         See Also
         --------
         numpy.ndarray.ravel
@@ -728,6 +733,11 @@ class Index(IndexOpsMixin, PandasObject):
             or the original Index is returned.
 
             .. versionadded:: 0.19.0
+
+        Returns
+        -------
+        Index
+            Index with values cast to specified dtype.
         """
 
     @Appender(_index_shared_docs['astype'])
@@ -776,6 +786,11 @@ class Index(IndexOpsMixin, PandasObject):
         fill_value : bool, default None
             If allow_fill=True and fill_value is not None, indices specified by
             -1 is regarded as NA. If Index doesn't hold NA, raise ValueError
+
+        Returns
+        -------
+        numpy.ndarray
+            Elements of given indices.
 
         See Also
         --------
@@ -1038,6 +1053,11 @@ class Index(IndexOpsMixin, PandasObject):
                 Whether or not there are quoted values in `self`
             3) date_format : str
                 The format used to represent date-like values
+
+        Returns
+        -------
+        numpy.ndarray
+            Formatted values.
         """
 
         values = self
@@ -2629,7 +2649,7 @@ class Index(IndexOpsMixin, PandasObject):
         loc : int if unique index, slice if monotonic index, else mask
 
         Examples
-        ---------
+        --------
         >>> unique_index = pd.Index(list('abc'))
         >>> unique_index.get_loc('b')
         1
@@ -3716,6 +3736,10 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         cond : boolean array-like with the same length as self
         other : scalar, or array-like
+
+        Returns
+        -------
+        Index
         """
 
     @Appender(_index_shared_docs['where'])
@@ -4026,6 +4050,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a new Index of the values set with the mask.
 
+        Returns
+        -------
+        Index
+
         See Also
         --------
         numpy.ndarray.putmask
@@ -4044,6 +4072,11 @@ class Index(IndexOpsMixin, PandasObject):
     def equals(self, other):
         """
         Determine if two Index objects contain the same elements.
+
+        Returns
+        -------
+        bool
+            If two Index objects have equal elements True, otherwise False.
         """
         if self.is_(other):
             return True
@@ -4065,6 +4098,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Similar to equals, but check that other comparable attributes are
         also equal.
+
+        Returns
+        -------
+        bool
+            If two Index objects have equal elements and same type True,
+            otherwise False.
         """
         return (self.equals(other) and
                 all((getattr(self, c, None) == getattr(other, c, None)
@@ -4336,6 +4375,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing.
+
+        Returns
+        -------
+        scalar
+            A value in the Series with the index of the key value in self.
         """
 
         # if we have something that is Index-like, then
@@ -4443,6 +4487,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         This dispatches to get_indexer or get_indexer_nonunique
         as appropriate.
+
+        Returns
+        -------
+        numpy.ndarray
+            List of indices.
         """
         if self.is_unique:
             return self.get_indexer(target, **kwargs)
@@ -4650,7 +4699,7 @@ class Index(IndexOpsMixin, PandasObject):
         This function assumes that the data is sorted, so use at your own peril
 
         Examples
-        ---------
+        --------
         This is a method on all index types. For example you can do:
 
         >>> idx = pd.Index(list('abcd'))
@@ -4775,6 +4824,11 @@ class Index(IndexOpsMixin, PandasObject):
         label : object
         side : {'left', 'right'}
         kind : {'ix', 'loc', 'getitem'}
+
+        Returns
+        -------
+        int
+            Index of label.
         """
         assert kind in ['ix', 'loc', 'getitem', None]
 
@@ -4848,7 +4902,7 @@ class Index(IndexOpsMixin, PandasObject):
         This method only works if the index is monotonic or unique.
 
         Examples
-        ---------
+        --------
         >>> idx = pd.Index(list('abcd'))
         >>> idx.slice_locs(start='b', end='c')
         (1, 3)

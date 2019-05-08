@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import rand, randn
 import pytest
 
-from pandas.compat import lmap, lrange, lzip
+from pandas.compat import lmap, lrange
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -105,7 +105,7 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(df.plot, title='blah')
 
-        tuples = lzip(string.ascii_letters[:10], range(10))
+        tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
         _check_plot_works(df.plot, use_index=True)

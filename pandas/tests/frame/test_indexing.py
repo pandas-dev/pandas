@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import lrange, lzip
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -178,7 +178,7 @@ class TestDataFrameIndexing(TestData):
         assert_almost_equal(self.frame[['A', 'B']].values, data)
 
     def test_setitem_list_of_tuples(self):
-        tuples = lzip(self.frame['A'], self.frame['B'])
+        tuples = list(zip(self.frame['A'], self.frame['B']))
         self.frame['tuples'] = tuples
 
         result = self.frame['tuples']
@@ -998,11 +998,11 @@ class TestDataFrameIndexing(TestData):
             assert_frame_equal(frame, expected)
 
         # new corner case of boolean slicing / setting
-        frame = DataFrame(lzip([2, 3, 9, 6, 7], [np.nan] * 5),
+        frame = DataFrame(zip([2, 3, 9, 6, 7], [np.nan] * 5),
                           columns=['a', 'b'])
         lst = [100]
         lst.extend([np.nan] * 4)
-        expected = DataFrame(lzip([100, 3, 9, 6, 7], lst),
+        expected = DataFrame(zip([100, 3, 9, 6, 7], lst),
                              columns=['a', 'b'])
         frame[frame['a'] == 2] = 100
         assert_frame_equal(frame, expected)
