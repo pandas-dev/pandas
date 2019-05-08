@@ -39,6 +39,7 @@ Other Enhancements
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
+- :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
 
 .. _whatsnew_0250.api_breaking:
 
@@ -375,6 +376,7 @@ I/O
 - Adds ``use_bqstorage_api`` parameter to :func:`read_gbq` to speed up downloads of large data frames. This feature requires version 0.10.0 of the ``pandas-gbq`` library as well as the ``google-cloud-bigquery-storage`` and ``fastavro`` libraries. (:issue:`26104`)
 - Fixed memory leak in :meth:`DataFrame.to_json` when dealing with numeric data (:issue:`24889`)
 - Bug in :func:`read_json` where date strings with ``Z`` were not converted to a UTC timezone (:issue:`26168`)
+- Added ``cache_dates=True`` parameter to :meth:`read_csv`, which allows to cache unique dates when they are parsed (:issue:`25990`)
 
 Plotting
 ^^^^^^^^
