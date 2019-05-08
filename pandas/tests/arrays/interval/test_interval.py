@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Interval, IntervalIndex, date_range, timedelta_range
+from pandas import Index, Interval, date_range, timedelta_range
 from pandas.core.arrays import IntervalArray
 import pandas.util.testing as tm
 
