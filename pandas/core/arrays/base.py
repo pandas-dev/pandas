@@ -1059,8 +1059,8 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             `op` cannot be stored in the ExtensionArray. The dtype of the
             ndarray uses NumPy's normal inference rules.
 
-        Example
-        -------
+        Examples
+        --------
         Given an ExtensionArray subclass called MyExtensionArray, use
 
         >>> __add__ = cls._create_method(operator.add)

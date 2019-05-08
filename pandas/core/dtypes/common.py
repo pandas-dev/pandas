@@ -763,7 +763,7 @@ def is_dtype_equal(source, target):
     target : The second dtype to compare
 
     Returns
-    ----------
+    -------
     boolean
         Whether or not the two dtypes are equal.
 
@@ -804,7 +804,7 @@ def is_dtype_union_equal(source, target):
     target : The second dtype to compare
 
     Returns
-    ----------
+    -------
     boolean
         Whether or not the two dtypes are equal.
 

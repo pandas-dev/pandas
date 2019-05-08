@@ -10327,11 +10327,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Return index for %(position)s non-NA/null value.
 
         Returns
-        --------
+        -------
         scalar : type of index
 
         Notes
-        --------
+        -----
         If all elements are non-NA/null, returns None.
         Also returns None for empty %(klass)s.
         """

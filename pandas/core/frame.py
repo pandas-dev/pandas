@@ -7250,7 +7250,7 @@ class DataFrame(NDFrame):
             Pairwise correlations.
 
         See Also
-        -------
+        --------
         DataFrame.corr
         """
         axis = self._get_axis_number(axis)

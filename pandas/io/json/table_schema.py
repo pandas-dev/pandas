@@ -131,7 +131,7 @@ def convert_json_field_to_pandas_type(field):
     dtype
 
     Raises
-    -----
+    ------
     ValueError
         If the type of the provided field is unknown or currently unsupported
 

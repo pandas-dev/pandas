@@ -586,7 +586,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         Return an iterator over the boxed values
 
         Yields
-        -------
+        ------
         tstamp : Timestamp
         """
 

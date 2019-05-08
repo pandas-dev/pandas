@@ -144,6 +144,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     strftime
     to_timestamp
 
+    See Also
+    --------
+    Index : The base pandas Index type.
+    Period : Represents a period of time.
+    DatetimeIndex : Index with datetime64 data.
+    TimedeltaIndex : Index of timedelta64 data.
+    period_range : Create a fixed-frequency PeriodIndex.
+
     Notes
     -----
     Creating a PeriodIndex based on `start`, `periods`, and `end` has
@@ -152,14 +160,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     Examples
     --------
     >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
-
-    See Also
-    ---------
-    Index : The base pandas Index type.
-    Period : Represents a period of time.
-    DatetimeIndex : Index with datetime64 data.
-    TimedeltaIndex : Index of timedelta64 data.
-    period_range : Create a fixed-frequency PeriodIndex.
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']

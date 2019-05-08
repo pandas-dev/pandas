@@ -131,7 +131,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     to_frame
 
     See Also
-    ---------
+    --------
     Index : The base pandas Index type.
     Timedelta : Represents a duration between two dates or times.
     DatetimeIndex : Index of datetime64 data.

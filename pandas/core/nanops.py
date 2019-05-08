@@ -861,7 +861,7 @@ def nanargmax(values, axis=None, skipna=True, mask=None):
         nan-mask if known
 
     Returns
-    --------
+    -------
     result : int
         The index of max value in specified axis or -1 in the NA case
 
@@ -891,7 +891,7 @@ def nanargmin(values, axis=None, skipna=True, mask=None):
         nan-mask if known
 
     Returns
-    --------
+    -------
     result : int
         The index of min value in specified axis or -1 in the NA case
 
@@ -1099,7 +1099,7 @@ def nanprod(values, axis=None, skipna=True, min_count=0, mask=None):
     6.0
 
     Returns
-    --------
+    -------
     The product of all elements on a given axis. ( NaNs are treated as 1)
     """
     mask = _maybe_get_mask(values, skipna, mask)

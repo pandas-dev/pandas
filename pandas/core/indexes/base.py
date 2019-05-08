@@ -183,7 +183,7 @@ class Index(IndexOpsMixin, PandasObject):
         When True, attempt to create a MultiIndex if possible
 
     See Also
-    ---------
+    --------
     RangeIndex : Index implementing a monotonic integer range.
     CategoricalIndex : Index of :class:`Categorical` s.
     MultiIndex : A multi-level, or hierarchical, Index.
@@ -2649,7 +2649,7 @@ class Index(IndexOpsMixin, PandasObject):
         loc : int if unique index, slice if monotonic index, else mask
 
         Examples
-        ---------
+        --------
         >>> unique_index = pd.Index(list('abc'))
         >>> unique_index.get_loc('b')
         1
@@ -4699,7 +4699,7 @@ class Index(IndexOpsMixin, PandasObject):
         This function assumes that the data is sorted, so use at your own peril
 
         Examples
-        ---------
+        --------
         This is a method on all index types. For example you can do:
 
         >>> idx = pd.Index(list('abcd'))
@@ -4902,7 +4902,7 @@ class Index(IndexOpsMixin, PandasObject):
         This method only works if the index is monotonic or unique.
 
         Examples
-        ---------
+        --------
         >>> idx = pd.Index(list('abcd'))
         >>> idx.slice_locs(start='b', end='c')
         (1, 3)

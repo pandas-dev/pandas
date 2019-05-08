@@ -597,7 +597,7 @@ class StataValueLabel:
     Parse a categorical column and prepare formatted output
 
     Parameters
-    -----------
+    ----------
     value : int8, int16, int32, float32 or float64
         The Stata missing value code
 
@@ -718,7 +718,7 @@ class StataMissingValue(StringMixin):
     An observation's missing value.
 
     Parameters
-    -----------
+    ----------
     value : int8, int16, int32, float32 or float64
         The Stata missing value code
 

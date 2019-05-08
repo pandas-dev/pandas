@@ -2140,23 +2140,18 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         dict of categories -> indexers
 
-        Example
-        -------
-        In [1]: c = pd.Categorical(list('aabca'))
-
-        In [2]: c
-        Out[2]:
+        Examples
+        --------
+        >>> c = pd.Categorical(list('aabca'))
+        >>> c
         [a, a, b, c, a]
         Categories (3, object): [a, b, c]
-
-        In [3]: c.categories
-        Out[3]: Index(['a', 'b', 'c'], dtype='object')
-
-        In [4]: c.codes
-        Out[4]: array([0, 0, 1, 2, 0], dtype=int8)
-
-        In [5]: c._reverse_indexer()
-        Out[5]: {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
+        >>> c.categories
+        Index(['a', 'b', 'c'], dtype='object')
+        >>> c.codes
+        array([0, 0, 1, 2, 0], dtype=int8)
+        >>> c._reverse_indexer()
+        {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
 
         """
         categories = self.categories

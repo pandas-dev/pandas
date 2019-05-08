@@ -670,8 +670,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             a `pd.MultiIndex`, to avoid unnecessary broadcasting.
 
 
-        Returns:
-        --------
+        Returns
+        -------
         `np.array` of `ser` broadcast to the appropriate shape for assignment
         to the locations selected by `indexer`
 
