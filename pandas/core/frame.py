@@ -31,7 +31,7 @@ from pandas.util._decorators import (Appender, Substitution,
 from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
-from pandas.compat import PY36, lmap, lzip, raise_with_traceback
+from pandas.compat import PY36, lmap, raise_with_traceback
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
     maybe_upcast,
@@ -1752,7 +1752,7 @@ class DataFrame(NDFrame):
                       "preserve the key order.",
                       FutureWarning, stacklevel=2)
 
-        keys, values = lzip(*items)
+        keys, values = zip(*items)
 
         if orient == 'columns':
             if columns is not None:
@@ -4433,7 +4433,7 @@ class DataFrame(NDFrame):
             if isinstance(self.index, MultiIndex):
                 names = [n if n is not None else ('level_%d' % i)
                          for (i, n) in enumerate(self.index.names)]
-                to_insert = lzip(self.index.levels, self.index.codes)
+                to_insert = zip(self.index.levels, self.index.codes)
             else:
                 default = 'index' if 'index' not in self else 'level_0'
                 names = ([default] if self.index.name is None

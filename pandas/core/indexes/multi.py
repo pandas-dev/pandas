@@ -9,7 +9,6 @@ from pandas._config import get_option
 
 from pandas._libs import (
     Timestamp, algos as libalgos, index as libindex, lib, tslibs)
-from pandas.compat import lzip
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
@@ -402,7 +401,7 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrays = lzip(*tuples)
+            arrays = zip(*tuples)
 
         return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
 
@@ -511,7 +510,7 @@ class MultiIndex(Index):
         if not isinstance(df, ABCDataFrame):
             raise TypeError("Input must be a DataFrame")
 
-        column_names, columns = lzip(*df.iteritems())
+        column_names, columns = zip(*df.iteritems())
         names = column_names if names is None else names
         return cls.from_arrays(columns, sortorder=sortorder, names=names)
 
@@ -2941,7 +2940,7 @@ class MultiIndex(Index):
                                                 other._ndarray_values],
                                                sort=sort)
 
-        return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
+        return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0,
                                       names=result_names)
 
     def intersection(self, other, sort=False):
@@ -2984,7 +2983,7 @@ class MultiIndex(Index):
                               codes=[[]] * self.nlevels,
                               names=result_names, verify_integrity=False)
         else:
-            return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
+            return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0,
                                           names=result_names)
 
     def difference(self, other, sort=None):
@@ -3152,7 +3151,7 @@ MultiIndex._add_logical_methods_disabled()
 
 
 def _sparsify(label_list, start=0, sentinel=''):
-    pivoted = lzip(*label_list)
+    pivoted = list(zip(*label_list))
     k = len(label_list)
 
     result = pivoted[:start + 1]
@@ -3176,7 +3175,7 @@ def _sparsify(label_list, start=0, sentinel=''):
 
         prev = cur
 
-    return lzip(*result)
+    return list(zip(*result))
 
 
 def _get_na_rep(dtype):

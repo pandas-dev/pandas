@@ -6,7 +6,7 @@ import numpy as np
 
 import pandas.core.dtypes.concat as _concat
 
-from pandas import DataFrame, Index, MultiIndex, Series, compat
+from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core import common as com
 from pandas.core.arrays.categorical import (
     _factorize_from_iterable, _factorize_from_iterables)
@@ -536,7 +536,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
 
     if ((levels is None and isinstance(keys[0], tuple)) or
             (levels is not None and len(levels) > 1)):
-        zipped = compat.lzip(*keys)
+        zipped = list(zip(*keys))
         if names is None:
             names = [None] * len(zipped)
 

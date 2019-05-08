@@ -18,7 +18,6 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
 import pandas.compat as compat
-from pandas.compat import lzip
 from pandas.errors import (
     AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender
@@ -1489,7 +1488,7 @@ class ParserBase:
         def extract(r):
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
-        columns = lzip(*[extract(r) for r in header])
+        columns = list(zip(*(extract(r) for r in header)))
         names = ic + columns
 
         # If we find unnamed columns all in a single

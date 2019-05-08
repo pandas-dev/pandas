@@ -6,7 +6,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.compat import lmap, lzip
+from pandas.compat import lmap
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -652,7 +652,7 @@ def test_groupby_as_index_cython(df):
     result = grouped.mean()
     expected = data.groupby(['A', 'B']).mean()
 
-    arrays = lzip(*expected.index.values)
+    arrays = list(zip(*expected.index.values))
     expected.insert(0, 'A', arrays[0])
     expected.insert(1, 'B', arrays[1])
     expected.index = np.arange(len(expected))
