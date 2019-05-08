@@ -1128,17 +1128,17 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _intersection_unique(self, other):
         """
-        Get integer location, slice or boolean mask for requested label.
+        Used when the IntervalIndex does not have any common endpoint,
+        no mater left or right.
+        Return the intersection with another IntervalIndex.
 
         Parameters
         ----------
-        key : label
-        method : {None}, optional
-            * default: matches where the label is within an interval only.
+        other : IntervalIndex
 
         Returns
         -------
-        loc : int if unique index, slice if monotonic index, else mask
+        taken : IntervalIndex
         """
         lindexer = self.left.get_indexer(other.left)
         rindexer = self.right.get_indexer(other.right)
@@ -1149,6 +1149,20 @@ class IntervalIndex(IntervalMixin, Index):
         return self.take(indexer)
 
     def _intersection_non_unique(self, other):
+        """
+        Used when the IntervalIndex does have some common endpoints,
+        on either sides.
+        Return the intersection with another IntervalIndex.
+
+        Parameters
+        ----------
+        other : IntervalIndex
+
+        Returns
+        -------
+        taken : IntervalIndex
+        """
+
         lmiss = other.left.get_indexer_non_unique(self.left)[1]
         rmiss = other.right.get_indexer_non_unique(self.right)[1]
 
