@@ -327,14 +327,16 @@ class RangeIndex(Int64Index):
 
         return self._start + self._step * no_steps
 
-    def min(self, axis=None, skipna=True):
+    def min(self, axis=None, skipna=True, *args, **kwargs):
         """The minimum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
+        nv.validate_min(args, kwargs)
         return self._minmax('min')
 
-    def max(self, axis=None, skipna=True):
+    def max(self, axis=None, skipna=True, *args, **kwargs):
         """The maximum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
+        nv.validate_max(args, kwargs)
         return self._minmax('max')
 
     def argsort(self, *args, **kwargs):

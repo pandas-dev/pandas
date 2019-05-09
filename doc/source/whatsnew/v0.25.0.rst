@@ -433,6 +433,7 @@ Other
 
 - Removed unused C functions from vendored UltraJSON implementation (:issue:`26198`)
 - Bug in :func:`factorize` when passing an ``ExtensionArray`` with a custom ``na_sentinel`` (:issue:`25696`).
+- Allow :class:`Index` and :class:`RangeIndex` to be passed to numpy ``min`` and ``max`` functions.
 
 
 .. _whatsnew_0.250.contributors:
