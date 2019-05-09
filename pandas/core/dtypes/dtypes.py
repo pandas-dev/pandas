@@ -1,6 +1,7 @@
 """ define extension dtypes """
 import re
-from typing import Any, Dict, Optional, Tuple, Type
+import typing
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -8,6 +9,7 @@ import pytz
 
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
+from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex, ABCDateOffset, ABCIndexClass)
@@ -18,7 +20,8 @@ from .inference import is_list_like
 str_type = str
 
 
-def register_extension_dtype(cls):
+def register_extension_dtype(cls: Type['ExtensionDtype'],
+                             ) -> Type['ExtensionDtype']:
     """
     Register an ExtensionType with pandas as class decorator.
 
@@ -60,24 +63,26 @@ class Registry:
     These are tried in order.
     """
     def __init__(self):
-        self.dtypes = []
+        self.dtypes = []  # type: List[Type[ExtensionDtype]]
 
-    def register(self, dtype):
+    def register(self, dtype: Type['ExtensionDtype']) -> None:
         """
         Parameters
         ----------
         dtype : ExtensionDtype
         """
-        if not issubclass(dtype, (PandasExtensionDtype, ExtensionDtype)):
+        if not issubclass(dtype, ExtensionDtype):
             raise ValueError("can only register pandas extension dtypes")
 
         self.dtypes.append(dtype)
 
-    def find(self, dtype):
+    def find(self,
+             dtype: Union[Type['ExtensionDtype'], str],
+             ) -> Optional[Type[ExtensionDtype]]:
         """
         Parameters
         ----------
-        dtype : PandasExtensionDtype or string
+        dtype : Type[ExtensionDtype] or string
 
         Returns
         -------
@@ -126,16 +131,20 @@ class PandasExtensionDtype(_DtypeOpsMixin):
     isnative = 0
     _cache = {}  # type: Dict[str_type, 'PandasExtensionDtype']
 
-    def __unicode__(self):
+    def __unicode__(self) -> str_type:
         return self.name
 
-    def __str__(self):
+    @property
+    def name(self) -> str_type:
+        raise AbstractMethodError(self)
+
+    def __str__(self) -> str_type:
         """
         Return a string representation for a particular Object
         """
         return self.__unicode__()
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """
         Return a string representation for a particular object.
         """
@@ -144,22 +153,22 @@ class PandasExtensionDtype(_DtypeOpsMixin):
         encoding = get_option("display.encoding")
         return self.__unicode__().encode(encoding, 'replace')
 
-    def __repr__(self):
+    def __repr__(self) -> str_type:
         """
         Return a string representation for a particular object.
         """
         return str(self)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         raise NotImplementedError("sub-classes should implement an __hash__ "
                                   "method")
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str_type, Any]:
         # pickle support; we don't want to pickle the cache
         return {k: getattr(self, k, None) for k in self._metadata}
 
     @classmethod
-    def reset_cache(cls):
+    def reset_cache(cls) -> None:
         """ clear the cache """
         cls._cache = {}
 
@@ -223,17 +232,24 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     _metadata = ('categories', 'ordered')
     _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
 
-    def __init__(self, categories=None, ordered=None):
+    def __init__(self, categories=None, ordered: bool = None):
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
-    def _from_fastpath(cls, categories=None, ordered=None):
+    def _from_fastpath(cls,
+                       categories=None,
+                       ordered: bool = None
+                       ) -> 'CategoricalDtype':
         self = cls.__new__(cls)
         self._finalize(categories, ordered, fastpath=True)
         return self
 
     @classmethod
-    def _from_categorical_dtype(cls, dtype, categories=None, ordered=None):
+    def _from_categorical_dtype(cls,
+                                dtype: 'CategoricalDtype',
+                                categories=None,
+                                ordered: bool = None,
+                                ) -> 'CategoricalDtype':
         if categories is ordered is None:
             return dtype
         if categories is None:
@@ -243,8 +259,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return cls(categories, ordered)
 
     @classmethod
-    def _from_values_or_dtype(cls, values=None, categories=None, ordered=None,
-                              dtype=None):
+    def _from_values_or_dtype(cls,
+                              values=None,
+                              categories=None,
+                              ordered: bool = None,
+                              dtype: 'CategoricalDtype' = None,
+                              ) -> 'CategoricalDtype':
         """
         Construct dtype from the input parameters used in :class:`Categorical`.
 
@@ -326,7 +346,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return dtype
 
-    def _finalize(self, categories, ordered, fastpath=False):
+    def _finalize(self,
+                  categories,
+                  ordered: Optional[bool],
+                  fastpath: bool = False,
+                  ) -> None:
 
         if ordered is not None:
             self.validate_ordered(ordered)
@@ -338,14 +362,14 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         self._categories = categories
         self._ordered = ordered
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: 'Dict[str_type, Any]') -> None:
         # for pickle compat. __get_state__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
         self._categories = state.pop('categories', None)
         self._ordered = state.pop('ordered', False)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # _hash_categories returns a uint64, so use the negative
         # space for when we have unknown categories to avoid a conflict
         if self.categories is None:
@@ -356,7 +380,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         # We *do* want to include the real self.ordered here
         return int(self._hash_categories(self.categories, self.ordered))
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         """
         Rules for CDT equality:
         1) Any CDT is equal to the string 'category'
@@ -403,7 +427,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return tpl.format(data, self.ordered)
 
     @staticmethod
-    def _hash_categories(categories, ordered=True):
+    def _hash_categories(categories, ordered: Union[bool, None] = True) -> int:
         from pandas.core.util.hashing import (
             hash_array, _combine_hash_arrays, hash_tuples
         )
@@ -453,20 +477,17 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return Categorical
 
     @classmethod
-    def construct_from_string(cls, string):
+    def construct_from_string(cls, string: str_type) -> 'CategoricalDtype':
         """
         attempt to construct this type from a string, raise a TypeError if
         it's not possible """
-        try:
-            if string == 'category':
-                return cls()
-            else:
-                raise TypeError("cannot construct a CategoricalDtype")
-        except AttributeError:
-            pass
+        if string == 'category':
+            return cls()
+        else:
+            raise TypeError("cannot construct a CategoricalDtype")
 
     @staticmethod
-    def validate_ordered(ordered):
+    def validate_ordered(ordered: bool) -> None:
         """
         Validates that we have a valid ordered parameter. If
         it is not a boolean, a TypeError will be raised.
@@ -486,7 +507,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError("'ordered' must either be 'True' or 'False'")
 
     @staticmethod
-    def validate_categories(categories, fastpath=False):
+    def validate_categories(categories, fastpath: bool = False):
         """
         Validates that we have good categories
 
@@ -500,7 +521,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         -------
         categories : Index
         """
-        from pandas import Index
+        from pandas.core.indexes.base import Index
 
         if not fastpath and not is_list_like(categories):
             msg = "Parameter 'categories' must be list-like, was {!r}"
@@ -519,9 +540,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         if isinstance(categories, ABCCategoricalIndex):
             categories = categories.categories
 
-        return categories
+        return typing.cast(Index, categories)
 
-    def update_dtype(self, dtype):
+    def update_dtype(self, dtype: 'CategoricalDtype') -> 'CategoricalDtype':
         """
         Returns a CategoricalDtype with categories and ordered taken from dtype
         if specified, otherwise falling back to self if unspecified
@@ -560,17 +581,18 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         An ``Index`` containing the unique categories allowed.
         """
-        return self._categories
+        from pandas import Index
+        return typing.cast(Index, self._categories)
 
     @property
-    def ordered(self):
+    def ordered(self) -> Optional[bool]:
         """
         Whether the categories have an ordered relationship.
         """
         return self._ordered
 
     @property
-    def _is_boolean(self):
+    def _is_boolean(self) -> bool:
         from pandas.core.dtypes.common import is_bool_dtype
 
         return is_bool_dtype(self.categories)
