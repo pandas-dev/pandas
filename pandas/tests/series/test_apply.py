@@ -4,8 +4,6 @@ from itertools import chain
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 from pandas.conftest import _get_cython_table_params
@@ -500,7 +498,7 @@ class TestSeriesMap():
         assert not isna(merged['c'])
 
     def test_map_type_inference(self):
-        s = Series(lrange(3))
+        s = Series(range(3))
         s2 = s.map(lambda x: np.where(x == 0, 0, 1))
         assert issubclass(s2.dtype.type, np.integer)
 

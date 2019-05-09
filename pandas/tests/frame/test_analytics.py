@@ -6,7 +6,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -54,7 +53,7 @@ def assert_stat_op_calc(opname, alternative, frame, has_skipna=True,
         result = getattr(df, opname)()
         assert isinstance(result, Series)
 
-        df['a'] = lrange(len(df))
+        df['a'] = range(len(df))
         result = getattr(df, opname)()
         assert isinstance(result, Series)
         assert len(result)
@@ -1203,7 +1202,7 @@ class TestDataFrameAnalytics:
         float_string_frame.skew(1)
 
     def test_sum_bools(self):
-        df = DataFrame(index=lrange(1), columns=lrange(10))
+        df = DataFrame(index=range(1), columns=range(10))
         bools = isna(df)
         assert bools.sum(axis=1)[0] == 10
 
@@ -1212,7 +1211,7 @@ class TestDataFrameAnalytics:
 
     def test_cumsum_corner(self):
         dm = DataFrame(np.arange(20).reshape(4, 5),
-                       index=lrange(4), columns=lrange(5))
+                       index=range(4), columns=range(5))
         # ?(wesm)
         result = dm.cumsum()  # noqa
 
@@ -1327,12 +1326,12 @@ class TestDataFrameAnalytics:
         assert isinstance(ct2, Series)
 
         # GH#423
-        df = DataFrame(index=lrange(10))
+        df = DataFrame(index=range(10))
         result = df.count(1)
         expected = Series(0, index=df.index)
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame(columns=lrange(10))
+        df = DataFrame(columns=range(10))
         result = df.count(0)
         expected = Series(0, index=df.columns)
         tm.assert_series_equal(result, expected)
@@ -2137,9 +2136,9 @@ class TestDataFrameAnalytics:
 
         # unaligned
         df = DataFrame(np.random.randn(3, 4),
-                       index=[1, 2, 3], columns=lrange(4))
+                       index=[1, 2, 3], columns=range(4))
         df2 = DataFrame(np.random.randn(5, 3),
-                        index=lrange(5), columns=[1, 2, 3])
+                        index=range(5), columns=[1, 2, 3])
 
         with pytest.raises(ValueError, match='aligned'):
             df.dot(df2)
@@ -2197,9 +2196,9 @@ class TestDataFrameAnalytics:
 
         # unaligned
         df = DataFrame(np.random.randn(3, 4),
-                       index=[1, 2, 3], columns=lrange(4))
+                       index=[1, 2, 3], columns=range(4))
         df2 = DataFrame(np.random.randn(5, 3),
-                        index=lrange(5), columns=[1, 2, 3])
+                        index=range(5), columns=[1, 2, 3])
 
         with pytest.raises(ValueError, match='aligned'):
             operator.matmul(df, df2)

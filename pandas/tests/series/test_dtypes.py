@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -82,7 +81,7 @@ class TestSeriesDtypes:
         tm.assert_series_equal(result, Series(np.arange(1, 5)))
 
     def test_astype_datetime(self):
-        s = Series(iNaT, dtype='M8[ns]', index=lrange(5))
+        s = Series(iNaT, dtype='M8[ns]', index=range(5))
 
         s = s.astype('O')
         assert s.dtype == np.object_

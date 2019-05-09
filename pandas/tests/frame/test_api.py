@@ -4,8 +4,6 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Series, SparseDataFrame, compat, date_range,
@@ -234,7 +232,7 @@ class SharedWithSparse:
             self._assert_series_equal(s, expected)
 
         df = self.klass({'floats': np.random.randn(5),
-                         'ints': lrange(5)}, columns=['floats', 'ints'])
+                         'ints': range(5)}, columns=['floats', 'ints'])
 
         for tup in df.itertuples(index=False):
             assert isinstance(tup[1], int)
