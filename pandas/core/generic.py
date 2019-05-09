@@ -7961,7 +7961,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        rule : str
+        rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
         how : str
             Method for down/re-sampling, default to 'mean' for downsampling.
@@ -8029,11 +8029,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         See the `user guide
-        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#resampling>`_
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`_
         for more.
 
         To learn more about the offset strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
 
         Examples
         --------
