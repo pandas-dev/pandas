@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -148,7 +147,7 @@ class TestReductions:
                        columns=['a'])
         df['b'] = df.a.subtract(pd.Timedelta(seconds=3600))
         result = getattr(df, op)(axis=1)
-        expected = df[expected_col]
+        expected = df[expected_col].rename(None)
         tm.assert_series_equal(result, expected)
 
 

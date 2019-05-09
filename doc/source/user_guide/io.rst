@@ -271,6 +271,12 @@ date_parser : function, default ``None``
   (corresponding to the columns defined by parse_dates) as arguments.
 dayfirst : boolean, default ``False``
   DD/MM format dates, international and European format.
+cache_dates : boolean, default True
+  If True, use a cache of unique, converted dates to apply the datetime
+  conversion. May produce significant speed-up when parsing duplicate
+  date strings, especially ones with timezone offsets.
+
+  .. versionadded:: 0.25.0
 
 Iteration
 +++++++++
@@ -4704,7 +4710,8 @@ Read only certain columns of a parquet file.
 
    result = pd.read_parquet('example_fp.parquet',
                             engine='fastparquet', columns=['a', 'b'])
-
+   result = pd.read_parquet('example_pa.parquet',
+                            engine='pyarrow', columns=['a', 'b'])
    result.dtypes
 
 

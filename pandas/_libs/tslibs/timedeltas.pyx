@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
 import collections
 import textwrap
 import warnings
-
-import sys
 
 import cython
 
@@ -14,7 +11,7 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
-from cpython.datetime cimport (datetime, timedelta,
+from cpython.datetime cimport (timedelta,
                                PyDateTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
@@ -779,11 +776,14 @@ cdef class _Timedelta(timedelta):
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
-                if op == Py_EQ:
+                if other is NaT:
+                    return PyObject_RichCompare(other, self, reverse_ops[op])
+                elif op == Py_EQ:
                     return False
                 elif op == Py_NE:
                     return True
-                raise TypeError('Cannot compare type {cls} with type {other}'
+                raise TypeError('Cannot compare type {cls} with '
+                                'type {other}'
                                 .format(cls=type(self).__name__,
                                         other=type(other).__name__))
 

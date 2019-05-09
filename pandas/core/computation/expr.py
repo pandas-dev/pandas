@@ -7,6 +7,7 @@ from io import StringIO
 import itertools as it
 import operator
 import tokenize
+from typing import Type
 
 import numpy as np
 
@@ -327,7 +328,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     parser : str
     preparser : callable
     """
-    const_type = Constant
+    const_type = Constant  # type: Type[Term]
     term_type = Term
 
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
@@ -694,15 +695,14 @@ class PandasExprVisitor(BaseExprVisitor):
                  preparser=partial(_preparse, f=_compose(
                      _replace_locals, _replace_booleans,
                      _clean_spaces_backtick_quoted_names))):
-        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
+        super().__init__(env, engine, parser, preparser)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
 class PythonExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser, preparser=lambda x: x):
-        super(PythonExprVisitor, self).__init__(env, engine, parser,
-                                                preparser=preparser)
+        super().__init__(env, engine, parser, preparser=preparser)
 
 
 class Expr(StringMixin):

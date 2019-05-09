@@ -4,6 +4,7 @@ import string
 import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Categorical, date_range, read_csv
+from pandas.io.parsers import _parser_defaults
 from io import StringIO
 
 from ..pandas_vb_common import BaseIO
@@ -232,6 +233,25 @@ class ReadCSVParseDates(StringIORewind):
                  names=list(string.digits[:9]))
 
 
+class ReadCSVCachedParseDates(StringIORewind):
+    params = ([True, False],)
+    param_names = ['do_cache']
+
+    def setup(self, do_cache):
+        data = ('\n'.join('10/{}'.format(year)
+                for year in range(2000, 2100)) + '\n') * 10
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv_cached(self, do_cache):
+        # kwds setting here is used to avoid breaking tests in
+        # previous version of pandas, because this is api changes
+        kwds = {}
+        if 'cache_dates' in _parser_defaults:
+            kwds['cache_dates'] = do_cache
+        read_csv(self.data(self.StringIO_input), header=None,
+                 parse_dates=[0], **kwds)
+
+
 class ReadCSVMemoryGrowth(BaseIO):
 
     chunksize = 20
@@ -249,6 +269,25 @@ class ReadCSVMemoryGrowth(BaseIO):
 
         for _ in result:
             pass
+
+
+class ReadCSVParseSpecialDate(StringIORewind):
+    params = (['mY', 'mdY', 'hm'],)
+    params_name = ['value']
+    objects = {
+        'mY': '01-2019\n10-2019\n02/2000\n',
+        'mdY': '12/02/2010\n',
+        'hm': '21:34\n'
+    }
+
+    def setup(self, value):
+        count_elem = 10000
+        data = self.objects[value] * count_elem
+        self.StringIO_input = StringIO(data)
+
+    def time_read_special_date(self, value):
+        read_csv(self.data(self.StringIO_input), sep=',', header=None,
+                 names=['Date'], parse_dates=['Date'])
 
 
 from ..pandas_vb_common import setup  # noqa: F401

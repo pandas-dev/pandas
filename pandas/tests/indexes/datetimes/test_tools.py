@@ -712,6 +712,19 @@ class TestToDatetime:
         with pytest.raises(ValueError, match=msg):
             pd.to_datetime(date, format=format)
 
+    def test_to_datetime_coerce(self):
+        # GH 26122
+        ts_strings = ['March 1, 2018 12:00:00+0400',
+                      'March 1, 2018 12:00:00+0500',
+                      '20100240']
+        result = to_datetime(ts_strings, errors='coerce')
+        expected = Index([datetime(2018, 3, 1, 12, 0,
+                                   tzinfo=tzoffset(None, 14400)),
+                          datetime(2018, 3, 1, 12, 0,
+                                   tzinfo=tzoffset(None, 18000)),
+                          NaT])
+        tm.assert_index_equal(result, expected)
+
     def test_iso_8601_strings_with_same_offset(self):
         # GH 17697, 11736
         ts_str = "2015-11-18 15:30:00+05:30"
@@ -1323,8 +1336,7 @@ class TestToDatetimeMisc:
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
 
         # GH 10636, default is now 'raise'
-        msg = (r"\(u?'Unknown string format:', '1/100/2000'\)|"
-               "day is out of range for month")
+        msg = (r"Unknown string format:|day is out of range for month")
         with pytest.raises(ValueError, match=msg):
             to_datetime(malformed, errors='raise', cache=cache)
 
@@ -1968,3 +1980,16 @@ class TestOrigin:
         result = pd.to_datetime(300 * 365, unit='D', origin='1870-01-01')
         expected = Timestamp('2169-10-20 00:00:00')
         assert result == expected
+
+    @pytest.mark.parametrize('offset,utc,exp', [
+        ["Z", True, "2019-01-01T00:00:00.000Z"],
+        ["Z", None, "2019-01-01T00:00:00.000Z"],
+        ["-01:00", True, "2019-01-01T01:00:00.000Z"],
+        ["-01:00", None, "2019-01-01T00:00:00.000-01:00"],
+    ])
+    def test_arg_tz_ns_unit(self, offset, utc, exp):
+        # GH 25546
+        arg = "2019-01-01T00:00:00.000" + offset
+        result = to_datetime([arg], unit='ns', utc=utc)
+        expected = to_datetime([exp])
+        tm.assert_index_equal(result, expected)

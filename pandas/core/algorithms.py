@@ -617,22 +617,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort
-        if na_sentinel == -1:
-            # GH-25409 take_1d only works for na_sentinels of -1
-            try:
-                order = uniques.argsort()
-                order2 = order.argsort()
-                labels = take_1d(order2, labels, fill_value=na_sentinel)
-                uniques = uniques.take(order)
-            except TypeError:
-                # Mixed types, where uniques.argsort fails.
-                uniques, labels = safe_sort(uniques, labels,
-                                            na_sentinel=na_sentinel,
-                                            assume_unique=True)
-        else:
-            uniques, labels = safe_sort(uniques, labels,
-                                        na_sentinel=na_sentinel,
-                                        assume_unique=True)
+        uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
+                                    assume_unique=True, verify=False)
 
     uniques = _reconstruct_data(uniques, dtype, original)
 
@@ -1118,6 +1104,10 @@ class SelectNSeries(SelectN):
                 # GH 21426: ensure reverse ordering at boundaries
                 arr -= 1
 
+            elif is_bool_dtype(pandas_dtype):
+                # GH 26154: ensure False is smaller than True
+                arr = 1 - (-arr)
+
         if self.keep == 'last':
             arr = arr[::-1]
 
@@ -1155,7 +1145,7 @@ class SelectNFrame(SelectN):
     """
 
     def __init__(self, obj, n, keep, columns):
-        super(SelectNFrame, self).__init__(obj, n, keep)
+        super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
         columns = list(columns)

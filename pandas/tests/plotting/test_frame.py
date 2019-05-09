@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import rand, randn
 import pytest
 
-from pandas.compat import lmap, lrange, lzip
+from pandas.compat import lmap, lrange
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -105,7 +105,7 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(df.plot, title='blah')
 
-        tuples = lzip(string.ascii_letters[:10], range(10))
+        tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
         _check_plot_works(df.plot, use_index=True)
@@ -2994,6 +2994,40 @@ class TestDataFramePlots(TestPlotBase):
         ax = getattr(df.plot, method)(**kwargs)
         self._check_ticks_props(axes=ax.right_ax,
                                 ylabelsize=fontsize)
+
+    @pytest.mark.slow
+    def test_x_string_values_ticks(self):
+        # Test if string plot index have a fixed xtick position
+        # GH: 7612, GH: 22334
+        df = pd.DataFrame({'sales': [3, 2, 3],
+                           'visits': [20, 42, 28],
+                           'day': ['Monday', 'Tuesday', 'Wednesday']})
+        ax = df.plot.area(x='day')
+        ax.set_xlim(-1, 3)
+        xticklabels = [t.get_text() for t in ax.get_xticklabels()]
+        labels_position = dict(zip(xticklabels, ax.get_xticks()))
+        # Testing if the label stayed at the right position
+        assert labels_position['Monday'] == 0.0
+        assert labels_position['Tuesday'] == 1.0
+        assert labels_position['Wednesday'] == 2.0
+
+    @pytest.mark.slow
+    def test_x_multiindex_values_ticks(self):
+        # Test if multiindex plot index have a fixed xtick position
+        # GH: 15912
+        index = pd.MultiIndex.from_product([[2012, 2013], [1, 2]])
+        df = pd.DataFrame(np.random.randn(4, 2),
+                          columns=['A', 'B'],
+                          index=index)
+        ax = df.plot()
+        ax.set_xlim(-1, 4)
+        xticklabels = [t.get_text() for t in ax.get_xticklabels()]
+        labels_position = dict(zip(xticklabels, ax.get_xticks()))
+        # Testing if the label stayed at the right position
+        assert labels_position['(2012, 1)'] == 0.0
+        assert labels_position['(2012, 2)'] == 1.0
+        assert labels_position['(2013, 1)'] == 2.0
+        assert labels_position['(2013, 2)'] == 3.0
 
 
 def _generate_4_axes_via_gridspec():
