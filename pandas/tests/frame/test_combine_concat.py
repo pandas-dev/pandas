@@ -9,7 +9,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestDataFrameConcatCommon():
+class TestDataFrameConcatCommon:
 
     def test_concat_multiple_frames_dtypes(self):
 
@@ -530,7 +530,7 @@ class TestDataFrameConcatCommon():
         tm.assert_frame_equal(result, expected)
 
 
-class TestDataFrameCombineFirst():
+class TestDataFrameCombineFirst:
 
     def test_combine_first_mixed(self):
         a = Series(['a', 'b'], index=range(2))
@@ -865,7 +865,7 @@ class TestDataFrameCombineFirst():
         pd.concat([df1, df2_obj])
 
 
-class TestDataFrameUpdate():
+class TestDataFrameUpdate:
 
     def test_update_nan(self):
         # #15593 #15617

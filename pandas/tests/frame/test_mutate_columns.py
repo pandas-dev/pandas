@@ -10,7 +10,7 @@ from pandas.util.testing import assert_frame_equal
 # Column add, remove, delete.
 
 
-class TestDataFrameMutateColumns():
+class TestDataFrameMutateColumns:
 
     def test_assign(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})

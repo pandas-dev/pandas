@@ -148,8 +148,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for python2 new-style classes' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E "class\s\S*\(object\):" pandas scripts
+    MSG='Check for python2 new-style classes and for for empty parenteses' ; echo $MSG
+    invgrep -R --include="*.py" --include="*.pyx" -E "class\s\S*\((object)?\):" pandas scripts
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG

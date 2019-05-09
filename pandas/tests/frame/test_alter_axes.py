@@ -13,7 +13,7 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-class TestDataFrameAlterAxes():
+class TestDataFrameAlterAxes:
 
     def test_set_index_directly(self, float_string_frame):
         df = float_string_frame

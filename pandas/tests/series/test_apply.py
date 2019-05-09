@@ -11,7 +11,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestSeriesApply():
+class TestSeriesApply:
 
     def test_apply(self, datetime_series):
         with np.errstate(all='ignore'):
@@ -170,7 +170,7 @@ class TestSeriesApply():
         tm.assert_series_equal(result, expected)
 
 
-class TestSeriesAggregate():
+class TestSeriesAggregate:
 
     def test_transform(self, string_series):
         # transforming functions
@@ -416,7 +416,7 @@ class TestSeriesAggregate():
             series.agg(func)
 
 
-class TestSeriesMap():
+class TestSeriesMap:
 
     def test_map(self, datetime_series):
         index, data = tm.getMixedTypeDict()
