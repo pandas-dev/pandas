@@ -192,7 +192,7 @@ def json_normalize(data, record_path=None, meta=None,
             try:
                 result = result[spec]
                 if not(isinstance(result, list)):
-                    # Allows collection of single objects into dataframe GH26284
+                    # Allows collection of single object into dataframe GH26284
                     result = [result]
             except KeyError:
                 result = {}
