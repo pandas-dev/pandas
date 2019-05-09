@@ -192,9 +192,9 @@ def json_normalize(data, record_path=None, meta=None,
             try:
                 result = result[spec]
                 if not(isinstance(result, list)):
-                    #Allows collection of single objects into dataframe GH26284
+                    # Allows collection of single objects into dataframe GH26284
                     result = [result]
-            except:
+            except KeyError:
                 result = {}
 
 
@@ -251,11 +251,12 @@ def json_normalize(data, record_path=None, meta=None,
         else:
             for obj in data:
                 recs = _pull_field(obj, path[0])
-                if recs=={}:
-                    # GH26284 Fill Missing key in this record - requires correct key structure in first record
+                if recs == {}:
+                    # GH26284 Fill Missing key in this record
+                    # requires correct key structure in first record
                     for key in records[0]:
-                        recs[key]=np.nan
-                    recs=[recs]
+                        recs[key] = np.nan
+                    recs = [recs]
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
