@@ -7,7 +7,7 @@ import numpy as np
 import numpy.ma as ma
 import pytest
 
-from pandas.compat import PY36, is_platform_little_endian, lmap, lrange
+from pandas.compat import PY36, is_platform_little_endian, lmap
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
@@ -116,7 +116,7 @@ class TestDataFrameConstructors(TestData):
         result = DataFrame([DataFrame()])
         assert result.shape == (1, 0)
 
-        result = DataFrame([DataFrame(dict(A=lrange(5)))])
+        result = DataFrame([DataFrame(dict(A=np.arange(5)))])
         assert isinstance(result.iloc[0, 0], DataFrame)
 
     def test_constructor_mixed_dtypes(self):
@@ -234,7 +234,7 @@ class TestDataFrameConstructors(TestData):
     def test_constructor_ordereddict(self):
         import random
         nitems = 100
-        nums = lrange(nitems)
+        nums = list(range(nitems))
         random.shuffle(nums)
         expected = ['A%d' % i for i in nums]
         df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems)))
@@ -676,14 +676,14 @@ class TestDataFrameConstructors(TestData):
 
         # automatic labeling
         frame = DataFrame(mat)
-        tm.assert_index_equal(frame.index, pd.Index(lrange(2)))
-        tm.assert_index_equal(frame.columns, pd.Index(lrange(3)))
+        tm.assert_index_equal(frame.index, pd.Int64Index(range(2)))
+        tm.assert_index_equal(frame.columns, pd.Int64Index(range(3)))
 
         frame = DataFrame(mat, index=[1, 2])
-        tm.assert_index_equal(frame.columns, pd.Index(lrange(3)))
+        tm.assert_index_equal(frame.columns, pd.Int64Index(range(3)))
 
         frame = DataFrame(mat, columns=['A', 'B', 'C'])
-        tm.assert_index_equal(frame.index, pd.Index(lrange(2)))
+        tm.assert_index_equal(frame.index, pd.Int64Index(range(2)))
 
         # 0-length axis
         frame = DataFrame(empty((0, 3)))
@@ -862,11 +862,11 @@ class TestDataFrameConstructors(TestData):
         assert df.values.shape == (0, 0)
 
     @pytest.mark.parametrize("data, index, columns, dtype, expected", [
-        (None, lrange(10), ['a', 'b'], object, np.object_),
+        (None, list(range(10)), ['a', 'b'], object, np.object_),
         (None, None, ['a', 'b'], 'int64', np.dtype('int64')),
-        (None, lrange(10), ['a', 'b'], int, np.dtype('float64')),
+        (None, list(range(10)), ['a', 'b'], int, np.dtype('float64')),
         ({}, None, ['foo', 'bar'], None, np.object_),
-        ({'b': 1}, lrange(10), list('abc'), int, np.dtype('float64'))
+        ({'b': 1}, list(range(10)), list('abc'), int, np.dtype('float64'))
     ])
     def test_constructor_dtype(self, data, index, columns, dtype, expected):
         df = DataFrame(data, index, columns, dtype)
@@ -1171,7 +1171,7 @@ class TestDataFrameConstructors(TestData):
             DataFrame(data)
 
     def test_constructor_scalar(self):
-        idx = Index(lrange(3))
+        idx = Index(range(3))
         df = DataFrame({"a": 0}, index=idx)
         expected = DataFrame({"a": [0, 0, 0]}, index=idx)
         tm.assert_frame_equal(df, expected, check_dtype=False)
@@ -1683,12 +1683,12 @@ class TestDataFrameConstructors(TestData):
         expected = Series({'float64': 1})
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame({'a': 1}, index=lrange(3))
+        df = DataFrame({'a': 1}, index=range(3))
         result = df.get_dtype_counts()
         expected = Series({'int64': 1})
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame({'a': 1.}, index=lrange(3))
+        df = DataFrame({'a': 1.}, index=range(3))
         result = df.get_dtype_counts()
         expected = Series({'float64': 1})
         tm.assert_series_equal(result, expected)
@@ -2131,7 +2131,7 @@ class TestDataFrameConstructors(TestData):
 
         # tuples is in the order of the columns
         result = DataFrame.from_records(tuples)
-        tm.assert_index_equal(result.columns, pd.Index(lrange(8)))
+        tm.assert_index_equal(result.columns, pd.RangeIndex(8))
 
         # test exclude parameter & we are casting the results here (as we don't
         # have dtype info to recover)

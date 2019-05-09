@@ -7,7 +7,6 @@ import pytest
 
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas.compat import lrange
 from pandas.errors import NullFrequencyError
 import pandas.util._test_decorators as td
 
@@ -919,11 +918,11 @@ class TestTimeSeries(TestData):
         dr = date_range(start='1/1/2012', freq='5min', periods=10)
 
         # BAD Example, datetimes first
-        s = Series(np.arange(10), index=[dr, lrange(10)])
+        s = Series(np.arange(10), index=[dr, np.arange(10)])
         grouped = s.groupby(lambda x: x[1] % 2 == 0)
         result = grouped.count()
 
-        s = Series(np.arange(10), index=[lrange(10), dr])
+        s = Series(np.arange(10), index=[np.arange(10), dr])
         grouped = s.groupby(lambda x: x[0] % 2 == 0)
         expected = grouped.count()
 

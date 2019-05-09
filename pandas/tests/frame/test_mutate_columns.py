@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY36, lrange
+from pandas.compat import PY36
 
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas.util.testing as tm
@@ -133,12 +133,12 @@ class TestDataFrameMutateColumns():
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
         K = 5
-        df = DataFrame(index=lrange(N))
+        df = DataFrame(index=range(N))
         new_col = np.random.randn(N)
         for i in range(K):
             df[i] = new_col
         expected = DataFrame(np.repeat(new_col, K).reshape(N, K),
-                             index=lrange(N))
+                             index=range(N))
         assert_frame_equal(df, expected)
 
     def test_insert(self):
