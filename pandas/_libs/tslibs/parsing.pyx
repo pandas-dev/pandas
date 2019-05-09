@@ -315,7 +315,19 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
     return parsed, parsed, reso
 
 
-cpdef bint _does_string_look_like_datetime(object date_string):
+cpdef bint _does_string_look_like_datetime(object py_string):
+    """
+    Checks whether given string is a datetime: it has to start with '0' or
+    be greater than 1000.
+
+    Parameters
+    ----------
+    py_string: object
+
+    Returns
+    -------
+    whether given string is a datetime
+    """
     cdef:
         const char *buf
         char *endptr = NULL
@@ -324,14 +336,14 @@ cpdef bint _does_string_look_like_datetime(object date_string):
         char first
         int error = 0
 
-    buf = get_c_string_buf_and_size(date_string, &length)
+    buf = get_c_string_buf_and_size(py_string, &length)
     if length >= 1:
         first = buf[0]
         if first == b'0':
             # Strings starting with 0 are more consistent with a
             # date-like string than a number
             return True
-        elif date_string in _not_datelike_strings:
+        elif py_string in _not_datelike_strings:
             return False
         else:
             # xstrtod with such paramaters copies behavior of python `float`
