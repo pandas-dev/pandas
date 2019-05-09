@@ -19,7 +19,7 @@ from pandas.util.testing import (
 # structure
 
 
-class TestDataFrameBlockInternals():
+class TestDataFrameBlockInternals:
     def test_setitem_invalidates_datetime_index_freq(self):
         # GH#24096 altering a datetime64tz column inplace invalidates the
         #  `freq` attribute on the underlying DatetimeIndex

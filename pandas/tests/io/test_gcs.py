@@ -21,7 +21,7 @@ def test_read_csv_gcs(monkeypatch):
     df1 = DataFrame({'int': [1, 3], 'float': [2.0, np.nan], 'str': ['t', 's'],
                      'dt': date_range('2018-06-18', periods=2)})
 
-    class MockGCSFileSystem():
+    class MockGCSFileSystem:
         def open(*args):
             return StringIO(df1.to_csv(index=False))
 
@@ -37,7 +37,7 @@ def test_to_csv_gcs(monkeypatch):
                      'dt': date_range('2018-06-18', periods=2)})
     s = StringIO()
 
-    class MockGCSFileSystem():
+    class MockGCSFileSystem:
         def open(*args):
             return s
 

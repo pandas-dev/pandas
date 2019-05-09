@@ -12,7 +12,7 @@ import pandas.util._test_decorators as td
 The decorators can be applied to classes:
 
 @td.skip_if_some_reason
-class Foo():
+class Foo:
     ...
 
 Or individual functions:

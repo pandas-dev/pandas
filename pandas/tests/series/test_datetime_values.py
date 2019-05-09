@@ -21,7 +21,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
-class TestSeriesDatetimeValues():
+class TestSeriesDatetimeValues:
 
     def test_dt_namespace_accessor(self):
 

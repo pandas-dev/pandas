@@ -17,7 +17,7 @@ def date_range_frame():
     return DataFrame({'A': np.arange(N), 'B': np.arange(N)}, index=rng)
 
 
-class TestFrameAsof():
+class TestFrameAsof:
 
     def test_basic(self, date_range_frame):
         df = date_range_frame

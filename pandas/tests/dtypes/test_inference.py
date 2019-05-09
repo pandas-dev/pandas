@@ -497,7 +497,7 @@ class TestInference:
 class TestTypeInference:
 
     # Dummy class used for testing with Python objects
-    class Dummy():
+    class Dummy:
         pass
 
     def test_inferred_dtype_fixture(self, any_skipna_inferred_dtype):

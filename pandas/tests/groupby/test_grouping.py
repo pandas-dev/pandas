@@ -93,7 +93,7 @@ class TestSelection:
 # grouping
 # --------------------------------
 
-class TestGrouping():
+class TestGrouping:
 
     def test_grouper_index_types(self):
         # related GH5375
@@ -556,7 +556,7 @@ class TestGrouping():
 # get_group
 # --------------------------------
 
-class TestGetGroup():
+class TestGetGroup:
     def test_get_group(self):
         # GH 5267
         # be datelike friendly
@@ -660,7 +660,7 @@ class TestGetGroup():
 # groups & iteration
 # --------------------------------
 
-class TestIteration():
+class TestIteration:
 
     def test_groups(self, df):
         grouped = df.groupby(['A'])

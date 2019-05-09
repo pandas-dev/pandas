@@ -39,7 +39,7 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-class TestSeriesMissingData():
+class TestSeriesMissingData:
 
     def test_remove_na_deprecation(self):
         # see gh-16971
@@ -875,7 +875,7 @@ def interp_methods_ind(request):
     return method, kwargs
 
 
-class TestSeriesInterpolateData():
+class TestSeriesInterpolateData:
     def test_interpolate(self, datetime_series, string_series):
         ts = Series(np.arange(len(datetime_series), dtype=float),
                     datetime_series.index)
