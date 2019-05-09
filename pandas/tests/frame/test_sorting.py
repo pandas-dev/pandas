@@ -3,8 +3,6 @@ import random
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, IntervalIndex, MultiIndex, NaT, Series, Timestamp,
@@ -442,7 +440,7 @@ class TestDataFrameSortIndexKinds(TestData):
 
         # with 9816, these are all translated to .sort_values
 
-        df = DataFrame([lrange(5, 9), lrange(4)],
+        df = DataFrame([range(5, 9), range(4)],
                        columns=['a', 'a', 'b', 'b'])
 
         with pytest.raises(ValueError, match='not unique'):
