@@ -192,7 +192,7 @@ class TestSeriesConstructors:
 
     def test_constructor_iterable(self):
         # GH 21987
-        class Iter():
+        class Iter:
             def __iter__(self):
                 for i in range(10):
                     yield i
