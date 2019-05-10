@@ -21,7 +21,7 @@ def _skip_if_no_pchip():
         pytest.skip('scipy.interpolate.pchip missing')
 
 
-class TestDataFrameMissingData():
+class TestDataFrameMissingData:
 
     def test_dropEmptyRows(self, float_frame):
         N = len(float_frame.index)
@@ -643,7 +643,7 @@ class TestDataFrameMissingData():
         assert_frame_equal(res, exp)
 
 
-class TestDataFrameInterpolate():
+class TestDataFrameInterpolate:
 
     def test_interp_basic(self):
         df = DataFrame({'A': [1, 2, np.nan, 4],
