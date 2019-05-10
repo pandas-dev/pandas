@@ -23,8 +23,7 @@ from pandas.core.dtypes.common import (
     is_list_like, is_numeric_v_string_like, is_object_dtype, is_period_dtype,
     is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, ExtensionDtype, PandasExtensionDtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDatetimeIndex, ABCExtensionArray, ABCIndexClass,
     ABCPandasArray, ABCSeries)
@@ -544,7 +543,7 @@ class Block(PandasObject):
             raise ValueError(invalid_arg)
 
         if (inspect.isclass(dtype) and
-                issubclass(dtype, (PandasExtensionDtype, ExtensionDtype))):
+                issubclass(dtype, ExtensionDtype)):
             msg = ("Expected an instance of {}, but got the class instead. "
                    "Try instantiating 'dtype'.".format(dtype.__name__))
             raise TypeError(msg)

@@ -68,7 +68,7 @@ class Registry:
         ----------
         dtype : ExtensionDtype
         """
-        if not issubclass(dtype, (PandasExtensionDtype, ExtensionDtype)):
+        if not issubclass(dtype, ExtensionDtype):
             raise ValueError("can only register pandas extension dtypes")
 
         self.dtypes.append(dtype)
@@ -577,7 +577,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
 
 @register_extension_dtype
-class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
+class DatetimeTZDtype(PandasExtensionDtype):
     """
     An ExtensionDtype for timezone-aware datetime data.
 
@@ -737,7 +737,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
 
 @register_extension_dtype
-class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
+class PeriodDtype(PandasExtensionDtype):
     """
     An ExtensionDtype for Period data.
 
@@ -894,7 +894,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
 
 
 @register_extension_dtype
-class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
+class IntervalDtype(PandasExtensionDtype):
     """
     An ExtensionDtype for Interval data.
 
