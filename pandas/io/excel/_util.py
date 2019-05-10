@@ -185,7 +185,7 @@ def _fill_mi_header(row, control_row):
         different indexes.
 
     Returns
-    ----------
+    -------
     Returns changed row and control_row
     """
     last = row[0]

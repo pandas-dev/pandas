@@ -16,7 +16,6 @@ import pytest
 import pytz
 
 from pandas._libs import iNaT, lib, missing as libmissing
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
@@ -498,7 +497,7 @@ class TestInference:
 class TestTypeInference:
 
     # Dummy class used for testing with Python objects
-    class Dummy():
+    class Dummy:
         pass
 
     def test_inferred_dtype_fixture(self, any_skipna_inferred_dtype):
@@ -1302,8 +1301,7 @@ def test_datetimeindex_from_empty_datetime64_array():
 def test_nan_to_nat_conversions():
 
     df = DataFrame(dict({
-        'A': np.asarray(
-            lrange(10), dtype='float64'),
+        'A': np.asarray(range(10), dtype='float64'),
         'B': Timestamp('20010101')
     }))
     df.iloc[3:6, :] = np.nan

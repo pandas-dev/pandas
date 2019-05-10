@@ -204,6 +204,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     month_name
     day_name
 
+    See Also
+    --------
+    Index : The base pandas Index type.
+    TimedeltaIndex : Index of timedelta64 data.
+    PeriodIndex : Index of Period data.
+    to_datetime : Convert argument to datetime.
+    date_range : Create a fixed-frequency DatetimeIndex.
+
     Notes
     -----
     To learn more about the frequency strings, please see `this link
@@ -211,14 +219,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     Creating a DatetimeIndex based on `start`, `periods`, and `end` has
     been deprecated in favor of :func:`date_range`.
-
-    See Also
-    ---------
-    Index : The base pandas Index type.
-    TimedeltaIndex : Index of timedelta64 data.
-    PeriodIndex : Index of Period data.
-    to_datetime : Convert argument to datetime.
-    date_range : Create a fixed-frequency DatetimeIndex.
     """
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -712,6 +712,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def snap(self, freq='S'):
         """
         Snap time stamps to nearest occurring frequency
+
+        Returns
+        -------
+        DatetimeIndex
         """
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)

@@ -9,8 +9,6 @@ from numpy.random import randn
 import pytest
 import pytz
 
-from pandas.compat import lzip
-
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
@@ -40,7 +38,7 @@ class Base:
         # create test series object
         arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        tuples = lzip(*arrays)
+        tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
         s[3] = np.NaN
@@ -2038,7 +2036,7 @@ class TestSorted(Base):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two'],
                   [4, 3, 2, 1, 4, 3, 2, 1]]
-        tuples = lzip(*arrays)
+        tuples = zip(*arrays)
         mi = MultiIndex.from_tuples(tuples, names=['first', 'second', 'third'])
         s = Series(range(8), index=mi)
 

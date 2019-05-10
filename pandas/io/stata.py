@@ -23,7 +23,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas.compat import lmap, lzip
+from pandas.compat import lmap
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -597,7 +597,7 @@ class StataValueLabel:
     Parse a categorical column and prepare formatted output
 
     Parameters
-    -----------
+    ----------
     value : int8, int16, int32, float32 or float64
         The Stata missing value code
 
@@ -718,7 +718,7 @@ class StataMissingValue(StringMixin):
     An observation's missing value.
 
     Parameters
-    -----------
+    ----------
     value : int8, int16, int32, float32 or float64
         The Stata missing value code
 
@@ -852,17 +852,16 @@ class StataParser:
         # NOTE: the byte type seems to be reserved for categorical variables
         # with a label, but the underlying variable is -127 to 100
         # we're going to drop the label and cast to int
-        self.DTYPE_MAP = \
-            dict(
-                lzip(range(1, 245), ['a' + str(i) for i in range(1, 245)]) +
-                [
-                    (251, np.int8),
-                    (252, np.int16),
-                    (253, np.int32),
-                    (254, np.float32),
-                    (255, np.float64)
-                ]
-            )
+        self.DTYPE_MAP = dict(
+            list(zip(range(1, 245), ['a' + str(i) for i in range(1, 245)])) +
+            [
+                (251, np.int8),
+                (252, np.int16),
+                (253, np.int32),
+                (254, np.float32),
+                (255, np.float64)
+            ]
+        )
         self.DTYPE_MAP_XML = \
             dict(
                 [
@@ -1750,6 +1749,10 @@ The repeated labels are:
         """
         Return variable labels as a dict, associating each variable name
         with corresponding label.
+
+        Returns
+        -------
+        dict
         """
         return dict(zip(self.varlist, self._variable_labels))
 
@@ -1757,6 +1760,10 @@ The repeated labels are:
         """
         Return a dict, associating each variable name a dict, associating
         each value its corresponding label.
+
+        Returns
+        -------
+        dict
         """
         if not self._value_labels_read:
             self._read_value_labels()
