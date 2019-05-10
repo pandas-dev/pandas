@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
 import pandas.util.testing as tm
 
@@ -111,7 +109,7 @@ class TestSeriesAlterAxes:
     def test_set_index_makes_timeseries(self):
         idx = tm.makeDateIndex(10)
 
-        s = Series(lrange(10))
+        s = Series(range(10))
         s.index = idx
         assert s.index.is_all_dates
 

@@ -3,7 +3,6 @@ from numpy.random import randn
 import pytest
 
 from pandas._libs import join as libjoin
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
@@ -538,7 +537,7 @@ class TestJoin:
 
         # smoke test
         joined = left.join(right, on='key', sort=False)
-        tm.assert_index_equal(joined.index, pd.Index(lrange(4)))
+        tm.assert_index_equal(joined.index, pd.Index(list(range(4))))
 
     def test_join_mixed_non_unique_index(self):
         # GH 12814, unorderable types in py3 with a non-unique index

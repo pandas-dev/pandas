@@ -1,13 +1,11 @@
 import numpy as np
 
-from pandas.compat import lrange
-
 from pandas import Series
 from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 
 def test_iloc():
-    s = Series(np.random.randn(10), index=lrange(0, 20, 2))
+    s = Series(np.random.randn(10), index=list(range(0, 20, 2)))
 
     for i in range(len(s)):
         result = s.iloc[i]

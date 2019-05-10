@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import period as libperiod
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -116,7 +115,7 @@ class TestGetItem:
 
     def test_getitem_datetime(self):
         rng = period_range(start='2012-01-01', periods=10, freq='W-MON')
-        ts = Series(lrange(len(rng)), index=rng)
+        ts = Series(range(len(rng)), index=rng)
 
         dt1 = datetime(2011, 10, 2)
         dt4 = datetime(2012, 4, 20)
@@ -140,7 +139,7 @@ class TestGetItem:
     def test_getitem_list_periods(self):
         # GH 7710
         rng = period_range(start='2012-01-01', periods=10, freq='D')
-        ts = Series(lrange(len(rng)), index=rng)
+        ts = Series(range(len(rng)), index=rng)
         exp = ts.iloc[[1]]
         tm.assert_series_equal(ts[[Period('2012-01-02', freq='D')]], exp)
 
