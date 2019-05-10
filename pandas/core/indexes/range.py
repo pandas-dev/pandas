@@ -7,7 +7,6 @@ import numpy as np
 
 from pandas._libs import index as libindex, lib
 import pandas.compat as compat
-from pandas.compat import lrange
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -126,7 +125,13 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def from_range(cls, data, name=None, dtype=None, **kwargs):
-        """ Create RangeIndex from a range object. """
+        """
+        Create RangeIndex from a range object.
+
+        Returns
+        -------
+        RangeIndex
+        """
         if not isinstance(data, range):
             raise TypeError(
                 '{0}(...) must be called with object coercible to a '
@@ -292,7 +297,7 @@ class RangeIndex(Int64Index):
         return False
 
     def tolist(self):
-        return lrange(self._start, self._stop, self._step)
+        return list(range(self._start, self._stop, self._step))
 
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
@@ -322,14 +327,16 @@ class RangeIndex(Int64Index):
 
         return self._start + self._step * no_steps
 
-    def min(self, axis=None, skipna=True):
+    def min(self, axis=None, skipna=True, *args, **kwargs):
         """The minimum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
+        nv.validate_min(args, kwargs)
         return self._minmax('min')
 
-    def max(self, axis=None, skipna=True):
+    def max(self, axis=None, skipna=True, *args, **kwargs):
         """The maximum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
+        nv.validate_max(args, kwargs)
         return self._minmax('max')
 
     def argsort(self, *args, **kwargs):

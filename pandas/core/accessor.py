@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 
 accessor.py contains base classes for implementing accessor properties
@@ -205,6 +204,11 @@ Parameters
 name : str
     Name under which the accessor should be registered. A warning is issued
     if this name conflicts with a preexisting attribute.
+
+Returns
+-------
+callable
+    A class decorator.
 
 See Also
 --------

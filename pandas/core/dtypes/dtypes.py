@@ -27,6 +27,11 @@ def register_extension_dtype(cls):
     This enables operations like ``.astype(name)`` for the name
     of the ExtensionDtype.
 
+    Returns
+    -------
+    callable
+        A class decorator.
+
     Examples
     --------
     >>> from pandas.api.extensions import register_extension_dtype
@@ -879,7 +884,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
                     return False
             else:
                 return False
-        return super(PeriodDtype, cls).is_dtype(dtype)
+        return super().is_dtype(dtype)
 
     @classmethod
     def construct_array_type(cls):
@@ -1047,4 +1052,4 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                     return False
             else:
                 return False
-        return super(IntervalDtype, cls).is_dtype(dtype)
+        return super().is_dtype(dtype)

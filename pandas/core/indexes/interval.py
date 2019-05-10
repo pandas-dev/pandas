@@ -729,7 +729,7 @@ class IntervalIndex(IntervalMixin, Index):
         loc : int if unique index, slice if monotonic index, else mask
 
         Examples
-        ---------
+        --------
         >>> i1, i2 = pd.Interval(0, 1), pd.Interval(1, 2)
         >>> index = pd.IntervalIndex([i1, i2])
         >>> index.get_loc(1)

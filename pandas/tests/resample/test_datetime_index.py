@@ -751,6 +751,19 @@ def test_resample_base():
     tm.assert_index_equal(resampled.index, exp_rng)
 
 
+def test_resample_float_base():
+    # GH25161
+    dt = pd.to_datetime(["2018-11-26 16:17:43.51",
+                         "2018-11-26 16:17:44.51",
+                         "2018-11-26 16:17:45.51"])
+    s = Series(np.arange(3), index=dt)
+
+    base = 17 + 43.51 / 60
+    result = s.resample("3min", base=base).size()
+    expected = Series(3, index=pd.DatetimeIndex(["2018-11-26 16:17:43.51"]))
+    assert_series_equal(result, expected)
+
+
 def test_resample_daily_anchored():
     rng = date_range('1/1/2000 0:00:00', periods=10000, freq='T')
     ts = Series(np.random.randn(len(rng)), index=rng)

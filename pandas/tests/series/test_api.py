@@ -5,8 +5,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import lzip
-
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, Series, TimedeltaIndex,
@@ -270,8 +268,8 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         tm.makeFloatIndex(10),
         Index([True, False]),
         Index(['a{}'.format(i) for i in range(101)]),
-        pd.MultiIndex.from_tuples(lzip('ABCD', 'EFGH')),
-        pd.MultiIndex.from_tuples(lzip([0, 1, 2, 3], 'EFGH')), ])
+        pd.MultiIndex.from_tuples(zip('ABCD', 'EFGH')),
+        pd.MultiIndex.from_tuples(zip([0, 1, 2, 3], 'EFGH')), ])
     def test_index_tab_completion(self, index):
         # dir contains string-like values of the Index.
         s = pd.Series(index=index)
@@ -577,7 +575,7 @@ class TestCategoricalSeries:
 
         # Series should delegate calls to '.categories', '.codes', '.ordered'
         # and the methods '.set_categories()' 'drop_unused_categories()' to the
-        # categorical# -*- coding: utf-8 -*-
+        # categorical
         s = Series(Categorical(["a", "b", "c", "a"], ordered=True))
         exp_categories = Index(["a", "b", "c"])
         tm.assert_index_equal(s.cat.categories, exp_categories)

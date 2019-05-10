@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
