@@ -1,7 +1,7 @@
 """ define the IntervalIndex """
+import functools
 import textwrap
 import warnings
-import functools
 
 import numpy as np
 
@@ -98,7 +98,7 @@ def _new_IntervalIndex(cls, d):
     return cls.from_arrays(**d)
 
 
-class _setop_check(object):
+class setop_check(object):
 
     def __init__(self, op_name):
         self.op_name = op_name
@@ -1113,7 +1113,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self._data.overlaps(other)
 
     @Appender(_index_shared_docs['intersection'])
-    @_setop_check(op_name='intersection')
+    @setop_check(op_name='intersection')
     def intersection(self, other, sort=False):
 
         if self.left.is_unique and self.right.is_unique:
@@ -1173,7 +1173,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self[indexer]
 
     def _setop(op_name, sort=None):
-        @_setop_check(op_name=op_name)
+        @setop_check(op_name=op_name)
         def func(self, other, sort=sort):
             result = getattr(self._multiindex, op_name)(other._multiindex,
                                                         sort=sort)
