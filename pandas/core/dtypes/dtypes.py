@@ -12,7 +12,7 @@ from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex, ABCDateOffset, ABCIndexClass)
 
-from .base import ExtensionDtype, _DtypeOpsMixin
+from .base import ExtensionDtype
 from .inference import is_list_like
 
 str_type = str
@@ -104,7 +104,7 @@ class Registry:
 registry = Registry()
 
 
-class PandasExtensionDtype(_DtypeOpsMixin):
+class PandasExtensionDtype(ExtensionDtype):
     """
     A np.dtype duck-typed class, suitable for holding a custom dtype.
 
