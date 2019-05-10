@@ -31,7 +31,7 @@ from pandas.util._decorators import (Appender, Substitution,
 from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
-from pandas.compat import PY36, lmap, raise_with_traceback
+from pandas.compat import PY36, raise_with_traceback
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.cast import (
     maybe_upcast,
@@ -1633,7 +1633,7 @@ class DataFrame(NDFrame):
             else:
                 if isinstance(self.index, MultiIndex):
                     # array of tuples to numpy cols. copy copy copy
-                    ix_vals = lmap(np.array, zip(*self.index.values))
+                    ix_vals = list(map(np.array, zip(*self.index.values)))
                 else:
                     ix_vals = [self.index.values]
 
@@ -1650,10 +1650,11 @@ class DataFrame(NDFrame):
             elif index_names[0] is None:
                 index_names = ['index']
 
-            names = lmap(str, index_names) + lmap(str, self.columns)
+            names = [str(name) for name in itertools.chain(index_names,
+                                                           self.columns)]
         else:
             arrays = [self[c].get_values() for c in self.columns]
-            names = lmap(str, self.columns)
+            names = [str(c) for c in self.columns]
             index_names = []
 
         index_len = len(index_names)

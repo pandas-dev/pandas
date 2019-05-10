@@ -14,7 +14,6 @@ import pytz
 
 from pandas._libs import tslib
 from pandas._libs.tslibs import iNaT, parsing
-from pandas.compat import lmap
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -1264,7 +1263,7 @@ class TestToDatetimeMisc:
         # array = ['2012','20120101','20120101 12:01:01']
         array = ['20120101', '20120101 12:01:01']
         expected = list(to_datetime(array, cache=cache))
-        result = lmap(Timestamp, array)
+        result = [Timestamp(date_str) for date_str in array]
         tm.assert_almost_equal(result, expected)
 
         # currently fails ###

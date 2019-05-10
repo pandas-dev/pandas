@@ -6,7 +6,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.compat import lmap
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -874,7 +873,7 @@ def test_mutate_groups():
         'cat1': ['a'] * 8 + ['b'] * 6,
         'cat2': ['c'] * 2 + ['d'] * 2 + ['e'] * 2 + ['f'] * 2 + ['c'] * 2 +
         ['d'] * 2 + ['e'] * 2,
-        'cat3': lmap(lambda x: 'g%s' % x, range(1, 15)),
+        'cat3': ['g{}'.format(x) for x in range(1, 15)],
         'val': np.random.randint(100, size=14),
     })
 
@@ -1248,17 +1247,17 @@ def test_groupby_sort_multi():
                     'c': [0, 1, 2],
                     'd': np.random.randn(3)})
 
-    tups = lmap(tuple, df[['a', 'b', 'c']].values)
+    tups = [tuple(row) for row in df[['a', 'b', 'c']].values]
     tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['a', 'b', 'c'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups[[1, 2, 0]])
 
-    tups = lmap(tuple, df[['c', 'a', 'b']].values)
+    tups = [tuple(row) for row in df[['c', 'a', 'b']].values]
     tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['c', 'a', 'b'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups)
 
-    tups = lmap(tuple, df[['b', 'c', 'a']].values)
+    tups = [tuple(x) for x in df[['b', 'c', 'a']].values]
     tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['b', 'c', 'a'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups[[2, 1, 0]])
@@ -1270,7 +1269,7 @@ def test_groupby_sort_multi():
     result = grouped.sum()
 
     def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
-        tups = lmap(tuple, df[keys].values)
+        tups = [tuple(row) for row in df[keys].values]
         tups = com.asarray_tuplesafe(tups)
         expected = f(df.groupby(tups)[field])
         for k, v in expected.items():

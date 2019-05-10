@@ -5,7 +5,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import lmap
 from pandas.errors import ParserError
 
 import pandas as pd
@@ -120,8 +119,8 @@ class TestDataFrameToCSV(TestData):
             df2.to_csv(path, mode='a', header=False)
             xp = pd.concat([df1, df2])
             rs = pd.read_csv(path, index_col=0)
-            rs.columns = lmap(int, rs.columns)
-            xp.columns = lmap(int, xp.columns)
+            rs.columns = [int(label) for label in rs.columns]
+            xp.columns = [int(label) for label in xp.columns]
             assert_frame_equal(xp, rs)
 
     def test_to_csv_from_csv4(self):
@@ -292,19 +291,24 @@ class TestDataFrameToCSV(TestData):
             if r_dtype:
                 if r_dtype == 'u':  # unicode
                     r_dtype = 'O'
-                    recons.index = np.array(lmap(_to_uni, recons.index),
-                                            dtype=r_dtype)
-                    df.index = np.array(lmap(_to_uni, df.index), dtype=r_dtype)
+                    recons.index = np.array(
+                        [_to_uni(label) for label in recons.index],
+                        dtype=r_dtype)
+                    df.index = np.array(
+                        [_to_uni(label) for label in df.index], dtype=r_dtype)
                 elif r_dtype == 'dt':  # unicode
                     r_dtype = 'O'
-                    recons.index = np.array(lmap(Timestamp, recons.index),
-                                            dtype=r_dtype)
+                    recons.index = np.array(
+                        [Timestamp(label) for label in recons.index],
+                        dtype=r_dtype)
                     df.index = np.array(
-                        lmap(Timestamp, df.index), dtype=r_dtype)
+                        [Timestamp(label) for label in df.index],
+                        dtype=r_dtype)
                 elif r_dtype == 'p':
                     r_dtype = 'O'
+                    idx_list = to_datetime(recons.index)
                     recons.index = np.array(
-                        list(map(Timestamp, to_datetime(recons.index))),
+                        [Timestamp(label) for label in idx_list],
                         dtype=r_dtype)
                     df.index = np.array(
                         list(map(Timestamp, df.index.to_timestamp())),
@@ -316,23 +320,29 @@ class TestDataFrameToCSV(TestData):
             if c_dtype:
                 if c_dtype == 'u':
                     c_dtype = 'O'
-                    recons.columns = np.array(lmap(_to_uni, recons.columns),
-                                              dtype=c_dtype)
-                    df.columns = np.array(
-                        lmap(_to_uni, df.columns), dtype=c_dtype)
-                elif c_dtype == 'dt':
-                    c_dtype = 'O'
-                    recons.columns = np.array(lmap(Timestamp, recons.columns),
-                                              dtype=c_dtype)
-                    df.columns = np.array(
-                        lmap(Timestamp, df.columns), dtype=c_dtype)
-                elif c_dtype == 'p':
-                    c_dtype = 'O'
                     recons.columns = np.array(
-                        lmap(Timestamp, to_datetime(recons.columns)),
+                        [_to_uni(label) for label in recons.columns],
                         dtype=c_dtype)
                     df.columns = np.array(
-                        lmap(Timestamp, df.columns.to_timestamp()),
+                        [_to_uni(label) for label in df.columns],
+                        dtype=c_dtype)
+                elif c_dtype == 'dt':
+                    c_dtype = 'O'
+                    recons.columns = np.array(
+                        [Timestamp(label) for label in recons.columns],
+                        dtype=c_dtype)
+                    df.columns = np.array(
+                        [Timestamp(label) for label in df.columns],
+                        dtype=c_dtype)
+                elif c_dtype == 'p':
+                    c_dtype = 'O'
+                    col_list = to_datetime(recons.columns)
+                    recons.columns = np.array(
+                        [Timestamp(label) for label in col_list],
+                        dtype=c_dtype)
+                    col_list = df.columns.to_timestamp()
+                    df.columns = np.array(
+                        [Timestamp(label) for label in col_list],
                         dtype=c_dtype)
                 else:
                     c_dtype = type_map.get(c_dtype)

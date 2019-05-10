@@ -7,7 +7,6 @@ import warnings
 import numpy as np
 
 from pandas._libs.sparse import BlockIndex, get_blocks
-from pandas.compat import lmap
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
@@ -945,7 +944,7 @@ class SparseDataFrame(DataFrame):
         -------
         applied : DataFrame
         """
-        return self.apply(lambda x: lmap(func, x))
+        return self.apply(lambda x: [func(y) for y in x])
 
 
 def to_manager(sdf, columns, index):

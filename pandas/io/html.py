@@ -9,7 +9,7 @@ import numbers
 import os
 import re
 
-from pandas.compat import lmap, raise_with_traceback
+from pandas.compat import raise_with_traceback
 from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
@@ -764,7 +764,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
 
 def _expand_elements(body):
-    lens = Series(lmap(len, body))
+    lens = Series([len(elem) for elem in body])
     lens_max = lens.max()
     not_max = lens[lens != lens_max]
 

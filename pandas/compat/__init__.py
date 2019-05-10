@@ -5,7 +5,7 @@ compat
 Cross-compatible functions for different versions of Python.
 
 Key items to import for compatible code:
-* lists: lrange(), lmap()
+* lists: lrange()
 
 Other items:
 * platform checker
@@ -22,10 +22,6 @@ PYPY = platform.python_implementation() == 'PyPy'
 # list-producing versions of the major Python iterating functions
 def lrange(*args, **kwargs):
     return list(range(*args, **kwargs))
-
-
-def lmap(*args, **kwargs):
-    return list(map(*args, **kwargs))
 
 
 # ----------------------------------------------------------------------------

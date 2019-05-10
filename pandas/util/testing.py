@@ -22,7 +22,7 @@ from pandas._config.localization import (  # noqa:F401
     can_set_locale, get_locales, set_locale)
 
 from pandas._libs import testing as _testing
-from pandas.compat import lmap, raise_with_traceback
+from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -1815,7 +1815,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         def keyfunc(x):
             import re
             numeric_tuple = re.sub(r"[^\d_]_?", "", x).split("_")
-            return lmap(int, numeric_tuple)
+            return [int(num) for num in numeric_tuple]
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
