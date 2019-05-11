@@ -1,7 +1,7 @@
 # being a bit too dynamic
 import numpy as np
 
-from pandas.compat import lmap, lrange
+from pandas.compat import lrange
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.missing import notna
@@ -625,7 +625,7 @@ def autocorrelation_plot(series, ax=None, **kwds):
         return ((data[:n - h] - mean) *
                 (data[h:] - mean)).sum() / float(n) / c0
     x = np.arange(n) + 1
-    y = lmap(r, x)
+    y = [r(loc) for loc in x]
     z95 = 1.959963984540054
     z99 = 2.5758293035489004
     ax.axhline(y=z99 / np.sqrt(n), linestyle='--', color='grey')

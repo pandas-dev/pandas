@@ -5,7 +5,7 @@ from warnings import catch_warnings, filterwarnings, simplefilter
 import numpy as np
 import pytest
 
-from pandas.compat import lmap, lrange
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, Series, concat, date_range, isna
@@ -603,7 +603,7 @@ class TestiLoc(Base):
         # the possibilities
         locs = np.arange(4)
         nums = 2 ** locs
-        reps = lmap(bin, nums)
+        reps = [bin(num) for num in nums]
         df = DataFrame({'locs': locs, 'nums': nums}, reps)
 
         expected = {

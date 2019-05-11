@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.compat import lmap, lrange
+from pandas.compat import lrange
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -514,7 +514,7 @@ class TestPeriodIndex:
         raw = [2005, 2007, 2009]
         index = PeriodIndex(raw, freq='A')
 
-        expected = Index(lmap(str, raw))
+        expected = Index([str(num) for num in raw])
         res = index.map(str)
 
         # should return an Index
