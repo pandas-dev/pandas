@@ -7778,8 +7778,10 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        q : float or array-like, default 0.5 (50% quantile)
-            Value between 0 <= q <= 1, the quantile(s) to compute.
+        q : float, array-like or int, default 0.5 (50% quantile)
+            If q is a float or array-like of floats, the quantiles to
+            compute.  If q is an int the number of evenly-spaced quantiles
+            to compute plus one.
         axis : {0, 1, 'index', 'columns'} (default 0)
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         numeric_only : bool, default True
@@ -7843,6 +7845,7 @@ class DataFrame(NDFrame):
         if isinstance(q, int):
             return self.quantile(q=[i / q for i in range(1, q)],
                                  interpolation=interpolation)
+
         self._check_percentile(q)
 
         data = self._get_numeric_data() if numeric_only else self

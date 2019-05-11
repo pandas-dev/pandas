@@ -2097,8 +2097,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        q : float or array-like, default 0.5 (50% quantile)
-            0 <= q <= 1, the quantile(s) to compute.
+        q : float, array-like or int, default 0.5 (50% quantile)
+            If q is a float or array-like of floats, the quantiles to
+            compute.  If q is an int the number of evenly-spaced quantiles
+            to compute plus one.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             .. versionadded:: 0.18.0
 
@@ -2130,6 +2132,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.quantile(.5)
         2.5
         >>> s.quantile([.25, .5, .75])
+        0.25    1.75
+        0.50    2.50
+        0.75    3.25
+        dtype: float64
+        >>> s.quantile(4)
         0.25    1.75
         0.50    2.50
         0.75    3.25
