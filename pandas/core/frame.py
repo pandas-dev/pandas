@@ -7840,6 +7840,9 @@ class DataFrame(NDFrame):
         C        1 days 12:00:00
         Name: 0.5, dtype: object
         """
+        if isinstance(q, int):
+            return self.quantile(q=[i / q for i in range(1, q)],
+                                 interpolation=interpolation)
         self._check_percentile(q)
 
         data = self._get_numeric_data() if numeric_only else self

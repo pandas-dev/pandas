@@ -2135,6 +2135,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0.75    3.25
         dtype: float64
         """
+        if isinstance(q, int):
+            return self.quantile(q=[i / q for i in range(1, q)],
+                                 interpolation=interpolation)
 
         self._check_percentile(q)
 
