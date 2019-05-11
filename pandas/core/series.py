@@ -2142,7 +2142,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0.75    3.25
         dtype: float64
         """
-        if isinstance(q, int):
+        if isinstance(q, int) and q > 1:
             return self.quantile(q=[i / q for i in range(1, q)],
                                  interpolation=interpolation)
 

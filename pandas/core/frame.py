@@ -7842,7 +7842,7 @@ class DataFrame(NDFrame):
         C        1 days 12:00:00
         Name: 0.5, dtype: object
         """
-        if isinstance(q, int):
+        if isinstance(q, int) and q > 1:
             return self.quantile(q=[i / q for i in range(1, q)],
                                  interpolation=interpolation)
 
