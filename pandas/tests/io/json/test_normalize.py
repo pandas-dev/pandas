@@ -61,7 +61,7 @@ def author_missing_data():
         {'info': None},
         {'info':
              {'created_at': '11/08/1993', 'last_updated': '26/05/2012'},
-         'author_name':
+              'author_name':
              {'first': 'Jane', 'last_name': 'Doe'}
          }]
 
@@ -94,7 +94,8 @@ def deep_nested_missing_keys():
                 'keyCBA': 4,
                 'keyCBB': 5,
                 'keyCBC': [{'keyCBCA': 6, 'keyCBCB': 7, 'keyCBCC': 8.2},
-                           {'keyCBCA': 'keyCBCA', 'keyCBCB': 10, 'keyCBCC': 11},
+                           {'keyCBCA': 'keyCBCA', 'keyCBCB': 10,
+                            'keyCBCC': 11},
                            {'keyCBCA': 12, 'keyCBCB': [13], 'keyCBCC': 14}],
                 'keyCBD': 15
             },
@@ -111,14 +112,15 @@ def deep_nested_missing_keys():
             'keyCB': {
                 'keyCBA': 34,
                 'keyCBB': 35,
-                'keyCBC': [{'keyCBCA': 'keyCBCA', 'keyCBCB': 37.1, 'keyCBCC': 38},
-                           {'keyCBCA': 39, 'keyCBCB': True, 'keyCBCC': 41},
-                           {'keyCBCA': 42, 'keyCBCB': 43, 'keyCBCC': {'test': 44}}],
+                'keyCBC': [
+                    {'keyCBCA': 'keyCBCA', 'keyCBCB': 37.1, 'keyCBCC': 38},
+                    {'keyCBCA': 39, 'keyCBCB': True, 'keyCBCC': 41},
+                    {'keyCBCA': 42, 'keyCBCB': 43, 'keyCBCC': {'test': 44}}],
                 'keyCBD': 45
             },
             'keyCC': False
         }],
-        'keyD': 47,
+        'keyD Missing': 47,
         'keyE': [{
             'keyEA': 48,
             'Missing keyEB': 49
@@ -508,13 +510,15 @@ class TestMissingKeys:
 
     def test_string(self, deep_nested_missing_keys):
         data = ['StringCA1', {'StringCA2': 'StringCA2'}]
-        result = json_normalize(data=deep_nested_missing_keys, record_path=['keyC', 'keyCA'])
+        result = json_normalize(data=deep_nested_missing_keys,
+                                record_path=['keyC', 'keyCA'])
         expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
     def test_single_object(self, deep_nested_missing_keys):
         data = {16, False}
-        result = json_normalize(data=deep_nested_missing_keys, record_path=['keyC', 'keyCC'])
+        result = json_normalize(data=deep_nested_missing_keys,
+                                record_path=['keyC', 'keyCC'])
         expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
@@ -522,13 +526,15 @@ class TestMissingKeys:
         data = {'keyCBCA': [6, 'keyCBCA', 12, 'keyCBCA', 39, 42],
                 'keyCBCB': [7, 10, [13], 37.1, True, 43],
                 'keyCBCC': [8.2, 11, 14, 38, 41, {'test': 44}]}
-        result = json_normalize(data=deep_nested_missing_keys, record_path=['keyC', 'keyCB', 'keyCBC'])
+        result = json_normalize(data=deep_nested_missing_keys,
+                                record_path=['keyC', 'keyCB', 'keyCBC'])
         expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
     def test_Missing_Key(self, deep_nested_missing_keys):
         data = {'keyEBA': [19.0, np.nan],
                 'keyEBB': [20.0, np.nan]}
-        result = json_normalize(data=deep_nested_missing_keys, record_path=['keyE', 'keyEB'])
+        result = json_normalize(data=deep_nested_missing_keys,
+                                record_path=['keyE', 'keyEB'])
         expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
