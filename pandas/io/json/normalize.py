@@ -111,8 +111,8 @@ def json_normalize(data, record_path=None, meta=None,
     record_path : string or list of strings, default None
         Path in each object to list of records. If not passed, data will be
         assumed to be an array of records
-        For arrays of inconsistantly formatted json records, first record
-        needs to include all object parameters
+        For an array of objects with missing key-value pairs in each record,
+        the first record needs to include all key-value pairs
     meta : list of paths (string or list of strings), default None
         Fields to use as metadata for each record in resulting table
     meta_prefix : string, default None
@@ -182,6 +182,7 @@ def json_normalize(data, record_path=None, meta=None,
     0          1
     1          2
     """
+
     def _pull_field(js, spec):
         result = js
         if isinstance(spec, list):
@@ -191,12 +192,11 @@ def json_normalize(data, record_path=None, meta=None,
             # GH26284
             try:
                 result = result[spec]
-                if not(isinstance(result, list)):
-                    # Allows collection of single object into dataframe GH26284
+                if not (isinstance(result, list)):
+                    # Allows collection of single objects into dataframe GH26284
                     result = [result]
-            except KeyError:
+            except:
                 result = {}
-
 
         return result
 
@@ -252,8 +252,7 @@ def json_normalize(data, record_path=None, meta=None,
             for obj in data:
                 recs = _pull_field(obj, path[0])
                 if recs == {}:
-                    # GH26284 Fill Missing key in this record
-                    # requires correct key structure in first record
+                    # GH26284 Fill Missing key in this record - requires correct key structure in first record
                     for key in records[0]:
                         recs[key] = np.nan
                     recs = [recs]

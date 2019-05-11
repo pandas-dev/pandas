@@ -60,9 +60,9 @@ def author_missing_data():
     return [
         {'info': None},
         {'info':
-            {'created_at': '11/08/1993', 'last_updated': '26/05/2012'},
-            'author_name':
-         {'first': 'Jane', 'last_name': 'Doe'}
+             {'created_at': '11/08/1993', 'last_updated': '26/05/2012'},
+         'author_name':
+             {'first': 'Jane', 'last_name': 'Doe'}
          }]
 
 
@@ -86,51 +86,47 @@ def missing_metadata():
 
 
 @pytest.fixture
-def deep_nested_inconsistantly_formatted():
+def deep_nested_missing_keys():
     return [{
-            'keyA': 1.11,
-            'keyB': False,
-            'keyC': [{
-                     'keyCA': 'StringCA1',
-                     'keyCB': {
-                               'keyCBA': 4,
-                               'keyCBB': 5,
-                               'keyCBC': [{'keyCBCA': 6, 'keyCBCB': 7, 'keyCBCC': 8.2},
-                                          {'keyCBCA':'keyCBCA', 'keyCBCB': 10, 'keyCBCC': 11},
-                                          {'keyCBCA': 12, 'keyCBCB': [13], 'keyCBCC': 14}],
-                               'keyCBD': 15
-                               },
-                     'keyCC': 16
-                     }],
-            'keyD': 17,
-            'keyE': [{
-                     'keyEA': 18,
-                     'keyEB': {'keyEBA': 19,'keyEBB': 20}
-                     }]
-            },{
-            'keyA': 31.2,
-            'keyB': True,
-            'keyC': [{
-                    'keyCA': {'StringCA2': 'StringCA2'},
-                    'keyCB': {
-                              'keyCBA': 34,
-                              'keyCBB': 35,
-                              'keyCBC': [{'keyCBCA': 'keyCBCA', 'keyCBCB': 37.1, 'keyCBCC': 38},
-                                         {'keyCBCA': 39, 'keyCBCB': True, 'keyCBCC': 41},
-                                         {'keyCBCA': 42, 'keyCBCB': 43, 'keyCBCC': {'test':44}}],
-                              'keyCBD': 45
-                              },
-                    'keyCC': False
-                    }],
-            'keyD': 47,
-            'keyE': [{
-                    'keyEA': 48,
-                    'Missing keyEB': 49
-                    }]
-            }]
+        'keyC': [{
+            'keyCA': 'StringCA1',
+            'keyCB': {
+                'keyCBA': 4,
+                'keyCBB': 5,
+                'keyCBC': [{'keyCBCA': 6, 'keyCBCB': 7, 'keyCBCC': 8.2},
+                           {'keyCBCA': 'keyCBCA', 'keyCBCB': 10, 'keyCBCC': 11},
+                           {'keyCBCA': 12, 'keyCBCB': [13], 'keyCBCC': 14}],
+                'keyCBD': 15
+            },
+            'keyCC': 16
+        }],
+        'keyD': 17,
+        'keyE': [{
+            'keyEA': 18,
+            'keyEB': {'keyEBA': 19, 'keyEBB': 20}
+        }]
+    }, {
+        'keyC': [{
+            'keyCA': {'StringCA2': 'StringCA2'},
+            'keyCB': {
+                'keyCBA': 34,
+                'keyCBB': 35,
+                'keyCBC': [{'keyCBCA': 'keyCBCA', 'keyCBCB': 37.1, 'keyCBCC': 38},
+                           {'keyCBCA': 39, 'keyCBCB': True, 'keyCBCC': 41},
+                           {'keyCBCA': 42, 'keyCBCB': 43, 'keyCBCC': {'test': 44}}],
+                'keyCBD': 45
+            },
+            'keyCC': False
+        }],
+        'keyD': 47,
+        'keyE': [{
+            'keyEA': 48,
+            'Missing keyEB': 49
+        }]
+    }]
 
 
-class TestJSONNormalize(object):
+class TestJSONNormalize:
 
     def test_simple_records(self):
         recs = [{'a': 1, 'b': 2, 'c': 3},
@@ -307,8 +303,8 @@ class TestJSONNormalize(object):
 
     def test_non_ascii_key(self):
         testjson = (
-            b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' +
-            b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
+                b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},' +
+                b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
         ).decode('utf8')
 
         testdata = {
@@ -415,7 +411,10 @@ class TestNestedToRecord:
              'zip': 37643,
              'name': np.nan}
         ]
-
+        ex_data = [
+            ['Massillon', 9562, 'OH', 'Morris St.', 44646, 'Alice'],
+            ['Elizabethton', 8449, 'TN', 'Spring St.', 37643, np.nan]
+        ]
         columns = ['city', 'number', 'state', 'street', 'zip', 'name']
         expected = DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
@@ -425,12 +424,12 @@ class TestNestedToRecord:
         data = [
             {'info': None,
              'author_name':
-             {'first': 'Smith', 'last_name': 'Appleseed'}
+                 {'first': 'Smith', 'last_name': 'Appleseed'}
              },
             {'info':
-                {'created_at': '11/08/1993', 'last_updated': '26/05/2012'},
+                 {'created_at': '11/08/1993', 'last_updated': '26/05/2012'},
              'author_name':
-                {'first': 'Jane', 'last_name': 'Doe'}
+                 {'first': 'Jane', 'last_name': 'Doe'}
              }
         ]
         result = nested_to_record(data)
@@ -503,38 +502,33 @@ class TestNestedToRecord:
             'location.country.state.town.info.z': 27.572303771972656}
         assert result == expected
 
-        
-class TestInconsistantlyFormattedToRecord(object):
+
+class TestMissingKeys:
     # GH26284
 
-    def test_string(self, deep_nested_inconsistantly_formatted):
+    def test_string(self, deep_nested_missing_keys):
         data = ['StringCA1', {'StringCA2': 'StringCA2'}]
-        result = json_normalize(data = deep_nested_inconsistantly_formatted,
-                                record_path = ['keyC','keyCA'])
+        result = json_normalize(data=deep_nested_missing_keys, record_path=['keyC', 'keyCA'])
         expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
-
-    def test_single_object(self, deep_nested_inconsistantly_formatted):
+    def test_single_object(self, deep_nested_missing_keys):
         data = {16, False}
-        result = json_normalize(data = deep_nested_inconsistantly_formatted,
-                                record_path = ['keyC','keyCC'])
+        result = json_normalize(data=deep_nested_missing_keys, record_path=['keyC', 'keyCC'])
         expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
-    def test_object_array(self, deep_nested_inconsistantly_formatted):
-        data = {'keyCBCA': [6, 'keyCBCA', 12, 'keyCBCA',39, 42],
+    def test_object_array(self, deep_nested_missing_keys):
+        data = {'keyCBCA': [6, 'keyCBCA', 12, 'keyCBCA', 39, 42],
                 'keyCBCB': [7, 10, [13], 37.1, True, 43],
                 'keyCBCC': [8.2, 11, 14, 38, 41, {'test': 44}]}
-        result = json_normalize(data = deep_nested_inconsistantly_formatted,
-                                record_path = ['keyC','keyCB','keyCBC'])
+        result = json_normalize(data=deep_nested_missing_keys, record_path=['keyC', 'keyCB', 'keyCBC'])
         expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
-    def test_Missing_Key(self, deep_nested_inconsistantly_formatted):
+    def test_Missing_Key(self, deep_nested_missing_keys):
         data = {'keyEBA': [19.0, np.nan],
                 'keyEBB': [20.0, np.nan]}
-        result = json_normalize(data = deep_nested_inconsistantly_formatted,
-                                record_path = ['keyE','keyEB'])
+        result = json_normalize(data=deep_nested_missing_keys, record_path=['keyE', 'keyEB'])
         expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
