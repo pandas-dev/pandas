@@ -512,7 +512,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return Series(array, index=index)
 
-    def _values_for_argsort(self) -> np.ndarray:
+    #def _values_for_argsort(self) -> np.ndarray:
+    def _values_for_argsort(self):
         """Return values for sorting.
 
         Returns
@@ -526,8 +527,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         ExtensionArray.argsort
         """
         data = self._data.copy()
+        mask = self._mask
         data[self._mask] = data.min() - 1
-        return data
+        return data, mask
 
     @classmethod
     def _create_comparison_method(cls, op):

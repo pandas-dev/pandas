@@ -65,6 +65,12 @@ def data_missing_for_sorting(request):
     return SparseArray([2, np.nan, 1], fill_value=request.param)
 
 
+@pytest.fixture(params=[0, np.nan])
+def data_multiple_nan(request):
+    return SparseArray([5, 4, np.nan, 1, np.nan,
+                        np.nan, 6, 3, np.nan, 2], fill_value=request.param)
+
+
 @pytest.fixture
 def na_value():
     return np.nan

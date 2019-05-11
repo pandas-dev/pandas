@@ -51,6 +51,12 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
+def data_multiple_nan():
+    return JSONArray([{'e': 5}, {'d': 4}, {}, {'a': 1}, {},
+                      {}, {'f': 6}, {'c': 3}, {}, {'b': 2}])
+
+
+@pytest.fixture
 def na_value(dtype):
     return dtype.na_value
 

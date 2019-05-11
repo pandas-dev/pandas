@@ -102,6 +102,23 @@ def data_missing_for_sorting(allow_in_pandas, dtype):
 
 
 @pytest.fixture
+def data_multiple_nan(allow_in_pandas, dtype):
+    """Length-10 array with a known sort order.
+
+    This should be three items [B, NA, A] with
+    A < B and NA missing.
+    """
+    if dtype.numpy_dtype == 'object':
+        return PandasArray(
+            np.array([(5,), (4,), np.nan, (1,), np.nan,
+                      np.nan, (6,), (3,), np.nan, (2,)])
+        )
+    return PandasArray(
+        np.array([5, 4, np.nan, 1, np.nan, np.nan, 6, 3, np.nan, 2])
+    )
+
+
+@pytest.fixture
 def data_for_grouping(allow_in_pandas, dtype):
     """Data for factorization, grouping, and unique tests.
 

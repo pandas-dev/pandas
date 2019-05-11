@@ -58,6 +58,13 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
+def data_multiple_nan():
+    return IntervalArray.from_tuples([(5, 6), (4, 5), None, (1, 2),
+                                      None, None, (6, 7), (3, 4),
+                                      None, (2, 3)])
+
+
+@pytest.fixture
 def na_value():
     return np.nan
 

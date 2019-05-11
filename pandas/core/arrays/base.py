@@ -361,7 +361,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def _values_for_argsort(self) -> np.ndarray:
+    def _values_for_argsort(self) -> Tuple[np.ndarray, np.ndarray]:
         """
         Return values for sorting.
 
@@ -376,7 +376,7 @@ class ExtensionArray:
         ExtensionArray.argsort
         """
         # Note: this is used in `ExtensionArray.argsort`.
-        return np.array(self)
+        return np.array(self), self.isna()
 
     def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """
@@ -406,8 +406,29 @@ class ExtensionArray:
         # 1. _values_for_argsort : construct the values passed to np.argsort
         # 2. argsort : total control over sorting.
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
-        values = self._values_for_argsort()
-        result = np.argsort(values, kind=kind, **kwargs)
+        values, mask = self._values_for_argsort()
+
+        def permutation(mask):
+            # Return a permutation which maps the indices of the
+            # subarray without nan to the indices of the original array.
+            permu = np.arange(len(mask))
+            nan_loc = np.arange(len(mask))[mask]
+            offset = 0
+            for x in nan_loc:
+                permu[x - offset:] += 1
+                offset += 1
+            return permu
+
+        if mask.any():
+            notmask = ~mask
+            notnull = np.argsort(values[notmask], kind=kind, **kwargs)
+            permu = permutation(mask)
+            notnull = permu[notnull]
+            allnan = np.arange(len(self))[mask]
+            result = np.append(notnull, allnan)
+        else:
+            result = np.argsort(values, kind=kind, **kwargs)
+
         if not ascending:
             result = result[::-1]
         return result

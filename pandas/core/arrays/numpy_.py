@@ -281,7 +281,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return type(self)(self._ndarray.copy())
 
     def _values_for_argsort(self):
-        return self._ndarray
+        return self._ndarray, self.isna()
 
     def _values_for_factorize(self):
         return self._ndarray, -1

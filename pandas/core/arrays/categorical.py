@@ -1521,7 +1521,7 @@ class Categorical(ExtensionArray, PandasObject):
                             "Categorical to an ordered one\n".format(op=op))
 
     def _values_for_argsort(self):
-        return self._codes.copy()
+        return self._codes.copy(), self.isna()
 
     def argsort(self, *args, **kwargs):
         # TODO(PY2): use correct signature

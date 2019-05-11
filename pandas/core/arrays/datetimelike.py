@@ -621,7 +621,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         return cls(values, dtype=original.dtype)
 
     def _values_for_argsort(self):
-        return self._data
+        return self._data, self._isnan
 
     # ------------------------------------------------------------------
     # Additional array methods
