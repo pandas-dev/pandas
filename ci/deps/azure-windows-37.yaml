@@ -29,5 +29,5 @@ dependencies:
   - pytest-xdist
   - pytest-mock
   - moto
-  - hypothesis>=3.58.0
+  - hypothesis=4.17.2
   - isort
