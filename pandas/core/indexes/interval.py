@@ -98,7 +98,7 @@ def _new_IntervalIndex(cls, d):
     return cls.from_arrays(**d)
 
 
-class setop_check(object):
+class setop_check:
 
     def __init__(self, op_name):
         self.op_name = op_name
