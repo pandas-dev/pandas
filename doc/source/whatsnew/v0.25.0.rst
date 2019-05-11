@@ -258,7 +258,10 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+DataFrame
+^^^^^^^^^^^
 
+- Fixed a bug where Constructing a :class:`DataFrame` using a ``range`` (e.g. ``pd.DataFrame(range(3))``) would cause an ``AttributeException`` (:issue:`26342`).
 
 Categorical
 ^^^^^^^^^^^
