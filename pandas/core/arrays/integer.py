@@ -698,7 +698,7 @@ None
 # create the Dtype
 Int8Dtype = register_extension_dtype(
     type('Int8Dtype', (_IntegerDtype, ), {
-        'type': getattr(np, 'int8'),
+        'type': np.int8,
         'name': 'Int8',
         '__doc__': _dtype_docstring.format(dtype='int8')
     })
@@ -706,7 +706,7 @@ Int8Dtype = register_extension_dtype(
 
 Int16Dtype = register_extension_dtype(
     type('Int16Dtype', (_IntegerDtype, ), {
-        'type': getattr(np, 'int16'),
+        'type': np.int16,
         'name': 'Int16',
         '__doc__': _dtype_docstring.format(dtype='int16')
     })
@@ -714,7 +714,7 @@ Int16Dtype = register_extension_dtype(
 
 Int32Dtype = register_extension_dtype(
     type('Int32Dtype', (_IntegerDtype, ), {
-        'type': getattr(np, 'int32'),
+        'type': np.int32,
         'name': 'Int32',
         '__doc__': _dtype_docstring.format(dtype='int32')
     })
@@ -722,7 +722,7 @@ Int32Dtype = register_extension_dtype(
 
 Int64Dtype = register_extension_dtype(
     type('Int64Dtype', (_IntegerDtype, ), {
-        'type': getattr(np, 'int64'),
+        'type': np.int64,
         'name': 'Int64',
         '__doc__': _dtype_docstring.format(dtype='int64')
     })
@@ -730,7 +730,7 @@ Int64Dtype = register_extension_dtype(
 
 UInt8Dtype = register_extension_dtype(
     type('UInt8Dtype', (_IntegerDtype, ), {
-        'type': getattr(np, 'uint8'),
+        'type': np.uint8,
         'name': 'UInt8',
         '__doc__': _dtype_docstring.format(dtype='uint8')
     })
@@ -738,7 +738,7 @@ UInt8Dtype = register_extension_dtype(
 
 UInt16Dtype = register_extension_dtype(
     type('UInt16Dtype', (_IntegerDtype, ), {
-        'type': getattr(np, 'uint16'),
+        'type': np.uint16,
         'name': 'UInt16',
         '__doc__': _dtype_docstring.format(dtype='uint16')
     })
@@ -746,7 +746,7 @@ UInt16Dtype = register_extension_dtype(
 
 UInt32Dtype = register_extension_dtype(
     type('UInt32Dtype', (_IntegerDtype, ), {
-        'type': getattr(np, 'uint8'),
+        'type': np.uint32,
         'name': 'UInt32',
         '__doc__': _dtype_docstring.format(dtype='uint32')
     })
@@ -754,7 +754,7 @@ UInt32Dtype = register_extension_dtype(
 
 UInt64Dtype = register_extension_dtype(
     type('UInt64Dtype', (_IntegerDtype, ), {
-        'type': getattr(np, 'uint64'),
+        'type': np.uint64,
         'name': 'UInt64',
         '__doc__': _dtype_docstring.format(dtype='uint64')
     })
