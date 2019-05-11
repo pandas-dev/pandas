@@ -384,3 +384,10 @@ class TestDataFrameQuantile(TestData):
 
         # FIXME (gives NaNs instead of NaT in 0.18.1 or 0.19.0)
         # res = df.quantile(0.5, numeric_only=False)
+
+    def test_quantile_int(self):
+        df = DataFrame({"a": [1, 2, 3, 4, 5], "b": [1, 2, 3, 4, 5]})
+
+        res = df.quantile(4)
+        exp = df.quantile([0.25, 0.5, 0.75])
+        tm.assert_frame_equal(res, exp)
