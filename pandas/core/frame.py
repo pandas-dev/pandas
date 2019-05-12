@@ -7844,6 +7844,8 @@ class DataFrame(NDFrame):
         """
         if isinstance(q, int) and q > 1:
             return self.quantile(q=[i / q for i in range(1, q)],
+                                 axis=axis,
+                                 numeric_only=numeric_only,
                                  interpolation=interpolation)
 
         self._check_percentile(q)
