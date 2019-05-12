@@ -20,11 +20,14 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, contains
+from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
+
+from typing import Any, Union
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
@@ -488,18 +491,31 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         except KeyError:
             raise KeyError(key)
 
-    def get_value(self, series, key):
+    def get_value(self,
+                  series: Union[ABCSeries, ExtensionArray, Index, np.ndarray],
+                  key: Any):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
+
+        Parameters
+        ----------
+        series : Series, ExtensionArray, Index, or ndarray
+            1-dimensional array to take values from
+        key: : scalar
+            The value of this index at the position of the desired value,
+            otherwise the positional index of the desired value
+
+        Returns
+        -------
+        Any
+            The element of the series at the position indicated by the key
         """
         try:
             k = com.values_from_object(key)
             k = self._convert_scalar_indexer(k, kind='getitem')
             indexer = self.get_loc(k)
-            return series.iloc[indexer]
-        except AttributeError:
-            return super().get_value(series, indexer)
+            return series.take([indexer])[0]
         except (KeyError, TypeError):
             pass
 
