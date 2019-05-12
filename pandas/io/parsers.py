@@ -3186,7 +3186,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                          infer_datetime_format=False, cache_dates=True):
     def converter(*date_cols):
         if date_parser is None:
-            strs = _concat_date_cols(date_cols)
+            strs = parsing._concat_date_cols(date_cols)
 
             try:
                 return tools.to_datetime(
@@ -3216,10 +3216,10 @@ def _make_date_converter(date_parser=None, dayfirst=False,
             except Exception:
                 try:
                     return tools.to_datetime(
-                        parsing.try_parse_dates(_concat_date_cols(date_cols),
-                                                parser=date_parser,
-                                                dayfirst=dayfirst),
-                        cache=cache_dates,
+                        parsing.try_parse_dates(
+                            parsing._concat_date_cols(date_cols),
+                            parser=date_parser,
+                            dayfirst=dayfirst),
                         errors='ignore')
                 except Exception:
                     return generic_parser(date_parser, *date_cols)
@@ -3509,15 +3509,6 @@ def _get_col_names(colspec, columns):
         elif isinstance(c, int):
             colnames.append(columns[c])
     return colnames
-
-
-def _concat_date_cols(date_cols):
-    if len(date_cols) == 1:
-        return np.array([str(x) for x in date_cols[0]], dtype=object)
-
-    rs = np.array([' '.join(str(y) for y in x)
-                   for x in zip(*date_cols)], dtype=object)
-    return rs
 
 
 class FixedWidthReader(BaseIterator):

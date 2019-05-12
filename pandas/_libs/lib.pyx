@@ -8,10 +8,9 @@ import warnings
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
-                      PyTuple_New,
-                      Py_EQ,
-                      PyObject_RichCompareBool)
+from cpython cimport (Py_INCREF, PyTuple_SET_ITEM, PyTuple_New, PyObject_Str,
+                      Py_EQ, Py_SIZE, PyObject_RichCompareBool,
+                      PyUnicode_Join, PyList_New)
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
@@ -23,10 +22,8 @@ cimport numpy as cnp
 from numpy cimport (ndarray, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
-                    int64_t,
-                    float32_t, float64_t,
-                    uint8_t, uint64_t,
-                    complex128_t)
+                    int64_t, float32_t, float64_t,
+                    uint8_t, uint64_t, complex128_t)
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
