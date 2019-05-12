@@ -556,6 +556,17 @@ class TestGrouping():
         expected = {pd.Timestamp('2011-01-01'): 365}
         tm.assert_dict_equal(result.groups, expected)
 
+    @pytest.mark.parametrize('func', ['transform'])
+    def test_evaluate_with_empty_groups(self, func):
+        # 26208
+        # test transform'ing empty groups
+        # (not testing other agg fns, because they return
+        # different index objects.
+        d = pd.DataFrame({1: [], 2: []})
+        g = d.groupby(1)
+        result = getattr(g[2], func)(lambda x: x)
+        expected = pd.Series([], name=2)
+        assert_series_equal(result, expected)
 
 # get_group
 # --------------------------------

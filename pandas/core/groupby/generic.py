@@ -917,7 +917,8 @@ class SeriesGroupBy(GroupBy):
             s = klass(res, indexer)
             results.append(s)
 
-        if results:  # otherwise concat raises on empty results
+        # check for empty "results" to avoid concat ValueError
+        if results:
             from pandas.core.reshape.concat import concat
             result = concat(results).sort_index()
         else:

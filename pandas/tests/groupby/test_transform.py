@@ -880,13 +880,3 @@ def test_transform_absent_categories(func):
     result = getattr(df.y.groupby(df.x), func)()
     expected = df.y
     assert_series_equal(result, expected)
-
-
-def test_transform_empty_df():
-    # 26208
-    # handle empty SeriesGroupBy
-    d = pd.DataFrame({1: [], 2: []})
-    g = d.groupby(1)
-    result = g[2].transform(lambda x: x)
-    expected = pd.Series([], name=2)
-    assert_series_equal(result, expected)
