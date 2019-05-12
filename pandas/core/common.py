@@ -289,6 +289,15 @@ def maybe_make_list(obj):
     return obj
 
 
+def maybe_itarable_to_list(obj: Any) -> Any:
+    """
+    If obj is Iterable but not list-like, consume into list.
+    """
+    if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
+        return list(obj)
+    return obj
+
+
 def is_null_slice(obj):
     """
     We have a null slice.

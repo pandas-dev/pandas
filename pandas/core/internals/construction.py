@@ -195,6 +195,8 @@ def init_dict(data, index, columns, dtype=None):
             arrays.loc[missing] = [val] * missing.sum()
 
     else:
+        data = OrderedDict((col_name, com.maybe_itarable_to_list(col))
+                           for col_name, col in data.items())
         keys = com.dict_keys_to_ordered_list(data)
         columns = data_names = Index(keys)
         # GH#24096 need copy to be deep for datetime64tz case

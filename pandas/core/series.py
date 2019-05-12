@@ -220,15 +220,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
-            # If data is Iterable but not list-like, consume into list.
             elif (isinstance(data, abc.Iterable) and
                   not isinstance(data, abc.Sized)):
-                data = list(data)
-            else:
-
+                data = com.maybe_itarable_to_list(data)
+            elif isinstance(data, ABCSparseArray):
                 # handle sparse passed here (and force conversion)
-                if isinstance(data, ABCSparseArray):
-                    data = data.to_dense()
+                data = data.to_dense()
+            else:
+                pass
 
             if index is None:
                 if not is_list_like(data):
