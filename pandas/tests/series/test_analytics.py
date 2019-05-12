@@ -471,7 +471,7 @@ class TestSeriesAnalytics:
         assert_almost_equal(a.dot(b['1']), expected['1'])
         assert_almost_equal(a.dot(b2['1']), expected['1'])
 
-        msg = r"Dot product shape mismatch, \(4L?,\) vs \(3L?,\)"
+        msg = r"Dot product shape mismatch, \(4,\) vs \(3,\)"
         # exception raised is of type Exception
         with pytest.raises(Exception, match=msg):
             a.dot(a.values[:3])

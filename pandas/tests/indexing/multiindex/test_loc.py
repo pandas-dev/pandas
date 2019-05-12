@@ -124,11 +124,11 @@ class TestMultiIndexLoc:
         tm.assert_frame_equal(rs, xp)
 
         # missing label
-        with pytest.raises(KeyError, match=r"^2L?$"):
+        with pytest.raises(KeyError, match=r"^2$"):
             mi_int.loc[2]
         with catch_warnings(record=True):
             # GH 21593
-            with pytest.raises(KeyError, match=r"^2L?$"):
+            with pytest.raises(KeyError, match=r"^2$"):
                 mi_int.ix[2]
 
     def test_loc_multiindex_too_many_dims(self):
@@ -375,7 +375,7 @@ def test_loc_getitem_int(frame_random_data_integer_multi_index):
 def test_loc_getitem_int_raises_exception(
         frame_random_data_integer_multi_index):
     df = frame_random_data_integer_multi_index
-    with pytest.raises(KeyError, match=r"^3L?$"):
+    with pytest.raises(KeyError, match=r"^3$"):
         df.loc[3]
 
 
@@ -383,7 +383,7 @@ def test_loc_getitem_lowerdim_corner(multiindex_dataframe_random_data):
     df = multiindex_dataframe_random_data
 
     # test setup - check key not in dataframe
-    with pytest.raises(KeyError, match=r"^11L?$"):
+    with pytest.raises(KeyError, match=r"^11$"):
         df.loc[('bar', 'three'), 'B']
 
     # in theory should be inserting in a sorted space????
