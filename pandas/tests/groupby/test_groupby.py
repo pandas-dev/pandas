@@ -1,4 +1,4 @@
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from datetime import datetime
 from decimal import Decimal
 from io import StringIO
@@ -10,7 +10,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, date_range,
+    DataFrame, Index, MultiIndex, Series, Timestamp, date_range,
     read_csv)
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -509,30 +509,30 @@ def test_frame_multi_key_function_list():
 
 
 @pytest.mark.parametrize('op', [lambda x: x.sum(), lambda x: x.mean()])
-@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_groupby_multiple_columns(df, op):
     data = df
     grouped = data.groupby(['A', 'B'])
 
     result1 = op(grouped)
 
-    expected = defaultdict(dict)
+    keys = []
+    values = []
     for n1, gp1 in data.groupby('A'):
         for n2, gp2 in gp1.groupby('B'):
-            expected[n1][n2] = op(gp2.loc[:, ['C', 'D']])
-    expected = {k: DataFrame(v)
-                for k, v in expected.items()}
-    expected = Panel.fromDict(expected).swapaxes(0, 1)
-    expected.major_axis.name, expected.minor_axis.name = 'A', 'B'
+            keys.append((n1, n2))
+            values.append(op(gp2.loc[:, ['C', 'D']]))
+
+    mi = MultiIndex.from_tuples(keys, names=['A', 'B'])
+    expected = pd.concat(values, axis=1).T
+    expected.index = mi
 
     # a little bit crude
     for col in ['C', 'D']:
         result_col = op(grouped[col])
+        pivoted = result1[col]
         exp = expected[col]
-        pivoted = result1[col].unstack()
-        pivoted2 = result_col.unstack()
-        assert_frame_equal(pivoted.reindex_like(exp), exp)
-        assert_frame_equal(pivoted2.reindex_like(exp), exp)
+        assert_series_equal(result_col, exp)
+        assert_series_equal(pivoted, exp)
 
     # test single series works the same
     result = data['C'].groupby([data['A'], data['B']]).mean()

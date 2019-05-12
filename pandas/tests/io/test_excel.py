@@ -2350,7 +2350,6 @@ class TestExcelWriterEngineTests:
         with pytest.raises(ValueError, match='No engine'):
             ExcelWriter('nothing')
 
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_register_writer(self):
         # some awkward mocking to test out dispatch and such actually works
         called_save = []
