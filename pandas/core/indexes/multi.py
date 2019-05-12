@@ -946,7 +946,9 @@ class MultiIndex(Index):
             new_codes.append(level_codes)
 
         if len(new_levels) == 1:
-            return Index(new_levels[0])._format_native_types()
+            # a single-level multi-index
+            return Index(new_levels[0].take(
+                new_codes[0]))._format_native_types()
         else:
             # reconstruct the multi-index
             mi = MultiIndex(levels=new_levels, codes=new_codes,
