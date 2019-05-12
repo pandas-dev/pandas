@@ -96,6 +96,35 @@ class ReadCSVDInferDatetimeFormat(StringIORewind):
                  infer_datetime_format=infer_datetime_format)
 
 
+class ReadCSVConcatDatetime(StringIORewind):
+
+    iso8601 = '%Y-%m-%d %H:%M:%S'
+
+    def setup(self):
+        rng = date_range('1/1/2000', periods=50000, freq='S')
+        self.StringIO_input = StringIO('\n'.join(
+                                       rng.strftime(self.iso8601).tolist()))
+
+    def time_read_csv(self):
+        read_csv(self.data(self.StringIO_input),
+                 header=None, names=['foo'], parse_dates=['foo'],
+                 infer_datetime_format=False)
+
+
+class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
+
+    params = (['nan', '0', ''],)
+    param_names = ['bad_date_value']
+
+    def setup(self, bad_date_value):
+        self.StringIO_input = StringIO(('%s,\n' % bad_date_value) * 50000)
+
+    def time_read_csv(self, bad_date_value):
+        read_csv(self.data(self.StringIO_input),
+                 header=None, names=['foo', 'bar'], parse_dates=['foo'],
+                 infer_datetime_format=False)
+
+
 class ReadCSVSkipRows(BaseIO):
 
     fname = '__test__.csv'
