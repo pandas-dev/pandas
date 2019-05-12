@@ -8,23 +8,75 @@ from pandas.errors import AbstractMethodError
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 
-class _DtypeOpsMixin:
-    # Not all of pandas' extension dtypes are compatibile with
-    # the new ExtensionArray interface. This means PandasExtensionDtype
-    # can't subclass ExtensionDtype yet, as is_extension_array_dtype would
-    # incorrectly say that these types are extension types.
-    #
-    # In the interim, we put methods that are shared between the two base
-    # classes ExtensionDtype and PandasExtensionDtype here. Both those base
-    # classes will inherit from this Mixin. Once everything is compatible, this
-    # class's methods can be moved to ExtensionDtype and removed.
+class ExtensionDtype:
+    """
+    A custom data type, to be paired with an ExtensionArray.
 
+    .. versionadded:: 0.23.0
+
+    See Also
+    --------
+    extensions.register_extension_dtype
+    extensions.ExtensionArray
+
+    Notes
+    -----
+    The interface includes the following abstract methods that must
+    be implemented by subclasses:
+
+    * type
+    * name
+    * construct_from_string
+
+    The following attributes influence the behavior of the dtype in
+    pandas operations
+
+    * _is_numeric
+    * _is_boolean
+
+    Optionally one can override construct_array_type for construction
+    with the name of this dtype via the Registry. See
+    :meth:`extensions.register_extension_dtype`.
+
+    * construct_array_type
+
+    The `na_value` class attribute can be used to set the default NA value
+    for this type. :attr:`numpy.nan` is used by default.
+
+    ExtensionDtypes are required to be hashable. The base class provides
+    a default implementation, which relies on the ``_metadata`` class
+    attribute. ``_metadata`` should be a tuple containing the strings
+    that define your data type. For example, with ``PeriodDtype`` that's
+    the ``freq`` attribute.
+
+    **If you have a parametrized dtype you should set the ``_metadata``
+    class property**.
+
+    Ideally, the attributes in ``_metadata`` will match the
+    parameters to your ``ExtensionDtype.__init__`` (if any). If any of
+    the attributes in ``_metadata`` don't implement the standard
+    ``__eq__`` or ``__hash__``, the default implementations here will not
+    work.
+
+    .. versionchanged:: 0.24.0
+
+       Added ``_metadata``, ``__hash__``, and changed the default definition
+       of ``__eq__``.
+
+    This class does not inherit from 'abc.ABCMeta' for performance reasons.
+    Methods and properties required by the interface raise
+    ``pandas.errors.AbstractMethodError`` and no ``register`` method is
+    provided for registering virtual subclasses.
+    """
     # na_value is the default NA value to use for this type. This is used in
     # e.g. ExtensionArray.take. This should be the user-facing "boxed" version
-    # of the NA value, not the physical NA vaalue for storage.
+    # of the NA value, not the physical NA value for storage.
     # e.g. for JSONArray, this is an empty dictionary.
     na_value = np.nan
     _metadata = ()  # type: Tuple[str, ...]
+
+    def __str__(self):
+        return self.name
 
     def __eq__(self, other):
         """Check whether 'other' is equal to self.
@@ -63,6 +115,43 @@ class _DtypeOpsMixin:
         return not self.__eq__(other)
 
     @property
+    def type(self) -> Type:
+        """
+        The scalar type for the array, e.g. ``int``
+
+        It's expected ``ExtensionArray[item]`` returns an instance
+        of ``ExtensionDtype.type`` for scalar ``item``, assuming
+        that value is valid (not NA). NA values do not need to be
+        instances of `type`.
+        """
+        raise AbstractMethodError(self)
+
+    @property
+    def kind(self) -> str:
+        """
+        A character code (one of 'biufcmMOSUV'), default 'O'
+
+        This should match the NumPy dtype used when the array is
+        converted to an ndarray, which is probably 'O' for object if
+        the extension type cannot be represented as a built-in NumPy
+        type.
+
+        See Also
+        --------
+        numpy.dtype.kind
+        """
+        return 'O'
+
+    @property
+    def name(self) -> str:
+        """
+        A string identifying the data type.
+
+        Will be used for display in, e.g. ``Series.dtype``
+        """
+        raise AbstractMethodError(self)
+
+    @property
     def names(self) -> Optional[List[str]]:
         """Ordered list of field names, or None if there are no fields.
 
@@ -70,6 +159,50 @@ class _DtypeOpsMixin:
         future.
         """
         return None
+
+    @classmethod
+    def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def construct_from_string(cls, string):
+        """
+        Attempt to construct this type from a string.
+
+        Parameters
+        ----------
+        string : str
+
+        Returns
+        -------
+        self : instance of 'cls'
+
+        Raises
+        ------
+        TypeError
+            If a class cannot be constructed from this 'string'.
+
+        Examples
+        --------
+        If the extension dtype can be constructed without any arguments,
+        the following may be an adequate implementation.
+
+        >>> @classmethod
+        ... def construct_from_string(cls, string)
+        ...     if string == cls.name:
+        ...         return cls()
+        ...     else:
+        ...         raise TypeError("Cannot construct a '{}' from "
+        ...                         "'{}'".format(cls, string))
+        """
+        raise AbstractMethodError(cls)
 
     @classmethod
     def is_dtype(cls, dtype):
@@ -140,149 +273,3 @@ class _DtypeOpsMixin:
         bool
         """
         return False
-
-
-class ExtensionDtype(_DtypeOpsMixin):
-    """
-    A custom data type, to be paired with an ExtensionArray.
-
-    .. versionadded:: 0.23.0
-
-    See Also
-    --------
-    extensions.register_extension_dtype
-    extensions.ExtensionArray
-
-    Notes
-    -----
-    The interface includes the following abstract methods that must
-    be implemented by subclasses:
-
-    * type
-    * name
-    * construct_from_string
-
-    The following attributes influence the behavior of the dtype in
-    pandas operations
-
-    * _is_numeric
-    * _is_boolean
-
-    Optionally one can override construct_array_type for construction
-    with the name of this dtype via the Registry. See
-    :meth:`extensions.register_extension_dtype`.
-
-    * construct_array_type
-
-    The `na_value` class attribute can be used to set the default NA value
-    for this type. :attr:`numpy.nan` is used by default.
-
-    ExtensionDtypes are required to be hashable. The base class provides
-    a default implementation, which relies on the ``_metadata`` class
-    attribute. ``_metadata`` should be a tuple containing the strings
-    that define your data type. For example, with ``PeriodDtype`` that's
-    the ``freq`` attribute.
-
-    **If you have a parametrized dtype you should set the ``_metadata``
-    class property**.
-
-    Ideally, the attributes in ``_metadata`` will match the
-    parameters to your ``ExtensionDtype.__init__`` (if any). If any of
-    the attributes in ``_metadata`` don't implement the standard
-    ``__eq__`` or ``__hash__``, the default implementations here will not
-    work.
-
-    .. versionchanged:: 0.24.0
-
-       Added ``_metadata``, ``__hash__``, and changed the default definition
-       of ``__eq__``.
-
-    This class does not inherit from 'abc.ABCMeta' for performance reasons.
-    Methods and properties required by the interface raise
-    ``pandas.errors.AbstractMethodError`` and no ``register`` method is
-    provided for registering virtual subclasses.
-    """
-
-    def __str__(self):
-        return self.name
-
-    @property
-    def type(self) -> Type:
-        """
-        The scalar type for the array, e.g. ``int``
-
-        It's expected ``ExtensionArray[item]`` returns an instance
-        of ``ExtensionDtype.type`` for scalar ``item``, assuming
-        that value is valid (not NA). NA values do not need to be
-        instances of `type`.
-        """
-        raise AbstractMethodError(self)
-
-    @property
-    def kind(self) -> str:
-        """
-        A character code (one of 'biufcmMOSUV'), default 'O'
-
-        This should match the NumPy dtype used when the array is
-        converted to an ndarray, which is probably 'O' for object if
-        the extension type cannot be represented as a built-in NumPy
-        type.
-
-        See Also
-        --------
-        numpy.dtype.kind
-        """
-        return 'O'
-
-    @property
-    def name(self) -> str:
-        """
-        A string identifying the data type.
-
-        Will be used for display in, e.g. ``Series.dtype``
-        """
-        raise AbstractMethodError(self)
-
-    @classmethod
-    def construct_array_type(cls):
-        """
-        Return the array type associated with this dtype
-
-        Returns
-        -------
-        type
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def construct_from_string(cls, string):
-        """
-        Attempt to construct this type from a string.
-
-        Parameters
-        ----------
-        string : str
-
-        Returns
-        -------
-        self : instance of 'cls'
-
-        Raises
-        ------
-        TypeError
-            If a class cannot be constructed from this 'string'.
-
-        Examples
-        --------
-        If the extension dtype can be constructed without any arguments,
-        the following may be an adequate implementation.
-
-        >>> @classmethod
-        ... def construct_from_string(cls, string)
-        ...     if string == cls.name:
-        ...         return cls()
-        ...     else:
-        ...         raise TypeError("Cannot construct a '{}' from "
-        ...                         "'{}'".format(cls, string))
-        """
-        raise AbstractMethodError(cls)

@@ -9,7 +9,7 @@ from pandas.compat import PY36
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, IntervalDtype,
-    PandasExtensionDtype, PeriodDtype, registry)
+    PeriodDtype, registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
     ABCPeriodArray, ABCPeriodIndex, ABCSeries)
@@ -1888,7 +1888,7 @@ def _is_dtype_type(arr_or_dtype, condition):
     if isinstance(arr_or_dtype, np.dtype):
         return condition(arr_or_dtype.type)
     elif isinstance(arr_or_dtype, type):
-        if issubclass(arr_or_dtype, (PandasExtensionDtype, ExtensionDtype)):
+        if issubclass(arr_or_dtype, ExtensionDtype):
             arr_or_dtype = arr_or_dtype.type
         return condition(np.dtype(arr_or_dtype).type)
     elif arr_or_dtype is None:
@@ -1936,7 +1936,7 @@ def infer_dtype_from_object(dtype):
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
         return dtype
-    elif isinstance(dtype, (np.dtype, PandasExtensionDtype, ExtensionDtype)):
+    elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         # dtype object
         try:
             _validate_date_like_dtype(dtype)
@@ -2021,7 +2021,7 @@ def pandas_dtype(dtype):
     # short-circuit
     if isinstance(dtype, np.ndarray):
         return dtype.dtype
-    elif isinstance(dtype, (np.dtype, PandasExtensionDtype, ExtensionDtype)):
+    elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         return dtype
 
     # registered extension types
