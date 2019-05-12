@@ -14,6 +14,7 @@ conda list
 conda remove --all -q -y -n pandas-dev
 @rem Scipy, CFFI, jinja2 and IPython are optional dependencies, but exercised in the test suite
 conda env create --file=ci\deps\azure-windows-%CONDA_PY%.yaml
+conda install -c conda-forge gcsfs
 
 call activate pandas-dev
 conda list
