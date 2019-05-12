@@ -151,7 +151,7 @@ parse_dates : bool, list-like, or dict, default False
 
     If a column or index contains an unparseable date, the entire column or
     index will be returned unaltered as an object data type. For non-standard
-    datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
+    datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_parser : function, optional
@@ -827,6 +827,11 @@ class ExcelFile:
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters
+
+        Returns
+        -------
+        DataFrame or dict of DataFrames
+            DataFrame from the passed in Excel file.
         """
 
         # Can't use _deprecate_kwarg since sheetname=None has a special meaning

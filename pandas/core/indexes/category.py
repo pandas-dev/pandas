@@ -284,6 +284,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def equals(self, other):
         """
         Determine if two CategorialIndex objects contain the same elements.
+
+        Returns
+        -------
+        bool
+            If two CategorialIndex objects have equal elements True,
+            otherwise False.
         """
         if self.is_(other):
             return True
@@ -468,7 +474,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         KeyError : if the key is not in the index
 
         Examples
-        ---------
+        --------
         >>> unique_index = pd.CategoricalIndex(list('abc'))
         >>> unique_index.get_loc('b')
         1

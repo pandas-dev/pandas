@@ -7,7 +7,7 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY, lrange
+from pandas.compat import PYPY
 
 import pandas as pd
 from pandas import (
@@ -43,7 +43,7 @@ class TestDataFrameReprInfoEtc(TestData):
         # big mixed
         biggie = DataFrame({'A': np.random.randn(200),
                             'B': tm.makeStringIndex(200)},
-                           index=lrange(200))
+                           index=range(200))
         biggie.loc[:20, 'A'] = np.nan
         biggie.loc[:20, 'B'] = np.nan
 
@@ -88,8 +88,8 @@ class TestDataFrameReprInfoEtc(TestData):
     @pytest.mark.slow
     def test_repr_big(self):
         # big one
-        biggie = DataFrame(np.zeros((200, 4)), columns=lrange(4),
-                           index=lrange(200))
+        biggie = DataFrame(np.zeros((200, 4)), columns=range(4),
+                           index=range(200))
         repr(biggie)
 
     def test_repr_unsortable(self):
