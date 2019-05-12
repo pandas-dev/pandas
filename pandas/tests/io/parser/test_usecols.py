@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests the usecols functionality during parsing
 for all of the parsers defined in parsers.py

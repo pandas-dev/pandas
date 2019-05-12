@@ -7,10 +7,9 @@ from io import StringIO
 import itertools as it
 import operator
 import tokenize
+from typing import Type
 
 import numpy as np
-
-from pandas.compat import lmap
 
 import pandas as pd
 from pandas.core import common as com
@@ -179,7 +178,7 @@ def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), 'f must be callable'
-    return tokenize.untokenize(lmap(f, tokenize_string(source)))
+    return tokenize.untokenize((f(x) for x in tokenize_string(source)))
 
 
 def _is_type(t):
@@ -327,7 +326,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     parser : str
     preparser : callable
     """
-    const_type = Constant
+    const_type = Constant  # type: Type[Term]
     term_type = Term
 
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
@@ -694,15 +693,14 @@ class PandasExprVisitor(BaseExprVisitor):
                  preparser=partial(_preparse, f=_compose(
                      _replace_locals, _replace_booleans,
                      _clean_spaces_backtick_quoted_names))):
-        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
+        super().__init__(env, engine, parser, preparser)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
 class PythonExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser, preparser=lambda x: x):
-        super(PythonExprVisitor, self).__init__(env, engine, parser,
-                                                preparser=preparser)
+        super().__init__(env, engine, parser, preparser=preparser)
 
 
 class Expr(StringMixin):

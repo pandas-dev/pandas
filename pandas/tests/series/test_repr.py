@@ -1,9 +1,6 @@
-# coding=utf-8
 from datetime import datetime, timedelta
 
 import numpy as np
-
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -24,7 +21,7 @@ class TestSeriesRepr(TestData):
                            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
-        s = Series(lrange(0, len(index)), index=index, name='sth')
+        s = Series(range(len(index)), index=index, name='sth')
         expected = ["first  second", "foo    one       0",
                     "       two       1", "       three     2",
                     "bar    one       3", "       two       4",
@@ -45,7 +42,7 @@ class TestSeriesRepr(TestData):
         assert "Name:" not in repr(s)
 
         # Test big Series (diff code path).
-        s = Series(lrange(0, 1000))
+        s = Series(range(1000))
 
         s.name = "test"
         assert "Name: test" in repr(s)

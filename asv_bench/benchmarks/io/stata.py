@@ -38,7 +38,7 @@ class Stata(BaseIO):
 
 class StataMissing(Stata):
     def setup(self, convert_dates):
-        super(StataMissing, self).setup(convert_dates)
+        super().setup(convert_dates)
         for i in range(10):
             missing_data = np.random.randn(self.N)
             missing_data[missing_data < 0] = np.nan

@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
 """
 
 accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 
 """
+from typing import Set
 import warnings
 
 from pandas.util._decorators import Appender
 
 
 class DirNamesMixin:
-    _accessors = frozenset()
+    _accessors = set()  # type: Set[str]
     _deprecations = frozenset(
         ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
 
@@ -204,6 +204,11 @@ Parameters
 name : str
     Name under which the accessor should be registered. A warning is issued
     if this name conflicts with a preexisting attribute.
+
+Returns
+-------
+callable
+    A class decorator.
 
 See Also
 --------

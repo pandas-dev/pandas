@@ -277,8 +277,6 @@ pc_latex_multirow = """
     Valid values: False,True
 """
 
-style_backup = dict()
-
 
 def table_schema_cb(key):
     from pandas.io.formats.printing import _enable_data_resource_formatter

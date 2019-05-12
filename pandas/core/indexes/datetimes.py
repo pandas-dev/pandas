@@ -205,6 +205,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     day_name
     mean
 
+    See Also
+    --------
+    Index : The base pandas Index type.
+    TimedeltaIndex : Index of timedelta64 data.
+    PeriodIndex : Index of Period data.
+    to_datetime : Convert argument to datetime.
+    date_range : Create a fixed-frequency DatetimeIndex.
+
     Notes
     -----
     To learn more about the frequency strings, please see `this link
@@ -212,14 +220,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     Creating a DatetimeIndex based on `start`, `periods`, and `end` has
     been deprecated in favor of :func:`date_range`.
-
-    See Also
-    ---------
-    Index : The base pandas Index type.
-    TimedeltaIndex : Index of timedelta64 data.
-    PeriodIndex : Index of Period data.
-    to_datetime : Convert argument to datetime.
-    date_range : Create a fixed-frequency DatetimeIndex.
     """
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -384,7 +384,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if isinstance(state, dict):
-            super(DatetimeIndex, self).__setstate__(state)
+            super().__setstate__(state)
 
         elif isinstance(state, tuple):
 
@@ -483,7 +483,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         self._assert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(DatetimeIndex, self).union(other, sort=sort)
+            return super().union(other, sort=sort)
 
         if not isinstance(other, DatetimeIndex):
             try:
@@ -608,14 +608,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         else:
             return left
 
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
-
     def intersection(self, other, sort=False):
         """
-        Specialized intersection for DatetimeIndex objects. May be much faster
-        than Index.intersection
+        Specialized intersection for DatetimeIndex objects.
+        May be much faster than Index.intersection
 
         Parameters
         ----------
@@ -632,58 +628,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         Returns
         -------
-        y : Index or DatetimeIndex
+        y : Index or DatetimeIndex or TimedeltaIndex
         """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
+        return super().intersection(other, sort=sort)
 
-        if self.equals(other):
-            return self._get_reconciled_name_object(other)
-
-        if not isinstance(other, DatetimeIndex):
-            try:
-                other = DatetimeIndex(other)
-            except (TypeError, ValueError):
-                pass
-            result = Index.intersection(self, other, sort=sort)
-            if isinstance(result, DatetimeIndex):
-                if result.freq is None:
-                    result.freq = to_offset(result.inferred_freq)
-            return result
-
-        elif (other.freq is None or self.freq is None or
-              other.freq != self.freq or
-              not other.freq.isAnchored() or
-              (not self.is_monotonic or not other.is_monotonic)):
-            result = Index.intersection(self, other, sort=sort)
-            # Invalidate the freq of `result`, which may not be correct at
-            # this point, depending on the values.
-            result.freq = None
-            result = self._shallow_copy(result._values, name=result.name,
-                                        tz=result.tz, freq=None)
-            if result.freq is None:
-                result.freq = to_offset(result.inferred_freq)
-            return result
-
-        if len(self) == 0:
-            return self
-        if len(other) == 0:
-            return other
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        else:
-            left, right = other, self
-
-        end = min(left[-1], right[-1])
-        start = right[0]
-
-        if end < start:
-            return type(self)(data=[])
-        else:
-            lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left.values[lslice]
-            return self._shallow_copy(left_chunk)
+    def _wrap_setop_result(self, other, result):
+        name = get_op_result_name(self, other)
+        return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
 
     # --------------------------------------------------------------------
 
@@ -762,6 +713,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     def snap(self, freq='S'):
         """
         Snap time stamps to nearest occurring frequency
+
+        Returns
+        -------
+        DatetimeIndex
         """
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
