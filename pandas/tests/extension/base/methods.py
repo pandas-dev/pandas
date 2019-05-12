@@ -45,6 +45,7 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     def test_argsort_nan_loc(self, data_multiple_nan):
+        # GH 21801
         result = data_multiple_nan.argsort()
         expected = np.array([3, 9, 7, 1, 0, 6, 2, 4, 5, 8])
         tm.assert_numpy_array_equal(result, expected)

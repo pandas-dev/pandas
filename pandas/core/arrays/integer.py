@@ -1,6 +1,6 @@
 import copy
 import sys
-from typing import Type
+from typing import Tuple, Type
 import warnings
 
 import numpy as np
@@ -512,8 +512,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return Series(array, index=index)
 
-    #def _values_for_argsort(self) -> np.ndarray:
-    def _values_for_argsort(self):
+    def _values_for_argsort(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return values for sorting.
 
         Returns
