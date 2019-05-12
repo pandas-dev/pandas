@@ -11,7 +11,7 @@ ctypedef unsigned short     uint16_t
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
 #
-# https://cran.r-project.org/web/packages/sas7bdat/vignettes/sas7bdat.pdf
+# https://cran.r-project.org/package=sas7bdat/vignettes/sas7bdat.pdf
 cdef const uint8_t[:] rle_decompress(int result_length,
                                      const uint8_t[:] inbuff):
 

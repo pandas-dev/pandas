@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, bdate_range, compat
+from pandas import DataFrame, Index, MultiIndex, Series, bdate_range
 from pandas.util import testing as tm
 
 
@@ -340,7 +340,7 @@ def test_apply_multikey_corner(tsframe):
 def test_apply_chunk_view():
     # Low level tinkering could be unsafe, make sure not
     df = DataFrame({'key': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-                    'value': compat.lrange(9)})
+                    'value': range(9)})
 
     result = df.groupby('key', group_keys=False).apply(lambda x: x[:2])
     expected = df.take([0, 1, 3, 4, 6, 7])
@@ -350,7 +350,7 @@ def test_apply_chunk_view():
 def test_apply_no_name_column_conflict():
     df = DataFrame({'name': [1, 1, 1, 1, 1, 1, 2, 2, 2, 2],
                     'name2': [0, 0, 0, 1, 1, 1, 0, 0, 1, 1],
-                    'value': compat.lrange(10)[::-1]})
+                    'value': range(9, -1, -1)})
 
     # it works! #2605
     grouped = df.groupby(['name', 'name2'])

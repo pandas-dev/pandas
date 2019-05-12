@@ -10,8 +10,7 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    PY36, is_platform_little_endian, is_platform_windows, lrange)
+from pandas.compat import PY36, is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -196,7 +195,7 @@ class TestHDFStore(Base):
             assert_frame_equal(o, roundtrip('frame', o))
 
             # table
-            df = DataFrame(dict(A=lrange(5), B=lrange(5)))
+            df = DataFrame(dict(A=range(5), B=range(5)))
             df.to_hdf(path, 'table', append=True)
             result = read_hdf(path, 'table', where=['index>2'])
             assert_frame_equal(df[df.index > 2], result)
@@ -370,7 +369,7 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
 
-            df = DataFrame(dict(A=lrange(5), B=lrange(5)))
+            df = DataFrame(dict(A=range(5), B=range(5)))
             store.put("df", df)
 
             assert store.keys() == ["/df"]
@@ -3092,7 +3091,7 @@ class TestHDFStore(Base):
 
         # GH 3499, losing frequency info on index recreation
         df = DataFrame(dict(
-            A=Series(lrange(3),
+            A=Series(range(3),
                      index=date_range('2000-1-1', periods=3, freq='H'))))
 
         with ensure_clean_store(self.path) as store:
@@ -3110,7 +3109,7 @@ class TestHDFStore(Base):
             # try to append a table with a different frequency
             with catch_warnings(record=True):
                 df2 = DataFrame(dict(
-                    A=Series(lrange(3),
+                    A=Series(range(3),
                              index=date_range('2002-1-1',
                                               periods=3, freq='D'))))
                 store.append('data', df2)
@@ -3120,12 +3119,12 @@ class TestHDFStore(Base):
             # this is ok
             _maybe_remove(store, 'df2')
             df2 = DataFrame(dict(
-                A=Series(lrange(3),
+                A=Series(range(3),
                          index=[Timestamp('20010101'), Timestamp('20010102'),
                                 Timestamp('20020101')])))
             store.append('df2', df2)
             df3 = DataFrame(dict(
-                A=Series(lrange(3),
+                A=Series(range(3),
                          index=date_range('2002-1-1', periods=3,
                                           freq='D'))))
             store.append('df2', df3)
@@ -3139,19 +3138,19 @@ class TestHDFStore(Base):
             with catch_warnings(record=True):
 
                 df = DataFrame(dict(
-                    A=Series(lrange(3),
+                    A=Series(range(3),
                              index=date_range('2000-1-1',
                                               periods=3, freq='H'))))
                 df.to_hdf(path, 'data', mode='w', append=True)
                 df2 = DataFrame(dict(
-                    A=Series(lrange(3),
+                    A=Series(range(3),
                              index=date_range('2002-1-1', periods=3,
                                               freq='D'))))
                 df2.to_hdf(path, 'data', append=True)
 
                 idx = date_range('2000-1-1', periods=3, freq='H')
                 idx.name = 'foo'
-                df = DataFrame(dict(A=Series(lrange(3), index=idx)))
+                df = DataFrame(dict(A=Series(range(3), index=idx)))
                 df.to_hdf(path, 'data', mode='w', append=True)
 
             assert read_hdf(path, 'data').index.name == 'foo'
@@ -3160,7 +3159,7 @@ class TestHDFStore(Base):
 
                 idx2 = date_range('2001-1-1', periods=3, freq='H')
                 idx2.name = 'bar'
-                df2 = DataFrame(dict(A=Series(lrange(3), index=idx2)))
+                df2 = DataFrame(dict(A=Series(range(3), index=idx2)))
                 df2.to_hdf(path, 'data', append=True)
 
             assert read_hdf(path, 'data').index.name is None
@@ -3464,7 +3463,7 @@ class TestHDFStore(Base):
             # get coordinates back & test vs frame
             _maybe_remove(store, 'df')
 
-            df = DataFrame(dict(A=lrange(5), B=lrange(5)))
+            df = DataFrame(dict(A=range(5), B=range(5)))
             store.append('df', df)
             c = store.select_as_coordinates('df', ['index<3'])
             assert((c.values == np.arange(3)).all())
@@ -4950,7 +4949,7 @@ class TestTimezones(Base):
         with ensure_clean_store(self.path) as store:
 
             # GH 4098 example
-            df = DataFrame(dict(A=Series(lrange(3), index=date_range(
+            df = DataFrame(dict(A=Series(range(3), index=date_range(
                 '2000-1-1', periods=3, freq='H', tz=gettz('US/Eastern')))))
 
             _maybe_remove(store, 'df')
@@ -5018,7 +5017,7 @@ class TestTimezones(Base):
         with ensure_clean_store(self.path) as store:
 
             # GH 4098 example
-            df = DataFrame(dict(A=Series(lrange(3), index=date_range(
+            df = DataFrame(dict(A=Series(range(3), index=date_range(
                 '2000-1-1', periods=3, freq='H', tz='US/Eastern'))))
 
             _maybe_remove(store, 'df')

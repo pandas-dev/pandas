@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections import OrderedDict, defaultdict
 from datetime import datetime
 from decimal import Decimal
@@ -7,7 +6,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.compat import lmap, lrange, lzip
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -85,7 +83,7 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
 
     # GH 3911, mixed frame non-conversion
     df = df_mixed_floats.copy()
-    df['value'] = lrange(len(df))
+    df['value'] = range(len(df))
 
     def max_value(group):
         return group.loc[group['value'].idxmax()]
@@ -250,11 +248,10 @@ def test_len():
 
 def test_basic_regression():
     # regression
-    T = [1.0 * x for x in lrange(1, 10) * 10][:1095]
-    result = Series(T, lrange(0, len(T)))
+    result = Series([1.0 * x for x in list(range(1, 10)) * 10])
 
-    groupings = np.random.random((1100, ))
-    groupings = Series(groupings, lrange(0, len(groupings))) * 10.
+    data = np.random.random(1100) * 10.
+    groupings = Series(data)
 
     grouped = result.groupby(groupings)
     grouped.mean()
@@ -321,9 +318,9 @@ def test_indices_concatenation_order():
         else:
             return y
 
-    df = DataFrame({'a': [1, 2, 2, 2], 'b': lrange(4), 'c': lrange(5, 9)})
+    df = DataFrame({'a': [1, 2, 2, 2], 'b': range(4), 'c': range(5, 9)})
 
-    df2 = DataFrame({'a': [3, 2, 2, 2], 'b': lrange(4), 'c': lrange(5, 9)})
+    df2 = DataFrame({'a': [3, 2, 2, 2], 'b': range(4), 'c': range(5, 9)})
 
     # correct result
     result1 = df.groupby('a').apply(f1)
@@ -654,7 +651,7 @@ def test_groupby_as_index_cython(df):
     result = grouped.mean()
     expected = data.groupby(['A', 'B']).mean()
 
-    arrays = lzip(*expected.index.values)
+    arrays = list(zip(*expected.index.values))
     expected.insert(0, 'A', arrays[0])
     expected.insert(1, 'B', arrays[1])
     expected.index = np.arange(len(expected))
@@ -876,7 +873,7 @@ def test_mutate_groups():
         'cat1': ['a'] * 8 + ['b'] * 6,
         'cat2': ['c'] * 2 + ['d'] * 2 + ['e'] * 2 + ['f'] * 2 + ['c'] * 2 +
         ['d'] * 2 + ['e'] * 2,
-        'cat3': lmap(lambda x: 'g%s' % x, lrange(1, 15)),
+        'cat3': ['g{}'.format(x) for x in range(1, 15)],
         'val': np.random.randint(100, size=14),
     })
 
@@ -1064,8 +1061,8 @@ def test_groupby_mixed_type_columns():
 def test_cython_grouper_series_bug_noncontig():
     arr = np.empty((100, 100))
     arr.fill(np.nan)
-    obj = Series(arr[:, 0], index=lrange(100))
-    inds = np.tile(lrange(10), 10)
+    obj = Series(arr[:, 0])
+    inds = np.tile(range(10), 10)
 
     result = obj.groupby(inds).agg(Series.median)
     assert result.isna().all()
@@ -1087,7 +1084,7 @@ def test_series_grouper_noncontig_index():
 
 def test_convert_objects_leave_decimal_alone():
 
-    s = Series(lrange(5))
+    s = Series(range(5))
     labels = np.array(['a', 'b', 'c', 'd', 'e'], dtype='O')
 
     def convert_fast(x):
@@ -1218,7 +1215,7 @@ def test_groupby_nat_exclude():
 
 
 def test_groupby_2d_malformed():
-    d = DataFrame(index=lrange(2))
+    d = DataFrame(index=range(2))
     d['group'] = ['g1', 'g2']
     d['zeros'] = [0, 0]
     d['ones'] = [1, 1]
@@ -1250,17 +1247,17 @@ def test_groupby_sort_multi():
                     'c': [0, 1, 2],
                     'd': np.random.randn(3)})
 
-    tups = lmap(tuple, df[['a', 'b', 'c']].values)
+    tups = [tuple(row) for row in df[['a', 'b', 'c']].values]
     tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['a', 'b', 'c'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups[[1, 2, 0]])
 
-    tups = lmap(tuple, df[['c', 'a', 'b']].values)
+    tups = [tuple(row) for row in df[['c', 'a', 'b']].values]
     tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['c', 'a', 'b'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups)
 
-    tups = lmap(tuple, df[['b', 'c', 'a']].values)
+    tups = [tuple(x) for x in df[['b', 'c', 'a']].values]
     tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['b', 'c', 'a'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups[[2, 1, 0]])
@@ -1272,7 +1269,7 @@ def test_groupby_sort_multi():
     result = grouped.sum()
 
     def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
-        tups = lmap(tuple, df[keys].values)
+        tups = [tuple(row) for row in df[keys].values]
         tups = com.asarray_tuplesafe(tups)
         expected = f(df.groupby(tups)[field])
         for k, v in expected.items():

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, time, timedelta
 import textwrap
 from typing import Union
@@ -587,7 +586,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin,
         Return an iterator over the boxed values
 
         Yields
-        -------
+        ------
         tstamp : Timestamp
         """
 

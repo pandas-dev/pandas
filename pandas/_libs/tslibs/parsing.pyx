@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Parsing functions for datetime and datetime-like strings.
 """

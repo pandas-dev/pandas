@@ -317,8 +317,7 @@ def get_calendar(name):
 class HolidayCalendarMetaClass(type):
 
     def __new__(cls, clsname, bases, attrs):
-        calendar_class = super(HolidayCalendarMetaClass, cls).__new__(
-            cls, clsname, bases, attrs)
+        calendar_class = super().__new__(cls, clsname, bases, attrs)
         register(calendar_class)
         return calendar_class
 

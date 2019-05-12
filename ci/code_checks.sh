@@ -126,6 +126,14 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -r -E --include '*.py' "[[:space:]] pytest.raises" pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for python2-style file encodings' ; echo $MSG
+    invgrep -R --include="*.py" --include="*.pyx" -E "# -\*- coding: utf-8 -\*-" pandas scripts
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for python2-style super usage' ; echo $MSG
+    invgrep -R --include="*.py" -E "super\(\w*, (self|cls)\)" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # Check for the following code in testing: `np.testing` and `np.array_equal`
     MSG='Check for invalid testing' ; echo $MSG
     invgrep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
@@ -140,8 +148,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for python2 new-style classes' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E "class\s\S*\(object\):" pandas scripts
+    MSG='Check for python2 new-style classes and for empty parentheses' ; echo $MSG
+    invgrep -R --include="*.py" --include="*.pyx" -E "class\s\S*\((object)?\):" pandas scripts
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG
@@ -227,12 +235,17 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_json -transpose -values -xs -to_clipboard"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests groupby.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests top-level reshaping functions' ; echo $MSG
     pytest -q --doctest-modules \
         pandas/core/reshape/concat.py \
         pandas/core/reshape/pivot.py \
         pandas/core/reshape/reshape.py \
         pandas/core/reshape/tile.py \
+        pandas/core/reshape/melt.py \
         -k"-crosstab -pivot_table -cut"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
@@ -248,8 +261,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL03, GL06, GL07, GL09, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT04, RT05, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL06,GL07,GL09,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT04,RT05,SA05
+    MSG='Validate docstrings (GL03, GL06, GL07, GL09, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL06,GL07,GL09,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

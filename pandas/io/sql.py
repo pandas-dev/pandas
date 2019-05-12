@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
