@@ -39,11 +39,6 @@ class TestSeriesQuantile(TestData):
         result = Series([np.timedelta64('NaT')]).sum()
         assert result == pd.Timedelta(0)
 
-        msg = 'percentiles should all be in the interval \\[0, 1\\]'
-        for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
-            with pytest.raises(ValueError, match=msg):
-                self.ts.quantile(invalid)
-
     def test_quantile_multi(self):
 
         qs = [.1, .9]
