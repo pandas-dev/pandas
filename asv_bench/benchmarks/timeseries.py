@@ -354,8 +354,10 @@ class ToDatetimeFormatQuarters:
 class ToDatetimeFormat:
 
     def setup(self):
-        self.s = Series(['19MAY11', '19MAY11:00:00:00'] * 100000)
+        self.count = 100000
+        self.s = Series(['19MAY11', '19MAY11:00:00:00'] * self.count)
         self.s2 = self.s.str.replace(':\\S+$', '')
+        self.s3 = Series(['02-11-2000'] * self.count)
 
     def time_exact(self):
         to_datetime(self.s2, format='%d%b%y')
@@ -363,6 +365,8 @@ class ToDatetimeFormat:
     def time_no_exact(self):
         to_datetime(self.s, format='%d%b%y', exact=False)
 
+    def time_DDMMYYYY(self):
+        to_datetime(self.s3, format='%d-%m-%Y')
 
 class ToDatetimeCache:
 
