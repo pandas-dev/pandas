@@ -1,16 +1,14 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that the file header is properly handled or inferred
 during parsing for all of the parsers defined in parsers.py
 """
 
 from collections import namedtuple
+from io import StringIO
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO
 from pandas.errors import ParserError
 
 from pandas import DataFrame, Index, MultiIndex

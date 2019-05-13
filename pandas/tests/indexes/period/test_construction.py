@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.compat import lmap, lrange
+from pandas.compat import lrange
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -13,7 +13,7 @@ import pandas.core.indexes.period as period
 import pandas.util.testing as tm
 
 
-class TestPeriodIndex(object):
+class TestPeriodIndex:
 
     def setup_method(self, method):
         pass
@@ -514,7 +514,7 @@ class TestPeriodIndex(object):
         raw = [2005, 2007, 2009]
         index = PeriodIndex(raw, freq='A')
 
-        expected = Index(lmap(str, raw))
+        expected = Index([str(num) for num in raw])
         res = index.map(str)
 
         # should return an Index
@@ -527,7 +527,7 @@ class TestPeriodIndex(object):
         tm.assert_index_equal(res, expected)
 
 
-class TestSeriesPeriod(object):
+class TestSeriesPeriod:
 
     def setup_method(self, method):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))

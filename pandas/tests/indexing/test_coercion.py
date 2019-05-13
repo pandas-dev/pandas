@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import itertools
 
 import numpy as np
@@ -36,7 +34,7 @@ def check_comprehensiveness(request):
     yield
 
 
-class CoercionBase(object):
+class CoercionBase:
 
     klasses = ['index', 'series']
     dtypes = ['object', 'int64', 'float64', 'complex128', 'bool',

@@ -30,8 +30,6 @@ import os
 import sys
 import textwrap
 
-from six.moves import input
-
 PANDAS_HOME = '.'
 PROJECT_NAME = 'pandas'
 print("PANDAS_HOME = " + PANDAS_HOME)

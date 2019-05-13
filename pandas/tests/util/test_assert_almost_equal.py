@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -132,7 +130,7 @@ def test_assert_almost_equal_dict_like_object(val):
     dict_val = 1
     real_dict = dict(a=val)
 
-    class DictLikeObj(object):
+    class DictLikeObj:
         def keys(self):
             return "a",
 

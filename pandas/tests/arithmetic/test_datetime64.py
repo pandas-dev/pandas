@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
@@ -38,7 +37,7 @@ def assert_all(obj):
 # ------------------------------------------------------------------
 # Comparisons
 
-class TestDatetime64DataFrameComparison(object):
+class TestDatetime64DataFrameComparison:
     @pytest.mark.parametrize('timestamps', [
         [pd.Timestamp('2012-01-01 13:00:00+00:00')] * 2,
         [pd.Timestamp('2012-01-01 13:00:00')] * 2])
@@ -58,7 +57,7 @@ class TestDatetime64DataFrameComparison(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestDatetime64SeriesComparison(object):
+class TestDatetime64SeriesComparison:
     # TODO: moved from tests.series.test_operators; needs cleanup
 
     @pytest.mark.parametrize('pair', [
@@ -337,7 +336,7 @@ class TestDatetime64SeriesComparison(object):
         # comparison with the Series on the left-hand side
 
 
-class TestDatetimeIndexComparisons(object):
+class TestDatetimeIndexComparisons:
 
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
     @pytest.mark.parametrize("op", [
@@ -789,7 +788,7 @@ class TestDatetimeIndexComparisons(object):
 # ------------------------------------------------------------------
 # Arithmetic
 
-class TestDatetime64Arithmetic(object):
+class TestDatetime64Arithmetic:
     # This class is intended for "finished" tests that are fully parametrized
     #  over DataFrame/Series/Index/DatetimeArray
 
@@ -1125,7 +1124,7 @@ class TestDatetime64Arithmetic(object):
             per - dtarr
 
 
-class TestDatetime64DateOffsetArithmetic(object):
+class TestDatetime64DateOffsetArithmetic:
 
     # -------------------------------------------------------------
     # Tick DateOffsets
@@ -1436,8 +1435,30 @@ class TestDatetime64DateOffsetArithmetic(object):
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(res, expected)
 
+    @pytest.mark.parametrize("op, offset, exp", [
+        ('__add__', pd.DateOffset(months=3, days=10),
+         DatetimeIndex([Timestamp('2014-04-11'), Timestamp('2015-04-11'),
+                        Timestamp('2016-04-11'), Timestamp('2017-04-11')])),
+        ('__add__', pd.DateOffset(months=3),
+         DatetimeIndex([Timestamp('2014-04-01'), Timestamp('2015-04-01'),
+                        Timestamp('2016-04-01'), Timestamp('2017-04-01')])),
+        ('__sub__', pd.DateOffset(months=3, days=10),
+         DatetimeIndex([Timestamp('2013-09-21'), Timestamp('2014-09-21'),
+                        Timestamp('2015-09-21'), Timestamp('2016-09-21')])),
+        ('__sub__', pd.DateOffset(months=3),
+         DatetimeIndex([Timestamp('2013-10-01'), Timestamp('2014-10-01'),
+                        Timestamp('2015-10-01'), Timestamp('2016-10-01')]))
 
-class TestDatetime64OverflowHandling(object):
+    ])
+    def test_dti_add_sub_nonzero_mth_offset(self, op, offset, exp):
+        # GH 26258
+        date = date_range(start='01 Jan 2014', end='01 Jan 2017', freq='AS')
+        mth = getattr(date, op)
+        result = mth(offset)
+        tm.assert_equal(result, exp)
+
+
+class TestDatetime64OverflowHandling:
     # TODO: box + de-duplicate
 
     def test_dt64_overflow_masking(self, box_with_array):
@@ -1555,7 +1576,7 @@ class TestDatetime64OverflowHandling(object):
             tmax - t2
 
 
-class TestTimestampSeriesArithmetic(object):
+class TestTimestampSeriesArithmetic:
 
     def test_empty_series_add_sub(self):
         # GH#13844
@@ -1843,7 +1864,7 @@ class TestTimestampSeriesArithmetic(object):
             td2 - dt2
 
 
-class TestDatetimeIndexArithmetic(object):
+class TestDatetimeIndexArithmetic:
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and int
@@ -2351,3 +2372,22 @@ def test_shift_months(years, months):
            for x in dti]
     expected = DatetimeIndex(raw)
     tm.assert_index_equal(actual, expected)
+
+
+class SubDatetime(datetime):
+    pass
+
+
+@pytest.mark.parametrize("lh,rh", [
+    (SubDatetime(2000, 1, 1),
+     Timedelta(hours=1)),
+    (Timedelta(hours=1),
+     SubDatetime(2000, 1, 1))
+])
+def test_dt_subclass_add_timedelta(lh, rh):
+    # GH 25851
+    # ensure that subclassed datetime works for
+    # Timedelta operations
+    result = lh + rh
+    expected = SubDatetime(2000, 1, 1, 1)
+    assert result == expected

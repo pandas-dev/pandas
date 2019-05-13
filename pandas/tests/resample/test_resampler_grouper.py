@@ -1,5 +1,3 @@
-# pylint: disable=E1101
-
 from textwrap import dedent
 
 import numpy as np

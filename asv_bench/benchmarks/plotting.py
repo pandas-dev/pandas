@@ -8,7 +8,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 
-class SeriesPlotting(object):
+class SeriesPlotting:
     params = [['line', 'bar', 'area', 'barh', 'hist', 'kde', 'pie']]
     param_names = ['kind']
 
@@ -28,7 +28,7 @@ class SeriesPlotting(object):
         self.s.plot(kind=kind)
 
 
-class FramePlotting(object):
+class FramePlotting:
     params = [['line', 'bar', 'area', 'barh', 'hist', 'kde', 'pie', 'scatter',
                'hexbin']]
     param_names = ['kind']
@@ -52,7 +52,7 @@ class FramePlotting(object):
         self.df.plot(x='x', y='y', kind=kind)
 
 
-class TimeseriesPlotting(object):
+class TimeseriesPlotting:
 
     def setup(self):
         N = 2000
@@ -78,7 +78,7 @@ class TimeseriesPlotting(object):
         self.df.plot(table=True)
 
 
-class Misc(object):
+class Misc:
 
     def setup(self):
         N = 500

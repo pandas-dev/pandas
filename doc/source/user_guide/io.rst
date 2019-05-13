@@ -137,7 +137,7 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
-     from pandas.compat import StringIO, BytesIO
+     from io import StringIO, BytesIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
              'a,b,2\n'
@@ -271,6 +271,12 @@ date_parser : function, default ``None``
   (corresponding to the columns defined by parse_dates) as arguments.
 dayfirst : boolean, default ``False``
   DD/MM format dates, international and European format.
+cache_dates : boolean, default True
+  If True, use a cache of unique, converted dates to apply the datetime
+  conversion. May produce significant speed-up when parsing duplicate
+  date strings, especially ones with timezone offsets.
+
+  .. versionadded:: 0.25.0
 
 Iteration
 +++++++++
@@ -3565,13 +3571,6 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
    os.remove('file.h5')
 
 
-.. ipython:: python
-   :suppress:
-
-   os.remove('file.h5')
-
-
-
 .. _io.hdf5-fixed:
 
 Fixed Format
@@ -4711,7 +4710,8 @@ Read only certain columns of a parquet file.
 
    result = pd.read_parquet('example_fp.parquet',
                             engine='fastparquet', columns=['a', 'b'])
-
+   result = pd.read_parquet('example_pa.parquet',
+                            engine='pyarrow', columns=['a', 'b'])
    result.dtypes
 
 
