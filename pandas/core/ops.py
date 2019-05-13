@@ -6,8 +6,10 @@ This is not a public API.
 import datetime
 import operator
 import textwrap
+from typing import Dict, Optional
 import warnings
 
+from mypy_extensions import TypedDict
 import numpy as np
 
 from pandas._libs import algos as libalgos, lib, ops as libops
@@ -560,6 +562,18 @@ e    NaN
 dtype: float64
 """
 
+Operator_description = TypedDict(
+    'Operator_description',
+    {
+        'op': str,
+        'desc': str,
+        'reverse': Optional[str],
+        'series_examples': Optional[str],
+        'df_examples': Optional[str],
+        'reversed': bool
+    },
+    total=False)
+
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
@@ -625,7 +639,7 @@ _op_descriptions = {
            'desc': 'Greater than or equal to',
            'reverse': None,
            'series_examples': None}
-}
+}  # type: Dict[str, Operator_description]
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
