@@ -14,8 +14,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeArray, ABCDatetimeIndex, ABCIndexClass, ABCPeriodIndex,
     ABCRangeIndex, ABCSparseDataFrame, ABCTimedeltaIndex)
 
-from pandas import compat
-
 
 def get_dtype_kinds(l):
     """
@@ -69,7 +67,7 @@ def _get_series_result_type(result, objs=None):
     if isinstance(result, dict):
         # concat Series with axis 1
         if all(isinstance(c, (SparseSeries, SparseDataFrame))
-               for c in compat.itervalues(result)):
+               for c in result.values()):
             return SparseDataFrame
         else:
             return DataFrame
@@ -89,8 +87,7 @@ def _get_frame_result_type(result, objs):
     """
 
     if (result.blocks and (
-            all(is_sparse(b) for b in result.blocks) or
-            all(isinstance(obj, ABCSparseDataFrame) for obj in objs))):
+            any(isinstance(obj, ABCSparseDataFrame) for obj in objs))):
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:

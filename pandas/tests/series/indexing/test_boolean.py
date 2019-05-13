@@ -1,10 +1,7 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_integer
 

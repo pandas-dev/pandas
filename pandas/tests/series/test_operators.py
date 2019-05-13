@@ -1,14 +1,8 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, timedelta
 import operator
 
 import numpy as np
 import pytest
-
-import pandas.compat as compat
-from pandas.compat import range
 
 import pandas as pd
 from pandas import (
@@ -22,7 +16,7 @@ from pandas.util.testing import (
 from .common import TestData
 
 
-class TestSeriesLogicalOps(object):
+class TestSeriesLogicalOps:
     @pytest.mark.parametrize('bool_op', [operator.and_,
                                          operator.or_, operator.xor])
     def test_bool_operators_with_nas(self, bool_op):
@@ -361,7 +355,7 @@ class TestSeriesLogicalOps(object):
         assert_frame_equal(s4.to_frame() | s3.to_frame(), exp)
 
 
-class TestSeriesComparisons(object):
+class TestSeriesComparisons:
     def test_comparisons(self):
         left = np.random.randn(10)
         right = np.random.randn(10)
@@ -571,7 +565,7 @@ class TestSeriesComparisons(object):
         assert_series_equal(result, expected)
 
 
-class TestSeriesFlexComparisonOps(object):
+class TestSeriesFlexComparisonOps:
 
     def test_comparison_flex_alignment(self):
         left = Series([1, 3, 2], index=list('abc'))
@@ -665,7 +659,8 @@ class TestSeriesOperators(TestData):
                           index=self.ts.index[:-5], name='ts')
         tm.assert_series_equal(added[:-5], expected)
 
-    pairings = []
+    pairings = [(Series.div, operator.truediv, 1),
+                (Series.rdiv, lambda x, y: operator.truediv(y, x), 1)]
     for op in ['add', 'sub', 'mul', 'pow', 'truediv', 'floordiv']:
         fv = 0
         lop = getattr(Series, op)
@@ -675,12 +670,6 @@ class TestSeriesOperators(TestData):
         requiv = lambda x, y, op=op: getattr(operator, op)(y, x)
         pairings.append((lop, lequiv, fv))
         pairings.append((rop, requiv, fv))
-    if compat.PY3:
-        pairings.append((Series.div, operator.truediv, 1))
-        pairings.append((Series.rdiv, lambda x, y: operator.truediv(y, x), 1))
-    else:
-        pairings.append((Series.div, operator.div, 1))
-        pairings.append((Series.rdiv, lambda x, y: operator.div(y, x), 1))
 
     @pytest.mark.parametrize('op, equiv_op, fv', pairings)
     def test_operators_combine(self, op, equiv_op, fv):
@@ -741,8 +730,23 @@ class TestSeriesOperators(TestData):
         expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
         assert_series_equal(result, expected)
 
+    def test_divmod(self):
+        # GH25557
+        a = Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+        b = Series([2, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
 
-class TestSeriesUnaryOps(object):
+        result = a.divmod(b)
+        expected = divmod(a, b)
+        assert_series_equal(result[0], expected[0])
+        assert_series_equal(result[1], expected[1])
+
+        result = a.rdivmod(b)
+        expected = divmod(b, a)
+        assert_series_equal(result[0], expected[0])
+        assert_series_equal(result[1], expected[1])
+
+
+class TestSeriesUnaryOps:
     # __neg__, __pos__, __inv__
 
     def test_neg(self):

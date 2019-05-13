@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 """ test get/set & misc """
 
 from datetime import timedelta
@@ -8,7 +5,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -259,9 +256,9 @@ def test_series_box_timestamp():
 
 def test_getitem_ambiguous_keyerror():
     s = Series(lrange(10), index=lrange(0, 20, 2))
-    with pytest.raises(KeyError, match=r"^1L?$"):
+    with pytest.raises(KeyError, match=r"^1$"):
         s[1]
-    with pytest.raises(KeyError, match=r"^1L?$"):
+    with pytest.raises(KeyError, match=r"^1$"):
         s.loc[1]
 
 

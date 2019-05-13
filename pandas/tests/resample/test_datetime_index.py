@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 from functools import partial
+from io import StringIO
 
 import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import StringIO, range
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -98,6 +98,18 @@ def test_resample_basic(series, closed, expected):
     s = series
     expected = expected(s)
     result = s.resample('5min', closed=closed, label='right').mean()
+    assert_series_equal(result, expected)
+
+
+def test_resample_integerarray():
+    # GH 25580, resample on IntegerArray
+    ts = pd.Series(range(9),
+                   index=pd.date_range('1/1/2000', periods=9, freq='T'),
+                   dtype='Int64')
+    result = ts.resample('3T').sum()
+    expected = Series([3, 12, 21],
+                      index=pd.date_range('1/1/2000', periods=3, freq='3T'),
+                      dtype="Int64")
     assert_series_equal(result, expected)
 
 
@@ -198,7 +210,7 @@ def test_resample_how_callables():
     def fn(x, a=1):
         return str(type(x))
 
-    class FnClass(object):
+    class FnClass:
 
         def __call__(self, x):
             return str(type(x))
@@ -737,6 +749,19 @@ def test_resample_base():
     exp_rng = date_range('12/31/1999 23:57:00', '1/1/2000 01:57',
                          freq='5min')
     tm.assert_index_equal(resampled.index, exp_rng)
+
+
+def test_resample_float_base():
+    # GH25161
+    dt = pd.to_datetime(["2018-11-26 16:17:43.51",
+                         "2018-11-26 16:17:44.51",
+                         "2018-11-26 16:17:45.51"])
+    s = Series(np.arange(3), index=dt)
+
+    base = 17 + 43.51 / 60
+    result = s.resample("3min", base=base).size()
+    expected = Series(3, index=pd.DatetimeIndex(["2018-11-26 16:17:43.51"]))
+    assert_series_equal(result, expected)
 
 
 def test_resample_daily_anchored():

@@ -8,7 +8,7 @@ from pandas import Categorical, CategoricalIndex, Series
 from pandas.util import testing as tm
 
 
-class TestUnionCategoricals(object):
+class TestUnionCategoricals:
 
     def test_union_categorical(self):
         # GH 13361

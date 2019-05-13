@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101
-
 import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestIndexingCallable(object):
+class TestIndexingCallable:
 
     def test_frame_loc_ix_callable(self):
         # GH 11485

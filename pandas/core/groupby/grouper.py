@@ -7,8 +7,6 @@ import warnings
 
 import numpy as np
 
-import pandas.compat as compat
-from pandas.compat import zip
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -27,7 +25,7 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 
-class Grouper(object):
+class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for a target
     object
@@ -92,7 +90,7 @@ class Grouper(object):
         if kwargs.get('freq') is not None:
             from pandas.core.resample import TimeGrouper
             cls = TimeGrouper
-        return super(Grouper, cls).__new__(cls)
+        return super().__new__(cls)
 
     def __init__(self, key=None, level=None, freq=None, axis=0, sort=False):
         self.key = key
@@ -206,7 +204,7 @@ class Grouper(object):
         return "{}({})".format(cls_name, attrs)
 
 
-class Grouping(object):
+class Grouping:
 
     """
     Holds the grouping information for a single key
@@ -303,6 +301,8 @@ class Grouping(object):
                 if observed:
                     codes = algorithms.unique1d(self.grouper.codes)
                     codes = codes[codes != -1]
+                    if sort or self.grouper.ordered:
+                        codes = np.sort(codes)
                 else:
                     codes = np.arange(len(categories))
 
@@ -463,7 +463,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
                     raise ValueError('multiple levels only valid with '
                                      'MultiIndex')
 
-            if isinstance(level, compat.string_types):
+            if isinstance(level, str):
                 if obj.index.name != level:
                     raise ValueError('level name {} is not the name of the '
                                      'index'.format(level))
@@ -522,19 +522,17 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     any_arraylike = any(isinstance(g, (list, tuple, Series, Index, np.ndarray))
                         for g in keys)
 
-    try:
-        if isinstance(obj, DataFrame):
-            all_in_columns_index = all(g in obj.columns or g in obj.index.names
-                                       for g in keys)
-        else:
-            all_in_columns_index = False
-    except Exception:
-        all_in_columns_index = False
-
-    if (not any_callable and not all_in_columns_index and
-            not any_arraylike and not any_groupers and
+    # is this an index replacement?
+    if (not any_callable and not any_arraylike and not any_groupers and
             match_axis_length and level is None):
-        keys = [com.asarray_tuplesafe(keys)]
+        if isinstance(obj, DataFrame):
+            all_in_columns_index = all(g in obj.columns or g in
+                                       obj.index.names for g in keys)
+        elif isinstance(obj, Series):
+            all_in_columns_index = all(g in obj.index.names for g in keys)
+
+        if not all_in_columns_index:
+            keys = [com.asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):
         if key is None:
@@ -615,7 +613,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
 
 def _is_label_like(val):
-    return (isinstance(val, (compat.string_types, tuple)) or
+    return (isinstance(val, (str, tuple)) or
             (val is not None and is_scalar(val)))
 
 

@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
-
-from pandas.compat import long
 
 from pandas import Timedelta, Timestamp
 import pandas.util.testing as tm
@@ -13,7 +10,7 @@ from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 
 
-class TestTimestampArithmetic(object):
+class TestTimestampArithmetic:
     def test_overflow_offset(self):
         # no overflow expected
 
@@ -63,7 +60,7 @@ class TestTimestampArithmetic(object):
             stamp - offset_overflow
 
     def test_delta_preserve_nanos(self):
-        val = Timestamp(long(1337299200000000123))
+        val = Timestamp(1337299200000000123)
         result = val + timedelta(1)
         assert result.nanosecond == val.nanosecond
 

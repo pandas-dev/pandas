@@ -1,3 +1,4 @@
+from collections import abc
 from datetime import datetime, time
 from functools import partial
 
@@ -8,7 +9,7 @@ from pandas._libs.tslibs import Timestamp, conversion, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError, _format_is_iso, _guess_datetime_format, parse_time_string)
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas.compat import zip
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
@@ -17,7 +18,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import notna
 
-from pandas import compat
 from pandas.core import algorithms
 
 
@@ -52,9 +52,10 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     if cache:
         # Perform a quicker unique check
         from pandas import Index
-        if not Index(arg).is_unique:
-            unique_dates = algorithms.unique(arg)
-            cache_dates = convert_listlike(unique_dates, True, format)
+        unique_dates = Index(arg).unique()
+        if len(unique_dates) < len(arg):
+            cache_dates = convert_listlike(unique_dates.to_numpy(),
+                                           True, format)
             cache_array = Series(cache_dates, index=unique_dates)
     return cache_array
 
@@ -199,19 +200,27 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         if format is not None:
             raise ValueError("cannot specify both format and unit")
         arg = getattr(arg, 'values', arg)
-        result = tslib.array_with_unit_to_datetime(arg, unit,
-                                                   errors=errors)
+        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit,
+                                                              errors=errors)
         if box:
             if errors == 'ignore':
                 from pandas import Index
                 result = Index(result, name=name)
-                # GH 23758: We may still need to localize the result with tz
-                try:
-                    return result.tz_localize(tz)
-                except AttributeError:
-                    return result
-
-            return DatetimeIndex(result, tz=tz, name=name)
+            else:
+                result = DatetimeIndex(result, name=name)
+            # GH 23758: We may still need to localize the result with tz
+            # GH 25546: Apply tz_parsed first (from arg), then tz (from caller)
+            # result will be naive but in UTC
+            try:
+                result = result.tz_localize('UTC').tz_convert(tz_parsed)
+            except AttributeError:
+                # Regular Index from 'ignore' path
+                return result
+            if tz is not None:
+                if result.tz is None:
+                    result = result.tz_localize(tz)
+                else:
+                    result = result.tz_convert(tz)
         return result
     elif getattr(arg, 'ndim', 1) > 1:
         raise TypeError('arg must be a string, datetime, list, tuple, '
@@ -398,6 +407,7 @@ def _adjust_to_origin(arg, origin, unit):
     return arg
 
 
+@deprecate_kwarg(old_arg_name='box', new_arg_name=None)
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='unix',
@@ -444,9 +454,17 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         - If True returns a DatetimeIndex or Index-like object
         - If False returns ndarray of values.
+
+        .. deprecated:: 0.25.0
+            Use :meth:`.to_numpy` or :meth:`Timestamp.to_datetime64`
+            instead to get an ndarray of values or numpy.datetime64,
+            respectively.
+
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
         all the way up to nanoseconds.
+        See strftime documentation for more information on choices:
+        https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
     exact : boolean, True by default
 
         - If True, require an exact format match.
@@ -590,7 +608,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         else:
             values = convert_listlike(arg._values, True, format)
             result = arg._constructor(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (ABCDataFrame, compat.MutableMapping)):
+    elif isinstance(arg, (ABCDataFrame, abc.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, box, tz)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)

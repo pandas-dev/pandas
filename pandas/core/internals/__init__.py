@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from .blocks import (  # noqa:F401
     _block_shape,   # io.pytables
     _safe_reshape,  # io.packers

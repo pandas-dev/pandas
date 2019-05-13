@@ -3,9 +3,6 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
-# necessary to enforce truediv in Python 2.X
-from __future__ import division
-
 import datetime
 import operator
 import textwrap
@@ -14,8 +11,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import algos as libalgos, lib, ops as libops
-import pandas.compat as compat
-from pandas.compat import bind_method
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
@@ -28,7 +23,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_list_like, is_object_dtype, is_period_dtype,
     is_scalar, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndex, ABCIndexClass, ABCPanel, ABCSeries, ABCSparseArray,
+    ABCDataFrame, ABCIndex, ABCIndexClass, ABCSeries, ABCSparseArray,
     ABCSparseSeries)
 from pandas.core.dtypes.missing import isna, notna
 
@@ -168,7 +163,7 @@ def rmod(left, right):
     # check if right is a string as % is the string
     # formatting operation; this is a TypeError
     # otherwise perform the op
-    if isinstance(right, compat.string_types):
+    if isinstance(right, str):
         raise TypeError("{typ} cannot perform the operation mod".format(
             typ=type(left).__name__))
 
@@ -239,7 +234,7 @@ def _gen_eval_kwargs(name):
     """
     kwargs = {}
 
-    # Series and Panel appear to only pass __add__, __radd__, ...
+    # Series appear to only pass __add__, __radd__, ...
     # but DataFrame gets both these dunder names _and_ non-dunder names
     # add, radd, ...
     name = name.replace('__', '')
@@ -384,57 +379,252 @@ def _get_op_name(op, special):
 # -----------------------------------------------------------------------------
 # Docstring Generation and Templates
 
+_add_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.add(b, fill_value=0)
+a    2.0
+b    1.0
+c    1.0
+d    1.0
+e    NaN
+dtype: float64
+"""
+
+_sub_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.subtract(b, fill_value=0)
+a    0.0
+b    1.0
+c    1.0
+d   -1.0
+e    NaN
+dtype: float64
+"""
+
+_mul_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.multiply(b, fill_value=0)
+a    1.0
+b    0.0
+c    0.0
+d    0.0
+e    NaN
+dtype: float64
+"""
+
+_div_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.divide(b, fill_value=0)
+a    1.0
+b    inf
+c    inf
+d    0.0
+e    NaN
+dtype: float64
+"""
+
+_floordiv_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.floordiv(b, fill_value=0)
+a    1.0
+b    NaN
+c    NaN
+d    0.0
+e    NaN
+dtype: float64
+"""
+
+_mod_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.mod(b, fill_value=0)
+a    0.0
+b    NaN
+c    NaN
+d    0.0
+e    NaN
+dtype: float64
+"""
+_pow_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.pow(b, fill_value=0)
+a    1.0
+b    1.0
+c    1.0
+d    0.0
+e    NaN
+dtype: float64
+"""
+
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
             'desc': 'Addition',
-            'reverse': 'radd'},
+            'reverse': 'radd',
+            'series_examples': _add_example_SERIES},
     'sub': {'op': '-',
             'desc': 'Subtraction',
-            'reverse': 'rsub'},
+            'reverse': 'rsub',
+            'series_examples': _sub_example_SERIES},
     'mul': {'op': '*',
             'desc': 'Multiplication',
             'reverse': 'rmul',
+            'series_examples': _mul_example_SERIES,
             'df_examples': None},
     'mod': {'op': '%',
             'desc': 'Modulo',
-            'reverse': 'rmod'},
+            'reverse': 'rmod',
+            'series_examples': _mod_example_SERIES},
     'pow': {'op': '**',
             'desc': 'Exponential power',
             'reverse': 'rpow',
+            'series_examples': _pow_example_SERIES,
             'df_examples': None},
     'truediv': {'op': '/',
                 'desc': 'Floating division',
                 'reverse': 'rtruediv',
+                'series_examples': _div_example_SERIES,
                 'df_examples': None},
     'floordiv': {'op': '//',
                  'desc': 'Integer division',
                  'reverse': 'rfloordiv',
+                 'series_examples': _floordiv_example_SERIES,
                  'df_examples': None},
     'divmod': {'op': 'divmod',
                'desc': 'Integer division and modulo',
                'reverse': 'rdivmod',
+               'series_examples': None,
                'df_examples': None},
 
     # Comparison Operators
     'eq': {'op': '==',
            'desc': 'Equal to',
-           'reverse': None},
+           'reverse': None,
+           'series_examples': None},
     'ne': {'op': '!=',
            'desc': 'Not equal to',
-           'reverse': None},
+           'reverse': None,
+           'series_examples': None},
     'lt': {'op': '<',
            'desc': 'Less than',
-           'reverse': None},
+           'reverse': None,
+           'series_examples': None},
     'le': {'op': '<=',
            'desc': 'Less than or equal to',
-           'reverse': None},
+           'reverse': None,
+           'series_examples': None},
     'gt': {'op': '>',
            'desc': 'Greater than',
-           'reverse': None},
+           'reverse': None,
+           'series_examples': None},
     'ge': {'op': '>=',
            'desc': 'Greater than or equal to',
-           'reverse': None}
+           'reverse': None,
+           'series_examples': None}
 }
 
 _op_names = list(_op_descriptions.keys())
@@ -472,51 +662,6 @@ Series
 See Also
 --------
 Series.{reverse}
-
-Examples
---------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
->>> a.add(b, fill_value=0)
-a    2.0
-b    1.0
-c    1.0
-d    1.0
-e    NaN
-dtype: float64
->>> a.subtract(b, fill_value=0)
-a    0.0
-b    1.0
-c    1.0
-d   -1.0
-e    NaN
-dtype: float64
->>> a.multiply(b)
-a    1.0
-b    NaN
-c    NaN
-d    NaN
-e    NaN
-dtype: float64
->>> a.divide(b, fill_value=0)
-a    1.0
-b    inf
-c    inf
-d    0.0
-e    NaN
-dtype: float64
 """
 
 _arith_doc_FRAME = """
@@ -739,7 +884,7 @@ DataFrame.gt : Compare DataFrames for strictly greater than
     inequality elementwise.
 
 Notes
---------
+-----
 Mismatched indices will be unioned together.
 `NaN` values are considered different (i.e. `NaN` != `NaN`).
 
@@ -846,40 +991,6 @@ Q2 A  False     True
    C   True    False
 """
 
-_flex_doc_PANEL = """
-Return {desc} of series and other, element-wise (binary operator `{op_name}`).
-Equivalent to ``{equiv}``.
-
-Parameters
-----------
-other : DataFrame or Panel
-axis : {{items, major_axis, minor_axis}}
-    Axis to broadcast over
-
-Returns
--------
-Panel
-
-See Also
---------
-Panel.{reverse}
-"""
-
-
-_agg_doc_PANEL = """
-Wrapper method for {op_name}
-
-Parameters
-----------
-other : DataFrame or Panel
-axis : {{items, major_axis, minor_axis}}
-    Axis to broadcast over
-
-Returns
--------
-Panel
-"""
-
 
 def _make_flex_doc(op_name, typ):
     """
@@ -906,16 +1017,24 @@ def _make_flex_doc(op_name, typ):
 
     if typ == 'series':
         base_doc = _flex_doc_SERIES
-        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'])
+        doc_no_examples = base_doc.format(
+            desc=op_desc['desc'],
+            op_name=op_name,
+            equiv=equiv,
+            reverse=op_desc['reverse']
+        )
+        if op_desc['series_examples']:
+            doc = doc_no_examples + op_desc['series_examples']
+        else:
+            doc = doc_no_examples
     elif typ == 'dataframe':
         base_doc = _flex_doc_FRAME
-        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'])
-    elif typ == 'panel':
-        base_doc = _flex_doc_PANEL
-        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'])
+        doc = base_doc.format(
+            desc=op_desc['desc'],
+            op_name=op_name,
+            equiv=equiv,
+            reverse=op_desc['reverse']
+        )
     else:
         raise AssertionError('Invalid typ argument.')
     return doc
@@ -1296,12 +1415,6 @@ def _get_method_wrappers(cls):
         arith_special = _arith_method_SPARSE_ARRAY
         comp_special = _arith_method_SPARSE_ARRAY
         bool_special = _arith_method_SPARSE_ARRAY
-    elif issubclass(cls, ABCPanel):
-        arith_flex = _flex_method_PANEL
-        comp_flex = _comp_method_PANEL
-        arith_special = _arith_method_PANEL
-        comp_special = _comp_method_PANEL
-        bool_special = _arith_method_PANEL
     elif issubclass(cls, ABCDataFrame):
         # Same for DataFrame and SparseDataFrame
         arith_flex = _arith_method_FRAME
@@ -1382,7 +1495,7 @@ def add_methods(cls, new_methods):
         force = not (issubclass(cls, ABCSparseArray) and
                      name.startswith('__i'))
         if force or name not in cls.__dict__:
-            bind_method(cls, name, method)
+            setattr(cls, name, method)
 
 
 # ----------------------------------------------------------------------
@@ -1429,8 +1542,6 @@ def add_special_arithmetic_methods(cls):
              __ifloordiv__=_wrap_inplace_method(new_methods["__floordiv__"]),
              __imod__=_wrap_inplace_method(new_methods["__mod__"]),
              __ipow__=_wrap_inplace_method(new_methods["__pow__"])))
-    if not compat.PY3:
-        new_methods["__idiv__"] = _wrap_inplace_method(new_methods["__div__"])
 
     new_methods.update(
         dict(__iand__=_wrap_inplace_method(new_methods["__and__"]),
@@ -1494,7 +1605,7 @@ def _construct_result(left, result, index, name, dtype=None):
     not be enough; we still need to override the name attribute.
     """
     out = left._constructor(result, index=index, dtype=dtype)
-
+    out = out.__finalize__(left)
     out.name = name
     return out
 
@@ -1502,10 +1613,11 @@ def _construct_result(left, result, index, name, dtype=None):
 def _construct_divmod_result(left, result, index, name, dtype=None):
     """divmod returns a tuple of like indexed series instead of a single series.
     """
-    constructor = left._constructor
     return (
-        constructor(result[0], index=index, name=name, dtype=dtype),
-        constructor(result[1], index=index, name=name, dtype=dtype),
+        _construct_result(left, result[0], index=index, name=name,
+                          dtype=dtype),
+        _construct_result(left, result[1], index=index, name=name,
+                          dtype=dtype),
     )
 
 
@@ -2132,94 +2244,6 @@ def _comp_method_FRAME(cls, func, special):
 
     f.__name__ = op_name
 
-    return f
-
-
-# -----------------------------------------------------------------------------
-# Panel
-
-def _arith_method_PANEL(cls, op, special):
-    # work only for scalars
-    op_name = _get_op_name(op, special)
-
-    def f(self, other):
-        if not is_scalar(other):
-            raise ValueError('Simple arithmetic with {name} can only be '
-                             'done with scalar values'
-                             .format(name=self._constructor.__name__))
-
-        return self._combine(other, op)
-
-    f.__name__ = op_name
-    return f
-
-
-def _comp_method_PANEL(cls, op, special):
-    str_rep = _get_opstr(op, cls)
-    op_name = _get_op_name(op, special)
-
-    def na_op(x, y):
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y)
-        except TypeError:
-            result = mask_cmp_op(x, y, op, np.ndarray)
-        return result
-
-    @Appender('Wrapper for comparison method {name}'.format(name=op_name))
-    def f(self, other, axis=None):
-        # Validate the axis parameter
-        if axis is not None:
-            self._get_axis_number(axis)
-
-        if isinstance(other, self._constructor):
-            return self._compare_constructor(other, na_op)
-        elif isinstance(other, (self._constructor_sliced, ABCDataFrame,
-                                ABCSeries)):
-            raise Exception("input needs alignment for this object [{object}]"
-                            .format(object=self._constructor))
-        else:
-            return self._combine_const(other, na_op)
-
-    f.__name__ = op_name
-
-    return f
-
-
-def _flex_method_PANEL(cls, op, special):
-    str_rep = _get_opstr(op, cls)
-    op_name = _get_op_name(op, special)
-    eval_kwargs = _gen_eval_kwargs(op_name)
-    fill_zeros = _gen_fill_zeros(op_name)
-
-    def na_op(x, y):
-        import pandas.core.computation.expressions as expressions
-
-        try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          errors='raise',
-                                          **eval_kwargs)
-        except TypeError:
-            result = op(x, y)
-
-        # handles discrepancy between numpy and numexpr on division/mod
-        # by 0 though, given that these are generally (always?)
-        # non-scalars, I'm not sure whether it's worth it at the moment
-        result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
-        return result
-
-    if op_name in _op_descriptions:
-        doc = _make_flex_doc(op_name, 'panel')
-    else:
-        # doc strings substitors
-        doc = _agg_doc_PANEL.format(op_name=op_name)
-
-    @Appender(doc)
-    def f(self, other, axis=0):
-        return self._combine(other, na_op, axis=axis)
-
-    f.__name__ = op_name
     return f
 
 

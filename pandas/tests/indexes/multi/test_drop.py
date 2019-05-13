@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-
-
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange
+from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -12,7 +9,6 @@ from pandas import Index, MultiIndex
 import pandas.util.testing as tm
 
 
-@pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
 def test_drop(idx):
     dropped = idx.drop([('foo', 'two'), ('qux', 'one')])
 

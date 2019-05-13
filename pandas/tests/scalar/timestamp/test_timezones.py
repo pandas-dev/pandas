@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for Timestamp timezone-related methods
 """
@@ -19,7 +18,7 @@ from pandas import NaT, Timestamp
 import pandas.util.testing as tm
 
 
-class TestTimestampTZOperations(object):
+class TestTimestampTZOperations:
     # --------------------------------------------------------------
     # Timestamp.tz_localize
 
