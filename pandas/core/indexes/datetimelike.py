@@ -2,6 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
+from typing import Set
 import warnings
 
 import numpy as np
@@ -134,7 +135,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._data
 
-    @property
+    @property  # type: ignore
     @Appender(DatetimeLikeArrayMixin.asi8.__doc__)
     def asi8(self):
         return self._data.asi8
@@ -758,9 +759,9 @@ class DatetimelikeDelegateMixin(PandasDelegate):
         boxed in an index, after being returned from the array
     """
     # raw_methods : dispatch methods that shouldn't be boxed in an Index
-    _raw_methods = set()
+    _raw_methods = set()  # type: Set[str]
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
-    _raw_properties = set()
+    _raw_properties = set()  # type: Set[str]
     name = None
     _data = None
 
