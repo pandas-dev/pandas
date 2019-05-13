@@ -536,7 +536,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     datetime_format : string, default None
         Format string for datetime objects written into Excel files
         (e.g. 'YYYY-MM-DD HH:MM:SS')
-    mode : 'w' or 'a', default 'w'
+    mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).
 
         .. versionadded:: 0.24.0
