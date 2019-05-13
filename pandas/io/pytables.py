@@ -10,7 +10,7 @@ import itertools
 import os
 import re
 import time
-from typing import Optional, List, Type, Union
+from typing import List, Optional, Type, Union
 import warnings
 
 import numpy as np

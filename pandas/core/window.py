@@ -5,7 +5,7 @@ similar to how we have a Groupby object.
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
-from typing import Set
+from typing import Set, no_type_check
 import warnings
 
 import numpy as np
@@ -789,6 +789,10 @@ class _GroupByMixin(GroupByMixin):
     corr = GroupByMixin._dispatch('corr', other=None, pairwise=None)
     cov = GroupByMixin._dispatch('cov', other=None, pairwise=None)
 
+    # Removed from type checking because there is currently no good way to
+    # handle multiple inheritance with mypy
+    # https://github.com/python/mypy/issues/2125
+    @no_type_check
     def _apply(self, func, name, window=None, center=None,
                check_minp=None, **kwargs):
         """
