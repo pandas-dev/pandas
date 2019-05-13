@@ -6,10 +6,9 @@ This is not a public API.
 import datetime
 import operator
 import textwrap
-from typing import Dict, Optional
+from typing import Dict, Optional, Union, cast
 import warnings
 
-from mypy_extensions import TypedDict
 import numpy as np
 
 from pandas._libs import algos as libalgos, lib, ops as libops
@@ -562,18 +561,6 @@ e    NaN
 dtype: float64
 """
 
-Operator_description = TypedDict(
-    'Operator_description',
-    {
-        'op': str,
-        'desc': str,
-        'reverse': Optional[str],
-        'series_examples': Optional[str],
-        'df_examples': Optional[str],
-        'reversed': bool
-    },
-    total=False)
-
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
@@ -639,16 +626,21 @@ _op_descriptions = {
            'desc': 'Greater than or equal to',
            'reverse': None,
            'series_examples': None}
-}  # type: Dict[str, Operator_description]
+}  # type: Dict[str, Dict[str, Optional[Union[bool, str]]]]
+
+# When TypedDict becomes available, this annotation would be much better and
+# more readable if defined using that structure. The casts() below would not be
+# necessary, because only the dictionary values keyed to 'reversed' would be
+# typed as bool. See GH#26377.
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
     _op_descriptions[key]['reversed'] = False
     reverse_op = _op_descriptions[key]['reverse']
     if reverse_op is not None:
-        _op_descriptions[reverse_op] = _op_descriptions[key].copy()
-        _op_descriptions[reverse_op]['reversed'] = True
-        _op_descriptions[reverse_op]['reverse'] = key
+        _op_descriptions[cast(str, reverse_op)] = _op_descriptions[key].copy()
+        _op_descriptions[cast(str, reverse_op)]['reversed'] = True
+        _op_descriptions[cast(str, reverse_op)]['reverse'] = key
 
 _flex_doc_SERIES = """
 Return {desc} of series and other, element-wise (binary operator `{op_name}`).
