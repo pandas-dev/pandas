@@ -7,7 +7,6 @@ from numpy import random
 from numpy.random import randn
 import pytest
 
-from pandas.compat import lmap
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -115,7 +114,7 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(andrews_curves, frame=df,
                                class_column='Name', colormap=cm.jet)
-        cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
+        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df['Name'].nunique())]
         self._check_colors(
             ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
 
@@ -141,7 +140,7 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(andrews_curves, frame=df,
                                class_column='Name', colormap=cm.jet)
-        cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
+        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df['Name'].nunique())]
         self._check_colors(
             ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
 
@@ -183,7 +182,7 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(parallel_coordinates,
                                frame=df, class_column='Name', colormap=cm.jet)
-        cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
+        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df['Name'].nunique())]
         self._check_colors(
             ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
 
@@ -250,7 +249,7 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(radviz, frame=df,
                           class_column='Name', colormap=cm.jet)
-        cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
+        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df['Name'].nunique())]
         patches = [p for p in ax.patches[:20] if p.get_label() != '']
         self._check_colors(patches, facecolors=cmaps, mapping=df['Name'][:10])
 
@@ -337,8 +336,7 @@ class TestDataFramePlots(TestPlotBase):
                         'rank': [52, 525, 32],
                         })
         ax = df.client.value_counts().plot.bar()
-        colors = lmap(lambda rect: rect.get_facecolor(),
-                      ax.get_children()[0:3])
+        colors = [rect.get_facecolor() for rect in ax.get_children()[0:3]]
         assert all(color == colors[0] for color in colors)
 
     def test_get_standard_colors_no_appending(self):

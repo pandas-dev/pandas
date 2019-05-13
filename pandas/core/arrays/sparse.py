@@ -547,7 +547,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         timedelta64 ``pd.NaT``
         =========== ==========
 
-        The fill value is potentiall specified in three ways. In order of
+        The fill value is potentially specified in three ways. In order of
         precedence, these are
 
         1. The `fill_value` argument
@@ -1818,7 +1818,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def _add_comparison_ops(cls):
         cls.__and__ = cls._create_comparison_method(operator.and_)
         cls.__or__ = cls._create_comparison_method(operator.or_)
-        super(SparseArray, cls)._add_comparison_ops()
+        super()._add_comparison_ops()
 
     # ----------
     # Formatting
@@ -2009,7 +2009,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         s : SparseSeries
 
         Examples
-        ---------
+        --------
         >>> from scipy import sparse
         >>> A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
                                shape=(3, 4))

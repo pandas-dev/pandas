@@ -16,6 +16,8 @@ conda remove --all -q -y -n pandas-dev
 conda env create --file=ci\deps\azure-windows-%CONDA_PY%.yaml
 
 call activate pandas-dev
+@rem gh-26345: we need to separate this out so that Azure doesn't complain
+conda install -c conda-forge gcsfs
 conda list
 
 if %errorlevel% neq 0 exit /b %errorlevel%

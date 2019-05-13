@@ -12,7 +12,7 @@ from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex, ABCDateOffset, ABCIndexClass)
 
-from .base import ExtensionDtype, _DtypeOpsMixin
+from .base import ExtensionDtype
 from .inference import is_list_like
 
 str_type = str
@@ -26,6 +26,11 @@ def register_extension_dtype(cls):
 
     This enables operations like ``.astype(name)`` for the name
     of the ExtensionDtype.
+
+    Returns
+    -------
+    callable
+        A class decorator.
 
     Examples
     --------
@@ -63,7 +68,7 @@ class Registry:
         ----------
         dtype : ExtensionDtype
         """
-        if not issubclass(dtype, (PandasExtensionDtype, ExtensionDtype)):
+        if not issubclass(dtype, ExtensionDtype):
             raise ValueError("can only register pandas extension dtypes")
 
         self.dtypes.append(dtype)
@@ -99,7 +104,7 @@ class Registry:
 registry = Registry()
 
 
-class PandasExtensionDtype(_DtypeOpsMixin):
+class PandasExtensionDtype(ExtensionDtype):
     """
     A np.dtype duck-typed class, suitable for holding a custom dtype.
 
@@ -572,7 +577,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
 
 @register_extension_dtype
-class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
+class DatetimeTZDtype(PandasExtensionDtype):
     """
     An ExtensionDtype for timezone-aware datetime data.
 
@@ -732,7 +737,7 @@ class DatetimeTZDtype(PandasExtensionDtype, ExtensionDtype):
 
 
 @register_extension_dtype
-class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
+class PeriodDtype(PandasExtensionDtype):
     """
     An ExtensionDtype for Period data.
 
@@ -879,7 +884,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
                     return False
             else:
                 return False
-        return super(PeriodDtype, cls).is_dtype(dtype)
+        return super().is_dtype(dtype)
 
     @classmethod
     def construct_array_type(cls):
@@ -889,7 +894,7 @@ class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
 
 
 @register_extension_dtype
-class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
+class IntervalDtype(PandasExtensionDtype):
     """
     An ExtensionDtype for Interval data.
 
@@ -1047,4 +1052,4 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
                     return False
             else:
                 return False
-        return super(IntervalDtype, cls).is_dtype(dtype)
+        return super().is_dtype(dtype)

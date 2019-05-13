@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
 import pandas as pd
@@ -97,7 +96,7 @@ def test_unsortedindex():
     mi = pd.MultiIndex.from_tuples([('z', 'a'), ('x', 'a'), ('y', 'b'),
                                     ('x', 'b'), ('y', 'a'), ('z', 'b')],
                                    names=['one', 'two'])
-    df = pd.DataFrame([[i, 10 * i] for i in lrange(6)], index=mi,
+    df = pd.DataFrame([[i, 10 * i] for i in range(6)], index=mi,
                       columns=['one', 'two'])
 
     # GH 16734: not sorted, but no real slicing

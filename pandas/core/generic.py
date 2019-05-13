@@ -15,7 +15,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import Timestamp, iNaT, properties
-from pandas.compat import lrange, lzip, set_function_name, to_str
+from pandas.compat import set_function_name, to_str
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -29,7 +29,7 @@ from pandas.core.dtypes.common import (
     is_dict_like, is_extension_array_dtype, is_integer, is_list_like,
     is_number, is_numeric_dtype, is_object_dtype, is_period_arraylike,
     is_re_compilable, is_scalar, is_timedelta64_dtype, pandas_dtype)
-from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
@@ -206,7 +206,7 @@ class NDFrame(PandasObject, SelectionMixin):
     @property
     def _constructor_expanddim(self):
         """Used when a manipulation result has one higher dimension as the
-        original, such as Series.to_frame() and DataFrame.to_panel()
+        original, such as Series.to_frame()
         """
         raise NotImplementedError
 
@@ -688,7 +688,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if kwargs.pop('copy', None) or (len(args) and args[-1]):
             new_values = new_values.copy()
 
-        nv.validate_transpose_for_generic(self, kwargs)
+        nv.validate_transpose(tuple(), kwargs)
         return self._constructor(new_values, **new_axes).__finalize__(self)
 
     def swapaxes(self, axis1, axis2, copy=True):
@@ -978,7 +978,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         %(axes)s : scalar, list-like, dict-like or function, optional
             Scalar or list-like will alter the ``Series.name`` attribute,
-            and raise on DataFrame or Panel.
+            and raise on DataFrame.
             dict-like or functions are transformations to apply to
             that axis' values
         copy : bool, default True
@@ -1101,7 +1101,7 @@ class NDFrame(PandasObject, SelectionMixin):
         result = self if inplace else self.copy(deep=copy)
 
         # start in the axis order to eliminate too many copies
-        for axis in lrange(self._AXIS_LEN):
+        for axis in range(self._AXIS_LEN):
             v = axes.get(self._AXIS_NAMES[axis])
             if v is None:
                 continue
@@ -1294,7 +1294,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # is specified
             result = self if inplace else self.copy(deep=copy)
 
-            for axis in lrange(self._AXIS_LEN):
+            for axis in range(self._AXIS_LEN):
                 v = axes.get(self._AXIS_NAMES[axis])
                 if v is sentinel:
                     continue
@@ -1518,6 +1518,11 @@ class NDFrame(PandasObject, SelectionMixin):
         This must be a boolean scalar value, either True or False.  Raise a
         ValueError if the PandasObject does not have exactly 1 element, or that
         element is not boolean
+
+        Returns
+        -------
+        bool
+            Same single boolean value converted to bool type.
         """
         v = self.squeeze()
         if isinstance(v, (bool, np.bool_)):
@@ -1845,23 +1850,33 @@ class NDFrame(PandasObject, SelectionMixin):
                         ' hashed'.format(self.__class__.__name__))
 
     def __iter__(self):
-        """Iterate over info axis"""
+        """
+        Iterate over info axis.
+
+        Returns
+        -------
+        iterator
+            Info axis as iterator.
+        """
         return iter(self._info_axis)
 
     # can we get a better explanation of this?
     def keys(self):
         """Get the 'info axis' (see Indexing for more)
 
-        This is index for Series, columns for DataFrame and major_axis for
-        Panel.
+        This is index for Series, columns for DataFrame.
+
+        Returns
+        -------
+        Index
+            Info axis.
         """
         return self._info_axis
 
     def iteritems(self):
         """Iterate over (label, values) on info axis
 
-        This is index for Series, columns for DataFrame, major_axis for Panel,
-        and so on.
+        This is index for Series, columns for DataFrame and so on.
         """
         for h in self._info_axis:
             yield h, self[h]
@@ -1948,6 +1963,11 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_dense(self):
         """
         Return dense representation of NDFrame (as opposed to sparse).
+
+        Returns
+        -------
+        %(klass)s
+            Dense %(klass)s.
         """
         # compat
         return self
@@ -2240,6 +2260,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.23.0
 
+        Returns
+        -------
+        None or str
+            If path_or_buf is None, returns the resulting json format as a
+            string. Otherwise returns None.
+
         See Also
         --------
         read_json
@@ -2403,7 +2429,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> os.remove('data.h5')
         """
         from pandas.io import pytables
-        return pytables.to_hdf(path_or_buf, key, self, **kwargs)
+        pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
     def to_msgpack(self, path_or_buf=None, encoding='utf-8', **kwargs):
         """
@@ -2420,6 +2446,12 @@ class NDFrame(PandasObject, SelectionMixin):
             (default is False)
         compress : type of compressor (zlib or blosc), default to None (no
             compression)
+
+        Returns
+        -------
+        None or str
+            If path_or_buf is None, returns the resulting msgpack format as a
+            string. Otherwise returns None.
         """
 
         from pandas.io import packers
@@ -2615,8 +2647,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> os.remove("./dummy.pkl")
         """
         from pandas.io.pickle import to_pickle
-        return to_pickle(self, path, compression=compression,
-                         protocol=protocol)
+        to_pickle(self, path, compression=compression, protocol=protocol)
 
     def to_clipboard(self, excel=True, sep=None, **kwargs):
         r"""
@@ -3064,8 +3095,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def get(self, key, default=None):
         """
-        Get item from object for given key (DataFrame column, Panel slice,
-        etc.). Returns default value if not found.
+        Get item from object for given key (ex: DataFrame column).
+
+        Returns default value if not found.
 
         Parameters
         ----------
@@ -4092,8 +4124,7 @@ class NDFrame(PandasObject, SelectionMixin):
         0   A    2    0
         1   A    1    1
         """
-        raise NotImplementedError("sort_values has not been implemented "
-                                  "on Panel or Panel4D objects.")
+        raise AbstractMethodError(self)
 
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True):
@@ -4771,7 +4802,7 @@ class NDFrame(PandasObject, SelectionMixin):
             object.
         axis : int or string, optional
             Axis to sample. Accepts axis number or name. Default is stat axis
-            for given data type (0 for Series and DataFrames, 1 for Panels).
+            for given data type (0 for Series and DataFrames).
 
         Returns
         -------
@@ -4854,7 +4885,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                          "a DataFrame")
                 else:
                     raise ValueError("Strings cannot be passed as weights "
-                                     "when sampling from a Series or Panel.")
+                                     "when sampling from a Series.")
 
             weights = pd.Series(weights, dtype='float64')
 
@@ -5698,8 +5729,7 @@ class NDFrame(PandasObject, SelectionMixin):
             elif self.ndim > 2:
                 raise NotImplementedError(
                     'astype() only accepts a dtype arg of type dict when '
-                    'invoked on Series and DataFrames. A single dtype must be '
-                    'specified when invoked on a Panel.'
+                    'invoked on Series and DataFrames.'
                 )
             for col_name in dtype.keys():
                 if col_name not in self:
@@ -5752,7 +5782,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        copy : Series, DataFrame or Panel
+        copy : Series or DataFrame
             Object type matches caller.
 
         Notes
@@ -6171,6 +6201,11 @@ class NDFrame(PandasObject, SelectionMixin):
     def ffill(self, axis=None, inplace=False, limit=None, downcast=None):
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
+
+        Returns
+        -------
+        %(klass)s
+            Object with missing values filled.
         """
         return self.fillna(method='ffill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
@@ -6178,6 +6213,11 @@ class NDFrame(PandasObject, SelectionMixin):
     def bfill(self, axis=None, inplace=False, limit=None, downcast=None):
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
+
+        Returns
+        -------
+        %(klass)s
+            Object with missing values filled.
         """
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
@@ -6506,7 +6546,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 regex = True
 
             items = list(to_replace.items())
-            keys, values = lzip(*items) or ([], [])
+            keys, values = zip(*items) if items else ([], [])
 
             are_mappings = [is_dict_like(v) for v in values]
 
@@ -6520,7 +6560,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 value_dict = {}
 
                 for k, v in items:
-                    keys, values = lzip(*v.items()) or ([], [])
+                    keys, values = list(zip(*v.items())) or ([], [])
                     if set(keys) & set(values):
                         raise ValueError("Replacement not allowed with "
                                          "overlapping keys and values")
@@ -6823,8 +6863,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         if self.ndim > 2:
-            raise NotImplementedError("Interpolate has not been implemented "
-                                      "on Panel and Panel 4D objects.")
+            raise NotImplementedError("Interpolate has not been implemented ")
 
         if axis == 0:
             ax = self._info_axis_name
@@ -7327,9 +7366,6 @@ class NDFrame(PandasObject, SelectionMixin):
         3      6      8
         4      5      3
         """
-        if isinstance(self, ABCPanel):
-            raise NotImplementedError("clip is not supported yet for panels")
-
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         axis = nv.validate_clip_with_axis(axis, args, kwargs)
@@ -7925,7 +7961,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        rule : str
+        rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
         how : str
             Method for down/re-sampling, default to 'mean' for downsampling.
@@ -7993,11 +8029,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         See the `user guide
-        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#resampling>`_
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`_
         for more.
 
         To learn more about the offset strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
 
         Examples
         --------
@@ -8335,34 +8371,85 @@ class NDFrame(PandasObject, SelectionMixin):
     def rank(self, axis=0, method='average', numeric_only=None,
              na_option='keep', ascending=True, pct=False):
         """
-        Compute numerical data ranks (1 through n) along axis. Equal values are
-        assigned a rank that is the average of the ranks of those values.
+        Compute numerical data ranks (1 through n) along axis.
+
+        By default, equal values are assigned a rank that is the average of the
+        ranks of those values.
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            index to direct ranking
-        method : {'average', 'min', 'max', 'first', 'dense'}
-            * average: average rank of group
-            * min: lowest rank in group
-            * max: highest rank in group
+            Index to direct ranking.
+        method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
+            How to rank the group of records that have the same value
+            (i.e. ties):
+
+            * average: average rank of the group
+            * min: lowest rank in the group
+            * max: highest rank in the group
             * first: ranks assigned in order they appear in the array
             * dense: like 'min', but rank always increases by 1 between groups
-        numeric_only : boolean, default None
-            Include only float, int, boolean data. Valid only for DataFrame or
-            Panel objects
-        na_option : {'keep', 'top', 'bottom'}
-            * keep: leave NA values where they are
-            * top: smallest rank if ascending
-            * bottom: smallest rank if descending
-        ascending : boolean, default True
-            False for ranks by high (1) to low (N)
-        pct : boolean, default False
-            Computes percentage rank of data
+        numeric_only : bool, optional
+            For DataFrame objects, rank only numeric columns if set to True.
+        na_option : {'keep', 'top', 'bottom'}, default 'keep'
+            How to rank NaN values:
+
+            * keep: assign NaN rank to NaN values
+            * top: assign smallest rank to NaN values if ascending
+            * bottom: assign highest rank to NaN values if ascending
+        ascending : bool, default True
+            Whether or not the elements should be ranked in ascending order.
+        pct : bool, default False
+            Whether or not to display the returned rankings in percentile
+            form.
 
         Returns
         -------
-        ranks : same type as caller
+        same type as caller
+            Return a Series or DataFrame with data ranks as values.
+
+        See Also
+        --------
+        core.groupby.GroupBy.rank : Rank of values within each group.
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame(data={'Animal': ['cat', 'penguin', 'dog',
+        ...                                    'spider', 'snake'],
+        ...                         'Number_legs': [4, 2, 4, 8, np.nan]})
+        >>> df
+            Animal  Number_legs
+        0      cat          4.0
+        1  penguin          2.0
+        2      dog          4.0
+        3   spider          8.0
+        4    snake          NaN
+
+        The following example shows how the method behaves with the above
+        parameters:
+
+        * default_rank: this is the default behaviour obtained without using
+          any parameter.
+        * max_rank: setting ``method = 'max'`` the records that have the
+          same values are ranked using the highest rank (e.g.: since 'cat'
+          and 'dog' are both in the 2nd and 3rd position, rank 3 is assigned.)
+        * NA_bottom: choosing ``na_option = 'bottom'``, if there are records
+          with NaN values they are placed at the bottom of the ranking.
+        * pct_rank: when setting ``pct = True``, the ranking is expressed as
+          percentile rank.
+
+        >>> df['default_rank'] = df['Number_legs'].rank()
+        >>> df['max_rank'] = df['Number_legs'].rank(method='max')
+        >>> df['NA_bottom'] = df['Number_legs'].rank(na_option='bottom')
+        >>> df['pct_rank'] = df['Number_legs'].rank(pct=True)
+        >>> df
+            Animal  Number_legs  default_rank  max_rank  NA_bottom  pct_rank
+        0      cat          4.0           2.5       3.0        2.5     0.625
+        1  penguin          2.0           1.0       1.0        1.0     0.250
+        2      dog          4.0           2.5       3.0        2.5     0.625
+        3   spider          8.0           4.0       4.0        4.0     1.000
+        4    snake          NaN           NaN       NaN        5.0       NaN
         """
         axis = self._get_axis_number(axis)
 
@@ -9270,6 +9357,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
+        %(klass)s
+            Object with time zone converted axis.
 
         Raises
         ------
@@ -9774,10 +9863,7 @@ class NDFrame(PandasObject, SelectionMixin):
         75%            NaN      2.5
         max            NaN      3.0
         """
-        if self.ndim >= 3:
-            msg = "describe is not implemented on Panel objects."
-            raise NotImplementedError(msg)
-        elif self.ndim == 2 and self.columns.size == 0:
+        if self.ndim == 2 and self.columns.size == 0:
             raise ValueError("Cannot describe a DataFrame without columns")
 
         if percentiles is not None:
@@ -10241,11 +10327,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Return index for %(position)s non-NA/null value.
 
         Returns
-        --------
+        -------
         scalar : type of index
 
         Notes
-        --------
+        -----
         If all elements are non-NA/null, returns None.
         Also returns None for empty %(klass)s.
         """

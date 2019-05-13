@@ -48,10 +48,9 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <../../../tslibs/src/datetime/np_datetime_strings.h>
 #include "datetime.h"
 
-static PyObject *type_decimal;
-
 #define NPY_JSON_BUFSIZE 32768
 
+static PyTypeObject *type_decimal;
 static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
@@ -154,8 +153,8 @@ void *initObjToJSON(void)
     PyObject *mod_pandas;
     PyObject *mod_nattype;
     PyObject *mod_decimal = PyImport_ImportModule("decimal");
-    type_decimal = PyObject_GetAttrString(mod_decimal, "Decimal");
-    Py_INCREF(type_decimal);
+    type_decimal =
+      (PyTypeObject *)PyObject_GetAttrString(mod_decimal, "Decimal");
     Py_DECREF(mod_decimal);
 
     PyDateTime_IMPORT;
@@ -628,44 +627,39 @@ void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         obj = (PyArrayObject *)_obj;
     }
 
-    if (PyArray_SIZE(obj) < 0) {
-        PRINTMARK();
-        GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-    } else {
-        PRINTMARK();
-        npyarr = PyObject_Malloc(sizeof(NpyArrContext));
-        GET_TC(tc)->npyarr = npyarr;
+    PRINTMARK();
+    npyarr = PyObject_Malloc(sizeof(NpyArrContext));
+    GET_TC(tc)->npyarr = npyarr;
 
-        if (!npyarr) {
-            PyErr_NoMemory();
-            GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-            return;
-        }
-
-        npyarr->array = (PyObject *)obj;
-        npyarr->getitem = (PyArray_GetItemFunc *)PyArray_DESCR(obj)->f->getitem;
-        npyarr->dataptr = PyArray_DATA(obj);
-        npyarr->ndim = PyArray_NDIM(obj) - 1;
-        npyarr->curdim = 0;
-        npyarr->type_num = PyArray_DESCR(obj)->type_num;
-
-        if (GET_TC(tc)->transpose) {
-            npyarr->dim = PyArray_DIM(obj, npyarr->ndim);
-            npyarr->stride = PyArray_STRIDE(obj, npyarr->ndim);
-            npyarr->stridedim = npyarr->ndim;
-            npyarr->index[npyarr->ndim] = 0;
-            npyarr->inc = -1;
-        } else {
-            npyarr->dim = PyArray_DIM(obj, 0);
-            npyarr->stride = PyArray_STRIDE(obj, 0);
-            npyarr->stridedim = 0;
-            npyarr->index[0] = 0;
-            npyarr->inc = 1;
-        }
-
-        npyarr->columnLabels = GET_TC(tc)->columnLabels;
-        npyarr->rowLabels = GET_TC(tc)->rowLabels;
+    if (!npyarr) {
+      PyErr_NoMemory();
+      GET_TC(tc)->iterNext = NpyArr_iterNextNone;
+      return;
     }
+
+    npyarr->array = (PyObject *)obj;
+    npyarr->getitem = (PyArray_GetItemFunc *)PyArray_DESCR(obj)->f->getitem;
+    npyarr->dataptr = PyArray_DATA(obj);
+    npyarr->ndim = PyArray_NDIM(obj) - 1;
+    npyarr->curdim = 0;
+    npyarr->type_num = PyArray_DESCR(obj)->type_num;
+
+    if (GET_TC(tc)->transpose) {
+      npyarr->dim = PyArray_DIM(obj, npyarr->ndim);
+      npyarr->stride = PyArray_STRIDE(obj, npyarr->ndim);
+      npyarr->stridedim = npyarr->ndim;
+      npyarr->index[npyarr->ndim] = 0;
+      npyarr->inc = -1;
+    } else {
+      npyarr->dim = PyArray_DIM(obj, 0);
+      npyarr->stride = PyArray_STRIDE(obj, 0);
+      npyarr->stridedim = 0;
+      npyarr->index[0] = 0;
+      npyarr->inc = 1;
+    }
+
+    npyarr->columnLabels = GET_TC(tc)->columnLabels;
+    npyarr->rowLabels = GET_TC(tc)->rowLabels;
 }
 
 void NpyArr_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
@@ -709,7 +703,7 @@ int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
 
     NpyArr_freeItemValue(obj, tc);
 
-    if (PyArray_ISNUMBER(npyarr->array) || PyArray_ISDATETIME(npyarr->array))
+    if (PyArray_ISDATETIME(npyarr->array))
     {
         PRINTMARK();
         GET_TC(tc)->itemValue = obj;
@@ -1751,17 +1745,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         }
 
         return;
-    } else if (PyLong_Check(obj)) {
-        PRINTMARK();
-
-#ifdef _LP64
-        pc->PyTypeToJSON = PyIntToINT64;
-        tc->type = JT_LONG;
-#else
-        pc->PyTypeToJSON = PyIntToINT32;
-        tc->type = JT_INT;
-#endif
-        return;
     } else if (PyFloat_Check(obj)) {
         PRINTMARK();
         val = PyFloat_AS_DOUBLE(obj);
@@ -1782,7 +1765,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         pc->PyTypeToJSON = PyUnicodeToUTF8;
         tc->type = JT_UTF8;
         return;
-    } else if (PyObject_IsInstance(obj, type_decimal)) {
+    } else if (PyObject_TypeCheck(obj, type_decimal)) {
         PRINTMARK();
         pc->PyTypeToJSON = PyFloatToDOUBLE;
         tc->type = JT_DOUBLE;

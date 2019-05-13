@@ -4,6 +4,7 @@ import string
 import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Categorical, date_range, read_csv
+from pandas.io.parsers import _parser_defaults
 from io import StringIO
 
 from ..pandas_vb_common import BaseIO
@@ -93,6 +94,35 @@ class ReadCSVDInferDatetimeFormat(StringIORewind):
         read_csv(self.data(self.StringIO_input),
                  header=None, names=['foo'], parse_dates=['foo'],
                  infer_datetime_format=infer_datetime_format)
+
+
+class ReadCSVConcatDatetime(StringIORewind):
+
+    iso8601 = '%Y-%m-%d %H:%M:%S'
+
+    def setup(self):
+        rng = date_range('1/1/2000', periods=50000, freq='S')
+        self.StringIO_input = StringIO('\n'.join(
+                                       rng.strftime(self.iso8601).tolist()))
+
+    def time_read_csv(self):
+        read_csv(self.data(self.StringIO_input),
+                 header=None, names=['foo'], parse_dates=['foo'],
+                 infer_datetime_format=False)
+
+
+class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
+
+    params = (['nan', '0', ''],)
+    param_names = ['bad_date_value']
+
+    def setup(self, bad_date_value):
+        self.StringIO_input = StringIO(('%s,\n' % bad_date_value) * 50000)
+
+    def time_read_csv(self, bad_date_value):
+        read_csv(self.data(self.StringIO_input),
+                 header=None, names=['foo', 'bar'], parse_dates=['foo'],
+                 infer_datetime_format=False)
 
 
 class ReadCSVSkipRows(BaseIO):
@@ -230,6 +260,25 @@ class ReadCSVParseDates(StringIORewind):
         read_csv(self.data(self.StringIO_input), sep=',', header=None,
                  parse_dates=[1],
                  names=list(string.digits[:9]))
+
+
+class ReadCSVCachedParseDates(StringIORewind):
+    params = ([True, False],)
+    param_names = ['do_cache']
+
+    def setup(self, do_cache):
+        data = ('\n'.join('10/{}'.format(year)
+                for year in range(2000, 2100)) + '\n') * 10
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv_cached(self, do_cache):
+        # kwds setting here is used to avoid breaking tests in
+        # previous version of pandas, because this is api changes
+        kwds = {}
+        if 'cache_dates' in _parser_defaults:
+            kwds['cache_dates'] = do_cache
+        read_csv(self.data(self.StringIO_input), header=None,
+                 parse_dates=[0], **kwds)
 
 
 class ReadCSVMemoryGrowth(BaseIO):
