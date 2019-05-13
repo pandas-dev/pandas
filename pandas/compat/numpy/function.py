@@ -18,9 +18,10 @@ and methods that are spread throughout the codebase. This module will make it
 easier to adjust to future upstream changes in the analogous numpy signatures.
 """
 from collections import OrderedDict
+from distutils.version import LooseVersion
 from typing import Any, Dict, Optional, Union
 
-from numpy import ndarray
+from numpy import __version__ as _np_version, ndarray
 
 from pandas._libs.lib import is_bool, is_integer
 from pandas.errors import UnsupportedFunctionCall
@@ -107,6 +108,12 @@ ARGSORT_DEFAULTS = OrderedDict() \
 ARGSORT_DEFAULTS['axis'] = -1
 ARGSORT_DEFAULTS['kind'] = 'quicksort'
 ARGSORT_DEFAULTS['order'] = None
+
+if LooseVersion(_np_version) >= LooseVersion("1.17.0"):
+    # GH-26361. NumPy added radix sort and changed default to None.
+    ARGSORT_DEFAULTS['kind'] = None
+
+
 validate_argsort = CompatValidator(ARGSORT_DEFAULTS, fname='argsort',
                                    max_fname_arg_count=0, method='both')
 
