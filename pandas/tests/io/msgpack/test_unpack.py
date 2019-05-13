@@ -6,7 +6,7 @@ import pytest
 from pandas.io.msgpack import ExtType, OutOfData, Unpacker, packb
 
 
-class TestUnpack(object):
+class TestUnpack:
 
     def test_unpack_array_header_from_file(self):
         f = BytesIO(packb([1, 2, 3, 4]))
@@ -49,8 +49,7 @@ class TestUnpack(object):
         class MyUnpacker(Unpacker):
 
             def __init__(self):
-                super(MyUnpacker, self).__init__(ext_hook=self._hook,
-                                                 encoding='utf-8')
+                super().__init__(ext_hook=self._hook, encoding='utf-8')
 
             def _hook(self, code, data):
                 if code == 1:

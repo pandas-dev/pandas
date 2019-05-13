@@ -3,11 +3,11 @@
 from collections import abc
 from numbers import Number
 import re
+from typing import Pattern
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import PY2, re_type
 
 is_bool = lib.is_bool
 
@@ -146,12 +146,7 @@ def is_iterator(obj):
     if not hasattr(obj, '__iter__'):
         return False
 
-    if PY2:
-        return hasattr(obj, 'next')
-    else:
-        # Python 3 generators have
-        # __next__ instead of next
-        return hasattr(obj, '__next__')
+    return hasattr(obj, '__next__')
 
 
 def is_file_like(obj):
@@ -214,8 +209,7 @@ def is_re(obj):
     >>> is_re("foo")
     False
     """
-
-    return isinstance(obj, re_type)
+    return isinstance(obj, Pattern)
 
 
 def is_re_compilable(obj):
@@ -440,6 +434,10 @@ def is_hashable(obj):
 
     Distinguish between these and other types by trying the call to hash() and
     seeing if they raise TypeError.
+
+    Returns
+    -------
+    bool
 
     Examples
     --------

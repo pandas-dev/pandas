@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that quoting specifications are properly handled
 during parsing for all of the parsers defined in parsers.py
 """
 
 import csv
+from io import StringIO
 
 import pytest
 
-from pandas.compat import StringIO
 from pandas.errors import ParserError
 
 from pandas import DataFrame

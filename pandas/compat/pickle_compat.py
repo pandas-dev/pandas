@@ -138,13 +138,13 @@ _class_locations_map = {
 # our Unpickler sub-class to override methods and some dispatcher
 # functions for compat
 
-class Unpickler(pkl._Unpickler):
+class Unpickler(pkl._Unpickler):  # type: ignore
 
     def find_class(self, module, name):
         # override superclass
         key = (module, name)
         module, name = _class_locations_map.get(key, key)
-        return super(Unpickler, self).find_class(module, name)
+        return super().find_class(module, name)
 
 
 Unpickler.dispatch = copy.copy(Unpickler.dispatch)

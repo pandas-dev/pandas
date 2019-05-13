@@ -3,6 +3,7 @@ import contextlib
 from datetime import date, datetime, time, timedelta
 from distutils.version import LooseVersion
 from functools import partial
+from io import BytesIO
 import os
 import warnings
 
@@ -10,7 +11,7 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import PY36, BytesIO, iteritems
+from pandas.compat import PY36
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -49,7 +50,7 @@ def ignore_xlrd_time_clock_warning():
 
 
 @td.skip_if_no('xlrd', '1.0.0')
-class SharedItems(object):
+class SharedItems:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
@@ -797,7 +798,7 @@ class ReadingTestsBase(SharedItems):
 
         with ensure_clean(ext) as pth:
             with ExcelWriter(pth) as ew:
-                for sheetname, df in iteritems(dfs):
+                for sheetname, df in dfs.items():
                     df.to_excel(ew, sheetname)
 
             dfs_returned = read_excel(pth, sheet_name=sheets, index_col=0)
@@ -2326,7 +2327,7 @@ class TestXlsxWriterTests(_WriterBase):
                 ExcelWriter(f, engine=engine, mode='a')
 
 
-class TestExcelWriterEngineTests(object):
+class TestExcelWriterEngineTests:
 
     @pytest.mark.parametrize('klass,ext', [
         pytest.param(_XlsxWriter, '.xlsx', marks=pytest.mark.skipif(
@@ -2349,7 +2350,6 @@ class TestExcelWriterEngineTests(object):
         with pytest.raises(ValueError, match='No engine'):
             ExcelWriter('nothing')
 
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_register_writer(self):
         # some awkward mocking to test out dispatch and such actually works
         called_save = []
@@ -2542,7 +2542,7 @@ def test_styler_to_excel(engine):
 
 @td.skip_if_no('openpyxl')
 @pytest.mark.skipif(not PY36, reason='requires fspath')
-class TestFSPath(object):
+class TestFSPath:
 
     def test_excelfile_fspath(self):
         with tm.ensure_clean('foo.xlsx') as path:

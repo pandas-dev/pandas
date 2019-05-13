@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 from numpy cimport ndarray, int64_t, int32_t
 
@@ -10,8 +8,8 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.frequencies cimport get_freq_code
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
-from pandas._libs.tslibs.conversion cimport tz_convert_utc_to_tzlocal
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
+from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 # ----------------------------------------------------------------------
 # Constants
@@ -133,7 +131,7 @@ def get_freq_group(freq):
     return (freq // 1000) * 1000
 
 
-class Resolution(object):
+class Resolution:
 
     # Note: cython won't allow us to reference the cdef versions at the
     # module level

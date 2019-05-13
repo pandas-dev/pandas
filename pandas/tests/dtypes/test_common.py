@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -29,7 +27,7 @@ def to_numpy_dtypes(dtypes):
     return [getattr(np, dt) for dt in dtypes if isinstance(dt, str)]
 
 
-class TestPandasDtype(object):
+class TestPandasDtype:
 
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520

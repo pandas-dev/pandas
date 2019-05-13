@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import collections
 from functools import partial
 import string
@@ -22,7 +20,7 @@ def test_get_callable_name():
     part1 = partial(fn)
     part2 = partial(part1)
 
-    class somecall(object):
+    class somecall:
 
         def __call__(self):
             return x  # noqa

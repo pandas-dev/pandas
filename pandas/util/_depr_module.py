@@ -7,7 +7,7 @@ import importlib
 import warnings
 
 
-class _DeprecatedModule(object):
+class _DeprecatedModule:
     """ Class for mocking deprecated modules.
 
     Parameters

@@ -3,7 +3,8 @@ missing types & inference
 """
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import lib
+import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
 
 from .common import (

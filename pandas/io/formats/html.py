@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Module for formatting output data in HTML.
 """
@@ -7,8 +6,6 @@ from collections import OrderedDict
 from textwrap import dedent
 
 from pandas._config import get_option
-
-from pandas.compat import lzip
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
@@ -49,8 +46,11 @@ class HTMLFormatter(TableFormatter):
         self.formatters = self.fmt.formatters
         self.float_format = self.fmt.float_format
         self.na_rep = self.fmt.na_rep
-        self.col_space = self.fmt.col_space
         self.decimal = self.fmt.decimal
+        if isinstance(self.fmt.col_space, int):
+            self.fmt.col_space = ('{colspace}px'
+                                  .format(colspace=self.fmt.col_space))
+        self.col_space = self.fmt.col_space
 
     @property
     def show_row_idx_names(self):
@@ -75,6 +75,9 @@ class HTMLFormatter(TableFormatter):
         # not showing (row) index
         return 0
 
+    def _get_columns_formatted_values(self):
+        return self.columns
+
     @property
     def is_truncated(self):
         return self.fmt.is_truncated
@@ -87,8 +90,30 @@ class HTMLFormatter(TableFormatter):
         rs = pprint_thing(s)
         self.elements.append(' ' * indent + rs)
 
-    def write_th(self, s, indent=0, tags=None):
-        if self.fmt.col_space is not None and self.fmt.col_space > 0:
+    def write_th(self, s, header=False, indent=0, tags=None):
+        """
+        Method for writting a formatted <th> cell.
+
+        If col_space is set on the formatter then that is used for
+        the value of min-width.
+
+        Parameters
+        ----------
+        s : object
+            The data to be written inside the cell.
+        header : boolean, default False
+            Set to True if the <th> is for use inside <thead>.  This will
+            cause min-width to be set if there is one.
+        indent : int, default 0
+            The indentation level of the cell.
+        tags : string, default None
+            Tags to include in the cell.
+
+        Returns
+        -------
+        A written <th> cell.
+        """
+        if header and self.fmt.col_space is not None:
             tags = (tags or "")
             tags += ('style="min-width: {colspace};"'
                      .format(colspace=self.fmt.col_space))
@@ -139,7 +164,7 @@ class HTMLFormatter(TableFormatter):
         for i, s in enumerate(line):
             val_tag = tags.get(i, None)
             if header or (self.bold_rows and i < nindex_levels):
-                self.write_th(s, indent, tags=val_tag)
+                self.write_th(s, indent=indent, header=header, tags=val_tag)
             else:
                 self.write_td(s, indent, tags=val_tag)
 
@@ -297,7 +322,7 @@ class HTMLFormatter(TableFormatter):
                     row.append(self.columns.name or '')
                 else:
                     row.append('')
-            row.extend(self.columns)
+            row.extend(self._get_columns_formatted_values())
             align = self.fmt.justify
 
             if truncate_h:
@@ -389,7 +414,7 @@ class HTMLFormatter(TableFormatter):
 
         idx_values = frame.index.format(sparsify=False, adjoin=False,
                                         names=False)
-        idx_values = lzip(*idx_values)
+        idx_values = list(zip(*idx_values))
 
         if self.fmt.sparsify:
             # GH3547
@@ -497,6 +522,9 @@ class NotebookFormatter(HTMLFormatter):
         super().__init__(formatter, classes, border)
         self.max_colwidth = None  # use display.max_colwidth setting
 
+    def _get_columns_formatted_values(self):
+        return self.columns.format()
+
     def write_style(self):
         # We use the "scoped" attribute here so that the desired
         # style properties for the data frame are not then applied
@@ -537,6 +565,6 @@ class NotebookFormatter(HTMLFormatter):
     def render(self):
         self.write('<div>')
         self.write_style()
-        super(NotebookFormatter, self).render()
+        super().render()
         self.write('</div>')
         return self.elements

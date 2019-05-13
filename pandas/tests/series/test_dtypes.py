@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, timedelta
 from importlib import reload
 import string
@@ -10,7 +7,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -19,7 +15,7 @@ from pandas.api.types import CategoricalDtype
 import pandas.util.testing as tm
 
 
-class TestSeriesDtypes(object):
+class TestSeriesDtypes:
 
     def test_dt64_series_astype_object(self):
         dt64ser = Series(date_range('20130101', periods=3))
@@ -85,7 +81,7 @@ class TestSeriesDtypes(object):
         tm.assert_series_equal(result, Series(np.arange(1, 5)))
 
     def test_astype_datetime(self):
-        s = Series(iNaT, dtype='M8[ns]', index=lrange(5))
+        s = Series(iNaT, dtype='M8[ns]', index=range(5))
 
         s = s.astype('O')
         assert s.dtype == np.object_
@@ -271,7 +267,8 @@ class TestSeriesDtypes(object):
 
     def test_astype_categorical_to_other(self):
 
-        df = DataFrame({'value': np.random.randint(0, 10000, 100)})
+        value = np.random.RandomState(0).randint(0, 10000, 100)
+        df = DataFrame({'value': value})
         labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 

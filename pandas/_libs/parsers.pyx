@@ -21,15 +21,13 @@ from cython import Py_ssize_t
 from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString,
                       PyUnicode_AsUTF8String,
-                      PyErr_Occurred, PyErr_Fetch)
+                      PyErr_Occurred, PyErr_Fetch,
+                      PyUnicode_Decode)
 from cpython.ref cimport Py_XDECREF
 
 
 cdef extern from "Python.h":
     object PyUnicode_FromString(char *v)
-
-    object PyUnicode_Decode(char *v, Py_ssize_t size, char *encoding,
-                            char *errors)
 
 
 import numpy as np
@@ -83,11 +81,6 @@ cdef extern from "headers/portable.h":
     # In a sane world, the `from libc.string cimport` above would fail
     # loudly.
     pass
-
-try:
-    basestring
-except NameError:
-    basestring = str
 
 
 cdef extern from "parser/tokenizer.h":
@@ -187,9 +180,11 @@ cdef extern from "parser/tokenizer.h":
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
         float64_t (*double_converter_nogil)(const char *, char **,
-                                            char, char, char, int, int *) nogil
+                                            char, char, char,
+                                            int, int *, int *) nogil
         float64_t (*double_converter_withgil)(const char *, char **,
-                                              char, char, char, int)
+                                              char, char, char,
+                                              int, int *, int *)
 
         #  error handling
         char *warn_msg
@@ -237,12 +232,15 @@ cdef extern from "parser/tokenizer.h":
     uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
                            uint64_t uint_max, int *error, char tsep) nogil
 
-    float64_t xstrtod(const char *p, char **q, char decimal, char sci,
-                      char tsep, int skip_trailing, int *error) nogil
-    float64_t precise_xstrtod(const char *p, char **q, char decimal, char sci,
-                              char tsep, int skip_trailing, int *error) nogil
-    float64_t round_trip(const char *p, char **q, char decimal, char sci,
-                         char tsep, int skip_trailing) nogil
+    float64_t xstrtod(const char *p, char **q, char decimal,
+                      char sci, char tsep, int skip_trailing,
+                      int *error, int *maybe_int) nogil
+    float64_t precise_xstrtod(const char *p, char **q, char decimal,
+                              char sci, char tsep, int skip_trailing,
+                              int *error, int *maybe_int) nogil
+    float64_t round_trip(const char *p, char **q, char decimal,
+                         char sci, char tsep, int skip_trailing,
+                         int *error, int *maybe_int) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
@@ -627,7 +625,7 @@ cdef class TextReader:
 
         if self.compression:
             if self.compression == 'gzip':
-                if isinstance(source, basestring):
+                if isinstance(source, str):
                     source = gzip.GzipFile(source, 'rb')
                 else:
                     source = gzip.GzipFile(fileobj=source)
@@ -648,7 +646,7 @@ cdef class TextReader:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
             elif self.compression == 'xz':
-                if isinstance(source, basestring):
+                if isinstance(source, str):
                     source = lzma.LZMAFile(source, 'rb')
                 else:
                     source = lzma.LZMAFile(filename=source)
@@ -666,11 +664,10 @@ cdef class TextReader:
 
             self.handle = source
 
-        if isinstance(source, basestring):
-            if not isinstance(source, bytes):
-                encoding = sys.getfilesystemencoding() or "utf-8"
+        if isinstance(source, str):
+            encoding = sys.getfilesystemencoding() or "utf-8"
 
-                source = source.encode(encoding)
+            source = source.encode(encoding)
 
             if self.memory_map:
                 ptr = new_mmap(source)
@@ -763,9 +760,7 @@ cdef class TextReader:
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
-                    if path == CSTRING:
-                        name = PyBytes_FromString(word)
-                    elif path == UTF8:
+                    if path == UTF8:
                         name = PyUnicode_FromString(word)
                     elif path == ENCODED:
                         name = PyUnicode_Decode(word, strlen(word),
@@ -1304,9 +1299,6 @@ cdef class TextReader:
         elif path == ENCODED:
             return _string_box_decode(self.parser, i, start, end,
                                       na_filter, na_hashset, self.c_encoding)
-        elif path == CSTRING:
-            return _string_box_factorize(self.parser, i, start, end,
-                                         na_filter, na_hashset)
 
     def _get_converter(self, i, name):
         if self.converters is None:
@@ -1384,7 +1376,7 @@ cdef:
 def _ensure_encoded(list lst):
     cdef list result = []
     for x in lst:
-        if isinstance(x, unicode):
+        if isinstance(x, str):
             x = PyUnicode_AsUTF8String(x)
         elif not isinstance(x, bytes):
             x = str(x).encode('utf-8')
@@ -1416,7 +1408,6 @@ def _maybe_upcast(arr):
 
 
 cdef enum StringPath:
-    CSTRING
     UTF8
     ENCODED
 
@@ -1658,10 +1649,6 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         for k in range(table.n_buckets):
             if kh_exist_str(table, k):
                 result[table.vals[k]] = PyUnicode_FromString(table.keys[k])
-    elif path == CSTRING:
-        for k in range(table.n_buckets):
-            if kh_exist_str(table, k):
-                result[table.vals[k]] = PyBytes_FromString(table.keys[k])
 
     kh_destroy_str(table)
     return np.asarray(codes), result, na_count
@@ -1737,7 +1724,8 @@ cdef _try_double(parser_t *parser, int64_t col,
         assert parser.double_converter_withgil != NULL
         error = _try_double_nogil(parser,
                                   <float64_t (*)(const char *, char **,
-                                                 char, char, char, int, int *)
+                                                 char, char, char,
+                                                 int, int *, int *)
                                   nogil>parser.double_converter_withgil,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
@@ -1751,7 +1739,7 @@ cdef _try_double(parser_t *parser, int64_t col,
 cdef inline int _try_double_nogil(parser_t *parser,
                                   float64_t (*double_converter)(
                                       const char *, char **, char,
-                                      char, char, int, int *) nogil,
+                                      char, char, int, int *, int *) nogil,
                                   int col, int line_start, int line_end,
                                   bint na_filter, kh_str_starts_t *na_hashset,
                                   bint use_na_flist,
@@ -1780,7 +1768,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
             else:
                 data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands,
-                                           1, &error)
+                                           1, &error, NULL)
                 if error != 0 or p_end == word or p_end[0]:
                     error = 0
                     if (strcasecmp(word, cinf) == 0 or
@@ -1800,7 +1788,8 @@ cdef inline int _try_double_nogil(parser_t *parser,
         for i in range(lines):
             COLITER_NEXT(it, word)
             data[0] = double_converter(word, &p_end, parser.decimal,
-                                       parser.sci, parser.thousands, 1, &error)
+                                       parser.sci, parser.thousands,
+                                       1, &error, NULL)
             if error != 0 or p_end == word or p_end[0]:
                 error = 0
                 if (strcasecmp(word, cinf) == 0 or

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -54,7 +53,7 @@ def timedelta_index(request):
     return pd.TimedeltaIndex(['1 Day', '3 Hours', 'NaT'])
 
 
-class SharedTests(object):
+class SharedTests:
     index_cls = None
 
     def test_compare_len1_raises(self):

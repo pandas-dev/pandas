@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 
 import numpy as np
@@ -20,12 +19,7 @@ from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
-@pytest.fixture(params=[True, False, None])
-def ordered(request):
-    return request.param
-
-
-class Base(object):
+class Base:
 
     def setup_method(self, method):
         self.dtype = self.create()
@@ -651,7 +645,7 @@ class TestIntervalDtype(Base):
         assert len(IntervalDtype._cache) == 0
 
 
-class TestCategoricalDtypeParametrized(object):
+class TestCategoricalDtypeParametrized:
 
     @pytest.mark.parametrize('categories', [
         list('abcd'),
@@ -659,10 +653,10 @@ class TestCategoricalDtypeParametrized(object):
         ['a', 'b', 10, 2, 1.3, True],
         [True, False],
         pd.date_range('2017', periods=4)])
-    def test_basic(self, categories, ordered):
-        c1 = CategoricalDtype(categories, ordered=ordered)
+    def test_basic(self, categories, ordered_fixture):
+        c1 = CategoricalDtype(categories, ordered=ordered_fixture)
         tm.assert_index_equal(c1.categories, pd.Index(categories))
-        assert c1.ordered is ordered
+        assert c1.ordered is ordered_fixture
 
     def test_order_matters(self):
         categories = ['a', 'b']
@@ -683,7 +677,7 @@ class TestCategoricalDtypeParametrized(object):
         tm.assert_index_equal(result.categories, pd.Index(['a', 'b', 'c']))
         assert result.ordered is None
 
-    def test_equal_but_different(self, ordered):
+    def test_equal_but_different(self, ordered_fixture):
         c1 = CategoricalDtype([1, 2, 3])
         c2 = CategoricalDtype([1., 2., 3.])
         assert c1 is not c2
@@ -748,8 +742,9 @@ class TestCategoricalDtypeParametrized(object):
 
     @pytest.mark.parametrize('categories', [list('abc'), None])
     @pytest.mark.parametrize('other', ['category', 'not a category'])
-    def test_categorical_equality_strings(self, categories, ordered, other):
-        c1 = CategoricalDtype(categories, ordered)
+    def test_categorical_equality_strings(self, categories, ordered_fixture,
+                                          other):
+        c1 = CategoricalDtype(categories, ordered_fixture)
         result = c1 == other
         expected = other == 'category'
         assert result is expected
@@ -793,12 +788,12 @@ class TestCategoricalDtypeParametrized(object):
             c1, categories=[1, 2], ordered=False)
         assert result == CategoricalDtype([1, 2], ordered=False)
 
-    def test_str_vs_repr(self, ordered):
-        c1 = CategoricalDtype(['a', 'b'], ordered=ordered)
+    def test_str_vs_repr(self, ordered_fixture):
+        c1 = CategoricalDtype(['a', 'b'], ordered=ordered_fixture)
         assert str(c1) == 'category'
         # Py2 will have unicode prefixes
         pat = r"CategoricalDtype\(categories=\[.*\], ordered={ordered}\)"
-        assert re.match(pat.format(ordered=ordered), repr(c1))
+        assert re.match(pat.format(ordered=ordered_fixture), repr(c1))
 
     def test_categorical_categories(self):
         # GH17884
@@ -810,8 +805,8 @@ class TestCategoricalDtypeParametrized(object):
     @pytest.mark.parametrize('new_categories', [
         list('abc'), list('cba'), list('wxyz'), None])
     @pytest.mark.parametrize('new_ordered', [True, False, None])
-    def test_update_dtype(self, ordered, new_categories, new_ordered):
-        dtype = CategoricalDtype(list('abc'), ordered)
+    def test_update_dtype(self, ordered_fixture, new_categories, new_ordered):
+        dtype = CategoricalDtype(list('abc'), ordered_fixture)
         new_dtype = CategoricalDtype(new_categories, new_ordered)
 
         expected_categories = new_dtype.categories
@@ -826,8 +821,8 @@ class TestCategoricalDtypeParametrized(object):
         tm.assert_index_equal(result.categories, expected_categories)
         assert result.ordered is expected_ordered
 
-    def test_update_dtype_string(self, ordered):
-        dtype = CategoricalDtype(list('abc'), ordered)
+    def test_update_dtype_string(self, ordered_fixture):
+        dtype = CategoricalDtype(list('abc'), ordered_fixture)
         expected_categories = dtype.categories
         expected_ordered = dtype.ordered
         result = dtype.update_dtype('category')

@@ -1,11 +1,9 @@
 name: pandas-dev
 channels:
   - defaults
-  - conda-forge
 dependencies:
   - beautifulsoup4
   - bottleneck
-  - gcsfs
   - html5lib
   - jinja2
   - lxml
