@@ -1,4 +1,5 @@
 import operator
+from typing import Any, Union
 import warnings
 
 import numpy as np
@@ -19,15 +20,13 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
-from pandas.core.arrays.categorical import Categorical, contains
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.categorical import Categorical, contains
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
-
-from typing import Any, Union
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
