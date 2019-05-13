@@ -1212,16 +1212,14 @@ class _WriterBase(SharedItems):
 class TestExcelWriter(_WriterBase):
     # Base class for test cases to run with different Excel writers.
 
-    # def test_excel_sheet_size(self):
-    #     assert False
-        
-    #     BREAKING_SHAPE = (2**20 + 1, 2**14 + 1)
-    #     arr = np.zeros(shape=BREAKING_SHAPE)
-    #     df = pd.DataFrame(arr)
-    #     filepath = 'test.xlsx'
+    def test_excel_sheet_size(self):        
+        breaking_shape = (2**20 + 1, 2**14 + 1)
+        arr = np.zeros(shape=breaking_shape)
+        df = pd.DataFrame(arr)
 
-    #     with pytest.raises(ValueError):
-    #         df.to_excel(filepath)
+        msg = "sheet is too large"
+        with pytest.raises(ValueError, match=msg):
+            df.to_excel(self.path)
 
     def test_excel_sheet_by_name_raise(self, *_):
         import xlrd

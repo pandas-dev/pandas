@@ -2146,7 +2146,6 @@ class NDFrame(PandasObject, SelectionMixin):
                  index_label=None, startrow=0, startcol=0, engine=None,
                  merge_cells=True, encoding=None, inf_rep="inf", verbose=True,
                  freeze_panes=None):
-
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
         from pandas.io.formats.excel import ExcelFormatter
