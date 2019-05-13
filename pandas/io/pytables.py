@@ -3053,7 +3053,7 @@ class Table(Fixed):
 
         """
     pandas_kind = 'wide_table'
-    table_type = None  # type: Optional[str]
+    table_type = None  # type: str
     levels = 1
     is_table = True
     is_shape_reversed = False
