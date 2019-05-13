@@ -4,7 +4,7 @@ from pandas import NaT, Period, PeriodIndex, date_range, period_range
 import pandas.util.testing as tm
 
 
-class TestPeriodRange(object):
+class TestPeriodRange:
 
     @pytest.mark.parametrize('freq', ['D', 'W', 'M', 'Q', 'A'])
     def test_construction_from_string(self, freq):

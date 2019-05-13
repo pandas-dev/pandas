@@ -1,16 +1,14 @@
-# -*- coding: utf-8 -*-
-
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
 
-from __future__ import print_function
-
 from datetime import datetime
+from io import StringIO
 import itertools
 from operator import methodcaller
 import os
 import re
+from shutil import get_terminal_size
 import sys
 import textwrap
 import warnings
@@ -20,9 +18,7 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas.compat as compat
-from pandas.compat import (
-    StringIO, is_platform_32bit, is_platform_windows, lrange, lzip)
+from pandas.compat import is_platform_32bit, is_platform_windows
 
 import pandas as pd
 from pandas import (
@@ -32,7 +28,6 @@ import pandas.util.testing as tm
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
-from pandas.io.formats.terminal import get_terminal_size
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
@@ -106,7 +101,7 @@ def has_expanded_repr(df):
     return False
 
 
-class TestDataFrameFormatting(object):
+class TestDataFrameFormatting:
 
     def setup_method(self, method):
         self.warn_filters = warnings.filters
@@ -166,7 +161,7 @@ class TestDataFrameFormatting(object):
     def test_repr_tuples(self):
         buf = StringIO()
 
-        df = DataFrame({'tups': lzip(range(10), range(10))})
+        df = DataFrame({'tups': list(zip(range(10), range(10)))})
         repr(df)
         df.to_string(col_space=10, buf=buf)
 
@@ -182,7 +177,7 @@ class TestDataFrameFormatting(object):
 
             adj = fmt._get_adjustment()
 
-            for line, value in lzip(r.split('\n'), df['B']):
+            for line, value in zip(r.split('\n'), df['B']):
                 if adj.len(value) + 1 > max_len:
                     assert '...' in line
                 else:
@@ -237,10 +232,10 @@ class TestDataFrameFormatting(object):
 
     def test_repr_obeys_max_seq_limit(self):
         with option_context("display.max_seq_items", 2000):
-            assert len(printing.pprint_thing(lrange(1000))) > 1000
+            assert len(printing.pprint_thing(list(range(1000)))) > 1000
 
         with option_context("display.max_seq_items", 5):
-            assert len(printing.pprint_thing(lrange(1000))) < 100
+            assert len(printing.pprint_thing(list(range(1000)))) < 100
 
     def test_repr_set(self):
         assert printing.pprint_thing({1}) == '{1}'
@@ -270,9 +265,9 @@ class TestDataFrameFormatting(object):
             assert '\\' not in repr(df)
 
     def test_expand_frame_repr(self):
-        df_small = DataFrame('hello', [0], [0])
-        df_wide = DataFrame('hello', [0], lrange(10))
-        df_tall = DataFrame('hello', lrange(30), lrange(5))
+        df_small = DataFrame('hello', index=[0], columns=[0])
+        df_wide = DataFrame('hello', index=[0], columns=range(10))
+        df_tall = DataFrame('hello', index=range(30), columns=range(5))
 
         with option_context('mode.sim_interactive', True):
             with option_context('display.max_columns', 10, 'display.width', 20,
@@ -297,7 +292,7 @@ class TestDataFrameFormatting(object):
     def test_repr_non_interactive(self):
         # in non interactive mode, there can be no dependency on the
         # result of terminal auto size detection
-        df = DataFrame('hello', lrange(1000), lrange(5))
+        df = DataFrame('hello', index=range(1000), columns=range(5))
 
         with option_context('mode.sim_interactive', False, 'display.width', 0,
                             'display.max_rows', 5000):
@@ -308,8 +303,6 @@ class TestDataFrameFormatting(object):
         # see gh-21180
 
         terminal_size = (118, 96)
-        monkeypatch.setattr('pandas.io.formats.console.get_terminal_size',
-                            lambda: terminal_size)
         monkeypatch.setattr('pandas.io.formats.format.get_terminal_size',
                             lambda: terminal_size)
 
@@ -338,8 +331,7 @@ class TestDataFrameFormatting(object):
         # GH 22984 ensure entire window is filled
         terminal_size = (80, 24)
         df = pd.DataFrame(np.random.rand(1, 7))
-        monkeypatch.setattr('pandas.io.formats.console.get_terminal_size',
-                            lambda: terminal_size)
+
         monkeypatch.setattr('pandas.io.formats.format.get_terminal_size',
                             lambda: terminal_size)
         assert "..." not in str(df)
@@ -487,7 +479,7 @@ class TestDataFrameFormatting(object):
         buf.getvalue()
 
         result = self.frame.to_string()
-        assert isinstance(result, compat.text_type)
+        assert isinstance(result, str)
 
     def test_to_string_utf8_columns(self):
         n = "\u05d0".encode('utf-8')
@@ -516,7 +508,7 @@ class TestDataFrameFormatting(object):
                       ('float', lambda x: '[{x: 4.1f}]'.format(x=x)),
                       ('object', lambda x: '-{x!s}-'.format(x=x))]
         result = df.to_string(formatters=dict(formatters))
-        result2 = df.to_string(formatters=lzip(*formatters)[1])
+        result2 = df.to_string(formatters=list(zip(*formatters))[1])
         assert result == ('  int  float    object\n'
                           '0 0x1 [ 1.0]  -(1, 2)-\n'
                           '1 0x2 [ 2.0]    -True-\n'
@@ -958,7 +950,7 @@ class TestDataFrameFormatting(object):
 
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({'c/\u03c3': Series({'test': np.nan})})
-        compat.text_type(dm.to_string())
+        str(dm.to_string())
 
     def test_string_repr_encoding(self, datapath):
         filepath = datapath('io', 'parser', 'data', 'unicode_series.csv')
@@ -1183,7 +1175,7 @@ class TestDataFrameFormatting(object):
         # big mixed
         biggie = DataFrame({'A': np.random.randn(200),
                             'B': tm.makeStringIndex(200)},
-                           index=lrange(200))
+                           index=np.arange(200))
 
         biggie.loc[:20, 'A'] = np.nan
         biggie.loc[:20, 'B'] = np.nan
@@ -1194,7 +1186,7 @@ class TestDataFrameFormatting(object):
         assert retval is None
         assert buf.getvalue() == s
 
-        assert isinstance(s, compat.string_types)
+        assert isinstance(s, str)
 
         # print in right order
         result = biggie.to_string(columns=['B', 'A'], col_space=17,
@@ -1365,7 +1357,7 @@ class TestDataFrameFormatting(object):
 
     def test_to_string_float_index(self):
         index = Index([1.5, 2, 3, 4, 5])
-        df = DataFrame(lrange(5), index=index)
+        df = DataFrame(np.arange(5), index=index)
 
         result = df.to_string()
         expected = ('     0\n'
@@ -1375,6 +1367,19 @@ class TestDataFrameFormatting(object):
                     '4.0  3\n'
                     '5.0  4')
         assert result == expected
+
+    def test_to_string_complex_float_formatting(self):
+        # GH #25514
+        with pd.option_context('display.precision', 5):
+            df = DataFrame({'x': [
+                (0.4467846931321966 + 0.0715185102060818j),
+                (0.2739442392974528 + 0.23515228785438969j),
+                (0.26974928742135185 + 0.3250604054898979j)]})
+            result = df.to_string()
+            expected = ('                  x\n0  0.44678+0.07152j\n'
+                        '1  0.27394+0.23515j\n'
+                        '2  0.26975+0.32506j')
+            assert result == expected
 
     def test_to_string_ascii_error(self):
         data = [('0  ', '                        .gitignore ', '     5 ',
@@ -1394,7 +1399,7 @@ class TestDataFrameFormatting(object):
         assert output == expected
 
     def test_to_string_index_formatter(self):
-        df = DataFrame([lrange(5), lrange(5, 10), lrange(10, 15)])
+        df = DataFrame([range(5), range(5, 10), range(10, 15)])
 
         rs = df.to_string(formatters={'__index__': lambda x: 'abc' [x]})
 
@@ -1480,12 +1485,12 @@ c  10  11  12  13  14\
         assert df.to_string(decimal=',') == expected
 
     def test_to_string_line_width(self):
-        df = DataFrame(123, lrange(10, 15), lrange(30))
+        df = DataFrame(123, index=range(10, 15), columns=range(30))
         s = df.to_string(line_width=80)
         assert max(len(l) for l in s.split('\n')) == 80
 
     def test_show_dimensions(self):
-        df = DataFrame(123, lrange(10, 15), lrange(30))
+        df = DataFrame(123, index=range(10, 15), columns=range(30))
 
         with option_context('display.max_rows', 10, 'display.max_columns', 40,
                             'display.width', 500, 'display.expand_frame_repr',
@@ -1712,7 +1717,7 @@ c  10  11  12  13  14\
         If the test fails, it at least won't hang.
         """
 
-        class A(object):
+        class A:
             def __getitem__(self, key):
                 return 3  # obviously simplified
 
@@ -1765,7 +1770,7 @@ def gen_series_formatting():
     return test_sers
 
 
-class TestSeriesFormatting(object):
+class TestSeriesFormatting:
 
     def setup_method(self, method):
         self.ts = tm.makeTimeSeries()
@@ -2348,7 +2353,7 @@ def _three_digit_exp():
     return '{x:.4g}'.format(x=1.7e8) == '1.7e+008'
 
 
-class TestFloatArrayFormatter(object):
+class TestFloatArrayFormatter:
 
     def test_misc(self):
         obj = fmt.FloatArrayFormatter(np.array([], dtype=np.float64))
@@ -2434,7 +2439,7 @@ class TestFloatArrayFormatter(object):
             assert str(df) == '            x\n0  1.2346e+04\n1  2.0000e+06'
 
 
-class TestRepr_timedelta64(object):
+class TestRepr_timedelta64:
 
     def test_none(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2500,7 +2505,7 @@ class TestRepr_timedelta64(object):
         assert drepr(-delta_1d + delta_1ns) == "-1 days +00:00:00.000000001"
 
 
-class TestTimedelta64Formatter(object):
+class TestTimedelta64Formatter:
 
     def test_days(self):
         x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
@@ -2546,7 +2551,7 @@ class TestTimedelta64Formatter(object):
         assert result[0].strip() == "'0 days'"
 
 
-class TestDatetime64Formatter(object):
+class TestDatetime64Formatter:
 
     def test_mixed(self):
         x = Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])
@@ -2627,7 +2632,7 @@ class TestDatetime64Formatter(object):
         assert result == ['10:10', '12:12']
 
 
-class TestNaTFormatting(object):
+class TestNaTFormatting:
 
     def test_repr(self):
         assert repr(pd.NaT) == "NaT"
@@ -2636,7 +2641,7 @@ class TestNaTFormatting(object):
         assert str(pd.NaT) == "NaT"
 
 
-class TestDatetimeIndexFormat(object):
+class TestDatetimeIndexFormat:
 
     def test_datetime(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1, 12), pd.NaT]).format()
@@ -2663,7 +2668,7 @@ class TestDatetimeIndexFormat(object):
         assert formatted[1] == "UT"
 
 
-class TestDatetimeIndexUnicode(object):
+class TestDatetimeIndexUnicode:
 
     def test_dates(self):
         text = str(pd.to_datetime([datetime(2013, 1, 1), datetime(2014, 1, 1)
@@ -2678,7 +2683,7 @@ class TestDatetimeIndexUnicode(object):
         assert "'2014-01-01 00:00:00']" in text
 
 
-class TestStringRepTimestamp(object):
+class TestStringRepTimestamp:
 
     def test_no_tz(self):
         dt_date = datetime(2013, 1, 2)

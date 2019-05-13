@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for Series timezone-related methods
 """
@@ -10,14 +9,13 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
-from pandas.compat import lrange
 
 from pandas import DatetimeIndex, Index, NaT, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
 import pandas.util.testing as tm
 
 
-class TestSeriesTimezones(object):
+class TestSeriesTimezones:
     # -----------------------------------------------------------------
     # Series.tz_localize
     def test_series_tz_localize(self):
@@ -195,7 +193,7 @@ class TestSeriesTimezones(object):
 
         # mixed
         rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
-        rng2 = lrange(100)
+        rng2 = range(100)
         ser1 = Series(np.random.randn(len(rng1)), index=rng1)
         ser2 = Series(np.random.randn(len(rng2)), index=rng2)
         ts_result = ser1.append(ser2)
@@ -363,4 +361,12 @@ class TestSeriesTimezones(object):
         expected = Series(np.arange(0, 5),
                           index=date_range('20131027', periods=5, freq='1H',
                                            tz=tz))
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
+        # GH 25843
+        tz = tz_aware_fixture
+        result = Series([Timestamp('2019', tz=tz)],
+                        dtype='datetime64[ns]')
+        expected = Series([Timestamp('2019')])
         tm.assert_series_equal(result, expected)

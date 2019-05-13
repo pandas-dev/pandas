@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lzip
-
 import pandas as pd
 from pandas.core.indexes.api import Index, MultiIndex
 import pandas.util.testing as tm
@@ -20,7 +18,7 @@ import pandas.util.testing as tm
                         Index([True, False]),
                         tm.makeCategoricalIndex(100),
                         Index([]),
-                        MultiIndex.from_tuples(lzip(
+                        MultiIndex.from_tuples(zip(
                             ['foo', 'bar', 'baz'], [1, 2, 3])),
                         Index([0, 0, 1, 1, 2, 2])],
                 ids=lambda x: type(x).__name__)

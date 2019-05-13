@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101,W0141
 import datetime
+from io import StringIO
 import itertools
+from itertools import product
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
 from numpy.random import randn
 import pytest
 import pytz
-
-from pandas.compat import StringIO, lrange, lzip, product as cart_product
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
@@ -22,7 +20,7 @@ AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
                  'std', 'var', 'sem']
 
 
-class Base(object):
+class Base:
 
     def setup_method(self, method):
 
@@ -40,7 +38,7 @@ class Base(object):
         # create test series object
         arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        tuples = lzip(*arrays)
+        tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
         s[3] = np.NaN
@@ -127,8 +125,8 @@ class TestMultiLevel(Base):
         multi = Series(1., index=[['a', 'a', 'b', 'b'], ['x', 'y', 'x', 'y']])
         assert isinstance(multi.index, MultiIndex)
 
-        multi = Series(lrange(4), index=[['a', 'a', 'b', 'b'],
-                                         ['x', 'y', 'x', 'y']])
+        multi = Series(range(4), index=[['a', 'a', 'b', 'b'],
+                                        ['x', 'y', 'x', 'y']])
         assert isinstance(multi.index, MultiIndex)
 
     def test_reindex_level(self):
@@ -237,7 +235,7 @@ class TestMultiLevel(Base):
 
     def test_delevel_infer_dtype(self):
         tuples = [tuple
-                  for tuple in cart_product(
+                  for tuple in product(
                       ['foo', 'bar'], [10, 20], [1.0, 1.1])]
         index = MultiIndex.from_tuples(tuples, names=['prm0', 'prm1', 'prm2'])
         df = DataFrame(np.random.randn(8, 3), columns=['A', 'B', 'C'],
@@ -313,7 +311,7 @@ class TestMultiLevel(Base):
 
         df = self.frame[:0]
         result = df.count(level=0)
-        expected = DataFrame({}, index=s.index.levels[0],
+        expected = DataFrame(index=s.index.levels[0],
                              columns=df.columns).fillna(0).astype(np.int64)
         tm.assert_frame_equal(result, expected)
 
@@ -1317,7 +1315,7 @@ Thur,Lunch,Yes,51.51,17"""
         index = MultiIndex.from_tuples([(0, 0), (1, 1)],
                                        names=['\u0394', 'i1'])
 
-        s = Series(lrange(2), index=index)
+        s = Series(range(2), index=index)
         df = DataFrame(np.random.randn(2, 4), index=index)
         repr(s)
         repr(df)
@@ -2038,7 +2036,7 @@ class TestSorted(Base):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two'],
                   [4, 3, 2, 1, 4, 3, 2, 1]]
-        tuples = lzip(*arrays)
+        tuples = zip(*arrays)
         mi = MultiIndex.from_tuples(tuples, names=['first', 'second', 'third'])
         s = Series(range(8), index=mi)
 

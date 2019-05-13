@@ -1,17 +1,19 @@
-from __future__ import division
-
+import bz2
 from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
+import gzip
+import http.client
+import lzma
 import os
 import re
 from shutil import rmtree
 import string
-import sys
 import tempfile
 import traceback
 import warnings
+import zipfile
 
 import numpy as np
 from numpy.random import rand, randn
@@ -20,10 +22,7 @@ from pandas._config.localization import (  # noqa:F401
     can_set_locale, get_locales, set_locale)
 
 from pandas._libs import testing as _testing
-import pandas.compat as compat
-from pandas.compat import (
-    PY2, PY3, httplib, lmap, lrange, lzip, raise_with_traceback, string_types,
-    unichr)
+from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -179,16 +178,12 @@ def decompress_file(path, compression):
     if compression is None:
         f = open(path, 'rb')
     elif compression == 'gzip':
-        import gzip
         f = gzip.open(path, 'rb')
     elif compression == 'bz2':
-        import bz2
         f = bz2.BZ2File(path, 'rb')
     elif compression == 'xz':
-        lzma = compat.import_lzma()
         f = lzma.LZMAFile(path, 'rb')
     elif compression == 'zip':
-        import zipfile
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
         if len(zip_names) == 1:
@@ -238,7 +233,7 @@ def write_to_compressed(compression, path, data, dest="test"):
         import bz2
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        lzma = compat.import_lzma()
+        import lzma
         compress_method = lzma.LZMAFile
     else:
         msg = "Unrecognized compression type: {}".format(compression)
@@ -286,25 +281,25 @@ def assert_almost_equal(left, right, check_dtype="equiv",
     """
 
     if isinstance(left, pd.Index):
-        return assert_index_equal(left, right,
-                                  check_exact=False,
-                                  exact=check_dtype,
-                                  check_less_precise=check_less_precise,
-                                  **kwargs)
+        assert_index_equal(left, right,
+                           check_exact=False,
+                           exact=check_dtype,
+                           check_less_precise=check_less_precise,
+                           **kwargs)
 
     elif isinstance(left, pd.Series):
-        return assert_series_equal(left, right,
-                                   check_exact=False,
-                                   check_dtype=check_dtype,
-                                   check_less_precise=check_less_precise,
-                                   **kwargs)
+        assert_series_equal(left, right,
+                            check_exact=False,
+                            check_dtype=check_dtype,
+                            check_less_precise=check_less_precise,
+                            **kwargs)
 
     elif isinstance(left, pd.DataFrame):
-        return assert_frame_equal(left, right,
-                                  check_exact=False,
-                                  check_dtype=check_dtype,
-                                  check_less_precise=check_less_precise,
-                                  **kwargs)
+        assert_frame_equal(left, right,
+                           check_exact=False,
+                           check_dtype=check_dtype,
+                           check_less_precise=check_less_precise,
+                           **kwargs)
 
     else:
         # Other sequences.
@@ -322,7 +317,7 @@ def assert_almost_equal(left, right, check_dtype="equiv",
                 else:
                     obj = "Input"
                 assert_class_equal(left, right, obj=obj)
-        return _testing.assert_almost_equal(
+        _testing.assert_almost_equal(
             left, right,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
@@ -360,7 +355,7 @@ def _check_isinstance(left, right, cls):
 def assert_dict_equal(left, right, compare_keys=True):
 
     _check_isinstance(left, right, dict)
-    return _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
+    _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
 def randbool(size=(), p=0.5):
@@ -369,7 +364,7 @@ def randbool(size=(), p=0.5):
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits),
                        dtype=(np.str_, 1))
-RANDU_CHARS = np.array(list("".join(map(unichr, lrange(1488, 1488 + 26))) +
+RANDU_CHARS = np.array(list("".join(map(chr, range(1488, 1488 + 26))) +
                             string.digits), dtype=(np.unicode_, 1))
 
 
@@ -421,32 +416,6 @@ def close(fignum=None):
             _close(fignum)
     else:
         _close(fignum)
-
-
-# -----------------------------------------------------------------------------
-# Stdout / stderr decorators
-
-
-@contextmanager
-def set_defaultencoding(encoding):
-    """
-    Set default encoding (as given by sys.getdefaultencoding()) to the given
-    encoding; restore on exit.
-
-    Parameters
-    ----------
-    encoding : str
-    """
-    if not PY2:
-        raise ValueError("set_defaultencoding context is only available "
-                         "in Python 2.")
-    orig = sys.getdefaultencoding()
-    reload(sys)  # noqa:F821
-    sys.setdefaultencoding(encoding)
-    try:
-        yield
-    finally:
-        sys.setdefaultencoding(orig)
 
 
 # -----------------------------------------------------------------------------
@@ -748,11 +717,12 @@ def isiterable(obj):
     return hasattr(obj, '__iter__')
 
 
-def is_sorted(seq):
+def assert_is_sorted(seq):
+    """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
-    return assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    assert_numpy_array_equal(seq, np.sort(np.array(seq)))
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
@@ -852,18 +822,10 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     elif is_categorical_dtype(left):
         left = repr(left)
 
-    if PY2 and isinstance(left, string_types):
-        # left needs to be printable in native text type in python2
-        left = left.encode('utf-8')
-
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
     elif is_categorical_dtype(right):
         right = repr(right)
-
-    if PY2 and isinstance(right, string_types):
-        # right needs to be printable in native text type in python2
-        right = right.encode('utf-8')
 
     msg = """{obj} are different
 
@@ -950,8 +912,6 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
             assert_attr_equal('dtype', left, right, obj=obj)
 
-    return True
-
 
 def assert_extension_array_equal(left, right, check_dtype=True,
                                  check_less_precise=False,
@@ -1029,6 +989,12 @@ def assert_series_equal(left, right, check_dtype=True,
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare.
+
+        When comparing two numbers, if the first number has magnitude less
+        than 1e-5, we compare the two numbers directly and check whether
+        they are equivalent within the specified precision. Otherwise, we
+        compare the **ratio** of the second number to the first number and
+        check whether it is equivalent to 1 within the specified precision.
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
     check_exact : bool, default False
@@ -1106,12 +1072,10 @@ def assert_series_equal(left, right, check_dtype=True,
         # .values is an ndarray, but ._values is the ExtensionArray.
         # TODO: Use .array
         assert is_extension_array_dtype(right.dtype)
-        return assert_extension_array_equal(left._values, right._values)
-
+        assert_extension_array_equal(left._values, right._values)
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
-        return assert_extension_array_equal(left.array, right.array)
-
+        assert_extension_array_equal(left.array, right.array)
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
                                      check_less_precise=check_less_precise,
@@ -1170,6 +1134,12 @@ def assert_frame_equal(left, right, check_dtype=True,
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare.
+
+        When comparing two numbers, if the first number has magnitude less
+        than 1e-5, we compare the two numbers directly and check whether
+        they are equivalent within the specified precision. Otherwise, we
+        compare the **ratio** of the second number to the first number and
+        check whether it is equivalent to 1 within the specified precision.
     check_names : bool, default True
         Whether to check that the `names` attribute for both the `index`
         and `column` attributes of the DataFrame is identical, i.e.
@@ -1208,18 +1178,21 @@ def assert_frame_equal(left, right, check_dtype=True,
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 
     df1 equals itself.
+
     >>> assert_frame_equal(df1, df1)
 
     df1 differs from df2 as column 'b' is of a different type.
+
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
     AssertionError: Attributes are different
-
+    ...
     Attribute "dtype" are different
     [left]:  int64
     [right]: float64
 
     Ignore differing dtypes in columns with check_dtype.
+
     >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
     __tracebackhide__ = True
@@ -1534,7 +1507,7 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
     if check_fill_value:
         assert_attr_equal('default_fill_value', left, right, obj=obj)
 
-    for col, series in compat.iteritems(left):
+    for col, series in left.items():
         assert (col in right)
         # trade-off?
 
@@ -1616,11 +1589,11 @@ def makeBoolIndex(k=10, name=None):
 
 
 def makeIntIndex(k=10, name=None):
-    return Index(lrange(k), name=name)
+    return Index(list(range(k)), name=name)
 
 
 def makeUIntIndex(k=10, name=None):
-    return Index([2**63 + i for i in lrange(k)], name=name)
+    return Index([2**63 + i for i in range(k)], name=name)
 
 
 def makeRangeIndex(k=10, name=None, **kwargs):
@@ -1812,7 +1785,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         names = None
 
     # make singelton case uniform
-    if isinstance(names, compat.string_types) and nlevels == 1:
+    if isinstance(names, str) and nlevels == 1:
         names = [names]
 
     # specific 1D index type requested?
@@ -1842,7 +1815,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         def keyfunc(x):
             import re
             numeric_tuple = re.sub(r"[^\d_]_?", "", x).split("_")
-            return lmap(int, numeric_tuple)
+            return [int(num) for num in numeric_tuple]
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
@@ -1854,7 +1827,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
         tuples.append(result)
 
-    tuples = lzip(*tuples)
+    tuples = list(zip(*tuples))
 
     # convert tuples to index
     if nentries == 1:
@@ -2086,10 +2059,7 @@ _network_errno_vals = (
 # servers.
 
 # and conditionally raise on these exception types
-_network_error_classes = (IOError, httplib.HTTPException)
-
-if PY3:
-    _network_error_classes += (TimeoutError,)  # noqa
+_network_error_classes = (IOError, http.client.HTTPException, TimeoutError)
 
 
 def can_connect(url, error_classes=_network_error_classes):
@@ -2209,7 +2179,7 @@ def network(t, url="http://www.google.com",
     from pytest import skip
     t.network = True
 
-    @compat.wraps(t)
+    @wraps(t)
     def wrapper(*args, **kwargs):
         if check_before_test and not raise_on_error:
             if not can_connect(url, error_classes):
@@ -2302,7 +2272,7 @@ item assignment"
         return manager
 
 
-class _AssertRaisesContextmanager(object):
+class _AssertRaisesContextmanager:
     """
     Context manager behind `assert_raises_regex`.
     """
@@ -2497,7 +2467,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             )
 
 
-class RNGContext(object):
+class RNGContext:
     """
     Context manager to set the numpy random number generator speed. Returns
     to the original value upon exiting the context manager.

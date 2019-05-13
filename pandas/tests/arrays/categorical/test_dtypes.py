@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -8,7 +7,7 @@ from pandas import Categorical, CategoricalIndex, Index, Series, Timestamp
 import pandas.util.testing as tm
 
 
-class TestCategoricalDtypes(object):
+class TestCategoricalDtypes:
 
     def test_is_equal_dtype(self):
 

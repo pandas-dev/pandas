@@ -2,8 +2,6 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
-from __future__ import division
-
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
@@ -12,7 +10,6 @@ import warnings
 import numpy as np
 
 import pandas._libs.window as libwindow
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -507,7 +504,8 @@ class Window(_Window):
     * ``kaiser`` (needs beta)
     * ``gaussian`` (needs std)
     * ``general_gaussian`` (needs power, width)
-    * ``slepian`` (needs width).
+    * ``slepian`` (needs width)
+    * ``exponential`` (needs tau), center is set to None.
 
     If ``win_type=None`` all points are evenly weighted. To learn more about
     different window types see `scipy.signal window functions
@@ -588,7 +586,7 @@ class Window(_Window):
     """
 
     def validate(self):
-        super(Window, self).validate()
+        super().validate()
 
         window = self.window
         if isinstance(window, (list, tuple, np.ndarray)):
@@ -602,7 +600,7 @@ class Window(_Window):
                 raise ImportError('Please install scipy to generate window '
                                   'weight')
 
-            if not isinstance(self.win_type, compat.string_types):
+            if not isinstance(self.win_type, str):
                 raise ValueError('Invalid win_type {0}'.format(self.win_type))
             if getattr(sig, self.win_type, None) is None:
                 raise ValueError('Invalid win_type {0}'.format(self.win_type))
@@ -626,11 +624,19 @@ class Window(_Window):
                 arg_map = {'kaiser': ['beta'],
                            'gaussian': ['std'],
                            'general_gaussian': ['power', 'width'],
-                           'slepian': ['width']}
+                           'slepian': ['width'],
+                           'exponential': ['tau'],
+                           }
+
                 if win_type in arg_map:
-                    return tuple([win_type] + _pop_args(win_type,
-                                                        arg_map[win_type],
-                                                        kwargs))
+                    win_args = _pop_args(win_type, arg_map[win_type], kwargs)
+                    if win_type == 'exponential':
+                        # exponential window requires the first arg (center)
+                        # to be set to None (necessary for symmetric window)
+                        win_args.insert(0, None)
+
+                    return tuple([win_type] + win_args)
+
                 return win_type
 
             def _pop_args(win_type, arg_names, kwargs):
@@ -776,7 +782,7 @@ class _GroupByMixin(GroupByMixin):
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
-        super(GroupByMixin, self).__init__(obj, *args, **kwargs)
+        super().__init__(obj, *args, **kwargs)
 
     count = GroupByMixin._dispatch('count')
     corr = GroupByMixin._dispatch('corr', other=None, pairwise=None)
@@ -792,7 +798,7 @@ class _GroupByMixin(GroupByMixin):
         def f(x, name=name, *args):
             x = self._shallow_copy(x)
 
-            if isinstance(name, compat.string_types):
+            if isinstance(name, str):
                 return getattr(x, name)(*args, **kwargs)
 
             return x.apply(name, *args, **kwargs)
@@ -845,7 +851,7 @@ class _Rolling(_Window):
                 continue
 
             # if we have a string function name, wrap it
-            if isinstance(func, compat.string_types):
+            if isinstance(func, str):
                 cfunc = getattr(libwindow, func, None)
                 if cfunc is None:
                     raise ValueError("we do not support this function "
@@ -941,6 +947,7 @@ class _Rolling_and_Expanding(_Rolling):
             result = b.notna().astype(int)
             result = self._constructor(result, window=window, min_periods=0,
                                        center=self.center,
+                                       axis=self.axis,
                                        closed=self.closed).sum()
             results.append(result)
 
@@ -1568,12 +1575,11 @@ class Rolling(_Rolling_and_Expanding):
                              "or None".format(self.on))
 
     def validate(self):
-        super(Rolling, self).validate()
+        super().validate()
 
         # we allow rolling on a datetimelike index
         if ((self.obj.empty or self.is_datetimelike) and
-                isinstance(self.window, (compat.string_types, ABCDateOffset,
-                                         timedelta))):
+                isinstance(self.window, (str, ABCDateOffset, timedelta))):
 
             self._validate_monotonic()
             freq = self._validate_freq()
@@ -1682,7 +1688,7 @@ class Rolling(_Rolling_and_Expanding):
                   axis='')
     @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
-        return super(Rolling, self).aggregate(arg, *args, **kwargs)
+        return super().aggregate(arg, *args, **kwargs)
 
     agg = aggregate
 
@@ -1694,61 +1700,60 @@ class Rolling(_Rolling_and_Expanding):
         if self.is_freq_type:
             return self._apply('roll_count', 'count')
 
-        return super(Rolling, self).count()
+        return super().count()
 
     @Substitution(name='rolling')
     @Appender(_shared_docs['apply'])
     def apply(self, func, raw=None, args=(), kwargs={}):
-        return super(Rolling, self).apply(
-            func, raw=raw, args=args, kwargs=kwargs)
+        return super().apply(func, raw=raw, args=args, kwargs=kwargs)
 
     @Substitution(name='rolling')
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_rolling_func('sum', args, kwargs)
-        return super(Rolling, self).sum(*args, **kwargs)
+        return super().sum(*args, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['max'])
     def max(self, *args, **kwargs):
         nv.validate_rolling_func('max', args, kwargs)
-        return super(Rolling, self).max(*args, **kwargs)
+        return super().max(*args, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_shared_docs['min'])
     def min(self, *args, **kwargs):
         nv.validate_rolling_func('min', args, kwargs)
-        return super(Rolling, self).min(*args, **kwargs)
+        return super().min(*args, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_rolling_func('mean', args, kwargs)
-        return super(Rolling, self).mean(*args, **kwargs)
+        return super().mean(*args, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_shared_docs['median'])
     def median(self, **kwargs):
-        return super(Rolling, self).median(**kwargs)
+        return super().median(**kwargs)
 
     @Substitution(name='rolling')
     @Appender(_shared_docs['std'])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func('std', args, kwargs)
-        return super(Rolling, self).std(ddof=ddof, **kwargs)
+        return super().std(ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_shared_docs['var'])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func('var', args, kwargs)
-        return super(Rolling, self).var(ddof=ddof, **kwargs)
+        return super().var(ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['skew'])
     def skew(self, **kwargs):
-        return super(Rolling, self).skew(**kwargs)
+        return super().skew(**kwargs)
 
     _agg_doc = dedent("""
     Examples
@@ -1778,27 +1783,24 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_shared_docs['kurt'])
     def kurt(self, **kwargs):
-        return super(Rolling, self).kurt(**kwargs)
+        return super().kurt(**kwargs)
 
     @Substitution(name='rolling')
     @Appender(_shared_docs['quantile'])
     def quantile(self, quantile, interpolation='linear', **kwargs):
-        return super(Rolling, self).quantile(quantile=quantile,
-                                             interpolation=interpolation,
-                                             **kwargs)
+        return super().quantile(quantile=quantile, interpolation=interpolation,
+                                **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['cov'])
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
-        return super(Rolling, self).cov(other=other, pairwise=pairwise,
-                                        ddof=ddof, **kwargs)
+        return super().cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_shared_docs['corr'])
     def corr(self, other=None, pairwise=None, **kwargs):
-        return super(Rolling, self).corr(other=other, pairwise=pairwise,
-                                         **kwargs)
+        return super().corr(other=other, pairwise=pairwise, **kwargs)
 
 
 class RollingGroupby(_GroupByMixin, Rolling):
@@ -1820,7 +1822,7 @@ class RollingGroupby(_GroupByMixin, Rolling):
         if self.on is not None:
             self._groupby.obj = self._groupby.obj.set_index(self._on)
             self.on = None
-        return super(RollingGroupby, self)._gotitem(key, ndim, subset=subset)
+        return super()._gotitem(key, ndim, subset=subset)
 
     def _validate_monotonic(self):
         """
@@ -1885,8 +1887,8 @@ class Expanding(_Rolling_and_Expanding):
 
     def __init__(self, obj, min_periods=1, center=False, axis=0,
                  **kwargs):
-        super(Expanding, self).__init__(obj=obj, min_periods=min_periods,
-                                        center=center, axis=axis)
+        super().__init__(obj=obj, min_periods=min_periods, center=center,
+                         axis=axis)
 
     @property
     def _constructor(self):
@@ -1960,68 +1962,68 @@ class Expanding(_Rolling_and_Expanding):
                   axis='')
     @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
-        return super(Expanding, self).aggregate(arg, *args, **kwargs)
+        return super().aggregate(arg, *args, **kwargs)
 
     agg = aggregate
 
     @Substitution(name='expanding')
     @Appender(_shared_docs['count'])
     def count(self, **kwargs):
-        return super(Expanding, self).count(**kwargs)
+        return super().count(**kwargs)
 
     @Substitution(name='expanding')
     @Appender(_shared_docs['apply'])
     def apply(self, func, raw=None, args=(), kwargs={}):
-        return super(Expanding, self).apply(
+        return super().apply(
             func, raw=raw, args=args, kwargs=kwargs)
 
     @Substitution(name='expanding')
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_expanding_func('sum', args, kwargs)
-        return super(Expanding, self).sum(*args, **kwargs)
+        return super().sum(*args, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['max'])
     def max(self, *args, **kwargs):
         nv.validate_expanding_func('max', args, kwargs)
-        return super(Expanding, self).max(*args, **kwargs)
+        return super().max(*args, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_shared_docs['min'])
     def min(self, *args, **kwargs):
         nv.validate_expanding_func('min', args, kwargs)
-        return super(Expanding, self).min(*args, **kwargs)
+        return super().min(*args, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_expanding_func('mean', args, kwargs)
-        return super(Expanding, self).mean(*args, **kwargs)
+        return super().mean(*args, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_shared_docs['median'])
     def median(self, **kwargs):
-        return super(Expanding, self).median(**kwargs)
+        return super().median(**kwargs)
 
     @Substitution(name='expanding')
     @Appender(_shared_docs['std'])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func('std', args, kwargs)
-        return super(Expanding, self).std(ddof=ddof, **kwargs)
+        return super().std(ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_shared_docs['var'])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func('var', args, kwargs)
-        return super(Expanding, self).var(ddof=ddof, **kwargs)
+        return super().var(ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['skew'])
     def skew(self, **kwargs):
-        return super(Expanding, self).skew(**kwargs)
+        return super().skew(**kwargs)
 
     _agg_doc = dedent("""
     Examples
@@ -2051,27 +2053,25 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_shared_docs['kurt'])
     def kurt(self, **kwargs):
-        return super(Expanding, self).kurt(**kwargs)
+        return super().kurt(**kwargs)
 
     @Substitution(name='expanding')
     @Appender(_shared_docs['quantile'])
     def quantile(self, quantile, interpolation='linear', **kwargs):
-        return super(Expanding, self).quantile(quantile=quantile,
-                                               interpolation=interpolation,
-                                               **kwargs)
+        return super().quantile(quantile=quantile,
+                                interpolation=interpolation,
+                                **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['cov'])
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
-        return super(Expanding, self).cov(other=other, pairwise=pairwise,
-                                          ddof=ddof, **kwargs)
+        return super().cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_shared_docs['corr'])
     def corr(self, other=None, pairwise=None, **kwargs):
-        return super(Expanding, self).corr(other=other, pairwise=pairwise,
-                                           **kwargs)
+        return super().corr(other=other, pairwise=pairwise, **kwargs)
 
 
 class ExpandingGroupby(_GroupByMixin, Expanding):
@@ -2131,8 +2131,7 @@ class EWM(_Rolling):
         :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`.
     halflife : float, optional
         Specify decay in terms of half-life,
-        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for }
-            halflife > 0`.
+        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{for} halflife > 0`.
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
         :math:`0 < \alpha \leq 1`.
@@ -2272,7 +2271,7 @@ class EWM(_Rolling):
                   axis='')
     @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
-        return super(EWM, self).aggregate(arg, *args, **kwargs)
+        return super().aggregate(arg, *args, **kwargs)
 
     agg = aggregate
 
@@ -2303,7 +2302,7 @@ class EWM(_Rolling):
                 continue
 
             # if we have a string function name, wrap it
-            if isinstance(func, compat.string_types):
+            if isinstance(func, str):
                 cfunc = getattr(libwindow, func, None)
                 if cfunc is None:
                     raise ValueError("we do not support this function "

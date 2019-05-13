@@ -1,11 +1,7 @@
-from __future__ import division
-
 from functools import partial
 
 import numpy as np
 import pytest
-
-from pandas.compat import lzip
 
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
@@ -23,7 +19,7 @@ def name(request):
     return request.param
 
 
-class Base(object):
+class Base:
     """
     Common tests for all variations of IntervalIndex construction. Input data
     to be supplied in breaks format, then converted by the subclass method
@@ -251,7 +247,7 @@ class TestFromTuples(Base):
         if len(breaks) == 0:
             return {'data': breaks}
 
-        tuples = lzip(breaks[:-1], breaks[1:])
+        tuples = list(zip(breaks[:-1], breaks[1:]))
         if isinstance(breaks, (list, tuple)):
             return {'data': tuples}
         elif is_categorical_dtype(breaks):

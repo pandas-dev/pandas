@@ -1,10 +1,11 @@
 from datetime import datetime
+from io import StringIO
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, bdate_range, compat
+from pandas import DataFrame, Index, MultiIndex, Series, bdate_range
 from pandas.util import testing as tm
 
 
@@ -24,9 +25,8 @@ def test_apply_issues():
 2011.05.18,04:00,1.40750
 2011.05.18,05:00,1.40649"""
 
-    df = pd.read_csv(
-        compat.StringIO(s), header=None, names=['date', 'time', 'value'],
-        parse_dates=[['date', 'time']])
+    df = pd.read_csv(StringIO(s), header=None, names=['date', 'time', 'value'],
+                     parse_dates=[['date', 'time']])
     df = df.set_index('date_time')
 
     expected = df.groupby(df.index.date).idxmax()
@@ -35,8 +35,7 @@ def test_apply_issues():
 
     # GH 5789
     # don't auto coerce dates
-    df = pd.read_csv(
-        compat.StringIO(s), header=None, names=['date', 'time', 'value'])
+    df = pd.read_csv(StringIO(s), header=None, names=['date', 'time', 'value'])
     exp_idx = pd.Index(
         ['2011.05.16', '2011.05.17', '2011.05.18'
          ], dtype=object, name='date')
@@ -341,7 +340,7 @@ def test_apply_multikey_corner(tsframe):
 def test_apply_chunk_view():
     # Low level tinkering could be unsafe, make sure not
     df = DataFrame({'key': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-                    'value': compat.lrange(9)})
+                    'value': range(9)})
 
     result = df.groupby('key', group_keys=False).apply(lambda x: x[:2])
     expected = df.take([0, 1, 3, 4, 6, 7])
@@ -351,7 +350,7 @@ def test_apply_chunk_view():
 def test_apply_no_name_column_conflict():
     df = DataFrame({'name': [1, 1, 1, 1, 1, 1, 2, 2, 2, 2],
                     'name2': [0, 0, 0, 1, 1, 1, 0, 0, 1, 1],
-                    'value': compat.lrange(10)[::-1]})
+                    'value': range(9, -1, -1)})
 
     # it works! #2605
     grouped = df.groupby(['name', 'name2'])

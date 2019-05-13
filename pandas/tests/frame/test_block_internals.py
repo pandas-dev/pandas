@@ -1,14 +1,9 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 from datetime import datetime, timedelta
+from io import StringIO
 import itertools
 
 import numpy as np
 import pytest
-
-from pandas.compat import StringIO
 
 import pandas as pd
 from pandas import (
@@ -24,7 +19,7 @@ from pandas.util.testing import (
 # structure
 
 
-class TestDataFrameBlockInternals():
+class TestDataFrameBlockInternals:
     def test_setitem_invalidates_datetime_index_freq(self):
         # GH#24096 altering a datetime64tz column inplace invalidates the
         #  `freq` attribute on the underlying DatetimeIndex

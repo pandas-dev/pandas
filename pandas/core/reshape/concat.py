@@ -6,7 +6,7 @@ import numpy as np
 
 import pandas.core.dtypes.concat as _concat
 
-from pandas import DataFrame, Index, MultiIndex, Series, compat
+from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core import common as com
 from pandas.core.arrays.categorical import (
     _factorize_from_iterable, _factorize_from_iterables)
@@ -34,7 +34,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     Parameters
     ----------
-    objs : a sequence or mapping of Series, DataFrame, or Panel objects
+    objs : a sequence or mapping of Series or DataFrame objects
         If a dict is passed, the sorted keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
@@ -229,7 +229,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     return op.get_result()
 
 
-class _Concatenator(object):
+class _Concatenator:
     """
     Orchestrates a concatenation operation for BlockManagers
     """
@@ -238,7 +238,7 @@ class _Concatenator(object):
                  keys=None, levels=None, names=None,
                  ignore_index=False, verify_integrity=False, copy=True,
                  sort=False):
-        if isinstance(objs, (NDFrame, compat.string_types)):
+        if isinstance(objs, (NDFrame, str)):
             raise TypeError('first argument must be an iterable of pandas '
                             'objects, you passed an object of type '
                             '"{name}"'.format(name=type(objs).__name__))
@@ -452,7 +452,7 @@ class _Concatenator(object):
                                      "to {length}".format(length=ndim - 1))
 
             # ufff...
-            indices = compat.lrange(ndim)
+            indices = list(range(ndim))
             indices.remove(self.axis)
 
             for i, ax in zip(indices, self.join_axes):
@@ -536,7 +536,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
 
     if ((levels is None and isinstance(keys[0], tuple)) or
             (levels is not None and len(levels) > 1)):
-        zipped = compat.lzip(*keys)
+        zipped = list(zip(*keys))
         if names is None:
             names = [None] * len(zipped)
 

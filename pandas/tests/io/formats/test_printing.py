@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
 import pandas._config.config as cf
 
 import pandas as pd
-from pandas import compat
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
@@ -23,19 +21,18 @@ def test_adjoin():
 def test_repr_binary_type():
     import string
     letters = string.ascii_letters
-    btype = compat.binary_type
     try:
-        raw = btype(letters, encoding=cf.get_option('display.encoding'))
+        raw = bytes(letters, encoding=cf.get_option('display.encoding'))
     except TypeError:
-        raw = btype(letters)
-    b = compat.text_type(compat.bytes_to_str(raw))
+        raw = bytes(letters)
+    b = str(raw.decode('utf-8'))
     res = printing.pprint_thing(b, quote_strings=True)
     assert res == repr(b)
     res = printing.pprint_thing(b, quote_strings=False)
     assert res == b
 
 
-class TestFormattBase(object):
+class TestFormattBase:
 
     def test_adjoin(self):
         data = [['a', 'b', 'c'], ['dd', 'ee', 'ff'], ['ggg', 'hhh', 'iii']]
@@ -123,7 +120,7 @@ c        ff         いいい"""
         assert adjoined == expected
 
 
-class TestTableSchemaRepr(object):
+class TestTableSchemaRepr:
 
     @classmethod
     def setup_class(cls):

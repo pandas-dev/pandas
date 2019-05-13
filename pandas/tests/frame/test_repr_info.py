@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 from datetime import datetime, timedelta
+from io import StringIO
 import re
 import sys
 import textwrap
@@ -10,12 +7,11 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY, StringIO, lrange
+from pandas.compat import PYPY
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Series, compat, date_range, option_context,
-    period_range)
+    Categorical, DataFrame, Series, date_range, option_context, period_range)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -47,7 +43,7 @@ class TestDataFrameReprInfoEtc(TestData):
         # big mixed
         biggie = DataFrame({'A': np.random.randn(200),
                             'B': tm.makeStringIndex(200)},
-                           index=lrange(200))
+                           index=range(200))
         biggie.loc[:20, 'A'] = np.nan
         biggie.loc[:20, 'B'] = np.nan
 
@@ -92,8 +88,8 @@ class TestDataFrameReprInfoEtc(TestData):
     @pytest.mark.slow
     def test_repr_big(self):
         # big one
-        biggie = DataFrame(np.zeros((200, 4)), columns=lrange(4),
-                           index=lrange(200))
+        biggie = DataFrame(np.zeros((200, 4)), columns=range(4),
+                           index=range(200))
         repr(biggie)
 
     def test_repr_unsortable(self):
@@ -496,7 +492,7 @@ class TestDataFrameReprInfoEtc(TestData):
         df.info(buf=buf)
 
         df2 = df[df['category'] == 'd']
-        buf = compat.StringIO()
+        buf = StringIO()
         df2.info(buf=buf)
 
     def test_repr_categorical_dates_periods(self):
@@ -514,3 +510,12 @@ class TestDataFrameReprInfoEtc(TestData):
 
         df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
         assert repr(df) == exp
+
+    @pytest.mark.parametrize('arg', [np.datetime64, np.timedelta64])
+    @pytest.mark.parametrize('box, expected', [
+        [Series, '0    NaT\ndtype: object'],
+        [DataFrame, '     0\n0  NaT']])
+    def test_repr_np_nat_with_object(self, arg, box, expected):
+        # GH 25445
+        result = repr(box([arg('NaT')], dtype=object))
+        assert result == expected

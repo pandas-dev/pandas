@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+from functools import reduce
 from itertools import product
 import operator
 import warnings
@@ -7,7 +8,6 @@ import numpy as np
 from numpy.random import rand, randint, randn
 import pytest
 
-from pandas.compat import reduce
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -110,7 +110,7 @@ _good_arith_ops = set(_arith_ops_syms).difference(_special_case_arith_ops_syms)
 
 
 @td.skip_if_no_ne
-class TestEvalNumexprPandas(object):
+class TestEvalNumexprPandas:
 
     @classmethod
     def setup_class(cls):
@@ -608,6 +608,16 @@ class TestEvalNumexprPandas(object):
                       -False, False, ~False, +False,
                       -37, 37, ~37, +37], dtype=np.object_))
 
+    @pytest.mark.parametrize('dtype', [np.float32, np.float64])
+    def test_float_comparison_bin_op(self, dtype):
+        # GH 16363
+        df = pd.DataFrame({'x': np.array([0], dtype=dtype)})
+        res = df.eval('x < -0.1')
+        assert res.values == np.array([False])
+
+        res = df.eval('-5 > x')
+        assert res.values == np.array([False])
+
     def test_disallow_scalar_bool_ops(self):
         exprs = '1 or 2', '1 and 2'
         exprs += 'a and b', 'a or b'
@@ -702,7 +712,7 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
 
     @classmethod
     def setup_class(cls):
-        super(TestEvalNumexprPython, cls).setup_class()
+        super().setup_class()
         import numexpr as ne
         cls.ne = ne
         cls.engine = 'numexpr'
@@ -728,7 +738,7 @@ class TestEvalPythonPython(TestEvalNumexprPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestEvalPythonPython, cls).setup_class()
+        super().setup_class()
         cls.engine = 'python'
         cls.parser = 'python'
 
@@ -758,7 +768,7 @@ class TestEvalPythonPandas(TestEvalPythonPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestEvalPythonPandas, cls).setup_class()
+        super().setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
 
@@ -774,7 +784,7 @@ f = lambda *args, **kwargs: np.random.randn()
 # gh-12388: Typecasting rules consistency with python
 
 
-class TestTypeCasting(object):
+class TestTypeCasting:
     @pytest.mark.parametrize('op', ['+', '-', '*', '**', '/'])
     # maybe someday... numexpr has too many upcasting rules now
     # chain(*(np.sctypes[x] for x in ['uint', 'int', 'float']))
@@ -807,7 +817,7 @@ def should_warn(*args):
     return not_mono and only_one_dt
 
 
-class TestAlignment(object):
+class TestAlignment:
 
     index_types = 'i', 'u', 'dt'
     lhs_index_types = index_types + ('s',)  # 'p'
@@ -1051,7 +1061,7 @@ class TestAlignment(object):
 # Slightly more complex ops
 
 @td.skip_if_no_ne
-class TestOperationsNumExprPandas(object):
+class TestOperationsNumExprPandas:
 
     @classmethod
     def setup_class(cls):
@@ -1484,7 +1494,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     @classmethod
     def setup_class(cls):
-        super(TestOperationsNumExprPython, cls).setup_class()
+        super().setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
@@ -1560,7 +1570,7 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestOperationsPythonPython, cls).setup_class()
+        super().setup_class()
         cls.engine = cls.parser = 'python'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
         cls.arith_ops = filter(lambda x: x not in ('in', 'not in'),
@@ -1571,14 +1581,14 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
 
     @classmethod
     def setup_class(cls):
-        super(TestOperationsPythonPandas, cls).setup_class()
+        super().setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
 
 
 @td.skip_if_no_ne
-class TestMathPythonPython(object):
+class TestMathPythonPython:
 
     @classmethod
     def setup_class(cls):
@@ -1698,7 +1708,7 @@ class TestMathPythonPandas(TestMathPythonPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestMathPythonPandas, cls).setup_class()
+        super().setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
 
@@ -1707,7 +1717,7 @@ class TestMathNumExprPandas(TestMathPythonPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestMathNumExprPandas, cls).setup_class()
+        super().setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
 
@@ -1716,7 +1726,7 @@ class TestMathNumExprPython(TestMathPythonPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestMathNumExprPython, cls).setup_class()
+        super().setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
 
@@ -1724,7 +1734,7 @@ class TestMathNumExprPython(TestMathPythonPython):
 _var_s = randn(10)
 
 
-class TestScope(object):
+class TestScope:
 
     def test_global_scope(self, engine, parser):
         e = '_var_s * 2'
@@ -1872,7 +1882,7 @@ def test_negate_lt_eq_le(engine, parser):
         tm.assert_frame_equal(result, expected)
 
 
-class TestValidate(object):
+class TestValidate:
 
     def test_validate_bool_args(self):
         invalid_values = [1, "True", [1, 2, 3], 5.0]

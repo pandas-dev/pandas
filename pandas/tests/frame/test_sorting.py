@@ -1,13 +1,7 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 import random
 
 import numpy as np
 import pytest
-
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -446,7 +440,7 @@ class TestDataFrameSortIndexKinds(TestData):
 
         # with 9816, these are all translated to .sort_values
 
-        df = DataFrame([lrange(5, 9), lrange(4)],
+        df = DataFrame([range(5, 9), range(4)],
                        columns=['a', 'a', 'b', 'b'])
 
         with pytest.raises(ValueError, match='not unique'):
@@ -498,11 +492,28 @@ class TestDataFrameSortIndexKinds(TestData):
     def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         df = DataFrame([[1, 2], [3, 4]], mi)
-        res = df.sort_index(level='A', sort_remaining=False)
-        assert_frame_equal(df, res)
 
-        res = df.sort_index(level=['A', 'B'], sort_remaining=False)
-        assert_frame_equal(df, res)
+        result = df.sort_index(level='A', sort_remaining=False)
+        expected = df
+        assert_frame_equal(result, expected)
+
+        result = df.sort_index(level=['A', 'B'], sort_remaining=False)
+        expected = df
+        assert_frame_equal(result, expected)
+
+        # Error thrown by sort_index when
+        # first index is sorted last (#26053)
+        result = df.sort_index(level=['C', 'B', 'A'])
+        expected = df.iloc[[1, 0]]
+        assert_frame_equal(result, expected)
+
+        result = df.sort_index(level=['B', 'C', 'A'])
+        expected = df.iloc[[1, 0]]
+        assert_frame_equal(result, expected)
+
+        result = df.sort_index(level=['C', 'A'])
+        expected = df.iloc[[1, 0]]
+        assert_frame_equal(result, expected)
 
     def test_sort_index_categorical_index(self):
 

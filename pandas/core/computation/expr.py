@@ -2,17 +2,16 @@
 """
 
 import ast
-from functools import partial
+from functools import partial, reduce
+from io import StringIO
 import itertools as it
 import operator
 import tokenize
+from typing import Type
 
 import numpy as np
 
-from pandas.compat import StringIO, lmap, reduce, string_types
-
 import pandas as pd
-from pandas import compat
 from pandas.core import common as com
 from pandas.core.base import StringMixin
 from pandas.core.computation.common import (
@@ -179,7 +178,7 @@ def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), 'f must be callable'
-    return tokenize.untokenize(lmap(f, tokenize_string(source)))
+    return tokenize.untokenize((f(x) for x in tokenize_string(source)))
 
 
 def _is_type(t):
@@ -188,7 +187,7 @@ def _is_type(t):
 
 
 _is_list = _is_type(list)
-_is_str = _is_type(string_types)
+_is_str = _is_type(str)
 
 
 # partition all AST nodes
@@ -300,7 +299,7 @@ _op_classes = {'binary': BinOp, 'unary': UnaryOp}
 def add_ops(op_classes):
     """Decorator to add default implementation of ops."""
     def f(cls):
-        for op_attr_name, op_class in compat.iteritems(op_classes):
+        for op_attr_name, op_class in op_classes.items():
             ops = getattr(cls, '{name}_ops'.format(name=op_attr_name))
             ops_map = getattr(cls, '{name}_op_nodes_map'.format(
                 name=op_attr_name))
@@ -327,7 +326,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     parser : str
     preparser : callable
     """
-    const_type = Constant
+    const_type = Constant  # type: Type[Term]
     term_type = Term
 
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
@@ -355,7 +354,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         self.assigner = None
 
     def visit(self, node, **kwargs):
-        if isinstance(node, string_types):
+        if isinstance(node, str):
             clean = self.preparser(node)
             try:
                 node = ast.fix_missing_locations(ast.parse(clean))
@@ -418,11 +417,13 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     def _maybe_downcast_constants(self, left, right):
         f32 = np.dtype(np.float32)
-        if left.is_scalar and not right.is_scalar and right.return_type == f32:
+        if (left.is_scalar and hasattr(left, 'value') and
+                not right.is_scalar and right.return_type == f32):
             # right is a float32 array, left is a scalar
             name = self.env.add_tmp(np.float32(left.value))
             left = self.term_type(name, self.env)
-        if right.is_scalar and not left.is_scalar and left.return_type == f32:
+        if (right.is_scalar and hasattr(right, 'value') and
+                not left.is_scalar and left.return_type == f32):
             # left is a float32 array, right is a scalar
             name = self.env.add_tmp(np.float32(right.value))
             right = self.term_type(name, self.env)
@@ -589,9 +590,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         raise ValueError("Invalid Attribute context {name}"
                          .format(name=ctx.__name__))
 
-    def visit_Call_35(self, node, side=None, **kwargs):
-        """ in 3.5 the starargs attribute was changed to be more flexible,
-        #11097 """
+    def visit_Call(self, node, side=None, **kwargs):
 
         if isinstance(node.func, ast.Attribute):
             res = self.visit_Attribute(node.func)
@@ -640,58 +639,6 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             return self.const_type(res(*new_args, **kwargs), self.env)
 
-    def visit_Call_legacy(self, node, side=None, **kwargs):
-
-        # this can happen with: datetime.datetime
-        if isinstance(node.func, ast.Attribute):
-            res = self.visit_Attribute(node.func)
-        elif not isinstance(node.func, ast.Name):
-            raise TypeError("Only named functions are supported")
-        else:
-            try:
-                res = self.visit(node.func)
-            except UndefinedVariableError:
-                # Check if this is a supported function name
-                try:
-                    res = FuncNode(node.func.id)
-                except ValueError:
-                    # Raise original error
-                    raise
-
-        if res is None:
-            raise ValueError("Invalid function call {func}"
-                             .format(func=node.func.id))
-        if hasattr(res, 'value'):
-            res = res.value
-
-        if isinstance(res, FuncNode):
-            args = [self.visit(targ) for targ in node.args]
-
-            if node.starargs is not None:
-                args += self.visit(node.starargs)
-
-            if node.keywords or node.kwargs:
-                raise TypeError("Function \"{name}\" does not support keyword "
-                                "arguments".format(name=res.name))
-
-            return res(*args, **kwargs)
-
-        else:
-            args = [self.visit(targ).value for targ in node.args]
-            if node.starargs is not None:
-                args += self.visit(node.starargs).value
-
-            keywords = {}
-            for key in node.keywords:
-                if not isinstance(key, ast.keyword):
-                    raise ValueError("keyword error in function call "
-                                     "'{func}'".format(func=node.func.id))
-                keywords[key.arg] = self.visit(key.value).value
-            if node.kwargs is not None:
-                keywords.update(self.visit(node.kwargs).value)
-
-            return self.const_type(res(*args, **keywords), self.env)
-
     def translate_In(self, op):
         return op
 
@@ -733,14 +680,6 @@ class BaseExprVisitor(ast.NodeVisitor):
         return reduce(visitor, operands)
 
 
-# ast.Call signature changed on 3.5,
-# conditionally change which methods is named
-# visit_Call depending on Python version, #11097
-if compat.PY35:
-    BaseExprVisitor.visit_Call = BaseExprVisitor.visit_Call_35
-else:
-    BaseExprVisitor.visit_Call = BaseExprVisitor.visit_Call_legacy
-
 _python_not_supported = frozenset(['Dict', 'BoolOp', 'In', 'NotIn'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
@@ -754,15 +693,14 @@ class PandasExprVisitor(BaseExprVisitor):
                  preparser=partial(_preparse, f=_compose(
                      _replace_locals, _replace_booleans,
                      _clean_spaces_backtick_quoted_names))):
-        super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
+        super().__init__(env, engine, parser, preparser)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
 class PythonExprVisitor(BaseExprVisitor):
 
     def __init__(self, env, engine, parser, preparser=lambda x: x):
-        super(PythonExprVisitor, self).__init__(env, engine, parser,
-                                                preparser=preparser)
+        super().__init__(env, engine, parser, preparser=preparser)
 
 
 class Expr(StringMixin):
