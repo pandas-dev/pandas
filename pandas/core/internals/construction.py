@@ -195,14 +195,13 @@ def init_dict(data, index, columns, dtype=None):
             arrays.loc[missing] = [val] * missing.sum()
 
     else:
-        data = OrderedDict((col_name, com.maybe_itarable_to_list(col))
-                           for col_name, col in data.items())
         keys = com.dict_keys_to_ordered_list(data)
         columns = data_names = Index(keys)
+        arrays = (com.maybe_itarable_to_list(data[k]) for k in keys)
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
-        arrays = [data[k] if not is_datetime64tz_dtype(data[k]) else
-                  data[k].copy(deep=True) for k in keys]
+        arrays = [arr if not is_datetime64tz_dtype(arr) else
+                  arr.copy(deep=True) for arr in arrays]
     return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
 
 
