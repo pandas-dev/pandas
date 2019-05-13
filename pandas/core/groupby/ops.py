@@ -258,7 +258,10 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = zip(*(ping.grouper for ping in self.groupings))
+            to_groupby = zip(*(ping.grouper if not isinstance(ping.grouper,
+                                                              self.__class__)
+                             else ping.grouper.groupings[0].grouper for ping
+                             in self.groupings))
             to_groupby = Index(to_groupby)
             return self.axis.groupby(to_groupby)
 

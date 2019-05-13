@@ -1737,3 +1737,15 @@ def test_groupby_multiindex_series_keys_len_equal_group_axis():
     expected = pd.Series([3], index=ei)
 
     assert_series_equal(result, expected)
+
+
+def test_groupby_groups_in_BaseGrouper():
+    # https://github.com/pandas-dev/pandas/issues/26326
+    m_index = pd.MultiIndex.from_product([['A', 'B'],
+                                         ['C', 'D']], names=['alpha', 'beta'])
+    df_sample = pd.DataFrame({'foo': [1, 2, 1, 2], 'bar': [1, 2, 3, 4]},
+                             index=m_index)
+    dfGBY_BaseGrouper = df_sample.groupby([pd.Grouper(level='alpha'), 'beta'])
+    dfGBY_noBaseGrouper = df_sample.groupby(['alpha', 'beta'])
+
+    assert(dfGBY_BaseGrouper.groups == dfGBY_noBaseGrouper.groups)
