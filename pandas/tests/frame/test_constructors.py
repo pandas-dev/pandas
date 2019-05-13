@@ -7,7 +7,7 @@ import numpy as np
 import numpy.ma as ma
 import pytest
 
-from pandas.compat import PY36, is_platform_little_endian, lmap
+from pandas.compat import PY36, is_platform_little_endian
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
@@ -33,11 +33,13 @@ class TestDataFrameConstructors(TestData):
         lambda: DataFrame(()),
         lambda: DataFrame([]),
         lambda: DataFrame((x for x in [])),
+        lambda: DataFrame(range(0)),
         lambda: DataFrame(data=None),
         lambda: DataFrame(data={}),
         lambda: DataFrame(data=()),
         lambda: DataFrame(data=[]),
-        lambda: DataFrame(data=(x for x in []))
+        lambda: DataFrame(data=(x for x in [])),
+        lambda: DataFrame(data=range(0)),
     ])
     def test_empty_constructor(self, constructor):
         expected = DataFrame()
@@ -999,6 +1001,17 @@ class TestDataFrameConstructors(TestData):
                             array.array('i', range(10))])
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_constructor_range(self):
+        # GH26342
+        result = DataFrame(range(10))
+        expected = DataFrame(list(range(10)))
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_ranges(self):
+        result = DataFrame([range(10), range(10)])
+        expected = DataFrame([list(range(10)), list(range(10))])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_iterable(self):
         # GH 21987
         class Iter:
@@ -1011,9 +1024,13 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_iterator(self):
+        result = DataFrame(iter(range(10)))
+        expected = DataFrame(list(range(10)))
+        tm.assert_frame_equal(result, expected)
 
+    def test_constructor_list_of_iterators(self):
+        result = DataFrame([iter(range(10)), iter(range(10))])
         expected = DataFrame([list(range(10)), list(range(10))])
-        result = DataFrame([range(10), range(10)])
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_generator(self):
@@ -2224,7 +2241,7 @@ class TestDataFrameConstructors(TestData):
                 return iter(self.args)
 
         recs = [Record(1, 2, 3), Record(4, 5, 6), Record(7, 8, 9)]
-        tups = lmap(tuple, recs)
+        tups = [tuple(rec) for rec in recs]
 
         result = DataFrame.from_records(recs)
         expected = DataFrame.from_records(tups)
@@ -2251,8 +2268,13 @@ class TestDataFrameConstructors(TestData):
 
     @pytest.mark.parametrize('dtype', [None, 'uint8', 'category'])
     def test_constructor_range_dtype(self, dtype):
-        # GH 16804
         expected = DataFrame({'A': [0, 1, 2, 3, 4]}, dtype=dtype or 'int64')
+
+        # GH 26342
+        result = DataFrame(range(5), columns=['A'], dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+        # GH 16804
         result = DataFrame({'A': range(5)}, dtype=dtype)
         tm.assert_frame_equal(result, expected)
 

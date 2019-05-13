@@ -696,22 +696,77 @@ None
 """
 
 # create the Dtype
-_dtypes = {}
-for dtype in ['int8', 'int16', 'int32', 'int64',
-              'uint8', 'uint16', 'uint32', 'uint64']:
+Int8Dtype = register_extension_dtype(
+    type('Int8Dtype', (_IntegerDtype, ), {
+        'type': np.int8,
+        'name': 'Int8',
+        '__doc__': _dtype_docstring.format(dtype='int8')
+    })
+)
 
-    if dtype.startswith('u'):
-        name = "U{}".format(dtype[1:].capitalize())
-    else:
-        name = dtype.capitalize()
-    classname = "{}Dtype".format(name)
-    numpy_dtype = getattr(np, dtype)
-    attributes_dict = {'type': numpy_dtype,
-                       'name': name,
-                       '__doc__': _dtype_docstring.format(dtype=dtype)}
-    dtype_type = register_extension_dtype(
-        type(classname, (_IntegerDtype, ), attributes_dict)
-    )
-    setattr(module, classname, dtype_type)
+Int16Dtype = register_extension_dtype(
+    type('Int16Dtype', (_IntegerDtype, ), {
+        'type': np.int16,
+        'name': 'Int16',
+        '__doc__': _dtype_docstring.format(dtype='int16')
+    })
+)
 
-    _dtypes[dtype] = dtype_type()
+Int32Dtype = register_extension_dtype(
+    type('Int32Dtype', (_IntegerDtype, ), {
+        'type': np.int32,
+        'name': 'Int32',
+        '__doc__': _dtype_docstring.format(dtype='int32')
+    })
+)
+
+Int64Dtype = register_extension_dtype(
+    type('Int64Dtype', (_IntegerDtype, ), {
+        'type': np.int64,
+        'name': 'Int64',
+        '__doc__': _dtype_docstring.format(dtype='int64')
+    })
+)
+
+UInt8Dtype = register_extension_dtype(
+    type('UInt8Dtype', (_IntegerDtype, ), {
+        'type': np.uint8,
+        'name': 'UInt8',
+        '__doc__': _dtype_docstring.format(dtype='uint8')
+    })
+)
+
+UInt16Dtype = register_extension_dtype(
+    type('UInt16Dtype', (_IntegerDtype, ), {
+        'type': np.uint16,
+        'name': 'UInt16',
+        '__doc__': _dtype_docstring.format(dtype='uint16')
+    })
+)
+
+UInt32Dtype = register_extension_dtype(
+    type('UInt32Dtype', (_IntegerDtype, ), {
+        'type': np.uint32,
+        'name': 'UInt32',
+        '__doc__': _dtype_docstring.format(dtype='uint32')
+    })
+)
+
+UInt64Dtype = register_extension_dtype(
+    type('UInt64Dtype', (_IntegerDtype, ), {
+        'type': np.uint64,
+        'name': 'UInt64',
+        '__doc__': _dtype_docstring.format(dtype='uint64')
+    })
+)
+
+_dtypes = {
+    'int8': Int8Dtype(),
+    'int16': Int16Dtype(),
+    'int32': Int32Dtype(),
+    'int64': Int64Dtype(),
+    'uint8': UInt8Dtype(),
+    'uint16': UInt16Dtype(),
+    'uint32': UInt32Dtype(),
+    'uint64': UInt64Dtype(),
+}

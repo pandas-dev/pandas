@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_categorical_dtype, is_hashable,
     is_integer, is_iterator, is_list_like, is_object_dtype, is_scalar,
     pandas_dtype)
-from pandas.core.dtypes.dtypes import ExtensionDtype, PandasExtensionDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.missing import array_equivalent, isna
 
@@ -1173,7 +1173,7 @@ class MultiIndex(Index):
             vals = self._get_level_values(i)
             if is_categorical_dtype(vals):
                 vals = vals.get_values()
-            if (isinstance(vals.dtype, (PandasExtensionDtype, ExtensionDtype))
+            if (isinstance(vals.dtype, ExtensionDtype)
                     or hasattr(vals, '_box_values')):
                 vals = vals.astype(object)
             vals = np.array(vals, copy=False)
