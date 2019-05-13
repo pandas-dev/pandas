@@ -1,5 +1,5 @@
 import textwrap
-from typing import Optional, Type
+from typing import Type
 import warnings
 
 import numpy as np
@@ -89,7 +89,7 @@ class IndexingError(Exception):
 
 
 class _NDFrameIndexer(_NDFrameIndexerBase):
-    _valid_types = None  # type: Optional[str]
+    _valid_types = None  # type: str
     _exception = KeyError  # type: Type[Exception]
     axis = None
 

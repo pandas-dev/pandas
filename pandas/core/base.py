@@ -4,7 +4,6 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import no_type_check
 import warnings
 
 import numpy as np
@@ -1573,9 +1572,5 @@ class IndexOpsMixin:
     # ----------------------------------------------------------------------
     # abstracts
 
-    # Removed from type checking because there is currently no good way to
-    # handle multiple inheritance with incompatible signatures with mypy
-    # https://github.com/python/mypy/issues/2125
-    @no_type_check
-    def _update_inplace(self, result, **kwargs):
+    def _update_inplace(self, result, verify_is_copy=True, **kwargs):
         raise AbstractMethodError(self)

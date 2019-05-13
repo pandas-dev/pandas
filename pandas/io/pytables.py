@@ -2298,9 +2298,9 @@ class Fixed(StringMixin):
         parent : my parent HDFStore
         group  : the group node where the table resides
         """
-    pandas_kind = None  # type: Optional[str]
-    obj_type = None  # type: Optional[Type[Union[DataFrame, Series]]]
-    ndim = None  # type: Optional[int]
+    pandas_kind = None  # type: str
+    obj_type = None  # type: Type[Union[DataFrame, Series]]
+    ndim = None  # type: int
     is_table = False
 
     def __init__(self, parent, group, encoding=None, errors='strict',
