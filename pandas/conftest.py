@@ -381,7 +381,7 @@ TIMEZONE_IDS = ['None', 'UTC', 'US/Eastern', 'Asia/Tokyp',
                 'dateutil.tz.tzutz()', 'dateutil.tz.tzlocal()',
                 'pytz.FixedOffset(300)', 'pytz.FixedOffset(0)',
                 'pytz.FixedOffset(-300)', 'datetime.timezone.+1',
-				'datetime.timezone.-1.named']
+                'datetime.timezone.-1.named']
 
 
 @td.parametrize_fixture_doc(str(TIMEZONE_IDS))
