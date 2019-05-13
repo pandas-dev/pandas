@@ -256,9 +256,9 @@ def test_series_box_timestamp():
 
 def test_getitem_ambiguous_keyerror():
     s = Series(lrange(10), index=lrange(0, 20, 2))
-    with pytest.raises(KeyError, match=r"^1L?$"):
+    with pytest.raises(KeyError, match=r"^1$"):
         s[1]
-    with pytest.raises(KeyError, match=r"^1L?$"):
+    with pytest.raises(KeyError, match=r"^1$"):
         s.loc[1]
 
 
