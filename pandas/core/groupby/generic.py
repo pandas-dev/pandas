@@ -144,8 +144,30 @@ class NDFrameGroupBy(GroupBy):
         return new_items, new_blocks
 
     def aggregate(self, func, *args, **kwargs):
-
         _level = kwargs.pop('_level', None)
+
+        relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
+        if relabeling:
+            # Normalize the aggregation functions as Dict[column, List[func]],
+            # process normally, then fixup the names.
+            # TODO(Py35): When we drop python 3.5, change this to
+            # defaultdict(list)
+            func = OrderedDict()
+            order = []
+            columns, pairs = list(zip(*kwargs.items()))
+
+            for i, (name, (column, aggfunc)) in enumerate(zip(columns, pairs)):
+                if column in func:
+                    func[column].append(aggfunc)
+                else:
+                    func[column] = [aggfunc]
+                order.append((column, _get_agg_name(aggfunc)))
+            kwargs = {}
+        elif func is None:
+            # nicer error message
+            raise TypeError("Must provide 'func' or tuples of "
+                            "'(column, aggfunc).")
+
         result, how = self._aggregate(func, _level=_level, *args, **kwargs)
         if how is None:
             return result
@@ -178,6 +200,10 @@ class NDFrameGroupBy(GroupBy):
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
             result.index = np.arange(len(result))
+
+        if relabeling:
+            result = result[order]
+            result.columns = columns
 
         return result._convert(datetime=True)
 
@@ -791,11 +817,8 @@ class SeriesGroupBy(GroupBy):
             # list of functions / function names
             columns = []
             for f in arg:
-                if isinstance(f, str):
-                    columns.append(f)
-                else:
-                    # protect against callables without names
-                    columns.append(com.get_callable_name(f))
+                columns.append(_get_agg_name(f))
+
             arg = zip(columns, arg)
 
         results = OrderedDict()
@@ -1292,6 +1315,16 @@ class DataFrameGroupBy(NDFrameGroupBy):
     A
     1   1   2  0.590716
     2   3   4  0.704907
+
+    To control the output names with different aggregations
+    per column, pass tuples of ``(column, aggfunc))`` as kwargs
+
+    >>> df.groupby("A").agg(b_min=("B", "min"), c_sum=("C", "sum"))
+    >>>
+           b_min     c_sum
+    A
+    1      1  0.825627
+    2      3  2.218618
     """)
 
     @Substitution(see_also=_agg_see_also_doc,
@@ -1300,7 +1333,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
                   klass='DataFrame',
                   axis='')
     @Appender(_shared_docs['aggregate'])
-    def aggregate(self, arg, *args, **kwargs):
+    def aggregate(self, arg=None, *args, **kwargs):
         return super().aggregate(arg, *args, **kwargs)
 
     agg = aggregate
@@ -1573,3 +1606,48 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return results
 
     boxplot = boxplot_frame_groupby
+
+
+def _is_multi_agg_with_relabel(**kwargs):
+    """
+    Check whether the kwargs pass to .agg look like multi-agg with relabling.
+
+    Parameters
+    ----------
+    **kwargs : dict
+
+    Returns
+    -------
+    bool
+
+    Examples
+    --------
+    >>> _is_multi_agg_with_relabel(a='max')
+    False
+    >>> _is_multi_agg_with_relabel(a_max=('a', 'max'),
+    ...                            a_min=('a', 'min'))
+    True
+    >>> _is_multi_agg_with_relabel()
+    """
+    return all(
+        isinstance(v, tuple) and len(v) == 2
+        for v in kwargs.values()
+    ) and kwargs
+
+
+def _get_agg_name(arg):
+    """
+
+    Parameters
+    ----------
+    arg
+
+    Returns
+    -------
+
+    """
+    if isinstance(arg, str):
+        return arg
+    else:
+        # protect against callables without names
+        return com.get_callable_name(arg)

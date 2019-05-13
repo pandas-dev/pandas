@@ -601,6 +601,30 @@ must be either implemented on GroupBy or available via :ref:`dispatching
    grouped.agg({'D': 'std', 'C': 'mean'})
    grouped.agg(OrderedDict([('D', 'std'), ('C', 'mean')]))
 
+.. versionadded:: 0.25.0
+
+To support column-specific aggregation with control over the output column names, pandas
+accepts the special syntax where
+
+1. The keywords are the *output* column names
+2. The first element of each tuple is the column to select
+3. The second element of each tuple is the aggregation function to apply to that column.
+
+.. ipython:: python
+
+   grouped.agg(d_std=('D', 'std'), c_mean=('C', 'mean'))
+
+If your desired output column names are not valid python keywords, construct a dictionary
+and unpack the keyword arguments
+
+.. ipython:: python
+
+   grouped.agg(**{'d_std': ('D', 'std'), 'mean of C': ('C', 'mean')})
+
+Additional keyword arguments are not passed through to the aggregation functions. Only pairs
+of ``(column, aggfunc)`` should be passed as ``**kwargs``. If your aggregation functions
+requires additional arguments, partially apply them with :meth:`functools.partial`.
+
 .. _groupby.aggregate.cython:
 
 Cython-optimized aggregation functions

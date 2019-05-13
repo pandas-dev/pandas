@@ -19,6 +19,29 @@ These are the changes in pandas 0.25.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_0250.enhancements.agg_relabel:
+
+Groupby Aggregation with Relabling
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas has added special syntax for naming the output columns when applying multiple aggreation functions to specific
+columns.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'kind': ['cat', 'dog', 'cat', 'dog'],
+                      'height': [9.1, 6.0, 9.5, 34.0],
+                      'weight': [7.9, 7.5, 9.9, 198.0]})
+   grouper = df.groupby("kind")
+   grouper.agg(max_height=('height', 'max'), average_weight=('weight', 'mean'))
+
+Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
+should be tuples where the first element is the column selection, and the second element is the
+aggregation function to apply.
+
 .. _whatsnew_0250.enhancements.other:
 
 Other Enhancements
