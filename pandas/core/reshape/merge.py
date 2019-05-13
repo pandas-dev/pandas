@@ -1671,21 +1671,11 @@ _join_functions = {
 }
 
 
-def _convert_array_or_index(arg):
-    """Converts DatetimeArray or DatetimeIndex to numpy array in UTC"""
-    try:
-        # DatetimeIndex case
-        return arg._values._data
-    except AttributeError:
-        # DatetimeArray Case
-        return arg._data
-
-
 def _factorize_keys(lk, rk, sort=True):
     # Some pre-processing for non-ndarray lk / rk
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
-        lk = _convert_array_or_index(lk)
-        rk = _convert_array_or_index(rk)
+        lk = getattr(lk, '_values', lk)._data
+        rk = getattr(rk, '_values', rk)._data
 
     elif (is_categorical_dtype(lk) and
             is_categorical_dtype(rk) and
