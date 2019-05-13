@@ -43,7 +43,7 @@ _doc_template = """
 class _Window(PandasObject, SelectionMixin):
     _attributes = ['window', 'min_periods', 'center', 'win_type',
                    'axis', 'on', 'closed']
-    exclusions = set()  # type: Set
+    exclusions = set()  # type: Set[str]
 
     def __init__(self, obj, window=None, min_periods=None,
                  center=False, win_type=None, axis=0, on=None, closed=None,
