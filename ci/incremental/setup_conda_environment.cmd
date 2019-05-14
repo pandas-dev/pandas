@@ -9,15 +9,13 @@ set PIP_INSTALL=pip install -q
 @rem Deactivate any environment
 call deactivate
 @rem Display root environment (for debugging)
-conda list
+call conda list
 @rem Clean up any left-over from a previous build
-conda remove --all -q -y -n pandas-dev
+call conda remove --all -q -y -n pandas-dev
 @rem Scipy, CFFI, jinja2 and IPython are optional dependencies, but exercised in the test suite
-conda env create --file=ci\deps\azure-windows-%CONDA_PY%.yaml
+call conda env create --file=ci\deps\azure-windows-%CONDA_PY%.yaml
 
 call activate pandas-dev
-@rem gh-26345: we need to separate this out so that Azure doesn't complain
-conda install -c conda-forge gcsfs
-conda list
+call conda list
 
 if %errorlevel% neq 0 exit /b %errorlevel%
