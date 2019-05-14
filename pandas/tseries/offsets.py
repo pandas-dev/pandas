@@ -731,7 +731,7 @@ class BusinessHourMixin(BusinessMixin):
             result = other + timedelta(hours=hours, minutes=minutes)
 
             # because of previous adjustment, time will be larger than start
-            if n >=0:
+            if n >= 0:
                 bday_edge = self._prev_opening_time(other) + bhdelta
                 if bday_edge < result:
                     bday_remain = result - bday_edge

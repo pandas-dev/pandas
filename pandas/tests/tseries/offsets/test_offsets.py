@@ -1304,7 +1304,6 @@ class TestBusinessHour(Base):
         datetime(2014, 7, 7, 3, 30, 30): datetime(2014, 7, 4, 22, 30, 30),
         datetime(2014, 7, 7, 3, 30, 20): datetime(2014, 7, 4, 22, 30, 20)}))
 
-
     @pytest.mark.parametrize('case', apply_cases)
     def test_apply(self, case):
         offset, cases = case
