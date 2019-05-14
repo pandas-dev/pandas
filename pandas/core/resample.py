@@ -1,7 +1,7 @@
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import Dict
+from typing import Dict, no_type_check
 import warnings
 
 import numpy as np
@@ -965,6 +965,7 @@ class _GroupByMixin(GroupByMixin):
         self._groupby.grouper.mutated = True
         self.groupby = copy.copy(parent.groupby)
 
+    @no_type_check
     def _apply(self, f, grouper=None, *args, **kwargs):
         """
         Dispatch to _upsample; we are stripping all of the _upsample kwargs and

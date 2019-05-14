@@ -3,7 +3,7 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 
-from Typing import Tuple
+from typing import Tuple
 import warnings
 
 import numpy as np
