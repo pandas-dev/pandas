@@ -552,7 +552,9 @@ class TestGrouping:
         expected = {pd.Timestamp('2011-01-01'): 365}
         tm.assert_dict_equal(result.groups, expected)
 
-    @pytest.mark.parametrize('func,expected', [
+    @pytest.mark.parametrize(
+        'func,expected',
+        [
             ('transform', pd.Series([], name=2, index=pd.RangeIndex(0, 0, 1))),
             ('agg', pd.Series([], name=2, index=pd.Float64Index([], name=1))),
             ('apply', pd.Series([], name=2, index=pd.Float64Index([], name=1))),
