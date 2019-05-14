@@ -179,10 +179,11 @@ class TestSparseArray:
                                               reason='NumPy-11383')),
         10
     ])
+    @td.skip_if_no_scipy
     def test_from_spmatrix(self, size, format):
-        sparse = pytest.importorskip('scipy.sparse')
+        import scipy.sparse
 
-        mat = sparse.random(size, 1, density=0.5, format=format)
+        mat = scipy.sparse.random(size, 1, density=0.5, format=format)
         result = SparseArray.from_spmatrix(mat)
 
         result = np.asarray(result)

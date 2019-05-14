@@ -2206,7 +2206,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         from pandas import DataFrame
 
         data = {k: v.array.to_dense()
-                for k, v in self._parent.iteritems()}
+                for k, v in self._parent.items()}
         return DataFrame(data,
                          index=self._parent.index,
                          columns=self._parent.columns)
@@ -2215,7 +2215,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Return the contents of the frame as a sparse SciPy COO matrix.
 
-        .. versionadded:: 0.20.0
+        .. versionadded:: 0.25.0
 
         Returns
         -------
@@ -2256,13 +2256,13 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         return coo_matrix((datas, (rows, cols)), shape=self._parent.shape)
 
     @property
-    def density(self):
+    def density(self) -> float:
         """
         Ratio of non-sparse points to total (dense) data points
         represented in the DataFrame.
         """
         return np.mean([column.array.density
-                        for _, column in self._parent.iteritems()])
+                        for _, column in self._parent.items()])
 
     @staticmethod
     def _prep_index(data, index, columns):
