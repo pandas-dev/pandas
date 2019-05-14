@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 These test the method maybe_promote from core/dtypes/cast.py
 """
