@@ -10,17 +10,16 @@ from pandas._libs.sparse import BlockIndex, get_blocks
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import find_common_type, maybe_upcast
+from pandas.core.dtypes.cast import maybe_upcast
 from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import SparseArray, SparseFrameAccessor
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 import pandas.core.generic as generic
 from pandas.core.index import Index, MultiIndex, ensure_index
-import pandas.core.indexes.base as ibase
 from pandas.core.internals import (
     BlockManager, create_block_manager_from_arrays)
 from pandas.core.internals.construction import extract_index, prep_ndarray
@@ -191,7 +190,7 @@ class SparseDataFrame(DataFrame):
         Init self from ndarray or list of lists.
         """
         data = prep_ndarray(data, copy=False)
-        index, columns = self._prep_index(data, index, columns)
+        index, columns = SparseFrameAccessor._prep_index(data, index, columns)
         data = {idx: data[:, i] for i, idx in enumerate(columns)}
         return self._init_dict(data, index, columns, dtype)
 
@@ -200,7 +199,7 @@ class SparseDataFrame(DataFrame):
         """
         Init self from scipy.sparse matrix.
         """
-        index, columns = self._prep_index(data, index, columns)
+        index, columns = SparseFrameAccessor._prep_index(data, index, columns)
         data = data.tocoo()
         N = len(index)
 
@@ -227,64 +226,9 @@ class SparseDataFrame(DataFrame):
 
         return self._init_dict(sdict, index, columns, dtype)
 
-    def _prep_index(self, data, index, columns):
-        N, K = data.shape
-        if index is None:
-            index = ibase.default_index(N)
-        if columns is None:
-            columns = ibase.default_index(K)
-
-        if len(columns) != K:
-            raise ValueError('Column length mismatch: {columns} vs. {K}'
-                             .format(columns=len(columns), K=K))
-        if len(index) != N:
-            raise ValueError('Index length mismatch: {index} vs. {N}'
-                             .format(index=len(index), N=N))
-        return index, columns
-
+    @Appender(SparseFrameAccessor.to_coo.__doc__)
     def to_coo(self):
-        """
-        Return the contents of the frame as a sparse SciPy COO matrix.
-
-        .. versionadded:: 0.20.0
-
-        Returns
-        -------
-        coo_matrix : scipy.sparse.spmatrix
-            If the caller is heterogeneous and contains booleans or objects,
-            the result will be of dtype=object. See Notes.
-
-        Notes
-        -----
-        The dtype will be the lowest-common-denominator type (implicit
-        upcasting); that is to say if the dtypes (even of numeric types)
-        are mixed, the one that accommodates all will be chosen.
-
-        e.g. If the dtypes are float16 and float32, dtype will be upcast to
-        float32. By numpy.find_common_type convention, mixing int64 and
-        and uint64 will result in a float64 dtype.
-        """
-        try:
-            from scipy.sparse import coo_matrix
-        except ImportError:
-            raise ImportError('Scipy is not installed')
-
-        dtype = find_common_type(self.dtypes)
-        if isinstance(dtype, SparseDtype):
-            dtype = dtype.subtype
-
-        cols, rows, datas = [], [], []
-        for col, name in enumerate(self):
-            s = self[name]
-            row = s.sp_index.to_int_index().indices
-            cols.append(np.repeat(col, len(row)))
-            rows.append(row)
-            datas.append(s.sp_values.astype(dtype, copy=False))
-
-        cols = np.concatenate(cols)
-        rows = np.concatenate(rows)
-        datas = np.concatenate(datas)
-        return coo_matrix((datas, (rows, cols)), shape=self.shape)
+        return SparseFrameAccessor(self).to_coo()
 
     def __array_wrap__(self, result):
         return self._constructor(
@@ -325,16 +269,9 @@ class SparseDataFrame(DataFrame):
         self._default_fill_value = fv
         self._default_kind = kind
 
+    @Appender(SparseFrameAccessor.to_dense.__doc__)
     def to_dense(self):
-        """
-        Convert to dense DataFrame
-
-        Returns
-        -------
-        df : DataFrame
-        """
-        data = {k: v.to_dense() for k, v in self.items()}
-        return DataFrame(data, index=self.index, columns=self.columns)
+        return SparseFrameAccessor(self).to_dense()
 
     def _apply_columns(self, func):
         """

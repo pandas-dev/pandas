@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
+from pandas.compat.numpy import _np_version_under1p16
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -170,6 +171,33 @@ class TestSparseArray:
             assert pd.isna(result)
         else:
             assert result == fill_value
+
+    @pytest.mark.parametrize('format', ['coo', 'csc', 'csr'])
+    @pytest.mark.parametrize('size', [
+        pytest.param(0,
+                     marks=pytest.mark.skipif(_np_version_under1p16,
+                                              reason='NumPy-11383')),
+        10
+    ])
+    @td.skip_if_no_scipy
+    def test_from_spmatrix(self, size, format):
+        import scipy.sparse
+
+        mat = scipy.sparse.random(size, 1, density=0.5, format=format)
+        result = SparseArray.from_spmatrix(mat)
+
+        result = np.asarray(result)
+        expected = mat.toarray().ravel()
+        tm.assert_numpy_array_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    def test_from_spmatrix_raises(self):
+        import scipy.sparse
+
+        mat = scipy.sparse.eye(5, 4, format='csc')
+
+        with pytest.raises(ValueError, match="not '4'"):
+            SparseArray.from_spmatrix(mat)
 
     @pytest.mark.parametrize('scalar,dtype', [
         (False, SparseDtype(bool, False)),
@@ -1084,27 +1112,29 @@ class TestAccessor:
         expected = getattr(arr, attr)
         assert result == expected
 
+    @td.skip_if_no_scipy
     def test_from_coo(self):
-        sparse = pytest.importorskip("scipy.sparse")
+        import scipy.sparse
 
         row = [0, 3, 1, 0]
         col = [0, 3, 1, 2]
         data = [4, 5, 7, 9]
-        sp_array = sparse.coo_matrix((data, (row, col)))
+        sp_array = scipy.sparse.coo_matrix((data, (row, col)))
         result = pd.Series.sparse.from_coo(sp_array)
 
         index = pd.MultiIndex.from_arrays([[0, 0, 1, 3], [0, 2, 1, 3]])
         expected = pd.Series([4, 9, 7, 5], index=index, dtype='Sparse[int]')
         tm.assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_to_coo(self):
-        sparse = pytest.importorskip("scipy.sparse")
+        import scipy.sparse
         ser = pd.Series([1, 2, 3],
                         index=pd.MultiIndex.from_product([[0], [1, 2, 3]],
                                                          names=['a', 'b']),
                         dtype='Sparse[int]')
         A, _, _ = ser.sparse.to_coo()
-        assert isinstance(A, sparse.coo.coo_matrix)
+        assert isinstance(A, scipy.sparse.coo.coo_matrix)
 
     def test_non_sparse_raises(self):
         ser = pd.Series([1, 2, 3])
