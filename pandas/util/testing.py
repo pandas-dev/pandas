@@ -2431,8 +2431,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                     pass
 
         saw_warning = False
-        if filter_level:
-            warnings.simplefilter(filter_level)
+        warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
 
