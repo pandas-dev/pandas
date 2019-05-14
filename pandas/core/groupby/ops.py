@@ -13,7 +13,6 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as reduction
-from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -259,7 +258,7 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = lzip(*(ping.grouper for ping in self.groupings))
+            to_groupby = zip(*(ping.grouper for ping in self.groupings))
             to_groupby = Index(to_groupby)
             return self.axis.groupby(to_groupby)
 

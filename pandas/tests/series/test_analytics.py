@@ -1,4 +1,3 @@
-# coding=utf-8
 from itertools import product
 import operator
 
@@ -472,7 +471,7 @@ class TestSeriesAnalytics:
         assert_almost_equal(a.dot(b['1']), expected['1'])
         assert_almost_equal(a.dot(b2['1']), expected['1'])
 
-        msg = r"Dot product shape mismatch, \(4L?,\) vs \(3L?,\)"
+        msg = r"Dot product shape mismatch, \(4,\) vs \(3,\)"
         # exception raised is of type Exception
         with pytest.raises(Exception, match=msg):
             a.dot(a.values[:3])
@@ -1328,6 +1327,16 @@ class TestNLargestNSmallest:
 
         result = s.nsmallest(2, keep='all')
         expected = Series([6, 7, 7, 7, 7], index=[7, 3, 4, 5, 6])
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('data,expected',
+                             [([True, False], [True]),
+                              ([True, False, True, True], [True])])
+    def test_boolean(self, data, expected):
+        # GH 26154 : ensure True > False
+        s = Series(data)
+        result = s.nlargest(1)
+        expected = Series(expected)
         assert_series_equal(result, expected)
 
 

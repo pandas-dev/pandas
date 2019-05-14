@@ -144,6 +144,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     strftime
     to_timestamp
 
+    See Also
+    --------
+    Index : The base pandas Index type.
+    Period : Represents a period of time.
+    DatetimeIndex : Index with datetime64 data.
+    TimedeltaIndex : Index of timedelta64 data.
+    period_range : Create a fixed-frequency PeriodIndex.
+
     Notes
     -----
     Creating a PeriodIndex based on `start`, `periods`, and `end` has
@@ -152,14 +160,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     Examples
     --------
     >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
-
-    See Also
-    ---------
-    Index : The base pandas Index type.
-    Period : Represents a period of time.
-    DatetimeIndex : Index with datetime64 data.
-    TimedeltaIndex : Index of timedelta64 data.
-    period_range : Create a fixed-frequency PeriodIndex.
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
@@ -524,7 +524,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return self.to_timestamp(how=how).tz_localize(tz)
 
         # TODO: should probably raise on `how` here, so we don't ignore it.
-        return super(PeriodIndex, self).astype(dtype, copy=copy)
+        return super().astype(dtype, copy=copy)
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -576,7 +576,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         s = com.values_from_object(series)
         try:
             return com.maybe_box(self,
-                                 super(PeriodIndex, self).get_value(s, key),
+                                 super().get_value(s, key),
                                  series, key)
         except (KeyError, IndexError):
             try:
@@ -634,7 +634,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """
         wrap Index._get_unique_index to handle NaT
         """
-        res = super(PeriodIndex, self)._get_unique_index(dropna=dropna)
+        res = super()._get_unique_index(dropna=dropna)
         if dropna:
             res = res.dropna()
         return res
@@ -800,8 +800,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return self._apply_meta(result), lidx, ridx
         return self._apply_meta(result)
 
+    @Appender(Index.intersection.__doc__)
+    def intersection(self, other, sort=False):
+        return Index.intersection(self, other, sort=sort)
+
     def _assert_can_do_setop(self, other):
-        super(PeriodIndex, self)._assert_can_do_setop(other)
+        super()._assert_can_do_setop(other)
 
         if not isinstance(other, PeriodIndex):
             raise ValueError('can only call with other PeriodIndex-ed objects')
@@ -828,7 +832,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """Necessary for making this object picklable"""
 
         if isinstance(state, dict):
-            super(PeriodIndex, self).__setstate__(state)
+            super().__setstate__(state)
 
         elif isinstance(state, tuple):
 

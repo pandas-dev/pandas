@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pandas as pd
 from pandas import api
 from pandas.util import testing as tm

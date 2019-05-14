@@ -15,7 +15,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
@@ -722,7 +721,7 @@ class SeriesGroupBy(GroupBy):
               .format(input='series',
                       examples=_apply_docs['series_examples']))
     def apply(self, func, *args, **kwargs):
-        return super(SeriesGroupBy, self).apply(func, *args, **kwargs)
+        return super().apply(func, *args, **kwargs)
 
     @Substitution(see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
@@ -781,13 +780,13 @@ class SeriesGroupBy(GroupBy):
                     FutureWarning, stacklevel=3)
 
             columns = list(arg.keys())
-            arg = list(arg.items())
+            arg = arg.items()
         elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x
                    for x in arg]
 
             # indicated column order
-            columns = lzip(*arg)[0]
+            columns = next(zip(*arg))
         else:
             # list of functions / function names
             columns = []
@@ -797,7 +796,7 @@ class SeriesGroupBy(GroupBy):
                 else:
                     # protect against callables without names
                     columns.append(com.get_callable_name(f))
-            arg = lzip(columns, arg)
+            arg = zip(columns, arg)
 
         results = OrderedDict()
         for name, func in arg:
@@ -999,6 +998,11 @@ class SeriesGroupBy(GroupBy):
     def nunique(self, dropna=True):
         """
         Return number of unique elements in the group.
+
+        Returns
+        -------
+        Series
+            Number of unique values within each group.
         """
         ids, _, _ = self.grouper.group_info
 
@@ -1181,7 +1185,14 @@ class SeriesGroupBy(GroupBy):
         return Series(out, index=mi, name=self._selection_name)
 
     def count(self):
-        """ Compute count of group, excluding missing values """
+        """
+        Compute count of group, excluding missing values.
+
+        Returns
+        -------
+        Series
+            Count of values within each group.
+        """
         ids, _, ngroups = self.grouper.group_info
         val = self.obj.get_values()
 
@@ -1290,7 +1301,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
                   axis='')
     @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
-        return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
+        return super().aggregate(arg, *args, **kwargs)
 
     agg = aggregate
 
@@ -1471,7 +1482,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     def _fill(self, direction, limit=None):
         """Overridden method to join grouped columns in output"""
-        res = super(DataFrameGroupBy, self)._fill(direction, limit=limit)
+        res = super()._fill(direction, limit=limit)
         output = OrderedDict(
             (grp.name, grp.grouper) for grp in self.grouper.groupings)
 
@@ -1479,7 +1490,14 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return concat((self._wrap_transformed_output(output), res), axis=1)
 
     def count(self):
-        """ Compute count of group, excluding missing values """
+        """
+        Compute count of group, excluding missing values.
+
+        Returns
+        -------
+        DataFrame
+            Count of values within each group.
+        """
         from pandas.core.dtypes.missing import _isna_ndarraylike as _isna
 
         data, _ = self._get_data_to_aggregate()
