@@ -3,7 +3,7 @@ Testing that functions from compat work as expected
 """
 import builtins
 
-from pandas.compat import lmap, lrange
+from pandas.compat import lrange
 
 
 class TestBuiltinIterators:
@@ -23,12 +23,4 @@ class TestBuiltinIterators:
         results += lrange(1, 10, 2),
         lengths += 5,
         expecteds += list(builtins.range(1, 10, 2)),
-        self.check_results(results, expecteds, lengths)
-
-    def test_lmap(self):
-        func = lambda x, y, z: x + y + z
-        lst = [builtins.range(10), builtins.range(10), builtins.range(10)]
-        results = lmap(func, *lst),
-        expecteds = list(builtins.map(func, *lst)),
-        lengths = 10,
         self.check_results(results, expecteds, lengths)
