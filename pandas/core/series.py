@@ -2670,7 +2670,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # do in _values_from_sequence. We still want ops to work
                 # though, so we catch any regular Exception.
                 pass
-
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):
