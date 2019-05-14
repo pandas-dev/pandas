@@ -2460,7 +2460,7 @@ class GenericFixed(Fixed):
     """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime', PeriodIndex: 'period'}
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
-    attributes = []  # type: List
+    attributes = []  # type: List[str]
 
     # indexer helpders
     def _class_to_alias(self, cls):
