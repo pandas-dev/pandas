@@ -298,6 +298,7 @@ Timezones
 - Bug in :func:`DataFrame.update` when updating with timezone aware data would return timezone naive data (:issue:`25807`)
 - Bug in :func:`to_datetime` where an uninformative ``RuntimeError`` was raised when passing a naive :class:`Timestamp` with datetime strings with mixed UTC offsets (:issue:`25978`)
 - Bug in :func:`to_datetime` with ``unit='ns'`` would drop timezone information from the parsed argument (:issue:`26168`)
+- Bug in :func:`DataFrame.join` where joining a timezone aware index with a timezone aware column would result in a column of ``NaN`` (:issue:`26335`)
 
 Numeric
 ^^^^^^^
