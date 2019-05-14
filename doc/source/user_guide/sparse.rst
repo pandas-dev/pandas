@@ -12,27 +12,22 @@ Sparse data structures
    is served equally well by a :class:`Series` or :class:`DataFrame` with
    sparse values. See :ref:`sparse.migration` for tips on migrating.
 
-We have implemented "sparse" versions of ``Series`` and ``DataFrame``. These are not sparse
-in the typical "mostly 0". Rather, you can view these objects as being "compressed"
-where any data matching a specific value (``NaN`` / missing value, though any value
-can be chosen) is omitted. A special ``SparseIndex`` object tracks where data has been
-"sparsified". This will make much more sense with an example. All of the standard pandas
-data structures have a ``to_sparse`` method:
+Pandas provides data structures for efficiently storing sparse data.
+These are not necessarily sparse in the typical "mostly 0". Rather, you can view these
+objects as being "compressed" where any data matching a specific value (``NaN`` / missing value, though any value
+can be chosen, including 0) is omitted. A special ``SparseIndex`` object tracks where data has been
+"sparsified". For example,
 
 .. ipython:: python
 
-   ts = pd.Series(np.random.randn(10))
-   ts[2:-2] = np.nan
-   sts = ts.to_sparse()
-   sts
+   arr = np.random.randn(10)
+   arr[2:-2] = np.nan
+   ts = pd.Series(pd.SparseArray(arr))
+   ts
 
-The ``to_sparse`` method takes a ``kind`` argument (for the sparse index, see
-below) and a ``fill_value``. So if we had a mostly zero ``Series``, we could
-convert it to sparse with ``fill_value=0``:
-
-.. ipython:: python
-
-   ts.fillna(0).to_sparse(fill_value=0)
+Notice the dtype, ``Sparse[float64, nan]``. The ``nan`` means that elements in the
+array that are ``nan`` aren't actually stored, only the non-``nan`` elements are.
+Those non-``nan`` elements have a ``float64`` dtype.
 
 The sparse objects exist for memory efficiency reasons. Suppose you had a
 large, mostly NA ``DataFrame``:
@@ -41,50 +36,24 @@ large, mostly NA ``DataFrame``:
 
    df = pd.DataFrame(np.random.randn(10000, 4))
    df.iloc[:9998] = np.nan
-   sdf = df.to_sparse()
+   sdf = df.astype(pd.SparseDtype("float", np.nan))
    sdf
-   sdf.density
+   sdf.sparse.density
 
 As you can see, the density (% of values that have not been "compressed") is
 extremely low. This sparse object takes up much less memory on disk (pickled)
 and in the Python interpreter. Functionally, their behavior should be nearly
 identical to their dense counterparts.
 
-Any sparse object can be converted back to the standard dense form by calling
-``to_dense``:
-
-.. ipython:: python
-
-   sts.to_dense()
-
-.. _sparse.accessor:
-
-Sparse Accessor
----------------
-
-.. versionadded:: 0.24.0
-
-Pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat``
-for categorical data, and ``.dt`` for datetime-like data. This namespace provides
-attributes and methods that are specific to sparse data.
-
-.. ipython:: python
-
-   s = pd.Series([0, 0, 1, 2], dtype="Sparse[int]")
-   s.sparse.density
-   s.sparse.fill_value
-
-This accessor is available only on data with ``SparseDtype``, and on the :class:`Series`
-class itself for creating a Series with sparse data from a scipy COO matrix with.
-
 .. _sparse.array:
 
 SparseArray
 -----------
 
-``SparseArray`` is the base layer for all of the sparse indexed data
-structures. It is a 1-dimensional ndarray-like object storing only values
-distinct from the ``fill_value``:
+:class:`SparseArray` is a :class:`~pandas.api.extensions.ExtensionArray`
+for storing an array of sparse values (see :ref:`basics.dtypes` for more
+on extension arrays). It is a 1-dimensional ndarray-like object storing
+only values distinct from the ``fill_value``:
 
 .. ipython:: python
 
@@ -94,126 +63,37 @@ distinct from the ``fill_value``:
    sparr = pd.SparseArray(arr)
    sparr
 
-Like the indexed objects (SparseSeries, SparseDataFrame), a ``SparseArray``
-can be converted back to a regular ndarray by calling ``to_dense``:
+A sparse array can be converted to a regular (dense) ndarray with :meth:`numpy.asarray`
 
 .. ipython:: python
 
-   sparr.to_dense()
+   np.asarray(sparr)
 
+The :attr:`SparseArray.dtype` property stores two pieces of information
 
-SparseIndex objects
--------------------
+1. The dtype of the non-sparse values
+2. The scalar fill value
 
-Two kinds of ``SparseIndex`` are implemented, ``block`` and ``integer``. We
-recommend using ``block`` as it's more memory efficient. The ``integer`` format
-keeps an arrays of all of the locations where the data are not equal to the
-fill value. The ``block`` format tracks only the locations and sizes of blocks
-of data.
-
-.. _sparse.dtype:
-
-Sparse Dtypes
--------------
-
-Sparse data should have the same dtype as its dense representation. Currently,
-``float64``, ``int64`` and ``bool`` dtypes are supported. Depending on the original
-dtype, ``fill_value`` default changes:
-
-* ``float64``: ``np.nan``
-* ``int64``: ``0``
-* ``bool``: ``False``
+A :class:`SparseDtype` may be constructed by passing each of these
 
 .. ipython:: python
 
-   s = pd.Series([1, np.nan, np.nan])
-   s
-   s.to_sparse()
+   pd.SparseDtype(np.dtype('datetime64[ns]'))
 
-   s = pd.Series([1, 0, 0])
-   s
-   s.to_sparse()
-
-   s = pd.Series([True, False, True])
-   s
-   s.to_sparse()
-
-You can change the dtype using ``.astype()``, the result is also sparse. Note that
-``.astype()`` also affects to the ``fill_value`` to keep its dense representation.
-
+The default fill value for a given NumPy dtype is the "missing" value for that dtype,
+though it may be overridden.
 
 .. ipython:: python
 
-   s = pd.Series([1, 0, 0, 0, 0])
-   s
-   ss = s.to_sparse()
-   ss
-   ss.astype(np.float64)
+   pd.SparseDtype(np.dtype('datetime64[ns]'),
+                  fill_value=pd.Timestamp('2017-01-01'))
 
-It raises if any value cannot be coerced to specified dtype.
-
-.. code-block:: ipython
-
-   In [1]: ss = pd.Series([1, np.nan, np.nan]).to_sparse()
-   Out[1]:
-   0    1.0
-   1    NaN
-   2    NaN
-   dtype: float64
-   BlockIndex
-   Block locations: array([0], dtype=int32)
-   Block lengths: array([1], dtype=int32)
-
-   In [2]: ss.astype(np.int64)
-   Out[2]:
-   ValueError: unable to coerce current fill_value nan to int64 dtype
-
-
-
-We have implemented "sparse" versions of ``Series`` and ``DataFrame``. These are not sparse
-in the typical "mostly 0". Rather, you can view these objects as being "compressed"
-where any data matching a specific value (``NaN`` / missing value, though any value
-can be chosen) is omitted. A special ``SparseIndex`` object tracks where data has been
-"sparsified". This will make much more sense with an example. All of the standard pandas
-data structures have a ``to_sparse`` method:
+Finally, the string alias ``'Sparse[dtype]'`` may be used to specify a sparse dtype
+in many places
 
 .. ipython:: python
 
-   ts = pd.Series(np.random.randn(10))
-   ts[2:-2] = np.nan
-   sts = ts.to_sparse()
-   sts
-
-The ``to_sparse`` method takes a ``kind`` argument (for the sparse index, see
-below) and a ``fill_value``. So if we had a mostly zero ``Series``, we could
-convert it to sparse with ``fill_value=0``:
-
-.. ipython:: python
-
-   ts.fillna(0).to_sparse(fill_value=0)
-
-The sparse objects exist for memory efficiency reasons. Suppose you had a
-large, mostly NA ``DataFrame``:
-
-.. ipython:: python
-
-   df = pd.DataFrame(np.random.randn(10000, 4))
-   df.iloc[:9998] = np.nan
-   sdf = df.to_sparse()
-   sdf
-   sdf.density
-
-As you can see, the density (% of values that have not been "compressed") is
-extremely low. This sparse object takes up much less memory on disk (pickled)
-and in the Python interpreter. Functionally, their behavior should be nearly
-identical to their dense counterparts.
-
-Any sparse object can be converted back to the standard dense form by calling
-``to_dense``:
-
-.. ipython:: python
-
-   sts.to_dense()
+   pd.array([1, 0, 0, 2], dtype='Sparse[int]')
 
 .. _sparse.accessor:
 
@@ -241,6 +121,14 @@ class itself for creating a Series with sparse data from a scipy COO matrix with
 A ``.sparse`` accessor has been added for :class:`DataFrame` as well.
 See :ref:`api.dataframe.sparse` for more.
 
+SparseIndex objects
+-------------------
+
+Two kinds of ``SparseIndex`` are implemented, ``block`` and ``integer``. We
+recommend using ``block`` as it's more memory efficient. The ``integer`` format
+keeps an arrays of all of the locations where the data are not equal to the
+fill value. The ``block`` format tracks only the locations and sizes of blocks
+of data.
 
 .. _sparse.calculation:
 
@@ -264,6 +152,94 @@ the correct dense result.
    np.abs(arr)
    np.abs(arr).to_dense()
 
+.. _sparse.migration:
+
+Migrating
+---------
+
+In older versions of pandas, the ``SparseSeries`` and ``SparseDataFrame`` classes (documented below)
+were the preferred way to work with sparse data. With the advent of extension arrays, these subclasses
+are no longer needed. Their purpose is better served by using a regular Series or DataFrame with
+sparse values instead.
+
+**There's no performance or memory penalty to using a Series or DataFrame with sparse values,
+rather than a SparseSeries or SparseDataFrame**.
+
+This section provides some guidance on migrating your code to the new style. As a reminder, you can
+use the python warnings module to control warnings. If you wish to ignore the warnings,
+
+.. code-block:: python
+
+   >>> import warnings
+
+   >>> warnings.filterwarnings('ignore', 'Sparse', FutureWarning
+   >>> pd.SparseSeries()  # No warning message
+   Series([], dtype: Sparse[float64, nan])
+   BlockIndex
+   Block locations: array([], dtype=int32)
+   Block lengths: array([], dtype=int32)
+
+But we recommend modifying your code, rather than ignoring the warning.l
+
+**Construction**
+
+From an array-like, use the regular :class:`Series` or
+:class:`DataFrame` constructors with :class:`SparseArray` values.
+
+.. code-block:: python
+
+   # Old way
+   >>> pd.SparseDataFrame({"A": [0, 1]})
+
+.. ipython:: python
+
+   # New way
+   pd.DataFrame({"A": pd.SparseArray([0, 1])})
+
+From a SciPy sparse matrix, use :meth:`DataFrame.sparse.from_spmatrix`,
+
+.. code-block:: python
+
+   # Old way
+   df = pd.SparseDataFrame(sp_matrix, columns=['A', 'B', 'C'])
+
+.. ipython:: python
+
+   # New way
+   from scipy import sparse
+   mat = sparse.eye(3)
+   df = pd.DataFrame.sparse.from_spmatrix(mat, columns=['A', 'B', 'C'])
+   df
+
+**Conversion**
+
+From sparse to dense, use the ``.sparse`` accessors
+
+.. ipython:: python
+
+   df.sparse.to_dense()
+   df.sparse.to_coo()
+   df['A']
+
+From dense to sparse, use :meth:`DataFrame.astype` with a :class:`SparseDtype`.
+
+.. ipython:: python
+
+   dense = pd.DataFrame({"A": [1, 0, 0, 1]})
+   dtype = pd.SparseDtype(int, fill_value=0)
+   dense.astype(dtype)['A
+
+**Sparse Properties**
+
+Sparse-specific properties, like ``density``, are available on the ``.sparse`` accssor.
+
+.. ipython:: python
+
+   df.sparse.density
+
+The ``SparseDataFrame.default_kind`` and ``SparseDataFrame.default_fill_value`` attributes
+have no replacement.
+
 .. _sparse.scipysparse:
 
 Interaction with scipy.sparse
@@ -277,6 +253,7 @@ SparseDataFrame
 Pandas supports creating sparse dataframes directly from ``scipy.sparse`` matrices.
 
 .. ipython:: python
+   :okwarning:
 
    from scipy.sparse import csr_matrix
 
@@ -373,52 +350,3 @@ row and columns coordinates of the matrix. Note that this will consume a signifi
    ss_dense
 
 
-.. _sparse.migration:
-
-Migrating
----------
-
-:class:`SparseArray` is the building block for all of ``Series``, ``SparseSeries``,
-``DataFrame``, and ``SparseDataFrame``. To simplify the pandas API and lower maintenance burden,
-we've deprecated the ``SparseSeries`` and ``SparseDataFrame`` classes.
-
-**There's no performance or memory penalty to using a Series or DataFrame with sparse values,
-rather than a SparseSeries or SparseDataFrame**.
-
-**Construction**
-
-Use the regular :class:`Series` or :class:`DataFrame` constructors with :class:`SparseArray` values
-
-.. ipython:: python
-
-   pd.DataFrame({"A": pd.SparseArray([0, 1])})
-
-Or use :meth:`DataFrame.sparse.from_spmatrix`
-
-.. ipython:: python
-
-   from scipy import sparse
-   mat = sparse.eye(3)
-   df = pd.DataFrame.sparse.from_spmatrix(mat, columns=['A', 'B', 'C'])
-   df
-
-**Conversion**
-
-Use the ``.sparse`` accessors
-
-.. ipython:: python
-
-   df.sparse.to_dense()
-   df.sparse.to_coo()
-   df['A']
-
-**Sparse Properties**
-
-Sparse-specific properties, like ``density``, are available on the ``.sparse`` accssor.
-
-.. ipython:: python
-
-   df.sparse.density
-
-The ``SparseDataFrame.default_kind`` and ``SparseDataFrame.default_fill_value`` attributes
-have no replacement.
