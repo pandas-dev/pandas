@@ -17,7 +17,6 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
     is_categorical_dtype, is_datetime64_dtype, is_datetimelike, is_dict_like,
@@ -2663,13 +2662,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            non_na_values = [v for v in new_values if notna(v)]
-            if non_na_values:
-                new_dtype, _ = infer_dtype_from(non_na_values, pandas_dtype=True)
-            else:
-                new_dtype = self.dtype
             try:
-                new_values = self._values._from_sequence(new_values, dtype=new_dtype)
+                new_values = self._values._from_sequence(new_values)
             except Exception:
                 # https://github.com/pandas-dev/pandas/issues/22850
                 # pandas has no control over what 3rd-party ExtensionArrays
