@@ -1438,16 +1438,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
 
-    def mean(self, axis=None, skipna=True):
+    def mean(self, skipna=True):
         """
-        Return the mean value of the Array or mean along an axis.
+        Return the mean value of the Array.
 
         .. versionadded:: 0.25.0
 
         Parameters
         ----------
-        axis : None
-            Dummy parameter to match NumPy signature
         skipna : bool, default True
             Whether to ignore any NaT elements
 
@@ -1463,12 +1461,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         if is_period_dtype(self):
             # See discussion in GH#24757
             raise TypeError(
-                "mean is not implemented for {cls} since the meaning may be "
+                "mean is not implemented for {cls} since the meaning is "
                 "ambiguous.  An alternative is "
                 "obj.to_timestamp(how='start').mean()"
                 .format(cls=type(self).__name__))
-
-        nv.validate_minmax_axis(axis)
 
         mask = self.isna()
         if skipna:
