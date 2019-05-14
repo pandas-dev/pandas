@@ -780,11 +780,11 @@ class ExcelFile:
     """
 
     from pandas.io.excel._xlrd import _XlrdReader
-    from pandas.io.excel._odfreader import _ODFReader
+    from pandas.io.excel._odfreader import ODFReader
 
     _engines = {
         'xlrd': _XlrdReader,
-        'odf': _ODFReader,
+        'odf': ODFReader,
     }
 
     def __init__(self, io, engine=None):

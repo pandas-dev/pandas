@@ -3,7 +3,7 @@ import pandas as pd
 from pandas.io.parsers import TextParser
 
 
-class _ODFReader(object):
+class ODFReader(object):
     """Read tables out of OpenDocument formatted files
 
     Parameters

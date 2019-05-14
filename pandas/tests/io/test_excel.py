@@ -2561,19 +2561,19 @@ class TestFSPath:
 @td.skip_if_no('odf')
 class TestODFReader(SharedItems):
     def test_get_sheet(self):
-        from pandas.io.excel._odfreader import _ODFReader
+        from pandas.io.excel._odfreader import ODFReader
 
         pth = os.path.join(self.dirpath, 'datatypes.ods')
-        book = _ODFReader(pth)
+        book = ODFReader(pth)
 
         assert len(book.sheet_names) == 1
         assert book.sheet_names == ['Sheet1']
 
     def test_get_sheet_raises(self):
-        from pandas.io.excel._odfreader import _ODFReader
+        from pandas.io.excel._odfreader import ODFReader
 
         pth = os.path.join(self.dirpath, 'datatypes.ods')
-        book = _ODFReader(pth)
+        book = ODFReader(pth)
 
         with pytest.raises(ValueError):
             book._get_sheet(3.14)
