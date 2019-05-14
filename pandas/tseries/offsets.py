@@ -689,7 +689,6 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        daytime = self._get_daytime_flag
         businesshours = self._get_business_hours_by_sec
         bhdelta = timedelta(seconds=businesshours)
 
