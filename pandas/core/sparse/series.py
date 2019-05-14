@@ -33,9 +33,11 @@ _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
 
 
 depr_msg = """\
-SparseSeries is deprecated.
+SparseSeries is deprecated and will be removed in a future version.
+Use a Series with sparse values instead.
 
-See ... for more.
+See http://pandas.pydata.org/pandas-docs/stable/\
+user_guide/sparse.html#migrating for more.
 """
 
 

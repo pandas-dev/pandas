@@ -29,9 +29,11 @@ from pandas.core.sparse.series import SparseSeries
 
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
 depr_msg = """\
-SparseDataFrame is deprecated.
+SparseDataFrame is deprecated and will be removed in a future version.
+Use a DataFrame with sparse values instead.
 
-See ... for more.
+See http://pandas.pydata.org/pandas-docs/stable/\
+user_guide/sparse.html#migrating for more.
 """
 
 

@@ -375,8 +375,8 @@ row and columns coordinates of the matrix. Note that this will consume a signifi
 
 .. _sparse.migration:
 
-Migrating from SparseSeries and SparseDataFrame
------------------------------------------------
+Migrating
+---------
 
 :class:`SparseArray` is the building block for all of ``Series``, ``SparseSeries``,
 ``DataFrame``, and ``SparseDataFrame``. To simplify the pandas API and lower maintenance burden,
