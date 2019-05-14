@@ -461,7 +461,28 @@ class IntervalIndex(IntervalMixin, Index):
         """
         Return True if the IntervalIndex contains unique elements, else False
         """
-        return self._multiindex.is_unique
+        left = self.values.left
+        right = self.values.right
+
+        def _is_unique(left, right):
+            # left must have at least one common point
+            duplicates = left[left.duplicated()].unique()
+            for dup in duplicates:
+                # Check whether the Intervals having the same left endpoint
+                # also have the same right endpoint
+                if not right[left == dup].is_unique:
+                    return False
+            return True
+
+        if len(self) - len(self.dropna()) > 1:
+            return False
+
+        if left.is_unique and right.is_unique:
+            return True
+        elif not left.is_unique:
+            return _is_unique(left, right)
+        else:
+            return _is_unique(right, left)
 
     @cache_readonly
     @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
