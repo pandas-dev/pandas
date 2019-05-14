@@ -285,7 +285,7 @@ Timedelta
 
 - Bug in :func:`TimedeltaIndex.intersection` where for non-monotonic indices in some cases an empty ``Index`` was returned when in fact an intersection existed (:issue:`25913`)
 - Bug with comparisons between :class:`Timedelta` and ``NaT`` raising ``TypeError`` (:issue:`26039`)
--
+- Bug in adding of business hour to the timestamp with an ending time landing in the next business time period (:pull:`26381`)
 
 Timezones
 ^^^^^^^^^
