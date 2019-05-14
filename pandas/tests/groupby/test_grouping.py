@@ -555,9 +555,9 @@ class TestGrouping:
     @pytest.mark.parametrize(
         'func,expected',
         [
-            ('transform', pd.Series([], name=2, index=pd.RangeIndex(0, 0, 1))),
-            ('agg', pd.Series([], name=2, index=pd.Float64Index([], name=1))),
-            ('apply', pd.Series([], name=2, index=pd.Float64Index([], name=1))),
+            ('transform', pd.Series(name=2, index=pd.RangeIndex(0, 0, 1))),
+            ('agg', pd.Series(name=2, index=pd.Float64Index([], name=1))),
+            ('apply', pd.Series(name=2, index=pd.Float64Index([], name=1))),
         ])
     def test_evaluate_with_empty_groups(self, func, expected):
         # 26208
