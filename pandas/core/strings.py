@@ -1037,7 +1037,7 @@ def str_join(arr, sep):
         delimiter.
 
     Raises
-    -------
+    ------
     AttributeError
         If the supplied Series contains neither strings nor lists.
 

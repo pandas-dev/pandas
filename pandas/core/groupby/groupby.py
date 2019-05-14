@@ -799,13 +799,13 @@ b  2""")
 
     def _transform_should_cast(self, func_nm):
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         func_nm: str
             The name of the aggregation function being performed
 
-        Returns:
-        --------
+        Returns
+        -------
         bool
             Whether transform should attempt to cast the result of aggregation
         """
@@ -1070,6 +1070,10 @@ class GroupBy(_GroupBy):
         ----------
         skipna : bool, default True
             Flag to ignore nan values during truth testing
+
+        Returns
+        -------
+        bool
         """
         return self._bool_agg('any', skipna)
 
@@ -1083,6 +1087,10 @@ class GroupBy(_GroupBy):
         ----------
         skipna : bool, default True
             Flag to ignore nan values during truth testing
+
+        Returns
+        -------
+        bool
         """
         return self._bool_agg('all', skipna)
 
@@ -1091,6 +1099,11 @@ class GroupBy(_GroupBy):
     def count(self):
         """
         Compute count of group, excluding missing values.
+
+        Returns
+        -------
+        Series or DataFrame
+            Count of values within each group.
         """
 
         # defined here for API doc
@@ -1157,6 +1170,11 @@ class GroupBy(_GroupBy):
         Compute median of groups, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
+        Returns
+        -------
+        Series or DataFrame
+            Median of values within each group.
         """
         try:
             return self._cython_agg_general('median', **kwargs)
@@ -1183,6 +1201,11 @@ class GroupBy(_GroupBy):
         ----------
         ddof : integer, default 1
             degrees of freedom
+
+        Returns
+        -------
+        Series or DataFrame
+            Standard deviation of values within each group.
         """
 
         # TODO: implement at Cython level?
@@ -1201,6 +1224,11 @@ class GroupBy(_GroupBy):
         ----------
         ddof : integer, default 1
             degrees of freedom
+
+        Returns
+        -------
+        Series or DataFrame
+            Variance of values within each group.
         """
         nv.validate_groupby_func('var', args, kwargs)
         if ddof == 1:
@@ -1227,6 +1255,11 @@ class GroupBy(_GroupBy):
         ----------
         ddof : integer, default 1
             degrees of freedom
+
+        Returns
+        -------
+        Series or DataFrame
+            Standard error of the mean of values within each group.
         """
 
         return self.std(ddof=ddof) / np.sqrt(self.count())
@@ -1236,6 +1269,11 @@ class GroupBy(_GroupBy):
     def size(self):
         """
         Compute group sizes.
+
+        Returns
+        -------
+        Series
+            Number of rows in each group.
         """
         result = self.grouper.size()
 
@@ -1253,7 +1291,14 @@ class GroupBy(_GroupBy):
                              numeric_only=True, _convert=False,
                              min_count=-1):
 
-            _local_template = "Compute %(f)s of group values"
+            _local_template = """
+            Compute %(f)s of group values.
+
+            Returns
+            -------
+            Series or DataFrame
+                Computed %(f)s of values within each group.
+            """
 
             @Substitution(name='groupby', f=name)
             @Appender(_common_see_also)
@@ -1326,6 +1371,11 @@ class GroupBy(_GroupBy):
         Compute sum of values, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
+        Returns
+        -------
+        DataFrame
+            Open, high, low and close values within each group.
         """
 
         return self._apply_to_column_groupbys(
@@ -1510,6 +1560,11 @@ class GroupBy(_GroupBy):
         limit : integer, optional
             limit of how many values to fill
 
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
+
         See Also
         --------
         Series.pad
@@ -1529,6 +1584,11 @@ class GroupBy(_GroupBy):
         ----------
         limit : integer, optional
             limit of how many values to fill
+
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
 
         See Also
         --------
@@ -1560,6 +1620,11 @@ class GroupBy(_GroupBy):
         dropna : None or str, optional
             apply the specified dropna operation before counting which row is
             the nth row. Needs to be None, 'any' or 'all'
+
+        Returns
+        -------
+        Series or DataFrame
+            N-th value within each group.
         %(see_also)s
         Examples
         --------
@@ -1800,6 +1865,11 @@ class GroupBy(_GroupBy):
         ascending : bool, default True
             If False, number in reverse, from number of group - 1 to 0.
 
+        Returns
+        -------
+        Series
+            Unique numbers for each group.
+
         See Also
         --------
         .cumcount : Number the rows in each group.
@@ -1862,6 +1932,11 @@ class GroupBy(_GroupBy):
         ----------
         ascending : bool, default True
             If False, number in reverse, from length of group - 1 to 0.
+
+        Returns
+        -------
+        Series
+            Sequence number of each element within each group.
 
         See Also
         --------
@@ -1945,6 +2020,10 @@ class GroupBy(_GroupBy):
     def cumprod(self, axis=0, *args, **kwargs):
         """
         Cumulative product for each group.
+
+        Returns
+        -------
+        Series or DataFrame
         """
         nv.validate_groupby_func('cumprod', args, kwargs,
                                  ['numeric_only', 'skipna'])
@@ -1958,6 +2037,10 @@ class GroupBy(_GroupBy):
     def cumsum(self, axis=0, *args, **kwargs):
         """
         Cumulative sum for each group.
+
+        Returns
+        -------
+        Series or DataFrame
         """
         nv.validate_groupby_func('cumsum', args, kwargs,
                                  ['numeric_only', 'skipna'])
@@ -1971,6 +2054,10 @@ class GroupBy(_GroupBy):
     def cummin(self, axis=0, **kwargs):
         """
         Cumulative min for each group.
+
+        Returns
+        -------
+        Series or DataFrame
         """
         if axis != 0:
             return self.apply(lambda x: np.minimum.accumulate(x, axis))
@@ -1982,6 +2069,10 @@ class GroupBy(_GroupBy):
     def cummax(self, axis=0, **kwargs):
         """
         Cumulative max for each group.
+
+        Returns
+        -------
+        Series or DataFrame
         """
         if axis != 0:
             return self.apply(lambda x: np.maximum.accumulate(x, axis))
@@ -2109,6 +2200,11 @@ class GroupBy(_GroupBy):
         fill_value : optional
 
             .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Object shifted within each group.
         """
 
         if freq is not None or axis != 0 or not isna(fill_value):
@@ -2127,6 +2223,11 @@ class GroupBy(_GroupBy):
                    axis=0):
         """
         Calculate pct_change of each value to previous entry in group.
+
+        Returns
+        -------
+        Series or DataFrame
+            Percentage changes within each group.
         """
         if freq is not None or axis != 0:
             return self.apply(lambda x: x.pct_change(periods=periods,
@@ -2147,6 +2248,10 @@ class GroupBy(_GroupBy):
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
+
+        Returns
+        -------
+        Series or DataFrame
         %(see_also)s
         Examples
         --------
@@ -2174,6 +2279,10 @@ class GroupBy(_GroupBy):
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
+
+        Returns
+        -------
+        Series or DataFrame
         %(see_also)s
         Examples
         --------

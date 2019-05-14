@@ -534,6 +534,10 @@ class HDFStore(StringMixin):
         Return a (potentially unordered) list of the keys corresponding to the
         objects stored in the HDFStore. These are ABSOLUTE path-names (e.g.
         have the leading '/'
+
+        Returns
+        -------
+        list
         """
         return [n._v_pathname for n in self.groups()]
 
@@ -751,8 +755,8 @@ class HDFStore(StringMixin):
         key : object
         column: the column of interest
 
-        Exceptions
-        ----------
+        Raises
+        ------
         raises KeyError if the column is not found (or key is not a valid
             store)
         raises ValueError if the column can not be extracted individually (it
@@ -777,8 +781,8 @@ class HDFStore(StringMixin):
         iterator : boolean, return an iterator, default False
         chunksize : nrows to include in iteration, return an iterator
 
-        Exceptions
-        ----------
+        Raises
+        ------
         raises KeyError if keys or selector is not found or keys is empty
         raises TypeError if keys is not a list or tuple
         raises ValueError if the tables are not ALL THE SAME DIMENSIONS
@@ -890,8 +894,8 @@ class HDFStore(StringMixin):
         -------
         number of rows removed (or None if not a Table)
 
-        Exceptions
-        ----------
+        Raises
+        ------
         raises KeyError if key is not a valid store
 
         """
@@ -1059,8 +1063,8 @@ class HDFStore(StringMixin):
         ----------
         key : object (the node to index)
 
-        Exceptions
-        ----------
+        Raises
+        ------
         raises if the node is not a table
 
         """
@@ -1079,6 +1083,10 @@ class HDFStore(StringMixin):
     def groups(self):
         """return a list of all the top-level nodes (that are not themselves a
         pandas storage object)
+
+        Returns
+        -------
+        list
         """
         _tables()
         self._check_if_open()
@@ -1213,6 +1221,10 @@ class HDFStore(StringMixin):
         Print detailed information on the store.
 
         .. versionadded:: 0.21.0
+
+        Returns
+        -------
+        str
         """
         output = '{type}\nFile path: {path}\n'.format(
             type=type(self), path=pprint_thing(self._path))
@@ -3347,8 +3359,8 @@ class Table(Fixed):
         optlevel: optimization level (defaults to 6)
         kind    : kind of index (defaults to 'medium')
 
-        Exceptions
-        ----------
+        Raises
+        ------
         raises if the node is not a table
 
         """
@@ -3470,8 +3482,8 @@ class Table(Fixed):
         leagcy tables create an indexable column, indexable index,
         non-indexable fields
 
-            Parameters:
-            -----------
+            Parameters
+            ----------
             axes: a list of the axes in order to create (names or numbers of
                 the axes)
             obj : the object to create axes on

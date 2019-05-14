@@ -35,6 +35,7 @@ Other Enhancements
 - :meth:`RangeIndex.union` now supports the ``sort`` argument. If ``sort=False`` an unsorted ``Int64Index`` is always returned. ``sort=None`` is the default and returns a mononotically increasing ``RangeIndex`` if possible or a sorted ``Int64Index`` if not (:issue:`24471`)
 - :meth:`TimedeltaIndex.intersection` now also supports the ``sort`` keyword (:issue:`24471`)
 - :meth:`DataFrame.rename` now supports the ``errors`` argument to raise errors when attempting to rename nonexistent keys (:issue:`13473`)
+- Added :ref:`api.frame.sparse` for working with a ``DataFrame`` whose values are sparse (:issue:`25681`)
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
@@ -252,6 +253,8 @@ Performance Improvements
 - Improved performance of :meth:`read_csv` by much faster parsing of ``MM/YYYY`` and ``DD/MM/YYYY`` datetime formats (:issue:`25922`)
 - Improved performance of nanops for dtypes that cannot store NaNs. Speedup is particularly prominent for :meth:`Series.all` and :meth:`Series.any` (:issue:`25070`)
 - Improved performance of :meth:`Series.map` for dictionary mappers on categorical series by mapping the categories instead of mapping all values (:issue:`23785`)
+- Improved performance of :meth:`read_csv` by faster concatenating date columns without extra conversion to string for integer/float zero
+  and float NaN; by faster checking the string for the possibility of being a date (:issue:`25754`)
 
 .. _whatsnew_0250.bug_fixes:
 
@@ -276,6 +279,7 @@ Datetimelike
 - Improved :class:`Timestamp` type checking in various datetime functions to prevent exceptions when using a subclassed ``datetime`` (:issue:`25851`)
 - Bug in :class:`Series` and :class:`DataFrame` repr where ``np.datetime64('NaT')`` and ``np.timedelta64('NaT')`` with ``dtype=object`` would be represented as ``NaN`` (:issue:`25445`)
 - Bug in :func:`to_datetime` which does not replace the invalid argument with ``NaT`` when error is set to coerce (:issue:`26122`)
+- Bug in adding :class:`DateOffset` with nonzero month to :class:`DatetimeIndex` would raise ``ValueError`` (:issue:`26258`)
 
 Timedelta
 ^^^^^^^^^
@@ -294,6 +298,7 @@ Timezones
 - Bug in :func:`DataFrame.update` when updating with timezone aware data would return timezone naive data (:issue:`25807`)
 - Bug in :func:`to_datetime` where an uninformative ``RuntimeError`` was raised when passing a naive :class:`Timestamp` with datetime strings with mixed UTC offsets (:issue:`25978`)
 - Bug in :func:`to_datetime` with ``unit='ns'`` would drop timezone information from the parsed argument (:issue:`26168`)
+- Bug in :func:`DataFrame.join` where joining a timezone aware index with a timezone aware column would result in a column of ``NaN`` (:issue:`26335`)
 
 Numeric
 ^^^^^^^
@@ -305,8 +310,9 @@ Numeric
 - Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
 - Raises a helpful exception when a non-numeric index is sent to :meth:`interpolate` with methods which require numeric index. (:issue:`21662`)
 - Bug in :meth:`~pandas.eval` when comparing floats with scalar operators, for example: ``x < -0.1`` (:issue:`25928`)
+- Fixed bug where casting all-boolean array to integer extension array failed (:issue:`25211`)
 -
-
+-
 
 Conversion
 ^^^^^^^^^^
@@ -415,6 +421,7 @@ Reshaping
 - Bug in :func:`pivot_table` where columns with ``NaN`` values are dropped even if ``dropna`` argument is ``False``, when the ``aggfunc`` argument contains a ``list`` (:issue:`22159`)
 - Bug in :func:`concat` where the resulting ``freq`` of two :class:`DatetimeIndex` with the same ``freq`` would be dropped (:issue:`3232`).
 - Bug in :func:`merge` where merging with equivalent Categorical dtypes was raising an error (:issue:`22501`)
+- bug in :class:`DataFrame` instantiating with a ``range`` (e.g. ``pd.DataFrame(range(3))``) raised an error (:issue:`26342`).
 - Bug in :class:`DataFrame` constructor when passing non-empty tuples would cause a segmentation fault (:issue:`25691`)
 - Bug in :func:`Series.apply` failed when the series is a timezone aware :class:`DatetimeIndex` (:issue:`25959`)
 - Bug in :func:`pandas.cut` where large bins could incorrectly raise an error due to an integer overflow (:issue:`26045`)
@@ -434,6 +441,7 @@ Other
 
 - Removed unused C functions from vendored UltraJSON implementation (:issue:`26198`)
 - Bug in :func:`factorize` when passing an ``ExtensionArray`` with a custom ``na_sentinel`` (:issue:`25696`).
+- Allow :class:`Index` and :class:`RangeIndex` to be passed to numpy ``min`` and ``max`` functions.
 
 
 .. _whatsnew_0.250.contributors:
