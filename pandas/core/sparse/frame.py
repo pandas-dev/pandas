@@ -7,7 +7,6 @@ import warnings
 import numpy as np
 
 from pandas._libs.sparse import BlockIndex, get_blocks
-from pandas.compat import lmap
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
@@ -299,7 +298,7 @@ class SparseDataFrame(DataFrame):
         """
         Make a copy of this SparseDataFrame
         """
-        result = super(SparseDataFrame, self).copy(deep=deep)
+        result = super().copy(deep=deep)
         result._default_fill_value = self._default_fill_value
         result._default_kind = self._default_kind
         return result
@@ -325,10 +324,9 @@ class SparseDataFrame(DataFrame):
 
     def fillna(self, value=None, method=None, axis=0, inplace=False,
                limit=None, downcast=None):
-        new_self = super(SparseDataFrame,
-                         self).fillna(value=value, method=method, axis=axis,
-                                      inplace=inplace, limit=limit,
-                                      downcast=downcast)
+        new_self = super().fillna(value=value, method=method, axis=axis,
+                                  inplace=inplace, limit=limit,
+                                  downcast=downcast)
         if not inplace:
             self = new_self
 
@@ -889,7 +887,7 @@ class SparseDataFrame(DataFrame):
         -------
         applied : DataFrame
         """
-        return self.apply(lambda x: lmap(func, x))
+        return self.apply(lambda x: [func(y) for y in x])
 
 
 def to_manager(sdf, columns, index):

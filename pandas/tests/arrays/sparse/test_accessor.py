@@ -9,7 +9,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestSeriesAccessor(object):
+class TestSeriesAccessor:
     # TODO: collect other Series accessor tests
     def test_to_dense(self):
         s = pd.Series([0, 1, 0, 10], dtype='Sparse[int64]')
@@ -18,7 +18,7 @@ class TestSeriesAccessor(object):
         tm.assert_series_equal(result, expected)
 
 
-class TestFrameAccessor(object):
+class TestFrameAccessor:
 
     def test_accessor_raises(self):
         df = pd.DataFrame({"A": [0, 1]})
@@ -46,6 +46,24 @@ class TestFrameAccessor(object):
             index=labels,
             columns=labels,
         ).astype(sp_dtype)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("columns", [
+        ['a', 'b'],
+        pd.MultiIndex.from_product([['A'], ['a', 'b']]),
+        ['a', 'a'],
+    ])
+    @td.skip_if_no_scipy
+    def test_from_spmatrix_columns(self, columns):
+        import scipy.sparse
+
+        dtype = pd.SparseDtype('float64', 0.0)
+
+        mat = scipy.sparse.random(10, 2, density=0.5)
+        result = pd.DataFrame.sparse.from_spmatrix(mat, columns=columns)
+        expected = pd.DataFrame(
+            mat.toarray(), columns=columns
+        ).astype(dtype)
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no_scipy

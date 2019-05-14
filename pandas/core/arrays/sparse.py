@@ -72,6 +72,14 @@ class SparseDtype(ExtensionDtype):
         =========== ==========
 
         The default value may be overridden by specifying a `fill_value`.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     # We include `_is_na_fill_value` in the metadata to avoid hash collisions
     # between SparseDtype(float, 0.0) and SparseDtype(float, nan).
@@ -110,7 +118,7 @@ class SparseDtype(ExtensionDtype):
     def __hash__(self):
         # Python3 doesn't inherit __hash__ when a base class overrides
         # __eq__, so we explicitly do it here.
-        return super(SparseDtype, self).__hash__()
+        return super().__hash__()
 
     def __eq__(self, other):
         # We have to override __eq__ to handle NA values in _metadata.
@@ -539,7 +547,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         timedelta64 ``pd.NaT``
         =========== ==========
 
-        The fill value is potentiall specified in three ways. In order of
+        The fill value is potentially specified in three ways. In order of
         precedence, these are
 
         1. The `fill_value` argument
@@ -1810,7 +1818,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def _add_comparison_ops(cls):
         cls.__and__ = cls._create_comparison_method(operator.and_)
         cls.__or__ = cls._create_comparison_method(operator.or_)
-        super(SparseArray, cls)._add_comparison_ops()
+        super()._add_comparison_ops()
 
     # ----------
     # Formatting
@@ -2001,7 +2009,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         s : SparseSeries
 
         Examples
-        ---------
+        --------
         >>> from scipy import sparse
         >>> A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
                                shape=(3, 4))
@@ -2170,8 +2178,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             SparseArray.from_spmatrix(data[:, i])
             for i in range(data.shape[1])
         ]
-        data = dict(zip(columns, sparrays))
-        return DataFrame(data, index=index)
+        data = dict(enumerate(sparrays))
+        result = DataFrame(data, index=index)
+        result.columns = columns
+        return result
 
     def to_dense(self):
         """
@@ -2196,7 +2206,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         from pandas import DataFrame
 
         data = {k: v.array.to_dense()
-                for k, v in compat.iteritems(self._parent)}
+                for k, v in self._parent.items()}
         return DataFrame(data,
                          index=self._parent.index,
                          columns=self._parent.columns)
@@ -2205,7 +2215,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Return the contents of the frame as a sparse SciPy COO matrix.
 
-        .. versionadded:: 0.20.0
+        .. versionadded:: 0.25.0
 
         Returns
         -------
@@ -2246,13 +2256,13 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         return coo_matrix((datas, (rows, cols)), shape=self._parent.shape)
 
     @property
-    def density(self):
+    def density(self) -> float:
         """
         Ratio of non-sparse points to total (dense) data points
         represented in the DataFrame.
         """
         return np.mean([column.array.density
-                        for _, column in self._parent.iteritems()])
+                        for _, column in self._parent.items()])
 
     @staticmethod
     def _prep_index(data, index, columns):

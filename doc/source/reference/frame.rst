@@ -243,7 +243,6 @@ Reshaping, sorting, transposing
    DataFrame.swapaxes
    DataFrame.melt
    DataFrame.squeeze
-   DataFrame.to_panel
    DataFrame.to_xarray
    DataFrame.T
    DataFrame.transpose

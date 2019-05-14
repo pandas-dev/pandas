@@ -14,7 +14,6 @@ import pytz
 
 from pandas._libs import tslib
 from pandas._libs.tslibs import iNaT, parsing
-from pandas.compat import lmap
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -30,7 +29,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal
 
 
-class TestTimeConversionFormats(object):
+class TestTimeConversionFormats:
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_format(self, cache):
@@ -243,7 +242,7 @@ class TestTimeConversionFormats(object):
         tm.assert_index_equal(result, expected)
 
 
-class TestToDatetime(object):
+class TestToDatetime:
     @pytest.mark.parametrize("s, _format, dt", [
         ['2015-1-1', '%G-%V-%u', datetime(2014, 12, 29, 0, 0)],
         ['2015-1-4', '%G-%V-%u', datetime(2015, 1, 1, 0, 0)],
@@ -712,6 +711,19 @@ class TestToDatetime(object):
         with pytest.raises(ValueError, match=msg):
             pd.to_datetime(date, format=format)
 
+    def test_to_datetime_coerce(self):
+        # GH 26122
+        ts_strings = ['March 1, 2018 12:00:00+0400',
+                      'March 1, 2018 12:00:00+0500',
+                      '20100240']
+        result = to_datetime(ts_strings, errors='coerce')
+        expected = Index([datetime(2018, 3, 1, 12, 0,
+                                   tzinfo=tzoffset(None, 14400)),
+                          datetime(2018, 3, 1, 12, 0,
+                                   tzinfo=tzoffset(None, 18000)),
+                          NaT])
+        tm.assert_index_equal(result, expected)
+
     def test_iso_8601_strings_with_same_offset(self):
         # GH 17697, 11736
         ts_str = "2015-11-18 15:30:00+05:30"
@@ -824,7 +836,7 @@ class TestToDatetime(object):
         assert result == expected
 
 
-class TestToDatetimeUnit(object):
+class TestToDatetimeUnit:
     @pytest.mark.parametrize('cache', [True, False])
     def test_unit(self, cache):
         # GH 11758
@@ -1147,7 +1159,7 @@ class TestToDatetimeUnit(object):
         tm.assert_index_equal(result, expected)
 
 
-class TestToDatetimeMisc(object):
+class TestToDatetimeMisc:
     def test_to_datetime_barely_out_of_bounds(self):
         # GH#19529
         # GH#19382 close enough to bounds that dropping nanos would result
@@ -1251,7 +1263,7 @@ class TestToDatetimeMisc(object):
         # array = ['2012','20120101','20120101 12:01:01']
         array = ['20120101', '20120101 12:01:01']
         expected = list(to_datetime(array, cache=cache))
-        result = lmap(Timestamp, array)
+        result = [Timestamp(date_str) for date_str in array]
         tm.assert_almost_equal(result, expected)
 
         # currently fails ###
@@ -1323,8 +1335,7 @@ class TestToDatetimeMisc(object):
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
 
         # GH 10636, default is now 'raise'
-        msg = (r"\(u?'Unknown string format:', '1/100/2000'\)|"
-               "day is out of range for month")
+        msg = (r"Unknown string format:|day is out of range for month")
         with pytest.raises(ValueError, match=msg):
             to_datetime(malformed, errors='raise', cache=cache)
 
@@ -1396,7 +1407,7 @@ class TestToDatetimeMisc(object):
         tm.assert_index_equal(expected, idx6)
 
 
-class TestGuessDatetimeFormat(object):
+class TestGuessDatetimeFormat:
 
     @td.skip_if_not_us_locale
     def test_guess_datetime_format_for_array(self):
@@ -1419,7 +1430,7 @@ class TestGuessDatetimeFormat(object):
         assert format_for_string_of_nans is None
 
 
-class TestToDatetimeInferFormat(object):
+class TestToDatetimeInferFormat:
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_infer_datetime_format_consistent_format(self, cache):
@@ -1498,7 +1509,7 @@ class TestToDatetimeInferFormat(object):
                                               cache=cache), expected)
 
 
-class TestDaysInMonth(object):
+class TestDaysInMonth:
     # tests for issue #10154
 
     @pytest.mark.parametrize('cache', [True, False])
@@ -1544,7 +1555,7 @@ class TestDaysInMonth(object):
                            format="%Y-%m-%d", cache=cache) == '2015-04-31'
 
 
-class TestDatetimeParsingWrappers(object):
+class TestDatetimeParsingWrappers:
 
     @pytest.mark.parametrize('date_str,expected', list({
         '2011-01-01': datetime(2011, 1, 1),
@@ -1866,7 +1877,7 @@ def julian_dates():
     return pd.date_range('2014-1-1', periods=10).to_julian_date().values
 
 
-class TestOrigin(object):
+class TestOrigin:
 
     def test_to_basic(self, julian_dates):
         # gh-11276, gh-11745
@@ -1968,3 +1979,16 @@ class TestOrigin(object):
         result = pd.to_datetime(300 * 365, unit='D', origin='1870-01-01')
         expected = Timestamp('2169-10-20 00:00:00')
         assert result == expected
+
+    @pytest.mark.parametrize('offset,utc,exp', [
+        ["Z", True, "2019-01-01T00:00:00.000Z"],
+        ["Z", None, "2019-01-01T00:00:00.000Z"],
+        ["-01:00", True, "2019-01-01T01:00:00.000Z"],
+        ["-01:00", None, "2019-01-01T00:00:00.000-01:00"],
+    ])
+    def test_arg_tz_ns_unit(self, offset, utc, exp):
+        # GH 25546
+        arg = "2019-01-01T00:00:00.000" + offset
+        result = to_datetime([arg], unit='ns', utc=utc)
+        expected = to_datetime([exp])
+        tm.assert_index_equal(result, expected)

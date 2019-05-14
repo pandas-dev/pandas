@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime, timedelta
 import inspect
 
 import numpy as np
 import pytest
-
-from pandas.compat import lrange
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_interval_dtype, is_object_dtype)
@@ -18,7 +14,7 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestDataFrameAlterAxes():
+class TestDataFrameAlterAxes:
 
     def test_set_index_directly(self, float_string_frame):
         df = float_string_frame
@@ -301,7 +297,7 @@ class TestDataFrameAlterAxes():
     def test_set_index_custom_label_type(self):
         # GH 24969
 
-        class Thing(object):
+        class Thing:
             def __init__(self, name, color):
                 self.name = name
                 self.color = color
@@ -1094,13 +1090,13 @@ class TestDataFrameAlterAxes():
         tm.assert_frame_equal(rs, xp)
 
         rs = df.reset_index('a', col_fill=None)
-        xp = DataFrame(full, Index(lrange(3), name='d'),
+        xp = DataFrame(full, Index(range(3), name='d'),
                        columns=[['a', 'b', 'b', 'c'],
                                 ['a', 'mean', 'median', 'mean']])
         tm.assert_frame_equal(rs, xp)
 
         rs = df.reset_index('a', col_fill='blah', col_level=1)
-        xp = DataFrame(full, Index(lrange(3), name='d'),
+        xp = DataFrame(full, Index(range(3), name='d'),
                        columns=[['blah', 'b', 'b', 'c'],
                                 ['a', 'mean', 'median', 'mean']])
         tm.assert_frame_equal(rs, xp)
@@ -1378,7 +1374,7 @@ class TestDataFrameAlterAxes():
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestIntervalIndex(object):
+class TestIntervalIndex:
 
     def test_setitem(self):
 

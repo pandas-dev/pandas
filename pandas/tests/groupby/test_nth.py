@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
 from pandas.util.testing import (
@@ -84,9 +82,9 @@ def test_first_last_nth_dtypes(df_mixed_floats):
     assert_frame_equal(nth, expected)
 
     # GH 2763, first/last shifting dtypes
-    idx = lrange(10)
+    idx = list(range(10))
     idx.append(9)
-    s = Series(data=lrange(11), index=idx, name='IntCol')
+    s = Series(data=range(11), index=idx, name='IntCol')
     assert s.dtype == 'int64'
     f = s.groupby(level=0).first()
     assert f.dtype == 'int64'
@@ -433,4 +431,21 @@ def test_nth_column_order():
                           ['d', 150.0]],
                          columns=['C', 'B'],
                          index=Index([1, 2], name='A'))
+    assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [None, 'any', 'all'])
+def test_nth_nan_in_grouper(dropna):
+    # GH 26011
+    df = DataFrame([
+        [np.nan, 0, 1],
+        ['abc', 2, 3],
+        [np.nan, 4, 5],
+        ['def', 6, 7],
+        [np.nan, 8, 9],
+    ], columns=list('abc'))
+    result = df.groupby('a').nth(0, dropna=dropna)
+    expected = pd.DataFrame([[2, 3], [6, 7]], columns=list('bc'),
+                            index=Index(['abc', 'def'], name='a'))
+
     assert_frame_equal(result, expected)

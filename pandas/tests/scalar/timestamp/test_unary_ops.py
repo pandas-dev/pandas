@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 
 from dateutil.tz import gettz
@@ -17,7 +16,7 @@ import pandas.util.testing as tm
 from pandas.tseries.frequencies import to_offset
 
 
-class TestTimestampUnaryOps(object):
+class TestTimestampUnaryOps:
 
     # --------------------------------------------------------------
     # Timestamp.round

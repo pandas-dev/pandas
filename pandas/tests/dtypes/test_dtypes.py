@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 
 import numpy as np
@@ -20,7 +19,7 @@ from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
-class Base(object):
+class Base:
 
     def setup_method(self, method):
         self.dtype = self.create()
@@ -646,7 +645,7 @@ class TestIntervalDtype(Base):
         assert len(IntervalDtype._cache) == 0
 
 
-class TestCategoricalDtypeParametrized(object):
+class TestCategoricalDtypeParametrized:
 
     @pytest.mark.parametrize('categories', [
         list('abcd'),

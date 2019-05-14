@@ -1042,7 +1042,7 @@ class TestSparseSeries(SharedWithSparse):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestSparseHandlingMultiIndexes(object):
+class TestSparseHandlingMultiIndexes:
 
     def setup_method(self, method):
         miindex = pd.MultiIndex.from_product(
@@ -1073,7 +1073,7 @@ class TestSparseHandlingMultiIndexes(object):
     "ignore:the matrix subclass:PendingDeprecationWarning"
 )
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestSparseSeriesScipyInteraction(object):
+class TestSparseSeriesScipyInteraction:
     # Issue 8048: add SparseSeries coo methods
 
     def setup_method(self, method):
@@ -1441,7 +1441,7 @@ def _dense_series_compare(s, f):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestSparseSeriesAnalytics(object):
+class TestSparseSeriesAnalytics:
 
     def setup_method(self, method):
         arr, index = _test_data1()

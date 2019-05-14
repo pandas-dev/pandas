@@ -85,7 +85,7 @@ def check_arbitrary(a, b):
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-class TestPackers(object):
+class TestPackers:
 
     def setup_method(self, method):
         self.path = '__%s__.msg' % tm.rands(10)
@@ -148,7 +148,7 @@ class TestAPI(TestPackers):
 
     def test_invalid_arg(self):
         # GH10369
-        class A(object):
+        class A:
 
             def __init__(self):
                 self.read = 0
@@ -329,7 +329,7 @@ class TestBasic(TestPackers):
 class TestIndex(TestPackers):
 
     def setup_method(self, method):
-        super(TestIndex, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {
             'string': tm.makeStringIndex(100),
@@ -394,7 +394,7 @@ class TestIndex(TestPackers):
 class TestSeries(TestPackers):
 
     def setup_method(self, method):
-        super(TestSeries, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {}
 
@@ -444,7 +444,7 @@ class TestSeries(TestPackers):
 class TestCategorical(TestPackers):
 
     def setup_method(self, method):
-        super(TestCategorical, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {}
 
@@ -468,7 +468,7 @@ class TestCategorical(TestPackers):
 class TestNDFrame(TestPackers):
 
     def setup_method(self, method):
-        super(TestNDFrame, self).setup_method(method)
+        super().setup_method(method)
 
         data = {
             'A': [0., 1., 2., 3., np.nan],
@@ -611,7 +611,7 @@ class TestCompression(TestPackers):
         else:
             self._SQLALCHEMY_INSTALLED = True
 
-        super(TestCompression, self).setup_method(method)
+        super().setup_method(method)
         data = {
             'A': np.arange(1000, dtype=np.float64),
             'B': np.arange(1000, dtype=np.int32),
@@ -800,7 +800,7 @@ class TestCompression(TestPackers):
 class TestEncoding(TestPackers):
 
     def setup_method(self, method):
-        super(TestEncoding, self).setup_method(method)
+        super().setup_method(method)
         data = {
             'A': ['\u2019'] * 1000,
             'B': np.arange(1000, dtype=np.int32),
@@ -843,12 +843,11 @@ def legacy_packer(request, datapath):
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestMsgpack(object):
+class TestMsgpack:
     """
     How to add msgpack tests:
 
     1. Install pandas version intended to output the msgpack.
-TestPackers
     2. Execute "generate_legacy_storage_files.py" to create the msgpack.
     $ python generate_legacy_storage_files.py <output_dir> msgpack
 

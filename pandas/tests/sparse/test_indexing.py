@@ -7,7 +7,7 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestSparseSeriesIndexing(object):
+class TestSparseSeriesIndexing:
 
     def setup_method(self, method):
         self.orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
@@ -980,7 +980,7 @@ class TestSparseDataFrameIndexing(object):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestMultitype(object):
+class TestMultitype:
 
     def setup_method(self, method):
         self.cols = ['string', 'int', 'float', 'object']

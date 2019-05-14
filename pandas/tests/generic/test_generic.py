@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from copy import copy, deepcopy
 
 import numpy as np
@@ -15,7 +14,7 @@ from pandas.util.testing import assert_frame_equal, assert_series_equal
 # Generic types test cases
 
 
-class Generic(object):
+class Generic:
 
     @property
     def _ndim(self):
@@ -578,7 +577,7 @@ class Generic(object):
             tm.assert_series_equal(res, Series(exp))
 
 
-class TestNDFrame(object):
+class TestNDFrame:
     # tests that don't fit elsewhere
 
     def test_sample(sel):

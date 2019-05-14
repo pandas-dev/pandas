@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -7,7 +6,7 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestSparseGroupBy(object):
+class TestSparseGroupBy:
 
     def setup_method(self, method):
         self.dense = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import date, datetime, timedelta
 import functools
 import operator
@@ -274,7 +273,7 @@ class DateOffset(BaseOffset):
                        kwds.get('months', 0)) * self.n)
             if months:
                 shifted = liboffsets.shift_months(i.asi8, months)
-                i = type(i)(shifted, freq=i.freq, dtype=i.dtype)
+                i = type(i)(shifted, dtype=i.dtype)
 
             weeks = (kwds.get('weeks', 0)) * self.n
             if weeks:
@@ -334,6 +333,11 @@ class DateOffset(BaseOffset):
     def rollback(self, dt):
         """
         Roll provided date backward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
@@ -343,6 +347,11 @@ class DateOffset(BaseOffset):
     def rollforward(self, dt):
         """
         Roll provided date forward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
@@ -410,7 +419,7 @@ class SingleConstructorOffset(DateOffset):
         return cls()
 
 
-class _CustomMixin(object):
+class _CustomMixin:
     """
     Mixin for classes that define and validate calendar, holidays,
     and weekdays attributes.
@@ -428,7 +437,7 @@ class _CustomMixin(object):
         object.__setattr__(self, "calendar", calendar)
 
 
-class BusinessMixin(object):
+class BusinessMixin:
     """
     Mixin to business types to provide related functions.
     """
@@ -784,7 +793,7 @@ class BusinessHourMixin(BusinessMixin):
             return False
 
     def _repr_attrs(self):
-        out = super(BusinessHourMixin, self)._repr_attrs()
+        out = super()._repr_attrs()
         start = self.start.strftime('%H:%M')
         end = self.end.strftime('%H:%M')
         attrs = ['{prefix}={start}-{end}'.format(prefix=self._prefix,
@@ -806,7 +815,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     def __init__(self, n=1, normalize=False, start='09:00',
                  end='17:00', offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
-        super(BusinessHour, self).__init__(start=start, end=end, offset=offset)
+        super().__init__(start=start, end=end, offset=offset)
 
 
 class CustomBusinessDay(_CustomMixin, BusinessDay):
@@ -1414,7 +1423,7 @@ class Week(DateOffset):
         return cls(weekday=weekday)
 
 
-class _WeekOfMonthMixin(object):
+class _WeekOfMonthMixin:
     """
     Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
     """

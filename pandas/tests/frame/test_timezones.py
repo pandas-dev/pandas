@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for DataFrame timezone-related methods
 """
@@ -8,8 +7,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -18,7 +15,7 @@ from pandas.core.indexes.datetimes import date_range
 import pandas.util.testing as tm
 
 
-class TestDataFrameTimezones(object):
+class TestDataFrameTimezones:
 
     def test_frame_values_with_tz(self):
         tz = "US/Central"
@@ -95,7 +92,7 @@ class TestDataFrameTimezones(object):
         test2 = DataFrame(np.zeros((3, 3)),
                           index=date_range("2012-11-15 00:00:00", periods=3,
                                            freq="250L", tz="US/Central"),
-                          columns=lrange(3, 6))
+                          columns=range(3, 6))
 
         result = test1.join(test2, how='outer')
         ex_index = test1.index.union(test2.index)
@@ -195,4 +192,12 @@ class TestDataFrameTimezones(object):
         expected = DataFrame(np.arange(0, 5),
                              index=date_range('20131027', periods=5,
                                               freq='1H', tz=tz))
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
+        # GH 25843
+        tz = tz_aware_fixture
+        result = DataFrame({'d': [pd.Timestamp('2019', tz=tz)]},
+                           dtype='datetime64[ns]')
+        expected = DataFrame({'d': [pd.Timestamp('2019')]})
         tm.assert_frame_equal(result, expected)

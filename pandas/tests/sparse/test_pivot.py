@@ -6,7 +6,7 @@ import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestPivotTable(object):
+class TestPivotTable:
 
     def setup_method(self, method):
         self.dense = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',

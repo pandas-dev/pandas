@@ -6,7 +6,7 @@ from pandas.util import testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestSparseDataFrameToCsv(object):
+class TestSparseDataFrameToCsv:
     fill_values = [np.nan, 0, None, 1]
 
     @pytest.mark.parametrize('fill_value', fill_values)

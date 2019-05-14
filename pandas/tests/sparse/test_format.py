@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -12,7 +11,7 @@ use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestSparseSeriesFormatting(object):
+class TestSparseSeriesFormatting:
 
     @property
     def dtype_format_for_platform(self):
@@ -109,7 +108,7 @@ class TestSparseSeriesFormatting(object):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestSparseDataFrameFormatting(object):
+class TestSparseDataFrameFormatting:
 
     def test_sparse_frame(self):
         # GH 13110
