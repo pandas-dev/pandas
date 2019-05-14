@@ -172,6 +172,7 @@ class TestSparseArray:
         else:
             assert result == fill_value
 
+    @pytest.mark.parametrize('format', ['coo', 'csc', 'csr'])
     @pytest.mark.parametrize('size', [
         pytest.param(0,
                      marks=pytest.mark.skipif(_np_version_under1p16,
