@@ -489,6 +489,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 other = DatetimeIndex(other)
             except TypeError:
                 pass
+            except ValueError:
+                # GH 26283: Convert indexes with mixed tz to UTC
+                other = tools.to_datetime(other, utc=True)
 
         this, other = self._maybe_utc_convert(other)
 

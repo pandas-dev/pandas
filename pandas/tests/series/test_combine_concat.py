@@ -5,7 +5,7 @@ from numpy import nan
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, date_range
+from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -368,3 +368,23 @@ class TestTimeseries:
 
         appended = rng.append(rng2)
         tm.assert_index_equal(appended, rng3)
+
+    def test_combine_first_with_mixed_tz(self):
+        # GH 26283
+        uniform_tz = Series({Timestamp("2019-05-01", tz='UTC'): 1.0})
+
+        multi_tz = Series(
+            {
+                Timestamp("2019-05-01 01:00:00+0100", tz='Europe/London'): 2.0,
+                Timestamp("2019-05-02", tz='UTC'): 3.0
+            }
+        )
+
+        result = uniform_tz.combine_first(multi_tz)
+        expected = Series(
+            {
+                Timestamp("2019-05-01", tz='UTC'): 1.0,
+                Timestamp("2019-05-02", tz='UTC'): 3.0
+            }
+        )
+        tm.assert_series_equal(result, expected)
