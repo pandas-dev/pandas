@@ -916,8 +916,12 @@ class SeriesGroupBy(GroupBy):
             s = klass(res, indexer)
             results.append(s)
 
-        from pandas.core.reshape.concat import concat
-        result = concat(results).sort_index()
+        # check for empty "results" to avoid concat ValueError
+        if results:
+            from pandas.core.reshape.concat import concat
+            result = concat(results).sort_index()
+        else:
+            result = Series()
 
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* udfs
