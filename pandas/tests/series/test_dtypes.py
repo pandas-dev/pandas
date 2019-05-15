@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, timedelta
 from importlib import reload
 import string
@@ -10,8 +7,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-import pandas.compat as compat
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -20,7 +15,7 @@ from pandas.api.types import CategoricalDtype
 import pandas.util.testing as tm
 
 
-class TestSeriesDtypes(object):
+class TestSeriesDtypes:
 
     def test_dt64_series_astype_object(self):
         dt64ser = Series(date_range('20130101', periods=3))
@@ -86,7 +81,7 @@ class TestSeriesDtypes(object):
         tm.assert_series_equal(result, Series(np.arange(1, 5)))
 
     def test_astype_datetime(self):
-        s = Series(iNaT, dtype='M8[ns]', index=lrange(5))
+        s = Series(iNaT, dtype='M8[ns]', index=range(5))
 
         s = s.astype('O')
         assert s.dtype == np.object_
@@ -131,7 +126,7 @@ class TestSeriesDtypes(object):
         expected = Series(date_range('20130101 06:00:00', periods=3, tz='CET'))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [compat.text_type, np.str_])
+    @pytest.mark.parametrize("dtype", [str, np.str_])
     @pytest.mark.parametrize("series", [Series([string.digits * 10,
                                                 tm.rands(63),
                                                 tm.rands(64),
@@ -142,29 +137,27 @@ class TestSeriesDtypes(object):
     def test_astype_str_map(self, dtype, series):
         # see gh-4405
         result = series.astype(dtype)
-        expected = series.map(compat.text_type)
+        expected = series.map(str)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [str, compat.text_type])
-    def test_astype_str_cast(self, dtype):
-        # see gh-9757: test str and unicode on python 2.x
-        # and just str on python 3.x
+    def test_astype_str_cast(self):
+        # see gh-9757
         ts = Series([Timestamp('2010-01-04 00:00:00')])
-        s = ts.astype(dtype)
+        s = ts.astype(str)
 
-        expected = Series([dtype('2010-01-04')])
+        expected = Series([str('2010-01-04')])
         tm.assert_series_equal(s, expected)
 
         ts = Series([Timestamp('2010-01-04 00:00:00', tz='US/Eastern')])
-        s = ts.astype(dtype)
+        s = ts.astype(str)
 
-        expected = Series([dtype('2010-01-04 00:00:00-05:00')])
+        expected = Series([str('2010-01-04 00:00:00-05:00')])
         tm.assert_series_equal(s, expected)
 
         td = Series([Timedelta(1, unit='d')])
-        s = td.astype(dtype)
+        s = td.astype(str)
 
-        expected = Series([dtype('1 days 00:00:00.000000000')])
+        expected = Series([str('1 days 00:00:00.000000000')])
         tm.assert_series_equal(s, expected)
 
     def test_astype_unicode(self):
@@ -184,7 +177,7 @@ class TestSeriesDtypes(object):
 
         for s in test_series:
             res = s.astype("unicode")
-            expec = s.map(compat.text_type)
+            expec = s.map(str)
             tm.assert_series_equal(res, expec)
 
         # Restore the former encoding
@@ -274,7 +267,8 @@ class TestSeriesDtypes(object):
 
     def test_astype_categorical_to_other(self):
 
-        df = DataFrame({'value': np.random.randint(0, 10000, 100)})
+        value = np.random.RandomState(0).randint(0, 10000, 100)
+        df = DataFrame({'value': value})
         labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 

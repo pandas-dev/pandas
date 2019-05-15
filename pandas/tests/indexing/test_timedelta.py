@@ -5,7 +5,7 @@ import pandas as pd
 from pandas.util import testing as tm
 
 
-class TestTimedeltaIndexing(object):
+class TestTimedeltaIndexing:
     def test_boolean_indexing(self):
         # GH 14946
         df = pd.DataFrame({'x': range(10)})

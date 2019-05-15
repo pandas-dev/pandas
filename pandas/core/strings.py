@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
 import codecs
 import re
 import textwrap
+from typing import Dict
 import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
-import pandas.compat as compat
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -28,7 +27,7 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
     "utf-16", "utf-32"
 )
 
-_shared_docs = dict()
+_shared_docs = dict()  # type: Dict[str, str]
 
 
 def cat_core(list_of_columns, sep):
@@ -74,11 +73,8 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
             # The user may want to be warned by this, instead of getting NaN
-            if compat.PY2:
-                p_err = r'takes (no|(exactly|at (least|most)) ?\d+) arguments?'
-            else:
-                p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
-                         r'(?(3)required )positional arguments?')
+            p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
+                     r'(?(3)required )positional arguments?')
 
             if len(e.args) >= 1 and re.search(p_err, e.args[0]):
                 raise e
@@ -623,20 +619,20 @@ def str_repeat(arr, repeats):
     dtype: object
     """
     if is_scalar(repeats):
-        def rep(x):
+        def scalar_rep(x):
             try:
-                return compat.binary_type.__mul__(x, repeats)
+                return bytes.__mul__(x, repeats)
             except TypeError:
-                return compat.text_type.__mul__(x, repeats)
+                return str.__mul__(x, repeats)
 
-        return _na_map(rep, arr)
+        return _na_map(scalar_rep, arr)
     else:
 
         def rep(x, r):
             try:
-                return compat.binary_type.__mul__(x, r)
+                return bytes.__mul__(x, r)
             except TypeError:
-                return compat.text_type.__mul__(x, r)
+                return str.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
         result = libops.vec_binop(com.values_from_object(arr), repeats, rep)
@@ -693,7 +689,7 @@ def _groups_or_na_fun(regex):
     empty_row = [np.nan] * regex.groups
 
     def f(x):
-        if not isinstance(x, compat.string_types):
+        if not isinstance(x, str):
             return empty_row
         m = regex.search(x)
         if m:
@@ -945,13 +941,13 @@ def str_extractall(arr, pat, flags=0):
     is_mi = arr.index.nlevels > 1
 
     for subject_key, subject in arr.iteritems():
-        if isinstance(subject, compat.string_types):
+        if isinstance(subject, str):
 
             if not is_mi:
                 subject_key = (subject_key, )
 
             for match_i, match_tuple in enumerate(regex.findall(subject)):
-                if isinstance(match_tuple, compat.string_types):
+                if isinstance(match_tuple, str):
                     match_tuple = (match_tuple,)
                 na_tuple = [np.NaN if group == "" else group
                             for group in match_tuple]
@@ -1041,7 +1037,7 @@ def str_join(arr, sep):
         delimiter.
 
     Raises
-    -------
+    ------
     AttributeError
         If the supplied Series contains neither strings nor lists.
 
@@ -1202,7 +1198,7 @@ def str_find(arr, sub, start=0, end=None, side='left'):
         Indexes where substring is found.
     """
 
-    if not isinstance(sub, compat.string_types):
+    if not isinstance(sub, str):
         msg = 'expected a string object, not {0}'
         raise TypeError(msg.format(type(sub).__name__))
 
@@ -1222,7 +1218,7 @@ def str_find(arr, sub, start=0, end=None, side='left'):
 
 
 def str_index(arr, sub, start=0, end=None, side='left'):
-    if not isinstance(sub, compat.string_types):
+    if not isinstance(sub, str):
         msg = 'expected a string object, not {0}'
         raise TypeError(msg.format(type(sub).__name__))
 
@@ -1294,7 +1290,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
     1    --tiger---
     dtype: object
     """
-    if not isinstance(fillchar, compat.string_types):
+    if not isinstance(fillchar, str):
         msg = 'fillchar must be a character, not {0}'
         raise TypeError(msg.format(type(fillchar).__name__))
 
@@ -1597,42 +1593,24 @@ def str_wrap(arr, width, **kwargs):
     return _na_map(lambda s: '\n'.join(tw.wrap(s)), arr)
 
 
-def str_translate(arr, table, deletechars=None):
+def str_translate(arr, table):
     """
     Map all characters in the string through the given mapping table.
-    Equivalent to standard :meth:`str.translate`. Note that the optional
-    argument deletechars is only valid if you are using python 2. For python 3,
-    character deletion should be specified via the table argument.
+    Equivalent to standard :meth:`str.translate`.
 
     Parameters
     ----------
-    table : dict (python 3), str or None (python 2)
-        In python 3, table is a mapping of Unicode ordinals to Unicode
-        ordinals, strings, or None. Unmapped characters are left untouched.
+    table : dict
+        table is a mapping of Unicode ordinals to Unicode ordinals, strings, or
+        None. Unmapped characters are left untouched.
         Characters mapped to None are deleted. :meth:`str.maketrans` is a
         helper function for making translation tables.
-        In python 2, table is either a string of length 256 or None. If the
-        table argument is None, no translation is applied and the operation
-        simply removes the characters in deletechars. :func:`string.maketrans`
-        is a helper function for making translation tables.
-    deletechars : str, optional (python 2)
-        A string of characters to delete. This argument is only valid
-        in python 2.
 
     Returns
     -------
     Series or Index
     """
-    if deletechars is None:
-        f = lambda x: x.translate(table)
-    else:
-        if compat.PY3:
-            raise ValueError("deletechars is not a valid argument for "
-                             "str.translate in python 3. You should simply "
-                             "specify character deletions in the table "
-                             "argument")
-        f = lambda x: x.translate(table, deletechars)
-    return _na_map(f, arr)
+    return _na_map(lambda x: x.translate(table), arr)
 
 
 def str_get(arr, i):
@@ -2190,7 +2168,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         from pandas import Index, Series, concat
 
-        if isinstance(others, compat.string_types):
+        if isinstance(others, str):
             raise ValueError("Did you mean to supply a `sep` keyword?")
         if sep is None:
             sep = ''
@@ -2277,7 +2255,7 @@ class StringMethods(NoNewAttributesMixin):
                             name=self._orig.name)
         return result
 
-    _shared_docs['str_split'] = ("""
+    _shared_docs['str_split'] = (r"""
     Split strings around given separator/delimiter.
 
     Splits the string in the Series/Index from the %(side)s,
@@ -2392,6 +2370,15 @@ class StringMethods(NoNewAttributesMixin):
     0          this is a regular sentence        None
     1  https://docs.python.org/3/tutorial  index.html
     2                                 NaN         NaN
+
+    Remember to escape special characters when explicitly using regular
+    expressions.
+
+    >>> s = pd.Series(["1+1=2"])
+
+    >>> s.str.split(r"\+|=", expand=True)
+         0    1    2
+    0    1    1    2
     """)
 
     @Appender(_shared_docs['str_split'] % {
@@ -2762,8 +2749,8 @@ class StringMethods(NoNewAttributesMixin):
                                  name=name, expand=True)
 
     @copy(str_translate)
-    def translate(self, table, deletechars=None):
-        result = str_translate(self._parent, table, deletechars)
+    def translate(self, table):
+        result = str_translate(self._parent, table)
         return self._wrap_result(result)
 
     count = _pat_wrapper(str_count, flags=True)
@@ -2989,33 +2976,36 @@ class StringMethods(NoNewAttributesMixin):
     3              sWaPcAsE
     dtype: object
     """)
-    _shared_docs['lower'] = dict(type='lowercase', method='lower', version='')
-    _shared_docs['upper'] = dict(type='uppercase', method='upper', version='')
-    _shared_docs['title'] = dict(type='titlecase', method='title', version='')
-    _shared_docs['capitalize'] = dict(type='be capitalized',
-                                      method='capitalize', version='')
-    _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase',
-                                    version='')
-    _shared_docs['casefold'] = dict(type='be casefolded', method='casefold',
-                                    version='\n    .. versionadded:: 0.25.0\n')
+
+    # _doc_args holds dict of strings to use in substituting casemethod docs
+    _doc_args = {}  # type: Dict[str, Dict[str, str]]
+    _doc_args['lower'] = dict(type='lowercase', method='lower', version='')
+    _doc_args['upper'] = dict(type='uppercase', method='upper', version='')
+    _doc_args['title'] = dict(type='titlecase', method='title', version='')
+    _doc_args['capitalize'] = dict(type='be capitalized', method='capitalize',
+                                   version='')
+    _doc_args['swapcase'] = dict(type='be swapcased', method='swapcase',
+                                 version='')
+    _doc_args['casefold'] = dict(type='be casefolded', method='casefold',
+                                 version='\n    .. versionadded:: 0.25.0\n')
     lower = _noarg_wrapper(lambda x: x.lower(),
                            docstring=_shared_docs['casemethods'] %
-                           _shared_docs['lower'])
+                           _doc_args['lower'])
     upper = _noarg_wrapper(lambda x: x.upper(),
                            docstring=_shared_docs['casemethods'] %
-                           _shared_docs['upper'])
+                           _doc_args['upper'])
     title = _noarg_wrapper(lambda x: x.title(),
                            docstring=_shared_docs['casemethods'] %
-                           _shared_docs['title'])
+                           _doc_args['title'])
     capitalize = _noarg_wrapper(lambda x: x.capitalize(),
                                 docstring=_shared_docs['casemethods'] %
-                                _shared_docs['capitalize'])
+                                _doc_args['capitalize'])
     swapcase = _noarg_wrapper(lambda x: x.swapcase(),
                               docstring=_shared_docs['casemethods'] %
-                              _shared_docs['swapcase'])
+                              _doc_args['swapcase'])
     casefold = _noarg_wrapper(lambda x: x.casefold(),
                               docstring=_shared_docs['casemethods'] %
-                              _shared_docs['casefold'])
+                              _doc_args['casefold'])
 
     _shared_docs['ismethods'] = ("""
     Check whether all characters in each string are %(type)s.
@@ -3157,42 +3147,42 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
     """)
-    _shared_docs['isalnum'] = dict(type='alphanumeric', method='isalnum')
-    _shared_docs['isalpha'] = dict(type='alphabetic', method='isalpha')
-    _shared_docs['isdigit'] = dict(type='digits', method='isdigit')
-    _shared_docs['isspace'] = dict(type='whitespace', method='isspace')
-    _shared_docs['islower'] = dict(type='lowercase', method='islower')
-    _shared_docs['isupper'] = dict(type='uppercase', method='isupper')
-    _shared_docs['istitle'] = dict(type='titlecase', method='istitle')
-    _shared_docs['isnumeric'] = dict(type='numeric', method='isnumeric')
-    _shared_docs['isdecimal'] = dict(type='decimal', method='isdecimal')
+    _doc_args['isalnum'] = dict(type='alphanumeric', method='isalnum')
+    _doc_args['isalpha'] = dict(type='alphabetic', method='isalpha')
+    _doc_args['isdigit'] = dict(type='digits', method='isdigit')
+    _doc_args['isspace'] = dict(type='whitespace', method='isspace')
+    _doc_args['islower'] = dict(type='lowercase', method='islower')
+    _doc_args['isupper'] = dict(type='uppercase', method='isupper')
+    _doc_args['istitle'] = dict(type='titlecase', method='istitle')
+    _doc_args['isnumeric'] = dict(type='numeric', method='isnumeric')
+    _doc_args['isdecimal'] = dict(type='decimal', method='isdecimal')
     isalnum = _noarg_wrapper(lambda x: x.isalnum(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isalnum'])
+                             _doc_args['isalnum'])
     isalpha = _noarg_wrapper(lambda x: x.isalpha(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isalpha'])
+                             _doc_args['isalpha'])
     isdigit = _noarg_wrapper(lambda x: x.isdigit(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isdigit'])
+                             _doc_args['isdigit'])
     isspace = _noarg_wrapper(lambda x: x.isspace(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isspace'])
+                             _doc_args['isspace'])
     islower = _noarg_wrapper(lambda x: x.islower(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['islower'])
+                             _doc_args['islower'])
     isupper = _noarg_wrapper(lambda x: x.isupper(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isupper'])
+                             _doc_args['isupper'])
     istitle = _noarg_wrapper(lambda x: x.istitle(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['istitle'])
+                             _doc_args['istitle'])
     isnumeric = _noarg_wrapper(lambda x: x.isnumeric(),
                                docstring=_shared_docs['ismethods'] %
-                               _shared_docs['isnumeric'])
+                               _doc_args['isnumeric'])
     isdecimal = _noarg_wrapper(lambda x: x.isdecimal(),
                                docstring=_shared_docs['ismethods'] %
-                               _shared_docs['isdecimal'])
+                               _doc_args['isdecimal'])
 
     @classmethod
     def _make_accessor(cls, data):

@@ -1,17 +1,16 @@
-# -*- coding: utf-8 -*-
 import pandas as pd
 from pandas import api
 from pandas.util import testing as tm
 
 
-class Base(object):
+class Base:
 
     def check(self, namespace, expected, ignored=None):
         # see which names are in the namespace, minus optional
         # ignored ones
         # compare vs the expected
 
-        result = sorted(f for f in dir(namespace) if not f.startswith('_'))
+        result = sorted(f for f in dir(namespace) if not f.startswith('__'))
         if ignored is not None:
             result = sorted(list(set(result) - set(ignored)))
 
@@ -93,6 +92,12 @@ class TestPDApi(Base):
     # these are already deprecated; awaiting removal
     deprecated_funcs = []
 
+    # private modules in pandas namespace
+    private_modules = ['_config', '_hashtable', '_lib', '_libs',
+                       '_np_version_under1p14', '_np_version_under1p15',
+                       '_np_version_under1p16', '_np_version_under1p17',
+                       '_tslib', '_typing', '_version']
+
     def test_api(self):
 
         self.check(pd,
@@ -103,7 +108,7 @@ class TestPDApi(Base):
                    self.funcs + self.funcs_option +
                    self.funcs_read + self.funcs_to +
                    self.deprecated_funcs_in_future +
-                   self.deprecated_funcs,
+                   self.deprecated_funcs + self.private_modules,
                    self.ignored)
 
 
@@ -127,7 +132,7 @@ class TestTesting(Base):
         self.check(testing, self.funcs)
 
 
-class TestTopLevelDeprecations(object):
+class TestTopLevelDeprecations:
 
     # top-level API deprecations
     # GH 13790
@@ -138,7 +143,7 @@ class TestTopLevelDeprecations(object):
             pd.TimeGrouper(freq='D')
 
 
-class TestCDateRange(object):
+class TestCDateRange:
 
     def test_deprecation_cdaterange(self):
         # GH17596

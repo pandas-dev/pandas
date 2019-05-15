@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
 from itertools import permutations
 import struct
@@ -11,7 +9,6 @@ import pytest
 
 from pandas._libs import (
     algos as libalgos, groupby as libgroupby, hashtable as ht)
-from pandas.compat import lrange
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -24,11 +21,12 @@ from pandas import (
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
+from pandas.core.sorting import safe_sort
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 
-class TestMatch(object):
+class TestMatch:
 
     def test_ints(self):
         values = np.array([0, 2, 1])
@@ -64,7 +62,7 @@ class TestMatch(object):
         tm.assert_series_equal(result, expected)
 
 
-class TestFactorize(object):
+class TestFactorize:
 
     def test_basic(self):
 
@@ -228,9 +226,9 @@ class TestFactorize(object):
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        msg = (r"'(<|>)' not supported between instances of 'complex' and"
-               r" 'complex'|"
-               r"unorderable types: complex\(\) > complex\(\)")
+        msg = ("unorderable types: .* [<>] .*"
+               "|"  # the above case happens for numpy < 1.14
+               "'[<>]' not supported between instances of .*")
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
 
@@ -327,21 +325,29 @@ class TestFactorize(object):
 
     @pytest.mark.parametrize('sort', [True, False])
     @pytest.mark.parametrize('na_sentinel', [-1, -10, 100])
-    def test_factorize_na_sentinel(self, sort, na_sentinel):
-        data = np.array(['b', 'a', None, 'b'], dtype=object)
+    @pytest.mark.parametrize('data, uniques', [
+        (np.array(['b', 'a', None, 'b'], dtype=object),
+         np.array(['b', 'a'], dtype=object)),
+        (pd.array([2, 1, np.nan, 2], dtype='Int64'),
+         pd.array([2, 1], dtype='Int64'))],
+        ids=['numpy_array', 'extension_array'])
+    def test_factorize_na_sentinel(self, sort, na_sentinel, data, uniques):
         labels, uniques = algos.factorize(data, sort=sort,
                                           na_sentinel=na_sentinel)
         if sort:
             expected_labels = np.array([1, 0, na_sentinel, 1], dtype=np.intp)
-            expected_uniques = np.array(['a', 'b'], dtype=object)
+            expected_uniques = safe_sort(uniques)
         else:
             expected_labels = np.array([0, 1, na_sentinel, 0], dtype=np.intp)
-            expected_uniques = np.array(['b', 'a'], dtype=object)
+            expected_uniques = uniques
         tm.assert_numpy_array_equal(labels, expected_labels)
-        tm.assert_numpy_array_equal(uniques, expected_uniques)
+        if isinstance(data, np.ndarray):
+            tm.assert_numpy_array_equal(uniques, expected_uniques)
+        else:
+            tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
-class TestUnique(object):
+class TestUnique:
 
     def test_ints(self):
         arr = np.random.randint(0, 100, size=50)
@@ -604,7 +610,7 @@ class TestUnique(object):
         assert a[1] is unique_nulls_fixture2
 
 
-class TestIsin(object):
+class TestIsin:
 
     def test_invalid(self):
 
@@ -720,7 +726,7 @@ class TestIsin(object):
         # the user however could define a custom class
         # with similar behavior, then we at least should
         # fall back to usual python's behavior: "a in [a] == True"
-        class LikeNan(object):
+        class LikeNan:
             def __eq__(self):
                 return False
 
@@ -804,7 +810,7 @@ class TestIsin(object):
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestValueCounts(object):
+class TestValueCounts:
 
     def test_value_counts(self):
         np.random.seed(1234)
@@ -993,7 +999,7 @@ class TestValueCounts(object):
             tm.assert_series_equal(result, expected)
 
 
-class TestDuplicated(object):
+class TestDuplicated:
 
     def test_duplicated_with_nas(self):
         keys = np.array([0, 1, np.nan, 0, 2, np.nan], dtype=object)
@@ -1160,7 +1166,7 @@ class TestDuplicated(object):
         tm.assert_numpy_array_equal(result, expected)
 
 
-class GroupVarTestMixin(object):
+class GroupVarTestMixin:
 
     def test_group_var_generic_1d(self):
         prng = RandomState(1234)
@@ -1275,7 +1281,7 @@ class TestGroupVarFloat32(GroupVarTestMixin):
     rtol = 1e-2
 
 
-class TestHashTable(object):
+class TestHashTable:
 
     def test_lookup_nan(self, writable):
         xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
@@ -1469,7 +1475,7 @@ def test_unique_label_indices():
                                 check_dtype=False)
 
 
-class TestRank(object):
+class TestRank:
 
     @td.skip_if_no_scipy
     def test_scipy_compat(self):
@@ -1548,7 +1554,7 @@ def test_arrmap():
     assert (result.dtype == np.bool_)
 
 
-class TestTseriesUtil(object):
+class TestTseriesUtil:
 
     def test_combineFunc(self):
         pass
@@ -1567,7 +1573,7 @@ class TestTseriesUtil(object):
 
     def test_backfill(self):
         old = Index([1, 5, 10])
-        new = Index(lrange(12))
+        new = Index(list(range(12)))
 
         filler = libalgos.backfill["int64_t"](old.values, new.values)
 
@@ -1577,7 +1583,7 @@ class TestTseriesUtil(object):
 
         # corner case
         old = Index([1, 4])
-        new = Index(lrange(5, 10))
+        new = Index(list(range(5, 10)))
         filler = libalgos.backfill["int64_t"](old.values, new.values)
 
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
@@ -1585,7 +1591,7 @@ class TestTseriesUtil(object):
 
     def test_pad(self):
         old = Index([1, 5, 10])
-        new = Index(lrange(12))
+        new = Index(list(range(12)))
 
         filler = libalgos.pad["int64_t"](old.values, new.values)
 
@@ -1595,7 +1601,7 @@ class TestTseriesUtil(object):
 
         # corner case
         old = Index([5, 10])
-        new = Index(lrange(5))
+        new = Index(np.arange(5))
         filler = libalgos.pad["int64_t"](old.values, new.values)
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(filler, expect_filler)
@@ -1758,7 +1764,7 @@ def test_int64_add_overflow():
                                b_mask=np.array([False, True]))
 
 
-class TestMode(object):
+class TestMode:
 
     def test_no_mode(self):
         exp = Series([], dtype=np.float64)

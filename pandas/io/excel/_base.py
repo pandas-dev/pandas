@@ -1,14 +1,14 @@
 import abc
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
+from io import BytesIO
 import os
 from textwrap import fill
+from urllib.request import urlopen
 import warnings
 
 from pandas._config import config
 
-import pandas.compat as compat
-from pandas.compat import add_metaclass, string_types
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -17,10 +17,12 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import _NA_VALUES, _stringify_path, _validate_header_arg
+from pandas.io.common import (
+    _NA_VALUES, _is_url, _stringify_path, _validate_header_arg,
+    get_filepath_or_buffer)
 from pandas.io.excel._util import (
-    _fill_mi_header, _get_default_writer, _maybe_convert_to_string,
-    _maybe_convert_usecols, _pop_header_name, get_writer)
+    _fill_mi_header, _get_default_writer, _maybe_convert_usecols,
+    _pop_header_name, get_writer)
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -144,12 +146,12 @@ parse_dates : bool, list-like, or dict, default False
       each as a separate date column.
     * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
       a single date column.
-    * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+    * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
       result 'foo'
 
     If a column or index contains an unparseable date, the entire column or
     index will be returned unaltered as an object data type. For non-standard
-    datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
+    datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_parser : function, optional
@@ -328,8 +330,37 @@ def read_excel(io,
         **kwds)
 
 
-@add_metaclass(abc.ABCMeta)
-class _BaseExcelReader(object):
+class _BaseExcelReader(metaclass=abc.ABCMeta):
+
+    def __init__(self, filepath_or_buffer):
+        # If filepath_or_buffer is a url, load the data into a BytesIO
+        if _is_url(filepath_or_buffer):
+            filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
+        elif not isinstance(filepath_or_buffer,
+                            (ExcelFile, self._workbook_class)):
+            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+                filepath_or_buffer)
+
+        if isinstance(filepath_or_buffer, self._workbook_class):
+            self.book = filepath_or_buffer
+        elif hasattr(filepath_or_buffer, "read"):
+            # N.B. xlrd.Book has a read attribute too
+            filepath_or_buffer.seek(0)
+            self.book = self.load_workbook(filepath_or_buffer)
+        elif isinstance(filepath_or_buffer, str):
+            self.book = self.load_workbook(filepath_or_buffer)
+        else:
+            raise ValueError('Must explicitly set engine if not passing in'
+                             ' buffer or path for io.')
+
+    @property
+    @abc.abstractmethod
+    def _workbook_class(self):
+        pass
+
+    @abc.abstractmethod
+    def load_workbook(self, filepath_or_buffer):
+        pass
 
     @property
     @abc.abstractmethod
@@ -394,7 +425,7 @@ class _BaseExcelReader(object):
             if verbose:
                 print("Reading sheet {sheet}".format(sheet=asheetname))
 
-            if isinstance(asheetname, compat.string_types):
+            if isinstance(asheetname, str):
                 sheet = self.get_sheet_by_name(asheetname)
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
@@ -476,9 +507,6 @@ class _BaseExcelReader(object):
                     if header_names:
                         output[asheetname].columns = output[
                             asheetname].columns.set_names(header_names)
-                    elif compat.PY2:
-                        output[asheetname].columns = _maybe_convert_to_string(
-                            output[asheetname].columns)
 
             except EmptyDataError:
                 # No Data, return an empty DataFrame
@@ -490,8 +518,7 @@ class _BaseExcelReader(object):
             return output[asheetname]
 
 
-@add_metaclass(abc.ABCMeta)
-class ExcelWriter(object):
+class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets, default is to use
     xlwt for xls, openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
@@ -509,7 +536,7 @@ class ExcelWriter(object):
     datetime_format : string, default None
         Format string for datetime objects written into Excel files
         (e.g. 'YYYY-MM-DD HH:MM:SS')
-    mode : {'w' or 'a'}, default 'w'
+    mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).
 
         .. versionadded:: 0.24.0
@@ -579,9 +606,9 @@ class ExcelWriter(object):
         # only switch class if generic(ExcelWriter)
 
         if issubclass(cls, ExcelWriter):
-            if engine is None or (isinstance(engine, string_types) and
+            if engine is None or (isinstance(engine, str) and
                                   engine == 'auto'):
-                if isinstance(path, string_types):
+                if isinstance(path, str):
                     ext = os.path.splitext(path)[-1][1:]
                 else:
                     ext = 'xlsx'
@@ -603,14 +630,16 @@ class ExcelWriter(object):
     curr_sheet = None
     path = None
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def supported_extensions(self):
-        "extensions that writer engine supports"
+        """Extensions that writer engine supports."""
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def engine(self):
-        "name of engine"
+        """Name of engine."""
         pass
 
     @abc.abstractmethod
@@ -643,7 +672,7 @@ class ExcelWriter(object):
                  date_format=None, datetime_format=None, mode='w',
                  **engine_kwargs):
         # validate that this engine can handle the extension
-        if isinstance(path, string_types):
+        if isinstance(path, str):
             ext = os.path.splitext(path)[-1]
         else:
             ext = 'xls' if engine == 'xlwt' else 'xlsx'
@@ -705,7 +734,7 @@ class ExcelWriter(object):
             val = val.total_seconds() / float(86400)
             fmt = '0'
         else:
-            val = compat.to_str(val)
+            val = str(val)
 
         return val, fmt
 
@@ -735,7 +764,7 @@ class ExcelWriter(object):
         return self.save()
 
 
-class ExcelFile(object):
+class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
     Uses xlrd. See read_excel for more documentation
@@ -798,6 +827,11 @@ class ExcelFile(object):
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters
+
+        Returns
+        -------
+        DataFrame or dict of DataFrames
+            DataFrame from the passed in Excel file.
         """
 
         # Can't use _deprecate_kwarg since sheetname=None has a special meaning

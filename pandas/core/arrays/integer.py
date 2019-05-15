@@ -1,11 +1,12 @@
 import copy
 import sys
+from typing import Type
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import set_function_name, string_types
+from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -31,9 +32,9 @@ class _IntegerDtype(ExtensionDtype):
 
     The attributes name & type are set when these subclasses are created.
     """
-    name = None
+    name = None  # type: str
     base = None
-    type = None
+    type = None  # type: Type
     na_value = np.nan
 
     def __repr__(self):
@@ -154,7 +155,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             dtype = values.dtype
 
     if dtype is not None:
-        if (isinstance(dtype, string_types) and
+        if (isinstance(dtype, str) and
                 (dtype.startswith("Int") or dtype.startswith("UInt"))):
             # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
             # https://github.com/numpy/numpy/pull/7476
@@ -186,6 +187,9 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
                                    'mixed-integer', 'mixed-integer-float']:
             raise TypeError("{} cannot be converted to an IntegerDtype".format(
                 values.dtype))
+
+    elif is_bool_dtype(values) and is_integer_dtype(dtype):
+        values = np.array(values, dtype=int, copy=copy)
 
     elif not (is_integer_dtype(values) or is_float_dtype(values)):
         raise TypeError("{} cannot be converted to an IntegerDtype".format(
@@ -452,8 +456,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return astype_nansafe(data, dtype, copy=None)
 
     @property
-    def _ndarray_values(self):
-        # type: () -> np.ndarray
+    def _ndarray_values(self) -> np.ndarray:
         """Internal pandas method for lossy conversion to a NumPy ndarray.
 
         This method is not part of the pandas interface.
@@ -509,8 +512,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return Series(array, index=index)
 
-    def _values_for_argsort(self):
-        # type: () -> np.ndarray
+    def _values_for_argsort(self) -> np.ndarray:
         """Return values for sorting.
 
         Returns
@@ -684,23 +686,90 @@ IntegerArray._add_comparison_ops()
 
 module = sys.modules[__name__]
 
+_dtype_docstring = """
+An ExtensionDtype for {dtype} integer data.
+
+Attributes
+----------
+None
+
+Methods
+-------
+None
+"""
 
 # create the Dtype
-_dtypes = {}
-for dtype in ['int8', 'int16', 'int32', 'int64',
-              'uint8', 'uint16', 'uint32', 'uint64']:
+Int8Dtype = register_extension_dtype(
+    type('Int8Dtype', (_IntegerDtype, ), {
+        'type': np.int8,
+        'name': 'Int8',
+        '__doc__': _dtype_docstring.format(dtype='int8')
+    })
+)
 
-    if dtype.startswith('u'):
-        name = "U{}".format(dtype[1:].capitalize())
-    else:
-        name = dtype.capitalize()
-    classname = "{}Dtype".format(name)
-    numpy_dtype = getattr(np, dtype)
-    attributes_dict = {'type': numpy_dtype,
-                       'name': name}
-    dtype_type = register_extension_dtype(
-        type(classname, (_IntegerDtype, ), attributes_dict)
-    )
-    setattr(module, classname, dtype_type)
+Int16Dtype = register_extension_dtype(
+    type('Int16Dtype', (_IntegerDtype, ), {
+        'type': np.int16,
+        'name': 'Int16',
+        '__doc__': _dtype_docstring.format(dtype='int16')
+    })
+)
 
-    _dtypes[dtype] = dtype_type()
+Int32Dtype = register_extension_dtype(
+    type('Int32Dtype', (_IntegerDtype, ), {
+        'type': np.int32,
+        'name': 'Int32',
+        '__doc__': _dtype_docstring.format(dtype='int32')
+    })
+)
+
+Int64Dtype = register_extension_dtype(
+    type('Int64Dtype', (_IntegerDtype, ), {
+        'type': np.int64,
+        'name': 'Int64',
+        '__doc__': _dtype_docstring.format(dtype='int64')
+    })
+)
+
+UInt8Dtype = register_extension_dtype(
+    type('UInt8Dtype', (_IntegerDtype, ), {
+        'type': np.uint8,
+        'name': 'UInt8',
+        '__doc__': _dtype_docstring.format(dtype='uint8')
+    })
+)
+
+UInt16Dtype = register_extension_dtype(
+    type('UInt16Dtype', (_IntegerDtype, ), {
+        'type': np.uint16,
+        'name': 'UInt16',
+        '__doc__': _dtype_docstring.format(dtype='uint16')
+    })
+)
+
+UInt32Dtype = register_extension_dtype(
+    type('UInt32Dtype', (_IntegerDtype, ), {
+        'type': np.uint32,
+        'name': 'UInt32',
+        '__doc__': _dtype_docstring.format(dtype='uint32')
+    })
+)
+
+UInt64Dtype = register_extension_dtype(
+    type('UInt64Dtype', (_IntegerDtype, ), {
+        'type': np.uint64,
+        'name': 'UInt64',
+        '__doc__': _dtype_docstring.format(dtype='uint64')
+    })
+)
+
+_dtypes = {
+    'int8': Int8Dtype(),
+    'int16': Int16Dtype(),
+    'int32': Int32Dtype(),
+    'int64': Int64Dtype(),
+    'uint8': UInt8Dtype(),
+    'uint16': UInt16Dtype(),
+    'uint32': UInt32Dtype(),
+    'uint64': UInt64Dtype(),
+}

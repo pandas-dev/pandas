@@ -2,6 +2,7 @@ from contextlib import contextmanager
 import datetime
 from datetime import timedelta
 from distutils.version import LooseVersion
+from io import BytesIO
 import os
 import tempfile
 from warnings import catch_warnings, simplefilter
@@ -9,9 +10,7 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    PY35, PY36, BytesIO, is_platform_little_endian, is_platform_windows,
-    lrange, text_type)
+from pandas.compat import PY36, is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -129,7 +128,7 @@ def _maybe_remove(store, key):
         pass
 
 
-class Base(object):
+class Base:
 
     @classmethod
     def setup_class(cls):
@@ -196,7 +195,7 @@ class TestHDFStore(Base):
             assert_frame_equal(o, roundtrip('frame', o))
 
             # table
-            df = DataFrame(dict(A=lrange(5), B=lrange(5)))
+            df = DataFrame(dict(A=range(5), B=range(5)))
             df.to_hdf(path, 'table', append=True)
             result = read_hdf(path, 'table', where=['index>2'])
             assert_frame_equal(df[df.index > 2], result)
@@ -370,7 +369,7 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
 
-            df = DataFrame(dict(A=lrange(5), B=lrange(5)))
+            df = DataFrame(dict(A=range(5), B=range(5)))
             store.put("df", df)
 
             assert store.keys() == ["/df"]
@@ -1232,6 +1231,19 @@ class TestHDFStore(Base):
             df_with_missing.to_hdf(path, 'df_with_missing', format='table')
             reloaded = read_hdf(path, 'df_with_missing')
             tm.assert_frame_equal(df_with_missing, reloaded)
+
+    def test_read_missing_key_close_store(self):
+        # GH 25766
+        with ensure_clean_path(self.path) as path:
+            df = pd.DataFrame({'a': range(2), 'b': range(2)})
+            df.to_hdf(path, 'k1')
+
+            with pytest.raises(KeyError):
+                pd.read_hdf(path, 'k2')
+
+            # smoke test to test that file is properly closed after
+            # read with KeyError before another write
+            df.to_hdf(path, 'k2')
 
     def test_append_frame_column_oriented(self):
 
@@ -2466,8 +2478,8 @@ class TestHDFStore(Base):
 
             assert_frame_equal(df, df2, check_names=True)
 
-            assert type(df2.index.name) == text_type
-            assert type(df2.columns.name) == text_type
+            assert type(df2.index.name) == str
+            assert type(df2.columns.name) == str
 
     def test_store_series_name(self):
         df = tm.makeDataFrame()
@@ -3079,7 +3091,7 @@ class TestHDFStore(Base):
 
         # GH 3499, losing frequency info on index recreation
         df = DataFrame(dict(
-            A=Series(lrange(3),
+            A=Series(range(3),
                      index=date_range('2000-1-1', periods=3, freq='H'))))
 
         with ensure_clean_store(self.path) as store:
@@ -3097,7 +3109,7 @@ class TestHDFStore(Base):
             # try to append a table with a different frequency
             with catch_warnings(record=True):
                 df2 = DataFrame(dict(
-                    A=Series(lrange(3),
+                    A=Series(range(3),
                              index=date_range('2002-1-1',
                                               periods=3, freq='D'))))
                 store.append('data', df2)
@@ -3107,12 +3119,12 @@ class TestHDFStore(Base):
             # this is ok
             _maybe_remove(store, 'df2')
             df2 = DataFrame(dict(
-                A=Series(lrange(3),
+                A=Series(range(3),
                          index=[Timestamp('20010101'), Timestamp('20010102'),
                                 Timestamp('20020101')])))
             store.append('df2', df2)
             df3 = DataFrame(dict(
-                A=Series(lrange(3),
+                A=Series(range(3),
                          index=date_range('2002-1-1', periods=3,
                                           freq='D'))))
             store.append('df2', df3)
@@ -3126,19 +3138,19 @@ class TestHDFStore(Base):
             with catch_warnings(record=True):
 
                 df = DataFrame(dict(
-                    A=Series(lrange(3),
+                    A=Series(range(3),
                              index=date_range('2000-1-1',
                                               periods=3, freq='H'))))
                 df.to_hdf(path, 'data', mode='w', append=True)
                 df2 = DataFrame(dict(
-                    A=Series(lrange(3),
+                    A=Series(range(3),
                              index=date_range('2002-1-1', periods=3,
                                               freq='D'))))
                 df2.to_hdf(path, 'data', append=True)
 
                 idx = date_range('2000-1-1', periods=3, freq='H')
                 idx.name = 'foo'
-                df = DataFrame(dict(A=Series(lrange(3), index=idx)))
+                df = DataFrame(dict(A=Series(range(3), index=idx)))
                 df.to_hdf(path, 'data', mode='w', append=True)
 
             assert read_hdf(path, 'data').index.name == 'foo'
@@ -3147,7 +3159,7 @@ class TestHDFStore(Base):
 
                 idx2 = date_range('2001-1-1', periods=3, freq='H')
                 idx2.name = 'bar'
-                df2 = DataFrame(dict(A=Series(lrange(3), index=idx2)))
+                df2 = DataFrame(dict(A=Series(range(3), index=idx2)))
                 df2.to_hdf(path, 'data', append=True)
 
             assert read_hdf(path, 'data').index.name is None
@@ -3451,7 +3463,7 @@ class TestHDFStore(Base):
             # get coordinates back & test vs frame
             _maybe_remove(store, 'df')
 
-            df = DataFrame(dict(A=lrange(5), B=lrange(5)))
+            df = DataFrame(dict(A=range(5), B=range(5)))
             store.append('df', df)
             c = store.select_as_coordinates('df', ['index<3'])
             assert((c.values == np.arange(3)).all())
@@ -4014,8 +4026,8 @@ class TestHDFStore(Base):
             d2 = store['detector/readout']
             assert isinstance(d2, DataFrame)
 
-    @pytest.mark.skipif(PY35 and is_platform_windows(),
-                        reason="native2 read fails oddly on windows / 3.5")
+    @pytest.mark.skipif(is_platform_windows(),
+                        reason="native2 read fails oddly on windows")
     def test_pytables_native2_read(self, datapath):
         with ensure_clean_store(
                 datapath('io', 'data', 'legacy_hdf', 'pytables_native2.h5'),
@@ -4937,7 +4949,7 @@ class TestTimezones(Base):
         with ensure_clean_store(self.path) as store:
 
             # GH 4098 example
-            df = DataFrame(dict(A=Series(lrange(3), index=date_range(
+            df = DataFrame(dict(A=Series(range(3), index=date_range(
                 '2000-1-1', periods=3, freq='H', tz=gettz('US/Eastern')))))
 
             _maybe_remove(store, 'df')
@@ -5005,7 +5017,7 @@ class TestTimezones(Base):
         with ensure_clean_store(self.path) as store:
 
             # GH 4098 example
-            df = DataFrame(dict(A=Series(lrange(3), index=date_range(
+            df = DataFrame(dict(A=Series(range(3), index=date_range(
                 '2000-1-1', periods=3, freq='H', tz='US/Eastern'))))
 
             _maybe_remove(store, 'df')

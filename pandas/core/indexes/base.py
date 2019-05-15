@@ -6,12 +6,11 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    algos as libalgos, index as libindex, join as libjoin, lib)
+from pandas._libs import algos as libalgos, index as libindex, lib
+import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-import pandas.compat as compat
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -183,7 +182,7 @@ class Index(IndexOpsMixin, PandasObject):
         When True, attempt to create a MultiIndex if possible
 
     See Also
-    ---------
+    --------
     RangeIndex : Index implementing a monotonic integer range.
     CategoricalIndex : Index of :class:`Categorical` s.
     MultiIndex : A multi-level, or hierarchical, Index.
@@ -534,7 +533,7 @@ class Index(IndexOpsMixin, PandasObject):
         # we actually set this value too.
         result._index_data = values
         result.name = name
-        for k, v in compat.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(result, k, v)
         return result._reset_identity()
 
@@ -692,6 +691,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return an ndarray of the flattened values of the underlying data.
 
+        Returns
+        -------
+        numpy.ndarray
+            Flattened array.
+
         See Also
         --------
         numpy.ndarray.ravel
@@ -728,6 +732,11 @@ class Index(IndexOpsMixin, PandasObject):
             or the original Index is returned.
 
             .. versionadded:: 0.19.0
+
+        Returns
+        -------
+        Index
+            Index with values cast to specified dtype.
         """
 
     @Appender(_index_shared_docs['astype'])
@@ -776,6 +785,11 @@ class Index(IndexOpsMixin, PandasObject):
         fill_value : bool, default None
             If allow_fill=True and fill_value is not None, indices specified by
             -1 is regarded as NA. If Index doesn't hold NA, raise ValueError
+
+        Returns
+        -------
+        numpy.ndarray
+            Elements of given indices.
 
         See Also
         --------
@@ -920,10 +934,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __unicode__(self):
         """
-        Return a string representation for this object.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
+        Return a unicode string representation for this object.
         """
         klass = self.__class__.__name__
         data = self._format_data()
@@ -1041,6 +1052,11 @@ class Index(IndexOpsMixin, PandasObject):
                 Whether or not there are quoted values in `self`
             3) date_format : str
                 The format used to represent date-like values
+
+        Returns
+        -------
+        numpy.ndarray
+            Formatted values.
         """
 
         values = self
@@ -1076,12 +1092,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if len(self) > 0:
             head = self[0]
-            if (hasattr(head, 'format') and
-                    not isinstance(head, compat.string_types)):
+            if hasattr(head, 'format') and not isinstance(head, str):
                 head = head.format()
             tail = self[-1]
-            if (hasattr(tail, 'format') and
-                    not isinstance(tail, compat.string_types)):
+            if hasattr(tail, 'format') and not isinstance(tail, str):
                 tail = tail.format()
             index_summary = ', %s to %s' % (pprint_thing(head),
                                             pprint_thing(tail))
@@ -1755,7 +1769,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(state, dict):
             self._data = state.pop('data')
-            for k, v in compat.iteritems(state):
+            for k, v in state.items():
                 setattr(self, k, v)
 
         elif isinstance(state, tuple):
@@ -2000,7 +2014,7 @@ class Index(IndexOpsMixin, PandasObject):
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
-        result = super(Index, self).unique()
+        result = super().unique()
         return self._shallow_copy(result)
 
     def drop_duplicates(self, keep='first'):
@@ -2049,7 +2063,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.drop_duplicates(keep=False)
         Index(['cow', 'beetle', 'hippo'], dtype='object')
         """
-        return super(Index, self).drop_duplicates(keep=keep)
+        return super().drop_duplicates(keep=keep)
 
     def duplicated(self, keep='first'):
         """
@@ -2105,7 +2119,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.duplicated(keep=False)
         array([ True, False,  True, False,  True])
         """
-        return super(Index, self).duplicated(keep=keep)
+        return super().duplicated(keep=keep)
 
     def get_duplicates(self):
         """
@@ -2705,7 +2719,7 @@ class Index(IndexOpsMixin, PandasObject):
         loc : int if unique index, slice if monotonic index, else mask
 
         Examples
-        ---------
+        --------
         >>> unique_index = pd.Index(list('abc'))
         >>> unique_index.get_loc('b')
         1
@@ -3696,14 +3710,11 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
-
-        Return the underlying data as an ndarray.
         """
         return self._data.view(np.ndarray)
 
     @property
-    def _values(self):
-        # type: () -> Union[ExtensionArray, Index, np.ndarray]
+    def _values(self) -> Union[ExtensionArray, ABCIndexClass, np.ndarray]:
         # TODO(EA): remove index types as they become extension arrays
         """
         The best array representation.
@@ -3778,7 +3789,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
     def memory_usage(self, deep=False):
-        result = super(Index, self).memory_usage(deep=deep)
+        result = super().memory_usage(deep=deep)
 
         # include our engine hashtable
         result += self._engine.sizeof(deep=deep)
@@ -3795,6 +3806,10 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         cond : boolean array-like with the same length as self
         other : scalar, or array-like
+
+        Returns
+        -------
+        Index
         """
 
     @Appender(_index_shared_docs['where'])
@@ -4105,6 +4120,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a new Index of the values set with the mask.
 
+        Returns
+        -------
+        Index
+
         See Also
         --------
         numpy.ndarray.putmask
@@ -4123,6 +4142,11 @@ class Index(IndexOpsMixin, PandasObject):
     def equals(self, other):
         """
         Determine if two Index objects contain the same elements.
+
+        Returns
+        -------
+        bool
+            If two Index objects have equal elements True, otherwise False.
         """
         if self.is_(other):
             return True
@@ -4144,6 +4168,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Similar to equals, but check that other comparable attributes are
         also equal.
+
+        Returns
+        -------
+        bool
+            If two Index objects have equal elements and same type True,
+            otherwise False.
         """
         return (self.equals(other) and
                 all((getattr(self, c, None) == getattr(other, c, None)
@@ -4415,6 +4445,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing.
+
+        Returns
+        -------
+        scalar
+            A value in the Series with the index of the key value in self.
         """
 
         # if we have something that is Index-like, then
@@ -4522,6 +4557,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         This dispatches to get_indexer or get_indexer_nonunique
         as appropriate.
+
+        Returns
+        -------
+        numpy.ndarray
+            List of indices.
         """
         if self.is_unique:
             return self.get_indexer(target, **kwargs)
@@ -4561,7 +4601,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = values._reverse_indexer()
 
         # map to the label
-        result = {k: self.take(v) for k, v in compat.iteritems(result)}
+        result = {k: self.take(v) for k, v in result.items()}
 
         return result
 
@@ -4586,8 +4626,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         from .multi import MultiIndex
-        new_values = super(Index, self)._map_values(
-            mapper, na_action=na_action)
+        new_values = super()._map_values(mapper, na_action=na_action)
 
         attributes = self._get_attributes_dict()
 
@@ -4730,7 +4769,7 @@ class Index(IndexOpsMixin, PandasObject):
         This function assumes that the data is sorted, so use at your own peril
 
         Examples
-        ---------
+        --------
         This is a method on all index types. For example you can do:
 
         >>> idx = pd.Index(list('abcd'))
@@ -4855,6 +4894,11 @@ class Index(IndexOpsMixin, PandasObject):
         label : object
         side : {'left', 'right'}
         kind : {'ix', 'loc', 'getitem'}
+
+        Returns
+        -------
+        int
+            Index of label.
         """
         assert kind in ['ix', 'loc', 'getitem', None]
 
@@ -4928,7 +4972,7 @@ class Index(IndexOpsMixin, PandasObject):
         This method only works if the index is monotonic or unique.
 
         Examples
-        ---------
+        --------
         >>> idx = pd.Index(list('abcd'))
         >>> idx.slice_locs(start='b', end='c')
         (1, 3)
@@ -4941,8 +4985,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH 16785: If start and end happen to be date strings with UTC offsets
         # attempt to parse and check that the offsets are the same
-        if (isinstance(start, (compat.string_types, datetime))
-                and isinstance(end, (compat.string_types, datetime))):
+        if (isinstance(start, (str, datetime))
+                and isinstance(end, (str, datetime))):
             try:
                 ts_start = Timestamp(start)
                 ts_end = Timestamp(end)
@@ -5117,9 +5161,6 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__rfloordiv__ = make_invalid_op('__rfloordiv__')
         cls.__truediv__ = make_invalid_op('__truediv__')
         cls.__rtruediv__ = make_invalid_op('__rtruediv__')
-        if not compat.PY3:
-            cls.__div__ = make_invalid_op('__div__')
-            cls.__rdiv__ = make_invalid_op('__rdiv__')
         cls.__mod__ = make_invalid_op('__mod__')
         cls.__divmod__ = make_invalid_op('__divmod__')
         cls.__neg__ = make_invalid_op('__neg__')
@@ -5201,9 +5242,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
         cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
-        if not compat.PY3:
-            cls.__div__ = _make_arithmetic_op(operator.div, cls)
-            cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
 
         # TODO: rmod? rdivmod?
         cls.__mod__ = _make_arithmetic_op(operator.mod, cls)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -94,7 +93,7 @@ def test_repr_array_long():
     assert result == expected
 
 
-class TestConstructors(object):
+class TestConstructors:
 
     def test_from_dtype_from_float(self, data):
         # construct from our dtype & string dtype
@@ -120,7 +119,7 @@ class TestConstructors(object):
 class TestArithmeticOps(BaseOpsUtil):
 
     def _check_divmod_op(self, s, op, other, exc=None):
-        super(TestArithmeticOps, self)._check_divmod_op(s, op, other, None)
+        super()._check_divmod_op(s, op, other, None)
 
     def _check_op(self, s, op_name, other, exc=None):
         op = self.get_op_from_name(op_name)
@@ -160,7 +159,7 @@ class TestArithmeticOps(BaseOpsUtil):
 
         # integer result type
         else:
-            rs = pd.Series(s.values._data)
+            rs = pd.Series(s.values._data, name=s.name)
             expected = op(rs, other)
             self._check_op_integer(result, expected, mask, s, op_name, other)
 
@@ -365,7 +364,7 @@ class TestComparisonOps(BaseOpsUtil):
         self._compare_other(data, op_name, other)
 
 
-class TestCasting(object):
+class TestCasting:
     pass
 
     @pytest.mark.parametrize('dropna', [True, False])
@@ -612,6 +611,19 @@ def test_to_integer_array_float():
     # for float dtypes, the itemsize is not preserved
     result = integer_array(np.array([1., 2.], dtype='float32'))
     assert result.dtype == Int64Dtype()
+
+
+@pytest.mark.parametrize(
+    'bool_values, int_values, target_dtype, expected_dtype',
+    [([False, True], [0, 1], Int64Dtype(), Int64Dtype()),
+     ([False, True], [0, 1], 'Int64', Int64Dtype()),
+     ([False, True, np.nan], [0, 1, np.nan], Int64Dtype(), Int64Dtype())])
+def test_to_integer_array_bool(bool_values, int_values, target_dtype,
+                               expected_dtype):
+    result = integer_array(bool_values, dtype=target_dtype)
+    assert result.dtype == expected_dtype
+    expected = integer_array(int_values, dtype=target_dtype)
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(

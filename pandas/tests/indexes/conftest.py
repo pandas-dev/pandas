@@ -1,11 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lzip
-
 import pandas as pd
 from pandas.core.indexes.api import Index, MultiIndex
 import pandas.util.testing as tm
+
 
 indices_list = [tm.makeUnicodeIndex(100),
                 tm.makeStringIndex(100),
@@ -20,7 +19,7 @@ indices_list = [tm.makeUnicodeIndex(100),
                 tm.makeCategoricalIndex(100),
                 tm.makeIntervalIndex(100),
                 Index([]),
-                MultiIndex.from_tuples(lzip(
+                MultiIndex.from_tuples(zip(
                     ['foo', 'bar', 'baz'], [1, 2, 3])),
                 Index([0, 0, 1, 1, 2, 2])]
 

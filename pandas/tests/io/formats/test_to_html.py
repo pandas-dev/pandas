@@ -1,16 +1,12 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
-from io import open
+from io import StringIO
 import re
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, lrange
-
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, compat, option_context
+from pandas import DataFrame, Index, MultiIndex, option_context
 from pandas.util import testing as tm
 
 import pandas.io.formats.format as fmt
@@ -53,7 +49,7 @@ def biggie_df_fixture(request):
     if request.param == 'mixed':
         df = DataFrame({'A': np.random.randn(200),
                         'B': tm.makeStringIndex(200)},
-                       index=lrange(200))
+                       index=np.arange(200))
         df.loc[:20, 'A'] = np.nan
         df.loc[:20, 'B'] = np.nan
         return df
@@ -179,7 +175,7 @@ def test_to_html_multiindex_odd_even_truncate(max_rows, expected, datapath):
 @pytest.mark.parametrize('df,formatters,expected', [
     (DataFrame(
         [[0, 1], [2, 3], [4, 5], [6, 7]],
-        columns=['foo', None], index=lrange(4)),
+        columns=['foo', None], index=np.arange(4)),
      {'__index__': lambda x: 'abcd' [x]},
      'index_formatter'),
 
@@ -265,7 +261,7 @@ def test_to_html(biggie_df_fixture):
     assert retval is None
     assert buf.getvalue() == s
 
-    assert isinstance(s, compat.string_types)
+    assert isinstance(s, str)
 
     df.to_html(columns=['B', 'A'], col_space=17)
     df.to_html(columns=['B', 'A'],
@@ -305,13 +301,13 @@ def test_to_html_columns_arg():
 
 @pytest.mark.parametrize('columns,justify,expected', [
     (MultiIndex.from_tuples(
-        list(zip(np.arange(2).repeat(2), np.mod(lrange(4), 2))),
+        list(zip(np.arange(2).repeat(2), np.mod(range(4), 2))),
         names=['CL0', 'CL1']),
      'left',
      'multiindex_1'),
 
     (MultiIndex.from_tuples(
-        list(zip(range(4), np.mod(lrange(4), 2)))),
+        list(zip(range(4), np.mod(range(4), 2)))),
      'right',
      'multiindex_2')
 ])
@@ -633,3 +629,27 @@ def test_to_html_invalid_classes_type(classes):
 
     with pytest.raises(TypeError, match=msg):
         df.to_html(classes=classes)
+
+
+def test_to_html_round_column_headers():
+    # GH 17280
+    df = DataFrame([1], columns=[0.55555])
+    with pd.option_context('display.precision', 3):
+        html = df.to_html(notebook=False)
+        notebook = df.to_html(notebook=True)
+    assert "0.55555" in html
+    assert "0.556" in notebook
+
+
+@pytest.mark.parametrize("unit", ['100px', '10%', '5em', 150])
+def test_to_html_with_col_space_units(unit):
+    # GH 25941
+    df = DataFrame(np.random.random(size=(1, 3)))
+    result = df.to_html(col_space=unit)
+    result = result.split('tbody')[0]
+    hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
+    if isinstance(unit, int):
+        unit = str(unit) + 'px'
+    for h in hdrs:
+        expected = '<th style="min-width: {unit};">'.format(unit=unit)
+        assert expected in h

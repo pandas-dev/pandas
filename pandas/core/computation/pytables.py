@@ -6,7 +6,7 @@ from functools import partial
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta, Timestamp
-from pandas.compat import DeepChainMap, string_types
+from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -26,20 +26,21 @@ class Scope(expr.Scope):
 
     def __init__(self, level, global_dict=None, local_dict=None,
                  queryables=None):
-        super(Scope, self).__init__(level + 1, global_dict=global_dict,
-                                    local_dict=local_dict)
+        super().__init__(level + 1,
+                         global_dict=global_dict,
+                         local_dict=local_dict)
         self.queryables = queryables or dict()
 
 
 class Term(ops.Term):
 
     def __new__(cls, name, env, side=None, encoding=None):
-        klass = Constant if not isinstance(name, string_types) else cls
+        klass = Constant if not isinstance(name, str) else cls
         supr_new = StringMixin.__new__
         return supr_new(klass)
 
     def __init__(self, name, env, side=None, encoding=None):
-        super(Term, self).__init__(name, env, side=side, encoding=encoding)
+        super().__init__(name, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         # must be a queryables
@@ -55,7 +56,8 @@ class Term(ops.Term):
         except UndefinedVariableError:
             return self.name
 
-    @property
+    # read-only property overwriting read/write property
+    @property  # type: ignore
     def value(self):
         return self._value
 
@@ -63,8 +65,7 @@ class Term(ops.Term):
 class Constant(Term):
 
     def __init__(self, value, env, side=None, encoding=None):
-        super(Constant, self).__init__(value, env, side=side,
-                                       encoding=encoding)
+        super().__init__(value, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         return self._name
@@ -75,7 +76,7 @@ class BinOp(ops.BinOp):
     _max_selectors = 31
 
     def __init__(self, op, lhs, rhs, queryables, encoding):
-        super(BinOp, self).__init__(op, lhs, rhs)
+        super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
         self.filter = None
@@ -209,14 +210,14 @@ class BinOp(ops.BinOp):
             v = float(v)
             return TermValue(v, v, kind)
         elif kind == 'bool':
-            if isinstance(v, string_types):
+            if isinstance(v, str):
                 v = not v.strip().lower() in ['false', 'f', 'no',
                                               'n', 'none', '0',
                                               '[]', '{}', '']
             else:
                 v = bool(v)
             return TermValue(v, v, kind)
-        elif isinstance(v, string_types):
+        elif isinstance(v, str):
             # string quoting
             return TermValue(v, stringify(v), 'string')
         else:
@@ -385,7 +386,7 @@ class ExprVisitor(BaseExprVisitor):
     term_type = Term
 
     def __init__(self, env, engine, parser, **kwargs):
-        super(ExprVisitor, self).__init__(env, engine, parser)
+        super().__init__(env, engine, parser)
         for bin_op in self.binary_ops:
             bin_node = self.binary_op_nodes_map[bin_op]
             setattr(self, 'visit_{node}'.format(node=bin_node),
@@ -476,7 +477,7 @@ def _validate_where(w):
     TypeError : An invalid data type was passed in for w (e.g. dict).
     """
 
-    if not (isinstance(w, (Expr, string_types)) or is_list_like(w)):
+    if not (isinstance(w, (Expr, str)) or is_list_like(w)):
         raise TypeError("where must be passed as a string, Expr, "
                         "or list-like of Exprs")
 
@@ -541,7 +542,7 @@ class Expr(expr.Expr):
         self.expr = where
         self.env = Scope(scope_level + 1, local_dict=local_dict)
 
-        if queryables is not None and isinstance(self.expr, string_types):
+        if queryables is not None and isinstance(self.expr, str):
             self.env.queryables.update(queryables)
             self._visitor = ExprVisitor(self.env, queryables=queryables,
                                         parser='pytables', engine='pytables',
@@ -572,7 +573,7 @@ class Expr(expr.Expr):
         return self.condition, self.filter
 
 
-class TermValue(object):
+class TermValue:
 
     """ hold a term value the we use to construct a condition/filter """
 
@@ -597,7 +598,7 @@ class TermValue(object):
 
 def maybe_expression(s):
     """ loose checking if s is a pytables-acceptable expression """
-    if not isinstance(s, string_types):
+    if not isinstance(s, str):
         return False
     ops = ExprVisitor.binary_ops + ExprVisitor.unary_ops + ('=',)
 

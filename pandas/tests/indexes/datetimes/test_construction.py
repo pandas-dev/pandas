@@ -17,7 +17,7 @@ from pandas.core.arrays import DatetimeArray, period_array
 import pandas.util.testing as tm
 
 
-class TestDatetimeIndex(object):
+class TestDatetimeIndex:
 
     @pytest.mark.parametrize('dt_cls', [DatetimeIndex,
                                         DatetimeArray._from_sequence])
@@ -535,6 +535,12 @@ class TestDatetimeIndex(object):
         result = DatetimeIndex(idx, dtype='datetime64[ns, US/Eastern]')
         tm.assert_index_equal(idx, result)
 
+    @pytest.mark.parametrize('dtype', [object, np.int32, np.int64])
+    def test_constructor_invalid_dtype_raises(self, dtype):
+        # GH 23986
+        with pytest.raises(ValueError):
+            DatetimeIndex([1, 2], dtype=dtype)
+
     def test_constructor_name(self):
         idx = date_range(start='2000-01-01', periods=1, freq='A',
                          name='TEST')
@@ -661,7 +667,7 @@ class TestDatetimeIndex(object):
             pd.DatetimeIndex(['2000'], dtype='datetime64[us]')
 
 
-class TestTimeSeries(object):
+class TestTimeSeries:
 
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')
