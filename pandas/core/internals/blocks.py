@@ -2916,7 +2916,7 @@ class CategoricalBlock(ExtensionBlock):
         # Categorical.get_values returns a DatetimeIndex for datetime
         # categories, so we can't simply use `np.asarray(self.values)` like
         # other types.
-        return self.values.get_values()
+        return self.values._internal_get_values()
 
     def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """

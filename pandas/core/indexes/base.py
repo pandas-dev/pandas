@@ -3715,9 +3715,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> midx.get_values().ndim
         1
         """
-        return self.values
+        raise Exception("USING GET_VALUES")
 
-    _internal_get_values = get_values
+    def _internal_get_values(self):
+        return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
     def memory_usage(self, deep=False):

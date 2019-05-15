@@ -355,9 +355,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     def get_values(self):
         """ return the underlying data as an ndarray """
+        raise Exception("USING GET_VALUES")
         return self._data.get_values()
 
-    _internal_get_values = get_values
+    def _internal_get_values(self):
+        return self._data._internal_get_values()
 
     def tolist(self):
         return self._data.tolist()

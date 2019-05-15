@@ -1499,6 +1499,10 @@ class Categorical(ExtensionArray, PandasObject):
             A numpy array of the same dtype as categorical.categories.dtype or
             Index if datetime / periods.
         """
+        raise Exception("USING GET_VALUES")
+
+    def _internal_get_values(self):
+
         # if we are a datetime and period index, return Index to keep metadata
         if is_datetimelike(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
@@ -1506,8 +1510,6 @@ class Categorical(ExtensionArray, PandasObject):
             return self.categories.astype("object").take(self._codes,
                                                          fill_value=np.nan)
         return np.array(self)
-
-    _internal_get_values = get_values
 
     def check_for_ordered(self, op):
         """ assert that we are ordered """
@@ -1933,7 +1935,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Returns an Iterator over the values of this Categorical.
         """
-        return iter(self.get_values().tolist())
+        return iter(self._internal_get_values().tolist())
 
     def __contains__(self, key):
         """
