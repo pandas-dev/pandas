@@ -243,9 +243,18 @@ class MultiIndex(Index):
 
         if verify_integrity:
             result._verify_integrity()
+
+        codes = [cls._reassign_na_codes(*it) for it in zip(levels, codes)]
+        result._set_codes(codes, validate=False)
+
         if _set_identity:
             result._reset_identity()
+
         return result
+
+    @classmethod
+    def _reassign_na_codes(cls, level, code):
+        return [-1 if x == -1 or isna(level[x]) else x for x in code]
 
     def _verify_integrity(self, codes=None, levels=None):
         """
@@ -281,6 +290,9 @@ class MultiIndex(Index):
                                  " level  (%d). NOTE: this index is in an"
                                  " inconsistent state" % (i, level_codes.max(),
                                                           len(level)))
+            if len(level_codes) and level_codes.min() < -1:
+                raise ValueError("On level %d, code value (%d) < -1" %
+                                 (i, level_codes.min()))
             if not level.is_unique:
                 raise ValueError("Level values must be unique: {values} on "
                                  "level {level}".format(

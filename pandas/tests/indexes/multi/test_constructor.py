@@ -67,6 +67,7 @@ def test_constructor_mismatched_codes_levels(idx):
     length_error = (r"On level 0, code max \(3\) >= length of level  \(1\)\."
                     " NOTE: this index is in an inconsistent state")
     label_error = r"Unequal code lengths: \[4, 2\]"
+    code_value_error = (r"On level 0, code value \(-2\) < -1")
 
     # important to check that it's looking at the right thing.
     with pytest.raises(ValueError, match=length_error):
@@ -82,6 +83,23 @@ def test_constructor_mismatched_codes_levels(idx):
 
     with pytest.raises(ValueError, match=label_error):
         idx.copy().set_codes([[0, 0, 0, 0], [0, 0]])
+
+    # code value smaller than -1
+    with pytest.raises(ValueError, match=code_value_error):
+        MultiIndex(levels=[['a'], ['b']], codes=[[0, -2], [0, 0]])
+
+
+def test_na_levels():
+    tm.assert_index_equal(
+        MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                   codes=[[0, -1, 1, 2, 3, 4]]),
+        MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+                   codes=[[-1, -1, -1, -1, 3, 4]]))
+    tm.assert_index_equal(
+        MultiIndex(levels=[[np.nan, 's', pd.NaT, 128, None]],
+                   codes=[[0, -1, 1, 2, 3, 4]]),
+        MultiIndex(levels=[[np.nan, 's', pd.NaT, 128, None]],
+                   codes=[[-1, -1, 1, -1, 3, -1]]))
 
 
 def test_labels_deprecated(idx):
