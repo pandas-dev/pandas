@@ -70,7 +70,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     is_named_tuple)
 from pandas.core.dtypes.generic import (
-    ABCSeries, ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCPandasArray)
+    ABCSeries, ABCDataFrame, ABCIndexClass, ABCMultiIndex)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms
