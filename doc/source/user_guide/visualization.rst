@@ -1026,7 +1026,7 @@ unit interval). The point in the plane, where our sample settles to (where the
 forces acting on our sample are at an equilibrium) is where a dot representing
 our sample will be drawn. Depending on which class that sample belongs it will
 be colored differently.
-See the R package `Radviz <https://cran.r-project.org/web/packages/Radviz/>`__
+See the R package `Radviz <https://cran.r-project.org/package=Radviz/>`__
 for more information.
 
 **Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv>`__.

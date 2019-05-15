@@ -1,4 +1,3 @@
-# coding=utf-8
 import numpy as np
 import pytest
 
@@ -75,9 +74,9 @@ def test_loc_getitem_setitem_integer_slice_keyerrors():
 
     # non-monotonic, raise KeyError
     s2 = s.iloc[lrange(5) + lrange(5, 10)[::-1]]
-    with pytest.raises(KeyError, match=r"^3L?$"):
+    with pytest.raises(KeyError, match=r"^3$"):
         s2.loc[3:11]
-    with pytest.raises(KeyError, match=r"^3L?$"):
+    with pytest.raises(KeyError, match=r"^3$"):
         s2.loc[3:11] = 0
 
 

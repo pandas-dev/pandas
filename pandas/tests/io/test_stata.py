@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections import OrderedDict
 import datetime as dt
 from datetime import datetime
@@ -36,7 +35,7 @@ def parsed_114(dirpath):
     return parsed_114
 
 
-class TestStata(object):
+class TestStata:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):

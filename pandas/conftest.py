@@ -126,6 +126,12 @@ def observed(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False, None])
+def ordered_fixture(request):
+    """Boolean 'ordered' parameter for Categorical."""
+    return request.param
+
+
 _all_arithmetic_operators = ['__add__', '__radd__',
                              '__sub__', '__rsub__',
                              '__mul__', '__rmul__',
@@ -209,6 +215,19 @@ def all_compare_operators(request):
     * >
     * ==
     * !=
+    * <
+    * <=
+    """
+    return request.param
+
+
+@pytest.fixture(params=['__le__', '__lt__', '__ge__', '__gt__'])
+def compare_operators_no_eq_ne(request):
+    """
+    Fixture for dunder names for compare operations except == and !=
+
+    * >=
+    * >
     * <
     * <=
     """

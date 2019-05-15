@@ -14,7 +14,7 @@ from pandas.util.testing import assert_frame_equal
 a_ = np.array
 
 
-class TestJoin(object):
+class TestJoin:
 
     def setup_method(self, method):
         # aggregate multiple columns
@@ -679,7 +679,7 @@ class TestJoin(object):
             right.join(left, on=['abc', 'xy'], how=join_type)
 
     def test_join_on_tz_aware_datetimeindex(self):
-        # GH 23931
+        # GH 23931, 26335
         df1 = pd.DataFrame(
             {
                 'date': pd.date_range(start='2018-01-01', periods=5,
@@ -697,7 +697,8 @@ class TestJoin(object):
         )
         result = df1.join(df2.set_index('date'), on='date')
         expected = df1.copy()
-        expected['vals_2'] = pd.Series([np.nan] * len(expected), dtype=object)
+        expected['vals_2'] = pd.Series([np.nan] * 2 + list('tuv'),
+                                       dtype=object)
         assert_frame_equal(result, expected)
 
 

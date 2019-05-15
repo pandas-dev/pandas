@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -35,7 +34,7 @@ def get_objs():
 objs = get_objs()
 
 
-class TestReductions(object):
+class TestReductions:
 
     @pytest.mark.parametrize('opname', ['max', 'min'])
     @pytest.mark.parametrize('obj', objs)
@@ -148,11 +147,11 @@ class TestReductions(object):
                        columns=['a'])
         df['b'] = df.a.subtract(pd.Timedelta(seconds=3600))
         result = getattr(df, op)(axis=1)
-        expected = df[expected_col]
+        expected = df[expected_col].rename(None)
         tm.assert_series_equal(result, expected)
 
 
-class TestIndexReductions(object):
+class TestIndexReductions:
     # Note: the name TestIndexReductions indicates these tests
     #  were moved from a Index-specific test file, _not_ that these tests are
     #  intended long-term to be Index-specific
@@ -319,6 +318,59 @@ class TestIndexReductions(object):
         obj = DatetimeIndex([pd.NaT, pd.NaT, pd.NaT])
         assert pd.isna(getattr(obj, op)())
 
+    def test_numpy_minmax_integer(self):
+        # GH#26125
+        idx = Index([1, 2, 3])
+
+        expected = idx.values.max()
+        result = np.max(idx)
+        assert result == expected
+
+        expected = idx.values.min()
+        result = np.min(idx)
+        assert result == expected
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(idx, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(idx, out=0)
+
+        expected = idx.values.argmax()
+        result = np.argmax(idx)
+        assert result == expected
+
+        expected = idx.values.argmin()
+        result = np.argmin(idx)
+        assert result == expected
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(idx, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(idx, out=0)
+
+    def test_numpy_minmax_range(self):
+        # GH#26125
+        idx = RangeIndex(0, 10, 3)
+
+        expected = idx._int64index.max()
+        result = np.max(idx)
+        assert result == expected
+
+        expected = idx._int64index.min()
+        result = np.min(idx)
+        assert result == expected
+
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(idx, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(idx, out=0)
+
+        # No need to test again argmax/argmin compat since the implementation
+        # is the same as basic integer index
+
     def test_numpy_minmax_datetime64(self):
         dr = pd.date_range(start='2016-01-15', end='2016-01-20')
 
@@ -414,7 +466,7 @@ class TestIndexReductions(object):
         assert ci.max() == 'b'
 
 
-class TestSeriesReductions(object):
+class TestSeriesReductions:
     # Note: the name TestSeriesReductions indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific
@@ -864,7 +916,7 @@ class TestSeriesReductions(object):
             np.isnan(s.idxmax(skipna=False))
 
 
-class TestDatetime64SeriesReductions(object):
+class TestDatetime64SeriesReductions:
     # Note: the name TestDatetime64SeriesReductions indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific
@@ -921,7 +973,7 @@ class TestDatetime64SeriesReductions(object):
         assert result == exp
 
 
-class TestCategoricalSeriesReductions(object):
+class TestCategoricalSeriesReductions:
     # Note: the name TestCategoricalSeriesReductions indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific
@@ -984,7 +1036,7 @@ class TestCategoricalSeriesReductions(object):
         assert _max == "a"
 
 
-class TestSeriesMode(object):
+class TestSeriesMode:
     # Note: the name TestSeriesMode indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific

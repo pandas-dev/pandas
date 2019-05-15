@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from numpy import nan
 import pytest
@@ -8,7 +7,7 @@ from pandas import DataFrame, lreshape, melt, wide_to_long
 import pandas.util.testing as tm
 
 
-class TestMelt(object):
+class TestMelt:
 
     def setup_method(self, method):
         self.df = tm.makeTimeDataFrame()[:10]
@@ -281,7 +280,7 @@ class TestMelt(object):
             multi.melt(['A'], ['F'], col_level=0)
 
 
-class TestLreshape(object):
+class TestLreshape:
 
     def test_pairs(self):
         data = {'birthdt': ['08jan2009', '20dec2008', '30dec2008', '21dec2008',
@@ -355,7 +354,7 @@ class TestLreshape(object):
             lreshape(df, spec)
 
 
-class TestWideToLong(object):
+class TestWideToLong:
 
     def test_simple(self):
         np.random.seed(123)

@@ -5,15 +5,12 @@ compat
 Cross-compatible functions for different versions of Python.
 
 Key items to import for compatible code:
-* lists: lrange(), lmap(), lzip(), lfilter()
-* add_metaclass(metaclass) - class decorator that recreates class with with the
-  given metaclass instead (and avoids intermediary class creation)
+* lists: lrange()
 
 Other items:
 * platform checker
 """
 import platform
-import re
 import struct
 import sys
 
@@ -25,18 +22,6 @@ PYPY = platform.python_implementation() == 'PyPy'
 # list-producing versions of the major Python iterating functions
 def lrange(*args, **kwargs):
     return list(range(*args, **kwargs))
-
-
-def lzip(*args, **kwargs):
-    return list(zip(*args, **kwargs))
-
-
-def lmap(*args, **kwargs):
-    return list(map(*args, **kwargs))
-
-
-def lfilter(*args, **kwargs):
-    return list(filter(*args, **kwargs))
 
 
 # ----------------------------------------------------------------------------
@@ -70,20 +55,6 @@ def set_function_name(f, name, cls):
     return f
 
 
-def add_metaclass(metaclass):
-    """
-    Class decorator for creating a class with a metaclass.
-    """
-    def wrapper(cls):
-        orig_vars = cls.__dict__.copy()
-        orig_vars.pop('__dict__', None)
-        orig_vars.pop('__weakref__', None)
-        for slots_var in orig_vars.get('__slots__', ()):
-            orig_vars.pop(slots_var)
-        return metaclass(cls.__name__, cls.__bases__, orig_vars)
-    return wrapper
-
-
 def raise_with_traceback(exc, traceback=Ellipsis):
     """
     Raise exception with existing traceback.
@@ -92,15 +63,6 @@ def raise_with_traceback(exc, traceback=Ellipsis):
     if traceback == Ellipsis:
         _, _, traceback = sys.exc_info()
     raise exc.with_traceback(traceback)
-
-
-# In Python 3.7, the private re._pattern_type is removed.
-# Python 3.5+ have typing.re.Pattern
-if PY36:
-    import typing
-    re_type = typing.re.Pattern
-else:
-    re_type = type(re.compile(''))
 
 
 # https://github.com/pandas-dev/pandas/pull/9123

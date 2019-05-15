@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from collections import defaultdict
 from datetime import datetime, timedelta
 from io import StringIO
@@ -13,7 +11,7 @@ import pytest
 import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import PY36, lrange, lzip
+from pandas.compat import PY36, lrange
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
@@ -48,7 +46,7 @@ class TestIndex(Base):
                             boolIndex=Index([True, False]),
                             catIndex=tm.makeCategoricalIndex(100),
                             empty=Index([]),
-                            tuples=MultiIndex.from_tuples(lzip(
+                            tuples=MultiIndex.from_tuples(zip(
                                 ['foo', 'bar', 'baz'], [1, 2, 3])),
                             repeats=Index([0, 0, 1, 1, 2, 2]))
         self.setup_indices()
@@ -221,7 +219,7 @@ class TestIndex(Base):
         # GH 5460#issuecomment-44474502
         # it should be possible to convert any object that satisfies the numpy
         # ndarray interface directly into an Index
-        class ArrayLike(object):
+        class ArrayLike:
             def __init__(self, array):
                 self.array = array
 
@@ -969,7 +967,7 @@ class TestIndex(Base):
         # Test that returning a single object from a MultiIndex
         #   returns an Index.
         first_level = ['foo', 'bar', 'baz']
-        multi_index = MultiIndex.from_tuples(lzip(first_level, [1, 2, 3]))
+        multi_index = MultiIndex.from_tuples(zip(first_level, [1, 2, 3]))
         reduced_index = multi_index.map(lambda x: x[0])
         tm.assert_index_equal(reduced_index, Index(first_level))
 
@@ -2406,7 +2404,7 @@ class TestMixedIntIndex(Base):
         tm.assert_index_equal(result, expected)
 
 
-class TestIndexUtils(object):
+class TestIndexUtils:
 
     @pytest.mark.parametrize('data, names, expected', [
         ([[1, 2, 3]], None, Index([1, 2, 3])),

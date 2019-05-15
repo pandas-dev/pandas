@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for statistical reductions of 2nd moment or higher: var, skew, kurt, ...
 """
@@ -15,7 +14,7 @@ from pandas import DataFrame, Series
 import pandas.util.testing as tm
 
 
-class TestSeriesStatReductions(object):
+class TestSeriesStatReductions:
     # Note: the name TestSeriesStatReductions indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 import re
 
@@ -159,7 +158,7 @@ def any_allowed_skipna_inferred_dtype(request):
     return inferred_dtype, values
 
 
-class TestStringMethods(object):
+class TestStringMethods:
 
     def test_api(self):
 

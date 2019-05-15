@@ -29,7 +29,7 @@ _not_implemented_message = "{} does not implement {}."
 _extension_array_shared_docs = dict()
 
 
-class ExtensionArray(object):
+class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
 
@@ -964,7 +964,7 @@ class ExtensionArray(object):
             name=name, dtype=self.dtype))
 
 
-class ExtensionOpsMixin(object):
+class ExtensionOpsMixin:
     """
     A base class for linking the operators to their dunder names.
 
@@ -1059,8 +1059,8 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             `op` cannot be stored in the ExtensionArray. The dtype of the
             ndarray uses NumPy's normal inference rules.
 
-        Example
-        -------
+        Examples
+        --------
         Given an ExtensionArray subclass called MyExtensionArray, use
 
         >>> __add__ = cls._create_method(operator.add)

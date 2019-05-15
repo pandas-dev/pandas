@@ -10,7 +10,7 @@ class _OpenpyxlWriter(ExcelWriter):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
-        super(_OpenpyxlWriter, self).__init__(path, mode=mode, **engine_kwargs)
+        super().__init__(path, mode=mode, **engine_kwargs)
 
         if self.mode == 'a':  # Load from existing workbook
             from openpyxl import load_workbook

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 test all other .agg behavior
 """
@@ -361,7 +359,7 @@ def test_agg_callables():
     # GH 7929
     df = DataFrame({'foo': [1, 2], 'bar': [3, 4]}).astype(np.int64)
 
-    class fn_class(object):
+    class fn_class:
 
         def __call__(self, x):
             return sum(x)

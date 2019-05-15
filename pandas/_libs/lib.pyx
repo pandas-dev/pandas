@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from decimal import Decimal
 from fractions import Fraction
 from numbers import Number
@@ -9,10 +8,9 @@ import warnings
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
-                      PyTuple_New,
-                      Py_EQ,
-                      PyObject_RichCompareBool)
+from cpython cimport (Py_INCREF, PyTuple_SET_ITEM, PyTuple_New, PyObject_Str,
+                      Py_EQ, Py_SIZE, PyObject_RichCompareBool,
+                      PyUnicode_Join, PyList_New)
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
@@ -24,10 +22,8 @@ cimport numpy as cnp
 from numpy cimport (ndarray, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
-                    int64_t,
-                    float32_t, float64_t,
-                    uint8_t, uint64_t,
-                    complex128_t)
+                    int64_t, float32_t, float64_t,
+                    uint8_t, uint64_t, complex128_t)
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
@@ -551,41 +547,6 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_unicode(arr: ndarray, skipna: bool=False) -> ndarray[object]:
-    """
-    Convert all elements in an array to unicode.
-
-    Parameters
-    ----------
-    arr : ndarray
-        The array whose elements we are casting.
-    skipna : bool, default False
-        Whether or not to coerce nulls to their stringified form
-        (e.g. NaN becomes 'nan').
-
-    Returns
-    -------
-    casted_arr : ndarray
-        A new array with the input array's elements casted.
-    """
-    cdef:
-        object arr_i
-        Py_ssize_t i, n = arr.size
-        ndarray[object] result = np.empty(n, dtype=object)
-
-    for i in range(n):
-        arr_i = arr[i]
-
-        if not (skipna and checknull(arr_i)):
-            arr_i = unicode(arr_i)
-
-        result[i] = arr_i
-
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
     """
     Convert all elements in an array to string.
@@ -970,7 +931,7 @@ except AttributeError:
     pass
 
 
-cdef class Seen(object):
+cdef class Seen:
     """
     Class for keeping track of the types of elements
     encountered when trying to perform type conversions.
@@ -1321,10 +1282,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         if is_string_array(values, skipna=skipna):
             return 'string'
 
-    elif isinstance(val, unicode):
-        if is_unicode_array(values, skipna=skipna):
-            return 'unicode'
-
     elif isinstance(val, bytes):
         if is_bytes_array(values, skipna=skipna):
             return 'bytes'
@@ -1593,22 +1550,6 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
         StringValidator validator = StringValidator(len(values),
                                                     values.dtype,
                                                     skipna=skipna)
-    return validator.validate(values)
-
-
-cdef class UnicodeValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
-        return isinstance(value, unicode)
-
-    cdef inline bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.unicode_)
-
-
-cdef bint is_unicode_array(ndarray values, bint skipna=False):
-    cdef:
-        UnicodeValidator validator = UnicodeValidator(len(values),
-                                                      values.dtype,
-                                                      skipna=skipna)
     return validator.validate(values)
 
 

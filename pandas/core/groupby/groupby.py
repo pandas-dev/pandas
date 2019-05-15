@@ -12,14 +12,15 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import Optional, Tuple, Type
+from typing import FrozenSet, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs import Timestamp, groupby as libgroupby
+from pandas._libs import Timestamp
+import pandas._libs.groupby as libgroupby
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -50,7 +51,6 @@ _common_see_also = """
         --------
         Series.%(name)s
         DataFrame.%(name)s
-        Panel.%(name)s
 """
 
 _apply_docs = dict(
@@ -325,7 +325,7 @@ def _group_selection_context(groupby):
 
 class _GroupBy(PandasObject, SelectionMixin):
     _group_selection = None
-    _apply_whitelist = frozenset()
+    _apply_whitelist = frozenset()  # type: FrozenSet[str]
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
@@ -799,13 +799,13 @@ b  2""")
 
     def _transform_should_cast(self, func_nm):
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         func_nm: str
             The name of the aggregation function being performed
 
-        Returns:
-        --------
+        Returns
+        -------
         bool
             Whether transform should attempt to cast the result of aggregation
         """
@@ -1070,6 +1070,10 @@ class GroupBy(_GroupBy):
         ----------
         skipna : bool, default True
             Flag to ignore nan values during truth testing
+
+        Returns
+        -------
+        bool
         """
         return self._bool_agg('any', skipna)
 
@@ -1083,6 +1087,10 @@ class GroupBy(_GroupBy):
         ----------
         skipna : bool, default True
             Flag to ignore nan values during truth testing
+
+        Returns
+        -------
+        bool
         """
         return self._bool_agg('all', skipna)
 
@@ -1091,6 +1099,11 @@ class GroupBy(_GroupBy):
     def count(self):
         """
         Compute count of group, excluding missing values.
+
+        Returns
+        -------
+        Series or DataFrame
+            Count of values within each group.
         """
 
         # defined here for API doc
@@ -1116,7 +1129,6 @@ class GroupBy(_GroupBy):
         each group.
 
         >>> df.groupby('A').mean()
-        >>>
              B         C
         A
         1  3.0  1.333333
@@ -1125,7 +1137,6 @@ class GroupBy(_GroupBy):
         Groupby two columns and return the mean of the remaining column.
 
         >>> df.groupby(['A', 'B']).mean()
-        >>>
                C
         A B
         1 2.0  2
@@ -1137,7 +1148,6 @@ class GroupBy(_GroupBy):
         the group.
 
         >>> df.groupby('A')['B'].mean()
-        >>>
         A
         1    3.0
         2    4.0
@@ -1160,6 +1170,11 @@ class GroupBy(_GroupBy):
         Compute median of groups, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
+        Returns
+        -------
+        Series or DataFrame
+            Median of values within each group.
         """
         try:
             return self._cython_agg_general('median', **kwargs)
@@ -1186,6 +1201,11 @@ class GroupBy(_GroupBy):
         ----------
         ddof : integer, default 1
             degrees of freedom
+
+        Returns
+        -------
+        Series or DataFrame
+            Standard deviation of values within each group.
         """
 
         # TODO: implement at Cython level?
@@ -1204,6 +1224,11 @@ class GroupBy(_GroupBy):
         ----------
         ddof : integer, default 1
             degrees of freedom
+
+        Returns
+        -------
+        Series or DataFrame
+            Variance of values within each group.
         """
         nv.validate_groupby_func('var', args, kwargs)
         if ddof == 1:
@@ -1230,6 +1255,11 @@ class GroupBy(_GroupBy):
         ----------
         ddof : integer, default 1
             degrees of freedom
+
+        Returns
+        -------
+        Series or DataFrame
+            Standard error of the mean of values within each group.
         """
 
         return self.std(ddof=ddof) / np.sqrt(self.count())
@@ -1239,6 +1269,11 @@ class GroupBy(_GroupBy):
     def size(self):
         """
         Compute group sizes.
+
+        Returns
+        -------
+        Series
+            Number of rows in each group.
         """
         result = self.grouper.size()
 
@@ -1256,7 +1291,14 @@ class GroupBy(_GroupBy):
                              numeric_only=True, _convert=False,
                              min_count=-1):
 
-            _local_template = "Compute %(f)s of group values"
+            _local_template = """
+            Compute %(f)s of group values.
+
+            Returns
+            -------
+            Series or DataFrame
+                Computed %(f)s of values within each group.
+            """
 
             @Substitution(name='groupby', f=name)
             @Appender(_common_see_also)
@@ -1329,6 +1371,11 @@ class GroupBy(_GroupBy):
         Compute sum of values, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
+        Returns
+        -------
+        DataFrame
+            Open, high, low and close values within each group.
         """
 
         return self._apply_to_column_groupbys(
@@ -1513,6 +1560,11 @@ class GroupBy(_GroupBy):
         limit : integer, optional
             limit of how many values to fill
 
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
+
         See Also
         --------
         Series.pad
@@ -1533,6 +1585,11 @@ class GroupBy(_GroupBy):
         limit : integer, optional
             limit of how many values to fill
 
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
+
         See Also
         --------
         Series.backfill
@@ -1545,15 +1602,16 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Substitution(see_also=_common_see_also)
-    def nth(self, n, dropna=None):
+    def nth(self,
+            n: Union[int, List[int]],
+            dropna: Optional[str] = None) -> DataFrame:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.
 
         If dropna, will take the nth non-null row, dropna is either
-        Truthy (if a Series) or 'all', 'any' (if a DataFrame);
-        this is equivalent to calling dropna(how=dropna) before the
-        groupby.
+        'all' or 'any'; this is equivalent to calling dropna(how=dropna)
+        before the groupby.
 
         Parameters
         ----------
@@ -1562,6 +1620,11 @@ class GroupBy(_GroupBy):
         dropna : None or str, optional
             apply the specified dropna operation before counting which row is
             the nth row. Needs to be None, 'any' or 'all'
+
+        Returns
+        -------
+        Series or DataFrame
+            N-th value within each group.
         %(see_also)s
         Examples
         --------
@@ -1616,33 +1679,42 @@ class GroupBy(_GroupBy):
         4  2  5.0
         """
 
-        if isinstance(n, int):
-            nth_values = [n]
-        elif isinstance(n, (set, list, tuple)):
-            nth_values = list(set(n))
-            if dropna is not None:
-                raise ValueError(
-                    "dropna option with a list of nth values is not supported")
-        else:
+        valid_containers = (set, list, tuple)
+        if not isinstance(n, (valid_containers, int)):
             raise TypeError("n needs to be an int or a list/set/tuple of ints")
 
-        nth_values = np.array(nth_values, dtype=np.intp)
-        self._set_group_selection()
-
         if not dropna:
-            mask_left = np.in1d(self._cumcount_array(), nth_values)
+
+            if isinstance(n, int):
+                nth_values = [n]
+            elif isinstance(n, valid_containers):
+                nth_values = list(set(n))
+
+            nth_array = np.array(nth_values, dtype=np.intp)
+            self._set_group_selection()
+
+            mask_left = np.in1d(self._cumcount_array(), nth_array)
             mask_right = np.in1d(self._cumcount_array(ascending=False) + 1,
-                                 -nth_values)
+                                 -nth_array)
             mask = mask_left | mask_right
+
+            ids, _, _ = self.grouper.group_info
+
+            # Drop NA values in grouping
+            mask = mask & (ids != -1)
 
             out = self._selected_obj[mask]
             if not self.as_index:
                 return out
 
-            ids, _, _ = self.grouper.group_info
             out.index = self.grouper.result_index[ids[mask]]
 
             return out.sort_index() if self.sort else out
+
+        # dropna is truthy
+        if isinstance(n, valid_containers):
+            raise ValueError(
+                "dropna option with a list of nth values is not supported")
 
         if dropna not in ['any', 'all']:
             if isinstance(self._selected_obj, Series) and dropna is True:
@@ -1678,7 +1750,7 @@ class GroupBy(_GroupBy):
 
         else:
 
-            # create a grouper with the original parameters, but on the dropped
+            # create a grouper with the original parameters, but on dropped
             # object
             from pandas.core.groupby.grouper import _get_grouper
             grouper, _, _ = _get_grouper(dropped, key=self.keys,
@@ -1686,7 +1758,8 @@ class GroupBy(_GroupBy):
                                          sort=self.sort,
                                          mutated=self.mutated)
 
-        grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
+        grb = dropped.groupby(
+            grouper, as_index=self.as_index, sort=self.sort)
         sizes, result = grb.size(), grb.nth(n)
         mask = (sizes < max_len).values
 
@@ -1792,6 +1865,11 @@ class GroupBy(_GroupBy):
         ascending : bool, default True
             If False, number in reverse, from number of group - 1 to 0.
 
+        Returns
+        -------
+        Series
+            Unique numbers for each group.
+
         See Also
         --------
         .cumcount : Number the rows in each group.
@@ -1854,6 +1932,11 @@ class GroupBy(_GroupBy):
         ----------
         ascending : bool, default True
             If False, number in reverse, from length of group - 1 to 0.
+
+        Returns
+        -------
+        Series
+            Sequence number of each element within each group.
 
         See Also
         --------
@@ -1937,6 +2020,10 @@ class GroupBy(_GroupBy):
     def cumprod(self, axis=0, *args, **kwargs):
         """
         Cumulative product for each group.
+
+        Returns
+        -------
+        Series or DataFrame
         """
         nv.validate_groupby_func('cumprod', args, kwargs,
                                  ['numeric_only', 'skipna'])
@@ -1950,6 +2037,10 @@ class GroupBy(_GroupBy):
     def cumsum(self, axis=0, *args, **kwargs):
         """
         Cumulative sum for each group.
+
+        Returns
+        -------
+        Series or DataFrame
         """
         nv.validate_groupby_func('cumsum', args, kwargs,
                                  ['numeric_only', 'skipna'])
@@ -1963,6 +2054,10 @@ class GroupBy(_GroupBy):
     def cummin(self, axis=0, **kwargs):
         """
         Cumulative min for each group.
+
+        Returns
+        -------
+        Series or DataFrame
         """
         if axis != 0:
             return self.apply(lambda x: np.minimum.accumulate(x, axis))
@@ -1974,6 +2069,10 @@ class GroupBy(_GroupBy):
     def cummax(self, axis=0, **kwargs):
         """
         Cumulative max for each group.
+
+        Returns
+        -------
+        Series or DataFrame
         """
         if axis != 0:
             return self.apply(lambda x: np.maximum.accumulate(x, axis))
@@ -2101,6 +2200,11 @@ class GroupBy(_GroupBy):
         fill_value : optional
 
             .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Object shifted within each group.
         """
 
         if freq is not None or axis != 0 or not isna(fill_value):
@@ -2119,6 +2223,11 @@ class GroupBy(_GroupBy):
                    axis=0):
         """
         Calculate pct_change of each value to previous entry in group.
+
+        Returns
+        -------
+        Series or DataFrame
+            Percentage changes within each group.
         """
         if freq is not None or axis != 0:
             return self.apply(lambda x: x.pct_change(periods=periods,
@@ -2126,7 +2235,6 @@ class GroupBy(_GroupBy):
                                                      limit=limit, freq=freq,
                                                      axis=axis))
         filled = getattr(self, fill_method)(limit=limit)
-        filled = filled.drop(self.grouper.names, axis=1)
         fill_grp = filled.groupby(self.grouper.labels)
         shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
@@ -2139,12 +2247,16 @@ class GroupBy(_GroupBy):
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
+
+        Returns
+        -------
+        Series or DataFrame
         %(see_also)s
         Examples
         --------
 
         >>> df = pd.DataFrame([[1, 2], [1, 4], [5, 6]],
-                              columns=['A', 'B'])
+        ...                   columns=['A', 'B'])
         >>> df.groupby('A', as_index=False).head(1)
            A  B
         0  1  2
@@ -2166,12 +2278,16 @@ class GroupBy(_GroupBy):
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
+
+        Returns
+        -------
+        Series or DataFrame
         %(see_also)s
         Examples
         --------
 
         >>> df = pd.DataFrame([['a', 1], ['a', 2], ['b', 1], ['b', 2]],
-                              columns=['A', 'B'])
+        ...                   columns=['A', 'B'])
         >>> df.groupby('A').tail(1)
            A  B
         1  a  2

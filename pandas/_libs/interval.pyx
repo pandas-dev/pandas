@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numbers
 from operator import le, lt
 
@@ -30,7 +29,7 @@ from pandas._libs.tslibs.timezones cimport tz_compare
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
 
-cdef class IntervalMixin(object):
+cdef class IntervalMixin:
 
     @property
     def closed_left(self):

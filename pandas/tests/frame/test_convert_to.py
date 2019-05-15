@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict, abc, defaultdict
 from datetime import datetime
 
@@ -337,7 +335,7 @@ class TestDataFrameConvertTo(TestData):
 
     def test_to_records_dict_like(self):
         # see gh-18146
-        class DictLike(object):
+        class DictLike:
             def __init__(self, **kwargs):
                 self.d = kwargs.copy()
 

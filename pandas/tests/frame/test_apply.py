@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
@@ -31,7 +29,7 @@ def int_frame_const_col():
     return df
 
 
-class TestDataFrameApply():
+class TestDataFrameApply:
 
     def test_apply(self, float_frame):
         with np.errstate(all='ignore'):
@@ -579,7 +577,7 @@ class TestDataFrameApply():
         tm.assert_frame_equal(result, expected)
 
 
-class TestInferOutputShape(object):
+class TestInferOutputShape:
     # the user has supplied an opaque UDF where
     # they are transforming the input that requires
     # us to infer the output
@@ -831,7 +829,7 @@ def zip_frames(frames, axis=1):
         return pd.DataFrame(zipped)
 
 
-class TestDataFrameAggregate():
+class TestDataFrameAggregate:
 
     def test_agg_transform(self, axis, float_frame):
         other_axis = 1 if axis in {0, 'index'} else 0
