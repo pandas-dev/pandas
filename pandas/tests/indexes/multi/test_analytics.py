@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
 from pandas.compat.numpy import _np_version_under1p17
 
 import pandas as pd
@@ -32,8 +31,8 @@ def test_groupby(idx):
 
 
 def test_truncate():
-    major_axis = Index(lrange(4))
-    minor_axis = Index(lrange(2))
+    major_axis = Index(list(range(4)))
+    minor_axis = Index(list(range(2)))
 
     major_codes = np.array([0, 0, 1, 2, 3, 3])
     minor_codes = np.array([0, 1, 0, 1, 0, 1])

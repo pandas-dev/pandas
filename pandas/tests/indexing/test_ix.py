@@ -5,8 +5,6 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -194,7 +192,9 @@ class TestIX:
         tm.assert_series_equal(df.B, orig + 1)
 
         # GH 3668, mixed frame with series value
-        df = DataFrame({'x': lrange(10), 'y': lrange(10, 20), 'z': 'bar'})
+        df = DataFrame({'x': np.arange(10),
+                        'y': np.arange(10, 20),
+                        'z': 'bar'})
         expected = df.copy()
 
         for i in range(5):
@@ -212,7 +212,7 @@ class TestIX:
         expected = DataFrame({'a': [1, 2, 3], 'b': [100, 1, -100]})
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame({'a': lrange(4)})
+        df = DataFrame({'a': list(range(4))})
         df['b'] = np.nan
         df.loc[[1, 3], 'b'] = [100, -100]
         expected = DataFrame({'a': [0, 1, 2, 3],
@@ -222,7 +222,7 @@ class TestIX:
         # ok, but chained assignments are dangerous
         # if we turn off chained assignment it will work
         with option_context('chained_assignment', None):
-            df = DataFrame({'a': lrange(4)})
+            df = DataFrame({'a': list(range(4))})
             df['b'] = np.nan
             df['b'].loc[[1, 3]] = [100, -100]
             tm.assert_frame_equal(df, expected)

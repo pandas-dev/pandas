@@ -7,7 +7,6 @@ import pytz
 
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
@@ -436,7 +435,7 @@ class TestPeriodIndex:
 
     def test_resample_tz_localized(self):
         dr = date_range(start='2012-4-13', end='2012-5-1')
-        ts = Series(lrange(len(dr)), dr)
+        ts = Series(range(len(dr)), index=dr)
 
         ts_utc = ts.tz_localize('UTC')
         ts_local = ts_utc.tz_convert('America/Los_Angeles')

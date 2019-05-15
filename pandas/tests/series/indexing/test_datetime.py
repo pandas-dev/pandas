@@ -5,7 +5,6 @@ import pytest
 
 from pandas._libs import iNaT
 import pandas._libs.index as _index
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
@@ -116,7 +115,7 @@ def test_series_set_value():
 def test_slice_locs_indexerror():
     times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10)
              for i in range(100000)]
-    s = Series(lrange(100000), times)
+    s = Series(range(100000), times)
     s.loc[datetime(1900, 1, 1):datetime(2100, 1, 1)]
 
 
@@ -649,19 +648,19 @@ def test_indexing():
     # GH3546 (not including times on the last day)
     idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:00',
                      freq='H')
-    ts = Series(lrange(len(idx)), index=idx)
+    ts = Series(range(len(idx)), index=idx)
     expected = ts['2013-05']
     assert_series_equal(expected, ts)
 
     idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:59',
                      freq='S')
-    ts = Series(lrange(len(idx)), index=idx)
+    ts = Series(range(len(idx)), index=idx)
     expected = ts['2013-05']
     assert_series_equal(expected, ts)
 
     idx = [Timestamp('2013-05-31 00:00'),
            Timestamp(datetime(2013, 5, 31, 23, 59, 59, 999999))]
-    ts = Series(lrange(len(idx)), index=idx)
+    ts = Series(range(len(idx)), index=idx)
     expected = ts['2013']
     assert_series_equal(expected, ts)
 

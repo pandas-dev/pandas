@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
@@ -97,11 +95,11 @@ def test_values_multiindex_periodindex():
 
 def test_consistency():
     # need to construct an overflow
-    major_axis = lrange(70000)
-    minor_axis = lrange(10)
+    major_axis = list(range(70000))
+    minor_axis = list(range(10))
 
     major_codes = np.arange(70000)
-    minor_codes = np.repeat(lrange(10), 7000)
+    minor_codes = np.repeat(range(10), 7000)
 
     # the fact that is works means it's consistent
     index = MultiIndex(levels=[major_axis, minor_axis],

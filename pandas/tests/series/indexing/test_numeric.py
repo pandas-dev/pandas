@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import DataFrame, Index, Series
 import pandas.util.testing as tm
@@ -80,14 +78,14 @@ def test_get_nan_multiple():
 def test_delitem():
     # GH 5542
     # should delete the item inplace
-    s = Series(lrange(5))
+    s = Series(range(5))
     del s[0]
 
-    expected = Series(lrange(1, 5), index=lrange(1, 5))
+    expected = Series(range(1, 5), index=range(1, 5))
     assert_series_equal(s, expected)
 
     del s[1]
-    expected = Series(lrange(2, 5), index=lrange(2, 5))
+    expected = Series(range(2, 5), index=range(2, 5))
     assert_series_equal(s, expected)
 
     # empty
@@ -156,13 +154,13 @@ def test_getitem_negative_out_of_bounds():
 
 
 def test_getitem_regression():
-    s = Series(lrange(5), index=lrange(5))
-    result = s[lrange(5)]
+    s = Series(range(5), index=list(range(5)))
+    result = s[list(range(5))]
     assert_series_equal(result, s)
 
 
 def test_getitem_setitem_slice_bug():
-    s = Series(lrange(10), lrange(10))
+    s = Series(range(10), index=list(range(10)))
     result = s[-12:]
     assert_series_equal(result, s)
 
@@ -172,7 +170,7 @@ def test_getitem_setitem_slice_bug():
     result = s[:-12]
     assert_series_equal(result, s[:0])
 
-    s = Series(lrange(10), lrange(10))
+    s = Series(range(10), index=list(range(10)))
     s[-12:] = 0
     assert (s == 0).all()
 

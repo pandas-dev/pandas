@@ -7,8 +7,6 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
@@ -29,7 +27,7 @@ class TestFancy(Base):
         # GH5508
 
         # len of indexer vs length of the 1d ndarray
-        df = DataFrame(index=Index(lrange(1, 11)))
+        df = DataFrame(index=Index(np.arange(1, 11)))
         df['foo'] = np.zeros(10, dtype=np.float64)
         df['bar'] = np.zeros(10, dtype=np.complex)
 
@@ -48,7 +46,7 @@ class TestFancy(Base):
         tm.assert_series_equal(result, expected)
 
         # dtype getting changed?
-        df = DataFrame(index=Index(lrange(1, 11)))
+        df = DataFrame(index=Index(np.arange(1, 11)))
         df['foo'] = np.zeros(10, dtype=np.float64)
         df['bar'] = np.zeros(10, dtype=np.complex)
 
@@ -345,8 +343,9 @@ class TestFancy(Base):
         # GH 3626, an assignment of a sub-df to a df
         df = DataFrame({'FC': ['a', 'b', 'a', 'b', 'a', 'b'],
                         'PF': [0, 0, 0, 0, 1, 1],
-                        'col1': lrange(6),
-                        'col2': lrange(6, 12)})
+                        'col1': list(range(6)),
+                        'col2': list(range(6, 12)),
+                        })
         df.iloc[1, 0] = np.nan
         df2 = df.copy()
 

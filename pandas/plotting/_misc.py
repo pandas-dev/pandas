@@ -1,7 +1,6 @@
 # being a bit too dynamic
 import numpy as np
 
-from pandas.compat import lrange
 from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.missing import notna
@@ -81,8 +80,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
         rdelta_ext = (rmax_ - rmin_) * range_padding / 2.
         boundaries_list.append((rmin_ - rdelta_ext, rmax_ + rdelta_ext))
 
-    for i, a in zip(lrange(n), df.columns):
-        for j, b in zip(lrange(n), df.columns):
+    for i, a in enumerate(df.columns):
+        for j, b in enumerate(df.columns):
             ax = axes[i, j]
 
             if i == j:
@@ -420,7 +419,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
                           for sampling in samplings])
     if fig is None:
         fig = plt.figure()
-    x = lrange(samples)
+    x = list(range(samples))
     axes = []
     ax1 = fig.add_subplot(2, 3, 1)
     ax1.set_xlabel("Sample")
@@ -532,7 +531,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
             raise ValueError('Length of xticks must match number of columns')
         x = xticks
     else:
-        x = lrange(ncols)
+        x = list(range(ncols))
 
     if ax is None:
         ax = plt.gca()

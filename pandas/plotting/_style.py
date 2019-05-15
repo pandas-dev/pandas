@@ -4,8 +4,6 @@ import warnings
 
 import numpy as np
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.common import is_list_like
 
 
@@ -49,7 +47,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                 rs = com.random_state(column)
                 return rs.rand(3).tolist()
 
-            colors = [random_color(num) for num in lrange(num_colors)]
+            colors = [random_color(num) for num in range(num_colors)]
         else:
             raise ValueError("color_type must be either 'default' or 'random'")
 

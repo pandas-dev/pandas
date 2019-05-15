@@ -3,8 +3,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, Index, IntervalIndex, MultiIndex,
@@ -66,10 +64,13 @@ def test_slice_locs_with_type_mismatch():
 
 
 def test_slice_locs_not_sorted():
-    index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-        lrange(4))], codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
-            [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
-
+    index = MultiIndex(levels=[Index(np.arange(4)),
+                               Index(np.arange(4)),
+                               Index(np.arange(4))],
+                       codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                              np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                              np.array([1, 0, 1, 1, 0, 0, 1, 0])],
+                       )
     msg = "[Kk]ey length.*greater than MultiIndex lexsort depth"
     with pytest.raises(KeyError, match=msg):
         index.slice_locs((1, 0, 1), (2, 1, 0))
@@ -121,8 +122,8 @@ def test_putmask_with_wrong_mask(idx):
 
 
 def test_get_indexer():
-    major_axis = Index(lrange(4))
-    minor_axis = Index(lrange(2))
+    major_axis = Index(np.arange(4))
+    minor_axis = Index(np.arange(2))
 
     major_codes = np.array([0, 0, 1, 2, 2, 3, 3], dtype=np.intp)
     minor_codes = np.array([0, 1, 0, 0, 1, 0, 1], dtype=np.intp)
@@ -164,8 +165,8 @@ def test_get_indexer():
     assert (r1 == [-1, -1, -1]).all()
 
     # create index with duplicates
-    idx1 = Index(lrange(10) + lrange(10))
-    idx2 = Index(lrange(20))
+    idx1 = Index(list(range(10)) + list(range(10)))
+    idx2 = Index(list(range(20)))
 
     msg = "Reindexing only valid with uniquely valued Index objects"
     with pytest.raises(InvalidIndexError, match=msg):
@@ -266,9 +267,13 @@ def test_get_loc(idx):
         idx.get_loc('foo', method='nearest')
 
     # 3 levels
-    index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-        lrange(4))], codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
-            [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
+    index = MultiIndex(levels=[Index(np.arange(4)),
+                               Index(np.arange(4)),
+                               Index(np.arange(4))],
+                       codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                              np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                              np.array([1, 0, 1, 1, 0, 0, 1, 0])],
+                       )
     with pytest.raises(KeyError, match=r"^\(1, 1\)$"):
         index.get_loc((1, 1))
     assert index.get_loc((2, 0)) == slice(3, 5)
@@ -288,10 +293,13 @@ def test_get_loc_duplicates():
 
 
 def test_get_loc_level():
-    index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-        lrange(4))], codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
-            [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
-
+    index = MultiIndex(levels=[Index(np.arange(4)),
+                               Index(np.arange(4)),
+                               Index(np.arange(4))],
+                       codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                              np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                              np.array([1, 0, 1, 1, 0, 0, 1, 0])],
+                       )
     loc, new_index = index.get_loc_level((0, 1))
     expected = slice(1, 2)
     exp_index = index[expected].droplevel(0).droplevel(0)
@@ -312,8 +320,10 @@ def test_get_loc_level():
     with pytest.raises(KeyError, match=r"^2$"):
         index.drop(1, level=2).get_loc_level(2, level=2)
 
-    index = MultiIndex(levels=[[2000], lrange(4)], codes=[np.array(
-        [0, 0, 0, 0]), np.array([0, 1, 2, 3])])
+    index = MultiIndex(levels=[[2000], list(range(4))],
+                       codes=[np.array([0, 0, 0, 0]),
+                              np.array([0, 1, 2, 3])],
+                       )
     result, new_index = index.get_loc_level((2000, slice(None, None)))
     expected = slice(None, None)
     assert result == expected

@@ -11,7 +11,6 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -958,7 +957,7 @@ class TestDatetimeIndexTimezones:
     def test_dti_take_dont_lose_meta(self, tzstr):
         rng = date_range('1/1/2000', periods=20, tz=tzstr)
 
-        result = rng.take(lrange(5))
+        result = rng.take(range(5))
         assert result.tz == rng.tz
         assert result.freq == rng.freq
 

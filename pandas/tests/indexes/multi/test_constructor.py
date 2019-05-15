@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import lrange
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -383,7 +382,7 @@ def test_from_product_empty_two_levels(first, second):
 def test_from_product_empty_three_levels(N):
     # GH12258
     names = ['A', 'B', 'C']
-    lvl2 = lrange(N)
+    lvl2 = list(range(N))
     result = MultiIndex.from_product([[], lvl2, []], names=names)
     expected = MultiIndex(levels=[[], lvl2, []],
                           codes=[[], [], []], names=names)

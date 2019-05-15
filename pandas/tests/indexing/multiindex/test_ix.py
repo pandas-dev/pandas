@@ -2,7 +2,6 @@ from warnings import catch_warnings, simplefilter
 
 import pytest
 
-from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 from pandas import DataFrame, MultiIndex
@@ -19,14 +18,14 @@ class TestMultiIndexIx:
 
         # with integer labels
         df = frame.copy()
-        df.columns = lrange(3)
+        df.columns = list(range(3))
         df.loc[('bar', 'two'), 1] = 7
         assert df.loc[('bar', 'two'), 1] == 7
 
         with catch_warnings(record=True):
             simplefilter("ignore", DeprecationWarning)
             df = frame.copy()
-            df.columns = lrange(3)
+            df.columns = list(range(3))
             df.ix[('bar', 'two'), 1] = 7
         assert df.loc[('bar', 'two'), 1] == 7
 

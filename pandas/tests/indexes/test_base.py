@@ -11,7 +11,7 @@ import pytest
 import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import PY36, lrange
+from pandas.compat import PY36
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
@@ -1611,10 +1611,10 @@ class TestIndex(Base):
     def test_drop_by_str_label(self):
         # TODO: Parametrize these after replacing self.strIndex with fixture
         n = len(self.strIndex)
-        drop = self.strIndex[lrange(5, 10)]
+        drop = self.strIndex[list(range(5, 10))]
         dropped = self.strIndex.drop(drop)
 
-        expected = self.strIndex[lrange(5) + lrange(10, n)]
+        expected = self.strIndex[list(range(5)) + list(range(10, n))]
         tm.assert_index_equal(dropped, expected)
 
         dropped = self.strIndex.drop(self.strIndex[0])
@@ -1631,15 +1631,15 @@ class TestIndex(Base):
 
         # errors='ignore'
         n = len(self.strIndex)
-        drop = self.strIndex[lrange(5, 10)]
+        drop = self.strIndex[list(range(5, 10))]
         mixed = drop.tolist() + ['foo']
         dropped = self.strIndex.drop(mixed, errors='ignore')
 
-        expected = self.strIndex[lrange(5) + lrange(10, n)]
+        expected = self.strIndex[list(range(5)) + list(range(10, n))]
         tm.assert_index_equal(dropped, expected)
 
         dropped = self.strIndex.drop(['foo', 'bar'], errors='ignore')
-        expected = self.strIndex[lrange(n)]
+        expected = self.strIndex[list(range(n))]
         tm.assert_index_equal(dropped, expected)
 
     def test_drop_by_numeric_label_loc(self):
@@ -2379,7 +2379,7 @@ class TestMixedIntIndex(Base):
     @pytest.mark.parametrize("klass", [Series, DataFrame])
     def test_int_name_format(self, klass):
         index = Index(['a', 'b', 'c'], name=0)
-        result = klass(lrange(3), index=index)
+        result = klass(list(range(3)), index=index)
         assert '0' in repr(result)
 
     def test_print_unicode_columns(self):
@@ -2390,7 +2390,7 @@ class TestMixedIntIndex(Base):
 
     @pytest.mark.parametrize("func", [str, bytes])
     def test_with_unicode(self, func):
-        index = Index(lrange(1000))
+        index = Index(list(range(1000)))
         func(index)
 
     def test_intersect_str_dates(self):

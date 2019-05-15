@@ -15,7 +15,7 @@ import pytz
 from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
-from pandas.compat import is_platform_windows, lrange
+from pandas.compat import is_platform_windows
 from pandas.compat.numpy import np_array_datetime64_compat
 
 import pandas as pd
@@ -321,7 +321,7 @@ def test_date_parser_int_bug(all_parsers):
 def test_nat_parse(all_parsers):
     # see gh-3062
     parser = all_parsers
-    df = DataFrame(dict({"A": np.asarray(lrange(10), dtype="float64"),
+    df = DataFrame(dict({"A": np.arange(10, dtype="float64"),
                          "B": pd.Timestamp("20010101")}))
     df.iloc[3:6, :] = np.nan
 

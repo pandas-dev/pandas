@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -141,8 +139,8 @@ def test_where_unsafe_int(sint_dtype):
     s = Series(np.arange(10), dtype=sint_dtype)
     mask = s < 5
 
-    s[mask] = lrange(2, 7)
-    expected = Series(lrange(2, 7) + lrange(5, 10), dtype=sint_dtype)
+    s[mask] = range(2, 7)
+    expected = Series(list(range(2, 7)) + list(range(5, 10)), dtype=sint_dtype)
 
     assert_series_equal(s, expected)
 
@@ -151,8 +149,9 @@ def test_where_unsafe_float(float_dtype):
     s = Series(np.arange(10), dtype=float_dtype)
     mask = s < 5
 
-    s[mask] = lrange(2, 7)
-    expected = Series(lrange(2, 7) + lrange(5, 10), dtype=float_dtype)
+    s[mask] = range(2, 7)
+    data = list(range(2, 7)) + list(range(5, 10))
+    expected = Series(data, dtype=float_dtype)
 
     assert_series_equal(s, expected)
 
@@ -170,7 +169,7 @@ def test_where_unsafe_upcast(dtype, expected_dtype):
     s = Series(np.arange(10), dtype=dtype)
     values = [2.5, 3.5, 4.5, 5.5, 6.5]
     mask = s < 5
-    expected = Series(values + lrange(5, 10), dtype=expected_dtype)
+    expected = Series(values + list(range(5, 10)), dtype=expected_dtype)
     s[mask] = values
     assert_series_equal(s, expected)
 
@@ -181,7 +180,7 @@ def test_where_unsafe():
     values = [2.5, 3.5, 4.5, 5.5]
 
     mask = s > 5
-    expected = Series(lrange(6) + values, dtype="float64")
+    expected = Series(list(range(6)) + values, dtype="float64")
 
     s[mask] = values
     assert_series_equal(s, expected)
@@ -189,8 +188,8 @@ def test_where_unsafe():
     # see gh-3235
     s = Series(np.arange(10), dtype='int64')
     mask = s < 5
-    s[mask] = lrange(2, 7)
-    expected = Series(lrange(2, 7) + lrange(5, 10), dtype='int64')
+    s[mask] = range(2, 7)
+    expected = Series(list(range(2, 7)) + list(range(5, 10)), dtype='int64')
     assert_series_equal(s, expected)
     assert s.dtype == expected.dtype
 
