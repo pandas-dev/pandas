@@ -150,8 +150,7 @@ class NDFrameGroupBy(GroupBy):
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
             if not PY36:
-                raise RuntimeError("Keyword aggregation is not supported "
-                                   "on Python 3.5.")
+                kwargs = OrderedDict(sorted(kwargs.items()))
 
             # Normalize the aggregation functions as Dict[column, List[func]],
             # process normally, then fixup the names.

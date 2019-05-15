@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
+from pandas import DataFrame, Index, MultiIndex, Series, concat, compat
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
@@ -315,8 +315,6 @@ def test_order_aggregate_multiple_funcs():
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.skipif(not compat.PY36,
-                    reason="Keyword aggregation requires 3.6 or above.")
 class TestKeywordAggregation:
 
     def test_agg_relabel(self):
@@ -345,6 +343,8 @@ class TestKeywordAggregation:
                                  "b_max": [6, 8]},
                                 index=pd.Index(['a', 'b'], name='group'),
                                 columns=['b_min', 'a_min', 'a_max', 'b_max'])
+        if not compat.PY36:
+            expected = expected[['a_max', 'a_min', 'b_max', 'b_min']]
         tm.assert_frame_equal(result, expected)
 
     def test_agg_relabel_non_identifier(self):
@@ -389,14 +389,3 @@ class TestKeywordAggregation:
 
         with pytest.raises(TypeError, match=match):
             grouped.agg(a=('B', 'max'), b=(1, 2, 3))
-
-
-@pytest.mark.skipif(compat.PY36,
-                    reason="Keyword aggregation supported on 3.6+")
-def test_agg_relabel_35_raises():
-    df = pd.DataFrame({"group": ['a', 'a', 'b', 'b'],
-                       "A": [0, 1, 2, 3],
-                       "B": [5, 6, 7, 8]})
-    gr = df.groupby('group')
-    with pytest.raises(RuntimeError):
-        gr.agg(foo=("A", "sum"))
