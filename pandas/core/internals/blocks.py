@@ -179,6 +179,9 @@ class Block(PandasObject):
             return self.values.astype(object)
         return self.values
 
+    def get_block_values(self, dtype=None):
+        return self.get_values(dtype=dtype)
+
     def to_dense(self):
         return self.values.view()
 

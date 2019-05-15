@@ -1502,7 +1502,6 @@ class Categorical(ExtensionArray, PandasObject):
         raise Exception("USING GET_VALUES")
 
     def _internal_get_values(self):
-
         # if we are a datetime and period index, return Index to keep metadata
         if is_datetimelike(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
