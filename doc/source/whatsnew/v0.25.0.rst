@@ -35,6 +35,7 @@ Other Enhancements
 - :meth:`RangeIndex.union` now supports the ``sort`` argument. If ``sort=False`` an unsorted ``Int64Index`` is always returned. ``sort=None`` is the default and returns a mononotically increasing ``RangeIndex`` if possible or a sorted ``Int64Index`` if not (:issue:`24471`)
 - :meth:`TimedeltaIndex.intersection` now also supports the ``sort`` keyword (:issue:`24471`)
 - :meth:`DataFrame.rename` now supports the ``errors`` argument to raise errors when attempting to rename nonexistent keys (:issue:`13473`)
+- Added :ref:`api.frame.sparse` for working with a ``DataFrame`` whose values are sparse (:issue:`25681`)
 - :class:`RangeIndex` has gained :attr:`~RangeIndex.start`, :attr:`~RangeIndex.stop`, and :attr:`~RangeIndex.step` attributes (:issue:`25710`)
 - :class:`datetime.timezone` objects are now supported as arguments to timezone methods and constructors (:issue:`25065`)
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
@@ -151,6 +152,37 @@ returned if all the columns were dummy encoded, and a :class:`DataFrame` otherwi
 
 Providing any ``SparseSeries`` or ``SparseDataFrame`` to :func:`concat` will
 cause a ``SparseSeries`` or ``SparseDataFrame`` to be returned, as before.
+
+
+``DataFrame`` groupby ffill/bfill no longer return group labels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The methods ``ffill``, ``bfill``, ``pad`` and ``backfill`` of
+:class:`DataFrameGroupBy <pandas.core.groupby.DataFrameGroupBy>`
+previously included the group labels in the return value, which was
+inconsistent with other groupby transforms. Now only the filled values
+are returned. (:issue:`21521`)
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
+    df
+
+*Previous Behaviour*:
+
+.. code-block:: python
+
+   In [3]: df.groupby("a").ffill()
+   Out[3]:
+      a  b
+   0  x  1
+   1  y  2
+
+*New Behaviour*:
+
+.. ipython:: python
+
+    df.groupby("a").ffill()
 
 
 .. _whatsnew_0250.api_breaking.deps:
@@ -297,6 +329,7 @@ Timezones
 - Bug in :func:`DataFrame.update` when updating with timezone aware data would return timezone naive data (:issue:`25807`)
 - Bug in :func:`to_datetime` where an uninformative ``RuntimeError`` was raised when passing a naive :class:`Timestamp` with datetime strings with mixed UTC offsets (:issue:`25978`)
 - Bug in :func:`to_datetime` with ``unit='ns'`` would drop timezone information from the parsed argument (:issue:`26168`)
+- Bug in :func:`DataFrame.join` where joining a timezone aware index with a timezone aware column would result in a column of ``NaN`` (:issue:`26335`)
 
 Numeric
 ^^^^^^^
@@ -308,8 +341,9 @@ Numeric
 - Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
 - Raises a helpful exception when a non-numeric index is sent to :meth:`interpolate` with methods which require numeric index. (:issue:`21662`)
 - Bug in :meth:`~pandas.eval` when comparing floats with scalar operators, for example: ``x < -0.1`` (:issue:`25928`)
+- Fixed bug where casting all-boolean array to integer extension array failed (:issue:`25211`)
 -
-
+-
 
 Conversion
 ^^^^^^^^^^
