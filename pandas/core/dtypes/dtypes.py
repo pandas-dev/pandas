@@ -550,8 +550,15 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             new_categories = self.categories
 
         new_ordered = dtype.ordered
+
+        # TODO(GH26336): remove this if block when ordered=None is removed
         if new_ordered is None:
             new_ordered = self.ordered
+            if self.ordered:
+                msg = ("ordered=None is deprecated and will default to False "
+                       "in a future version; ordered=True must be explicitly "
+                       "passed in order to be retained")
+                warnings.warn(msg, FutureWarning, stacklevel=2)
 
         return CategoricalDtype(new_categories, new_ordered)
 

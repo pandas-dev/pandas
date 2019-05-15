@@ -227,6 +227,14 @@ class TestSeriesDtypes:
             result = s.astype('category', categories=['a', 'b'], ordered=True)
         tm.assert_series_equal(result, expected)
 
+    def test_astype_category_ordered_none_deprecated(self):
+        # GH 26336
+        cdt1 = CategoricalDtype(categories=list('cdab'), ordered=True)
+        cdt2 = CategoricalDtype(categories=list('cedafb'))
+        s = Series(list('abcdaba'), dtype=cdt1)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            s.astype(cdt2)
+
     def test_astype_from_categorical(self):
         items = ["a", "b", "c", "a"]
         s = Series(items)

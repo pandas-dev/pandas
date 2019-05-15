@@ -817,7 +817,13 @@ class TestCategoricalDtypeParametrized:
         if expected_ordered is None:
             expected_ordered = dtype.ordered
 
-        result = dtype.update_dtype(new_dtype)
+        # GH 26336
+        if new_ordered is None and ordered_fixture is True:
+            with tm.assert_produces_warning(FutureWarning):
+                result = dtype.update_dtype(new_dtype)
+        else:
+            result = dtype.update_dtype(new_dtype)
+
         tm.assert_index_equal(result.categories, expected_categories)
         assert result.ordered is expected_ordered
 

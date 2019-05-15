@@ -490,6 +490,14 @@ class TestCategoricalIndex(Base):
             expected = index
             tm.assert_index_equal(result, expected)
 
+    def test_astype_category_ordered_none_deprecated(self):
+        # GH 26336
+        cdt1 = CategoricalDtype(categories=list('cdab'), ordered=True)
+        cdt2 = CategoricalDtype(categories=list('cedafb'))
+        idx = CategoricalIndex(list('abcdaba'), dtype=cdt1)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            idx.astype(cdt2)
+
     def test_reindex_base(self):
         # Determined by cat ordering.
         idx = CategoricalIndex(list("cab"), categories=list("cab"))
