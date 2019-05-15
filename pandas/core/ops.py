@@ -628,11 +628,6 @@ _op_descriptions = {
            'series_examples': None}
 }  # type: Dict[str, Dict[str, Optional[str]]]
 
-# When TypedDict becomes available, this annotation would be much better and
-# more readable if defined using that structure. The casts() below would not be
-# necessary, because only the dictionary values keyed to 'reversed' would be
-# typed as bool. See GH#26377.
-
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
     reverse_op = _op_descriptions[key]['reverse']
