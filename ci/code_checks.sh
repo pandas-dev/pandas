@@ -239,6 +239,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests datetimes.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/tools/datetimes.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests top-level reshaping functions' ; echo $MSG
     pytest -q --doctest-modules \
         pandas/core/reshape/concat.py \
