@@ -1,4 +1,5 @@
 """ define the IntervalIndex """
+from collections import defaultdict
 import textwrap
 import warnings
 
@@ -461,8 +462,8 @@ class IntervalIndex(IntervalMixin, Index):
         """
         Return True if the IntervalIndex contains unique elements, else False
         """
-        left = self.values.left
-        right = self.values.right
+        left = self.left
+        right = self.right
 
         def _is_unique(left, right):
             # left must have at least one common point
@@ -474,15 +475,26 @@ class IntervalIndex(IntervalMixin, Index):
                     return False
             return True
 
-        if len(self) - len(self.dropna()) > 1:
+        def _is_unique2(left, right):
+            seen_pairs = defaultdict(bool)
+            check_idx = np.where(left.duplicated(keep=False))[0]
+            for idx in check_idx:
+                pair = (left[idx], right[idx])
+                if seen_pairs[pair]:
+                    return False
+                seen_pairs[pair] = True
+
+            return True
+
+        if self.isna().sum() > 1:
             return False
 
-        if left.is_unique and right.is_unique:
+        if left.is_unique or right.is_unique:
             return True
         elif not left.is_unique:
-            return _is_unique(left, right)
+            return _is_unique2(left, right)
         else:
-            return _is_unique(right, left)
+            return _is_unique2(right, left)
 
     @cache_readonly
     @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
