@@ -15,6 +15,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
+from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
@@ -148,6 +149,10 @@ class NDFrameGroupBy(GroupBy):
 
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
+            if not PY36:
+                raise RuntimeError("Keyword aggregation is not supported "
+                                   "on Python 3.5.")
+
             # Normalize the aggregation functions as Dict[column, List[func]],
             # process normally, then fixup the names.
             # TODO(Py35): When we drop python 3.5, change this to

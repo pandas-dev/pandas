@@ -601,29 +601,49 @@ must be either implemented on GroupBy or available via :ref:`dispatching
    grouped.agg({'D': 'std', 'C': 'mean'})
    grouped.agg(OrderedDict([('D', 'std'), ('C', 'mean')]))
 
+.. _groupby.aggregate.keyword:
+
 .. versionadded:: 0.25.0
 
 To support column-specific aggregation with control over the output column names, pandas
-accepts the special syntax where
+accepts the special syntax in :meth:`GroupBy.agg`, known as "keyword aggregation", where
 
-1. The keywords are the *output* column names
-2. The first element of each tuple is the column to select
-3. The second element of each tuple is the aggregation function to apply to that column.
+- The keywords are the *output* column names
+- The values are tuples whose first element is the column to select
+  and the second element is the function to apply to that column.
 
 .. ipython:: python
 
-   grouped.agg(d_std=('D', 'std'), c_mean=('C', 'mean'))
+   animals = pd.DataFrame({'kind': ['cat', 'dog', 'cat', 'dog'],
+                           'height': [9.1, 6.0, 9.5, 34.0],
+                           'weight': [7.9, 7.5, 9.9, 198.0]})
+   animals
+
+   animals.groupby("kind").agg(
+       min_height=('height', 'min'),
+       max_height=('height', 'max'),
+       average_weight=('height', np.mean),
+   )
 
 If your desired output column names are not valid python keywords, construct a dictionary
 and unpack the keyword arguments
 
 .. ipython:: python
 
-   grouped.agg(**{'d_std': ('D', 'std'), 'mean of C': ('C', 'mean')})
+   animals.groupby("kind").agg(**{
+       'total weight': ('weight', sum),
+   })
 
 Additional keyword arguments are not passed through to the aggregation functions. Only pairs
 of ``(column, aggfunc)`` should be passed as ``**kwargs``. If your aggregation functions
 requires additional arguments, partially apply them with :meth:`functools.partial`.
+
+.. note::
+
+   For Python 3.5 and earlier, the order of ``**kwargs`` in a functions was not
+   preserved. Because the indeterminate keyword ordering would result in indeterminate
+   output column ordering, keyword aggregation is not supported for Python 3.5. A
+   ``RuntimeError`` will be raised instead.
 
 .. _groupby.aggregate.cython:
 

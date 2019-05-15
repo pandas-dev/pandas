@@ -24,11 +24,11 @@ Enhancements
 
 .. _whatsnew_0250.enhancements.agg_relabel:
 
-Groupby Aggregation with Relabling
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Groupby Aggregation with Relabeling
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has added special syntax for naming the output columns when applying multiple aggreation functions to specific
-columns.
+Pandas has added special groupby behavior, known as "keyword aggregation", for naming the
+output columns when applying multiple aggregation functions to specific columns (:issue:`18366`).
 
 .. ipython:: python
 
@@ -40,7 +40,7 @@ columns.
 
 Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
 should be tuples where the first element is the column selection, and the second element is the
-aggregation function to apply.
+aggregation function to apply. See :ref:`_groupby.aggregate.keyword` for more.
 
 .. _whatsnew_0250.enhancements.other:
 
