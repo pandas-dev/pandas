@@ -961,7 +961,7 @@ class TestAppend(ConcatenateBase):
         ser = pd.Series([7, 8, 9], index=index_cannot_append_with_other,
                         name=2)
         msg = (r"unorderable types: (Interval|int)\(\) (<|>) "
-               r"(int|long|float|str)\(\)|"
+               r"(int|long|float|str|Timestamp)\(\)|"
                r"Expected tuple, got (int|long|float|str)|"
                r"Cannot compare type 'Timestamp' with type '(int|long)'|"
                r"'(<|>)' not supported between instances of 'int' "
