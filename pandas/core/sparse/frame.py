@@ -482,7 +482,7 @@ class SparseDataFrame(DataFrame):
             return data
 
         i = self.index.get_loc(key)
-        data = self.take([i]).get_values()[0]
+        data = self.take([i])._internal_get_values()[0]
         return Series(data, index=self.columns)
 
     # ----------------------------------------------------------------------
