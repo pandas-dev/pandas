@@ -642,8 +642,7 @@ requires additional arguments, partially apply them with :meth:`functools.partia
 
    For Python 3.5 and earlier, the order of ``**kwargs`` in a functions was not
    preserved. Because the indeterminate keyword ordering would result in indeterminate
-   output column ordering, keyword aggregation is not supported for Python 3.5. A
-   ``RuntimeError`` will be raised instead.
+   output column ordering, the output columns will always be sorted for Python 3.5.
 
 .. _groupby.aggregate.cython:
 
