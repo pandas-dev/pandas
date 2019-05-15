@@ -1,18 +1,13 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101
-
 import numpy as np
 from numpy import nan
 import pytest
-
-from pandas.compat import range
 
 import pandas as pd
 from pandas import DataFrame, lreshape, melt, wide_to_long
 import pandas.util.testing as tm
 
 
-class TestMelt(object):
+class TestMelt:
 
     def setup_method(self, method):
         self.df = tm.makeTimeDataFrame()[:10]
@@ -116,9 +111,11 @@ class TestMelt(object):
         tuple_b = ('B', 'b')
         list_b = [tuple_b]
 
+        msg = (r"(id|value)_vars must be a list of tuples when columns are"
+               " a MultiIndex")
         for id_vars, value_vars in ((tuple_a, list_b), (list_a, tuple_b),
                                     (tuple_a, tuple_b)):
-            with pytest.raises(ValueError, match=r'MultiIndex'):
+            with pytest.raises(ValueError, match=msg):
                 self.df1.melt(id_vars=id_vars, value_vars=value_vars)
 
     def test_custom_var_name(self):
@@ -283,7 +280,7 @@ class TestMelt(object):
             multi.melt(['A'], ['F'], col_level=0)
 
 
-class TestLreshape(object):
+class TestLreshape:
 
     def test_pairs(self):
         data = {'birthdt': ['08jan2009', '20dec2008', '30dec2008', '21dec2008',
@@ -352,10 +349,12 @@ class TestLreshape(object):
 
         spec = {'visitdt': ['visitdt%d' % i for i in range(1, 3)],
                 'wt': ['wt%d' % i for i in range(1, 4)]}
-        pytest.raises(ValueError, lreshape, df, spec)
+        msg = "All column lists must be same length"
+        with pytest.raises(ValueError, match=msg):
+            lreshape(df, spec)
 
 
-class TestWideToLong(object):
+class TestWideToLong:
 
     def test_simple(self):
         np.random.seed(123)
@@ -603,7 +602,8 @@ class TestWideToLong(object):
             'B_B1': [1, 2, 3, 4, 5],
             'x': [1, 1, 1, 1, 1]
         })
-        with pytest.raises(ValueError):
+        msg = "the id variables need to uniquely identify each row"
+        with pytest.raises(ValueError, match=msg):
             wide_to_long(df, ['A_A', 'B_B'], i='x', j='colname')
 
     def test_cast_j_int(self):
@@ -639,7 +639,8 @@ class TestWideToLong(object):
                            'A2011': [3.0, 4.0],
                            'B2010': [5.0, 6.0],
                            'A': ['X1', 'X2']})
-        with pytest.raises(ValueError):
+        msg = "stubname can't be identical to a column name"
+        with pytest.raises(ValueError, match=msg):
             wide_to_long(df, ['A', 'B'], i='A', j='colname')
 
     def test_nonnumeric_suffix(self):

@@ -5,15 +5,16 @@ Note: pandas.core.common is *not* part of the public API.
 """
 
 import collections
+from collections import OrderedDict, abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
+from typing import Any
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
-import pandas.compat as compat
-from pandas.compat import PY36, OrderedDict, iteritems
+from pandas.compat import PY36
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -32,7 +33,8 @@ class SettingWithCopyWarning(Warning):
 
 
 def flatten(l):
-    """Flatten an arbitrarily nested sequence.
+    """
+    Flatten an arbitrarily nested sequence.
 
     Parameters
     ----------
@@ -90,8 +92,7 @@ def maybe_box_datetimelike(value):
 values_from_object = lib.values_from_object
 
 
-def is_bool_indexer(key):
-    # type: (Any) -> bool
+def is_bool_indexer(key: Any) -> bool:
     """
     Check whether `key` is a valid boolean indexer.
 
@@ -160,12 +161,16 @@ def cast_scalar_indexer(val):
 
 
 def _not_none(*args):
-    """Returns a generator consisting of the arguments that are not None"""
+    """
+    Returns a generator consisting of the arguments that are not None.
+    """
     return (arg for arg in args if arg is not None)
 
 
 def _any_none(*args):
-    """Returns a boolean indicating if any argument is None"""
+    """
+    Returns a boolean indicating if any argument is None.
+    """
     for arg in args:
         if arg is None:
             return True
@@ -173,7 +178,9 @@ def _any_none(*args):
 
 
 def _all_none(*args):
-    """Returns a boolean indicating if all arguments are None"""
+    """
+    Returns a boolean indicating if all arguments are None.
+    """
     for arg in args:
         if arg is not None:
             return False
@@ -181,7 +188,9 @@ def _all_none(*args):
 
 
 def _any_not_none(*args):
-    """Returns a boolean indicating if any argument is not None"""
+    """
+    Returns a boolean indicating if any argument is not None.
+    """
     for arg in args:
         if arg is not None:
             return True
@@ -189,7 +198,9 @@ def _any_not_none(*args):
 
 
 def _all_not_none(*args):
-    """Returns a boolean indicating if all arguments are not None"""
+    """
+    Returns a boolean indicating if all arguments are not None.
+    """
     for arg in args:
         if arg is None:
             return False
@@ -197,7 +208,9 @@ def _all_not_none(*args):
 
 
 def count_not_none(*args):
-    """Returns the count of arguments that are not None"""
+    """
+    Returns the count of arguments that are not None.
+    """
     return sum(x is not None for x in args)
 
 
@@ -231,7 +244,7 @@ def asarray_tuplesafe(values, dtype=None):
 
     result = np.asarray(values, dtype=dtype)
 
-    if issubclass(result.dtype.type, compat.string_types):
+    if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
@@ -256,7 +269,7 @@ def index_labels_to_array(labels, dtype=None):
     -------
     array
     """
-    if isinstance(labels, (compat.string_types, tuple)):
+    if isinstance(labels, (str, tuple)):
         labels = [labels]
 
     if not isinstance(labels, (list, np.ndarray)):
@@ -277,7 +290,9 @@ def maybe_make_list(obj):
 
 
 def is_null_slice(obj):
-    """ we have a null slice """
+    """
+    We have a null slice.
+    """
     return (isinstance(obj, slice) and obj.start is None and
             obj.stop is None and obj.step is None)
 
@@ -291,7 +306,9 @@ def is_true_slices(l):
 
 # TODO: used only once in indexing; belongs elsewhere?
 def is_full_slice(obj, l):
-    """ we have a full length slice """
+    """
+    We have a full length slice.
+    """
     return (isinstance(obj, slice) and obj.start == 0 and obj.stop == l and
             obj.step is None)
 
@@ -316,7 +333,7 @@ def get_callable_name(obj):
 def apply_if_callable(maybe_callable, obj, **kwargs):
     """
     Evaluate possibly callable input using obj and kwargs if it is callable,
-    otherwise return as it is
+    otherwise return as it is.
 
     Parameters
     ----------
@@ -333,7 +350,8 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
 
 def dict_compat(d):
     """
-    Helper function to convert datetimelike-keyed dicts to Timestamp-keyed dict
+    Helper function to convert datetimelike-keyed dicts
+    to Timestamp-keyed dict.
 
     Parameters
     ----------
@@ -344,7 +362,7 @@ def dict_compat(d):
     dict
 
     """
-    return {maybe_box_datetimelike(key): value for key, value in iteritems(d)}
+    return {maybe_box_datetimelike(key): value for key, value in d.items()}
 
 
 def standardize_mapping(into):
@@ -355,13 +373,13 @@ def standardize_mapping(into):
 
     Parameters
     ----------
-    into : instance or subclass of collections.Mapping
+    into : instance or subclass of collections.abc.Mapping
         Must be a class, an initialized collections.defaultdict,
-        or an instance of a collections.Mapping subclass.
+        or an instance of a collections.abc.Mapping subclass.
 
     Returns
     -------
-    mapping : a collections.Mapping subclass or other constructor
+    mapping : a collections.abc.Mapping subclass or other constructor
         a callable object that can accept an iterator to create
         the desired Mapping.
 
@@ -375,19 +393,12 @@ def standardize_mapping(into):
             return partial(
                 collections.defaultdict, into.default_factory)
         into = type(into)
-    if not issubclass(into, compat.Mapping):
+    if not issubclass(into, abc.Mapping):
         raise TypeError('unsupported type: {into}'.format(into=into))
     elif into == collections.defaultdict:
         raise TypeError(
             'to_dict() only accepts initialized defaultdicts')
     return into
-
-
-def sentinel_factory():
-    class Sentinel(object):
-        pass
-
-    return Sentinel()
 
 
 def random_state(state=None):
@@ -459,7 +470,7 @@ def _get_rename_function(mapper):
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.
     """
-    if isinstance(mapper, (compat.Mapping, ABCSeries)):
+    if isinstance(mapper, (abc.Mapping, ABCSeries)):
 
         def f(x):
             if x in mapper:

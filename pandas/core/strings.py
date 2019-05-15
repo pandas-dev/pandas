@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
 import codecs
 import re
 import textwrap
+from typing import Dict
 import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
-import pandas.compat as compat
-from pandas.compat import zip
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
@@ -29,7 +27,7 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
     "utf-16", "utf-32"
 )
 
-_shared_docs = dict()
+_shared_docs = dict()  # type: Dict[str, str]
 
 
 def cat_core(list_of_columns, sep):
@@ -75,11 +73,8 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
             # The user may want to be warned by this, instead of getting NaN
-            if compat.PY2:
-                p_err = r'takes (no|(exactly|at (least|most)) ?\d+) arguments?'
-            else:
-                p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
-                         r'(?(3)required )positional arguments?')
+            p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
+                     r'(?(3)required )positional arguments?')
 
             if len(e.args) >= 1 and re.search(p_err, e.args[0]):
                 raise e
@@ -120,7 +115,7 @@ def str_count(arr, pat, flags=0):
 
     Returns
     -------
-    counts : Series or Index
+    Series or Index
         Same type as the calling object containing the integer counts.
 
     See Also
@@ -283,7 +278,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     return `True`. However, '.0' as a regex matches any character
     followed by a 0.
 
-    >>> s2 = pd.Series(['40','40.0','41','41.0','35'])
+    >>> s2 = pd.Series(['40', '40.0', '41', '41.0', '35'])
     >>> s2.str.contains('.0', regex=True)
     0     True
     1     True
@@ -433,13 +428,13 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
     Parameters
     ----------
-    pat : string or compiled regex
+    pat : str or compiled regex
         String can be a character sequence or regular expression.
 
         .. versionadded:: 0.20.0
             `pat` also accepts a compiled regex.
 
-    repl : string or callable
+    repl : str or callable
         Replacement string or a callable. The callable is passed the regex
         match object and must return a replacement string to be used.
         See :func:`re.sub`.
@@ -448,15 +443,15 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
             `repl` also accepts a callable.
 
     n : int, default -1 (all)
-        Number of replacements to make from start
-    case : boolean, default None
+        Number of replacements to make from start.
+    case : bool, default None
         - If True, case sensitive (the default if `pat` is a string)
         - Set to False for case insensitive
         - Cannot be set if `pat` is a compiled regex
     flags : int, default 0 (no flags)
         - re module flags, e.g. re.IGNORECASE
         - Cannot be set if `pat` is a compiled regex
-    regex : boolean, default True
+    regex : bool, default True
         - If True, assumes the passed-in pattern is a regular expression.
         - If False, treats the pattern as a literal string
         - Cannot be set to False if `pat` is a compiled regex or `repl` is
@@ -537,6 +532,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
     Using a compiled regex with flags
 
+    >>> import re
     >>> regex_pat = re.compile(r'FUZ', flags=re.IGNORECASE)
     >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar')
     0    foo
@@ -604,6 +600,7 @@ def str_repeat(arr, repeats):
     0    a
     1    b
     2    c
+    dtype: object
 
     Single int repeats string in Series
 
@@ -611,6 +608,7 @@ def str_repeat(arr, repeats):
     0    aa
     1    bb
     2    cc
+    dtype: object
 
     Sequence of int repeats corresponding string in Series
 
@@ -618,22 +616,23 @@ def str_repeat(arr, repeats):
     0      a
     1     bb
     2    ccc
+    dtype: object
     """
     if is_scalar(repeats):
-        def rep(x):
+        def scalar_rep(x):
             try:
-                return compat.binary_type.__mul__(x, repeats)
+                return bytes.__mul__(x, repeats)
             except TypeError:
-                return compat.text_type.__mul__(x, repeats)
+                return str.__mul__(x, repeats)
 
-        return _na_map(rep, arr)
+        return _na_map(scalar_rep, arr)
     else:
 
         def rep(x, r):
             try:
-                return compat.binary_type.__mul__(x, r)
+                return bytes.__mul__(x, r)
             except TypeError:
-                return compat.text_type.__mul__(x, r)
+                return str.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
         result = libops.vec_binop(com.values_from_object(arr), repeats, rep)
@@ -646,13 +645,14 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     Parameters
     ----------
-    pat : string
-        Character sequence or regular expression
-    case : boolean, default True
-        If True, case sensitive
+    pat : str
+        Character sequence or regular expression.
+    case : bool, default True
+        If True, case sensitive.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
-    na : default NaN, fill value for missing values
+        re module flags, e.g. re.IGNORECASE.
+    na : default NaN
+        Fill value for missing values.
 
     Returns
     -------
@@ -689,7 +689,7 @@ def _groups_or_na_fun(regex):
     empty_row = [np.nan] * regex.groups
 
     def f(x):
-        if not isinstance(x, compat.string_types):
+        if not isinstance(x, str):
             return empty_row
         m = regex.search(x)
         if m:
@@ -768,7 +768,7 @@ def str_extract(arr, pat, flags=0, expand=True):
 
     Parameters
     ----------
-    pat : string
+    pat : str
         Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
         Flags from the ``re`` module, e.g. ``re.IGNORECASE``, that
@@ -941,13 +941,13 @@ def str_extractall(arr, pat, flags=0):
     is_mi = arr.index.nlevels > 1
 
     for subject_key, subject in arr.iteritems():
-        if isinstance(subject, compat.string_types):
+        if isinstance(subject, str):
 
             if not is_mi:
                 subject_key = (subject_key, )
 
             for match_i, match_tuple in enumerate(regex.findall(subject)):
-                if isinstance(match_tuple, compat.string_types):
+                if isinstance(match_tuple, str):
                     match_tuple = (match_tuple,)
                 na_tuple = [np.NaN if group == "" else group
                             for group in match_tuple]
@@ -966,21 +966,23 @@ def str_extractall(arr, pat, flags=0):
 
 def str_get_dummies(arr, sep='|'):
     """
-    Split each string in the Series by sep and return a frame of
-    dummy/indicator variables.
+    Split each string in the Series by sep and return a DataFrame
+    of dummy/indicator variables.
 
     Parameters
     ----------
-    sep : string, default "|"
+    sep : str, default "|"
         String to split on.
 
     Returns
     -------
-    dummies : DataFrame
+    DataFrame
+        Dummy variables corresponding to values of the Series.
 
     See Also
     --------
-    get_dummies
+    get_dummies : Convert categorical variable into dummy/indicator
+        variables.
 
     Examples
     --------
@@ -1035,7 +1037,7 @@ def str_join(arr, sep):
         delimiter.
 
     Raises
-    -------
+    ------
     AttributeError
         If the supplied Series contains neither strings nor lists.
 
@@ -1089,11 +1091,11 @@ def str_findall(arr, pat, flags=0):
 
     Parameters
     ----------
-    pat : string
+    pat : str
         Pattern or regular expression.
     flags : int, default 0
-        ``re`` module flags, e.g. `re.IGNORECASE` (default is 0, which means
-        no flags).
+        Flags from ``re`` module, e.g. `re.IGNORECASE` (default is 0, which
+        means no flags).
 
     Returns
     -------
@@ -1182,20 +1184,21 @@ def str_find(arr, sub, start=0, end=None, side='left'):
     Parameters
     ----------
     sub : str
-        Substring being searched
+        Substring being searched.
     start : int
-        Left edge index
+        Left edge index.
     end : int
-        Right edge index
+        Right edge index.
     side : {'left', 'right'}, default 'left'
-        Specifies a starting side, equivalent to ``find`` or ``rfind``
+        Specifies a starting side, equivalent to ``find`` or ``rfind``.
 
     Returns
     -------
-    found : Series/Index of integer values
+    Series or Index
+        Indexes where substring is found.
     """
 
-    if not isinstance(sub, compat.string_types):
+    if not isinstance(sub, str):
         msg = 'expected a string object, not {0}'
         raise TypeError(msg.format(type(sub).__name__))
 
@@ -1215,7 +1218,7 @@ def str_find(arr, sub, start=0, end=None, side='left'):
 
 
 def str_index(arr, sub, start=0, end=None, side='left'):
-    if not isinstance(sub, compat.string_types):
+    if not isinstance(sub, str):
         msg = 'expected a string object, not {0}'
         raise TypeError(msg.format(type(sub).__name__))
 
@@ -1287,7 +1290,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
     1    --tiger---
     dtype: object
     """
-    if not isinstance(fillchar, compat.string_types):
+    if not isinstance(fillchar, str):
         msg = 'fillchar must be a character, not {0}'
         raise TypeError(msg.format(type(fillchar).__name__))
 
@@ -1430,7 +1433,7 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
 
     Returns
     -------
-    replaced : Series or Index
+    Series or Index
         Same type as the original object.
 
     See Also
@@ -1513,7 +1516,7 @@ def str_strip(arr, to_strip=None, side='both'):
 
     Returns
     -------
-    stripped : Series/Index of objects
+    Series or Index
     """
     if side == 'both':
         f = lambda x: x.strip(to_strip)
@@ -1537,30 +1540,30 @@ def str_wrap(arr, width, **kwargs):
     Parameters
     ----------
     width : int
-        Maximum line-width
+        Maximum line width.
     expand_tabs : bool, optional
-        If true, tab characters will be expanded to spaces (default: True)
+        If True, tab characters will be expanded to spaces (default: True).
     replace_whitespace : bool, optional
-        If true, each whitespace character (as defined by string.whitespace)
+        If True, each whitespace character (as defined by string.whitespace)
         remaining after tab expansion will be replaced by a single space
-        (default: True)
+        (default: True).
     drop_whitespace : bool, optional
-        If true, whitespace that, after wrapping, happens to end up at the
-        beginning or end of a line is dropped (default: True)
+        If True, whitespace that, after wrapping, happens to end up at the
+        beginning or end of a line is dropped (default: True).
     break_long_words : bool, optional
-        If true, then words longer than width will be broken in order to ensure
+        If True, then words longer than width will be broken in order to ensure
         that no lines are longer than width. If it is false, long words will
-        not be broken, and some lines may be longer than width. (default: True)
+        not be broken, and some lines may be longer than width (default: True).
     break_on_hyphens : bool, optional
-        If true, wrapping will occur preferably on whitespace and right after
+        If True, wrapping will occur preferably on whitespace and right after
         hyphens in compound words, as it is customary in English. If false,
         only whitespaces will be considered as potentially good places for line
         breaks, but you need to set break_long_words to false if you want truly
-        insecable words. (default: True)
+        insecable words (default: True).
 
     Returns
     -------
-    wrapped : Series/Index of objects
+    Series or Index
 
     Notes
     -----
@@ -1581,6 +1584,7 @@ def str_wrap(arr, width, **kwargs):
     >>> s.str.wrap(12)
     0             line to be\nwrapped
     1    another line\nto be\nwrapped
+    dtype: object
     """
     kwargs['width'] = width
 
@@ -1589,42 +1593,24 @@ def str_wrap(arr, width, **kwargs):
     return _na_map(lambda s: '\n'.join(tw.wrap(s)), arr)
 
 
-def str_translate(arr, table, deletechars=None):
+def str_translate(arr, table):
     """
     Map all characters in the string through the given mapping table.
-    Equivalent to standard :meth:`str.translate`. Note that the optional
-    argument deletechars is only valid if you are using python 2. For python 3,
-    character deletion should be specified via the table argument.
+    Equivalent to standard :meth:`str.translate`.
 
     Parameters
     ----------
-    table : dict (python 3), str or None (python 2)
-        In python 3, table is a mapping of Unicode ordinals to Unicode
-        ordinals, strings, or None. Unmapped characters are left untouched.
+    table : dict
+        table is a mapping of Unicode ordinals to Unicode ordinals, strings, or
+        None. Unmapped characters are left untouched.
         Characters mapped to None are deleted. :meth:`str.maketrans` is a
         helper function for making translation tables.
-        In python 2, table is either a string of length 256 or None. If the
-        table argument is None, no translation is applied and the operation
-        simply removes the characters in deletechars. :func:`string.maketrans`
-        is a helper function for making translation tables.
-    deletechars : str, optional (python 2)
-        A string of characters to delete. This argument is only valid
-        in python 2.
 
     Returns
     -------
-    translated : Series/Index of objects
+    Series or Index
     """
-    if deletechars is None:
-        f = lambda x: x.translate(table)
-    else:
-        if compat.PY3:
-            raise ValueError("deletechars is not a valid argument for "
-                             "str.translate in python 3. You should simply "
-                             "specify character deletions in the table "
-                             "argument")
-        f = lambda x: x.translate(table, deletechars)
-    return _na_map(f, arr)
+    return _na_map(lambda x: x.translate(table), arr)
 
 
 def str_get(arr, i):
@@ -1641,15 +1627,16 @@ def str_get(arr, i):
 
     Returns
     -------
-    items : Series/Index of objects
+    Series or Index
 
     Examples
     --------
     >>> s = pd.Series(["String",
-               (1, 2, 3),
-               ["a", "b", "c"],
-               123, -456,
-               {1:"Hello", "2":"World"}])
+    ...               (1, 2, 3),
+    ...               ["a", "b", "c"],
+    ...               123,
+    ...               -456,
+    ...               {1: "Hello", "2": "World"}])
     >>> s
     0                        String
     1                     (1, 2, 3)
@@ -1674,7 +1661,7 @@ def str_get(arr, i):
     2      c
     3    NaN
     4    NaN
-    5    NaN
+    5    None
     dtype: object
     """
     def f(x):
@@ -1699,7 +1686,7 @@ def str_decode(arr, encoding, errors="strict"):
 
     Returns
     -------
-    decoded : Series/Index of objects
+    Series or Index
     """
     if encoding in _cpython_optimized_decoders:
         # CPython optimized implementation
@@ -1872,7 +1859,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if expand is None:
             # infer from ndim if expand is not specified
-            expand = False if result.ndim == 1 else True
+            expand = result.ndim != 1
 
         elif expand is True and not isinstance(self._orig, Index):
             # required when expand=True is explicitly specified
@@ -2091,7 +2078,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        concat : str or Series/Index of objects
+        str, Series or Index
             If `others` is None, `str` is returned, otherwise a `Series/Index`
             (same type as caller) of objects is returned.
 
@@ -2181,7 +2168,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         from pandas import Index, Series, concat
 
-        if isinstance(others, compat.string_types):
+        if isinstance(others, str):
             raise ValueError("Did you mean to supply a `sep` keyword?")
         if sep is None:
             sep = ''
@@ -2268,7 +2255,7 @@ class StringMethods(NoNewAttributesMixin):
                             name=self._orig.name)
         return result
 
-    _shared_docs['str_split'] = ("""
+    _shared_docs['str_split'] = (r"""
     Split strings around given separator/delimiter.
 
     Splits the string in the Series/Index from the %(side)s,
@@ -2383,6 +2370,15 @@ class StringMethods(NoNewAttributesMixin):
     0          this is a regular sentence        None
     1  https://docs.python.org/3/tutorial  index.html
     2                                 NaN         NaN
+
+    Remember to escape special characters when explicitly using regular
+    expressions.
+
+    >>> s = pd.Series(["1+1=2"])
+
+    >>> s.str.split(r"\+|=", expand=True)
+         0    1    2
+    0    1    1    2
     """)
 
     @Appender(_shared_docs['str_split'] % {
@@ -2473,7 +2469,7 @@ class StringMethods(NoNewAttributesMixin):
 
     >>> idx.str.partition()
     MultiIndex(levels=[['X', 'Y'], [' '], ['123', '999']],
-               labels=[[0, 1], [0, 0], [0, 1]])
+               codes=[[0, 1], [0, 0], [0, 1]])
 
     Or an index with tuples with ``expand=False``:
 
@@ -2753,8 +2749,8 @@ class StringMethods(NoNewAttributesMixin):
                                  name=name, expand=True)
 
     @copy(str_translate)
-    def translate(self, table, deletechars=None):
-        result = str_translate(self._parent, table, deletechars)
+    def translate(self, table):
+        result = str_translate(self._parent, table)
         return self._wrap_result(result)
 
     count = _pat_wrapper(str_count, flags=True)
@@ -2824,7 +2820,7 @@ class StringMethods(NoNewAttributesMixin):
         normalized : Series/Index of objects
         """
         import unicodedata
-        f = lambda x: unicodedata.normalize(form, compat.u_safe(x))
+        f = lambda x: unicodedata.normalize(form, x)
         result = _na_map(f, self._parent)
         return self._wrap_result(result)
 
@@ -2869,7 +2865,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     _shared_docs['len'] = ("""
-    Computes the length of each element in the Series/Index. The element may be
+    Compute the length of each element in the Series/Index. The element may be
     a sequence (such as a string, tuple or list) or a collection
     (such as a dictionary).
 
@@ -2916,7 +2912,7 @@ class StringMethods(NoNewAttributesMixin):
 
     _shared_docs['casemethods'] = ("""
     Convert strings in the Series/Index to %(type)s.
-
+    %(version)s
     Equivalent to :meth:`str.%(method)s`.
 
     Returns
@@ -2933,6 +2929,7 @@ class StringMethods(NoNewAttributesMixin):
         remaining to lowercase.
     Series.str.swapcase : Converts uppercase to lowercase and lowercase to
         uppercase.
+    Series.str.casefold: Removes all case distinctions in the string.
 
     Examples
     --------
@@ -2979,27 +2976,36 @@ class StringMethods(NoNewAttributesMixin):
     3              sWaPcAsE
     dtype: object
     """)
-    _shared_docs['lower'] = dict(type='lowercase', method='lower')
-    _shared_docs['upper'] = dict(type='uppercase', method='upper')
-    _shared_docs['title'] = dict(type='titlecase', method='title')
-    _shared_docs['capitalize'] = dict(type='be capitalized',
-                                      method='capitalize')
-    _shared_docs['swapcase'] = dict(type='be swapcased', method='swapcase')
+
+    # _doc_args holds dict of strings to use in substituting casemethod docs
+    _doc_args = {}  # type: Dict[str, Dict[str, str]]
+    _doc_args['lower'] = dict(type='lowercase', method='lower', version='')
+    _doc_args['upper'] = dict(type='uppercase', method='upper', version='')
+    _doc_args['title'] = dict(type='titlecase', method='title', version='')
+    _doc_args['capitalize'] = dict(type='be capitalized', method='capitalize',
+                                   version='')
+    _doc_args['swapcase'] = dict(type='be swapcased', method='swapcase',
+                                 version='')
+    _doc_args['casefold'] = dict(type='be casefolded', method='casefold',
+                                 version='\n    .. versionadded:: 0.25.0\n')
     lower = _noarg_wrapper(lambda x: x.lower(),
                            docstring=_shared_docs['casemethods'] %
-                           _shared_docs['lower'])
+                           _doc_args['lower'])
     upper = _noarg_wrapper(lambda x: x.upper(),
                            docstring=_shared_docs['casemethods'] %
-                           _shared_docs['upper'])
+                           _doc_args['upper'])
     title = _noarg_wrapper(lambda x: x.title(),
                            docstring=_shared_docs['casemethods'] %
-                           _shared_docs['title'])
+                           _doc_args['title'])
     capitalize = _noarg_wrapper(lambda x: x.capitalize(),
                                 docstring=_shared_docs['casemethods'] %
-                                _shared_docs['capitalize'])
+                                _doc_args['capitalize'])
     swapcase = _noarg_wrapper(lambda x: x.swapcase(),
                               docstring=_shared_docs['casemethods'] %
-                              _shared_docs['swapcase'])
+                              _doc_args['swapcase'])
+    casefold = _noarg_wrapper(lambda x: x.casefold(),
+                              docstring=_shared_docs['casemethods'] %
+                              _doc_args['casefold'])
 
     _shared_docs['ismethods'] = ("""
     Check whether all characters in each string are %(type)s.
@@ -3141,42 +3147,42 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
     """)
-    _shared_docs['isalnum'] = dict(type='alphanumeric', method='isalnum')
-    _shared_docs['isalpha'] = dict(type='alphabetic', method='isalpha')
-    _shared_docs['isdigit'] = dict(type='digits', method='isdigit')
-    _shared_docs['isspace'] = dict(type='whitespace', method='isspace')
-    _shared_docs['islower'] = dict(type='lowercase', method='islower')
-    _shared_docs['isupper'] = dict(type='uppercase', method='isupper')
-    _shared_docs['istitle'] = dict(type='titlecase', method='istitle')
-    _shared_docs['isnumeric'] = dict(type='numeric', method='isnumeric')
-    _shared_docs['isdecimal'] = dict(type='decimal', method='isdecimal')
+    _doc_args['isalnum'] = dict(type='alphanumeric', method='isalnum')
+    _doc_args['isalpha'] = dict(type='alphabetic', method='isalpha')
+    _doc_args['isdigit'] = dict(type='digits', method='isdigit')
+    _doc_args['isspace'] = dict(type='whitespace', method='isspace')
+    _doc_args['islower'] = dict(type='lowercase', method='islower')
+    _doc_args['isupper'] = dict(type='uppercase', method='isupper')
+    _doc_args['istitle'] = dict(type='titlecase', method='istitle')
+    _doc_args['isnumeric'] = dict(type='numeric', method='isnumeric')
+    _doc_args['isdecimal'] = dict(type='decimal', method='isdecimal')
     isalnum = _noarg_wrapper(lambda x: x.isalnum(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isalnum'])
+                             _doc_args['isalnum'])
     isalpha = _noarg_wrapper(lambda x: x.isalpha(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isalpha'])
+                             _doc_args['isalpha'])
     isdigit = _noarg_wrapper(lambda x: x.isdigit(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isdigit'])
+                             _doc_args['isdigit'])
     isspace = _noarg_wrapper(lambda x: x.isspace(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isspace'])
+                             _doc_args['isspace'])
     islower = _noarg_wrapper(lambda x: x.islower(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['islower'])
+                             _doc_args['islower'])
     isupper = _noarg_wrapper(lambda x: x.isupper(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['isupper'])
+                             _doc_args['isupper'])
     istitle = _noarg_wrapper(lambda x: x.istitle(),
                              docstring=_shared_docs['ismethods'] %
-                             _shared_docs['istitle'])
-    isnumeric = _noarg_wrapper(lambda x: compat.u_safe(x).isnumeric(),
+                             _doc_args['istitle'])
+    isnumeric = _noarg_wrapper(lambda x: x.isnumeric(),
                                docstring=_shared_docs['ismethods'] %
-                               _shared_docs['isnumeric'])
-    isdecimal = _noarg_wrapper(lambda x: compat.u_safe(x).isdecimal(),
+                               _doc_args['isnumeric'])
+    isdecimal = _noarg_wrapper(lambda x: x.isdecimal(),
                                docstring=_shared_docs['ismethods'] %
-                               _shared_docs['isdecimal'])
+                               _doc_args['isdecimal'])
 
     @classmethod
     def _make_accessor(cls, data):

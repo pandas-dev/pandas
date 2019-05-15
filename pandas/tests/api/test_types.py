@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from pandas.api import types
 from pandas.util import testing as tm
 
@@ -24,7 +23,8 @@ class TestTypes(Base):
                'is_dict_like', 'is_iterator', 'is_file_like',
                'is_list_like', 'is_hashable', 'is_array_like',
                'is_named_tuple',
-               'pandas_dtype', 'union_categoricals', 'infer_dtype']
+               'pandas_dtype', 'union_categoricals', 'infer_dtype',
+               'is_extension_array_dtype']
     deprecated = ['is_period', 'is_datetimetz']
     dtypes = ['CategoricalDtype', 'DatetimeTZDtype',
               'PeriodDtype', 'IntervalDtype']

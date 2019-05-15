@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
-from pandas.compat import PY3, string_types, text_type, to_str
+from pandas.compat import to_str
 
 from .common import (
     _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, ensure_int8,
@@ -18,8 +18,7 @@ from .common import (
     is_integer, is_integer_dtype, is_object_dtype, is_scalar, is_string_dtype,
     is_timedelta64_dtype, is_timedelta64_ns_dtype, is_unsigned_integer_dtype,
     pandas_dtype)
-from .dtypes import (
-    DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype, PeriodDtype)
+from .dtypes import DatetimeTZDtype, ExtensionDtype, PeriodDtype
 from .generic import (
     ABCDatetimeArray, ABCDatetimeIndex, ABCPeriodArray, ABCPeriodIndex,
     ABCSeries)
@@ -35,8 +34,8 @@ _int64_max = np.iinfo(np.int64).max
 def maybe_convert_platform(values):
     """ try to do platform conversion, allow ndarray or list here """
 
-    if isinstance(values, (list, tuple)):
-        values = construct_1d_object_array_from_listlike(list(values))
+    if isinstance(values, (list, tuple, range)):
+        values = construct_1d_object_array_from_listlike(values)
     if getattr(values, 'dtype', None) == np.object_:
         if hasattr(values, '_values'):
             values = values._values
@@ -73,7 +72,7 @@ def maybe_downcast_to_dtype(result, dtype):
     def trans(x):
         return x
 
-    if isinstance(dtype, string_types):
+    if isinstance(dtype, str):
         if dtype == 'infer':
             inferred_type = lib.infer_dtype(ensure_object(result.ravel()),
                                             skipna=False)
@@ -96,7 +95,7 @@ def maybe_downcast_to_dtype(result, dtype):
             else:
                 dtype = 'object'
 
-    if isinstance(dtype, string_types):
+    if isinstance(dtype, str):
         dtype = np.dtype(dtype)
 
     try:
@@ -169,7 +168,10 @@ def maybe_downcast_to_dtype(result, dtype):
 
 def maybe_upcast_putmask(result, mask, other):
     """
-    A safe version of putmask that potentially upcasts the result
+    A safe version of putmask that potentially upcasts the result.
+    The result is replaced with the first N elements of other,
+    where N is the number of True values in mask.
+    If the length of other is shorter than N, other will be repeated.
 
     Parameters
     ----------
@@ -185,7 +187,17 @@ def maybe_upcast_putmask(result, mask, other):
     result : ndarray
     changed : boolean
         Set to true if the result array was upcasted
+
+    Examples
+    --------
+    >>> result, _ = maybe_upcast_putmask(np.arange(1,6),
+    np.array([False, True, False, True, True]), np.arange(21,23))
+    >>> result
+    array([1, 21, 3, 22, 21])
     """
+
+    if not isinstance(result, np.ndarray):
+        raise ValueError("The result input must be a ndarray.")
 
     if mask.any():
         # Two conversions for date-like dtypes that can't be done automatically
@@ -241,7 +253,7 @@ def maybe_upcast_putmask(result, mask, other):
             # we have an ndarray and the masking has nans in it
             else:
 
-                if isna(other[mask]).any():
+                if isna(other).any():
                     return changeit()
 
         try:
@@ -315,7 +327,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         pass
     elif is_datetime64tz_dtype(dtype):
         pass
-    elif issubclass(np.dtype(dtype).type, string_types):
+    elif issubclass(np.dtype(dtype).type, str):
         dtype = np.object_
 
     return dtype, fill_value
@@ -354,14 +366,14 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
-        msg = "invalid ndarray passed to _infer_dtype_from_scalar"
+        msg = "invalid ndarray passed to infer_dtype_from_scalar"
         if val.ndim != 0:
             raise ValueError(msg)
 
         dtype = val.dtype
         val = val.item()
 
-    elif isinstance(val, string_types):
+    elif isinstance(val, str):
 
         # If we create an empty array using a string to infer
         # the dtype, NumPy will only allocate one character per entry
@@ -569,8 +581,6 @@ def coerce_to_dtypes(result, dtypes):
     if len(result) != len(dtypes):
         raise AssertionError("_coerce_to_dtypes requires equal len arrays")
 
-    from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
-
     def conv(r, dtype):
         try:
             if isna(r):
@@ -578,7 +588,7 @@ def coerce_to_dtypes(result, dtypes):
             elif dtype == _NS_DTYPE:
                 r = tslibs.Timestamp(r)
             elif dtype == _TD_DTYPE:
-                r = _coerce_scalar_to_timedelta_type(r)
+                r = tslibs.Timedelta(r)
             elif dtype == np.bool_:
                 # messy. non 0/1 integers do not get converted.
                 if is_integer(r) and r not in [0, 1]:
@@ -624,12 +634,7 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
     if not isinstance(dtype, np.dtype):
         dtype = pandas_dtype(dtype)
 
-    if issubclass(dtype.type, text_type):
-        # in Py3 that's str, in Py2 that's unicode
-        return lib.astype_unicode(arr.ravel(),
-                                  skipna=skipna).reshape(arr.shape)
-
-    elif issubclass(dtype.type, string_types):
+    if issubclass(dtype.type, str):
         return lib.astype_str(arr.ravel(),
                               skipna=skipna).reshape(arr.shape)
 
@@ -653,9 +658,7 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
         elif dtype == np.int64:
             return arr.view(dtype)
 
-        # in py3, timedelta64[ns] are int64
-        if ((PY3 and dtype not in [_INT64_DTYPE, _TD_DTYPE]) or
-                (not PY3 and dtype != _TD_DTYPE)):
+        if dtype not in [_INT64_DTYPE, _TD_DTYPE]:
 
             # allow frequency conversions
             # we return a float here!
@@ -796,10 +799,10 @@ def soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
         # Immediate return if coerce
         if datetime:
             from pandas import to_datetime
-            return to_datetime(values, errors='coerce', box=False)
+            return to_datetime(values, errors='coerce').to_numpy()
         elif timedelta:
             from pandas import to_timedelta
-            return to_timedelta(values, errors='coerce', box=False)
+            return to_timedelta(values, errors='coerce').to_numpy()
         elif numeric:
             from pandas import to_numeric
             return to_numeric(values, errors='coerce')
@@ -960,7 +963,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
     from pandas.core.tools.datetimes import to_datetime
 
     if dtype is not None:
-        if isinstance(dtype, string_types):
+        if isinstance(dtype, str):
             dtype = np.dtype(dtype)
 
         is_datetime64 = is_datetime64_dtype(dtype)
@@ -1013,14 +1016,19 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                                                                 dtype):
                     try:
                         if is_datetime64:
-                            value = to_datetime(value, errors=errors)._values
+                            value = to_datetime(value, errors=errors)
+                            # GH 25843: Remove tz information since the dtype
+                            # didn't specify one
+                            if value.tz is not None:
+                                value = value.tz_localize(None)
+                            value = value._values
                         elif is_datetime64tz:
                             # The string check can be removed once issue #13712
                             # is solved. String data that is passed with a
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
                             is_dt_string = is_string_dtype(value)
-                            value = to_datetime(value, errors=errors)
+                            value = to_datetime(value, errors=errors).array
                             if is_dt_string:
                                 # Strings here are naive, so directly localize
                                 value = value.tz_localize(dtype.tz)
@@ -1099,8 +1107,7 @@ def find_common_type(types):
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
 
-    if any(isinstance(t, (PandasExtensionDtype, ExtensionDtype))
-           for t in types):
+    if any(isinstance(t, ExtensionDtype) for t in types):
         return np.object
 
     # take lowest unit
@@ -1113,11 +1120,9 @@ def find_common_type(types):
     # this is different from numpy, which casts bool with float/int as int
     has_bools = any(is_bool_dtype(t) for t in types)
     if has_bools:
-        has_ints = any(is_integer_dtype(t) for t in types)
-        has_floats = any(is_float_dtype(t) for t in types)
-        has_complex = any(is_complex_dtype(t) for t in types)
-        if has_ints or has_floats or has_complex:
-            return np.object
+        for t in types:
+            if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
+                return np.object
 
     return np.find_common_type(types, [])
 

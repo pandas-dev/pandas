@@ -1,17 +1,11 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests multithreading behaviour for reading and
 parsing files for each parser defined in parsers.py
 """
-
-from __future__ import division
-
+from io import BytesIO
 from multiprocessing.pool import ThreadPool
 
 import numpy as np
-
-from pandas.compat import BytesIO, range
 
 import pandas as pd
 from pandas import DataFrame

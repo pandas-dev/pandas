@@ -3,16 +3,17 @@ missing types & inference
 """
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import lib
+import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
 
 from .common import (
     _NS_DTYPE, _TD_DTYPE, ensure_object, is_bool_dtype, is_complex_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_datetimelike,
     is_datetimelike_v_numeric, is_dtype_equal, is_extension_array_dtype,
-    is_float_dtype, is_integer, is_integer_dtype, is_object_dtype,
-    is_period_dtype, is_scalar, is_string_dtype, is_string_like_dtype,
-    is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
+    is_float_dtype, is_integer_dtype, is_object_dtype, is_period_dtype,
+    is_scalar, is_string_dtype, is_string_like_dtype, is_timedelta64_dtype,
+    needs_i8_conversion, pandas_dtype)
 from .generic import (
     ABCDatetimeArray, ABCExtensionArray, ABCGeneric, ABCIndexClass,
     ABCMultiIndex, ABCSeries, ABCTimedeltaArray)
@@ -172,7 +173,7 @@ def _use_inf_as_na(key):
     * http://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     """
-    from pandas.core.config import get_option
+    from pandas._config import get_option
     flag = get_option(key)
     if flag:
         globals()['_isna'] = _isna_old
@@ -221,8 +222,8 @@ def _isna_ndarraylike(obj):
 
     # box
     if isinstance(obj, ABCSeries):
-        from pandas import Series
-        result = Series(result, index=obj.index, name=obj.name, copy=False)
+        result = obj._constructor(
+            result, index=obj.index, name=obj.name, copy=False)
 
     return result
 
@@ -250,8 +251,8 @@ def _isna_ndarraylike_old(obj):
 
     # box
     if isinstance(obj, ABCSeries):
-        from pandas import Series
-        result = Series(result, index=obj.index, name=obj.name, copy=False)
+        result = obj._constructor(
+            result, index=obj.index, name=obj.name, copy=False)
 
     return result
 
@@ -337,22 +338,6 @@ def notna(obj):
 
 
 notnull = notna
-
-
-def is_null_datelike_scalar(other):
-    """ test whether the object is a null datelike, e.g. Nat
-    but guard against passing a non-scalar """
-    if other is NaT or other is None:
-        return True
-    elif is_scalar(other):
-
-        # a timedelta
-        if hasattr(other, 'dtype'):
-            return other.view('i8') == iNaT
-        elif is_integer(other) and other == iNaT:
-            return True
-        return isna(other)
-    return False
 
 
 def _isna_compat(arr, fill_value=np.nan):

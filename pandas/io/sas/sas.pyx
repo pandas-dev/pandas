@@ -2,7 +2,7 @@
 # cython: boundscheck=False, initializedcheck=False
 
 import numpy as np
-import sas_constants as const
+import pandas.io.sas.sas_constants as const
 
 ctypedef signed long long   int64_t
 ctypedef unsigned char      uint8_t
@@ -11,7 +11,7 @@ ctypedef unsigned short     uint16_t
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
 #
-# https://cran.r-project.org/web/packages/sas7bdat/vignettes/sas7bdat.pdf
+# https://cran.r-project.org/package=sas7bdat/vignettes/sas7bdat.pdf
 cdef const uint8_t[:] rle_decompress(int result_length,
                                      const uint8_t[:] inbuff):
 
@@ -203,14 +203,15 @@ cdef enum ColumnTypes:
 
 
 # type the page_data types
-cdef int page_meta_type = const.page_meta_type
-cdef int page_mix_types_0 = const.page_mix_types[0]
-cdef int page_mix_types_1 = const.page_mix_types[1]
-cdef int page_data_type = const.page_data_type
-cdef int subheader_pointers_offset = const.subheader_pointers_offset
+cdef:
+    int page_meta_type = const.page_meta_type
+    int page_mix_types_0 = const.page_mix_types[0]
+    int page_mix_types_1 = const.page_mix_types[1]
+    int page_data_type = const.page_data_type
+    int subheader_pointers_offset = const.subheader_pointers_offset
 
 
-cdef class Parser(object):
+cdef class Parser:
 
     cdef:
         int column_count

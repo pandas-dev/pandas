@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas._libs import (
     NaT, Timedelta, index as libindex, join as libjoin, lib)
-import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import (
@@ -26,7 +25,6 @@ from pandas.core.indexes.datetimelike import (
     wrap_arithmetic_op)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
 
 from pandas.tseries.frequencies import to_offset
 
@@ -36,7 +34,7 @@ def _make_wrapped_arith_op(opname):
     meth = getattr(TimedeltaArray, opname)
 
     def method(self, other):
-        result = meth(self._eadata, maybe_unwrap_index(other))
+        result = meth(self._data, maybe_unwrap_index(other))
         return wrap_arithmetic_op(self, other, result)
 
     method.__name__ = opname
@@ -133,7 +131,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     to_frame
 
     See Also
-    ---------
+    --------
     Index : The base pandas Index type.
     Timedelta : Represents a duration between two dates or times.
     DatetimeIndex : Index of datetime64 data.
@@ -208,6 +206,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
                             'collection of some kind, {data} was passed'
                             .format(cls=cls.__name__, data=repr(data)))
 
+        if unit in {'Y', 'y', 'M'}:
+            warnings.warn("M and Y units are deprecated and "
+                          "will be removed in a future version.",
+                          FutureWarning, stacklevel=2)
+
         if isinstance(data, TimedeltaArray):
             if copy:
                 data = data.copy()
@@ -233,12 +236,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         if not isinstance(values, TimedeltaArray):
             values = TimedeltaArray._simple_new(values, dtype=dtype,
                                                 freq=freq)
+        else:
+            if freq is None:
+                freq = values.freq
         assert isinstance(values, TimedeltaArray), type(values)
         assert dtype == _TD_DTYPE, dtype
         assert values.dtype == 'm8[ns]', values.dtype
 
-        freq = to_offset(freq)
-        tdarr = TimedeltaArray._simple_new(values, freq=freq)
+        tdarr = TimedeltaArray._simple_new(values._data, freq=freq)
         result = object.__new__(cls)
         result._data = tdarr
         result.name = name
@@ -253,7 +258,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
         if isinstance(state, dict):
-            super(TimedeltaIndex, self).__setstate__(state)
+            super().__setstate__(state)
         else:
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
@@ -293,9 +298,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
     __truediv__ = _make_wrapped_arith_op("__truediv__")
     __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
-    if compat.PY2:
-        __div__ = __truediv__
-        __rdiv__ = __rtruediv__
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
@@ -307,7 +309,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         return lambda x: Timedelta(x, unit='ns')
 
     def __getitem__(self, key):
-        result = self._eadata.__getitem__(key)
+        result = self._data.__getitem__(key)
         if is_scalar(result):
             return result
         return type(self)(result, name=self.name)
@@ -321,7 +323,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
             # Have to repeat the check for 'timedelta64' (not ns) dtype
             #  so that we can return a numeric index, since pandas will return
             #  a TimedeltaIndex when dtype='timedelta'
-            result = self._eadata.astype(dtype, copy=copy)
+            result = self._data.astype(dtype, copy=copy)
             if self.hasnans:
                 return Index(result, name=self.name)
             return Index(result.astype('i8'), name=self.name)
@@ -344,7 +346,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         self._assert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(TimedeltaIndex, self).union(other)
+            return super().union(other)
 
         if not isinstance(other, TimedeltaIndex):
             try:
@@ -376,6 +378,34 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         return Index.join(self, other, how=how, level=level,
                           return_indexers=return_indexers,
                           sort=sort)
+
+    def intersection(self, other, sort=False):
+        """
+        Specialized intersection for TimedeltaIndex objects.
+        May be much faster than Index.intersection
+
+        Parameters
+        ----------
+        other : TimedeltaIndex or array-like
+        sort : False or None, default False
+            Sort the resulting index if possible.
+
+            .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default to ``False`` to match the behaviour
+               from before 0.24.0.
+
+            .. versionchanged:: 0.25.0
+
+               The `sort` keyword is added
+
+        Returns
+        -------
+        y : Index or  TimedeltaIndex
+        """
+        return super().intersection(other, sort=sort)
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
@@ -437,52 +467,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
             return self._shallow_copy(dates)
         else:
             return left
-
-    def intersection(self, other):
-        """
-        Specialized intersection for TimedeltaIndex objects. May be much faster
-        than Index.intersection
-
-        Parameters
-        ----------
-        other : TimedeltaIndex or array-like
-
-        Returns
-        -------
-        y : Index or TimedeltaIndex
-        """
-        self._assert_can_do_setop(other)
-
-        if self.equals(other):
-            return self._get_reconciled_name_object(other)
-
-        if not isinstance(other, TimedeltaIndex):
-            try:
-                other = TimedeltaIndex(other)
-            except (TypeError, ValueError):
-                pass
-            result = Index.intersection(self, other)
-            return result
-
-        if len(self) == 0:
-            return self
-        if len(other) == 0:
-            return other
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        else:
-            left, right = other, self
-
-        end = min(left[-1], right[-1])
-        start = right[0]
-
-        if end < start:
-            return type(self)(data=[])
-        else:
-            lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left.values[lslice]
-            return self._shallow_copy(left_chunk)
 
     def _maybe_promote(self, other):
         if other.inferred_type == 'timedelta':
@@ -579,8 +563,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         """
         assert kind in ['ix', 'loc', 'getitem', None]
 
-        if isinstance(label, compat.string_types):
-            parsed = _coerce_scalar_to_timedelta_type(label, box=True)
+        if isinstance(label, str):
+            parsed = Timedelta(label)
             lbound = parsed.round(parsed.resolution)
             if side == 'left':
                 return lbound
@@ -602,7 +586,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
     def _partial_td_slice(self, key):
 
         # given a key, try to figure out a location for a partial slice
-        if not isinstance(key, compat.string_types):
+        if not isinstance(key, str):
             return key
 
         raise NotImplementedError
@@ -673,7 +657,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index,
         except (AttributeError, TypeError):
 
             # fall back to object index
-            if isinstance(item, compat.string_types):
+            if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
             raise TypeError(
                 "cannot insert TimedeltaIndex with incompatible label")

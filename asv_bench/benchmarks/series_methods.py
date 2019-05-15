@@ -5,7 +5,7 @@ import pandas.util.testing as tm
 from pandas import Series, date_range, NaT
 
 
-class SeriesConstructor(object):
+class SeriesConstructor:
 
     params = [None, 'dict']
     param_names = ['data']
@@ -21,9 +21,9 @@ class SeriesConstructor(object):
         Series(data=self.data, index=self.idx)
 
 
-class IsIn(object):
+class IsIn:
 
-    params = ['int64', 'object']
+    params = ['int64', 'uint64', 'object']
     param_names = ['dtype']
 
     def setup(self, dtype):
@@ -34,7 +34,7 @@ class IsIn(object):
         self.s.isin(self.values)
 
 
-class IsInFloat64(object):
+class IsInFloat64:
 
     def setup(self):
         self.small = Series([1, 2], dtype=np.float64)
@@ -55,7 +55,7 @@ class IsInFloat64(object):
         self.small.isin(self.few_different_values)
 
 
-class IsInForObjects(object):
+class IsInForObjects:
 
     def setup(self):
         self.s_nans = Series(np.full(10**4, np.nan)).astype(np.object)
@@ -92,7 +92,7 @@ class IsInForObjects(object):
         self.s_long_floats.isin(self.vals_long_floats)
 
 
-class NSort(object):
+class NSort:
 
     params = ['first', 'last', 'all']
     param_names = ['keep']
@@ -107,7 +107,7 @@ class NSort(object):
         self.s.nsmallest(3, keep=keep)
 
 
-class Dropna(object):
+class Dropna:
 
     params = ['int', 'datetime']
     param_names = ['dtype']
@@ -124,33 +124,65 @@ class Dropna(object):
         self.s.dropna()
 
 
-class Map(object):
+class SearchSorted:
 
-    params = ['dict', 'Series']
+    goal_time = 0.2
+    params = ['int8', 'int16', 'int32', 'int64',
+              'uint8', 'uint16', 'uint32', 'uint64',
+              'float16', 'float32', 'float64',
+              'str']
+    param_names = ['dtype']
+
+    def setup(self, dtype):
+        N = 10**5
+        data = np.array([1] * N + [2] * N + [3] * N).astype(dtype)
+        self.s = Series(data)
+
+    def time_searchsorted(self, dtype):
+        key = '2' if dtype == 'str' else 2
+        self.s.searchsorted(key)
+
+
+class Map:
+
+    params = (['dict', 'Series', 'lambda'], ['object', 'category', 'int'])
     param_names = 'mapper'
 
-    def setup(self, mapper):
+    def setup(self, mapper, dtype):
         map_size = 1000
-        map_data = Series(map_size - np.arange(map_size))
-        self.map_data = map_data if mapper == 'Series' else map_data.to_dict()
-        self.s = Series(np.random.randint(0, map_size, 10000))
+        map_data = Series(map_size - np.arange(map_size), dtype=dtype)
 
-    def time_map(self, mapper):
+        # construct mapper
+        if mapper == 'Series':
+            self.map_data = map_data
+        elif mapper == 'dict':
+            self.map_data = map_data.to_dict()
+        elif mapper == 'lambda':
+            map_dict = map_data.to_dict()
+            self.map_data = lambda x: map_dict[x]
+        else:
+            raise NotImplementedError
+
+        self.s = Series(np.random.randint(0, map_size, 10000), dtype=dtype)
+
+    def time_map(self, mapper, *args, **kwargs):
         self.s.map(self.map_data)
 
 
-class Clip(object):
+class Clip:
+    params = [50, 1000, 10**5]
+    param_names = ['n']
 
-    def setup(self):
-        self.s = Series(np.random.randn(50))
+    def setup(self, n):
+        self.s = Series(np.random.randn(n))
 
-    def time_clip(self):
+    def time_clip(self, n):
         self.s.clip(0, 1)
 
 
-class ValueCounts(object):
+class ValueCounts:
 
-    params = ['int', 'float', 'object']
+    params = ['int', 'uint', 'float', 'object']
     param_names = ['dtype']
 
     def setup(self, dtype):
@@ -160,7 +192,7 @@ class ValueCounts(object):
         self.s.value_counts()
 
 
-class Dir(object):
+class Dir:
 
     def setup(self):
         self.s = Series(index=tm.makeStringIndex(10000))
@@ -169,7 +201,7 @@ class Dir(object):
         dir(self.s)
 
 
-class SeriesGetattr(object):
+class SeriesGetattr:
     # https://github.com/pandas-dev/pandas/issues/19764
     def setup(self):
         self.s = Series(1,
@@ -178,6 +210,48 @@ class SeriesGetattr(object):
 
     def time_series_datetimeindex_repr(self):
         getattr(self.s, 'a', None)
+
+
+class All(object):
+
+    params = [[10**3, 10**6], ['fast', 'slow']]
+    param_names = ['N', 'case']
+
+    def setup(self, N, case):
+        val = case != 'fast'
+        self.s = Series([val] * N)
+
+    def time_all(self, N, case):
+        self.s.all()
+
+
+class Any(object):
+
+    params = [[10**3, 10**6], ['fast', 'slow']]
+    param_names = ['N', 'case']
+
+    def setup(self, N, case):
+        val = case == 'fast'
+        self.s = Series([val] * N)
+
+    def time_any(self, N, case):
+        self.s.any()
+
+
+class NanOps(object):
+
+    params = [['var', 'mean', 'median', 'max', 'min', 'sum', 'std', 'sem',
+               'argmax', 'skew', 'kurt', 'prod'],
+              [10**3, 10**6],
+              ['int8', 'int32', 'int64', 'float64']]
+    param_names = ['func', 'N', 'dtype']
+
+    def setup(self, func, N, dtype):
+        self.s = Series([1] * N, dtype=dtype)
+        self.func = getattr(self.s, func)
+
+    def time_func(self, func, N, dtype):
+        self.func()
 
 
 from .pandas_vb_common import setup  # noqa: F401

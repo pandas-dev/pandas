@@ -1,11 +1,7 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict
 
 import numpy as np
 import pytest
-
-from pandas.compat import range
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, date_range

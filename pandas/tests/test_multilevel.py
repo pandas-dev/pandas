@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101,W0141
 import datetime
+from io import StringIO
 import itertools
+from itertools import product
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -9,13 +9,10 @@ from numpy.random import randn
 import pytest
 import pytz
 
-from pandas.compat import (
-    StringIO, lrange, lzip, product as cart_product, range, u, zip)
-
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Panel, Series, Timestamp, isna
+from pandas import DataFrame, Series, Timestamp, isna
 from pandas.core.index import Index, MultiIndex
 import pandas.util.testing as tm
 
@@ -23,7 +20,7 @@ AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
                  'std', 'var', 'sem']
 
 
-class Base(object):
+class Base:
 
     def setup_method(self, method):
 
@@ -41,14 +38,13 @@ class Base(object):
         # create test series object
         arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        tuples = lzip(*arrays)
+        tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
         s[3] = np.NaN
         self.series = s
 
-        tm.N = 100
-        self.tdf = tm.makeTimeDataFrame()
+        self.tdf = tm.makeTimeDataFrame(100)
         self.ymd = self.tdf.groupby([lambda x: x.year, lambda x: x.month,
                                      lambda x: x.day]).sum()
 
@@ -129,8 +125,8 @@ class TestMultiLevel(Base):
         multi = Series(1., index=[['a', 'a', 'b', 'b'], ['x', 'y', 'x', 'y']])
         assert isinstance(multi.index, MultiIndex)
 
-        multi = Series(lrange(4), index=[['a', 'a', 'b', 'b'],
-                                         ['x', 'y', 'x', 'y']])
+        multi = Series(range(4), index=[['a', 'a', 'b', 'b'],
+                                        ['x', 'y', 'x', 'y']])
         assert isinstance(multi.index, MultiIndex)
 
     def test_reindex_level(self):
@@ -239,7 +235,7 @@ class TestMultiLevel(Base):
 
     def test_delevel_infer_dtype(self):
         tuples = [tuple
-                  for tuple in cart_product(
+                  for tuple in product(
                       ['foo', 'bar'], [10, 20], [1.0, 1.1])]
         index = MultiIndex.from_tuples(tuples, names=['prm0', 'prm1', 'prm2'])
         df = DataFrame(np.random.randn(8, 3), columns=['A', 'B', 'C'],
@@ -315,7 +311,7 @@ class TestMultiLevel(Base):
 
         df = self.frame[:0]
         result = df.count(level=0)
-        expected = DataFrame({}, index=s.index.levels[0],
+        expected = DataFrame(index=s.index.levels[0],
                              columns=df.columns).fillna(0).astype(np.int64)
         tm.assert_frame_equal(result, expected)
 
@@ -819,18 +815,6 @@ Thur,Lunch,Yes,51.51,17"""
         exp = self.frame.swaplevel('first', 'second').T
         tm.assert_frame_equal(swapped, exp)
 
-    def test_swaplevel_panel(self):
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
-            expected = panel.copy()
-            expected.major_axis = expected.major_axis.swaplevel(0, 1)
-
-            for result in (panel.swaplevel(axis='major'),
-                           panel.swaplevel(0, axis='major'),
-                           panel.swaplevel(0, 1, axis='major')):
-                tm.assert_panel_equal(result, expected)
-
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(['month', 'day', 'year'])
         expected = self.ymd.swaplevel(0, 1).swaplevel(1, 2)
@@ -899,8 +883,11 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expect, check_names=False)
         assert result.index.name == 'a'
 
-        pytest.raises(KeyError, series.count, 'x')
-        pytest.raises(KeyError, frame.count, level='x')
+        msg = "Level x not found"
+        with pytest.raises(KeyError, match=msg):
+            series.count('x')
+        with pytest.raises(KeyError, match=msg):
+            frame.count(level='x')
 
     @pytest.mark.parametrize('op', AGG_FUNCTIONS)
     @pytest.mark.parametrize('level', [0, 1])
@@ -1132,7 +1119,8 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
 
-        pytest.raises(KeyError, series.__getitem__, (('foo', 'bar', 0), 2))
+        with pytest.raises(KeyError, match=r"^\(\('foo', 'bar', 0\), 2\)$"):
+            series[('foo', 'bar', 0), 2]
 
         result = frame.loc[('foo', 'bar', 0)]
         result2 = frame.xs(('foo', 'bar', 0))
@@ -1313,7 +1301,7 @@ Thur,Lunch,Yes,51.51,17"""
         assert result.index.names == ('one', 'two')
 
     def test_unicode_repr_issues(self):
-        levels = [Index([u('a/\u03c3'), u('b/\u03c3'), u('c/\u03c3')]),
+        levels = [Index(['a/\u03c3', 'b/\u03c3', 'c/\u03c3']),
                   Index([0, 1])]
         codes = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
         index = MultiIndex(levels=levels, codes=codes)
@@ -1325,9 +1313,9 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_unicode_repr_level_names(self):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)],
-                                       names=[u('\u0394'), 'i1'])
+                                       names=['\u0394', 'i1'])
 
-        s = Series(lrange(2), index=index)
+        s = Series(range(2), index=index)
         df = DataFrame(np.random.randn(2, 4), index=index)
         repr(s)
         repr(df)
@@ -2048,7 +2036,7 @@ class TestSorted(Base):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two'],
                   [4, 3, 2, 1, 4, 3, 2, 1]]
-        tuples = lzip(*arrays)
+        tuples = zip(*arrays)
         mi = MultiIndex.from_tuples(tuples, names=['first', 'second', 'third'])
         s = Series(range(8), index=mi)
 

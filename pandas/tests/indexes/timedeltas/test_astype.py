@@ -10,7 +10,7 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-class TestTimedeltaIndex(object):
+class TestTimedeltaIndex:
     def test_astype_object(self):
         idx = timedelta_range(start='1 days', periods=4, freq='D', name='idx')
         expected_list = [Timedelta('1 days'), Timedelta('2 days'),
@@ -95,8 +95,7 @@ class TestTimedeltaIndex(object):
                                         pd.Timedelta('2H')])
         tm.assert_index_equal(result, expected)
 
-        # TODO: Use \._data following composition changeover
-        result = obj._eadata.astype('category')
+        result = obj._data.astype('category')
         expected = expected.values
         tm.assert_categorical_equal(result, expected)
 

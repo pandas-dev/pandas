@@ -1,9 +1,11 @@
 import numbers
 
 import numpy as np
+from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import Appender
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -12,6 +14,7 @@ from pandas.core.dtypes.inference import is_array_like, is_list_like
 
 from pandas import compat
 from pandas.core import nanops
+from pandas.core.algorithms import searchsorted
 from pandas.core.missing import backfill_1d, pad_1d
 
 from .base import ExtensionArray, ExtensionOpsMixin
@@ -38,8 +41,12 @@ class PandasDtype(ExtensionDtype):
         self._name = dtype.name
         self._type = dtype.type
 
+    def __repr__(self):
+        return "PandasDtype({!r})".format(self.name)
+
     @property
     def numpy_dtype(self):
+        """The NumPy dtype this PandasDtype wraps."""
         return self._dtype
 
     @property
@@ -72,21 +79,8 @@ class PandasDtype(ExtensionDtype):
 
     @property
     def itemsize(self):
+        """The element size of this data-type object."""
         return self._dtype.itemsize
-
-
-# TODO(NumPy1.13): remove this
-# Compat for NumPy 1.12, which doesn't provide NDArrayOperatorsMixin
-# or __array_ufunc__, so those operations won't be available to people
-# on older NumPys.
-#
-# We would normally write this as bases=(...), then "class Foo(*bases):
-# but Python2 doesn't allow unpacking tuples in the class statement.
-# So, we fall back to "object", to avoid writing a metaclass.
-try:
-    from numpy.lib.mixins import NDArrayOperatorsMixin
-except ImportError:
-    NDArrayOperatorsMixin = object
 
 
 class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
@@ -104,10 +98,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         The NumPy ndarray to wrap. Must be 1-dimensional.
     copy : bool, default False
         Whether to copy `values`.
-
-    Notes
-    -----
-    Operations like ``+`` and applying ufuncs requires NumPy>=1.13.
     """
     # If you're wondering why pd.Series(cls) doesn't put the array in an
     # ExtensionBlock, search for `ABCPandasArray`. We check for
@@ -217,7 +207,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             item = item._ndarray
 
         result = self._ndarray[item]
-        if not lib.is_scalar(result):
+        if not lib.is_scalar(item):
             result = type(self)(result)
         return result
 
@@ -417,6 +407,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             result = result.copy()
 
         return result
+
+    @Appender(ExtensionArray.searchsorted.__doc__)
+    def searchsorted(self, value, side='left', sorter=None):
+        return searchsorted(self.to_numpy(), value,
+                            side=side, sorter=sorter)
 
     # ------------------------------------------------------------------------
     # Ops

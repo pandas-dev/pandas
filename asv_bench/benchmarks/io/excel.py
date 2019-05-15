@@ -1,10 +1,10 @@
+from io import BytesIO
 import numpy as np
 from pandas import DataFrame, date_range, ExcelWriter, read_excel
-from pandas.compat import BytesIO
 import pandas.util.testing as tm
 
 
-class Excel(object):
+class Excel:
 
     params = ['openpyxl', 'xlsxwriter', 'xlwt']
     param_names = ['engine']

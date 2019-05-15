@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
 from collections import defaultdict
 from functools import partial
 import itertools
 import operator
 import re
+from typing import List, Optional, Union
 
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas.compat import map, range, zip
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -18,6 +17,7 @@ from pandas.core.dtypes.common import (
     _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
     is_extension_type, is_list_like, is_numeric_v_string_like, is_scalar)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -295,12 +295,12 @@ class BlockManager(PandasObject):
         output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
-                output += u'\nItems: {ax}'.format(ax=ax)
+                output += '\nItems: {ax}'.format(ax=ax)
             else:
-                output += u'\nAxis {i}: {ax}'.format(i=i, ax=ax)
+                output += '\nAxis {i}: {ax}'.format(i=i, ax=ax)
 
         for block in self.blocks:
-            output += u'\n{block}'.format(block=pprint_thing(block))
+            output += '\n{block}'.format(block=pprint_thing(block))
         return output
 
     def _verify_integrity(self):
@@ -552,9 +552,9 @@ class BlockManager(PandasObject):
             if isna(s):
                 return isna(values)
             if hasattr(s, 'asm8'):
-                return _compare_or_regex_match(maybe_convert_objects(values),
-                                               getattr(s, 'asm8'), regex)
-            return _compare_or_regex_match(values, s, regex)
+                return _compare_or_regex_search(maybe_convert_objects(values),
+                                                getattr(s, 'asm8'), regex)
+            return _compare_or_regex_search(values, s, regex)
 
         masks = [comp(s, regex) for i, s in enumerate(src_list)]
 
@@ -583,10 +583,6 @@ class BlockManager(PandasObject):
         bm = self.__class__(result_blocks, self.axes)
         bm._consolidate_inplace()
         return bm
-
-    def reshape_nd(self, axes, **kwargs):
-        """ a 2d-nd reshape operation on a BlockManager """
-        return self.apply('reshape_nd', axes=axes, **kwargs)
 
     def is_consolidated(self):
         """
@@ -1674,7 +1670,15 @@ def create_block_manager_from_arrays(arrays, names, axes):
 def construction_error(tot_items, block_shape, axes, e=None):
     """ raise a helpful message about our construction """
     passed = tuple(map(int, [tot_items] + list(block_shape)))
-    implied = tuple(map(int, [len(ax) for ax in axes]))
+    # Correcting the user facing error message during dataframe construction
+    if len(passed) <= 2:
+        passed = passed[::-1]
+
+    implied = tuple(len(ax) for ax in axes)
+    # Correcting the user facing error message during dataframe construction
+    if len(implied) <= 2:
+        implied = implied[::-1]
+
     if passed == implied and e is not None:
         raise e
     if block_shape[0] == 0:
@@ -1857,8 +1861,9 @@ def _stack_arrays(tuples, dtype):
     return stacked, placement
 
 
-def _interleaved_dtype(blocks):
-    # type: (List[Block]) -> Optional[Union[np.dtype, ExtensionDtype]]
+def _interleaved_dtype(
+        blocks: List[Block]
+) -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 
     Parameters
@@ -1893,11 +1898,11 @@ def _consolidate(blocks):
     return new_blocks
 
 
-def _compare_or_regex_match(a, b, regex=False):
+def _compare_or_regex_search(a, b, regex=False):
     """
     Compare two array_like inputs of the same shape or two scalar values
 
-    Calls operator.eq or re.match, depending on regex argument. If regex is
+    Calls operator.eq or re.search, depending on regex argument. If regex is
     True, perform an element-wise regex matching.
 
     Parameters
@@ -1913,7 +1918,7 @@ def _compare_or_regex_match(a, b, regex=False):
     if not regex:
         op = lambda x: operator.eq(x, b)
     else:
-        op = np.vectorize(lambda x: bool(re.match(b, x)) if isinstance(x, str)
+        op = np.vectorize(lambda x: bool(re.search(b, x)) if isinstance(x, str)
                           else False)
 
     is_a_array = isinstance(a, np.ndarray)
@@ -1963,15 +1968,27 @@ def items_overlap_with_suffix(left, lsuffix, right, rsuffix):
             raise ValueError('columns overlap but no suffix specified: '
                              '{rename}'.format(rename=to_rename))
 
-        def lrenamer(x):
-            if x in to_rename:
-                return '{x}{lsuffix}'.format(x=x, lsuffix=lsuffix)
+        def renamer(x, suffix):
+            """Rename the left and right indices.
+
+            If there is overlap, and suffix is not None, add
+            suffix, otherwise, leave it as-is.
+
+            Parameters
+            ----------
+            x : original column name
+            suffix : str or None
+
+            Returns
+            -------
+            x : renamed column name
+            """
+            if x in to_rename and suffix is not None:
+                return '{x}{suffix}'.format(x=x, suffix=suffix)
             return x
 
-        def rrenamer(x):
-            if x in to_rename:
-                return '{x}{rsuffix}'.format(x=x, rsuffix=rsuffix)
-            return x
+        lrenamer = partial(renamer, suffix=lsuffix)
+        rrenamer = partial(renamer, suffix=rsuffix)
 
         return (_transform_index(left, lrenamer),
                 _transform_index(right, rrenamer))

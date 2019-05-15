@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import itertools
 
 import numpy as np
@@ -36,7 +34,7 @@ def check_comprehensiveness(request):
     yield
 
 
-class CoercionBase(object):
+class CoercionBase:
 
     klasses = ['index', 'series']
     dtypes = ['object', 'int64', 'float64', 'complex128', 'bool',
@@ -828,7 +826,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         'datetime64[ns, UTC]', 'datetime64[ns, US/Eastern]', 'timedelta64[ns]']
     )
     def test_replace_series(self, how, to_key, from_key):
-        if from_key == 'bool' and how == 'series' and compat.PY3:
+        if from_key == 'bool' and how == 'series':
             # doesn't work in PY3, though ...dict_from_bool works fine
             pytest.skip("doesn't work as in PY3")
 

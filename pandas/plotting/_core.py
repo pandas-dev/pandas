@@ -1,16 +1,14 @@
 # being a bit too dynamic
-# pylint: disable=E1101
-from __future__ import division
-
 from collections import namedtuple
-from distutils.version import LooseVersion
 import re
+from typing import List, Optional, Type
 import warnings
 
 import numpy as np
 
-import pandas.compat as compat
-from pandas.compat import lrange, map, range, string_types, zip
+from pandas._config import get_option
+
+from pandas.compat import lrange
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -22,11 +20,9 @@ from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.config import get_option
 from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting import _misc as misc
 from pandas.plotting._compat import _mpl_ge_3_0_0
 from pandas.plotting._style import _get_standard_colors, plot_params
 from pandas.plotting._tools import (
@@ -40,7 +36,7 @@ except ImportError:
 else:
     _HAS_MPL = True
     if get_option('plotting.matplotlib.register_converters'):
-        _converter.register(explicit=True)
+        _converter.register(explicit=False)
 
 
 def _raise_if_no_mpl():
@@ -64,7 +60,7 @@ def _gcf():
     return plt.gcf()
 
 
-class MPLPlot(object):
+class MPLPlot:
     """
     Base class for assembling a pandas plot using matplotlib
 
@@ -81,7 +77,7 @@ class MPLPlot(object):
 
     _layout_type = 'vertical'
     _default_rot = 0
-    orientation = None
+    orientation = None  # type: Optional[str]
     _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
                        'mark_right', 'stacked']
     _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
@@ -288,6 +284,11 @@ class MPLPlot(object):
 
             if not self._has_plotted_object(orig_ax):  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
+
+            if self.logy is True or self.loglog is True:
+                new_ax.set_yscale('log')
+            elif self.logy == 'sym' or self.loglog == 'sym':
+                new_ax.set_yscale('symlog')
             return new_ax
 
     def _setup_subplots(self):
@@ -309,10 +310,24 @@ class MPLPlot(object):
 
         axes = _flatten(axes)
 
-        if self.logx or self.loglog:
+        valid_log = {False, True, 'sym', None}
+        input_log = {self.logx, self.logy, self.loglog}
+        if input_log - valid_log:
+            invalid_log = next(iter((input_log - valid_log)))
+            raise ValueError(
+                "Boolean, None and 'sym' are valid options,"
+                " '{}' is given.".format(invalid_log)
+            )
+
+        if self.logx is True or self.loglog is True:
             [a.set_xscale('log') for a in axes]
-        if self.logy or self.loglog:
+        elif self.logx == 'sym' or self.loglog == 'sym':
+            [a.set_xscale('symlog') for a in axes]
+
+        if self.logy is True or self.loglog is True:
             [a.set_yscale('log') for a in axes]
+        elif self.logy == 'sym' or self.loglog == 'sym':
+            [a.set_yscale('symlog') for a in axes]
 
         self.fig = fig
         self.axes = axes
@@ -359,10 +374,15 @@ class MPLPlot(object):
         except AttributeError:
             is_empty = not len(numeric_data)
 
-        # no empty frames or series allowed
+        # no non-numeric frames or series allowed
         if is_empty:
-            raise TypeError('Empty {0!r}: no numeric data to '
-                            'plot'.format(numeric_data.__class__.__name__))
+            raise TypeError('no numeric data to plot')
+
+        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
+        # np.ndarray before plot.
+        numeric_data = numeric_data.copy()
+        for col in numeric_data:
+            numeric_data[col] = np.asarray(numeric_data[col])
 
         self.data = numeric_data
 
@@ -382,16 +402,7 @@ class MPLPlot(object):
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
 
-        def get_label(i):
-            try:
-                return pprint_thing(data.index[i])
-            except Exception:
-                return ''
-
         if self.orientation == 'vertical' or self.orientation is None:
-            if self._need_to_set_index:
-                xticklabels = [get_label(x) for x in ax.get_xticks()]
-                ax.set_xticklabels(xticklabels)
             self._apply_axis_properties(ax.xaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
@@ -401,9 +412,6 @@ class MPLPlot(object):
                                             fontsize=self.fontsize)
 
         elif self.orientation == 'horizontal':
-            if self._need_to_set_index:
-                yticklabels = [get_label(y) for y in ax.get_yticks()]
-                ax.set_yticklabels(yticklabels)
             self._apply_axis_properties(ax.yaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.xaxis, fontsize=self.fontsize)
@@ -467,12 +475,20 @@ class MPLPlot(object):
                 self.axes[0].set_title(self.title)
 
     def _apply_axis_properties(self, axis, rot=None, fontsize=None):
-        labels = axis.get_majorticklabels() + axis.get_minorticklabels()
-        for label in labels:
-            if rot is not None:
-                label.set_rotation(rot)
-            if fontsize is not None:
-                label.set_fontsize(fontsize)
+        """ Tick creation within matplotlib is reasonably expensive and is
+            internally deferred until accessed as Ticks are created/destroyed
+            multiple times per draw. It's therefore beneficial for us to avoid
+            accessing unless we will act on the Tick.
+        """
+
+        if rot is not None or fontsize is not None:
+            # rot=0 is a valid setting, hence the explicit None check
+            labels = axis.get_majorticklabels() + axis.get_minorticklabels()
+            for label in labels:
+                if rot is not None:
+                    label.set_rotation(rot)
+                if fontsize is not None:
+                    label.set_fontsize(fontsize)
 
     @property
     def legend_title(self):
@@ -709,7 +725,7 @@ class MPLPlot(object):
             err = np.tile(err, (self.nseries, 1))
 
         # errors are a column in the dataframe
-        elif isinstance(err, string_types):
+        elif isinstance(err, str):
             evalues = self.data[err].values
             self.data = self.data[self.data.columns.drop(err)]
             err = np.atleast_2d(evalues)
@@ -855,7 +871,7 @@ class ScatterPlot(PlanePlot):
             # hide the matplotlib default for size, in case we want to change
             # the handling of this argument later
             s = 20
-        super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
+        super().__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
         self.c = c
@@ -912,7 +928,7 @@ class HexBinPlot(PlanePlot):
     _kind = 'hexbin'
 
     def __init__(self, data, x, y, C=None, **kwargs):
-        super(HexBinPlot, self).__init__(data, x, y, **kwargs)
+        super().__init__(data, x, y, **kwargs)
         if is_integer(C) and not self.data.columns.holds_integer():
             C = self.data.columns[C]
         self.C = C
@@ -1079,6 +1095,20 @@ class LinePlot(MPLPlot):
             ax._stacker_neg_prior[stacking_id] += values
 
     def _post_plot_logic(self, ax, data):
+        from matplotlib.ticker import FixedLocator
+
+        def get_label(i):
+            try:
+                return pprint_thing(data.index[i])
+            except Exception:
+                return ''
+
+        if self._need_to_set_index:
+            xticks = ax.get_xticks()
+            xticklabels = [get_label(x) for x in xticks]
+            ax.set_xticklabels(xticklabels)
+            ax.xaxis.set_major_locator(FixedLocator(xticks))
+
         condition = (not self._use_dynamic_x() and
                      data.index.is_all_dates and
                      not self.subplots or
@@ -1414,7 +1444,7 @@ _kde_docstring = """
 
         Returns
         -------
-        axes : matplotlib.axes.Axes or numpy.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
 
         See Also
         --------
@@ -1460,18 +1490,9 @@ class KdePlot(HistPlot):
     def _plot(cls, ax, y, style=None, bw_method=None, ind=None,
               column_num=None, stacking_id=None, **kwds):
         from scipy.stats import gaussian_kde
-        from scipy import __version__ as spv
 
         y = remove_na_arraylike(y)
-
-        if LooseVersion(spv) >= '0.11.0':
-            gkde = gaussian_kde(y, bw_method=bw_method)
-        else:
-            gkde = gaussian_kde(y)
-            if bw_method is not None:
-                msg = ('bw_method was added in Scipy 0.11.0.' +
-                       ' Scipy version in use is {spv}.'.format(spv=spv))
-                warnings.warn(msg)
+        gkde = gaussian_kde(y, bw_method=bw_method)
 
         y = gkde.evaluate(ind)
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
@@ -1606,7 +1627,7 @@ class BoxPlot(LinePlot):
 
             if isinstance(self.color, dict):
                 valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
-                for key, values in compat.iteritems(self.color):
+                for key, values in self.color.items():
                     if key not in valid_keys:
                         raise ValueError("color dict contains invalid "
                                          "key '{0}' "
@@ -1704,7 +1725,7 @@ class BoxPlot(LinePlot):
     @property
     def result(self):
         if self.return_type is None:
-            return super(BoxPlot, self).result
+            return super().result
         else:
             return self._return_obj
 
@@ -1719,7 +1740,8 @@ _series_kinds = ['pie']
 _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 
 _klasses = [LinePlot, BarPlot, BarhPlot, KdePlot, HistPlot, BoxPlot,
-            ScatterPlot, HexBinPlot, AreaPlot, PiePlot]
+            ScatterPlot, HexBinPlot, AreaPlot, PiePlot] \
+    # type: List[Type[MPLPlot]]
 
 _plot_klass = {klass._kind: klass for klass in _klasses}
 
@@ -1772,7 +1794,7 @@ def _plot(data, x=None, y=None, subplots=False,
                 label_kw = kwds['label'] if 'label' in kwds else False
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
-                        (isinstance(kwds[kw], string_types) or
+                        (isinstance(kwds[kw], str) or
                             is_integer(kwds[kw])):
                         try:
                             kwds[kw] = data[kwds[kw]]
@@ -1793,7 +1815,6 @@ def _plot(data, x=None, y=None, subplots=False,
                         )
                     label_name = label_kw or data.columns
                     data.columns = label_name
-
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()
@@ -1810,26 +1831,26 @@ df_coord = """x : label or position, default None
         Allows plotting of one column versus another"""
 series_coord = ""
 
-df_unique = """stacked : boolean, default False in line and
+df_unique = """stacked : bool, default False in line and
         bar plots, and True in area plot. If True, create stacked plot.
-    sort_columns : boolean, default False
+    sort_columns : bool, default False
         Sort column names to determine plot ordering
-    secondary_y : boolean or sequence, default False
+    secondary_y : bool or sequence, default False
         Whether to plot on the secondary y-axis
         If a list/tuple, which columns to plot on secondary y-axis"""
 series_unique = """label : label argument to provide to plot
-    secondary_y : boolean or sequence of ints, default False
+    secondary_y : bool or sequence of ints, default False
         If True then y-axis will be on the right"""
 
 df_ax = """ax : matplotlib axes object, default None
-    subplots : boolean, default False
+    subplots : bool, default False
         Make separate subplots for each column
-    sharex : boolean, default True if ax is None else False
+    sharex : bool, default True if ax is None else False
         In case subplots=True, share x axis and set some x axis labels to
         invisible; defaults to True if ax is None otherwise False if an ax
         is passed in; Be aware, that passing in both an ax and sharex=True
         will alter all x axis labels for all axis in a figure!
-    sharey : boolean, default False
+    sharey : bool, default False
         In case subplots=True, share y axis and set some y axis labels to
         invisible
     layout : tuple (optional)
@@ -1883,24 +1904,30 @@ _shared_docs['plot'] = """
         %(klass_kind)s
     %(klass_ax)s
     figsize : a tuple (width, height) in inches
-    use_index : boolean, default True
+    use_index : bool, default True
         Use index as ticks for x axis
     title : string or list
         Title to use for the plot. If a string is passed, print the string at
         the top of the figure. If a list is passed and `subplots` is True,
         print each item in the list above the corresponding subplot.
-    grid : boolean, default None (matlab style default)
+    grid : bool, default None (matlab style default)
         Axis grid lines
     legend : False/True/'reverse'
         Place legend on axis subplots
     style : list or dict
         matplotlib line style per column
-    logx : boolean, default False
-        Use log scaling on x axis
-    logy : boolean, default False
-        Use log scaling on y axis
-    loglog : boolean, default False
-        Use log scaling on both x and y axes
+    logx : bool or 'sym', default False
+        Use log scaling or symlog scaling on x axis
+        .. versionchanged:: 0.25.0
+
+    logy : bool or 'sym' default False
+        Use log scaling or symlog scaling on y axis
+        .. versionchanged:: 0.25.0
+
+    loglog : bool or 'sym', default False
+        Use log scaling or symlog scaling on both x and y axes
+        .. versionchanged:: 0.25.0
+
     xticks : sequence
         Values to use for the xticks
     yticks : sequence
@@ -1914,12 +1941,12 @@ _shared_docs['plot'] = """
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that name
         from matplotlib.
-    colorbar : boolean, optional
+    colorbar : bool, optional
         If True, plot colorbar (only relevant for 'scatter' and 'hexbin' plots)
     position : float
         Specify relative alignments for bar plot layout.
         From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)
-    table : boolean, Series or DataFrame, default False
+    table : bool, Series or DataFrame, default False
         If True, draw a table using the data in the DataFrame and the data will
         be transposed to meet matplotlib's default layout.
         If a Series or DataFrame is passed, use passed data to draw a table.
@@ -1928,7 +1955,7 @@ _shared_docs['plot'] = """
         detail.
     xerr : same types as yerr.
     %(klass_unique)s
-    mark_right : boolean, default True
+    mark_right : bool, default True
         When using a secondary_y axis, automatically mark the column
         labels with "(right)" in the legend
     `**kwds` : keywords
@@ -1936,7 +1963,7 @@ _shared_docs['plot'] = """
 
     Returns
     -------
-    axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+    :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
     Notes
     -----
@@ -2026,7 +2053,7 @@ _shared_docs['boxplot'] = """
     rot : int or float, default 0
         The rotation angle of labels (in degrees)
         with respect to the screen coordinate system.
-    grid : boolean, default True
+    grid : bool, default True
         Setting this to True will show the grid.
     figsize : A tuple (width, height) in inches
         The size of the figure to create in matplotlib.
@@ -2051,18 +2078,8 @@ _shared_docs['boxplot'] = """
 
     Returns
     -------
-    result :
-
-        The return type depends on the `return_type` parameter:
-
-        * 'axes' : object of class matplotlib.axes.Axes
-        * 'dict' : dict of matplotlib.lines.Line2D objects
-        * 'both' : a namedtuple with structure (ax, lines)
-
-        For data grouped with ``by``:
-
-        * :class:`~pandas.Series`
-        * :class:`~numpy.array` (for ``return_type = None``)
+    result
+        See Notes.
 
     See Also
     --------
@@ -2071,6 +2088,18 @@ _shared_docs['boxplot'] = """
 
     Notes
     -----
+    The return type depends on the `return_type` parameter:
+
+    * 'axes' : object of class matplotlib.axes.Axes
+    * 'dict' : dict of matplotlib.lines.Line2D objects
+    * 'both' : a namedtuple with structure (ax, lines)
+
+    For data grouped with ``by``, return a Series of the above or a numpy
+    array:
+
+    * :class:`~pandas.Series`
+    * :class:`~numpy.array` (for ``return_type = None``)
+
     Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines
     making up the boxes, caps, fliers, medians, and whiskers is returned.
@@ -2272,7 +2301,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False,
 
     Returns
     -------
-    fig : matplotlib.Figure
+    matplotlib.Figure
     """
     import matplotlib.pyplot as plt
 
@@ -2321,7 +2350,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         If passed, will be used to limit data to a subset of columns.
     by : object, optional
         If passed, then used to form histograms for separate groups.
-    grid : boolean, default True
+    grid : bool, default True
         Whether to show axis grid lines.
     xlabelsize : int, default None
         If specified changes the x-axis label size.
@@ -2335,13 +2364,13 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         y labels rotated 90 degrees clockwise.
     ax : Matplotlib axes object, default None
         The axes to plot the histogram on.
-    sharex : boolean, default True if ax is None else False
+    sharex : bool, default True if ax is None else False
         In case subplots=True, share x axis and set some x axis labels to
         invisible; defaults to True if ax is None otherwise False if an ax
         is passed in.
         Note that passing in both an ax and sharex=True will alter all x axis
         labels for all subplots in a figure.
-    sharey : boolean, default False
+    sharey : bool, default False
         In case subplots=True, share y axis and set some y axis labels to
         invisible.
     figsize : tuple
@@ -2360,7 +2389,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
     Returns
     -------
-    axes : matplotlib.AxesSubplot or numpy.ndarray of them
+    matplotlib.AxesSubplot or numpy.ndarray of them
 
     See Also
     --------
@@ -2428,7 +2457,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         If passed, then used to form histograms for separate groups
     ax : matplotlib axis object
         If not passed, uses gca()
-    grid : boolean, default True
+    grid : bool, default True
         Whether to show axis grid lines
     xlabelsize : int, default None
         If specified changes the x-axis label size
@@ -2449,6 +2478,11 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         Number of histogram bins to be used
     `**kwds` : keywords
         To be passed to the actual plotting function
+
+    Returns
+    -------
+    matplotlib.AxesSubplot
+        A histogram plot.
 
     See Also
     --------
@@ -2510,15 +2544,15 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     bins : int, default 50
     figsize : tuple, optional
     layout : optional
-    sharex : boolean, default False
-    sharey : boolean, default False
+    sharex : bool, default False
+    sharey : bool, default False
     rot : int, default 90
     grid : bool, default True
     kwargs : dict, keyword arguments passed to matplotlib.Axes.hist
 
     Returns
     -------
-    axes : collection of Matplotlib Axes
+    collection of Matplotlib Axes
     """
     _raise_if_no_mpl()
     _converter._WARN = False
@@ -2549,7 +2583,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     Parameters
     ----------
     grouped : Grouped DataFrame
-    subplots :
+    subplots : bool
         * ``False`` - no subplots will be used
         * ``True`` - create a subplot for each group
     column : column name or list of names, or vector
@@ -2752,7 +2786,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
         Examples
         --------
@@ -2777,7 +2811,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='bar', **kwds)
 
@@ -2793,7 +2827,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='barh', **kwds)
 
@@ -2809,7 +2843,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='box', **kwds)
 
@@ -2827,7 +2861,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='hist', bins=bins, **kwds)
 
@@ -2886,7 +2920,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='area', **kwds)
 
@@ -2902,18 +2936,9 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='pie', **kwds)
-
-    def lag(self, *args, **kwds):
-        return misc.lag_plot(self._parent, *args, **kwds)
-
-    def autocorrelation(self, *args, **kwds):
-        return misc.autocorrelation_plot(self._parent, *args, **kwds)
-
-    def bootstrap(self, *args, **kwds):
-        return misc.bootstrap_plot(self._parent, *args, **kwds)
 
 
 class FramePlotMethods(BasePlotMethods):
@@ -2967,12 +2992,12 @@ class FramePlotMethods(BasePlotMethods):
             Either the location or the label of the columns to be used.
             By default, it will use the remaining DataFrame numeric columns.
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or :class:`numpy.ndarray`
-            Returns an ndarray when ``subplots=True``.
+        :class:`matplotlib.axes.Axes` or :class:`numpy.ndarray`
+            Return an ndarray when ``subplots=True``.
 
         See Also
         --------
@@ -3032,18 +3057,18 @@ class FramePlotMethods(BasePlotMethods):
             all numerical columns are used.
         **kwds
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.axes.Axes or np.ndarray of them
+        matplotlib.axes.Axes or np.ndarray of them
             An ndarray is returned with one :class:`matplotlib.axes.Axes`
             per column when ``subplots=True``.
 
         See Also
         --------
-        pandas.DataFrame.plot.barh : Horizontal bar plot.
-        pandas.DataFrame.plot : Make plots of a DataFrame.
+        DataFrame.plot.barh : Horizontal bar plot.
+        DataFrame.plot : Make plots of a DataFrame.
         matplotlib.pyplot.bar : Make a bar plot with matplotlib.
 
         Examples
@@ -3114,16 +3139,16 @@ class FramePlotMethods(BasePlotMethods):
         y : label or position, default All numeric columns in dataframe
             Columns to be plotted from the DataFrame.
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them.
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
         See Also
         --------
-        pandas.DataFrame.plot.bar: Vertical bar plot.
-        pandas.DataFrame.plot : Make plots of DataFrame using matplotlib.
+        DataFrame.plot.bar: Vertical bar plot.
+        DataFrame.plot : Make plots of DataFrame using matplotlib.
         matplotlib.axes.Axes.bar : Plot a vertical bar plot using matplotlib.
 
         Examples
@@ -3201,16 +3226,16 @@ class FramePlotMethods(BasePlotMethods):
             Column in the DataFrame to group by.
         **kwds : optional
             Additional keywords are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
         See Also
         --------
-        pandas.DataFrame.boxplot: Another method to draw a box plot.
-        pandas.Series.plot.box: Draw a box plot from a Series object.
+        DataFrame.boxplot: Another method to draw a box plot.
+        Series.plot.box: Draw a box plot from a Series object.
         matplotlib.pyplot.boxplot: Draw a box plot in matplotlib.
 
         Examples
@@ -3244,11 +3269,12 @@ class FramePlotMethods(BasePlotMethods):
             Number of histogram bins to be used.
         **kwds
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot histogram.
+        class:`matplotlib.AxesSubplot`
+            Return a histogram plot.
 
         See Also
         --------
@@ -3337,12 +3363,12 @@ class FramePlotMethods(BasePlotMethods):
             unstacked plot.
         **kwds : optional
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
         matplotlib.axes.Axes or numpy.ndarray
-            Area plot, or array of area plots if subplots is True
+            Area plot, or array of area plots if subplots is True.
 
         See Also
         --------
@@ -3408,11 +3434,11 @@ class FramePlotMethods(BasePlotMethods):
             Label or position of the column to plot.
             If not provided, ``subplots=True`` argument must be passed.
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.axes.Axes or np.ndarray of them.
+        matplotlib.axes.Axes or np.ndarray of them
             A NumPy array is returned when `subplots` is True.
 
         See Also
@@ -3484,11 +3510,11 @@ class FramePlotMethods(BasePlotMethods):
               marker points according to a colormap.
 
         **kwds
-            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
         See Also
         --------
@@ -3558,7 +3584,7 @@ class FramePlotMethods(BasePlotMethods):
             y-direction.
         **kwds
             Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -3610,16 +3636,3 @@ class FramePlotMethods(BasePlotMethods):
         if gridsize is not None:
             kwds['gridsize'] = gridsize
         return self(kind='hexbin', x=x, y=y, C=C, **kwds)
-
-    def scatter_matrix(self, *args, **kwds):
-        return misc.scatter_matrix(self._parent, *args, **kwds)
-
-    def andrews_curves(self, class_column, *args, **kwds):
-        return misc.andrews_curves(self._parent, class_column, *args, **kwds)
-
-    def parallel_coordinates(self, class_column, *args, **kwds):
-        return misc.parallel_coordinates(self._parent, class_column,
-                                         *args, **kwds)
-
-    def radviz(self, class_column, *args, **kwds):
-        return misc.radviz(self._parent, class_column, *args, **kwds)

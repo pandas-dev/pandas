@@ -2,11 +2,10 @@ import numpy as np
 
 from pandas._libs import algos as libalgos, index as libindex
 
-from pandas import compat
 import pandas.util.testing as tm
 
 
-class TestNumericEngine(object):
+class TestNumericEngine:
     def test_is_monotonic(self, numeric_indexing_engine_type_and_dtype):
         engine_type, dtype = numeric_indexing_engine_type_and_dtype
         num = 1000
@@ -69,7 +68,7 @@ class TestNumericEngine(object):
         arr = np.array([1, 5, 10], dtype=dtype)
         engine = engine_type(lambda: arr, len(arr))
 
-        new = np.array(compat.range(12), dtype=dtype)
+        new = np.arange(12, dtype=dtype)
         result = engine.get_backfill_indexer(new)
 
         expected = libalgos.backfill(arr, new)
@@ -82,14 +81,14 @@ class TestNumericEngine(object):
         arr = np.array([1, 5, 10], dtype=dtype)
         engine = engine_type(lambda: arr, len(arr))
 
-        new = np.array(compat.range(12), dtype=dtype)
+        new = np.arange(12, dtype=dtype)
         result = engine.get_pad_indexer(new)
 
         expected = libalgos.pad(arr, new)
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestObjectEngine(object):
+class TestObjectEngine:
     engine_type = libindex.ObjectEngine
     dtype = np.object_
     values = list('abc')
@@ -155,7 +154,7 @@ class TestObjectEngine(object):
         new = np.array(list('abcdefghij'), dtype=self.dtype)
         result = engine.get_backfill_indexer(new)
 
-        expected = libalgos.backfill_object(arr, new)
+        expected = libalgos.backfill["object"](arr, new)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_pad_indexer(self):
@@ -165,5 +164,5 @@ class TestObjectEngine(object):
         new = np.array(list('abcdefghij'), dtype=self.dtype)
         result = engine.get_pad_indexer(new)
 
-        expected = libalgos.pad_object(arr, new)
+        expected = libalgos.pad["object"](arr, new)
         tm.assert_numpy_array_equal(result, expected)

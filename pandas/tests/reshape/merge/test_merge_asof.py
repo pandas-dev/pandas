@@ -8,7 +8,7 @@ from pandas.core.reshape.merge import MergeError
 from pandas.util.testing import assert_frame_equal
 
 
-class TestAsOfMerge(object):
+class TestAsOfMerge:
 
     def read_data(self, datapath, name, dedupe=False):
         path = datapath('reshape', 'merge', 'data', name)
@@ -994,14 +994,25 @@ class TestAsOfMerge(object):
 
         assert_frame_equal(result, expected)
 
-    def test_merge_datatype_error(self):
-        """ Tests merge datatype mismatch error """
-        msg = r'merge keys \[0\] object and int64, must be the same type'
+    def test_merge_datatype_error_raises(self):
+        msg = r'incompatible merge keys \[0\] .*, must be the same type'
 
         left = pd.DataFrame({'left_val': [1, 5, 10],
                              'a': ['a', 'b', 'c']})
         right = pd.DataFrame({'right_val': [1, 2, 3, 6, 7],
                               'a': [1, 2, 3, 6, 7]})
+
+        with pytest.raises(MergeError, match=msg):
+            merge_asof(left, right, on='a')
+
+    def test_merge_datatype_categorical_error_raises(self):
+        msg = (r'incompatible merge keys \[0\] .* both sides category, '
+               'but not equal ones')
+
+        left = pd.DataFrame({'left_val': [1, 5, 10],
+                             'a': pd.Categorical(['a', 'b', 'c'])})
+        right = pd.DataFrame({'right_val': [1, 2, 3, 6, 7],
+                              'a': pd.Categorical(['a', 'X', 'c', 'X', 'b'])})
 
         with pytest.raises(MergeError, match=msg):
             merge_asof(left, right, on='a')
@@ -1022,3 +1033,17 @@ class TestAsOfMerge(object):
                 merge_asof(df_null, df, on='a')
             else:
                 merge_asof(df, df_null, on='a')
+
+    def test_merge_by_col_tz_aware(self):
+        # GH 21184
+        left = pd.DataFrame(
+            {'by_col': pd.DatetimeIndex(['2018-01-01']).tz_localize('UTC'),
+             'on_col': [2], 'values': ['a']})
+        right = pd.DataFrame(
+            {'by_col': pd.DatetimeIndex(['2018-01-01']).tz_localize('UTC'),
+             'on_col': [1], 'values': ['b']})
+        result = pd.merge_asof(left, right, by='by_col', on='on_col')
+        expected = pd.DataFrame([
+            [pd.Timestamp('2018-01-01', tz='UTC'), 2, 'a', 'b']
+        ], columns=['by_col', 'on_col', 'values_x', 'values_y'])
+        assert_frame_equal(result, expected)

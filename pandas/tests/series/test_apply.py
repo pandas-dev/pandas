@@ -1,14 +1,8 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from collections import Counter, OrderedDict, defaultdict
 from itertools import chain
 
 import numpy as np
 import pytest
-
-import pandas.compat as compat
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
@@ -17,7 +11,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestSeriesApply():
+class TestSeriesApply:
 
     def test_apply(self, datetime_series):
         with np.errstate(all='ignore'):
@@ -163,8 +157,20 @@ class TestSeriesApply():
         with tm.assert_produces_warning(FutureWarning):
             tsdf.A.agg({'foo': ['sum', 'mean']})
 
+    @pytest.mark.parametrize('series', [
+        ['1-1', '1-1', np.NaN],
+        ['1-1', '1-2', np.NaN]])
+    def test_apply_categorical_with_nan_values(self, series):
+        # GH 20714 bug fixed in: GH 24275
+        s = pd.Series(series, dtype='category')
+        result = s.apply(lambda x: x.split('-')[0])
+        result = result.astype(object)
+        expected = pd.Series(['1', '1', np.NaN], dtype='category')
+        expected = expected.astype(object)
+        tm.assert_series_equal(result, expected)
 
-class TestSeriesAggregate():
+
+class TestSeriesAggregate:
 
     def test_transform(self, string_series):
         # transforming functions
@@ -410,7 +416,7 @@ class TestSeriesAggregate():
             series.agg(func)
 
 
-class TestSeriesMap():
+class TestSeriesMap:
 
     def test_map(self, datetime_series):
         index, data = tm.getMixedTypeDict()
@@ -420,13 +426,13 @@ class TestSeriesMap():
 
         merged = target.map(source)
 
-        for k, v in compat.iteritems(merged):
+        for k, v in merged.items():
             assert v == source[target[k]]
 
         # input could be a dict
         merged = target.map(source.to_dict())
 
-        for k, v in compat.iteritems(merged):
+        for k, v in merged.items():
             assert v == source[target[k]]
 
         # function
@@ -492,7 +498,7 @@ class TestSeriesMap():
         assert not isna(merged['c'])
 
     def test_map_type_inference(self):
-        s = Series(lrange(3))
+        s = Series(range(3))
         s2 = s.map(lambda x: np.where(x == 0, 0, 1))
         assert issubclass(s2.dtype.type, np.integer)
 

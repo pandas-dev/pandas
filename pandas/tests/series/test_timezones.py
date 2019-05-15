@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for Series timezone-related methods
 """
@@ -10,14 +9,13 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
-from pandas.compat import lrange
 
 from pandas import DatetimeIndex, Index, NaT, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
 import pandas.util.testing as tm
 
 
-class TestSeriesTimezones(object):
+class TestSeriesTimezones:
     # -----------------------------------------------------------------
     # Series.tz_localize
     def test_series_tz_localize(self):
@@ -195,7 +193,7 @@ class TestSeriesTimezones(object):
 
         # mixed
         rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
-        rng2 = lrange(100)
+        rng2 = range(100)
         ser1 = Series(np.random.randn(len(rng1)), index=rng1)
         ser2 = Series(np.random.randn(len(rng2)), index=rng2)
         ts_result = ser1.append(ser2)
@@ -347,4 +345,28 @@ class TestSeriesTimezones(object):
         s = Series(range(len(idx)), index=idx)
         result = s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
         expected = Series([1, 2, 3], index=idx[1:4])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize('method, tz', [
+        ['tz_localize', None],
+        ['tz_convert', 'Europe/Berlin']
+    ])
+    def test_tz_localize_convert_copy_inplace_mutate(self, copy, method, tz):
+        # GH 6326
+        result = Series(np.arange(0, 5),
+                        index=date_range('20131027', periods=5, freq='1H',
+                                         tz=tz))
+        getattr(result, method)('UTC', copy=copy)
+        expected = Series(np.arange(0, 5),
+                          index=date_range('20131027', periods=5, freq='1H',
+                                           tz=tz))
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
+        # GH 25843
+        tz = tz_aware_fixture
+        result = Series([Timestamp('2019', tz=tz)],
+                        dtype='datetime64[ns]')
+        expected = Series([Timestamp('2019')])
         tm.assert_series_equal(result, expected)

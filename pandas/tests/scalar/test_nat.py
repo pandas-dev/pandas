@@ -9,7 +9,7 @@ import pandas.compat as compat
 
 from pandas import (
     DatetimeIndex, Index, NaT, Period, Series, Timedelta, TimedeltaIndex,
-    Timestamp)
+    Timestamp, isna)
 from pandas.core.arrays import PeriodArray
 from pandas.util import testing as tm
 
@@ -201,9 +201,10 @@ def _get_overlap_public_nat_methods(klass, as_tuple=False):
                  "fromtimestamp", "isocalendar", "isoformat", "isoweekday",
                  "month_name", "now", "replace", "round", "strftime",
                  "strptime", "time", "timestamp", "timetuple", "timetz",
-                 "to_datetime64", "to_pydatetime", "today", "toordinal",
-                 "tz_convert", "tz_localize", "tzname", "utcfromtimestamp",
-                 "utcnow", "utcoffset", "utctimetuple", "weekday"]),
+                 "to_datetime64", "to_numpy", "to_pydatetime", "today",
+                 "toordinal", "tz_convert", "tz_localize", "tzname",
+                 "utcfromtimestamp", "utcnow", "utcoffset", "utctimetuple",
+                 "weekday"]),
     (Timedelta, ["total_seconds"])
 ])
 def test_overlap_public_nat_methods(klass, expected):
@@ -339,3 +340,20 @@ def test_nat_arithmetic_td64_vector(op_name, box):
 def test_nat_pinned_docstrings():
     # see gh-17327
     assert NaT.ctime.__doc__ == datetime.ctime.__doc__
+
+
+def test_to_numpy_alias():
+    # GH 24653: alias .to_numpy() for scalars
+    expected = NaT.to_datetime64()
+    result = NaT.to_numpy()
+
+    assert isna(expected) and isna(result)
+
+
+@pytest.mark.parametrize("other", [
+    Timedelta(0), Timestamp(0)
+])
+def test_nat_comparisons(compare_operators_no_eq_ne, other):
+    # GH 26039
+    assert getattr(NaT, compare_operators_no_eq_ne)(other) is False
+    assert getattr(other, compare_operators_no_eq_ne)(NaT) is False

@@ -2,16 +2,14 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
-from collections import OrderedDict
+from collections import OrderedDict, abc
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
-import pandas.compat as compat
-from pandas.compat import (
-    get_range_parameters, lmap, lrange, raise_with_traceback, range)
+from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar, construct_1d_ndarray_preserving_na,
@@ -34,6 +32,7 @@ from pandas.core.index import (
 from pandas.core.indexes import base as ibase
 from pandas.core.internals import (
     create_block_manager_from_arrays, create_block_manager_from_blocks)
+from pandas.core.internals.arrays import extract_array
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -92,7 +91,7 @@ def masked_rec_array_to_mgr(data, index, columns, dtype, copy):
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, arr_columns, index, columns)
+    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype)
 
     if copy:
         mgr = mgr.copy()
@@ -196,18 +195,12 @@ def init_dict(data, index, columns, dtype=None):
             arrays.loc[missing] = [val] * missing.sum()
 
     else:
-
-        for key in data:
-            if (isinstance(data[key], ABCDatetimeIndex) and
-                    data[key].tz is not None):
-                # GH#24096 need copy to be deep for datetime64tz case
-                # TODO: See if we can avoid these copies
-                data[key] = data[key].copy(deep=True)
-
         keys = com.dict_keys_to_ordered_list(data)
         columns = data_names = Index(keys)
-        arrays = [data[k] for k in keys]
-
+        # GH#24096 need copy to be deep for datetime64tz case
+        # TODO: See if we can avoid these copies
+        arrays = [data[k] if not is_datetime64tz_dtype(data[k]) else
+                  data[k].copy(deep=True) for k in keys]
     return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
 
 
@@ -346,7 +339,7 @@ def get_names_from_index(data):
     if not has_some_name:
         return ibase.default_index(len(data))
 
-    index = lrange(len(data))
+    index = list(range(len(data)))
     count = 0
     for i, s in enumerate(data):
         n = getattr(s, 'name', None)
@@ -401,7 +394,7 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
-    elif isinstance(data[0], compat.Mapping):
+    elif isinstance(data[0], abc.Mapping):
         return _list_of_dict_to_arrays(data, columns,
                                        coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], ABCSeries):
@@ -420,7 +413,7 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
         return arrays, columns
     else:
         # last ditch effort
-        data = lmap(tuple, data)
+        data = [tuple(x) for x in data]
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
 
@@ -539,7 +532,6 @@ def sanitize_array(data, index, dtype=None, copy=False,
     Sanitize input data to an ndarray, copy if specified, coerce to the
     dtype if specified.
     """
-
     if dtype is not None:
         dtype = pandas_dtype(dtype)
 
@@ -552,8 +544,10 @@ def sanitize_array(data, index, dtype=None, copy=False,
         else:
             data = data.copy()
 
+    data = extract_array(data, extract_numpy=True)
+
     # GH#846
-    if isinstance(data, (np.ndarray, Index, ABCSeries)):
+    if isinstance(data, np.ndarray):
 
         if dtype is not None:
             subarr = np.array(data, copy=False)
@@ -616,8 +610,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
 
     elif isinstance(data, range):
         # GH#16804
-        start, stop, step = get_range_parameters(data)
-        arr = np.arange(start, stop, step, dtype='int64')
+        arr = np.arange(data.start, data.stop, data.step, dtype='int64')
         subarr = _try_cast(arr, False, dtype, copy, raise_cast_failure)
     else:
         subarr = _try_cast(data, False, dtype, copy, raise_cast_failure)
@@ -659,7 +652,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
-    if issubclass(subarr.dtype.type, compat.string_types):
+    if issubclass(subarr.dtype.type, str):
         # GH#16605
         # If not empty convert the data to dtype
         # GH#19853: If data is a scalar, subarr has already the result

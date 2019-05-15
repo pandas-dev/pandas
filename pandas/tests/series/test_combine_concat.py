@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime
 
 import numpy as np
@@ -8,16 +5,16 @@ from numpy import nan
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, compat, date_range
+from pandas import DataFrame, DatetimeIndex, Series, date_range
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestSeriesCombine(object):
+class TestSeriesCombine:
 
     def test_append(self, datetime_series, string_series, object_series):
         appendedSeries = string_series.append(object_series)
-        for idx, value in compat.iteritems(appendedSeries):
+        for idx, value in appendedSeries.items():
             if idx in string_series.index:
                 assert value == string_series[idx]
             elif idx in object_series.index:
@@ -25,8 +22,9 @@ class TestSeriesCombine(object):
             else:
                 raise AssertionError("orphaned index!")
 
-        pytest.raises(ValueError, datetime_series.append, datetime_series,
-                      verify_integrity=True)
+        msg = "Indexes have overlapping values:"
+        with pytest.raises(ValueError, match=msg):
+            datetime_series.append(datetime_series, verify_integrity=True)
 
     def test_append_many(self, datetime_series):
         pieces = [datetime_series[:5], datetime_series[5:10],
@@ -278,7 +276,7 @@ class TestSeriesCombine(object):
         assert_series_equal(rs, xp)
 
 
-class TestTimeseries(object):
+class TestTimeseries:
 
     def test_append_concat(self):
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T')

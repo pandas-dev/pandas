@@ -1,6 +1,7 @@
 import datetime
 from distutils.version import LooseVersion
 import glob
+from io import BytesIO
 import os
 from warnings import catch_warnings
 
@@ -8,14 +9,12 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY3, u
 from pandas.errors import PerformanceWarning
 
 import pandas
 from pandas import (
-    Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Panel, Period,
-    Series, Timestamp, bdate_range, compat, date_range, period_range)
-from pandas.tests.test_panel import assert_panel_equal
+    Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Period, Series,
+    Timestamp, bdate_range, date_range, period_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_categorical_equal, assert_frame_equal, assert_index_equal,
@@ -62,8 +61,6 @@ def check_arbitrary(a, b):
         assert(len(a) == len(b))
         for a_, b_ in zip(a, b):
             check_arbitrary(a_, b_)
-    elif isinstance(a, Panel):
-        assert_panel_equal(a, b)
     elif isinstance(a, DataFrame):
         assert_frame_equal(a, b)
     elif isinstance(a, Series):
@@ -74,7 +71,7 @@ def check_arbitrary(a, b):
         # Temp,
         # Categorical.categories is changed from str to bytes in PY3
         # maybe the same as GH 13591
-        if PY3 and b.categories.inferred_type == 'string':
+        if b.categories.inferred_type == 'string':
             pass
         else:
             tm.assert_categorical_equal(a, b)
@@ -88,7 +85,7 @@ def check_arbitrary(a, b):
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-class TestPackers(object):
+class TestPackers:
 
     def setup_method(self, method):
         self.path = '__%s__.msg' % tm.rands(10)
@@ -117,7 +114,7 @@ class TestAPI(TestPackers):
         tm.assert_frame_equal(result, df)
 
         s = df.to_msgpack()
-        result = read_msgpack(compat.BytesIO(s))
+        result = read_msgpack(BytesIO(s))
         tm.assert_frame_equal(result, df)
 
         s = to_msgpack(None, df)
@@ -151,14 +148,19 @@ class TestAPI(TestPackers):
 
     def test_invalid_arg(self):
         # GH10369
-        class A(object):
+        class A:
 
             def __init__(self):
                 self.read = 0
 
-        pytest.raises(ValueError, read_msgpack, path_or_buf=None)
-        pytest.raises(ValueError, read_msgpack, path_or_buf={})
-        pytest.raises(ValueError, read_msgpack, path_or_buf=A())
+        msg = (r"Invalid file path or buffer object type: <(class|type)"
+               r" '{}'>")
+        with pytest.raises(ValueError, match=msg.format('NoneType')):
+            read_msgpack(path_or_buf=None)
+        with pytest.raises(ValueError, match=msg.format('dict')):
+            read_msgpack(path_or_buf={})
+        with pytest.raises(ValueError, match=msg.format(r'.*\.A')):
+            read_msgpack(path_or_buf=A())
 
 
 class TestNumpy(TestPackers):
@@ -270,7 +272,7 @@ class TestNumpy(TestPackers):
                 x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
-        x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo'), np.bool_(1)]
+        x = [1.0, np.float32(3.5), np.complex128(4.25), 'foo', np.bool_(1)]
         x_rec = self.encode_decode(x)
         # current msgpack cannot distinguish list/tuple
         tm.assert_almost_equal(tuple(x), x_rec)
@@ -327,7 +329,7 @@ class TestBasic(TestPackers):
 class TestIndex(TestPackers):
 
     def setup_method(self, method):
-        super(TestIndex, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {
             'string': tm.makeStringIndex(100),
@@ -392,7 +394,7 @@ class TestIndex(TestPackers):
 class TestSeries(TestPackers):
 
     def setup_method(self, method):
-        super(TestSeries, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {}
 
@@ -442,7 +444,7 @@ class TestSeries(TestPackers):
 class TestCategorical(TestPackers):
 
     def setup_method(self, method):
-        super(TestCategorical, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {}
 
@@ -466,7 +468,7 @@ class TestCategorical(TestPackers):
 class TestNDFrame(TestPackers):
 
     def setup_method(self, method):
-        super(TestNDFrame, self).setup_method(method)
+        super().setup_method(method)
 
         data = {
             'A': [0., 1., 2., 3., np.nan],
@@ -485,22 +487,11 @@ class TestNDFrame(TestPackers):
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
             'mixed': DataFrame(data)}
 
-        self.panel = {
-            'float': Panel(dict(ItemA=self.frame['float'],
-                                ItemB=self.frame['float'] + 1))}
-
     def test_basic_frame(self):
 
         for s, i in self.frame.items():
             i_rec = self.encode_decode(i)
             assert_frame_equal(i, i_rec)
-
-    def test_basic_panel(self):
-
-        with catch_warnings(record=True):
-            for s, i in self.panel.items():
-                i_rec = self.encode_decode(i)
-                assert_panel_equal(i, i_rec)
 
     def test_multi(self):
 
@@ -567,7 +558,9 @@ class TestSparse(TestPackers):
         # currently these are not implemetned
         # i_rec = self.encode_decode(obj)
         # comparator(obj, i_rec, **kwargs)
-        pytest.raises(NotImplementedError, self.encode_decode, obj)
+        msg = r"msgpack sparse (series|frame) is not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            self.encode_decode(obj)
 
     def test_sparse_series(self):
 
@@ -617,7 +610,7 @@ class TestCompression(TestPackers):
         else:
             self._SQLALCHEMY_INSTALLED = True
 
-        super(TestCompression, self).setup_method(method)
+        super().setup_method(method)
         data = {
             'A': np.arange(1000, dtype=np.float64),
             'B': np.arange(1000, dtype=np.int32),
@@ -739,10 +732,10 @@ class TestCompression(TestPackers):
         # bad state where b'a' points to 98 == ord(b'b').
         char_unpacked[0] = ord(b'b')
 
-        # we compare the ord of bytes b'a' with unicode u'a' because the should
+        # we compare the ord of bytes b'a' with unicode 'a' because the should
         # always be the same (unless we were able to mutate the shared
         # character singleton in which case ord(b'a') == ord(b'b').
-        assert ord(b'a') == ord(u'a')
+        assert ord(b'a') == ord('a')
         tm.assert_numpy_array_equal(
             char_unpacked,
             np.array([ord(b'b')], dtype='uint8'),
@@ -806,9 +799,9 @@ class TestCompression(TestPackers):
 class TestEncoding(TestPackers):
 
     def setup_method(self, method):
-        super(TestEncoding, self).setup_method(method)
+        super().setup_method(method)
         data = {
-            'A': [compat.u('\u2019')] * 1000,
+            'A': ['\u2019'] * 1000,
             'B': np.arange(1000, dtype=np.int32),
             'C': list(100 * 'abcdefghij'),
             'D': date_range(datetime.datetime(2015, 4, 1), periods=1000),
@@ -825,12 +818,12 @@ class TestEncoding(TestPackers):
     def test_utf(self):
         # GH10581
         for encoding in self.utf_encodings:
-            for frame in compat.itervalues(self.frame):
+            for frame in self.frame.values():
                 result = self.encode_decode(frame, encoding=encoding)
                 assert_frame_equal(result, frame)
 
     def test_default_encoding(self):
-        for frame in compat.itervalues(self.frame):
+        for frame in self.frame.values():
             result = frame.to_msgpack()
             expected = frame.to_msgpack(encoding='utf8')
             assert result == expected
@@ -848,7 +841,7 @@ def legacy_packer(request, datapath):
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-class TestMsgpack(object):
+class TestMsgpack:
     """
     How to add msgpack tests:
 
@@ -869,6 +862,10 @@ TestPackers
 
     def check_min_structure(self, data, version):
         for typ, v in self.minimum_structure.items():
+            if typ == "panel":
+                # FIXME: kludge; get this key out of the legacy file
+                continue
+
             assert typ in data, '"{0}" not found in unpacked data'.format(typ)
             for kind in v:
                 msg = '"{0}" not found in data["{1}"]'.format(kind, typ)
@@ -880,6 +877,11 @@ TestPackers
             data = read_msgpack(vf, encoding='latin-1')
         else:
             data = read_msgpack(vf)
+
+        if "panel" in data:
+            # FIXME: kludge; get the key out of the stored file
+            del data["panel"]
+
         self.check_min_structure(data, version)
         for typ, dv in data.items():
             assert typ in all_data, ('unpacked data contains '
@@ -928,7 +930,7 @@ TestPackers
         version = os.path.basename(os.path.dirname(legacy_packer))
 
         # GH12142 0.17 files packed in P2 can't be read in P3
-        if (compat.PY3 and version.startswith('0.17.') and
+        if (version.startswith('0.17.') and
                 legacy_packer.split('.')[-4][-1] == '2'):
             msg = "Files packed in Py2 can't be read in Py3 ({})"
             pytest.skip(msg.format(version))

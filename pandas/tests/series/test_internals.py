@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime
 
 import numpy as np
@@ -13,7 +10,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
-class TestSeriesInternals(object):
+class TestSeriesInternals:
 
     def test_convert_objects(self):
 
@@ -293,7 +290,9 @@ class TestSeriesInternals(object):
 
     def test_convert_no_arg_error(self):
         s = Series(['1.0', '2'])
-        pytest.raises(ValueError, s._convert)
+        msg = r"At least one of datetime, numeric or timedelta must be True\."
+        with pytest.raises(ValueError, match=msg):
+            s._convert()
 
     def test_convert_preserve_bool(self):
         s = Series([1, True, 3, 5], dtype=object)
@@ -312,6 +311,28 @@ class TestSeriesInternals(object):
         result = pd.Series(ser.array)
         tm.assert_series_equal(ser, result)
         assert isinstance(result._data.blocks[0], IntBlock)
+
+    def test_astype_no_pandas_dtype(self):
+        # https://github.com/pandas-dev/pandas/pull/24866
+        ser = pd.Series([1, 2], dtype="int64")
+        # Don't have PandasDtype in the public API, so we use `.array.dtype`,
+        # which is a PandasDtype.
+        result = ser.astype(ser.array.dtype)
+        tm.assert_series_equal(result, ser)
+
+    def test_from_array(self):
+        result = pd.Series(pd.array(['1H', '2H'], dtype='timedelta64[ns]'))
+        assert result._data.blocks[0].is_extension is False
+
+        result = pd.Series(pd.array(['2015'], dtype='datetime64[ns]'))
+        assert result._data.blocks[0].is_extension is False
+
+    def test_from_list_dtype(self):
+        result = pd.Series(['1H', '2H'], dtype='timedelta64[ns]')
+        assert result._data.blocks[0].is_extension is False
+
+        result = pd.Series(['2015'], dtype='datetime64[ns]')
+        assert result._data.blocks[0].is_extension is False
 
 
 def test_hasnans_unchached_for_series():
