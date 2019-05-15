@@ -357,6 +357,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
 
+    _internal_get_values = get_values
+
     def tolist(self):
         return self._data.tolist()
 

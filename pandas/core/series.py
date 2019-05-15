@@ -505,7 +505,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         numpy.ndarray
             Data of the Series.
         """
-        warnings.warn("deprecated", FutureWarning, stacklevel=2)
+        raise Exception("USING GET_VALUES")
+        #warnings.warn("deprecated", FutureWarning, stacklevel=2)
         return self._data.get_values()
 
     @property

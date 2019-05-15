@@ -1507,6 +1507,8 @@ class Categorical(ExtensionArray, PandasObject):
                                                          fill_value=np.nan)
         return np.array(self)
 
+    _internal_get_values = get_values
+
     def check_for_ordered(self, op):
         """ assert that we are ordered """
         if not self.ordered:

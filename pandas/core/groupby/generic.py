@@ -1006,7 +1006,7 @@ class SeriesGroupBy(GroupBy):
         """
         ids, _, _ = self.grouper.group_info
 
-        val = self.obj.get_values()
+        val = self.obj._internal_get_values()
 
         try:
             sorter = np.lexsort((val, ids))
@@ -1080,7 +1080,7 @@ class SeriesGroupBy(GroupBy):
                               bins=bins)
 
         ids, _, _ = self.grouper.group_info
-        val = self.obj.get_values()
+        val = self.obj._internal_get_values()
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -1194,7 +1194,7 @@ class SeriesGroupBy(GroupBy):
             Count of values within each group.
         """
         ids, _, ngroups = self.grouper.group_info
-        val = self.obj.get_values()
+        val = self.obj._internal_get_values()
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)

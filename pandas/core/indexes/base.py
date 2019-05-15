@@ -3717,6 +3717,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.values
 
+    _internal_get_values = get_values
+
     @Appender(IndexOpsMixin.memory_usage.__doc__)
     def memory_usage(self, deep=False):
         result = super().memory_usage(deep=deep)

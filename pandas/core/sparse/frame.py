@@ -683,7 +683,7 @@ class SparseDataFrame(DataFrame):
             if col not in self:
                 continue
             if row_indexer is not None:
-                new_arrays[col] = algos.take_1d(self[col].get_values(),
+                new_arrays[col] = algos.take_1d(self[col]._internal_get_values(),
                                                 row_indexer,
                                                 fill_value=fill_value)
             else:
