@@ -2208,10 +2208,6 @@ cdef class _Period:
     def now(cls, freq=None):
         return Period(datetime.now(), freq=freq)
 
-    # HACK IT UP AND YOU BETTER FIX IT SOON
-    def __str__(self):
-        return self.__unicode__()
-
     @property
     def freqstr(self):
         return self.freq.freqstr
@@ -2221,9 +2217,9 @@ cdef class _Period:
         formatted = period_format(self.ordinal, base)
         return "Period('%s', '%s')" % (formatted, self.freqstr)
 
-    def __unicode__(self):
+    def __str__(self):
         """
-        Return a unicode string representation for a particular DataFrame
+        Return a string representation for a particular DataFrame
         """
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
