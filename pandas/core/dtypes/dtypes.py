@@ -126,14 +126,11 @@ class PandasExtensionDtype(ExtensionDtype):
     isnative = 0
     _cache = {}  # type: Dict[str_type, 'PandasExtensionDtype']
 
-    def __unicode__(self):
-        return self.name
-
     def __str__(self):
         """
         Return a string representation for a particular Object
         """
-        return self.__unicode__()
+        return self.name
 
     def __bytes__(self):
         """
@@ -142,7 +139,7 @@ class PandasExtensionDtype(ExtensionDtype):
         from pandas._config import get_option
 
         encoding = get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
+        return str(self).encode(encoding, 'replace')
 
     def __repr__(self):
         """
@@ -707,7 +704,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         raise TypeError("Could not construct DatetimeTZDtype")
 
-    def __unicode__(self):
+    def __str__(self):
         return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
 
     @property
@@ -837,12 +834,12 @@ class PeriodDtype(PandasExtensionDtype):
                 pass
         raise TypeError("could not construct PeriodDtype")
 
-    def __unicode__(self):
-        return str(self.name)
+    def __str__(self):
+        return self.name
 
     @property
     def name(self):
-        return str("period[{freq}]".format(freq=self.freq.freqstr))
+        return "period[{freq}]".format(freq=self.freq.freqstr)
 
     @property
     def na_value(self):
@@ -1007,7 +1004,7 @@ class IntervalDtype(PandasExtensionDtype):
     def type(self):
         return Interval
 
-    def __unicode__(self):
+    def __str__(self):
         if self.subtype is None:
             return "interval"
         return "interval[{subtype}]".format(subtype=self.subtype)
