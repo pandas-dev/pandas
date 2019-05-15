@@ -227,7 +227,7 @@ From dense to sparse, use :meth:`DataFrame.astype` with a :class:`SparseDtype`.
 
    dense = pd.DataFrame({"A": [1, 0, 0, 1]})
    dtype = pd.SparseDtype(int, fill_value=0)
-   dense.astype(dtype)['A
+   dense.astype(dtype)
 
 **Sparse Properties**
 
@@ -281,6 +281,7 @@ A :meth:`SparseSeries.to_coo` method is implemented for transforming a ``SparseS
 The method requires a ``MultiIndex`` with two or more levels.
 
 .. ipython:: python
+   :okwarning:
 
    s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
    s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
@@ -336,6 +337,7 @@ The default behaviour (with ``dense_index=False``) simply returns a ``SparseSeri
 only the non-null entries.
 
 .. ipython:: python
+   :okwarning:
 
    ss = pd.SparseSeries.from_coo(A)
    ss
@@ -345,6 +347,7 @@ row and columns coordinates of the matrix. Note that this will consume a signifi
 (relative to ``dense_index=False``) if the sparse matrix is large (and sparse) enough.
 
 .. ipython:: python
+   :okwarning:
 
    ss_dense = pd.SparseSeries.from_coo(A, dense_index=True)
    ss_dense
