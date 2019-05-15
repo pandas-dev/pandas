@@ -33,6 +33,7 @@ from pandas.util._validators import (validate_bool_kwarg,
 
 from pandas.compat import PY36, raise_with_traceback
 from pandas.compat.numpy import function as nv
+from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -8027,6 +8028,7 @@ class DataFrame(NDFrame):
     plot = CachedAccessor("plot", gfx.FramePlotMethods)
     hist = gfx.hist_frame
     boxplot = gfx.boxplot_frame
+    sparse = CachedAccessor("sparse", SparseFrameAccessor)
 
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
