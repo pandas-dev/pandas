@@ -491,7 +491,7 @@ class RangeIndex(Int64Index):
         union : Index
         """
         if not len(other) or self.equals(other) or not len(self):
-            return super(RangeIndex, self)._union(other, sort=sort)
+            return super()._union(other, sort=sort)
 
         if isinstance(other, RangeIndex) and sort is None:
             start_s, step_s = self._start, self._step

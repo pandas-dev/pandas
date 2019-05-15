@@ -453,7 +453,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     def _union(self, other, sort):
         if not len(other) or self.equals(other) or not len(self):
-            return super(DatetimeIndex, self)._union(other, sort=sort)
+            return super()._union(other, sort=sort)
 
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super().union(other, sort=sort)
