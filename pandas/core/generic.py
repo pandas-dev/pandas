@@ -5441,6 +5441,9 @@ class NDFrame(PandasObject, SelectionMixin):
                [nan,  2.],
                [nan,  3.]])
         """
+        raise Exception("USING GET_VALUES")
+
+    def _internal_get_values(self):
         return self.values
 
     def get_dtype_counts(self):
