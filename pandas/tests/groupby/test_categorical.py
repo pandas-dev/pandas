@@ -433,6 +433,35 @@ def test_observed_groups_with_nan(observed):
     tm.assert_dict_equal(result, expected)
 
 
+def test_observed_ops(agg_func):
+    cat = pd.Categorical(['a', np.nan, np.nan], categories=['a', 'b', 'c'])
+    ser = pd.Series([1., 2., 3.])
+    df = pd.DataFrame({'cat': cat, 'ser': ser})
+
+    grp = df.groupby('cat', observed=False)['ser']
+    func = getattr(grp, agg_func)
+
+    if agg_func == 'nth':  # Need an argument
+        result = func(0)
+    else:
+        result = func()
+
+    if agg_func == 'sum':  # TODO: maybe a bug?
+        expected_vals = [1., 0., 0.]
+    elif agg_func == 'prod':  # TODO: Definitely seems like a bug
+        expected_vals = [1., 1., 1.]
+    elif agg_func == 'var':
+        expected_vals = [np.nan, np.nan, np.nan]
+    else:
+        expected_vals = [1., np.nan, np.nan]
+
+    index = pd.Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c'])
+    expected = pd.Series(expected_vals, index=index, name='ser')
+    expected.index.name = 'cat'
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_dataframe_categorical_with_nan(observed):
     # GH 21151
     s1 = pd.Categorical([np.nan, 'a', np.nan, 'a'],
