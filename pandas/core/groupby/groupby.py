@@ -42,7 +42,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
@@ -839,6 +839,7 @@ b  2""")
     def _cython_agg_general(self, how, alt=None, numeric_only=True,
                             min_count=-1):
         output = {}
+
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
@@ -1707,7 +1708,12 @@ class GroupBy(_GroupBy):
             if not self.as_index:
                 return out
 
-            out.index = self.grouper.result_index[ids[mask]]
+            result_index = self.grouper.result_index
+            out.index = result_index[ids[mask]]
+
+            if not self.observed and isinstance(
+                    result_index, CategoricalIndex):
+                out = out.reindex(result_index)
 
             return out.sort_index() if self.sort else out
 
