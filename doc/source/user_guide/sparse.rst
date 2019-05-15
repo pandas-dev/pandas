@@ -201,7 +201,9 @@ From a SciPy sparse matrix, use :meth:`DataFrame.sparse.from_spmatrix`,
 .. code-block:: python
 
    # Old way
-   df = pd.SparseDataFrame(sp_matrix, columns=['A', 'B', 'C'])
+   >>> from scipy import sparse
+   >>> mat = sparse.eye(3)
+   >>> df = pd.SparseDataFrame(mat, columns=['A', 'B', 'C'])
 
 .. ipython:: python
 
