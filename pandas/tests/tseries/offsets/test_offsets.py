@@ -1287,7 +1287,7 @@ class TestBusinessHour(Base):
         datetime(2014, 7, 7, 19, 30): datetime(2014, 7, 5, 4, 30),
         datetime(2014, 7, 7, 19, 30, 30): datetime(2014, 7, 5, 4, 30, 30)}))
 
-    # long business hours
+    # long business hours (see gh-26381)
     apply_cases.append((BusinessHour(n=4, start='00:00', end='23:00'), {
         datetime(2014, 7, 3, 22): datetime(2014, 7, 4, 3),
         datetime(2014, 7, 4, 22): datetime(2014, 7, 7, 3),
