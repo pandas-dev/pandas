@@ -3,6 +3,7 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 
+from typing import Tuple
 import warnings
 
 import numpy as np
@@ -84,7 +85,8 @@ class Grouper:
 
     >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
     """
-    _attributes = ('key', 'level', 'freq', 'axis', 'sort')
+    _attributes = ('key', 'level', 'freq', 'axis',
+                   'sort')  # type: Tuple[str, ...]
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get('freq') is not None:
