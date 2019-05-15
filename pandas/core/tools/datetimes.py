@@ -557,16 +557,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     4    3/12/2000
     dtype: object
 
-    >>> import timeit
-    >>> timeit.timeit(
-    ...    lambda: pd.to_datetime(s, infer_datetime_format=True),
-    ...    number = 1)  # doctest: +SKIP
-    0.007785393000000029
+    >>> %timeit pd.to_datetime(s,infer_datetime_format=True)  # doctest: +SKIP
+    100 loops, best of 3: 10.4 ms per loop
 
-    >>> timeit.timeit(
-    ...    lambda: pd.to_datetime(s, infer_datetime_format=False),
-    ...    number = 1)  # doctest: +SKIP
-    0.21016200499999993
+    >>> %timeit pd.to_datetime(s,infer_datetime_format=False)  # doctest: +SKIP
+    1 loop, best of 3: 471 ms per loop
 
     Using a unix epoch time
 
