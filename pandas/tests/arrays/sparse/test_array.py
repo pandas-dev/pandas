@@ -615,7 +615,7 @@ class TestSparseArray:
         [1, np.nan, np.nan, 3, np.nan],
         [1, np.nan, 0, 3, 0],
     ])
-    @pytest.mark.parametrize("method", ["to_dense", "get_values"])
+    @pytest.mark.parametrize("method", ["to_dense"])  # , "get_values"])
     @pytest.mark.parametrize("fill_value", [None, 0])
     def test_dense_repr(self, vals, fill_value, method):
         vals = np.array(vals)
