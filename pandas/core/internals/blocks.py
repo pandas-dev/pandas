@@ -3035,6 +3035,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
         values = values.to_numpy()
+
     if isinstance(dtype, PandasDtype):
         dtype = dtype.numpy_dtype
 

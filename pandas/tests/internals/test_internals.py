@@ -1310,3 +1310,12 @@ def test_make_block_no_pandas_array():
     result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
     assert result.is_integer is True
     assert result.is_extension is False
+
+
+def test_add_column_with_pandas_array():
+    # GH 26390
+    df = pd.DataFrame({'a': [1, 2, 3, 4], 'b': ['a', 'b', 'c', 'd']})
+    df['c'] = pd.array([1, 2, None, 3])
+    df2 = pd.DataFrame({'a': [1, 2, 3, 4], 'b': ['a', 'b', 'c', 'd'],
+                        'c': pd.array([1, 2, None, 3])})
+    assert_frame_equal(df, df2)
