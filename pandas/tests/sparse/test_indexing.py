@@ -602,7 +602,7 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
 
 
 @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-class TestSparseDataFrameIndexing(object):
+class TestSparseDataFrameIndexing:
 
     def test_getitem(self):
         orig = pd.DataFrame([[1, np.nan, np.nan],

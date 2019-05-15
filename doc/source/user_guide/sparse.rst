@@ -172,14 +172,14 @@ use the python warnings module to control warnings. If you wish to ignore the wa
 
    >>> import warnings
 
-   >>> warnings.filterwarnings('ignore', 'Sparse', FutureWarning
+   >>> warnings.filterwarnings('ignore', 'Sparse', FutureWarning)
    >>> pd.SparseSeries()  # No warning message
    Series([], dtype: Sparse[float64, nan])
    BlockIndex
    Block locations: array([], dtype=int32)
    Block lengths: array([], dtype=int32)
 
-But we recommend modifying your code, rather than ignoring the warning.l
+But we recommend modifying your code, rather than ignoring the warning.
 
 **Construction**
 

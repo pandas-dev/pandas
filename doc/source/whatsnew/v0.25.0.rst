@@ -226,6 +226,7 @@ Deprecations
 
 - Deprecated the ``units=M`` (months) and ``units=Y`` (year) parameters for ``units`` of :func:`pandas.to_timedelta`, :func:`pandas.Timedelta` and :func:`pandas.TimedeltaIndex` (:issue:`16344`)
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
+- The ``SparseSeries`` and ``SparseDataFrame`` subclasses are deprecated. Use a ``DataFrame`` or ``Series`` with sparse values instead. See :ref:`sparse.migration` for more (:issue:`19239`).
 
 .. _whatsnew_0250.prior_deprecations:
 
