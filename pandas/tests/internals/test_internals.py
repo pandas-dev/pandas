@@ -17,7 +17,8 @@ from pandas import (
     SparseArray)
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, TimedeltaArray
-from pandas.core.internals import BlockManager, SingleBlockManager, make_block
+from pandas.core.internals import (
+    BlockManager, ObjectBlock, SingleBlockManager, make_block)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal, randn)
@@ -1318,4 +1319,6 @@ def test_add_column_with_pandas_array():
     df['c'] = pd.array([1, 2, None, 3])
     df2 = pd.DataFrame({'a': [1, 2, 3, 4], 'b': ['a', 'b', 'c', 'd'],
                         'c': pd.array([1, 2, None, 3])})
+    assert(df2['c']._data.blocks[0].__class__ == ObjectBlock)
+    assert(df['c']._data.blocks[0].__class__ == ObjectBlock)
     assert_frame_equal(df, df2)

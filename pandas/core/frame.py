@@ -3620,11 +3620,6 @@ class DataFrame(NDFrame):
             value = cast_scalar_to_array(len(self.index), value)
             value = maybe_cast_to_datetime(value, infer_dtype)
 
-        # convert pandas array to numpy array
-        if isinstance(value, ABCPandasArray):
-            value = value.to_numpy()
-            return np.atleast_2d(np.asarray(value))
-
         # return internal types directly
         if is_extension_type(value) or is_extension_array_dtype(value):
             return value
