@@ -12,7 +12,9 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
-from typing import FrozenSet, List, Optional, Tuple, Type, Union
+from typing import (
+    Callable, FrozenSet, Generator, List, Optional, Sequence, Tuple, Type,
+    Union)
 import warnings
 
 import numpy as np
@@ -45,6 +47,7 @@ from pandas.core.groupby import base
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
+from pandas._typing import Axis, Level
 
 _common_see_also = """
         See Also
@@ -314,7 +317,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def _group_selection_context(groupby):
+def _group_selection_context(groupby: 'GroupBy'):
     """
     Set / reset the _group_selection_context.
     """
@@ -327,10 +330,20 @@ class _GroupBy(PandasObject, SelectionMixin):
     _group_selection = None
     _apply_whitelist = frozenset()  # type: FrozenSet[str]
 
-    def __init__(self, obj, keys=None, axis=0, level=None,
-                 grouper=None, exclusions=None, selection=None, as_index=True,
-                 sort=True, group_keys=True, squeeze=False,
-                 observed=False, **kwargs):
+    def __init__(self,
+                 obj,
+                 keys=None,
+                 axis: Axis = 0,
+                 level: Level = None,
+                 grouper=None,
+                 exclusions=None,
+                 selection=None,
+                 as_index: bool = True,
+                 sort: bool = True,
+                 group_keys=True,
+                 squeeze: bool = False,
+                 observed: bool = False,
+                 **kwargs):
 
         self._selection = selection
 
@@ -2306,12 +2319,16 @@ GroupBy._add_numeric_operations()
 
 
 @Appender(GroupBy.__doc__)
-def groupby(obj, by, **kwds):
+def groupby(
+        obj: Union[DataFrame, Series],
+        by: Union[str, Callable, Series, Sequence],
+        **kwds):
+    from pandas.core.groupby.generic import DataFrameGroupBy, SeriesGroupBy
+
     if isinstance(obj, Series):
-        from pandas.core.groupby.generic import SeriesGroupBy
-        klass = SeriesGroupBy
+        klass = SeriesGroupBy  \
+            # type: Type[Union[DataFrameGroupBy, SeriesGroupBy]]
     elif isinstance(obj, DataFrame):
-        from pandas.core.groupby.generic import DataFrameGroupBy
         klass = DataFrameGroupBy
     else:  # pragma: no cover
         raise TypeError('invalid type: {}'.format(obj))

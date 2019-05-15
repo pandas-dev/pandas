@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, AnyStr, Type, Union
+from typing import IO, AnyStr, List, Type, Union
 
 import numpy as np
 
@@ -14,3 +14,8 @@ ArrayLike = Union[ABCExtensionArray, np.ndarray]
 DatetimeLikeScalar = Type[Union[Period, Timestamp, Timedelta]]
 Dtype = Union[str, np.dtype, ExtensionDtype]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
+
+
+# Common Keyword Arguments
+Axis = Union[str, int]
+Level = Union[int, List[int]]
