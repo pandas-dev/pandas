@@ -154,6 +154,37 @@ Providing any ``SparseSeries`` or ``SparseDataFrame`` to :func:`concat` will
 cause a ``SparseSeries`` or ``SparseDataFrame`` to be returned, as before.
 
 
+``DataFrame`` groupby ffill/bfill no longer return group labels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The methods ``ffill``, ``bfill``, ``pad`` and ``backfill`` of
+:class:`DataFrameGroupBy <pandas.core.groupby.DataFrameGroupBy>`
+previously included the group labels in the return value, which was
+inconsistent with other groupby transforms. Now only the filled values
+are returned. (:issue:`21521`)
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
+    df
+
+*Previous Behaviour*:
+
+.. code-block:: python
+
+   In [3]: df.groupby("a").ffill()
+   Out[3]:
+      a  b
+   0  x  1
+   1  y  2
+
+*New Behaviour*:
+
+.. ipython:: python
+
+    df.groupby("a").ffill()
+
+
 .. _whatsnew_0250.api_breaking.deps:
 
 Increased minimum versions for dependencies

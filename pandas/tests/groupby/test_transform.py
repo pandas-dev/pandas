@@ -749,7 +749,7 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
         assert_series_equal(result, exp)
     else:
         result = getattr(df.groupby('key'), fill_method)(limit=limit)
-        exp = DataFrame({'key': keys, 'val': _exp_vals})
+        exp = DataFrame({'val': _exp_vals})
         assert_frame_equal(result, exp)
 
 
@@ -763,7 +763,7 @@ def test_pad_stable_sorting(fill_method):
         y = y[::-1]
 
     df = pd.DataFrame({'x': x, 'y': y})
-    expected = df.copy()
+    expected = df.drop('x', 1)
 
     result = getattr(df.groupby('x'), fill_method)()
 
@@ -789,7 +789,7 @@ def test_pct_change(test_series, freq, periods, fill_method, limit):
     df = DataFrame({'key': key_v, 'vals': vals * 2})
 
     df_g = getattr(df.groupby('key'), fill_method)(limit=limit)
-    grp = df_g.groupby('key')
+    grp = df_g.groupby(df.key)
 
     expected = grp['vals'].obj / grp['vals'].shift(periods) - 1
 
@@ -880,3 +880,14 @@ def test_transform_absent_categories(func):
     result = getattr(df.y.groupby(df.x), func)()
     expected = df.y
     assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('func', ['ffill', 'bfill', 'shift'])
+@pytest.mark.parametrize('key, val', [('level', 0), ('by', Series([0]))])
+def test_ffill_not_in_axis(func, key, val):
+    # GH 21521
+    df = pd.DataFrame([[np.nan]])
+    result = getattr(df.groupby(**{key: val}), func)()
+    expected = df
+
+    assert_frame_equal(result, expected)
