@@ -1,11 +1,17 @@
+from typing import Optional, Tuple
+
 import numpy as np
 
 from pandas.core.algorithms import unique1d
 from pandas.core.arrays.categorical import (
     Categorical, CategoricalDtype, _recode_for_categories)
+from pandas.core.dtypes.generic import ABCCategoricalIndex
 
 
-def recode_for_groupby(c, sort, observed):
+def recode_for_groupby(c: Categorical,
+                       sort: bool,
+                       observed: bool) -> Tuple[Categorical,
+                                                Optional[Categorical]]:
     """
     Code the categories to ensure we can groupby for categoricals.
 
@@ -74,7 +80,9 @@ def recode_for_groupby(c, sort, observed):
     return c.reorder_categories(cat.categories), None
 
 
-def recode_from_groupby(c, sort, ci):
+def recode_from_groupby(c: Categorical,
+                        sort: bool,
+                        ci: ABCCategoricalIndex) -> ABCCategoricalIndex:
     """
     Reverse the codes_to_groupby to account for sort / observed.
 
