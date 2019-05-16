@@ -1145,6 +1145,15 @@ class TestSeriesAnalytics:
         with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
 
+    def test_compound_deprecated(self):
+        s = Series([.1, .2, .3, .4])
+        with tm.assert_produces_warning(FutureWarning):
+            s.compound()
+
+        df = pd.DataFrame({'s': s})
+        with tm.assert_produces_warning(FutureWarning):
+            df.compound()
+
 
 main_dtypes = [
     'datetime',
