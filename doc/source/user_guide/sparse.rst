@@ -237,12 +237,12 @@ In a SparseDataFrame, *all* columns were sparse. A :class:`DataFrame` can have a
 sparse and dense columns. As a consequence, assigning new columns to a DataFrame with sparse
 values will not automatically convert the input to be sparse.
 
-.. code-block::
+.. code-block:: python
 
    # Previous Way
-   df = pd.SparseDataFrame({"A": [0, 1]})
-   df['B'] = [0, 0]  # implicitly becomes Sparse
-   df['B'].dtype
+   >>> df = pd.SparseDataFrame({"A": [0, 1]})
+   >>> df['B'] = [0, 0]  # implicitly becomes Sparse
+   >>> df['B'].dtype
    Sparse[int64, nan]
 
 Instead, you'll need to ensure that the values being assigned are sparse
