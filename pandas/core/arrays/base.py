@@ -370,6 +370,8 @@ class ExtensionArray:
         ndarray
             The transformed values should maintain the ordering between values
             within the array.
+        ndarray
+            The mask which indicates the NaN values.
 
         See Also
         --------
