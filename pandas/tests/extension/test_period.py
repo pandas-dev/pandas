@@ -41,12 +41,6 @@ def data_missing_for_sorting(dtype):
 
 
 @pytest.fixture
-def data_multiple_nan(dtype):
-    return PeriodArray([2005, 2004, iNaT, 2001, iNaT, iNaT,
-                        2006, 2003, iNaT, 2002], freq=dtype.freq)
-
-
-@pytest.fixture
 def data_for_grouping(dtype):
     B = 2018
     NA = iNaT

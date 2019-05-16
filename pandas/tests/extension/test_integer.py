@@ -58,12 +58,6 @@ def data_for_sorting(dtype):
 
 
 @pytest.fixture
-def data_multiple_nan(dtype):
-    return integer_array([5, 4, np.nan, 1, np.nan,
-                          np.nan, 6, 3, np.nan, 2], dtype=dtype)
-
-
-@pytest.fixture
 def data_missing_for_sorting(dtype):
     return integer_array([1, np.nan, 0], dtype=dtype)
 

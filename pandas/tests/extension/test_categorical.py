@@ -69,12 +69,6 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def data_multiple_nan():
-    return Categorical(['E', 'D', None, 'A', None,
-                        None, 'F', 'C', None, 'B'], ordered=True)
-
-
-@pytest.fixture
 def na_value():
     return np.nan
 

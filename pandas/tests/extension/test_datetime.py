@@ -46,15 +46,6 @@ def data_missing_for_sorting(dtype):
 
 
 @pytest.fixture
-def data_multiple_nan(dtype):
-    idx = pd.date_range(start='2000-01-01', end='2000-01-06')
-    return DatetimeArray(np.array([idx[4], idx[3], 'NaT', idx[0], 'NaT',
-                                   'NaT', idx[5], idx[2], 'NaT', idx[1]],
-                                  dtype='datetime64[ns]'),
-                         dtype=dtype)
-
-
-@pytest.fixture
 def data_for_grouping(dtype):
     """
         Expected to be like [B, B, NA, NA, A, A, B, C]
