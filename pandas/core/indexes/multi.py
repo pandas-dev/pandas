@@ -257,7 +257,7 @@ class MultiIndex(Index):
     def _reassign_na_codes(cls, level, code):
         null_mask = isna(level)
         if np.any(null_mask):
-            code = np.where((code == -1) | null_mask[code], -1, code)
+            code = np.where(null_mask[code], -1, code)
         return code
 
     def _verify_integrity(self, codes=None, levels=None):
