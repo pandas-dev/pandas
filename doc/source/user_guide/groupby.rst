@@ -613,7 +613,9 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "keyword aggregation
 
 - The keywords are the *output* column names
 - The values are tuples whose first element is the column to select
-  and the second element is the function to apply to that column.
+  and the second element is the function to apply to that column. Pandas
+  provides the ``pandas.Agg`` namedtuple with the fields ``['column', 'aggfunc']``
+  to make it clearer what the arguments are.
 
 .. ipython:: python
 
@@ -623,8 +625,8 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "keyword aggregation
    animals
 
    animals.groupby("kind").agg(
-       min_height=('height', 'min'),
-       max_height=('height', 'max'),
+       min_height=pd.Agg(column='height', aggfunc='min')),
+       max_height=pd.Agg(column='height', aggfunc='max')),
        average_weight=('height', np.mean),
    )
 
@@ -634,7 +636,7 @@ and unpack the keyword arguments
 .. ipython:: python
 
    animals.groupby("kind").agg(**{
-       'total weight': ('weight', sum),
+       'total weight': pd.Agg(column='weight', aggfunc=sum)),
    })
 
 Additional keyword arguments are not passed through to the aggregation functions. Only pairs

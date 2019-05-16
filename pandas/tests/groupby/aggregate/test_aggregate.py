@@ -402,3 +402,11 @@ class TestKeywordAggregation:
         df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
         with pytest.raises(KeyError, match="Column 'C' does not exist"):
             df.groupby("A").agg(c=('C', 'sum'))
+
+    def test_agg_namedtuple(self):
+        df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
+        result = df.groupby("A").agg(b=pd.Agg("B", "sum"),
+                                     c=pd.Agg(column="B", aggfunc="count"))
+        expected = df.groupby("A").agg(b=("B", "sum"),
+                                       c=("B", "count"))
+        tm.assert_frame_equal(result, expected)

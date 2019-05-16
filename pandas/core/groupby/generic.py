@@ -6,7 +6,7 @@ These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
 
-from collections import OrderedDict, abc
+from collections import OrderedDict, abc, namedtuple
 import copy
 from functools import partial
 from textwrap import dedent
@@ -41,6 +41,8 @@ from pandas.core.series import Series
 from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting._core import boxplot_frame_groupby
+
+Agg = namedtuple("NamedAgg", ["column", "aggfunc"])
 
 
 class NDFrameGroupBy(GroupBy):
@@ -1326,14 +1328,21 @@ class DataFrameGroupBy(NDFrameGroupBy):
     2   3   4  0.704907
 
     To control the output names with different aggregations
-    per column, pass tuples of ``(column, aggfunc))`` as kwargs
+    per column, pass supports "keyword aggregation"
 
-    >>> df.groupby("A").agg(b_min=("B", "min"), c_sum=("C", "sum"))
-    >>>
-           b_min     c_sum
+    >>> df.groupby("A").agg(
+    ...     b_min=pd.Agg(column="B", aggfunc="min"),
+    ...     c_sum=pd.Agg(column="C", aggfunc="sum"))
+       b_min     c_sum
     A
-    1      1  0.825627
-    2      3  2.218618
+    1      1 -1.956929
+    2      3 -0.322183
+
+    The keywords are the column names, and the values should be
+    2-tuples where the first element is the column selection and
+    the second element is the aggfunc. Pandas provides the
+    ``pandas.Agg`` namedtuple to clarify the meaning of the values.
+    See :ref:`groupby.aggregate.keyword` for more.
     """)
 
     @Substitution(see_also=_agg_see_also_doc,
