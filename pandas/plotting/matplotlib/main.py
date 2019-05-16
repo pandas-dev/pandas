@@ -1,9 +1,9 @@
-from collections import namedtuple
 import re
 from typing import Optional  # noqa
 import warnings
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from pandas._config import get_option
 
@@ -13,7 +13,7 @@ from pandas.util._decorators import cache_readonly
 import pandas.core.common as com
 from pandas.core.dtypes.common import (
     is_hashable, is_integer, is_iterator, is_list_like, is_number)
-from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCPeriodIndex, ABCSeries)
 
@@ -23,21 +23,11 @@ from pandas.plotting._style import _get_standard_colors, plot_params
 from pandas.plotting._tools import (
     _flatten, _get_all_lines, _get_xlim, _handle_shared_axes, _subplots,
     format_date_labels, table)
-
-try:
-    from pandas.plotting import _converter
-except ImportError:
-    _HAS_MPL = False
-else:
-    _HAS_MPL = True
-    if get_option('plotting.matplotlib.register_converters'):
-        _converter.register(explicit=False)
+from pandas.plotting import _converter
 
 
-def _raise_if_no_mpl():
-    # TODO(mpl_converter): remove once converter is explicit
-    if not _HAS_MPL:
-        raise ImportError("matplotlib is required for plotting.")
+if get_option('plotting.matplotlib.register_converters'):
+    _converter.register(explicit=False)
 
 
 class MPLPlot:
@@ -49,7 +39,6 @@ class MPLPlot:
     data :
 
     """
-
     @property
     def _kind(self):
         """Specify kind str. Must be overridden in child class"""
@@ -72,8 +61,6 @@ class MPLPlot:
                  secondary_y=False, colormap=None,
                  table=False, layout=None, **kwds):
 
-        _raise_if_no_mpl()
-        _converter._WARN = False
         self.data = data
         self.by = by
 
@@ -628,6 +615,13 @@ class MPLPlot:
 
         ax.get_yaxis().set_visible(True)
         return ax
+
+    @classmethod
+    def get_default_ax(cls, ax):
+        if ax is None and len(plt.get_fignums()) > 0:
+            with plt.rc_context():
+                ax = plt.gca()
+            ax = cls._get_ax_layer(ax)
 
     def on_right(self, i):
         if isinstance(self.secondary_y, bool):
@@ -1314,134 +1308,6 @@ class BarhPlot(BarPlot):
             ax.set_ylabel(name)
 
 
-class HistPlot(LinePlot):
-    _kind = 'hist'
-
-    def __init__(self, data, bins=10, bottom=0, **kwargs):
-        self.bins = bins        # use mpl default
-        self.bottom = bottom
-        # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)
-
-    def _args_adjust(self):
-        if is_integer(self.bins):
-            # create common bin edge
-            values = (self.data._convert(datetime=True)._get_numeric_data())
-            values = np.ravel(values)
-            values = values[~isna(values)]
-
-            hist, self.bins = np.histogram(
-                values, bins=self.bins,
-                range=self.kwds.get('range', None),
-                weights=self.kwds.get('weights', None))
-
-        if is_list_like(self.bottom):
-            self.bottom = np.array(self.bottom)
-
-    @classmethod
-    def _plot(cls, ax, y, style=None, bins=None, bottom=0, column_num=0,
-              stacking_id=None, **kwds):
-        if column_num == 0:
-            cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
-        y = y[~isna(y)]
-
-        base = np.zeros(len(bins) - 1)
-        bottom = bottom + \
-            cls._get_stacked_values(ax, stacking_id, base, kwds['label'])
-        # ignore style
-        n, bins, patches = ax.hist(y, bins=bins, bottom=bottom, **kwds)
-        cls._update_stacker(ax, stacking_id, n)
-        return patches
-
-    def _make_plot(self):
-        colors = self._get_colors()
-        stacking_id = self._get_stacking_id()
-
-        for i, (label, y) in enumerate(self._iter_data()):
-            ax = self._get_ax(i)
-
-            kwds = self.kwds.copy()
-
-            label = pprint_thing(label)
-            kwds['label'] = label
-
-            style, kwds = self._apply_style_colors(colors, kwds, i, label)
-            if style is not None:
-                kwds['style'] = style
-
-            kwds = self._make_plot_keywords(kwds, y)
-            artists = self._plot(ax, y, column_num=i,
-                                 stacking_id=stacking_id, **kwds)
-            self._add_legend_handle(artists[0], label, index=i)
-
-    def _make_plot_keywords(self, kwds, y):
-        """merge BoxPlot/KdePlot properties to passed kwds"""
-        # y is required for KdePlot
-        kwds['bottom'] = self.bottom
-        kwds['bins'] = self.bins
-        return kwds
-
-    def _post_plot_logic(self, ax, data):
-        if self.orientation == 'horizontal':
-            ax.set_xlabel('Frequency')
-        else:
-            ax.set_ylabel('Frequency')
-
-    @property
-    def orientation(self):
-        if self.kwds.get('orientation', None) == 'horizontal':
-            return 'horizontal'
-        else:
-            return 'vertical'
-
-
-class KdePlot(HistPlot):
-    _kind = 'kde'
-    orientation = 'vertical'
-
-    def __init__(self, data, bw_method=None, ind=None, **kwargs):
-        MPLPlot.__init__(self, data, **kwargs)
-        self.bw_method = bw_method
-        self.ind = ind
-
-    def _args_adjust(self):
-        pass
-
-    def _get_ind(self, y):
-        if self.ind is None:
-            # np.nanmax() and np.nanmin() ignores the missing values
-            sample_range = np.nanmax(y) - np.nanmin(y)
-            ind = np.linspace(np.nanmin(y) - 0.5 * sample_range,
-                              np.nanmax(y) + 0.5 * sample_range, 1000)
-        elif is_integer(self.ind):
-            sample_range = np.nanmax(y) - np.nanmin(y)
-            ind = np.linspace(np.nanmin(y) - 0.5 * sample_range,
-                              np.nanmax(y) + 0.5 * sample_range, self.ind)
-        else:
-            ind = self.ind
-        return ind
-
-    @classmethod
-    def _plot(cls, ax, y, style=None, bw_method=None, ind=None,
-              column_num=None, stacking_id=None, **kwds):
-        from scipy.stats import gaussian_kde
-
-        y = remove_na_arraylike(y)
-        gkde = gaussian_kde(y, bw_method=bw_method)
-
-        y = gkde.evaluate(ind)
-        lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
-        return lines
-
-    def _make_plot_keywords(self, kwds, y):
-        kwds['bw_method'] = self.bw_method
-        kwds['ind'] = self._get_ind(y)
-        return kwds
-
-    def _post_plot_logic(self, ax, data):
-        ax.set_ylabel('Density')
-
-
 class PiePlot(MPLPlot):
     _kind = 'pie'
     _layout_type = 'horizontal'
@@ -1506,160 +1372,3 @@ class PiePlot(MPLPlot):
             leglabels = labels if labels is not None else idx
             for p, l in zip(patches, leglabels):
                 self._add_legend_handle(p, l)
-
-
-class BoxPlot(LinePlot):
-    _kind = 'box'
-    _layout_type = 'horizontal'
-
-    _valid_return_types = (None, 'axes', 'dict', 'both')
-    # namedtuple to hold results
-    BP = namedtuple("Boxplot", ['ax', 'lines'])
-
-    def __init__(self, data, return_type='axes', **kwargs):
-        # Do not call LinePlot.__init__ which may fill nan
-        if return_type not in self._valid_return_types:
-            raise ValueError(
-                "return_type must be {None, 'axes', 'dict', 'both'}")
-
-        self.return_type = return_type
-        MPLPlot.__init__(self, data, **kwargs)
-
-    def _args_adjust(self):
-        if self.subplots:
-            # Disable label ax sharing. Otherwise, all subplots shows last
-            # column label
-            if self.orientation == 'vertical':
-                self.sharex = False
-            else:
-                self.sharey = False
-
-    @classmethod
-    def _plot(cls, ax, y, column_num=None, return_type='axes', **kwds):
-        if y.ndim == 2:
-            y = [remove_na_arraylike(v) for v in y]
-            # Boxplot fails with empty arrays, so need to add a NaN
-            #   if any cols are empty
-            # GH 8181
-            y = [v if v.size > 0 else np.array([np.nan]) for v in y]
-        else:
-            y = remove_na_arraylike(y)
-        bp = ax.boxplot(y, **kwds)
-
-        if return_type == 'dict':
-            return bp, bp
-        elif return_type == 'both':
-            return cls.BP(ax=ax, lines=bp), bp
-        else:
-            return ax, bp
-
-    def _validate_color_args(self):
-        if 'color' in self.kwds:
-            if self.colormap is not None:
-                warnings.warn("'color' and 'colormap' cannot be used "
-                              "simultaneously. Using 'color'")
-            self.color = self.kwds.pop('color')
-
-            if isinstance(self.color, dict):
-                valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
-                for key, values in self.color.items():
-                    if key not in valid_keys:
-                        raise ValueError("color dict contains invalid "
-                                         "key '{0}' "
-                                         "The key must be either {1}"
-                                         .format(key, valid_keys))
-        else:
-            self.color = None
-
-        # get standard colors for default
-        colors = _get_standard_colors(num_colors=3,
-                                      colormap=self.colormap,
-                                      color=None)
-        # use 2 colors by default, for box/whisker and median
-        # flier colors isn't needed here
-        # because it can be specified by ``sym`` kw
-        self._boxes_c = colors[0]
-        self._whiskers_c = colors[0]
-        self._medians_c = colors[2]
-        self._caps_c = 'k'          # mpl default
-
-    def _get_colors(self, num_colors=None, color_kwds='color'):
-        pass
-
-    def maybe_color_bp(self, bp):
-        if isinstance(self.color, dict):
-            boxes = self.color.get('boxes', self._boxes_c)
-            whiskers = self.color.get('whiskers', self._whiskers_c)
-            medians = self.color.get('medians', self._medians_c)
-            caps = self.color.get('caps', self._caps_c)
-        else:
-            # Other types are forwarded to matplotlib
-            # If None, use default colors
-            boxes = self.color or self._boxes_c
-            whiskers = self.color or self._whiskers_c
-            medians = self.color or self._medians_c
-            caps = self.color or self._caps_c
-
-        from matplotlib.artist import setp
-        setp(bp['boxes'], color=boxes, alpha=1)
-        setp(bp['whiskers'], color=whiskers, alpha=1)
-        setp(bp['medians'], color=medians, alpha=1)
-        setp(bp['caps'], color=caps, alpha=1)
-
-    def _make_plot(self):
-        if self.subplots:
-            from pandas.core.series import Series
-            self._return_obj = Series()
-
-            for i, (label, y) in enumerate(self._iter_data()):
-                ax = self._get_ax(i)
-                kwds = self.kwds.copy()
-
-                ret, bp = self._plot(ax, y, column_num=i,
-                                     return_type=self.return_type, **kwds)
-                self.maybe_color_bp(bp)
-                self._return_obj[label] = ret
-
-                label = [pprint_thing(label)]
-                self._set_ticklabels(ax, label)
-        else:
-            y = self.data.values.T
-            ax = self._get_ax(0)
-            kwds = self.kwds.copy()
-
-            ret, bp = self._plot(ax, y, column_num=0,
-                                 return_type=self.return_type, **kwds)
-            self.maybe_color_bp(bp)
-            self._return_obj = ret
-
-            labels = [l for l, _ in self._iter_data()]
-            labels = [pprint_thing(l) for l in labels]
-            if not self.use_index:
-                labels = [pprint_thing(key) for key in range(len(labels))]
-            self._set_ticklabels(ax, labels)
-
-    def _set_ticklabels(self, ax, labels):
-        if self.orientation == 'vertical':
-            ax.set_xticklabels(labels)
-        else:
-            ax.set_yticklabels(labels)
-
-    def _make_legend(self):
-        pass
-
-    def _post_plot_logic(self, ax, data):
-        pass
-
-    @property
-    def orientation(self):
-        if self.kwds.get('vert', True):
-            return 'vertical'
-        else:
-            return 'horizontal'
-
-    @property
-    def result(self):
-        if self.return_type is None:
-            return super().result
-        else:
-            return self._return_obj
