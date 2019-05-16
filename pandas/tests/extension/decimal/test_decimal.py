@@ -47,12 +47,6 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def data_multiple_nan():
-    return DecimalArray([decimal.Decimal(x) for x in
-                        [5, 4, np.nan, 1, np.nan, np.nan, 6, 3, np.nan, 2]])
-
-
-@pytest.fixture
 def na_cmp():
     return lambda x, y: x.is_nan() and y.is_nan()
 
