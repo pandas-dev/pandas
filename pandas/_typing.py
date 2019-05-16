@@ -8,10 +8,8 @@ from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timedeltas import Timedelta
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import (ABCExtensionArray,
-                                        ABCIndexClass,
-                                        ABCSeries,
-                                        ABCSparseSeries)
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray, ABCIndexClass, ABCSeries, ABCSparseSeries)
 
 AnyArrayLike = Union[ABCExtensionArray,
                      ABCIndexClass,
