@@ -118,16 +118,10 @@ echo "conda list"
 conda list
 
 # Install DB for Linux
-export DISPLAY=":99."
 if [ ${TRAVIS_OS_NAME} == "linux" ]; then
   echo "installing dbs"
   mysql -e 'create database pandas_nosetest;'
   psql -c 'create database pandas_nosetest;' -U postgres
-
-  echo
-  echo "sh -e /etc/init.d/xvfb start"
-  sh -e /etc/init.d/xvfb start
-  sleep 3
 else
    echo "not using dbs on non-linux"
 fi
