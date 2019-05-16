@@ -259,6 +259,8 @@ Deprecations
 - The :attr:`SparseArray.values` attribute is deprecated. You can use ``np.asarray(...)`` or
   the :meth:`SparseArray.to_dense` method instead.
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
+- The :meth:`DataFrame.compound` and :meth:`Series.compound` methods are deprecated and will be removed in a future version.
+
 
 .. _whatsnew_0250.prior_deprecations:
 
