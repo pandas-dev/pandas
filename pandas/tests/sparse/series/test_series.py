@@ -255,7 +255,7 @@ class TestSparseSeries(SharedWithSparse):
         assert isinstance(self.iseries.sp_index, IntIndex)
 
         assert self.zbseries.fill_value == 0
-        tm.assert_numpy_array_equal(self.zbseries.values.values,
+        tm.assert_numpy_array_equal(self.zbseries.values.to_dense(),
                                     self.bseries.to_dense().fillna(0).values)
 
         # pass SparseSeries
@@ -322,7 +322,7 @@ class TestSparseSeries(SharedWithSparse):
     def test_constructor_nonnan(self):
         arr = [0, 0, 0, nan, nan]
         sp_series = SparseSeries(arr, fill_value=0)
-        tm.assert_numpy_array_equal(sp_series.values.values, np.array(arr))
+        tm.assert_numpy_array_equal(sp_series.values.to_dense(), np.array(arr))
         assert len(sp_series) == 5
         assert sp_series.shape == (5, )
 
@@ -514,7 +514,7 @@ class TestSparseSeries(SharedWithSparse):
                 sparse_result = sp.take(idx)
                 assert isinstance(sparse_result, SparseSeries)
                 tm.assert_almost_equal(dense_result,
-                                       sparse_result.values.values)
+                                       sparse_result.values.to_dense())
 
             _compare([1., 2., 3., 4., 5., 0.])
             _compare([7, 2, 9, 0, 4])

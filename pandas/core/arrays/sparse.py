@@ -890,7 +890,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def values(self):
         """
         Dense values
+
+        .. deprecated:: 0.25.0
+
+            Use ``np.asarray(...)`` or the ``.to_dense()`` method instead.
         """
+        msg = (
+            "The 'values' attribute of a SparseArray is deprecated and will "
+            "be removed in a future version. You can use `np.asarray(...)` or "
+            "the `.to_dense()` method instead.")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
         return self.to_dense()
 
     def isna(self):
@@ -1076,7 +1085,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if is_integer(key):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
-            data_slice = self.values[key]
+            data_slice = self.to_dense()[key]
         elif isinstance(key, slice):
             # special case to preserve dtypes
             if key == slice(None):
@@ -1635,7 +1644,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         from pandas.core.dtypes.generic import ABCSparseSeries
 
         ufunc, inputs, _ = context
-        inputs = tuple(x.values if isinstance(x, ABCSparseSeries) else x
+        inputs = tuple(x.to_dense() if isinstance(x, ABCSparseSeries) else x
                        for x in inputs)
         return self.__array_ufunc__(ufunc, '__call__', *inputs)
 
@@ -1854,7 +1863,7 @@ def _maybe_to_sparse(array):
     array must be SparseSeries or SparseArray
     """
     if isinstance(array, ABCSparseSeries):
-        array = array.values.copy()
+        array = array.array.copy()
     return array
 
 

@@ -256,6 +256,8 @@ Deprecations
 ~~~~~~~~~~~~
 
 - Deprecated the ``units=M`` (months) and ``units=Y`` (year) parameters for ``units`` of :func:`pandas.to_timedelta`, :func:`pandas.Timedelta` and :func:`pandas.TimedeltaIndex` (:issue:`16344`)
+- The :attr:`SparseArray.values` attribute is deprecated. You can use ``np.asarray(...)`` or
+  the :meth:`SparseArray.to_dense` method instead.
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
 
 .. _whatsnew_0250.prior_deprecations:
