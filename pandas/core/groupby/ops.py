@@ -807,6 +807,7 @@ class BinGrouper(BaseGrouper):
         grouper = reduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
 
+
 def _get_axes(group):
     if isinstance(group, Series):
         return [group.index]
