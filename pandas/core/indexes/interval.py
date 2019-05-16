@@ -1,5 +1,4 @@
 """ define the IntervalIndex """
-from collections import defaultdict
 import textwrap
 import warnings
 
@@ -471,13 +470,13 @@ class IntervalIndex(IntervalMixin, Index):
         if left.is_unique or right.is_unique:
             return True
 
-        seen_pairs = defaultdict(bool)
+        seen_pairs = set()
         check_idx = np.where(left.duplicated(keep=False))[0]
         for idx in check_idx:
             pair = (left[idx], right[idx])
-            if seen_pairs[pair]:
+            if pair in seen_pairs:
                 return False
-            seen_pairs[pair] = True
+            seen_pairs.add(pair)
 
         return True
 
