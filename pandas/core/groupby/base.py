@@ -5,10 +5,13 @@ SeriesGroupBy and the DataFrameGroupBy objects.
 """
 
 import types
+from typing import (
+    no_type_check, Callable, FrozenSet, Hashable, List, Optional, Type, Union)
 
 from pandas.util._decorators import make_signature
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 
 class GroupByMixin:
@@ -17,7 +20,7 @@ class GroupByMixin:
     """
 
     @staticmethod
-    def _dispatch(name, *args, **kwargs):
+    def _dispatch(name: str, *args, **kwargs) -> Callable:
         """
         Dispatch to apply.
         """
@@ -30,7 +33,11 @@ class GroupByMixin:
         outer.__name__ = name
         return outer
 
-    def _gotitem(self, key, ndim, subset=None):
+    @no_type_check
+    def _gotitem(self,
+                 key: Hashable,
+                 ndim: int,
+                 subset: Optional[Union[ABCSeries, ABCDataFrame]] = None):
         """
         Sub-classes to define. Return a sliced object.
 
@@ -93,7 +100,9 @@ cython_cast_blacklist = frozenset(['rank', 'count', 'size', 'idxmin',
                                    'idxmax'])
 
 
-def whitelist_method_generator(base, klass, whitelist):
+def whitelist_method_generator(base: Type,
+                               klass: Type,
+                               whitelist: FrozenSet[str]):
     """
     Yields all GroupBy member defs for DataFrame/Series names in whitelist.
 
@@ -104,7 +113,7 @@ def whitelist_method_generator(base, klass, whitelist):
     klass : class
         class where members are defined.
         Should be Series or DataFrame
-    whitelist : list
+    whitelist : FrozenSet
         list of names of klass methods to be constructed
 
     Returns
