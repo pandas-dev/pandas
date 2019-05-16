@@ -263,15 +263,11 @@ have no replacement.
 Interaction with scipy.sparse
 -----------------------------
 
-SparseDataFrame
-~~~~~~~~~~~~~~~
+Use :meth:`DataFrame.sparse.from_coo` to create a ``DataFrame`` with sparse values from a sparse matrix.
 
-.. versionadded:: 0.20.0
-
-Pandas supports creating sparse dataframes directly from ``scipy.sparse`` matrices.
+.. versionadded:: 0.25.0
 
 .. ipython:: python
-   :okwarning:
 
    from scipy.sparse import csr_matrix
 
@@ -281,25 +277,22 @@ Pandas supports creating sparse dataframes directly from ``scipy.sparse`` matric
    sp_arr = csr_matrix(arr)
    sp_arr
 
-   sdf = pd.SparseDataFrame(sp_arr)
-   sdf
+   sdf = pd.DataFrame.sparse.from_spmatrix(sp_arr)
+   sdf.head()
+   sdf.dtypes
 
 All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
-To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you can use the :meth:`SparseDataFrame.to_coo` method:
+To convert back to sparse SciPy matrix in COO format, you can use the :meth:`DataFrame.sparse.to_coo` method:
 
 .. ipython:: python
 
-   sdf.to_coo()
+   sdf.sparse.to_coo()
 
-SparseSeries
-~~~~~~~~~~~~
-
-A :meth:`SparseSeries.to_coo` method is implemented for transforming a ``SparseSeries`` indexed by a ``MultiIndex`` to a ``scipy.sparse.coo_matrix``.
+:meth:`Series.sparse.to_coo` is implemented for transforming a ``Series`` with sparse values indexed by a ``MultiIndex`` to a ``scipy.sparse.coo_matrix``.
 
 The method requires a ``MultiIndex`` with two or more levels.
 
 .. ipython:: python
-   :okwarning:
 
    s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
    s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
@@ -309,19 +302,17 @@ The method requires a ``MultiIndex`` with two or more levels.
                                         (2, 1, 'b', 0),
                                         (2, 1, 'b', 1)],
                                        names=['A', 'B', 'C', 'D'])
-
    s
-   # SparseSeries
-   ss = s.to_sparse()
+   ss = s.astype('Sparse')
    ss
 
-In the example below, we transform the ``SparseSeries`` to a sparse representation of a 2-d array by specifying that the first and second ``MultiIndex`` levels define labels for the rows and the third and fourth levels define labels for the columns. We also specify that the column and row labels should be sorted in the final sparse representation.
+In the example below, we transform the ``Series`` to a sparse representation of a 2-d array by specifying that the first and second ``MultiIndex`` levels define labels for the rows and the third and fourth levels define labels for the columns. We also specify that the column and row labels should be sorted in the final sparse representation.
 
 .. ipython:: python
 
-   A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
-                                column_levels=['C', 'D'],
-                                sort_labels=True)
+   A, rows, columns = ss.sparse.to_coo(row_levels=['A', 'B'],
+                                       column_levels=['C', 'D'],
+                                       sort_labels=True)
 
    A
    A.todense()
@@ -332,16 +323,16 @@ Specifying different row and column labels (and not sorting them) yields a diffe
 
 .. ipython:: python
 
-   A, rows, columns = ss.to_coo(row_levels=['A', 'B', 'C'],
-                                column_levels=['D'],
-                                sort_labels=False)
+   A, rows, columns = ss.sparse.to_coo(row_levels=['A', 'B', 'C'],
+                                       column_levels=['D'],
+                                       sort_labels=False)
 
    A
    A.todense()
    rows
    columns
 
-A convenience method :meth:`SparseSeries.from_coo` is implemented for creating a ``SparseSeries`` from a ``scipy.sparse.coo_matrix``.
+A convenience method :meth:`Series.sparse.from_coo` is implemented for creating a ``Series`` with sparse values from a ``scipy.sparse.coo_matrix``.
 
 .. ipython:: python
 
@@ -351,13 +342,12 @@ A convenience method :meth:`SparseSeries.from_coo` is implemented for creating a
    A
    A.todense()
 
-The default behaviour (with ``dense_index=False``) simply returns a ``SparseSeries`` containing
+The default behaviour (with ``dense_index=False``) simply returns a ``Series`` containing
 only the non-null entries.
 
 .. ipython:: python
-   :okwarning:
 
-   ss = pd.SparseSeries.from_coo(A)
+   ss = pd.Series.sparse.from_coo(A)
    ss
 
 Specifying ``dense_index=True`` will result in an index that is the Cartesian product of the
@@ -365,9 +355,15 @@ row and columns coordinates of the matrix. Note that this will consume a signifi
 (relative to ``dense_index=False``) if the sparse matrix is large (and sparse) enough.
 
 .. ipython:: python
-   :okwarning:
 
-   ss_dense = pd.SparseSeries.from_coo(A, dense_index=True)
+   ss_dense = pd.Series.sparse.from_coo(A, dense_index=True)
    ss_dense
 
 
+.. _sparse.subclasses:
+
+Sparse Subclasses
+-----------------
+
+The :class:`SparseSeries` and :class:`SparseDataFrame` classes are deprecated. Visit their
+API pages for usage.
