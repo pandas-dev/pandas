@@ -603,9 +603,12 @@ must be either implemented on GroupBy or available via :ref:`dispatching
 
 .. _groupby.aggregate.keyword:
 
+Keyword Aggregation
+~~~~~~~~~~~~~~~~~~~
+
 .. versionadded:: 0.25.0
 
-To support column-specific aggregation with control over the output column names, pandas
+To support column-specific aggregation *with control over the output column names*, pandas
 accepts the special syntax in :meth:`GroupBy.agg`, known as "keyword aggregation", where
 
 - The keywords are the *output* column names

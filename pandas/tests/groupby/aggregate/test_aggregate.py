@@ -2,12 +2,13 @@
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 from collections import OrderedDict
+import functools
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat, compat
+from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
@@ -331,20 +332,27 @@ class TestKeywordAggregation:
         tm.assert_frame_equal(result, expected)
 
         # order invariance
+        p98 = functools.partial(np.percentile, q=98)
         result = df.groupby('group').agg(
             b_min=("B", "min"),
             a_min=("A", min),
+            a_mean=("A", np.mean),
             a_max=("A", "max"),
             b_max=("B", "max"),
+            a_98=("A", p98)
         )
         expected = pd.DataFrame({"b_min": [5, 7],
                                  "a_min": [0, 2],
+                                 "a_mean": [0.5, 2.5],
                                  "a_max": [1, 3],
-                                 "b_max": [6, 8]},
+                                 "b_max": [6, 8],
+                                 "a_98": [0.98, 2.98]},
                                 index=pd.Index(['a', 'b'], name='group'),
-                                columns=['b_min', 'a_min', 'a_max', 'b_max'])
+                                columns=['b_min', 'a_min', 'a_mean',
+                                         'a_max', 'b_max', 'a_98'])
         if not compat.PY36:
-            expected = expected[['a_max', 'a_min', 'b_max', 'b_min']]
+            expected = expected[['a_98', 'a_max', 'a_mean',
+                                 'a_min', 'b_max', 'b_min']]
         tm.assert_frame_equal(result, expected)
 
     def test_agg_relabel_non_identifier(self):
@@ -389,3 +397,8 @@ class TestKeywordAggregation:
 
         with pytest.raises(TypeError, match=match):
             grouped.agg(a=('B', 'max'), b=(1, 2, 3))
+
+    def test_missing_raises(self):
+        df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
+        with pytest.raises(KeyError, match="Column 'C' does not exist"):
+            df.groupby("A").agg(c=('C', 'sum'))

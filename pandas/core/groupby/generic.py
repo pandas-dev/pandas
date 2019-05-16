@@ -165,7 +165,8 @@ class NDFrameGroupBy(GroupBy):
                     func[column].append(aggfunc)
                 else:
                     func[column] = [aggfunc]
-                order.append((column, _get_agg_name(aggfunc)))
+                order.append((column,
+                              com.get_callable_name(aggfunc) or aggfunc))
             kwargs = {}
         elif func is None:
             # nicer error message
@@ -821,7 +822,7 @@ class SeriesGroupBy(GroupBy):
             # list of functions / function names
             columns = []
             for f in arg:
-                columns.append(_get_agg_name(f))
+                columns.append(com.get_callable_name(f) or f)
 
             arg = zip(columns, arg)
 
@@ -1641,21 +1642,3 @@ def _is_multi_agg_with_relabel(**kwargs):
         isinstance(v, tuple) and len(v) == 2
         for v in kwargs.values()
     ) and kwargs
-
-
-def _get_agg_name(arg):
-    """
-
-    Parameters
-    ----------
-    arg
-
-    Returns
-    -------
-
-    """
-    if isinstance(arg, str):
-        return arg
-    else:
-        # protect against callables without names
-        return com.get_callable_name(arg)

@@ -32,11 +32,15 @@ output columns when applying multiple aggregation functions to specific columns 
 
 .. ipython:: python
 
-   df = pd.DataFrame({'kind': ['cat', 'dog', 'cat', 'dog'],
-                      'height': [9.1, 6.0, 9.5, 34.0],
-                      'weight': [7.9, 7.5, 9.9, 198.0]})
-   grouper = df.groupby("kind")
-   grouper.agg(max_height=('height', 'max'), average_weight=('weight', 'mean'))
+   animals = pd.DataFrame({'kind': ['cat', 'dog', 'cat', 'dog'],
+                           'height': [9.1, 6.0, 9.5, 34.0],
+                           'weight': [7.9, 7.5, 9.9, 198.0]})
+   animals
+   animals.groupby("kind").agg(
+       min_height=('height', 'min'),
+       max_height=('height', 'max'),
+       average_weight=('height', np.mean),
+   )
 
 Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
 should be tuples where the first element is the column selection, and the second element is the
