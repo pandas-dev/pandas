@@ -87,6 +87,8 @@ install:
   - echo "install done"
 
 before_script:
+  # display server (for clipboard functionality) needs to be started here,
+  # does not work if done in install:setup_env.sh (GH-26103)
   - export DISPLAY=":99.0"
   - echo "sh -e /etc/init.d/xvfb start"
   - sh -e /etc/init.d/xvfb start
