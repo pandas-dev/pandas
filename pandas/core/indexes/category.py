@@ -1,5 +1,5 @@
 import operator
-from typing import Any, Union
+from typing import Any
 import warnings
 
 import numpy as np
@@ -7,6 +7,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex
+from pandas._typing import AnyArrayLike
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
@@ -20,7 +21,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.categorical import Categorical, contains
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
@@ -491,7 +491,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             raise KeyError(key)
 
     def get_value(self,
-                  series: Union[ABCSeries, ExtensionArray, Index, np.ndarray],
+                  series: AnyArrayLike,
                   key: Any):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
