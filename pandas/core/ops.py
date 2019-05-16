@@ -6,6 +6,7 @@ This is not a public API.
 import datetime
 import operator
 import textwrap
+from typing import Dict, Optional
 import warnings
 
 import numpy as np
@@ -625,15 +626,13 @@ _op_descriptions = {
            'desc': 'Greater than or equal to',
            'reverse': None,
            'series_examples': None}
-}
+}  # type: Dict[str, Dict[str, Optional[str]]]
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
-    _op_descriptions[key]['reversed'] = False
     reverse_op = _op_descriptions[key]['reverse']
     if reverse_op is not None:
         _op_descriptions[reverse_op] = _op_descriptions[key].copy()
-        _op_descriptions[reverse_op]['reversed'] = True
         _op_descriptions[reverse_op]['reverse'] = key
 
 _flex_doc_SERIES = """
@@ -1010,7 +1009,7 @@ def _make_flex_doc(op_name, typ):
     op_name = op_name.replace('__', '')
     op_desc = _op_descriptions[op_name]
 
-    if op_desc['reversed']:
+    if op_name.startswith('r'):
         equiv = 'other ' + op_desc['op'] + ' ' + typ
     else:
         equiv = typ + ' ' + op_desc['op'] + ' other'

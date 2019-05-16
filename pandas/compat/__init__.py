@@ -4,9 +4,6 @@ compat
 
 Cross-compatible functions for different versions of Python.
 
-Key items to import for compatible code:
-* lists: lrange()
-
 Other items:
 * platform checker
 """
@@ -17,11 +14,6 @@ import sys
 PY36 = sys.version_info >= (3, 6)
 PY37 = sys.version_info >= (3, 7)
 PYPY = platform.python_implementation() == 'PyPy'
-
-
-# list-producing versions of the major Python iterating functions
-def lrange(*args, **kwargs):
-    return list(range(*args, **kwargs))
 
 
 # ----------------------------------------------------------------------------

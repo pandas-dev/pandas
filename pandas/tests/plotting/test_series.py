@@ -10,7 +10,6 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -705,7 +704,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_valid_object_plot(self):
-        s = Series(lrange(10), dtype=object)
+        s = Series(range(10), dtype=object)
         for kind in plotting._core._common_kinds:
             _check_plot_works(s.plot, kind=kind)
 
