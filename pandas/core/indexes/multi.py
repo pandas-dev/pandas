@@ -244,7 +244,8 @@ class MultiIndex(Index):
         if verify_integrity:
             result._verify_integrity()
 
-        codes = [cls._reassign_na_codes(*it) for it in zip(levels, codes)]
+        codes = [cls._reassign_na_codes(level, code)
+                 for level, code in zip(levels, codes)]
         result._set_codes(codes, validate=False)
 
         if _set_identity:
@@ -254,7 +255,10 @@ class MultiIndex(Index):
 
     @classmethod
     def _reassign_na_codes(cls, level, code):
-        return [-1 if x == -1 or isna(level[x]) else x for x in code]
+        null_mask = isna(level)
+        if np.any(null_mask):
+            code = np.where((code == -1) | null_mask[code], -1, code)
+        return code
 
     def _verify_integrity(self, codes=None, levels=None):
         """
