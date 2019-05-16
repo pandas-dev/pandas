@@ -412,11 +412,7 @@ class ExtensionArray:
             # Return a permutation which maps the indices of the
             # subarray without nan to the indices of the original array.
             permu = np.arange(len(mask))
-            nan_loc = np.arange(len(mask))[mask]
-            offset = 0
-            for x in nan_loc:
-                permu[x - offset:] += 1
-                offset += 1
+            permu = permu[~mask]
             return permu
 
         if mask.any():
