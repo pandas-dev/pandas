@@ -17,16 +17,15 @@ jobs:
         CONDA_PY: "37"
 
   steps:
-    - task: CondaEnvironment@1
-      inputs:
-        updateConda: no
-        packageSpecs: ''
-
-    - script: |
-        ci\\incremental\\setup_conda_environment.cmd
-      displayName: 'Before Install'
+    - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+      displayName: Add conda to PATH
+    - script: conda update -q -n base conda
+      displayName: Update conda
+    - script: conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
+      displayName: Create anaconda environment
     - script: |
         call activate pandas-dev
+        call conda list
         ci\\incremental\\build.cmd
       displayName: 'Build'
     - script: |
