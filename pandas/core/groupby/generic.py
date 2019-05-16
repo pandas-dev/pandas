@@ -916,8 +916,12 @@ class SeriesGroupBy(GroupBy):
             s = klass(res, indexer)
             results.append(s)
 
-        from pandas.core.reshape.concat import concat
-        result = concat(results).sort_index()
+        # check for empty "results" to avoid concat ValueError
+        if results:
+            from pandas.core.reshape.concat import concat
+            result = concat(results).sort_index()
+        else:
+            result = Series()
 
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* udfs
@@ -1479,15 +1483,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
             (func(col_groupby) for _, col_groupby
              in self._iterate_column_groupbys()),
             keys=self._selected_obj.columns, axis=1)
-
-    def _fill(self, direction, limit=None):
-        """Overridden method to join grouped columns in output"""
-        res = super()._fill(direction, limit=limit)
-        output = OrderedDict(
-            (grp.name, grp.grouper) for grp in self.grouper.groupings)
-
-        from pandas import concat
-        return concat((self._wrap_transformed_output(output), res), axis=1)
 
     def count(self):
         """

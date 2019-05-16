@@ -7,8 +7,6 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -28,7 +26,7 @@ NGROUPS = 8
 
 
 def get_test_data(ngroups=NGROUPS, n=N):
-    unique_groups = lrange(ngroups)
+    unique_groups = list(range(ngroups))
     arr = np.asarray(np.tile(unique_groups, n // ngroups))
 
     if len(arr) < n:
@@ -229,8 +227,8 @@ class TestMerge:
         tm.assert_series_equal(merged['value_y'], exp)
 
     def test_merge_copy(self):
-        left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
-        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=lrange(10))
+        left = DataFrame({'a': 0, 'b': 1}, index=range(10))
+        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=range(10))
 
         merged = merge(left, right, left_index=True,
                        right_index=True, copy=True)
@@ -242,8 +240,8 @@ class TestMerge:
         assert (right['d'] == 'bar').all()
 
     def test_merge_nocopy(self):
-        left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
-        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=lrange(10))
+        left = DataFrame({'a': 0, 'b': 1}, index=range(10))
+        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=range(10))
 
         merged = merge(left, right, left_index=True,
                        right_index=True, copy=False)
@@ -258,9 +256,10 @@ class TestMerge:
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
 
         left = DataFrame({'key': [1, 1, 2, 2, 3],
-                          'value': lrange(5)}, columns=['value', 'key'])
+                          'value': list(range(5))},
+                         columns=['value', 'key'])
         right = DataFrame({'key': [1, 1, 2, 3, 4, 5],
-                           'rvalue': lrange(6)})
+                           'rvalue': list(range(6))})
 
         joined = merge(left, right, on='key', how='outer')
         expected = DataFrame({'key': [1, 1, 1, 1, 2, 2, 3, 4, 5],
@@ -295,8 +294,9 @@ class TestMerge:
 
     def test_handle_join_key_pass_array(self):
         left = DataFrame({'key': [1, 1, 2, 2, 3],
-                          'value': lrange(5)}, columns=['value', 'key'])
-        right = DataFrame({'rvalue': lrange(6)})
+                          'value': np.arange(5)},
+                         columns=['value', 'key'])
+        right = DataFrame({'rvalue': np.arange(6)})
         key = np.array([1, 1, 2, 3, 4, 5])
 
         merged = merge(left, right, left_on='key', right_on=key, how='outer')
@@ -306,8 +306,8 @@ class TestMerge:
         assert merged['key'].notna().all()
         assert merged2['key'].notna().all()
 
-        left = DataFrame({'value': lrange(5)}, columns=['value'])
-        right = DataFrame({'rvalue': lrange(6)})
+        left = DataFrame({'value': np.arange(5)}, columns=['value'])
+        right = DataFrame({'rvalue': np.arange(6)})
         lkey = np.array([1, 1, 2, 2, 3])
         rkey = np.array([1, 1, 2, 3, 4, 5])
 
@@ -316,8 +316,8 @@ class TestMerge:
                                                         2, 3, 4, 5],
                                                        name='key_0'))
 
-        left = DataFrame({'value': lrange(3)})
-        right = DataFrame({'rvalue': lrange(6)})
+        left = DataFrame({'value': np.arange(3)})
+        right = DataFrame({'rvalue': np.arange(6)})
 
         key = np.array([0, 1, 1, 2, 2, 3], dtype=np.int64)
         merged = merge(left, right, left_index=True, right_on=key, how='outer')
