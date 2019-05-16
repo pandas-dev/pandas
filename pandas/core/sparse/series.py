@@ -36,6 +36,8 @@ depr_msg = """\
 SparseSeries is deprecated and will be removed in a future version.
 Use a Series with sparse values instead.
 
+    >>> series = pd.Series(pd.SparseArray(...))
+
 See http://pandas.pydata.org/pandas-docs/stable/\
 user_guide/sparse.html#migrating for more.
 """

@@ -36,12 +36,20 @@ large, mostly NA ``DataFrame``:
    df = pd.DataFrame(np.random.randn(10000, 4))
    df.iloc[:9998] = np.nan
    sdf = df.astype(pd.SparseDtype("float", np.nan))
-   sdf
+   sdf.head()
+   sdf.dtypes
    sdf.sparse.density
 
 As you can see, the density (% of values that have not been "compressed") is
 extremely low. This sparse object takes up much less memory on disk (pickled)
-and in the Python interpreter. Functionally, their behavior should be nearly
+and in the Python interpreter.
+
+.. ipython:: python
+
+   print('dense : {:0.2f} bytes'.format(df.memory_usage().sum() / 1e3))
+   print('sparse: {:0.2f} bytes'.format(sdf.memory_usage().sum() / 1e3))
+
+Functionally, their behavior should be nearly
 identical to their dense counterparts.
 
 .. _sparse.array:
@@ -72,6 +80,12 @@ The :attr:`SparseArray.dtype` property stores two pieces of information
 
 1. The dtype of the non-sparse values
 2. The scalar fill value
+
+
+.. ipython:: python
+
+   sparr.dtype
+
 
 A :class:`SparseDtype` may be constructed by passing each of these
 
@@ -118,7 +132,7 @@ class itself for creating a Series with sparse data from a scipy COO matrix with
 .. versionadded:: 0.25.0
 
 A ``.sparse`` accessor has been added for :class:`DataFrame` as well.
-See :ref:`api.dataframe.sparse` for more.
+See :ref:`api.frame.sparse` for more.
 
 .. _sparse.calculation:
 
@@ -160,11 +174,6 @@ This section provides some guidance on migrating your code to the new style. As 
 you can use the python warnings module to control warnings. But we recommend modifying
 your code, rather than ignoring the warning.
 
-**General Differences**
-
-In a SparseDataFrame, *all* columns were sparse. A :class:`DataFrame` can have a mixture of
-sparse and dense columns.
-
 **Construction**
 
 From an array-like, use the regular :class:`Series` or
@@ -195,7 +204,7 @@ From a SciPy sparse matrix, use :meth:`DataFrame.sparse.from_spmatrix`,
    from scipy import sparse
    mat = sparse.eye(3)
    df = pd.DataFrame.sparse.from_spmatrix(mat, columns=['A', 'B', 'C'])
-   df
+   df.dtypes
 
 **Conversion**
 
@@ -205,7 +214,6 @@ From sparse to dense, use the ``.sparse`` accessors
 
    df.sparse.to_dense()
    df.sparse.to_coo()
-   df['A']
 
 From dense to sparse, use :meth:`DataFrame.astype` with a :class:`SparseDtype`.
 
@@ -222,6 +230,30 @@ Sparse-specific properties, like ``density``, are available on the ``.sparse`` a
 .. ipython:: python
 
    df.sparse.density
+
+**General Differences**
+
+In a SparseDataFrame, *all* columns were sparse. A :class:`DataFrame` can have a mixture of
+sparse and dense columns. As a consequence, assigning new columns to a DataFrame with sparse
+values will not automatically convert the input to be sparse.
+
+.. code-block::
+
+   # Previous Way
+   df = pd.SparseDataFrame({"A": [0, 1]})
+   df['B'] = [0, 0]  # implicitly becomes Sparse
+   df['B'].dtype
+   Sparse[int64, nan]
+
+Instead, you'll need to ensure that the values being assigned are sparse
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
+   df['B'] = [0, 0]  # remains dense
+   df['B'].dtype
+   df['B'] = pd.SparseArray([0, 0])
+   df['B'].dtype
 
 The ``SparseDataFrame.default_kind`` and ``SparseDataFrame.default_fill_value`` attributes
 have no replacement.
