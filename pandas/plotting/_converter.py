@@ -12,7 +12,6 @@ import numpy as np
 from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import resolution
 from pandas._libs.tslibs.frequencies import FreqGroup, get_freq
-from pandas.compat import lrange
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype, is_float, is_float_dtype, is_integer,
@@ -1029,7 +1028,7 @@ class TimeSeries_DateLocator(Locator):
             base = self.base
             (d, m) = divmod(vmin, base)
             vmin = (d + 1) * base
-            locs = lrange(vmin, vmax + 1, base)
+            locs = list(range(vmin, vmax + 1, base))
         return locs
 
     def autoscale(self):
