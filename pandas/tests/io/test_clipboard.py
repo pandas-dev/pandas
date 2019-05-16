@@ -18,6 +18,7 @@ try:
     print("running clipboard tests")
 except (PyperclipException, RuntimeError):
     _DEPS_INSTALLED = 0
+    print("NOT running clipboard tests")
 
 
 def build_kwargs(sep, excel):
@@ -131,6 +132,7 @@ class TestClipboard:
 
     # Test that default arguments copy as tab delimited
     def test_round_trip_frame(self, df):
+        print("running clipboard tests")
         self.check_round_trip_frame(df)
 
     # Test that explicit delimiters are respected
