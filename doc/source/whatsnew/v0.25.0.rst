@@ -255,9 +255,35 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
+Sparse Subclasses
+^^^^^^^^^^^^^^^^^
+
+The ``SparseSeries`` and ``SparseDataFrame`` subclasses are deprecated. Their functionality is better-provided
+by a ``Series`` or ``DataFrame`` with sparse values.
+
+**Previous Way**
+
+.. ipython:: python
+   :okwarning:
+
+   df = pd.SparseDataFrame({"A": [0, 0, 1, 2]})
+   df.dtypes
+
+**New Way**
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": pd.SparseArray([0, 0, 1, 2])})
+   df.dtypes
+
+The memory usage of the two approaches is identical. See :ref:`sparse.migration` for more (:issue:`19239`).
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
+
 - Deprecated the ``units=M`` (months) and ``units=Y`` (year) parameters for ``units`` of :func:`pandas.to_timedelta`, :func:`pandas.Timedelta` and :func:`pandas.TimedeltaIndex` (:issue:`16344`)
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
-- The ``SparseSeries`` and ``SparseDataFrame`` subclasses are deprecated. Use a ``DataFrame`` or ``Series`` with sparse values instead. See :ref:`sparse.migration` for more (:issue:`19239`).
+- The :meth:`DataFrame.compound` and :meth:`Series.compound` methods are deprecated and will be removed in a future version.
 
 .. _whatsnew_0250.prior_deprecations:
 
@@ -374,7 +400,7 @@ Indexing
 - Improved exception message when calling :meth:`DataFrame.iloc` with a list of non-numeric objects (:issue:`25753`).
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` where ``KeyError`` was not raised for a ``MultiIndex`` when the key was less than or equal to the number of levels in the :class:`MultiIndex` (:issue:`14885`).
 - Bug in which :meth:`DataFrame.append` produced an erroneous warning indicating that a ``KeyError`` will be thrown in the future when the data to be appended contains new columns (:issue:`22252`).
--
+- Bug in which :meth:`DataFrame.to_csv` caused a segfault for a reindexed data frame, when the indices were single-level :class:`MultiIndex` (:issue:`26303`).
 
 
 Missing

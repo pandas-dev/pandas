@@ -15,8 +15,7 @@ Sparse data structures
 Pandas provides data structures for efficiently storing sparse data.
 These are not necessarily sparse in the typical "mostly 0". Rather, you can view these
 objects as being "compressed" where any data matching a specific value (``NaN`` / missing value, though any value
-can be chosen, including 0) is omitted. A special ``SparseIndex`` object tracks where data has been
-"sparsified". For example,
+can be chosen, including 0) is omitted. The compressed values are not actually stored in the array.
 
 .. ipython:: python
 
@@ -121,21 +120,13 @@ class itself for creating a Series with sparse data from a scipy COO matrix with
 A ``.sparse`` accessor has been added for :class:`DataFrame` as well.
 See :ref:`api.dataframe.sparse` for more.
 
-SparseIndex objects
--------------------
-
-Two kinds of ``SparseIndex`` are implemented, ``block`` and ``integer``. We
-recommend using ``block`` as it's more memory efficient. The ``integer`` format
-keeps an arrays of all of the locations where the data are not equal to the
-fill value. The ``block`` format tracks only the locations and sizes of blocks
-of data.
-
 .. _sparse.calculation:
 
 Sparse Calculation
 ------------------
 
-You can apply NumPy *ufuncs* to ``SparseArray`` and get a ``SparseArray`` as a result.
+You can apply NumPy `ufuncs <https://docs.scipy.org/doc/numpy/reference/ufuncs.html>`_
+to ``SparseArray`` and get a ``SparseArray`` as a result.
 
 .. ipython:: python
 
@@ -165,21 +156,14 @@ sparse values instead.
 **There's no performance or memory penalty to using a Series or DataFrame with sparse values,
 rather than a SparseSeries or SparseDataFrame**.
 
-This section provides some guidance on migrating your code to the new style. As a reminder, you can
-use the python warnings module to control warnings. If you wish to ignore the warnings,
+This section provides some guidance on migrating your code to the new style. As a reminder,
+you can use the python warnings module to control warnings. But we recommend modifying
+your code, rather than ignoring the warning.
 
-.. code-block:: python
+**General Differences**
 
-   >>> import warnings
-
-   >>> warnings.filterwarnings('ignore', 'Sparse', FutureWarning)
-   >>> pd.SparseSeries()  # No warning message
-   Series([], dtype: Sparse[float64, nan])
-   BlockIndex
-   Block locations: array([], dtype=int32)
-   Block lengths: array([], dtype=int32)
-
-But we recommend modifying your code, rather than ignoring the warning.
+In a SparseDataFrame, *all* columns were sparse. A :class:`DataFrame` can have a mixture of
+sparse and dense columns.
 
 **Construction**
 
@@ -188,7 +172,7 @@ From an array-like, use the regular :class:`Series` or
 
 .. code-block:: python
 
-   # Old way
+   # Previous way
    >>> pd.SparseDataFrame({"A": [0, 1]})
 
 .. ipython:: python
@@ -200,7 +184,7 @@ From a SciPy sparse matrix, use :meth:`DataFrame.sparse.from_spmatrix`,
 
 .. code-block:: python
 
-   # Old way
+   # Previous way
    >>> from scipy import sparse
    >>> mat = sparse.eye(3)
    >>> df = pd.SparseDataFrame(mat, columns=['A', 'B', 'C'])

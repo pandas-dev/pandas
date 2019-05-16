@@ -44,6 +44,10 @@ user_guide/sparse.html#migrating for more.
 class SparseSeries(Series):
     """Data structure for labeled, sparse floating point data
 
+    .. deprectaed:: 0.25.0
+
+       Use a Series with sparse values instead.
+
     Parameters
     ----------
     data : {array-like, Series, SparseSeries, dict}
