@@ -1,16 +1,17 @@
 from collections import namedtuple
 import warnings
 
-import numpy as np
 from matplotlib import pyplot as plt
+import numpy as np
 
 from pandas.core.dtypes.generic import ABCSeries
-from pandas.plotting._tools import _flatten, _subplots
-from pandas.io.formats.printing import pprint_thing
 from pandas.core.dtypes.missing import remove_na_arraylike
-from pandas.plotting._style import _get_standard_colors
 
-from .main import MPLPlot, LinePlot
+from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._style import _get_standard_colors
+from pandas.plotting._tools import _flatten, _subplots
+
+from .main import LinePlot, MPLPlot
 
 
 class BoxPlot(LinePlot):
