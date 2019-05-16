@@ -414,6 +414,7 @@ I/O
 - Fixed memory leak in :meth:`DataFrame.to_json` when dealing with numeric data (:issue:`24889`)
 - Bug in :func:`read_json` where date strings with ``Z`` were not converted to a UTC timezone (:issue:`26168`)
 - Added ``cache_dates=True`` parameter to :meth:`read_csv`, which allows to cache unique dates when they are parsed (:issue:`25990`)
+- Fixed error in :meth:``pandas.read_fwf`` where passing a :class:``urllib.response.addinfourl`` throws an error. (:issue:`26376`)
 
 Plotting
 ^^^^^^^^
