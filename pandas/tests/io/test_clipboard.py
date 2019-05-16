@@ -15,6 +15,7 @@ from pandas.io.clipboard.exceptions import PyperclipException
 try:
     DataFrame({'A': [1, 2]}).to_clipboard()
     _DEPS_INSTALLED = 1
+    print("running clipboard tests")
 except (PyperclipException, RuntimeError):
     _DEPS_INSTALLED = 0
 
