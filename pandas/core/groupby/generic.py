@@ -42,7 +42,7 @@ from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting._core import boxplot_frame_groupby
 
-Agg = namedtuple("NamedAgg", ["column", "aggfunc"])
+KeywordAgg = namedtuple("KeywordAgg", ["column", "aggfunc"])
 
 
 class NDFrameGroupBy(GroupBy):
@@ -1331,8 +1331,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
     per column, pass supports "keyword aggregation"
 
     >>> df.groupby("A").agg(
-    ...     b_min=pd.Agg(column="B", aggfunc="min"),
-    ...     c_sum=pd.Agg(column="C", aggfunc="sum"))
+    ...     b_min=pd.KeywordAgg(column="B", aggfunc="min"),
+    ...     c_sum=pd.KeywordAgg(column="C", aggfunc="sum"))
        b_min     c_sum
     A
     1      1 -1.956929

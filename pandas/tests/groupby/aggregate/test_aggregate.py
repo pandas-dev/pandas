@@ -405,8 +405,10 @@ class TestKeywordAggregation:
 
     def test_agg_namedtuple(self):
         df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
-        result = df.groupby("A").agg(b=pd.Agg("B", "sum"),
-                                     c=pd.Agg(column="B", aggfunc="count"))
+        result = df.groupby("A").agg(
+            b=pd.KeywordAgg("B", "sum"),
+            c=pd.KeywordAgg(column="B", aggfunc="count")
+        )
         expected = df.groupby("A").agg(b=("B", "sum"),
                                        c=("B", "count"))
         tm.assert_frame_equal(result, expected)

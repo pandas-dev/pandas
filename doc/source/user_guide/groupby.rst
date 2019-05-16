@@ -625,8 +625,8 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "keyword aggregation
    animals
 
    animals.groupby("kind").agg(
-       min_height=pd.Agg(column='height', aggfunc='min')),
-       max_height=pd.Agg(column='height', aggfunc='max')),
+       min_height=pd.KeywordAgg(column='height', aggfunc='min')),
+       max_height=pd.KeywordAgg(column='height', aggfunc='max')),
        average_weight=('height', np.mean),
    )
 
@@ -636,7 +636,7 @@ and unpack the keyword arguments
 .. ipython:: python
 
    animals.groupby("kind").agg(**{
-       'total weight': pd.Agg(column='weight', aggfunc=sum)),
+       'total weight': pd.KeywordAgg(column='weight', aggfunc=sum)),
    })
 
 Additional keyword arguments are not passed through to the aggregation functions. Only pairs
