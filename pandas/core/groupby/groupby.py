@@ -13,8 +13,8 @@ import datetime
 from functools import partial, wraps
 import types
 from typing import (
-    Callable, FrozenSet, Generator, List, Optional, Sequence, Tuple, Type,
-    Union)
+    Callable, FrozenSet, Generator, Hashable, List, Optional, Sequence, Tuple,
+    Type, Union)
 import warnings
 
 import numpy as np
@@ -47,7 +47,8 @@ from pandas.core.groupby import base
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
-from pandas._typing import Axis, Level
+from pandas.tseries.offsets import DateOffset
+from pandas._typing import Axis, Dtype, Level
 
 _common_see_also = """
         See Also
@@ -406,7 +407,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         return self.grouper.groups
 
     @property
-    def ngroups(self):
+    def ngroups(self) -> int:
         self._assure_grouper()
         return self.grouper.ngroups
 
@@ -1048,7 +1049,9 @@ class GroupBy(_GroupBy):
     See the online documentation for full exposition on these topics and much
     more
     """
-    def _bool_agg(self, val_test, skipna):
+    def _bool_agg(self,
+                  val_test: str,
+                  skipna: bool) -> Union[Series, DataFrame]:
         """
         Shared func to call any / all Cython GroupBy implementations.
         """
@@ -1075,7 +1078,8 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def any(self, skipna=True):
+    def any(self,
+            skipna: bool = True) -> Union[Series, DataFrame]:
         """
         Return True if any value in the group is truthful, else False.
 
@@ -1092,7 +1096,8 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def all(self, skipna=True):
+    def all(self,
+            skipna: bool = True) -> Union[Series, DataFrame]:
         """
         Return True if all values in the group are truthful, else False.
 
@@ -1109,7 +1114,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def count(self):
+    def count(self) -> Union[Series, DataFrame]:
         """
         Compute count of group, excluding missing values.
 
@@ -1124,7 +1129,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Substitution(see_also=_common_see_also)
-    def mean(self, *args, **kwargs):
+    def mean(self, *args, **kwargs) -> Union[Series, DataFrame]:
         """
         Compute mean of groups, excluding missing values.
 
@@ -1178,7 +1183,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def median(self, **kwargs):
+    def median(self, **kwargs) -> Union[Series, DataFrame]:
         """
         Compute median of groups, excluding missing values.
 
@@ -1204,7 +1209,9 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def std(self, ddof=1, *args, **kwargs):
+    def std(self,
+            ddof: int = 1,
+            *args, **kwargs) -> Union[Series, DataFrame]:
         """
         Compute standard deviation of groups, excluding missing values.
 
@@ -1227,7 +1234,9 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def var(self, ddof=1, *args, **kwargs):
+    def var(self,
+            ddof: int = 1,
+            *args, **kwargs) -> Union[Series, DataFrame]:
         """
         Compute variance of groups, excluding missing values.
 
@@ -1258,7 +1267,8 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def sem(self, ddof=1):
+    def sem(self,
+            ddof: int = 1) -> Union[Series, DataFrame]:
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -1279,7 +1289,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def size(self):
+    def size(self) -> Union[Series, DataFrame]:
         """
         Compute group sizes.
 
@@ -1295,7 +1305,7 @@ class GroupBy(_GroupBy):
         return result
 
     @classmethod
-    def _add_numeric_operations(cls):
+    def _add_numeric_operations(cls) -> None:
         """
         Add numeric operations to the GroupBy generically.
         """
@@ -1368,18 +1378,22 @@ class GroupBy(_GroupBy):
             else:
                 return last(x)
 
-        cls.sum = groupby_function('sum', 'add', np.sum, min_count=0)
-        cls.prod = groupby_function('prod', 'prod', np.prod, min_count=0)
-        cls.min = groupby_function('min', 'min', np.min, numeric_only=False)
-        cls.max = groupby_function('max', 'max', np.max, numeric_only=False)
-        cls.first = groupby_function('first', 'first', first_compat,
-                                     numeric_only=False)
-        cls.last = groupby_function('last', 'last', last_compat,
-                                    numeric_only=False)
+        cls.sum = groupby_function(  # type: ignore
+            'sum', 'add', np.sum, min_count=0)
+        cls.prod = groupby_function(  # type: ignore
+            'prod', 'prod', np.prod, min_count=0)
+        cls.min = groupby_function(  # type: ignore
+            'min', 'min', np.min, numeric_only=False)
+        cls.max = groupby_function(  # type: ignore
+            'max', 'max', np.max, numeric_only=False)
+        cls.first = groupby_function(  # type: ignore
+            'first', 'first', first_compat, numeric_only=False)
+        cls.last = groupby_function(  # type: ignore
+            'last', 'last', last_compat, numeric_only=False)
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def ohlc(self):
+    def ohlc(self) -> DataFrame:
         """
         Compute sum of values, excluding missing values.
 
@@ -1395,14 +1409,16 @@ class GroupBy(_GroupBy):
             lambda x: x._cython_agg_general('ohlc'))
 
     @Appender(DataFrame.describe.__doc__)
-    def describe(self, **kwargs):
+    def describe(self, **kwargs) -> DataFrame:
         with _group_selection_context(self):
             result = self.apply(lambda x: x.describe(**kwargs))
             if self.axis == 1:
                 return result.T
             return result.unstack()
 
-    def resample(self, rule, *args, **kwargs):
+    def resample(self,
+                 rule: Union[str, DateOffset],
+                 *args, **kwargs):
         """
         Provide resampling when using a TimeGrouper.
 
@@ -1422,8 +1438,8 @@ class GroupBy(_GroupBy):
 
         Returns
         -------
-        Grouper
-            Return a new grouper with our resampler appended.
+        DatetimeIndexResamplerGroupby
+            Return a new GroupBy object with our resampler appended.
 
         See Also
         --------
@@ -1530,7 +1546,9 @@ class GroupBy(_GroupBy):
         from pandas.core.window import ExpandingGroupby
         return ExpandingGroupby(self, *args, **kwargs)
 
-    def _fill(self, direction, limit=None):
+    def _fill(self,
+              direction: str,
+              limit: Optional[int] = None) -> Union[Series, DataFrame]:
         """
         Shared function for `pad` and `backfill` to call Cython method.
 
@@ -1564,7 +1582,8 @@ class GroupBy(_GroupBy):
                                            direction=direction, limit=limit)
 
     @Substitution(name='groupby')
-    def pad(self, limit=None):
+    def pad(self,
+            limit: int = None) -> Union[Series, DataFrame]:
         """
         Forward fill the values.
 
@@ -1589,7 +1608,8 @@ class GroupBy(_GroupBy):
     ffill = pad
 
     @Substitution(name='groupby')
-    def backfill(self, limit=None):
+    def backfill(self,
+                 limit: int = None) -> Union[Series, DataFrame]:
         """
         Backward fill the values.
 
@@ -1617,7 +1637,7 @@ class GroupBy(_GroupBy):
     @Substitution(see_also=_common_see_also)
     def nth(self,
             n: Union[int, List[int]],
-            dropna: Optional[str] = None) -> DataFrame:
+            dropna: Optional[str] = None) ->  Union[Series, DataFrame]:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.
@@ -1789,7 +1809,9 @@ class GroupBy(_GroupBy):
 
         return result
 
-    def quantile(self, q=0.5, interpolation='linear'):
+    def quantile(self,
+                 q: Union[float, Sequence[float]] = 0.5,
+                 interpolation: str = 'linear') -> Union[Series, DataFrame]:
         """
         Return group values at the given quantile, a la numpy.percentile.
 
@@ -1862,7 +1884,8 @@ class GroupBy(_GroupBy):
                                            q=q, interpolation=interpolation)
 
     @Substitution(name='groupby')
-    def ngroup(self, ascending=True):
+    def ngroup(self,
+               ascending: bool = True) -> Series:
         """
         Number each group from 0 to the number of groups - 1.
 
@@ -1929,11 +1952,12 @@ class GroupBy(_GroupBy):
             index = self._selected_obj.index
             result = Series(self.grouper.group_info[0], index)
             if not ascending:
-                result = self.ngroups - 1 - result
+                result = self.ngroups - result
             return result
 
     @Substitution(name='groupby')
-    def cumcount(self, ascending=True):
+    def cumcount(self,
+                 ascending: bool = True) -> Series:
         """
         Number each item in each group from 0 to the length of that group - 1.
 
@@ -1993,8 +2017,12 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def rank(self, method='average', ascending=True, na_option='keep',
-             pct=False, axis=0):
+    def rank(self,
+             method: str = 'average',
+             ascending: bool = True,
+             na_option: str = 'keep',
+             pct: bool = False,
+             axis=Axis) -> Union[Series, DataFrame]:
         """
         Provide the rank of values within each group.
 
@@ -2019,7 +2047,8 @@ class GroupBy(_GroupBy):
 
         Returns
         -------
-        DataFrame with ranking of values within each group
+        Series or DataFrame
+            Rank of each values within each group.
         """
         if na_option not in {'keep', 'top', 'bottom'}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
@@ -2030,7 +2059,9 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def cumprod(self, axis=0, *args, **kwargs):
+    def cumprod(self,
+                axis: Axis = 0,
+                *args, **kwargs) -> Union[Series, DataFrame]:
         """
         Cumulative product for each group.
 
@@ -2047,7 +2078,9 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def cumsum(self, axis=0, *args, **kwargs):
+    def cumsum(self,
+               axis: Axis = 0,
+               *args, **kwargs) -> Union[Series, DataFrame]:
         """
         Cumulative sum for each group.
 
@@ -2064,7 +2097,9 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def cummin(self, axis=0, **kwargs):
+    def cummin(self,
+               axis: Axis = 0,
+               **kwargs) -> Union[Series, DataFrame]:
         """
         Cumulative min for each group.
 
@@ -2079,7 +2114,9 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def cummax(self, axis=0, **kwargs):
+    def cummax(self,
+               axis: Axis = 0,
+               **kwargs) -> Union[Series, DataFrame]:
         """
         Cumulative max for each group.
 
@@ -2092,11 +2129,17 @@ class GroupBy(_GroupBy):
 
         return self._cython_transform('cummax', numeric_only=False)
 
-    def _get_cythonized_result(self, how, grouper, aggregate=False,
-                               cython_dtype=None, needs_values=False,
-                               needs_mask=False, needs_ngroups=False,
-                               result_is_index=False,
-                               pre_processing=None, post_processing=None,
+    def _get_cythonized_result(self,
+                               how: str,
+                               grouper,
+                               aggregate: bool = False,
+                               cython_dtype: Dtype = None,
+                               needs_values: bool = False,
+                               needs_mask: bool = False,
+                               needs_ngroups: bool = False,
+                               result_is_index: bool = False,
+                               pre_processing: Callable = None,
+                               post_processing: Callable = None,
                                **kwargs):
         """
         Get result for Cythonized functions.
@@ -2154,7 +2197,8 @@ class GroupBy(_GroupBy):
                                  "specifying 'needs_values'!")
 
         labels, _, ngroups = grouper.group_info
-        output = collections.OrderedDict()
+        output = collections.OrderedDict()  \
+            # type: collections.OrderedDict[Hashable, np.ndarray]
         base_func = getattr(libgroupby, how)
 
         for name, obj in self._iterate_slices():
@@ -2200,7 +2244,11 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
+    def shift(self,
+              periods: int = 1,
+              freq: str = None,
+              axis: Axis = 0,
+              fill_value=None) -> Union[Series, DataFrame]:
         """
         Shift each group by periods observations.
 
@@ -2232,8 +2280,12 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_common_see_also)
-    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
-                   axis=0):
+    def pct_change(self,
+                   periods: int = 1,
+                   fill_method: str = 'pad',
+                   limit: int = None,
+                   freq: str = None,
+                   axis: Axis = 0) -> Union[Series, DataFrame]:
         """
         Calculate pct_change of each value to previous entry in group.
 
@@ -2254,7 +2306,8 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Substitution(see_also=_common_see_also)
-    def head(self, n=5):
+    def head(self,
+             n: int = 5) -> Union[Series, DataFrame]:
         """
         Return first n rows of each group.
 
@@ -2285,7 +2338,8 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Substitution(see_also=_common_see_also)
-    def tail(self, n=5):
+    def tail(self,
+             n: int = 5) -> Union[Series, DataFrame]:
         """
         Return last n rows of each group.
 
@@ -2323,13 +2377,12 @@ def groupby(
         obj: Union[DataFrame, Series],
         by: Union[str, Callable, Series, Sequence],
         **kwds):
-    from pandas.core.groupby.generic import DataFrameGroupBy, SeriesGroupBy
-
     if isinstance(obj, Series):
-        klass = SeriesGroupBy  \
-            # type: Type[Union[DataFrameGroupBy, SeriesGroupBy]]
+        from pandas.core.groupby.generic import SeriesGroupBy
+        klass = SeriesGroupBy
     elif isinstance(obj, DataFrame):
-        klass = DataFrameGroupBy
+        from pandas.core.groupby.generic import DataFrameGroupBy
+        klass = DataFrameGroupBy   # type: ignore
     else:  # pragma: no cover
         raise TypeError('invalid type: {}'.format(obj))
 
