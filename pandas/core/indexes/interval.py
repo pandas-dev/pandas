@@ -99,7 +99,10 @@ def _new_IntervalIndex(cls, d):
 
 
 class setop_check:
-
+    """
+    This is called to decorate the set operations of IntervalIndex
+    to perform the type check in advance.
+    """
     def __init__(self, op_name):
         self.op_name = op_name
 
