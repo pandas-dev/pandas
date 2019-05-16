@@ -8,11 +8,6 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.base import PandasObject
 from pandas.core.generic import _shared_docs
 
-try:
-    import pandas.plotting.matplotlib as plot_backend
-except ImportError:
-    raise ImportError("matplotlib is required for plotting.")
-
 
 df_kind = """- 'scatter' : scatter plot
         - 'hexbin' : hexbin plot"""
@@ -379,6 +374,14 @@ def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
 
 
+def _get_plot_backend():
+    try:
+        import pandas.plotting.matplotlib as plot_backend
+    except ImportError:
+        raise ImportError("matplotlib is required for plotting.")
+    return plot_backend
+
+
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                 xrot=None, ylabelsize=None, yrot=None, figsize=None,
                 bins=10, **kwds):
@@ -422,6 +425,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     --------
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
     """
+    plot_backend = _get_plot_backend()
     return plot_backend.hist_series(self, by=by, ax=ax, grid=grid,
                                     xlabelsize=xlabelsize, xrot=xrot,
                                     ylabelsize=ylabelsize, yrot=yrot,
@@ -508,6 +512,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         ...     }, index= ['pig', 'rabbit', 'duck', 'chicken', 'horse'])
         >>> hist = df.hist(bins=3)
     """
+    plot_backend = _get_plot_backend()
     return plot_backend.hist_frame(data, column=column, by=by, grid=grid,
                                    xlabelsize=xlabelsize, xrot=xrot,
                                    ylabelsize=ylabelsize, yrot=yrot,
@@ -520,6 +525,7 @@ def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                   grid=True, figsize=None, layout=None,
                   return_type=None, **kwds):
     # TODO write docstring
+    plot_backend = _get_plot_backend()
     return plot_backend.boxplot_frame(self, column=column, by=by, ax=ax,
                                       fontsize=fontsize, rot=rot, grid=grid,
                                       figsize=figsize, layout=layout,
@@ -578,40 +584,41 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
     >>> boxplot_frame_groupby(grouped, subplots=False)
     """
+    plot_backend = _get_plot_backend()
     return plot_backend.boxplot_frame_groupby(
         grouped, subplots=subplots, column=column, fontsize=fontsize, rot=rot,
         grid=grid, ax=ax, figsize=figsize, layout=layout, sharex=sharex,
         sharey=sharey, **kwds)
 
 
-# kinds supported by both dataframe and series
-_common_kinds = ['line', 'bar', 'barh',
-                 'kde', 'density', 'area', 'hist', 'box']
-# kinds supported by dataframe
-_dataframe_kinds = ['scatter', 'hexbin']
-# kinds supported only by series or dataframe single column
-_series_kinds = ['pie']
-_all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
-
-# TODO restore type annotations if we create a base class for plot classes
-# (a parent of MPLPlot, and classes of other backends)
-_klasses = [plot_backend.LinePlot, plot_backend.BarPlot, plot_backend.BarhPlot,
-            plot_backend.AreaPlot, plot_backend.HistPlot, plot_backend.BoxPlot,
-            plot_backend.ScatterPlot, plot_backend.HexBinPlot,
-            plot_backend.KdePlot, plot_backend.PiePlot]
-
-_plot_klass = {klass._kind: klass for klass in _klasses}
-
-
 def _plot(data, x=None, y=None, subplots=False,
           ax=None, kind='line', **kwds):
+    # kinds supported by both dataframe and series
+    common_kinds = ['line', 'bar', 'barh',
+                    'kde', 'density', 'area', 'hist', 'box']
+    # kinds supported by dataframe
+    dataframe_kinds = ['scatter', 'hexbin']
+    # kinds supported only by series or dataframe single column
+    series_kinds = ['pie']
+    all_kinds = common_kinds + dataframe_kinds + series_kinds
+
+    plot_backend = _get_plot_backend()
+    # TODO restore type annotations if we create a base class for plot classes
+    # (a parent of MPLPlot, and classes of other backends)
+    classes = [plot_backend.LinePlot, plot_backend.BarPlot,
+               plot_backend.BarhPlot, plot_backend.AreaPlot,
+               plot_backend.HistPlot, plot_backend.BoxPlot,
+               plot_backend.ScatterPlot, plot_backend.HexBinPlot,
+               plot_backend.KdePlot, plot_backend.PiePlot]
+    plot_class = {class_._kind: class_ for class_ in classes}
+
     kind = _get_standard_kind(kind.lower().strip())
-    if kind in _all_kinds:
-        klass = _plot_klass[kind]
+    if kind in all_kinds:
+        klass = plot_class[kind]
     else:
         raise ValueError("%r is not a valid plot kind" % kind)
 
-    if kind in _dataframe_kinds:
+    if kind in dataframe_kinds:
         if isinstance(data, ABCDataFrame):
             plot_obj = klass(data, x=x, y=y, subplots=subplots, ax=ax,
                              kind=kind, **kwds)
@@ -619,7 +626,7 @@ def _plot(data, x=None, y=None, subplots=False,
             raise ValueError("plot kind %r can only be used for data frames"
                              % kind)
 
-    elif kind in _series_kinds:
+    elif kind in series_kinds:
         if isinstance(data, ABCDataFrame):
             if y is None and subplots is False:
                 msg = "{0} requires either y column or 'subplots=True'"
