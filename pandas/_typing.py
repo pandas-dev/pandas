@@ -11,13 +11,11 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (ABCExtensionArray,
                                         ABCIndexClass,
                                         ABCSeries,
-                                        ABCSparseArray,
                                         ABCSparseSeries)
 
 AnyArrayLike = Union[ABCExtensionArray,
                      ABCIndexClass,
                      ABCSeries,
-                     ABCSparseArray,
                      ABCSparseSeries,
                      np.ndarray]
 ArrayLike = Union[ABCExtensionArray, np.ndarray]
