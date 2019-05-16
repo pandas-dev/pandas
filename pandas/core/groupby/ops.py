@@ -150,6 +150,15 @@ class BaseGrouper:
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
 
+    def _get_grouper(self):
+        """
+        We are a grouper as part of another's groupings.
+
+        We have a specific method of grouping, so cannot
+        convert to a Index for our grouper.
+        """
+        return self.groupings[0].grouper
+
     def _get_group_keys(self):
         if len(self.groupings) == 1:
             return self.levels[0]
@@ -260,10 +269,7 @@ class BaseGrouper:
         else:
             def is_basegrouper(self, obj):
                 return obj.__class__.__name__ == self.__class__.__name__
-            to_groupby = zip(*(ping.grouper if not is_basegrouper(self,
-                                                                  ping.grouper)
-                             else ping.grouper.groupings[0].grouper for ping
-                             in self.groupings))
+            to_groupby = zip(*(ping.grouper for ping in self.groupings))
             to_groupby = Index(to_groupby)
             return self.axis.groupby(to_groupby)
 
@@ -712,6 +718,15 @@ class BinGrouper(BaseGrouper):
     def nkeys(self):
         return 1
 
+    def _get_grouper(self):
+        """
+        We are a grouper as part of another's groupings.
+
+        We have a specific method of grouping, so cannot
+        convert to a Index for our grouper.
+        """
+        return self
+
     def get_iterator(self, data, axis=0):
         """
         Groupby iterator
@@ -791,7 +806,6 @@ class BinGrouper(BaseGrouper):
         dummy = obj[:0]
         grouper = reduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
-
 
 def _get_axes(group):
     if isinstance(group, Series):
