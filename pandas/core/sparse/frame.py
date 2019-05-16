@@ -2,38 +2,30 @@
 Data structures for sparse float data. Life is made simpler by dealing only
 with float64 data
 """
-from __future__ import division
-
 import warnings
 
 import numpy as np
 
 from pandas._libs.sparse import BlockIndex, get_blocks
-import pandas.compat as compat
-from pandas.compat import lmap
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import find_common_type, maybe_upcast
+from pandas.core.dtypes.cast import maybe_upcast
 from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import SparseArray, SparseFrameAccessor
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 import pandas.core.generic as generic
 from pandas.core.index import Index, MultiIndex, ensure_index
-import pandas.core.indexes.base as ibase
 from pandas.core.internals import (
     BlockManager, create_block_manager_from_arrays)
 from pandas.core.internals.construction import extract_index, prep_ndarray
 import pandas.core.ops as ops
 from pandas.core.series import Series
 from pandas.core.sparse.series import SparseSeries
-
-# pylint: disable=E1101,E1103,W0231,E0202
-
 
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
 
@@ -147,7 +139,7 @@ class SparseDataFrame(DataFrame):
         # pre-filter out columns if we passed it
         if columns is not None:
             columns = ensure_index(columns)
-            data = {k: v for k, v in compat.iteritems(data) if k in columns}
+            data = {k: v for k, v in data.items() if k in columns}
         else:
             keys = com.dict_keys_to_ordered_list(data)
             columns = Index(keys)
@@ -160,7 +152,7 @@ class SparseDataFrame(DataFrame):
                                fill_value=self._default_fill_value,
                                copy=True, dtype=dtype)
         sdict = {}
-        for k, v in compat.iteritems(data):
+        for k, v in data.items():
             if isinstance(v, Series):
                 # Force alignment, no copy necessary
                 if not v.index.equals(index):
@@ -198,7 +190,7 @@ class SparseDataFrame(DataFrame):
         Init self from ndarray or list of lists.
         """
         data = prep_ndarray(data, copy=False)
-        index, columns = self._prep_index(data, index, columns)
+        index, columns = SparseFrameAccessor._prep_index(data, index, columns)
         data = {idx: data[:, i] for i, idx in enumerate(columns)}
         return self._init_dict(data, index, columns, dtype)
 
@@ -207,7 +199,7 @@ class SparseDataFrame(DataFrame):
         """
         Init self from scipy.sparse matrix.
         """
-        index, columns = self._prep_index(data, index, columns)
+        index, columns = SparseFrameAccessor._prep_index(data, index, columns)
         data = data.tocoo()
         N = len(index)
 
@@ -234,64 +226,9 @@ class SparseDataFrame(DataFrame):
 
         return self._init_dict(sdict, index, columns, dtype)
 
-    def _prep_index(self, data, index, columns):
-        N, K = data.shape
-        if index is None:
-            index = ibase.default_index(N)
-        if columns is None:
-            columns = ibase.default_index(K)
-
-        if len(columns) != K:
-            raise ValueError('Column length mismatch: {columns} vs. {K}'
-                             .format(columns=len(columns), K=K))
-        if len(index) != N:
-            raise ValueError('Index length mismatch: {index} vs. {N}'
-                             .format(index=len(index), N=N))
-        return index, columns
-
+    @Appender(SparseFrameAccessor.to_coo.__doc__)
     def to_coo(self):
-        """
-        Return the contents of the frame as a sparse SciPy COO matrix.
-
-        .. versionadded:: 0.20.0
-
-        Returns
-        -------
-        coo_matrix : scipy.sparse.spmatrix
-            If the caller is heterogeneous and contains booleans or objects,
-            the result will be of dtype=object. See Notes.
-
-        Notes
-        -----
-        The dtype will be the lowest-common-denominator type (implicit
-        upcasting); that is to say if the dtypes (even of numeric types)
-        are mixed, the one that accommodates all will be chosen.
-
-        e.g. If the dtypes are float16 and float32, dtype will be upcast to
-        float32. By numpy.find_common_type convention, mixing int64 and
-        and uint64 will result in a float64 dtype.
-        """
-        try:
-            from scipy.sparse import coo_matrix
-        except ImportError:
-            raise ImportError('Scipy is not installed')
-
-        dtype = find_common_type(self.dtypes)
-        if isinstance(dtype, SparseDtype):
-            dtype = dtype.subtype
-
-        cols, rows, datas = [], [], []
-        for col, name in enumerate(self):
-            s = self[name]
-            row = s.sp_index.to_int_index().indices
-            cols.append(np.repeat(col, len(row)))
-            rows.append(row)
-            datas.append(s.sp_values.astype(dtype, copy=False))
-
-        cols = np.concatenate(cols)
-        rows = np.concatenate(rows)
-        datas = np.concatenate(datas)
-        return coo_matrix((datas, (rows, cols)), shape=self.shape)
+        return SparseFrameAccessor(self).to_coo()
 
     def __array_wrap__(self, result):
         return self._constructor(
@@ -324,7 +261,7 @@ class SparseDataFrame(DataFrame):
             index = idx
 
         series_dict = DataFrame()
-        for col, (sp_index, sp_values) in compat.iteritems(series):
+        for col, (sp_index, sp_values) in series.items():
             series_dict[col] = SparseSeries(sp_values, sparse_index=sp_index,
                                             fill_value=fv)
 
@@ -332,16 +269,9 @@ class SparseDataFrame(DataFrame):
         self._default_fill_value = fv
         self._default_kind = kind
 
+    @Appender(SparseFrameAccessor.to_dense.__doc__)
     def to_dense(self):
-        """
-        Convert to dense DataFrame
-
-        Returns
-        -------
-        df : DataFrame
-        """
-        data = {k: v.to_dense() for k, v in compat.iteritems(self)}
-        return DataFrame(data, index=self.index, columns=self.columns)
+        return SparseFrameAccessor(self).to_dense()
 
     def _apply_columns(self, func):
         """
@@ -349,7 +279,7 @@ class SparseDataFrame(DataFrame):
         """
 
         new_data = {col: func(series)
-                    for col, series in compat.iteritems(self)}
+                    for col, series in self.items()}
 
         return self._constructor(
             data=new_data, index=self.index, columns=self.columns,
@@ -362,7 +292,7 @@ class SparseDataFrame(DataFrame):
         """
         Make a copy of this SparseDataFrame
         """
-        result = super(SparseDataFrame, self).copy(deep=deep)
+        result = super().copy(deep=deep)
         result._default_fill_value = self._default_fill_value
         result._default_kind = self._default_kind
         return result
@@ -382,16 +312,15 @@ class SparseDataFrame(DataFrame):
         represented in the frame
         """
         tot_nonsparse = sum(ser.sp_index.npoints
-                            for _, ser in compat.iteritems(self))
+                            for _, ser in self.items())
         tot = len(self.index) * len(self.columns)
         return tot_nonsparse / float(tot)
 
     def fillna(self, value=None, method=None, axis=0, inplace=False,
                limit=None, downcast=None):
-        new_self = super(SparseDataFrame,
-                         self).fillna(value=value, method=method, axis=axis,
-                                      inplace=inplace, limit=limit,
-                                      downcast=downcast)
+        new_self = super().fillna(value=value, method=method, axis=axis,
+                                  inplace=inplace, limit=limit,
+                                  downcast=downcast)
         if not inplace:
             self = new_self
 
@@ -432,8 +361,8 @@ class SparseDataFrame(DataFrame):
 
         elif isinstance(value, SparseArray):
             if len(value) != len(self.index):
-                raise AssertionError('Length of values does not match '
-                                     'length of index')
+                raise ValueError('Length of values does not match '
+                                 'length of index')
             clean = value
 
         elif hasattr(value, '__iter__'):
@@ -443,8 +372,8 @@ class SparseDataFrame(DataFrame):
                     clean = sp_maker(clean)
             else:
                 if len(value) != len(self.index):
-                    raise AssertionError('Length of values does not match '
-                                         'length of index')
+                    raise ValueError('Length of values does not match '
+                                     'length of index')
                 clean = sp_maker(value)
 
         # Scalar
@@ -601,7 +530,7 @@ class SparseDataFrame(DataFrame):
         this, other = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
 
-        for col, series in compat.iteritems(this):
+        for col, series in this.items():
             new_data[col] = func(series.values, other.values)
 
         fill_value = self._get_op_result_fill_value(other, func)
@@ -725,7 +654,7 @@ class SparseDataFrame(DataFrame):
             raise NotImplementedError("'method' argument is not supported")
 
         # TODO: fill value handling
-        sdict = {k: v for k, v in compat.iteritems(self) if k in columns}
+        sdict = {k: v for k, v in self.items() if k in columns}
         return self._constructor(
             sdict, index=self.index, columns=columns,
             default_fill_value=self._default_fill_value).__finalize__(self)
@@ -741,7 +670,7 @@ class SparseDataFrame(DataFrame):
             fill_value = np.nan
 
         reindexers = {self._get_axis_number(a): val
-                      for (a, val) in compat.iteritems(reindexers)}
+                      for (a, val) in reindexers.items()}
 
         index, row_indexer = reindexers.get(0, (None, None))
         columns, col_indexer = reindexers.get(1, (None, None))
@@ -919,7 +848,7 @@ class SparseDataFrame(DataFrame):
 
         if isinstance(func, np.ufunc):
             new_series = {}
-            for k, v in compat.iteritems(self):
+            for k, v in self.items():
                 applied = func(v)
                 applied.fill_value = func(v.fill_value)
                 new_series[k] = applied
@@ -952,7 +881,7 @@ class SparseDataFrame(DataFrame):
         -------
         applied : DataFrame
         """
-        return self.apply(lambda x: lmap(func, x))
+        return self.apply(lambda x: [func(y) for y in x])
 
 
 def to_manager(sdf, columns, index):
@@ -971,7 +900,7 @@ def stack_sparse_frame(frame):
     """
     Only makes sense when fill_value is NaN
     """
-    lengths = [s.sp_index.npoints for _, s in compat.iteritems(frame)]
+    lengths = [s.sp_index.npoints for _, s in frame.items()]
     nobs = sum(lengths)
 
     # this is pretty fast
@@ -982,7 +911,7 @@ def stack_sparse_frame(frame):
     # TODO: Figure out whether this can be reached.
     # I think this currently can't be reached because you can't build a
     # SparseDataFrame with a non-np.NaN fill value (fails earlier).
-    for _, series in compat.iteritems(frame):
+    for _, series in frame.items():
         if not np.isnan(series.fill_value):
             raise TypeError('This routine assumes NaN fill value')
 
@@ -1023,7 +952,7 @@ def homogenize(series_dict):
 
     need_reindex = False
 
-    for _, series in compat.iteritems(series_dict):
+    for _, series in series_dict.items():
         if not np.isnan(series.fill_value):
             raise TypeError('this method is only valid with NaN fill values')
 
@@ -1035,7 +964,7 @@ def homogenize(series_dict):
 
     if need_reindex:
         output = {}
-        for name, series in compat.iteritems(series_dict):
+        for name, series in series_dict.items():
             if not series.sp_index.equals(index):
                 series = series.sparse_reindex(index)
 

@@ -1,19 +1,17 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101
 from collections import OrderedDict
 from datetime import timedelta
+from io import StringIO
 import json
 import os
 
 import numpy as np
 import pytest
 
-from pandas.compat import StringIO, is_platform_32bit, lrange, range
+from pandas.compat import is_platform_32bit
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json)
+from pandas import DataFrame, DatetimeIndex, Series, Timestamp, read_json
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_index_equal,
@@ -25,7 +23,7 @@ _tsd = tm.getTimeSeriesData()
 _frame = DataFrame(_seriesd)
 _frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
 _intframe = DataFrame({k: v.astype(np.int64)
-                       for k, v in compat.iteritems(_seriesd)})
+                       for k, v in _seriesd.items()})
 
 _tsframe = DataFrame(_tsd)
 _cat_frame = _frame.copy()
@@ -38,7 +36,7 @@ _cat_frame['sort'] = np.arange(len(_cat_frame), dtype='int64')
 _mixed_frame = _frame.copy()
 
 
-class TestPandasContainer(object):
+class TestPandasContainer:
 
     @pytest.fixture(scope="function", autouse=True)
     def setup(self, datapath):
@@ -54,7 +52,7 @@ class TestPandasContainer(object):
         self.objSeries.name = 'objects'
 
         self.empty_series = Series([], index=[])
-        self.empty_frame = DataFrame({})
+        self.empty_frame = DataFrame()
 
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
@@ -536,14 +534,11 @@ class TestPandasContainer(object):
     def test_frame_nonprintable_bytes(self):
         # GH14256: failing column caused segfaults, if it is not the last one
 
-        class BinaryThing(object):
+        class BinaryThing:
 
             def __init__(self, hexed):
                 self.hexed = hexed
-                if compat.PY2:
-                    self.binary = hexed.decode('hex')
-                else:
-                    self.binary = bytes.fromhex(hexed)
+                self.binary = bytes.fromhex(hexed)
 
             def __str__(self):
                 return self.hexed
@@ -652,7 +647,7 @@ class TestPandasContainer(object):
         _check_all_orients(self.ts)
 
         # dtype
-        s = Series(lrange(6), index=['a', 'b', 'c', 'd', 'e', 'f'])
+        s = Series(range(6), index=['a', 'b', 'c', 'd', 'e', 'f'])
         _check_all_orients(Series(s, dtype=np.float64), dtype=np.float64)
         _check_all_orients(Series(s, dtype=np.int), dtype=np.int)
 
@@ -682,8 +677,8 @@ class TestPandasContainer(object):
 
     def test_typ(self):
 
-        s = Series(lrange(6), index=['a', 'b', 'c',
-                                     'd', 'e', 'f'], dtype='int64')
+        s = Series(range(6), index=['a', 'b', 'c',
+                                    'd', 'e', 'f'], dtype='int64')
         result = read_json(s.to_json(), typ=None)
         assert_series_equal(result, s)
 
@@ -767,7 +762,10 @@ class TestPandasContainer(object):
             else:
                 json = df.to_json(date_format='iso')
             result = read_json(json)
-            assert_frame_equal(result, df)
+            expected = df.copy()
+            expected.index = expected.index.tz_localize('UTC')
+            expected['date'] = expected['date'].dt.tz_localize('UTC')
+            assert_frame_equal(result, expected)
 
         test_w_date('20130101 20:43:42.123')
         test_w_date('20130101 20:43:42', date_unit='s')
@@ -789,7 +787,10 @@ class TestPandasContainer(object):
             else:
                 json = ts.to_json(date_format='iso')
             result = read_json(json, typ='series')
-            assert_series_equal(result, ts)
+            expected = ts.copy()
+            expected.index = expected.index.tz_localize('UTC')
+            expected = expected.dt.tz_localize('UTC')
+            assert_series_equal(result, expected)
 
         test_w_date('20130101 20:43:42.123')
         test_w_date('20130101 20:43:42', date_unit='s')
@@ -846,7 +847,7 @@ class TestPandasContainer(object):
     def test_doc_example(self):
         dfj2 = DataFrame(np.random.randn(5, 2), columns=list('AB'))
         dfj2['date'] = Timestamp('20130101')
-        dfj2['ints'] = lrange(5)
+        dfj2['ints'] = range(5)
         dfj2['bools'] = True
         dfj2.index = pd.date_range('20130101', periods=5)
 
@@ -885,11 +886,15 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     @network
     @pytest.mark.single
-    def test_url(self):
+    @pytest.mark.parametrize('field,dtype', [
+        ['created_at', pd.DatetimeTZDtype(tz='UTC')],
+        ['closed_at', 'datetime64[ns]'],
+        ['updated_at', pd.DatetimeTZDtype(tz='UTC')]
+    ])
+    def test_url(self, field, dtype):
         url = 'https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5'  # noqa
         result = read_json(url, convert_dates=True)
-        for c in ['created_at', 'closed_at', 'updated_at']:
-            assert result[c].dtype == 'datetime64[ns]'
+        assert result[field].dtype == dtype
 
     def test_timedelta(self):
         converter = lambda x: pd.to_timedelta(x, unit='ms')
@@ -1104,14 +1109,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
         json = StringIO(json)
         result = read_json(json, lines=True)
-        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+        expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]],
                              columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
         # simulate string
         json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
         result = read_json(json, lines=True)
-        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+        expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]],
                              columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
@@ -1152,9 +1157,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert_frame_equal(pd.read_json(result, lines=True), df)
 
     def test_latin_encoding(self):
-        if compat.PY2:
-            pytest.skip("[unicode] is not implemented as a table column")
-
         # GH 13774
         pytest.skip("encoding not implemented in .to_json(), "
                     "xref #13774")
@@ -1306,3 +1308,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dfjson = expected.to_json(orient=orient, index=index)
         result = read_json(dfjson, orient=orient)
         assert_frame_equal(result, expected)
+
+    def test_read_timezone_information(self):
+        # GH 25546
+        result = read_json('{"2019-01-01T11:00:00.000Z":88}',
+                           typ='series', orient='index')
+        expected = Series([88],
+                          index=DatetimeIndex(['2019-01-01 11:00:00'],
+                                              tz='UTC'))
+        assert_series_equal(result, expected)

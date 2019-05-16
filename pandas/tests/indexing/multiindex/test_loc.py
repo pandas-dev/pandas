@@ -6,6 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
+from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
 
 
@@ -25,7 +26,7 @@ def frame_random_data_integer_multi_index():
 
 
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-class TestMultiIndexLoc(object):
+class TestMultiIndexLoc:
 
     def test_loc_getitem_series(self):
         # GH14730
@@ -123,12 +124,24 @@ class TestMultiIndexLoc(object):
         tm.assert_frame_equal(rs, xp)
 
         # missing label
-        with pytest.raises(KeyError, match=r"^2L?$"):
+        with pytest.raises(KeyError, match=r"^2$"):
             mi_int.loc[2]
         with catch_warnings(record=True):
             # GH 21593
-            with pytest.raises(KeyError, match=r"^2L?$"):
+            with pytest.raises(KeyError, match=r"^2$"):
                 mi_int.ix[2]
+
+    def test_loc_multiindex_too_many_dims(self):
+        # GH 14885
+        s = Series(range(8), index=MultiIndex.from_product(
+            [['a', 'b'], ['c', 'd'], ['e', 'f']]))
+
+        with pytest.raises(KeyError, match=r"^\('a', 'b'\)$"):
+            s.loc['a', 'b']
+        with pytest.raises(KeyError, match=r"^\('a', 'd', 'g'\)$"):
+            s.loc['a', 'd', 'g']
+        with pytest.raises(IndexingError, match='Too many indexers'):
+            s.loc['a', 'd', 'g', 'j']
 
     def test_loc_multiindex_indexer_none(self):
 
@@ -362,7 +375,7 @@ def test_loc_getitem_int(frame_random_data_integer_multi_index):
 def test_loc_getitem_int_raises_exception(
         frame_random_data_integer_multi_index):
     df = frame_random_data_integer_multi_index
-    with pytest.raises(KeyError, match=r"^3L?$"):
+    with pytest.raises(KeyError, match=r"^3$"):
         df.loc[3]
 
 
@@ -370,7 +383,7 @@ def test_loc_getitem_lowerdim_corner(multiindex_dataframe_random_data):
     df = multiindex_dataframe_random_data
 
     # test setup - check key not in dataframe
-    with pytest.raises(KeyError, match=r"^11L?$"):
+    with pytest.raises(KeyError, match=r"^11$"):
         df.loc[('bar', 'three'), 'B']
 
     # in theory should be inserting in a sorted space????

@@ -222,9 +222,7 @@ class DecimalArray2(DecimalArray):
         if isinstance(scalars, (pd.Series, pd.Index)):
             raise TypeError
 
-        return super(DecimalArray2, cls)._from_sequence(
-            scalars, dtype=dtype, copy=copy
-        )
+        return super()._from_sequence(scalars, dtype=dtype, copy=copy)
 
 
 @pytest.mark.parametrize("box", [pd.Series, pd.Index])
@@ -257,7 +255,7 @@ def test_array_not_registered(registry_without_decimal):
     tm.assert_equal(result, expected)
 
 
-class TestArrayAnalytics(object):
+class TestArrayAnalytics:
     def test_searchsorted(self, string_dtype):
         arr = pd.array(['a', 'b', 'c'], dtype=string_dtype)
 

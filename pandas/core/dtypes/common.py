@@ -5,11 +5,11 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from pandas.compat import PY3, PY36, string_types
+from pandas.compat import PY36
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, IntervalDtype,
-    PandasExtensionDtype, PeriodDtype, registry)
+    PeriodDtype, registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
     ABCPeriodArray, ABCPeriodIndex, ABCSeries)
@@ -763,7 +763,7 @@ def is_dtype_equal(source, target):
     target : The second dtype to compare
 
     Returns
-    ----------
+    -------
     boolean
         Whether or not the two dtypes are equal.
 
@@ -804,7 +804,7 @@ def is_dtype_union_equal(source, target):
     target : The second dtype to compare
 
     Returns
-    ----------
+    -------
     boolean
         Whether or not the two dtypes are equal.
 
@@ -1274,9 +1274,7 @@ def _is_unorderable_exception(e):
     if PY36:
         return "'>' not supported between instances of" in str(e)
 
-    elif PY3:
-        return 'unorderable' in str(e)
-    return False
+    return 'unorderable' in str(e)
 
 
 def is_numeric_v_string_like(a, b):
@@ -1890,7 +1888,7 @@ def _is_dtype_type(arr_or_dtype, condition):
     if isinstance(arr_or_dtype, np.dtype):
         return condition(arr_or_dtype.type)
     elif isinstance(arr_or_dtype, type):
-        if issubclass(arr_or_dtype, (PandasExtensionDtype, ExtensionDtype)):
+        if issubclass(arr_or_dtype, ExtensionDtype):
             arr_or_dtype = arr_or_dtype.type
         return condition(np.dtype(arr_or_dtype).type)
     elif arr_or_dtype is None:
@@ -1938,7 +1936,7 @@ def infer_dtype_from_object(dtype):
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
         return dtype
-    elif isinstance(dtype, (np.dtype, PandasExtensionDtype, ExtensionDtype)):
+    elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         # dtype object
         try:
             _validate_date_like_dtype(dtype)
@@ -1954,7 +1952,7 @@ def infer_dtype_from_object(dtype):
 
     if is_extension_array_dtype(dtype):
         return dtype.type
-    elif isinstance(dtype, string_types):
+    elif isinstance(dtype, str):
 
         # TODO(jreback)
         # should deprecate these
@@ -2023,7 +2021,7 @@ def pandas_dtype(dtype):
     # short-circuit
     if isinstance(dtype, np.ndarray):
         return dtype.dtype
-    elif isinstance(dtype, (np.dtype, PandasExtensionDtype, ExtensionDtype)):
+    elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         return dtype
 
     # registered extension types
@@ -2037,7 +2035,7 @@ def pandas_dtype(dtype):
         npdtype = np.dtype(dtype)
     except Exception:
         # we don't want to force a repr of the non-string
-        if not isinstance(dtype, string_types):
+        if not isinstance(dtype, str):
             raise TypeError("data type not understood")
         raise TypeError("data type '{}' not understood".format(
             dtype))

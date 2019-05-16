@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import lrange, range
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -38,7 +35,7 @@ def test_constructor_no_levels():
 
 def test_constructor_nonhashable_names():
     # GH 20527
-    levels = [[1, 2], [u'one', u'two']]
+    levels = [[1, 2], ['one', 'two']]
     codes = [[0, 0, 1, 1], [0, 1, 0, 1]]
     names = (['foo'], ['bar'])
     msg = r"MultiIndex\.name must be a hashable type"
@@ -46,7 +43,7 @@ def test_constructor_nonhashable_names():
         MultiIndex(levels=levels, codes=codes, names=names)
 
     # With .rename()
-    mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
+    mi = MultiIndex(levels=[[1, 2], ['one', 'two']],
                     codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                     names=('foo', 'bar'))
     renamed = [['foor'], ['barr']]
@@ -385,7 +382,7 @@ def test_from_product_empty_two_levels(first, second):
 def test_from_product_empty_three_levels(N):
     # GH12258
     names = ['A', 'B', 'C']
-    lvl2 = lrange(N)
+    lvl2 = list(range(N))
     result = MultiIndex.from_product([[], lvl2, []], names=names)
     expected = MultiIndex(levels=[[], lvl2, []],
                           codes=[[], [], []], names=names)

@@ -1,25 +1,21 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-import pandas.compat as compat
-from pandas.compat import PY3
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
-    CategoricalIndex, DatetimeIndex, Float64Index, Index, Int64Index,
-    IntervalIndex, MultiIndex, PeriodIndex, RangeIndex, Series, TimedeltaIndex,
-    UInt64Index, isna)
+    CategoricalIndex, DatetimeIndex, Index, Int64Index, IntervalIndex,
+    MultiIndex, PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index,
+    isna)
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 import pandas.util.testing as tm
 
 
-class Base(object):
+class Base:
     """ base class for index sub-class tests """
     _holder = None
     _compat_props = ['shape', 'ndim', 'size', 'nbytes']
@@ -85,6 +81,14 @@ class Base(object):
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
 
+    def test_to_frame_datetime_tz(self):
+        # GH 25809
+        idx = pd.date_range(start='2019-01-01', end='2019-01-30', freq='D')
+        idx = idx.tz_localize('UTC')
+        result = idx.to_frame()
+        expected = pd.DataFrame(idx, index=idx)
+        tm.assert_frame_equal(result, expected)
+
     def test_shift(self):
 
         # GH8083 test the base class for shift
@@ -133,8 +137,7 @@ class Base(object):
         with pytest.raises(TypeError, match="cannot perform __rmul__"):
             1 * idx
 
-        div_err = ("cannot perform __truediv__" if PY3
-                   else "cannot perform __div__")
+        div_err = "cannot perform __truediv__"
         with pytest.raises(TypeError, match=div_err):
             idx / 1
 
@@ -229,7 +232,7 @@ class Base(object):
         # gh-12309: Check that the "name" argument
         # passed at initialization is honored.
 
-        for name, index in compat.iteritems(self.indices):
+        for name, index in self.indices.items():
             if isinstance(index, MultiIndex):
                 continue
 
@@ -256,7 +259,7 @@ class Base(object):
     def test_ensure_copied_data(self):
         # Check the "copy" argument of each Index.__new__ is honoured
         # GH12309
-        for name, index in compat.iteritems(self.indices):
+        for name, index in self.indices.items():
             init_kwargs = {}
             if isinstance(index, PeriodIndex):
                 # Needs "freq" specification:
@@ -292,7 +295,7 @@ class Base(object):
                                             check_same='same')
 
     def test_memory_usage(self):
-        for name, index in compat.iteritems(self.indices):
+        for name, index in self.indices.items():
             result = index.memory_usage()
             if len(index):
                 index.get_loc(index[0])
@@ -422,7 +425,7 @@ class Base(object):
     @pytest.mark.parametrize("method", ["intersection", "union",
                                         "difference", "symmetric_difference"])
     def test_set_ops_error_cases(self, case, method):
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             # non-iterable input
 
             msg = "Input must be Index or array-like"
@@ -430,7 +433,7 @@ class Base(object):
                 getattr(idx, method)(case)
 
     def test_intersection_base(self):
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             first = idx[:5]
             second = idx[:3]
             intersect = first.intersection(second)
@@ -460,7 +463,7 @@ class Base(object):
                     first.intersection([1, 2, 3])
 
     def test_union_base(self):
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             first = idx[3:]
             second = idx[:5]
             everything = idx
@@ -488,7 +491,7 @@ class Base(object):
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_difference_base(self, sort):
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             first = idx[2:]
             second = idx[:4]
             answer = idx[4:]
@@ -523,7 +526,7 @@ class Base(object):
                     first.difference([1, 2, 3], sort)
 
     def test_symmetric_difference(self):
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             first = idx[1:]
             second = idx[:-1]
             if isinstance(idx, CategoricalIndex):
@@ -554,7 +557,7 @@ class Base(object):
 
     def test_insert_base(self):
 
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             result = idx[1:4]
 
             if not len(idx):
@@ -565,7 +568,7 @@ class Base(object):
 
     def test_delete_base(self):
 
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
 
             if not len(idx):
                 continue
@@ -590,7 +593,7 @@ class Base(object):
 
     def test_equals(self):
 
-        for name, idx in compat.iteritems(self.indices):
+        for name, idx in self.indices.items():
             assert idx.equals(idx)
             assert idx.equals(idx.copy())
             assert idx.equals(idx.astype(object))
@@ -672,58 +675,9 @@ class Base(object):
             tm.assert_numpy_array_equal(index_a == item, expected3)
             tm.assert_series_equal(series_a == item, Series(expected3))
 
-    def test_numpy_ufuncs(self):
-        # test ufuncs of numpy, see:
-        # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
-
-        for name, idx in compat.iteritems(self.indices):
-            for func in [np.exp, np.exp2, np.expm1, np.log, np.log2, np.log10,
-                         np.log1p, np.sqrt, np.sin, np.cos, np.tan, np.arcsin,
-                         np.arccos, np.arctan, np.sinh, np.cosh, np.tanh,
-                         np.arcsinh, np.arccosh, np.arctanh, np.deg2rad,
-                         np.rad2deg]:
-                if isinstance(idx, DatetimeIndexOpsMixin):
-                    # raise TypeError or ValueError (PeriodIndex)
-                    # PeriodIndex behavior should be changed in future version
-                    with pytest.raises(Exception):
-                        with np.errstate(all='ignore'):
-                            func(idx)
-                elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
-                    # coerces to float (e.g. np.sin)
-                    with np.errstate(all='ignore'):
-                        result = func(idx)
-                        exp = Index(func(idx.values), name=idx.name)
-
-                    tm.assert_index_equal(result, exp)
-                    assert isinstance(result, pd.Float64Index)
-                else:
-                    # raise AttributeError or TypeError
-                    if len(idx) == 0:
-                        continue
-                    else:
-                        with pytest.raises(Exception):
-                            with np.errstate(all='ignore'):
-                                func(idx)
-
-            for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
-                if isinstance(idx, DatetimeIndexOpsMixin):
-                    # raise TypeError or ValueError (PeriodIndex)
-                    with pytest.raises(Exception):
-                        func(idx)
-                elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
-                    # Results in bool array
-                    result = func(idx)
-                    assert isinstance(result, np.ndarray)
-                    assert not isinstance(result, Index)
-                else:
-                    if len(idx) == 0:
-                        continue
-                    else:
-                        with pytest.raises(Exception):
-                            func(idx)
-
     def test_hasnans_isnans(self):
         # GH 11343, added tests for hasnans / isnans
+
         for name, index in self.indices.items():
             if isinstance(index, MultiIndex):
                 pass

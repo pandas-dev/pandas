@@ -4,6 +4,8 @@ Template for intervaltree
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
+from pandas._libs.algos import is_monotonic
+
 ctypedef fused scalar_t:
     float64_t
     float32_t
@@ -100,6 +102,17 @@ cdef class IntervalTree(IntervalMixin):
         self._is_overlapping = bool(op(current, previous).any())
 
         return self._is_overlapping
+
+    @property
+    def is_monotonic_increasing(self):
+        """
+        Return True if the IntervalTree is monotonic increasing (only equal or
+        increasing values), else False
+        """
+        values = [self.right, self.left]
+
+        sort_order = np.lexsort(values)
+        return is_monotonic(sort_order, False)[0]
 
     def get_loc(self, scalar_t key):
         """Return all positions corresponding to intervals that overlap with

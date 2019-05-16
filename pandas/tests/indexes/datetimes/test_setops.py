@@ -16,7 +16,7 @@ from pandas.tseries.offsets import BMonthEnd, Minute, MonthEnd
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestDatetimeIndexSetOps(object):
+class TestDatetimeIndexSetOps:
     tz = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/Asia/Singapore',
           'dateutil/US/Pacific']
 
@@ -86,7 +86,11 @@ class TestDatetimeIndexSetOps(object):
         rng_b = date_range('1/1/2012', periods=4, freq='4H')
 
         result = rng_a.union(rng_b, sort=sort)
-        exp = DatetimeIndex(sorted(set(list(rng_a)) | set(list(rng_b))))
+        exp = list(rng_a) + list(rng_b[1:])
+        if sort is None:
+            exp = DatetimeIndex(sorted(exp))
+        else:
+            exp = DatetimeIndex(exp)
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize("sort", [None, False])
@@ -112,7 +116,11 @@ class TestDatetimeIndexSetOps(object):
         right = left + DateOffset(minutes=15)
 
         result = left.union(right, sort=sort)
-        exp = DatetimeIndex(sorted(set(list(left)) | set(list(right))))
+        exp = list(left) + list(right)
+        if sort is None:
+            exp = DatetimeIndex(sorted(exp))
+        else:
+            exp = DatetimeIndex(exp)
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize("sort", [None, False])
@@ -310,7 +318,7 @@ class TestDatetimeIndexSetOps(object):
         assert rs.is_monotonic
 
 
-class TestBusinessDatetimeIndex(object):
+class TestBusinessDatetimeIndex:
 
     def setup_method(self, method):
         self.rng = bdate_range(START, END)
@@ -464,7 +472,7 @@ class TestBusinessDatetimeIndex(object):
         early_dr.union(late_dr, sort=sort)
 
 
-class TestCustomDatetimeIndex(object):
+class TestCustomDatetimeIndex:
 
     def setup_method(self, method):
         self.rng = bdate_range(START, END, freq='C')

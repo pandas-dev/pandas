@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange
 from pandas.compat.numpy import _np_version_under1p17
 
 import pandas as pd
@@ -34,8 +31,8 @@ def test_groupby(idx):
 
 
 def test_truncate():
-    major_axis = Index(lrange(4))
-    minor_axis = Index(lrange(2))
+    major_axis = Index(list(range(4)))
+    minor_axis = Index(list(range(2)))
 
     major_codes = np.array([0, 0, 1, 2, 3, 3])
     minor_codes = np.array([0, 1, 0, 1, 0, 1])
@@ -275,7 +272,6 @@ def test_map_dictlike(idx, mapper):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
 @pytest.mark.parametrize('func', [
     np.exp, np.exp2, np.expm1, np.log, np.log2, np.log10,
     np.log1p, np.sqrt, np.sin, np.cos, np.tan, np.arcsin,

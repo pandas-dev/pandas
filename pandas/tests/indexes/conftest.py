@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import long, lzip
-
 import pandas as pd
 from pandas.core.indexes.api import Index, MultiIndex
 import pandas.util.testing as tm
@@ -20,7 +18,7 @@ import pandas.util.testing as tm
                         Index([True, False]),
                         tm.makeCategoricalIndex(100),
                         Index([]),
-                        MultiIndex.from_tuples(lzip(
+                        MultiIndex.from_tuples(zip(
                             ['foo', 'bar', 'baz'], [1, 2, 3])),
                         Index([0, 0, 1, 1, 2, 2])],
                 ids=lambda x: type(x).__name__)
@@ -39,7 +37,7 @@ zeros = [box([0] * 5, dtype=dtype)
          for dtype in [np.int64, np.uint64, np.float64]]
 zeros.extend([np.array(0, dtype=dtype)
               for dtype in [np.int64, np.uint64, np.float64]])
-zeros.extend([0, 0.0, long(0)])
+zeros.extend([0, 0.0])
 
 
 @pytest.fixture(params=zeros)

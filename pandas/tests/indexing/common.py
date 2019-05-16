@@ -5,8 +5,6 @@ from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.common import is_scalar
 
 from pandas import (
@@ -29,7 +27,7 @@ def _axify(obj, key, axis):
     return tuple(axes)
 
 
-class Base(object):
+class Base:
     """ indexing comprehensive base class """
 
     _objs = {'series', 'frame'}
@@ -38,16 +36,16 @@ class Base(object):
 
     def setup_method(self, method):
 
-        self.series_ints = Series(np.random.rand(4), index=lrange(0, 8, 2))
+        self.series_ints = Series(np.random.rand(4), index=np.arange(0, 8, 2))
         self.frame_ints = DataFrame(np.random.randn(4, 4),
-                                    index=lrange(0, 8, 2),
-                                    columns=lrange(0, 12, 3))
+                                    index=np.arange(0, 8, 2),
+                                    columns=np.arange(0, 12, 3))
 
         self.series_uints = Series(np.random.rand(4),
-                                   index=UInt64Index(lrange(0, 8, 2)))
+                                   index=UInt64Index(np.arange(0, 8, 2)))
         self.frame_uints = DataFrame(np.random.randn(4, 4),
-                                     index=UInt64Index(lrange(0, 8, 2)),
-                                     columns=UInt64Index(lrange(0, 12, 3)))
+                                     index=UInt64Index(range(0, 8, 2)),
+                                     columns=UInt64Index(range(0, 12, 3)))
 
         self.series_floats = Series(np.random.rand(4),
                                     index=Float64Index(range(0, 8, 2)))
@@ -85,8 +83,8 @@ class Base(object):
         self.frame_ts_rev = DataFrame(np.random.randn(4, 4),
                                       index=dates_rev)
 
-        self.frame_empty = DataFrame({})
-        self.series_empty = Series({})
+        self.frame_empty = DataFrame()
+        self.series_empty = Series()
 
         # form agglomerates
         for o in self._objs:
@@ -105,7 +103,7 @@ class Base(object):
 
         axes = f.axes
         if values:
-            axes = [lrange(len(a)) for a in axes]
+            axes = (list(range(len(a))) for a in axes)
 
         return itertools.product(*axes)
 
