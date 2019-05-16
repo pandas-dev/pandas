@@ -11,7 +11,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._style import _get_standard_colors
 from pandas.plotting._tools import _flatten, _subplots
 
-from .main import LinePlot, MPLPlot
+from .core import LinePlot, MPLPlot
 
 
 class BoxPlot(LinePlot):

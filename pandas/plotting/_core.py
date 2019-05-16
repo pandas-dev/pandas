@@ -8,7 +8,6 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.base import PandasObject
 from pandas.core.generic import _shared_docs
 
-
 df_kind = """- 'scatter' : scatter plot
         - 'hexbin' : hexbin plot"""
 series_kind = ""
@@ -376,7 +375,7 @@ def _get_standard_kind(kind):
 
 def _get_plot_backend():
     try:
-        import pandas.plotting.matplotlib as plot_backend
+        import pandas.plotting._matplotlib as plot_backend
     except ImportError:
         raise ImportError("matplotlib is required for plotting.")
     return plot_backend

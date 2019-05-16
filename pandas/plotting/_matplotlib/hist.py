@@ -12,7 +12,7 @@ import pandas.core.common as com
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._tools import _flatten, _set_ticks_props, _subplots
 
-from .main import LinePlot, MPLPlot
+from .core import LinePlot, MPLPlot
 
 
 class HistPlot(LinePlot):

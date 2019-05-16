@@ -12,7 +12,7 @@ from pandas import DataFrame, Series
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 import pandas.util.testing as tm
 
-from pandas.plotting.matplotlib.hist import _grouped_hist
+from pandas.plotting._matplotlib.hist import _grouped_hist
 
 
 @td.skip_if_no_mpl
