@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame, Series, Timestamp, compat, date_range, option_context)
+from pandas import DataFrame, Series, Timestamp, date_range, option_context
 from pandas.core import common as com
 from pandas.util import testing as tm
 
@@ -16,7 +15,7 @@ class TestCaching:
         with option_context('chained_assignment', None):
 
             # #3970
-            df = DataFrame({"aa": compat.lrange(5), "bb": [2.2] * 5})
+            df = DataFrame({"aa": np.arange(5), "bb": [2.2] * 5})
 
             # Creates a second float block
             df["cc"] = 0.0

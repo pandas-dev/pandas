@@ -5,7 +5,6 @@ from numpy import nan
 import pytest
 
 from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -168,7 +167,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_constructor_convert_index_once(self):
         arr = np.array([1.5, 2.5, 3.5])
-        sdf = SparseDataFrame(columns=lrange(4), index=arr)
+        sdf = SparseDataFrame(columns=range(4), index=arr)
         assert sdf[0].index is sdf[1].index
 
     def test_constructor_from_series(self):
@@ -766,8 +765,8 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(result, expected)
 
     def test_fillna(self, float_frame_fill0, float_frame_fill0_dense):
-        df = float_frame_fill0.reindex(lrange(5))
-        dense = float_frame_fill0_dense.reindex(lrange(5))
+        df = float_frame_fill0.reindex(list(range(5)))
+        dense = float_frame_fill0_dense.reindex(list(range(5)))
 
         result = df.fillna(0)
         expected = dense.fillna(0)
