@@ -1449,6 +1449,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         skipna : bool, default True
             Whether to ignore any NaT elements
 
+        Returns
+        -------
+        scalar (Timestamp or Timedelta)
+
         See Also
         --------
         numpy.ndarray.mean
