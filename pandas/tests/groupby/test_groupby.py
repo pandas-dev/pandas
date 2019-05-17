@@ -730,7 +730,7 @@ def test_omit_nuisance(df):
     grouped = df.groupby({'A': 0, 'C': 0, 'D': 1, 'E': 1}, axis=1)
     msg = (r'\("unsupported operand type\(s\) for \+: '
            "'Timestamp' and 'float'\""
-           r", u?'occurred at index 0'\)")
+           r", 'occurred at index 0'\)")
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 

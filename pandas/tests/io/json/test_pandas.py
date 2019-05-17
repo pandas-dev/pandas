@@ -864,7 +864,7 @@ class TestPandasContainer:
         error_msg = """DataFrame\\.index are different
 
 DataFrame\\.index values are different \\(100\\.0 %\\)
-\\[left\\]:  Index\\(\\[u?'a', u?'b'\\], dtype='object'\\)
+\\[left\\]:  Index\\(\\['a', 'b'\\], dtype='object'\\)
 \\[right\\]: RangeIndex\\(start=0, stop=2, step=1\\)"""
         with pytest.raises(AssertionError, match=error_msg):
             assert_frame_equal(result, expected, check_index_type=False)
