@@ -151,24 +151,8 @@ class NDFrameGroupBy(GroupBy):
 
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
-            if not PY36:
-                kwargs = OrderedDict(sorted(kwargs.items()))
+            func, columns, order = _normalize_keyword_aggregation(kwargs)
 
-            # Normalize the aggregation functions as Dict[column, List[func]],
-            # process normally, then fixup the names.
-            # TODO(Py35): When we drop python 3.5, change this to
-            # defaultdict(list)
-            func = OrderedDict()
-            order = []
-            columns, pairs = list(zip(*kwargs.items()))
-
-            for i, (name, (column, aggfunc)) in enumerate(zip(columns, pairs)):
-                if column in func:
-                    func[column].append(aggfunc)
-                else:
-                    func[column] = [aggfunc]
-                order.append((column,
-                              com.get_callable_name(aggfunc) or aggfunc))
             kwargs = {}
         elif func is None:
             # nicer error message
@@ -1651,3 +1635,24 @@ def _is_multi_agg_with_relabel(**kwargs):
         isinstance(v, tuple) and len(v) == 2
         for v in kwargs.values()
     ) and kwargs
+
+
+def _normalize_keyword_aggregation(kwargs):
+    if not PY36:
+        kwargs = OrderedDict(sorted(kwargs.items()))
+    # Normalize the aggregation functions as Dict[column, List[func]],
+    # process normally, then fixup the names.
+    # TODO(Py35): When we drop python 3.5, change this to
+    # defaultdict(list)
+    func = OrderedDict()
+    order = []
+    columns, pairs = list(zip(*kwargs.items()))
+
+    for i, (name, (column, aggfunc)) in enumerate(zip(columns, pairs)):
+        if column in func:
+            func[column].append(aggfunc)
+        else:
+            func[column] = [aggfunc]
+        order.append((column,
+                      com.get_callable_name(aggfunc) or aggfunc))
+    return func, columns, order
