@@ -134,8 +134,13 @@ class PandasExtensionDtype(ExtensionDtype):
 
     def __bytes__(self):
         """
-        Return a string representation for a particular object.
+        Return a bytes representation for a particular object.
+
+        .. deprecated:: 0.25.0
         """
+        warnings.warn("{obj}.__bytes__ is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         from pandas._config import get_option
 
         encoding = get_option("display.encoding")

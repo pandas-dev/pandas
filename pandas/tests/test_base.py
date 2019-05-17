@@ -31,14 +31,16 @@ class CheckStringMixin:
     def test_string_methods_dont_fail(self):
         repr(self.container)
         str(self.container)
-        bytes(self.container)
 
     def test_tricky_container(self):
         if not hasattr(self, 'unicode_container'):
             pytest.skip('Need unicode_container to test with this')
         repr(self.unicode_container)
         str(self.unicode_container)
-        bytes(self.unicode_container)
+
+    def test_bytes_deprecated(self):
+        with tm.assert_produces_warning(FutureWarning):
+            bytes(self.container)
 
 
 class CheckImmutable:

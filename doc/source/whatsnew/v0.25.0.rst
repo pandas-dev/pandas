@@ -258,7 +258,7 @@ Deprecations
 - Deprecated the ``units=M`` (months) and ``units=Y`` (year) parameters for ``units`` of :func:`pandas.to_timedelta`, :func:`pandas.Timedelta` and :func:`pandas.TimedeltaIndex` (:issue:`16344`)
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
 - The :meth:`DataFrame.compound` and :meth:`Series.compound` methods are deprecated and will be removed in a future version.
-
+- Deprecated the ``__bytes__`` method of :class:`pandas.core.base.StringMixin` and :class:`pandas.core.dtypes.PandasExtensionDtype` and their subclasses. The method was needed for Python2 compatibility (:issue:`26444`).
 
 .. _whatsnew_0250.prior_deprecations:
 

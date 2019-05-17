@@ -50,6 +50,10 @@ class Base:
         assert not len(self.dtype._cache)
         assert result == self.dtype
 
+    def test_bytes_deprecated(self):
+        with tm.assert_produces_warning(FutureWarning):
+            bytes(self.dtype)
+
 
 class TestCategoricalDtype(Base):
 
