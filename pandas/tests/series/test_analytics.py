@@ -91,7 +91,7 @@ class TestSeriesAnalytics:
                                check_dtype=False)
         tm.assert_series_equal(qindexer, Series(qexpected),
                                check_dtype=False)
-        msg = (r"ndarray Expected type <(class|type) 'numpy\.ndarray'>,"
+        msg = (r"ndarray Expected type <class 'numpy\.ndarray'>,"
                r" found <class 'pandas\.core\.series\.Series'> instead")
         with pytest.raises(AssertionError, match=msg):
             tm.assert_numpy_array_equal(qindexer, mindexer)
