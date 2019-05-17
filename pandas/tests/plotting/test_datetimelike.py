@@ -28,19 +28,13 @@ class TestTSPlot(TestPlotBase):
     def setup_method(self, method):
         TestPlotBase.setup_method(self, method)
 
-        freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
-        idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
+        self.freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
+        idx = [
+            period_range('12/31/1999', freq=x, periods=100) for x in self.freq]
         self.period_ser = [Series(np.random.randn(len(x)), x) for x in idx]
         self.period_df = [DataFrame(np.random.randn(len(x), 3), index=x,
                                     columns=['A', 'B', 'C'])
                           for x in idx]
-        mults = [1, 23]  # setup periods with multiples of freq.rule_code
-        freq = [str(mlt) + frq for frq, mlt in itertools.product(freq, mults)]
-        idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
-        self.period_mlt_ser = [Series(np.random.randn(len(x)), x) for x in idx]
-        self.period_mlt_df = [DataFrame(np.random.randn(len(x), 3), index=x,
-                                        columns=['A', 'B', 'C'])
-                              for x in idx]
 
         freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q-DEC', 'A', '1B30Min']
         idx = [date_range('12/31/1999', freq=x, periods=100) for x in freq]
@@ -220,8 +214,15 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_line_plot_period_mlt_series(self):
-        for s in self.period_mlt_ser:
-            _check_plot_works(s.plot, s.index.freq.rule_code)
+        # test period index line plot for series with multiples (`mlt`) of the
+        # frequency rule code
+        multiplier = [1, 9]  # multiplier for freq.rule_code
+        for mult in multiplier:
+            for base in self.freq:
+                freq_code = str(mult) + base  # construct frequency code
+                idx = period_range('12/31/1999', freq=freq_code, periods=100)
+                s = Series(np.random.randn(len(idx)), idx)
+                _check_plot_works(s.plot, s.index.freq.rule_code)
 
     @pytest.mark.slow
     def test_line_plot_datetime_series(self):
@@ -235,9 +236,17 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_line_plot_period_mlt_frame(self):
-        for df in self.period_mlt_df:
-            freq = df.index.asfreq(df.index.freq.rule_code).freq
-            _check_plot_works(df.plot, freq)
+        # test period index line plot for DataFrames with multiples (`mlt`)
+        # of the frequency rule code
+        multiplier = [1, 9]  # multiplier for freq.rule_code
+        for mult in multiplier:
+            for base in self.freq:
+                freq_code = str(mult) + base  # construct frequency code
+                idx = period_range('12/31/1999', freq=freq_code, periods=100)
+                df = DataFrame(np.random.randn(len(idx), 3), index=idx,
+                               columns=['A', 'B', 'C'])
+                freq = df.index.asfreq(df.index.freq.rule_code).freq
+                _check_plot_works(df.plot, freq)
 
     @pytest.mark.slow
     def test_line_plot_datetime_frame(self):
