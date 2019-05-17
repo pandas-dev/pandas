@@ -37,8 +37,8 @@ output columns when applying multiple aggregation functions to specific columns 
                            'weight': [7.9, 7.5, 9.9, 198.0]})
    animals
    animals.groupby("kind").agg(
-       min_height=pd.KeywordAgg(column='height', aggfunc='min')),
-       max_height=pd.KeywordAgg(column='height', aggfunc='max')),
+       min_height=pd.KeywordAgg(column='height', aggfunc='min'),
+       max_height=pd.KeywordAgg(column='height', aggfunc='max'),
        average_weight=('height', np.mean),
    )
 
