@@ -1,6 +1,7 @@
 import copy
 from datetime import timedelta
 from textwrap import dedent
+from typing import Dict, no_type_check
 import warnings
 
 import numpy as np
@@ -31,7 +32,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
-_shared_docs_kwargs = dict()
+_shared_docs_kwargs = dict()  # type: Dict[str, str]
 
 
 class Resampler(_GroupBy):
@@ -873,25 +874,25 @@ for method in ['sum', 'prod']:
 for method in ['min', 'max', 'first', 'last', 'mean', 'sem',
                'median', 'ohlc']:
 
-    def f(self, _method=method, *args, **kwargs):
+    def g(self, _method=method, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)
         return self._downsample(_method)
-    f.__doc__ = getattr(GroupBy, method).__doc__
-    setattr(Resampler, method, f)
+    g.__doc__ = getattr(GroupBy, method).__doc__
+    setattr(Resampler, method, g)
 
 # groupby & aggregate methods
 for method in ['count']:
-    def f(self, _method=method):
+    def h(self, _method=method):
         return self._downsample(_method)
-    f.__doc__ = getattr(GroupBy, method).__doc__
-    setattr(Resampler, method, f)
+    h.__doc__ = getattr(GroupBy, method).__doc__
+    setattr(Resampler, method, h)
 
 # series only methods
 for method in ['nunique']:
-    def f(self, _method=method):
+    def h(self, _method=method):
         return self._downsample(_method)
-    f.__doc__ = getattr(SeriesGroupBy, method).__doc__
-    setattr(Resampler, method, f)
+    h.__doc__ = getattr(SeriesGroupBy, method).__doc__
+    setattr(Resampler, method, h)
 
 
 def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
@@ -964,6 +965,7 @@ class _GroupByMixin(GroupByMixin):
         self._groupby.grouper.mutated = True
         self.groupby = copy.copy(parent.groupby)
 
+    @no_type_check
     def _apply(self, f, grouper=None, *args, **kwargs):
         """
         Dispatch to _upsample; we are stripping all of the _upsample kwargs and
