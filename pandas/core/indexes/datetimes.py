@@ -4,8 +4,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    Timestamp, index as libindex, lib, tslib as libts)
+from pandas._libs import Timestamp, index as libindex, lib, tslib as libts
 import pandas._libs.join as libjoin
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
