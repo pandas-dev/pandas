@@ -62,7 +62,7 @@ class TestDatetimeIndexRendering:
         dr = pd.date_range(start='1/1/2012', periods=3)
         repr(dr)
 
-    @pytest.mark.parametrize('method', ['__repr__', '__unicode__', '__str__'])
+    @pytest.mark.parametrize('method', ['__repr__', '__str__'])
     def test_dti_representation(self, method):
         idxs = []
         idxs.append(DatetimeIndex([], freq='D'))

@@ -1823,7 +1823,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ----------
     # Formatting
     # -----------
-    def __unicode__(self):
+    def __str__(self):
         return '{self}\nFill: {fill}\n{index}'.format(
             self=printing.pprint_thing(self),
             fill=printing.pprint_thing(self.fill_value),

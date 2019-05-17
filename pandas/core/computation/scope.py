@@ -135,7 +135,7 @@ class Scope(StringMixin):
         self.resolvers = DeepChainMap(*resolvers)
         self.temps = {}
 
-    def __unicode__(self):
+    def __str__(self):
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
         unicode_str = '{name}(scope={scope_keys}, resolvers={res_keys})'

@@ -519,7 +519,7 @@ class HDFStore(StringMixin):
     def __len__(self):
         return len(self.groups())
 
-    def __unicode__(self):
+    def __str__(self):
         return '{type}\nFile path: {path}\n'.format(
             type=type(self), path=pprint_thing(self._path))
 
@@ -1586,7 +1586,7 @@ class IndexCol(StringMixin):
         self.table = table
         return self
 
-    def __unicode__(self):
+    def __str__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -1880,7 +1880,7 @@ class DataCol(IndexCol):
         self.set_data(data)
         self.set_metadata(metadata)
 
-    def __unicode__(self):
+    def __str__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -2335,7 +2335,7 @@ class Fixed(StringMixin):
     def format_type(self):
         return 'fixed'
 
-    def __unicode__(self):
+    def __str__(self):
         """ return a pretty representation of myself """
         self.infer_axes()
         s = self.shape
@@ -3076,7 +3076,7 @@ class Table(Fixed):
     def format_type(self):
         return 'table'
 
-    def __unicode__(self):
+    def __str__(self):
         """ return a pretty representatgion of myself """
         self.infer_axes()
         dc = ",dc->[{columns}]".format(columns=(','.join(

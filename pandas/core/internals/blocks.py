@@ -232,7 +232,7 @@ class Block(PandasObject):
         return make_block(values, placement=placement, ndim=ndim,
                           klass=self.__class__, dtype=dtype)
 
-    def __unicode__(self):
+    def __str__(self):
 
         # don't want to print out all of the items here
         name = pprint_thing(self.__class__.__name__)

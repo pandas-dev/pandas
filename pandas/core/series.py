@@ -1387,9 +1387,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __unicode__(self):
+    def __str__(self):
         """
-        Return a unicode string representation for a particular DataFrame.
+        Return a string representation for a particular Series.
         """
         buf = StringIO("")
         width, height = get_terminal_size()

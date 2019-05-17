@@ -204,7 +204,7 @@ class TestCategoricalRepr:
             name = 'San Sebastián'
             state = 'PR'
 
-            def __unicode__(self):
+            def __str__(self):
                 return self.name + ', ' + self.state
 
         cat = pd.Categorical([County() for _ in range(61)])
@@ -219,7 +219,7 @@ class TestCategoricalRepr:
         exp = ("0    1\n1    2\n2    3\n3    4\n" +
                "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
 
-        assert exp == a.__unicode__()
+        assert exp == a.__str__()
 
         a = Series(Categorical(["a", "b"] * 25))
         exp = ("0     a\n1     b\n" + "     ..\n" + "48    a\n49    b\n" +
@@ -231,7 +231,7 @@ class TestCategoricalRepr:
         a = Series(Categorical(["a", "b"], categories=levs, ordered=True))
         exp = ("0    a\n1    b\n" + "dtype: category\n"
                "Categories (26, object): [a < b < c < d ... w < x < y < z]")
-        assert exp == a.__unicode__()
+        assert exp == a.__str__()
 
     def test_categorical_series_repr(self):
         s = Series(Categorical([1, 2, 3]))

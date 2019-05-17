@@ -734,7 +734,7 @@ class Expr(StringMixin):
     def __call__(self):
         return self.terms(self.env)
 
-    def __unicode__(self):
+    def __str__(self):
         return printing.pprint_thing(self.terms)
 
     def __len__(self):

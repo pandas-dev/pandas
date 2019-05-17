@@ -5,7 +5,7 @@ from pandas import TimedeltaIndex
 
 
 class TestTimedeltaIndexRendering:
-    @pytest.mark.parametrize('method', ['__repr__', '__unicode__', '__str__'])
+    @pytest.mark.parametrize('method', ['__repr__', '__str__'])
     def test_representation(self, method):
         idx1 = TimedeltaIndex([], freq='D')
         idx2 = TimedeltaIndex(['1 days'], freq='D')
