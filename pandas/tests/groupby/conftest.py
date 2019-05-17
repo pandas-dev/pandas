@@ -80,6 +80,8 @@ def three_group():
 
 AGG_FUNCS = ['sum', 'prod', 'min', 'max', 'mean', 'median', 'var', 'first',
              'last', 'nth']  # TODO: ohlc?
+
+
 @pytest.fixture(params=AGG_FUNCS)
 def agg_func(request):
     return request.param
