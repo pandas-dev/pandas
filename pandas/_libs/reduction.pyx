@@ -238,12 +238,15 @@ cdef class SeriesBinGrouper:
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
         if self.ngroups > 0:
-            counts[0] = self.bins[0]
-            for i in range(1, self.ngroups):
-                if i == self.ngroups - 1:
-                    counts[i] = len(self.arr) - self.bins[i - 1]
-                else:
-                    counts[i] = self.bins[i] - self.bins[i - 1]
+            if len(self.bins) == 0:
+                return np.empty(0, dtype='O'), counts
+            else:
+                counts[0] = self.bins[0]
+                for i in range(1, self.ngroups):
+                    if i == self.ngroups - 1:
+                        counts[i] = len(self.arr) - self.bins[i - 1]
+                    else:
+                        counts[i] = self.bins[i] - self.bins[i - 1]
 
         group_size = 0
         n = len(self.arr)
