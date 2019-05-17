@@ -16,12 +16,12 @@ def test_ix_deprecation():
     # GH 15114
 
     df = DataFrame({'A': [1, 2, 3]})
-    with tm.assert_produces_warning(DeprecationWarning,
-                                    check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=True):
         df.ix[1, 'A']
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 class TestIX:
 
     def test_ix_loc_setitem_consistency(self):
