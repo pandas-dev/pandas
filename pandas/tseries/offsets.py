@@ -689,7 +689,6 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        daytime = self._get_daytime_flag
         businesshours = self._get_business_hours_by_sec
         bhdelta = timedelta(seconds=businesshours)
 
@@ -731,21 +730,19 @@ class BusinessHourMixin(BusinessMixin):
             result = other + timedelta(hours=hours, minutes=minutes)
 
             # because of previous adjustment, time will be larger than start
-            if ((daytime and (result.time() < self.start or
-                              self.end < result.time())) or
-                    not daytime and (self.end < result.time() < self.start)):
-                if n >= 0:
-                    bday_edge = self._prev_opening_time(other)
-                    bday_edge = bday_edge + bhdelta
-                    # calculate remainder
+            if n >= 0:
+                bday_edge = self._prev_opening_time(other) + bhdelta
+                if bday_edge < result:
                     bday_remain = result - bday_edge
                     result = self._next_opening_time(other)
                     result += bday_remain
-                else:
-                    bday_edge = self._next_opening_time(other)
+            else:
+                bday_edge = self._next_opening_time(other)
+                if bday_edge > result:
                     bday_remain = result - bday_edge
                     result = self._next_opening_time(result) + bhdelta
                     result += bday_remain
+
             # edge handling
             if n >= 0:
                 if result.time() == self.end:
