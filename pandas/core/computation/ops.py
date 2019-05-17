@@ -149,10 +149,6 @@ class Term(StringMixin):
     def name(self):
         return self._name
 
-    @name.setter
-    def name(self, new_name):
-        self._name = new_name
-
     @property
     def ndim(self):
         return self._value.ndim

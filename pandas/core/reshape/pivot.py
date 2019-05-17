@@ -1,6 +1,5 @@
 import numpy as np
 
-from pandas.compat import lrange
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -303,7 +302,7 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
         row_margin = row_margin.stack()
 
         # slight hack
-        new_order = [len(cols)] + lrange(len(cols))
+        new_order = [len(cols)] + list(range(len(cols)))
         row_margin.index = row_margin.index.reorder_levels(new_order)
     else:
         row_margin = Series(np.nan, index=result.columns)

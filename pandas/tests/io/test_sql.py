@@ -26,7 +26,7 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY36, lrange
+from pandas.compat import PY36
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype, is_datetime64tz_dtype)
@@ -2348,12 +2348,13 @@ class TestXSQLite(SQLiteMixIn):
 
         frame['txt'] = ['a'] * len(frame)
         frame2 = frame.copy()
-        frame2['Idx'] = Index(lrange(len(frame2))) + 10
+        new_idx = Index(np.arange(len(frame2))) + 10
+        frame2['Idx'] = new_idx.copy()
         sql.to_sql(frame2, name='test_table2', con=self.conn, index=False)
         result = sql.read_sql("select * from test_table2", self.conn,
                               index_col='Idx')
         expected = frame.copy()
-        expected.index = Index(lrange(len(frame2))) + 10
+        expected.index = new_idx
         expected.index.name = 'Idx'
         tm.assert_frame_equal(expected, result)
 
@@ -2611,7 +2612,7 @@ class TestXMySQL(MySQLMixIn):
 
         frame['txt'] = ['a'] * len(frame)
         frame2 = frame.copy()
-        index = Index(lrange(len(frame2))) + 10
+        index = Index(np.arange(len(frame2))) + 10
         frame2['Idx'] = index
         drop_sql = "DROP TABLE IF EXISTS test_table2"
         cur = self.conn.cursor()

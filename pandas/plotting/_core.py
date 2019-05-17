@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas.compat import lrange
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -402,16 +401,7 @@ class MPLPlot:
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
 
-        def get_label(i):
-            try:
-                return pprint_thing(data.index[i])
-            except Exception:
-                return ''
-
         if self.orientation == 'vertical' or self.orientation is None:
-            if self._need_to_set_index:
-                xticklabels = [get_label(x) for x in ax.get_xticks()]
-                ax.set_xticklabels(xticklabels)
             self._apply_axis_properties(ax.xaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
@@ -421,9 +411,6 @@ class MPLPlot:
                                             fontsize=self.fontsize)
 
         elif self.orientation == 'horizontal':
-            if self._need_to_set_index:
-                yticklabels = [get_label(y) for y in ax.get_yticks()]
-                ax.set_yticklabels(yticklabels)
             self._apply_axis_properties(ax.yaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.xaxis, fontsize=self.fontsize)
@@ -595,9 +582,9 @@ class MPLPlot:
                 x = self.data.index._mpl_repr()
             else:
                 self._need_to_set_index = True
-                x = lrange(len(index))
+                x = list(range(len(index)))
         else:
-            x = lrange(len(index))
+            x = list(range(len(index)))
 
         return x
 
@@ -1107,6 +1094,20 @@ class LinePlot(MPLPlot):
             ax._stacker_neg_prior[stacking_id] += values
 
     def _post_plot_logic(self, ax, data):
+        from matplotlib.ticker import FixedLocator
+
+        def get_label(i):
+            try:
+                return pprint_thing(data.index[i])
+            except Exception:
+                return ''
+
+        if self._need_to_set_index:
+            xticks = ax.get_xticks()
+            xticklabels = [get_label(x) for x in xticks]
+            ax.set_xticklabels(xticklabels)
+            ax.xaxis.set_major_locator(FixedLocator(xticks))
+
         condition = (not self._use_dynamic_x() and
                      data.index.is_all_dates and
                      not self.subplots or
@@ -2476,6 +2477,11 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         Number of histogram bins to be used
     `**kwds` : keywords
         To be passed to the actual plotting function
+
+    Returns
+    -------
+    matplotlib.AxesSubplot
+        A histogram plot.
 
     See Also
     --------
