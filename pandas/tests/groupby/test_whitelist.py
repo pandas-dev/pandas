@@ -161,7 +161,6 @@ def raw_frame():
 
 @pytest.mark.parametrize('op', AGG_FUNCTIONS)
 @pytest.mark.parametrize('level', [0, 1])
-@pytest.mark.parametrize('axis', [0, 1])
 @pytest.mark.parametrize('skipna', [True, False])
 @pytest.mark.parametrize('sort', [True, False])
 @pytest.mark.parametrize('as_index', [True, False])
@@ -172,13 +171,16 @@ def test_regression_whitelist_methods(
     # GH 17537
     # explicitly test the whitelist methods
 
-    if not as_index and axis == 1:
+    if not as_index and axis not in [0, 'index']:
         pytest.skip('as_index=False only valid for axis=0')
 
-    if axis == 0:
+    if axis in [0, 'index']:
         frame = raw_frame
     else:
         frame = raw_frame.T
+
+    if not isinstance(frame.index, MultiIndex) and (level > 0 or level < -1):
+        pytest.skip('level > 0 or level < -1 only valid with MultiIndex')
 
     grouped = frame.groupby(level=level, axis=axis, sort=sort,
                             as_index=as_index)
