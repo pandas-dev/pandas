@@ -244,17 +244,12 @@ class MultiIndex(Index):
         if verify_integrity:
             result._verify_integrity()
 
-        codes = [cls._reassign_na_codes(level, code)
-                 for level, code in zip(levels, codes)]
-        result._set_codes(codes, validate=False)
-
         if _set_identity:
             result._reset_identity()
 
         return result
 
-    @classmethod
-    def _reassign_na_codes(cls, level, code):
+    def _validate_codes(cls, level, code):
         null_mask = isna(level)
         if np.any(null_mask):
             code = np.where(null_mask[code], -1, code)
@@ -290,18 +285,25 @@ class MultiIndex(Index):
                 raise ValueError("Unequal code lengths: %s" %
                                  ([len(code_) for code_ in codes]))
             if len(level_codes) and level_codes.max() >= len(level):
-                raise ValueError("On level %d, code max (%d) >= length of"
-                                 " level  (%d). NOTE: this index is in an"
-                                 " inconsistent state" % (i, level_codes.max(),
-                                                          len(level)))
+                raise ValueError("On level {level}, code max ({max_code})"
+                                 " >= length of level  ({level_len}). "
+                                 "NOTE: this index is in an inconsistent"
+                                 " state".format(
+                                     level=i, max_code=level_codes.max(),
+                                     level_len=len(level)))
             if len(level_codes) and level_codes.min() < -1:
-                raise ValueError("On level %d, code value (%d) < -1" %
-                                 (i, level_codes.min()))
+                raise ValueError("On level {level}, code value ({code})"
+                                 " < -1".format(
+                                     level=i, code=level_codes.min()))
             if not level.is_unique:
                 raise ValueError("Level values must be unique: {values} on "
                                  "level {level}".format(
                                      values=[value for value in level],
                                      level=i))
+
+        codes = [self._validate_codes(level, code)
+                 for level, code in zip(levels, codes)]
+        self._set_codes(codes, validate=False)
 
     @classmethod
     def from_arrays(cls, arrays, sortorder=None, names=None):
@@ -691,7 +693,6 @@ class MultiIndex(Index):
 
     def _set_codes(self, codes, level=None, copy=False, validate=True,
                    verify_integrity=False):
-
         if validate and level is None and len(codes) != self.nlevels:
             raise ValueError("Length of codes must match number of levels")
         if validate and level is not None and len(codes) != len(level):
@@ -712,8 +713,9 @@ class MultiIndex(Index):
 
         if verify_integrity:
             self._verify_integrity(codes=new_codes)
+        else:
+            self._codes = new_codes
 
-        self._codes = new_codes
         self._tuples = None
         self._reset_cache()
 

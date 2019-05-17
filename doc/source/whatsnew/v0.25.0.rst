@@ -387,8 +387,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in which incorrect exception raised by :class:`Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
-- Bug in :class:`Multindex` construction from levels and codes that would incorrectly allows code values < -1
-- Bug in :class:`Multindex` construction from levels and codes that would incorrectly allows NaN levels (:issue:`19387`)
+- Bug in :class:`Multindex` construction from levels and codes that would incorrectly allows code values < -1 or NaN levels (:issue:`19387`)
 
 I/O
 ^^^
