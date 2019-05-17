@@ -47,7 +47,7 @@ class TestPDApi(Base):
                'DatetimeTZDtype',
                'Int8Dtype', 'Int16Dtype', 'Int32Dtype', 'Int64Dtype',
                'UInt8Dtype', 'UInt16Dtype', 'UInt32Dtype', 'UInt64Dtype',
-               'Agg',
+               'KeywordAgg',
                ]
 
     # these are already deprecated; awaiting removal
