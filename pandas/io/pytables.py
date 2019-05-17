@@ -41,8 +41,6 @@ from pandas.core.internals import BlockManager, _block_shape, make_block
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
-from tables.exceptions import NoSuchNodeError
-
 # versioning attribute
 _version = '0.15.2'
 
