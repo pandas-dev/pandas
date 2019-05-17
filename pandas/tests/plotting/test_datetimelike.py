@@ -160,7 +160,7 @@ class TestTSPlot(TestPlotBase):
             _check_plot_works(ser.plot, ax=ax)
 
     def test_get_datevalue(self):
-        from pandas.plotting._converter import get_datevalue
+        from pandas.plotting._matplotlib.converter import get_datevalue
         assert get_datevalue(None, 'D') is None
         assert get_datevalue(1987, 'A') == 1987
         assert (get_datevalue(Period(1987, 'A'), 'M') ==

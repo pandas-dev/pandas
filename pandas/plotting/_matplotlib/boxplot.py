@@ -8,10 +8,10 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._style import _get_standard_colors
-from pandas.plotting._tools import _flatten, _subplots
 
 from .core import LinePlot, MPLPlot
+from .style import _get_standard_colors
+from .tools import _flatten, _subplots
 
 
 class BoxPlot(LinePlot):

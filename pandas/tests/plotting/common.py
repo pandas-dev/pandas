@@ -17,8 +17,8 @@ import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_is_valid_plot_return_object, ensure_clean)
 
-import pandas.plotting as plotting
-from pandas.plotting._tools import _flatten
+from pandas.plotting._matplotlib import compat
+from pandas.plotting._matplotlib.tools import _flatten
 
 
 """
@@ -34,8 +34,8 @@ class TestPlotBase:
         import matplotlib as mpl
         mpl.rcdefaults()
 
-        self.mpl_ge_2_2_3 = plotting._compat._mpl_ge_2_2_3()
-        self.mpl_ge_3_0_0 = plotting._compat._mpl_ge_3_0_0()
+        self.mpl_ge_2_2_3 = compat._mpl_ge_2_2_3()
+        self.mpl_ge_3_0_0 = compat._mpl_ge_3_0_0()
 
         self.bp_n_objects = 7
         self.polycollection_factor = 2

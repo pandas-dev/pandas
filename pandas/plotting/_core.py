@@ -590,17 +590,18 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         sharey=sharey, **kwds)
 
 
+# kinds supported by both dataframe and series
+_common_kinds = ['line', 'bar', 'barh',
+                 'kde', 'density', 'area', 'hist', 'box']
+# kinds supported by dataframe
+_dataframe_kinds = ['scatter', 'hexbin']
+# kinds supported only by series or dataframe single column
+_series_kinds = ['pie']
+_all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
+
+
 def _plot(data, x=None, y=None, subplots=False,
           ax=None, kind='line', **kwds):
-    # kinds supported by both dataframe and series
-    common_kinds = ['line', 'bar', 'barh',
-                    'kde', 'density', 'area', 'hist', 'box']
-    # kinds supported by dataframe
-    dataframe_kinds = ['scatter', 'hexbin']
-    # kinds supported only by series or dataframe single column
-    series_kinds = ['pie']
-    all_kinds = common_kinds + dataframe_kinds + series_kinds
-
     plot_backend = _get_plot_backend()
     # TODO restore type annotations if we create a base class for plot classes
     # (a parent of MPLPlot, and classes of other backends)
@@ -612,12 +613,12 @@ def _plot(data, x=None, y=None, subplots=False,
     plot_class = {class_._kind: class_ for class_ in classes}
 
     kind = _get_standard_kind(kind.lower().strip())
-    if kind in all_kinds:
+    if kind in _all_kinds:
         klass = plot_class[kind]
     else:
         raise ValueError("%r is not a valid plot kind" % kind)
 
-    if kind in dataframe_kinds:
+    if kind in _dataframe_kinds:
         if isinstance(data, ABCDataFrame):
             plot_obj = klass(data, x=x, y=y, subplots=subplots, ax=ax,
                              kind=kind, **kwds)
@@ -625,7 +626,7 @@ def _plot(data, x=None, y=None, subplots=False,
             raise ValueError("plot kind %r can only be used for data frames"
                              % kind)
 
-    elif kind in series_kinds:
+    elif kind in _series_kinds:
         if isinstance(data, ABCDataFrame):
             if y is None and subplots is False:
                 msg = "{0} requires either y column or 'subplots=True'"

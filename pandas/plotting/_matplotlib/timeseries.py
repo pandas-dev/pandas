@@ -3,6 +3,7 @@
 import functools
 
 from matplotlib import pylab
+import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas._libs.tslibs.frequencies import (
@@ -13,41 +14,19 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._converter import (
-    TimeSeries_DateFormatter, TimeSeries_DateLocator,
-    TimeSeries_TimedeltaFormatter)
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.offsets import DateOffset
+
+from .converter import (TimeSeries_DateFormatter, TimeSeries_DateLocator,
+                        TimeSeries_TimedeltaFormatter)
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
 
 
 def tsplot(series, plotf, ax=None, **kwargs):
-    import warnings
-    """
-    Plots a Series on the given Matplotlib axes or the current axes
-
-    Parameters
-    ----------
-    axes : Axes
-    series : Series
-
-    Notes
-    _____
-    Supports same kwargs as Axes.plot
-
-
-    .. deprecated:: 0.23.0
-       Use Series.plot() instead
-    """
-    warnings.warn("'tsplot' is deprecated and will be removed in a "
-                  "future version. Please use Series.plot() instead.",
-                  FutureWarning, stacklevel=2)
-
     # Used inferred freq is possible, need a test case for inferred
     if ax is None:
-        import matplotlib.pyplot as plt
         ax = plt.gca()
 
     freq, series = _maybe_resample(series, ax, kwargs)
