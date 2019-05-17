@@ -896,8 +896,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             Use ``np.asarray(...)`` or the ``.to_dense()`` method instead.
         """
         msg = (
-            "The 'values' attribute of a SparseArray is deprecated and will "
-            "be removed in a future version. You can use `np.asarray(...)` or "
+            "The SparseArray.values attribute is deprecated and will be "
+            "removed in a future version. You can use `np.asarray(...)` or "
             "the `.to_dense()` method instead.")
         warnings.warn(msg, FutureWarning, stacklevel=2)
         return self.to_dense()
@@ -1867,33 +1867,6 @@ def _maybe_to_sparse(array):
     return array
 
 
-def _sanitize_values(arr):
-    """
-    return an ndarray for our input,
-    in a platform independent manner
-    """
-
-    if hasattr(arr, 'values'):
-        arr = arr.values
-    else:
-
-        # scalar
-        if is_scalar(arr):
-            arr = [arr]
-
-        # ndarray
-        if isinstance(arr, np.ndarray):
-            pass
-
-        elif is_list_like(arr) and len(arr) > 0:
-            arr = maybe_convert_platform(arr)
-
-        else:
-            arr = np.asarray(arr)
-
-    return arr
-
-
 def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     """
     Convert ndarray to sparse format
@@ -1911,7 +1884,7 @@ def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     (sparse_values, index, fill_value) : (ndarray, SparseIndex, Scalar)
     """
 
-    arr = _sanitize_values(arr)
+    arr = com.values_from_object(arr)
 
     if arr.ndim > 1:
         raise TypeError("expected dimension <= 1 data")
