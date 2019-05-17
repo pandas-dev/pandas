@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas.compat import lrange
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -583,9 +582,9 @@ class MPLPlot:
                 x = self.data.index._mpl_repr()
             else:
                 self._need_to_set_index = True
-                x = lrange(len(index))
+                x = list(range(len(index)))
         else:
-            x = lrange(len(index))
+            x = list(range(len(index)))
 
         return x
 
@@ -2478,6 +2477,11 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         Number of histogram bins to be used
     `**kwds` : keywords
         To be passed to the actual plotting function
+
+    Returns
+    -------
+    matplotlib.AxesSubplot
+        A histogram plot.
 
     See Also
     --------

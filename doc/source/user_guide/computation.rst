@@ -365,7 +365,8 @@ The list of recognized types are the `scipy.signal window functions
 * ``kaiser`` (needs beta)
 * ``gaussian`` (needs std)
 * ``general_gaussian`` (needs power, width)
-* ``slepian`` (needs width).
+* ``slepian`` (needs width)
+* ``exponential`` (needs tau).
 
 .. ipython:: python
 

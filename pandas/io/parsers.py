@@ -18,7 +18,6 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
 import pandas.compat as compat
-from pandas.compat import lzip
 from pandas.errors import (
     AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender
@@ -235,6 +234,12 @@ date_parser : function, optional
     arguments.
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
+cache_dates : boolean, default True
+    If True, use a cache of unique, converted dates to apply the datetime
+    conversion. May produce significant speed-up when parsing duplicate
+    date strings, especially ones with timezone offsets.
+
+    .. versionadded:: 0.25.0
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
@@ -476,6 +481,7 @@ _parser_defaults = {
     'false_values': None,
     'converters': None,
     'dtype': None,
+    'cache_dates': True,
 
     'thousands': None,
     'comment': None,
@@ -577,6 +583,7 @@ def _make_parser_function(name, default_sep=','):
                  keep_date_col=False,
                  date_parser=None,
                  dayfirst=False,
+                 cache_dates=True,
 
                  # Iteration
                  iterator=False,
@@ -683,6 +690,7 @@ def _make_parser_function(name, default_sep=','):
                     keep_date_col=keep_date_col,
                     dayfirst=dayfirst,
                     date_parser=date_parser,
+                    cache_dates=cache_dates,
 
                     nrows=nrows,
                     iterator=iterator,
@@ -1379,11 +1387,13 @@ class ParserBase:
         self.tupleize_cols = kwds.get('tupleize_cols', False)
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
+        self.cache_dates = kwds.pop('cache_dates', True)
 
         self._date_conv = _make_date_converter(
             date_parser=self.date_parser,
             dayfirst=self.dayfirst,
-            infer_datetime_format=self.infer_datetime_format
+            infer_datetime_format=self.infer_datetime_format,
+            cache_dates=self.cache_dates
         )
 
         # validate header options for mi
@@ -1478,7 +1488,7 @@ class ParserBase:
         def extract(r):
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
-        columns = lzip(*[extract(r) for r in header])
+        columns = list(zip(*(extract(r) for r in header)))
         names = ic + columns
 
         # If we find unnamed columns all in a single
@@ -1727,8 +1737,8 @@ class ParserBase:
         try_num_bool : bool, default try
            try to cast values to numeric (first preference) or boolean
 
-        Returns:
-        --------
+        Returns
+        -------
         converted : ndarray
         na_count : int
         """
@@ -3173,10 +3183,10 @@ class PythonParser(ParserBase):
 
 
 def _make_date_converter(date_parser=None, dayfirst=False,
-                         infer_datetime_format=False):
+                         infer_datetime_format=False, cache_dates=True):
     def converter(*date_cols):
         if date_parser is None:
-            strs = _concat_date_cols(date_cols)
+            strs = parsing._concat_date_cols(date_cols)
 
             try:
                 return tools.to_datetime(
@@ -3184,25 +3194,32 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                     utc=None,
                     dayfirst=dayfirst,
                     errors='ignore',
-                    infer_datetime_format=infer_datetime_format
+                    infer_datetime_format=infer_datetime_format,
+                    cache=cache_dates
                 ).to_numpy()
 
             except ValueError:
                 return tools.to_datetime(
-                    parsing.try_parse_dates(strs, dayfirst=dayfirst))
+                    parsing.try_parse_dates(strs, dayfirst=dayfirst),
+                    cache=cache_dates
+                )
         else:
             try:
                 result = tools.to_datetime(
-                    date_parser(*date_cols), errors='ignore')
+                    date_parser(*date_cols),
+                    errors='ignore',
+                    cache=cache_dates
+                )
                 if isinstance(result, datetime.datetime):
                     raise Exception('scalar parser')
                 return result
             except Exception:
                 try:
                     return tools.to_datetime(
-                        parsing.try_parse_dates(_concat_date_cols(date_cols),
-                                                parser=date_parser,
-                                                dayfirst=dayfirst),
+                        parsing.try_parse_dates(
+                            parsing._concat_date_cols(date_cols),
+                            parser=date_parser,
+                            dayfirst=dayfirst),
                         errors='ignore')
                 except Exception:
                     return generic_parser(date_parser, *date_cols)
@@ -3492,15 +3509,6 @@ def _get_col_names(colspec, columns):
         elif isinstance(c, int):
             colnames.append(columns[c])
     return colnames
-
-
-def _concat_date_cols(date_cols):
-    if len(date_cols) == 1:
-        return np.array([str(x) for x in date_cols[0]], dtype=object)
-
-    rs = np.array([' '.join(str(y) for y in x)
-                   for x in zip(*date_cols)], dtype=object)
-    return rs
 
 
 class FixedWidthReader(BaseIterator):

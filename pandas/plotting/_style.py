@@ -4,8 +4,6 @@ import warnings
 
 import numpy as np
 
-from pandas.compat import lmap, lrange
-
 from pandas.core.dtypes.common import is_list_like
 
 
@@ -20,7 +18,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             colormap = cm.get_cmap(colormap)
             if colormap is None:
                 raise ValueError("Colormap {0} is not recognized".format(cmap))
-        colors = lmap(colormap, np.linspace(0, 1, num=num_colors))
+        colors = [colormap(num) for num in np.linspace(0, 1, num=num_colors)]
     elif color is not None:
         if colormap is not None:
             warnings.warn("'color' and 'colormap' cannot be used "
@@ -49,7 +47,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
                 rs = com.random_state(column)
                 return rs.rand(3).tolist()
 
-            colors = lmap(random_color, lrange(num_colors))
+            colors = [random_color(num) for num in range(num_colors)]
         else:
             raise ValueError("color_type must be either 'default' or 'random'")
 

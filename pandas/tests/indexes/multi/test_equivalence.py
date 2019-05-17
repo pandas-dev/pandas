@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, lzip
-
 import pandas as pd
 from pandas import Index, MultiIndex, Series
 import pandas.util.testing as tm
@@ -96,17 +94,21 @@ def test_equals_multi(idx):
     assert not idx.equals(idx[-1])
 
     # different number of levels
-    index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-        lrange(4))], codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
-            [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
+    index = MultiIndex(levels=[Index(list(range(4))),
+                               Index(list(range(4))),
+                               Index(list(range(4)))],
+                       codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+                              np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+                              np.array([1, 0, 1, 1, 0, 0, 1, 0])],
+                       )
 
     index2 = MultiIndex(levels=index.levels[:-1], codes=index.codes[:-1])
     assert not index.equals(index2)
     assert not index.equal_levels(index2)
 
     # levels are different
-    major_axis = Index(lrange(4))
-    minor_axis = Index(lrange(2))
+    major_axis = Index(list(range(4)))
+    minor_axis = Index(list(range(2)))
 
     major_codes = np.array([0, 0, 1, 2, 2, 3])
     minor_codes = np.array([0, 1, 0, 0, 1, 0])
@@ -163,7 +165,7 @@ def test_equals_missing_values():
 
 
 def test_is_():
-    mi = MultiIndex.from_tuples(lzip(range(10), range(10)))
+    mi = MultiIndex.from_tuples(zip(range(10), range(10)))
     assert mi.is_(mi)
     assert mi.is_(mi.view())
     assert mi.is_(mi.view().view().view().view())
@@ -178,14 +180,14 @@ def test_is_():
     mi2.set_names(["E", "F"], inplace=True)
     assert mi.is_(mi2)
     # levels are inherent properties, they change identity
-    mi3 = mi2.set_levels([lrange(10), lrange(10)])
+    mi3 = mi2.set_levels([list(range(10)), list(range(10))])
     assert not mi3.is_(mi2)
     # shouldn't change
     assert mi2.is_(mi)
     mi4 = mi3.view()
 
     # GH 17464 - Remove duplicate MultiIndex levels
-    mi4.set_levels([lrange(10), lrange(10)], inplace=True)
+    mi4.set_levels([list(range(10)), list(range(10))], inplace=True)
     assert not mi4.is_(mi3)
     mi5 = mi.view()
     mi5.set_levels(mi5.levels, inplace=True)
