@@ -219,7 +219,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     >>> pd.concat([df5, df6], verify_integrity=True)
     Traceback (most recent call last):
         ...
-    ValueError: Indexes have overlapping values: ['a']
+    ValueError: Indexes have overlapping values: Index(['a'], dtype='object')
     """
     op = _Concatenator(objs, axis=axis, join_axes=join_axes,
                        ignore_index=ignore_index, join=join,
