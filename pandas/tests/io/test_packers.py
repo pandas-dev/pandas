@@ -153,8 +153,7 @@ class TestAPI(TestPackers):
             def __init__(self):
                 self.read = 0
 
-        msg = (r"Invalid file path or buffer object type: <(class|type)"
-               r" '{}'>")
+        msg = "Invalid file path or buffer object type: <class '{}'>"
         with pytest.raises(ValueError, match=msg.format('NoneType')):
             read_msgpack(path_or_buf=None)
         with pytest.raises(ValueError, match=msg.format('dict')):
