@@ -17,8 +17,9 @@ from pandas.io.formats.printing import pprint_thing
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.offsets import DateOffset
 
-from .converter import (TimeSeries_DateFormatter, TimeSeries_DateLocator,
-                        TimeSeries_TimedeltaFormatter)
+from .converter import (
+    TimeSeries_DateFormatter, TimeSeries_DateLocator,
+    TimeSeries_TimedeltaFormatter)
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches

@@ -21,11 +21,12 @@ import pandas.core.common as com
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting import plot_params
 
-from .style import _get_standard_colors
-from .tools import (_flatten, _get_all_lines, _get_xlim, _handle_shared_axes,
-                    _subplots, format_date_labels, table)
-from .compat import _mpl_ge_3_0_0
 from . import converter
+from .compat import _mpl_ge_3_0_0
+from .style import _get_standard_colors
+from .tools import (
+    _flatten, _get_all_lines, _get_xlim, _handle_shared_axes, _subplots,
+    format_date_labels, table)
 
 if get_option('plotting.matplotlib.register_converters'):
     converter.register(explicit=False)

@@ -1,6 +1,6 @@
 # being a bit too dynamic
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from pandas.core.dtypes.missing import notna
 

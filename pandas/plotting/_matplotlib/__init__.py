@@ -1,7 +1,7 @@
 from .boxplot import BoxPlot, boxplot_frame, boxplot_frame_groupby
-from .hist import HistPlot, KdePlot, hist_frame, hist_series
 from .core import (
     AreaPlot, BarhPlot, BarPlot, HexBinPlot, LinePlot, PiePlot, ScatterPlot)
+from .hist import HistPlot, KdePlot, hist_frame, hist_series
 from .timeseries import tsplot
 from .tools import table
 
