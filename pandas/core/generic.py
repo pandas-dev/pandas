@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import FrozenSet, List, Set
+from typing import Callable, FrozenSet, List, Set
 import warnings
 import weakref
 
@@ -2022,8 +2022,8 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __unicode__(self):
-        # unicode representation based upon iterating over self
+    def __str__(self):
+        # string representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
         prepr = '[%s]' % ','.join(map(pprint_thing, self))
         return '%s(%s)' % (self.__class__.__name__, prepr)
@@ -3680,7 +3680,7 @@ class NDFrame(PandasObject, SelectionMixin):
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
-    _xs = xs
+    _xs = xs  # type: Callable
 
     def select(self, crit, axis=0):
         """
@@ -10177,11 +10177,14 @@ class NDFrame(PandasObject, SelectionMixin):
             nanops.nanstd)
 
         @Substitution(desc="Return the compound percentage of the values for "
-                      "the requested axis.", name1=name, name2=name2,
-                      axis_descr=axis_descr,
+                      "the requested axis.\n\n.. deprecated:: 0.25.0",
+                      name1=name, name2=name2, axis_descr=axis_descr,
                       min_count='', see_also='', examples='')
         @Appender(_num_doc)
         def compound(self, axis=None, skipna=None, level=None):
+            msg = ("The 'compound' method is deprecated and will be"
+                   "removed in a future version.")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
             if skipna is None:
                 skipna = True
             return (1 + self).prod(axis=axis, skipna=skipna, level=level) - 1
