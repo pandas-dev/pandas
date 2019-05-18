@@ -17,7 +17,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    ensure_float64, ensure_int64, ensure_int64_or_float64, ensure_object,
+    ensure_float64, ensure_int64, ensure_int_or_float, ensure_object,
     ensure_platform_int, is_bool_dtype, is_categorical_dtype, is_complex_dtype,
     is_datetime64_any_dtype, is_integer_dtype, is_numeric_dtype,
     is_timedelta64_dtype, needs_i8_conversion)
@@ -486,7 +486,7 @@ class BaseGrouper:
             if (values == iNaT).any():
                 values = ensure_float64(values)
             else:
-                values = ensure_int64_or_float64(values)
+                values = ensure_int_or_float(values)
         elif is_numeric and not is_complex_dtype(values):
             values = ensure_float64(values)
         else:

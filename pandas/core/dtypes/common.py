@@ -19,6 +19,8 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_named_tuple, is_nested_list_like, is_number, is_re, is_re_compilable,
     is_scalar, is_sequence, is_string_like)
 
+from pandas._typing import ArrayLike
+
 _POSSIBLY_CAST_DTYPES = {np.dtype(t).name
                          for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
                                    'int32', 'uint32', 'int64', 'uint64']}
@@ -87,10 +89,10 @@ def ensure_categorical(arr):
     return arr
 
 
-def ensure_int64_or_float64(arr, copy=False):
+def ensure_int_or_float(arr: ArrayLike, copy=False) -> np.array:
     """
     Ensure that an dtype array of some integer dtype
-    has an int64 dtype if possible
+    has an int64 dtype if possible.
     If it's not possible, potentially because of overflow,
     convert the array to float64 instead.
 
@@ -107,9 +109,18 @@ def ensure_int64_or_float64(arr, copy=False):
     out_arr : The input array cast as int64 if
               possible without overflow.
               Otherwise the input array cast to float64.
+
+    Notes
+    -----
+    If the array is explicitly of type uint64 the type
+    will remain unchanged.
     """
     try:
         return arr.astype('int64', copy=copy, casting='safe')
+    except TypeError:
+        pass
+    try:
+        return arr.astype('uint64', copy=copy, casting='safe')
     except TypeError:
         return arr.astype('float64', copy=copy)
 

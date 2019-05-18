@@ -444,6 +444,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`pandas.core.groupby.GroupBy.cumsum`, :meth:`pandas.core.groupby.GroupBy.cumprod`, :meth:`pandas.core.groupby.GroupBy.cummin` and :meth:`pandas.core.groupby.GroupBy.cummax` with categorical column having absent categories, would return incorrect result or segfault (:issue:`16771`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.nth` where NA values in the grouping would return incorrect results (:issue:`26011`)
 - Bug in :meth:`pandas.core.groupby.SeriesGroupBy.transform` where transforming an empty group would raise error (:issue:`26208`)
+- Bug in :meth:`pandas.core.groupby.GroupBy.agg` where incorrect results are returned for uint64 columns. (:issue:`26310`)
 
 
 Reshaping
