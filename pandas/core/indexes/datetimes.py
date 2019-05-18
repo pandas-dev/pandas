@@ -689,7 +689,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             name = self.name
 
         if keep_tz is None and self.tz is not None:
-            warnings.warn("The default of the 'keep_tz' keyword will change "
+            warnings.warn("The default of the 'keep_tz' keyword in "
+                          "DatetimeIndex.to_series will change "
                           "to True in a future release. You can set "
                           "'keep_tz=True' to obtain the future behaviour and "
                           "silence this warning.", FutureWarning, stacklevel=2)
