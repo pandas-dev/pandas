@@ -88,8 +88,8 @@ class IndexingError(Exception):
 
 
 class _NDFrameIndexer(_NDFrameIndexerBase):
-    _valid_types = None
-    _exception = KeyError
+    _valid_types = None  # type: str
+    _exception = Exception
     axis = None
 
     def __call__(self, axis=None):
