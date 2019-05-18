@@ -9,6 +9,7 @@ from io import BytesIO
 import lzma
 import mmap
 import os
+import pathlib
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode, urljoin, urlparse as parse_url, uses_netloc, uses_params,
@@ -86,6 +87,8 @@ def _expand_user(
     """
     if isinstance(filepath_or_buffer, str):
         return os.path.expanduser(filepath_or_buffer)
+    elif isinstance(filepath_or_buffer, pathlib.Path):
+        return filepath_or_buffer.expanduser()
     return filepath_or_buffer
 
 
@@ -121,12 +124,6 @@ def _stringify_path(
     strings, buffers, or anything else that's not even path-like.
     """
     try:
-        import pathlib
-        _PATHLIB_INSTALLED = True
-    except ImportError:
-        _PATHLIB_INSTALLED = False
-
-    try:
         from py.path import local as LocalPath
         _PY_PATH_INSTALLED = True
     except ImportError:
@@ -136,11 +133,14 @@ def _stringify_path(
         # mypy lacks comprehensive support for hasattr; see mypy#1424
         # TODO (PY36): refactor to use os.PathLike
         return filepath_or_buffer.__fspath__()  # type: ignore
-    if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
-        return str(filepath_or_buffer)
     if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
         return filepath_or_buffer.strpath
-    return _expand_user(filepath_or_buffer)
+
+    expanded = _expand_user(filepath_or_buffer)
+    if isinstance(expanded, pathlib.Path):
+        return str(expanded)
+
+    return expanded
 
 
 def is_s3_url(url):
