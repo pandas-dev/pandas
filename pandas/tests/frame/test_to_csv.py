@@ -1230,6 +1230,15 @@ class TestDataFrameToCSV(TestData):
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
 
+    def test_to_csv_single_level_multi_index(self):
+        # see gh-26303
+        index = pd.Index([(1,), (2,), (3,)])
+        df = pd.DataFrame([[1, 2, 3]], columns=index)
+        df = df.reindex(columns=[(1,), (3,)])
+        expected = ",1,3\n0,1,3\n"
+        result = df.to_csv(line_terminator='\n')
+        assert_almost_equal(result, expected)
+
     def test_gz_lineend(self):
         # GH 25311
         df = pd.DataFrame({'a': [1, 2]})

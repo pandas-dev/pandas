@@ -424,8 +424,13 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
     else:
         # list of lists
         content = list(lib.to_object_array(data).T)
-    return _convert_object_array(content, columns, dtype=dtype,
-                                 coerce_float=coerce_float)
+    # gh-26429 do not raise user-facing AssertionError
+    try:
+        result = _convert_object_array(content, columns, dtype=dtype,
+                                       coerce_float=coerce_float)
+    except AssertionError as e:
+        raise ValueError(e) from e
+    return result
 
 
 def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
