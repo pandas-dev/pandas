@@ -41,7 +41,7 @@ def to_json(
         force_ascii: bool = True,
         date_unit: str = 'ms',
         default_handler: Callable = None,
-        lines: bool =False,
+        lines: bool = False,
         compression: str = 'infer',
         index: bool = True) -> Optional[str]:
 
