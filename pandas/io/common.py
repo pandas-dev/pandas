@@ -15,13 +15,13 @@ from urllib.parse import (  # noqa
     uses_relative)
 from urllib.request import pathname2url, urlopen
 import zipfile
-from typing import Any
 
 from pandas.errors import (  # noqa
     AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
     ParserWarning)
 
 from pandas.core.dtypes.common import is_file_like
+from pandas._typing import FilePathOrBuffer
 
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
@@ -68,7 +68,8 @@ def _is_url(url):
         return False
 
 
-def _expand_user(filepath_or_buffer: Any) -> Any:
+def _expand_user(
+        filepath_or_buffer: FilePathOrBuffer) -> FilePathOrBuffer:
     """Return the argument with an initial component of ~ or ~user
        replaced by that user's home directory.
 
@@ -94,7 +95,8 @@ def _validate_header_arg(header):
                         "the row(s) making up the column names")
 
 
-def _stringify_path(filepath_or_buffer: Any) -> Any:
+def _stringify_path(
+        filepath_or_buffer: FilePathOrBuffer) -> FilePathOrBuffer:
     """Attempt to convert a path-like object to a string.
 
     Parameters
