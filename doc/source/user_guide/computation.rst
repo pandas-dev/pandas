@@ -886,9 +886,9 @@ and a ratio of :math:`1 - \alpha` we have
 
 which is the same expression as ``adjust=False`` above and therefore
 shows the equivalence of the two variants for infinite series.
-When ``adjust=False`` we have :math:`y_0 = x_0` and
-:math:`y_t = \alpha x_t + (1 - \alpha) y_{t-1}`,
-therefore there is an assumption that :math:`x_0` is not an ordinary value
+When ``adjust=False``, we have :math:`y_0 = x_0` and
+:math:`y_t = \alpha x_t + (1 - \alpha) y_{t-1}`.
+Therefore, there is an assumption that :math:`x_0` is not an ordinary value
 but rather an exponentially weighted moment of the infinite series up to that
 point.
 
