@@ -134,9 +134,6 @@ typedef struct parser_t {
     int skipinitialspace; /* ignore spaces following delimiter? */
     int quoting;          /* style of quoting to write */
 
-    // krufty, hmm =/
-    int numeric_field;
-
     char commentchar;
     int allow_embedded_newline;
     int strict; /* raise exception on bad CSV */
@@ -178,7 +175,7 @@ typedef struct parser_t {
 typedef struct coliter_t {
     char **words;
     int64_t *line_start;
-    int col;
+    int64_t col;
 } coliter_t;
 
 void coliter_setup(coliter_t *self, parser_t *parser, int i, int start);

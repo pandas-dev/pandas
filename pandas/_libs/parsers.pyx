@@ -149,9 +149,6 @@ cdef extern from "parser/tokenizer.h":
         int skipinitialspace       # ignore spaces following delimiter? */
         int quoting                # style of quoting to write */
 
-        # hmm =/
-        # int numeric_field
-
         char commentchar
         int allow_embedded_newline
         int strict                 # raise exception on bad CSV */
@@ -176,7 +173,7 @@ cdef extern from "parser/tokenizer.h":
         void *skipset
         PyObject *skipfunc
         int64_t skip_first_N_rows
-        int64_t skipfooter
+        int skipfooter
         # pick one, depending on whether the converter requires GIL
         float64_t (*double_converter_nogil)(const char *, char **,
                                             char, char, char,
