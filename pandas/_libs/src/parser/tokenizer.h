@@ -158,7 +158,7 @@ typedef struct parser_t {
     void *skipset;
     PyObject *skipfunc;
     int64_t skip_first_N_rows;
-    int skip_footer;
+    int64_t skip_footer;
     // pick one, depending on whether the converter requires GIL
     double (*double_converter_nogil)(const char *, char **,
                                      char, char, char, int);

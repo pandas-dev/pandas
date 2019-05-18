@@ -173,7 +173,7 @@ cdef extern from "parser/tokenizer.h":
         void *skipset
         PyObject *skipfunc
         int64_t skip_first_N_rows
-        int skipfooter
+        int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
         float64_t (*double_converter_nogil)(const char *, char **,
                                             char, char, char,
