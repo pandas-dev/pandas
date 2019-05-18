@@ -15,6 +15,7 @@ from urllib.parse import (  # noqa
     uses_relative)
 from urllib.request import pathname2url, urlopen
 import zipfile
+from typing import AnyStr, IO, Union
 
 from pandas.errors import (  # noqa
     AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
@@ -97,7 +98,7 @@ def _validate_header_arg(header):
 
 
 def _stringify_path(
-        filepath_or_buffer: FilePathOrBuffer) -> FilePathOrBuffer:
+        filepath_or_buffer: FilePathOrBuffer) -> Union[str, IO[AnyStr]]:
     """Attempt to convert a path-like object to a string.
 
     Parameters
@@ -132,7 +133,9 @@ def _stringify_path(
         _PY_PATH_INSTALLED = False
 
     if hasattr(filepath_or_buffer, '__fspath__'):
-        return filepath_or_buffer.__fspath__()
+        # mypy lacks comprehensive support for hasattr; see mypy#1424
+        # TODO (PY36): refactor to use os.PathLike
+        return filepath_or_buffer.__fspath__()  # type: ignore
     if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
         return str(filepath_or_buffer)
     if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
