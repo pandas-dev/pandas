@@ -7,13 +7,13 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas._typing import FilePathOrBuffer
 from pandas.compat import to_str
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_period_dtype
 
 from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
+from pandas._typing import FilePathOrBuffer
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
