@@ -49,7 +49,7 @@ def to_json(
         raise ValueError("'index=False' is only valid when 'orient' is "
                          "'split' or 'table'")
 
-    str_buf_or_io = _stringify_path(path_or_buf)
+    str_or_io = _stringify_path(path_or_buf)
     if lines and orient != 'records':
         raise ValueError(
             "'lines' keyword only valid when 'orient' is records")
@@ -74,17 +74,17 @@ def to_json(
     if lines:
         s = _convert_to_line_delimits(s)
 
-    if isinstance(str_buf_or_io, str):
+    if isinstance(str_or_io, str):
         fh, handles = _get_handle(
-            str_buf_or_io, 'w', compression=compression)
+            str_or_io, 'w', compression=compression)
         try:
             fh.write(s)
         finally:
             fh.close()
-    elif str_buf_or_io is None:
+    elif str_or_io is None:
         return s
     else:
-        str_buf_or_io.write(s)
+        str_or_io.write(s)
 
     return None
 
