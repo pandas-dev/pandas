@@ -8,7 +8,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import hashtable as libhashtable, join as libjoin, lib
+from pandas._libs import hashtable as libhashtable, lib
+import pandas._libs.join as libjoin
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 

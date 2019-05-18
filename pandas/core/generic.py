@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import FrozenSet, List, Set
+from typing import Callable, FrozenSet, List, Set
 import warnings
 import weakref
 
@@ -3680,7 +3680,7 @@ class NDFrame(PandasObject, SelectionMixin):
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
-    _xs = xs
+    _xs = xs  # type: Callable
 
     def select(self, crit, axis=0):
         """

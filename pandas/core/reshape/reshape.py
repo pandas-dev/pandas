@@ -3,7 +3,8 @@ import itertools
 
 import numpy as np
 
-from pandas._libs import algos as _algos, reshape as _reshape
+import pandas._libs.algos as _algos
+import pandas._libs.reshape as _reshape
 from pandas._libs.sparse import IntIndex
 
 from pandas.core.dtypes.cast import maybe_promote

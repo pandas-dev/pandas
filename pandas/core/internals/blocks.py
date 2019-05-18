@@ -7,7 +7,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, lib, tslib, tslibs
+from pandas._libs import lib, tslib, tslibs
+import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
 from pandas.util._validators import validate_bool_kwarg
 
@@ -2050,11 +2051,14 @@ class DatetimeLikeBlockMixin:
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
     is_datetime = True
-    _can_hold_na = True
 
     def __init__(self, values, placement, ndim=None):
         values = self._maybe_coerce_values(values)
         super().__init__(values, placement=placement, ndim=ndim)
+
+    @property
+    def _can_hold_na(self):
+        return True
 
     def _maybe_coerce_values(self, values):
         """Input validation for values passed to __init__. Ensure that

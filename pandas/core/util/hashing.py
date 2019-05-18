@@ -5,7 +5,8 @@ import itertools
 
 import numpy as np
 
-from pandas._libs import hashing, tslibs
+import pandas._libs.hashing as hashing
+import pandas._libs.tslibs as tslibs
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
