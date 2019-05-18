@@ -12,14 +12,8 @@ See LICENSE for the license
 #ifndef PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
 #define PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include "Python.h"
-
-#include <ctype.h>
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
 
 #define ERROR_OK 0
 #define ERROR_NO_DIGITS 1
