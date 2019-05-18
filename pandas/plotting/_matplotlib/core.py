@@ -1005,8 +1005,8 @@ class LinePlot(MPLPlot):
     @classmethod
     def _ts_plot(cls, ax, x, data, style=None, **kwds):
         from .timeseries import (_maybe_resample,
-                                                 _decorate_axes,
-                                                 format_dateaxis)
+                                 _decorate_axes,
+                                 format_dateaxis)
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose

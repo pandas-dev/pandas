@@ -39,7 +39,7 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.sparse.frame import SparseDataFrame
 
-from pandas.plotting._core import boxplot_frame_groupby
+from pandas.plotting import boxplot_frame_groupby
 
 
 class NDFrameGroupBy(GroupBy):
