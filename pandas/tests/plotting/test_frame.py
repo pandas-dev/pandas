@@ -2727,7 +2727,7 @@ class TestDataFramePlots(TestPlotBase):
         import gc
 
         results = {}
-        for kind in plotting._core._plot_klass.keys():
+        for kind in plotting._core._plot_classes().keys():
 
             args = {}
             if kind in ['hexbin', 'scatter', 'pie']:

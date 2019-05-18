@@ -212,9 +212,9 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     return result
 
 
-def _boxplot(data, column=None, by=None, ax=None, fontsize=None,
-             rot=0, grid=True, figsize=None, layout=None, return_type=None,
-             **kwds):
+def boxplot(data, column=None, by=None, ax=None, fontsize=None,
+            rot=0, grid=True, figsize=None, layout=None, return_type=None,
+            **kwds):
 
     # validate return_type:
     if return_type not in BoxPlot._valid_return_types:
@@ -298,9 +298,9 @@ def _boxplot(data, column=None, by=None, ax=None, fontsize=None,
 def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                   grid=True, figsize=None, layout=None,
                   return_type=None, **kwds):
-    ax = _boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
-                  grid=grid, rot=rot, figsize=figsize, layout=layout,
-                  return_type=return_type, **kwds)
+    ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
+                 grid=grid, rot=rot, figsize=figsize, layout=layout,
+                 return_type=return_type, **kwds)
     plt.draw_if_interactive()
     return ax
 

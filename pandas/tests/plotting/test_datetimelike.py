@@ -261,7 +261,7 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_uhf(self):
-        import pandas.plotting._converter as conv
+        import pandas.plotting._matplotlib.converter as conv
         idx = date_range('2012-6-22 21:59:51.960928', freq='L', periods=500)
         df = DataFrame(np.random.randn(len(idx), 2), index=idx)
 
@@ -392,7 +392,7 @@ class TestTSPlot(TestPlotBase):
             _test(ax)
 
     def test_get_finder(self):
-        import pandas.plotting._converter as conv
+        import pandas.plotting._matplotlib.converter as conv
 
         assert conv.get_finder('B') == conv._daily_finder
         assert conv.get_finder('D') == conv._daily_finder

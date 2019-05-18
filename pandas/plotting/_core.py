@@ -6,7 +6,7 @@ from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
-from pandas.core.generic import _shared_docs
+from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 df_kind = """- 'scatter' : scatter plot
         - 'hexbin' : hexbin plot"""
@@ -520,10 +520,21 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                                    **kwds)
 
 
+@Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
+def boxplot(data, column=None, by=None, ax=None, fontsize=None,
+            rot=0, grid=True, figsize=None, layout=None, return_type=None,
+            **kwds):
+    plot_backend = _get_plot_backend()
+    return plot_backend.boxplot(data, column=column, by=by, ax=ax,
+                                fontsize=fontsize, rot=rot, grid=grid,
+                                figsize=figsize, layout=layout,
+                                return_type=return_type, **kwds)
+
+
+@Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
 def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                   grid=True, figsize=None, layout=None,
                   return_type=None, **kwds):
-    # TODO write docstring
     plot_backend = _get_plot_backend()
     return plot_backend.boxplot_frame(self, column=column, by=by, ax=ax,
                                       fontsize=fontsize, rot=rot, grid=grid,
@@ -600,8 +611,7 @@ _series_kinds = ['pie']
 _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 
 
-def _plot(data, x=None, y=None, subplots=False,
-          ax=None, kind='line', **kwds):
+def _plot_classes():
     plot_backend = _get_plot_backend()
     # TODO restore type annotations if we create a base class for plot classes
     # (a parent of MPLPlot, and classes of other backends)
@@ -610,11 +620,14 @@ def _plot(data, x=None, y=None, subplots=False,
                plot_backend.HistPlot, plot_backend.BoxPlot,
                plot_backend.ScatterPlot, plot_backend.HexBinPlot,
                plot_backend.KdePlot, plot_backend.PiePlot]
-    plot_class = {class_._kind: class_ for class_ in classes}
+    return {class_._kind: class_ for class_ in classes}
 
+
+def _plot(data, x=None, y=None, subplots=False,
+          ax=None, kind='line', **kwds):
     kind = _get_standard_kind(kind.lower().strip())
     if kind in _all_kinds:
-        klass = plot_class[kind]
+        klass = _plot_classes()[kind]
     else:
         raise ValueError("%r is not a valid plot kind" % kind)
 
