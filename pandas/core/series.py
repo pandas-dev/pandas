@@ -3705,7 +3705,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if len(mapped) and isinstance(mapped[0], Series):
             # GH 25959 use pd.array instead of tolist
             # so extension arrays can be used
-            return self._constructor_expanddim(pd.array(mapped), index=self.index)
+            return self._constructor_expanddim(pd.array(mapped),
+                                               index=self.index)
         else:
             return self._constructor(mapped,
                                      index=self.index).__finalize__(self)
