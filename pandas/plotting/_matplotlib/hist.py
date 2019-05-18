@@ -149,8 +149,8 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
     if figsize == 'default':
         # allowed to specify mpl default with 'default'
-        warnings.warn("figsize='default' is deprecated. Specify figure"
-                      "size by tuple instead", FutureWarning, stacklevel=4)
+        warnings.warn("figsize='default' is deprecated. Specify figure "
+                      "size by tuple instead", FutureWarning, stacklevel=5)
         figsize = None
 
     grouped = data.groupby(by)
