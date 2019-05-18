@@ -31,9 +31,6 @@ See LICENSE for the license
 
 #include "khash.h"
 
-#define CHUNKSIZE 1024 * 256
-#define KB 1024
-#define MB 1024 * KB
 #define STREAM_INIT_SIZE 32
 
 #define REACHED_EOF 1
@@ -50,25 +47,10 @@ See LICENSE for the license
 
  */
 
-#define FALSE 0
-#define TRUE 1
-
-// Maximum number of columns in a file.
-#define MAX_NUM_COLUMNS 2000
-
-// Maximum number of characters in single field.
-#define FIELD_BUFFER_SIZE 2000
-
 /*
  *  Common set of error types for the read_rows() and tokenize()
  *  functions.
  */
-#define ERROR_OUT_OF_MEMORY 1
-#define ERROR_INVALID_COLUMN_INDEX 10
-#define ERROR_CHANGED_NUMBER_OF_FIELDS 12
-#define ERROR_TOO_MANY_CHARS 21
-#define ERROR_TOO_MANY_FIELDS 22
-#define ERROR_NO_DATA 23
 
 // #define VERBOSE
 #if defined(VERBOSE)
@@ -83,12 +65,6 @@ See LICENSE for the license
  *  XXX Might want to couple count_rows() with read_rows() to avoid duplication
  *      of some file I/O.
  */
-
-/*
- *  WORD_BUFFER_SIZE determines the maximum amount of non-delimiter
- *  text in a row.
- */
-#define WORD_BUFFER_SIZE 4000
 
 typedef enum {
     START_RECORD,
