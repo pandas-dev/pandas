@@ -111,11 +111,9 @@ class SharedWithSparse:
         getkeys = float_frame.keys
         assert getkeys() is float_frame.columns
 
-    def test_column_contains_typeerror(self, float_frame):
-        try:
+    def test_column_contains_raises(self, float_frame):
+        with pytest.raises(TypeError, match="unhashable type: 'Index'"):
             float_frame.columns in float_frame
-        except TypeError:
-            pass
 
     def test_tab_completion(self):
         # DataFrame whose columns are identifiers shall have them in __dir__.
