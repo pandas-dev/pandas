@@ -1346,7 +1346,6 @@ class TestOperationsNumExprPandas:
         assert ans is None
 
     def test_multi_line_expression_callable_local_variable(self):
-        # GH 15342
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
 
         def local_func(a, b):
@@ -1361,6 +1360,12 @@ class TestOperationsNumExprPandas:
         """, inplace=True)
         assert_frame_equal(expected, df)
         assert ans is None
+
+    def test_multi_line_expression_callable_local_variable_with_kwargs(self):
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+
+        def local_func(a, b):
+            return b
 
         expected = df.copy()
         expected['c'] = expected['a'] * local_func(b=7, a=1)
