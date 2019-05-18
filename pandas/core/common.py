@@ -9,7 +9,7 @@ from collections import OrderedDict, abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any
+from typing import Any, Iterable, Union
 
 import numpy as np
 
@@ -289,7 +289,7 @@ def maybe_make_list(obj):
     return obj
 
 
-def maybe_itarable_to_list(obj: Any) -> Any:
+def maybe_iterable_to_list(obj: Union[Iterable, Any]) -> Union[list, Any]:
     """
     If obj is Iterable but not list-like, consume into list.
     """

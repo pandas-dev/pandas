@@ -534,6 +534,7 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_dict_of_ranges(self):
+        # GH 26356
         data = {'a': range(3), 'b': range(3, 6)}
 
         result = DataFrame(data)

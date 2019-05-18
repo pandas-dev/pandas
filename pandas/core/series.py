@@ -224,7 +224,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # handle sparse passed here (and force conversion)
                 data = data.to_dense()
             else:
-                data = com.maybe_itarable_to_list(data)
+                data = com.maybe_iterable_to_list(data)
 
             if index is None:
                 if not is_list_like(data):

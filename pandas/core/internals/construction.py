@@ -197,7 +197,7 @@ def init_dict(data, index, columns, dtype=None):
     else:
         keys = com.dict_keys_to_ordered_list(data)
         columns = data_names = Index(keys)
-        arrays = (com.maybe_itarable_to_list(data[k]) for k in keys)
+        arrays = (com.maybe_iterable_to_list(data[k]) for k in keys)
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
         arrays = [arr if not is_datetime64tz_dtype(arr) else
