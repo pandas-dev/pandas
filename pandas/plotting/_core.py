@@ -732,6 +732,16 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
                 yerr=None, xerr=None,
                 label=None, secondary_y=False,                 # Series unique
                 **kwds):
+
+    # FIXME move this into _matplotlib
+    import matplotlib.pyplot as plt
+    from pandas.plotting._matplotlib.core import MPLPlot
+    if ax is None and len(plt.get_fignums()) > 0:
+        with plt.rc_context():
+            ax = plt.gca()
+        ax = MPLPlot._get_ax_layer(ax)
+        print(ax)
+
     return _plot(data, kind=kind, ax=ax,
                  figsize=figsize, use_index=use_index, title=title,
                  grid=grid, legend=legend,
