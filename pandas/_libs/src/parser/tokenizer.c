@@ -131,8 +131,6 @@ void parser_set_default_options(parser_t *self) {
     self->skip_footer = 0;
 }
 
-int get_parser_memory_footprint(parser_t *self) { return 0; }
-
 parser_t *parser_new() { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
 int parser_clear_data_buffers(parser_t *self) {
@@ -1426,21 +1424,6 @@ PANDAS_INLINE void uppercase(char *p) {
     for (; *p; ++p) *p = toupper_ascii(*p);
 }
 
-int PANDAS_INLINE to_longlong(char *item, long long *p_value) {
-    char *p_end;
-
-    // Try integer conversion.  We explicitly give the base to be 10. If
-    // we used 0, strtoll() would convert '012' to 10, because the leading 0 in
-    // '012' signals an octal number in C.  For a general purpose reader, that
-    // would be a bug, not a feature.
-    *p_value = strtoll(item, &p_end, 10);
-
-    // Allow trailing spaces.
-    while (isspace_ascii(*p_end)) ++p_end;
-
-    return (errno == 0) && (!*p_end);
-}
-
 int to_boolean(const char *item, uint8_t *val) {
     char *tmp;
     int i, status = 0;
@@ -1473,24 +1456,6 @@ done:
     free(tmp);
     return status;
 }
-
-#ifdef TEST
-
-int main(int argc, char *argv[]) {
-    double x, y;
-    long long xi;
-    int status;
-    char *s;
-
-    s = "123,789";
-    status = to_longlong_thousands(s, &xi, ',');
-    printf("s = '%s'\n", s);
-    printf("status = %d\n", status);
-    printf("x = %d\n", (int)xi);
-
-    return 0;
-}
-#endif  // TEST
 
 // ---------------------------------------------------------------------------
 // Implementation of xstrtod

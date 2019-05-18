@@ -10,7 +10,8 @@ The full license is in the LICENSE file, distributed with this software.
 #ifndef PANDAS__LIBS_SRC_PARSER_IO_H_
 #define PANDAS__LIBS_SRC_PARSER_IO_H_
 
-#include "Python.h"
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
 #include "tokenizer.h"
 
 typedef struct _file_source {
@@ -36,8 +37,6 @@ typedef struct _memory_map {
 
     size_t position;
 } memory_map;
-
-#define MM(src) ((memory_map *)src)
 
 void *new_mmap(char *fname);
 

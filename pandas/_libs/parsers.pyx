@@ -149,9 +149,6 @@ cdef extern from "parser/tokenizer.h":
         int skipinitialspace       # ignore spaces following delimiter? */
         int quoting                # style of quoting to write */
 
-        # hmm =/
-        # int numeric_field
-
         char commentchar
         int allow_embedded_newline
         int strict                 # raise exception on bad CSV */
