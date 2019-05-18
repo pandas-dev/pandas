@@ -1,11 +1,13 @@
 from io import StringIO
 from itertools import islice
 import os
+from typing import Callable, Optional, Type, Union
 
 import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
+from pandas._typing import FilePathOrBuffer
 from pandas.compat import to_str
 from pandas.errors import AbstractMethodError
 
@@ -30,16 +32,24 @@ TABLE_SCHEMA_VERSION = '0.20.0'
 
 
 # interface to/from
-def to_json(path_or_buf, obj, orient=None, date_format='epoch',
-            double_precision=10, force_ascii=True, date_unit='ms',
-            default_handler=None, lines=False, compression='infer',
-            index=True):
+def to_json(
+        path_or_buf: FilePathOrBuffer,
+        obj: Union[Series, DataFrame],
+        orient: str = None,
+        date_format: str = 'epoch',
+        double_precision: int = 10,
+        force_ascii: bool = True,
+        date_unit: str = 'ms',
+        default_handler: Callable = None,
+        lines: bool =False,
+        compression: str = 'infer',
+        index: bool = True) -> Optional[str]:
 
     if not index and orient not in ['split', 'table']:
         raise ValueError("'index=False' is only valid when 'orient' is "
                          "'split' or 'table'")
 
-    path_or_buf = _stringify_path(path_or_buf)
+    str_buf_or_io = _stringify_path(path_or_buf)
     if lines and orient != 'records':
         raise ValueError(
             "'lines' keyword only valid when 'orient' is records")
@@ -47,7 +57,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
     if orient == 'table' and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or 'values')
     if orient == 'table' and isinstance(obj, DataFrame):
-        writer = JSONTableWriter
+        writer = JSONTableWriter  # type: Type[Writer]
     elif isinstance(obj, Series):
         writer = SeriesWriter
     elif isinstance(obj, DataFrame):
@@ -64,16 +74,19 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
     if lines:
         s = _convert_to_line_delimits(s)
 
-    if isinstance(path_or_buf, str):
-        fh, handles = _get_handle(path_or_buf, 'w', compression=compression)
+    if isinstance(str_buf_or_io, str):
+        fh, handles = _get_handle(
+            str_buf_or_io, 'w', compression=compression)
         try:
             fh.write(s)
         finally:
             fh.close()
-    elif path_or_buf is None:
+    elif str_buf_or_io is None:
         return s
     else:
-        path_or_buf.write(s)
+        str_buf_or_io.write(s)
+
+    return None
 
 
 class Writer:
