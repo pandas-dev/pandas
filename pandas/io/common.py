@@ -14,7 +14,6 @@ from urllib.parse import (  # noqa
     urlencode, urljoin, urlparse as parse_url, uses_netloc, uses_params,
     uses_relative)
 from urllib.request import pathname2url, urlopen
-import warnings
 import zipfile
 
 from pandas.errors import (  # noqa
@@ -116,26 +115,8 @@ def _stringify_path(filepath_or_buffer):
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
-    try:
-        import pathlib
-        _PATHLIB_INSTALLED = True
-    except ImportError:
-        _PATHLIB_INSTALLED = False
-
-    try:
-        from py.path import local as LocalPath  # Deprecated - 0.25.0
-        _PY_PATH_INSTALLED = True
-    except ImportError:
-        _PY_PATH_INSTALLED = False
-
     if hasattr(filepath_or_buffer, '__fspath__'):
-        return filepath_or_buffer.__fspath__()
-    if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
         return str(filepath_or_buffer)
-    if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
-        warnings.warn("py.path has been deprecated. Use pathlib instead.",
-                      DeprecationWarning, stacklevel=2)
-        return filepath_or_buffer.strpath
     return _expand_user(filepath_or_buffer)
 
 
