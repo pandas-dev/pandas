@@ -1317,3 +1317,23 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
                           index=DatetimeIndex(['2019-01-01 11:00:00'],
                                               tz='UTC'))
         assert_series_equal(result, expected)
+
+    def test_to_json_indent(self):
+        # GH 12004
+        df = pd.DataFrame([
+            ['foo', 'bar'], ['baz', 'qux']
+        ], columns=['a', 'b'])
+
+        result = df.to_json(indent=4)
+        expected = """{
+    "a": {
+        "0": "foo",
+        "1": "baz"
+    },
+    "b": {
+        "0": "bar",
+        "1": "qux"
+    }
+}"""
+
+        assert result == expected
