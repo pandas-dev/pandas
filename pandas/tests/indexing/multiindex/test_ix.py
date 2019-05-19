@@ -8,7 +8,7 @@ from pandas import DataFrame, MultiIndex
 from pandas.util import testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 class TestMultiIndexIx:
 
     def test_frame_setitem_ix(self, multiindex_dataframe_random_data):
@@ -23,7 +23,7 @@ class TestMultiIndexIx:
         assert df.loc[('bar', 'two'), 1] == 7
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             df = frame.copy()
             df.columns = list(range(3))
             df.ix[('bar', 'two'), 1] = 7

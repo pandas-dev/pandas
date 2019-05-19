@@ -574,7 +574,7 @@ def test_slice_can_reorder_not_uniquely_indexed():
     s[::-1]  # it works!
 
 
-def test_ix_setitem(test_data):
+def test_loc_setitem(test_data):
     inds = test_data.series.index[[3, 4, 7]]
 
     result = test_data.series.copy()

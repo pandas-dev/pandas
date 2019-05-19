@@ -16,7 +16,7 @@ from pandas.util import testing as tm
 
 class TestPartialSetting:
 
-    @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+    @pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
     def test_partial_setting(self):
 
         # GH2578, allow ix and friends to partially set

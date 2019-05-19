@@ -25,7 +25,7 @@ def frame_random_data_integer_multi_index():
     return DataFrame(np.random.randn(6, 2), index=index)
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 class TestMultiIndexLoc:
 
     def test_loc_getitem_series(self):
@@ -309,7 +309,7 @@ def test_loc_getitem_duplicates_multiindex_missing_indexers(indexer, is_level1,
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 @pytest.mark.parametrize('indexer', [
     lambda s: s.loc[[(2000, 3, 10), (2000, 3, 13)]],
     lambda s: s.ix[[(2000, 3, 10), (2000, 3, 13)]]

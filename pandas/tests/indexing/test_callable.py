@@ -6,7 +6,7 @@ import pandas.util.testing as tm
 
 class TestIndexingCallable:
 
-    def test_frame_loc_ix_callable(self):
+    def test_frame_loc_callable(self):
         # GH 11485
         df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': list('aabb'),
                            'C': [1, 2, 3, 4]})
@@ -62,7 +62,7 @@ class TestIndexingCallable:
         res = df.loc[lambda x: 1, lambda x: 'A']
         assert res == df.loc[1, 'A']
 
-    def test_frame_loc_ix_callable_mixture(self):
+    def test_frame_loc_callable_mixture(self):
         # GH 11485
         df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': list('aabb'),
                            'C': [1, 2, 3, 4]})
@@ -85,7 +85,7 @@ class TestIndexingCallable:
         res = df.loc[3, lambda x: ['A', 'B']]
         tm.assert_series_equal(res, df.loc[3, ['A', 'B']])
 
-    def test_frame_loc_callable(self):
+    def test_frame_loc_callable_labels(self):
         # GH 11485
         df = pd.DataFrame({'X': [1, 2, 3, 4],
                            'Y': list('aabb')},
