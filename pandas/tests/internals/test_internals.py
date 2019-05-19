@@ -17,8 +17,7 @@ from pandas import (
     SparseArray)
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, TimedeltaArray
-from pandas.core.internals import (
-    BlockManager, SingleBlockManager, make_block)
+from pandas.core.internals import BlockManager, SingleBlockManager, make_block
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal, randn)
