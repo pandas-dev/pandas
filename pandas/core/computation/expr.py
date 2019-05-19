@@ -633,9 +633,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                                      "'{func}'".format(func=node.func.id))
 
                 if key.arg:
-                    # TODO: bug?
-                    kwargs.append(ast.keyword(
-                        keyword.arg, self.visit(keyword.value)))  # noqa
+                    kwargs[key.arg] = self.visit(key.value).value
 
             return self.const_type(res(*new_args, **kwargs), self.env)
 
