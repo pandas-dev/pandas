@@ -3604,14 +3604,9 @@ class FixedWidthReader(BaseIterator):
                 line = next(self.buffer)
             except StopIteration:
                 self.buffer = None
-                line = next(self.f)
-        else:
-            # If f is a file like object, use readline
-            if hasattr(self.f, 'readline'):
                 line = self.f.readline()
-            # otherwise iterate on it
-            else:
-                line = next(self.f)
+        else:
+            line = self.f.readline()
         # Note: 'colspecs' is a sequence of half-open intervals.
         return [line[fromm:to].strip(self.delimiter)
                 for (fromm, to) in self.colspecs]
