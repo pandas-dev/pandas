@@ -14,8 +14,8 @@ from urllib.parse import (  # noqa
     urlencode, urljoin, urlparse as parse_url, uses_netloc, uses_params,
     uses_relative)
 from urllib.request import pathname2url, urlopen
-import zipfile
 import warnings
+import zipfile
 
 from pandas.errors import (  # noqa
     AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
