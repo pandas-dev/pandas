@@ -140,9 +140,12 @@ class TestDataFrameReprInfoEtc(TestData):
         df = DataFrame({'A': ["\u05d0"]})
         str(df)
 
-    def test_bytestring_with_unicode(self):
-        df = DataFrame({'A': ["\u05d0"]})
-        bytes(df)
+    def test_str_to_bytes_raises(self):
+        # GH 26447
+        df = DataFrame({'A': ["abc"]})
+        msg = "^'str' object cannot be interpreted as an integer$"
+        with pytest.raises(TypeError, match=msg):
+            bytes(df)
 
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),

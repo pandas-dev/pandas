@@ -48,15 +48,6 @@ class StringMixin:
         """
         raise AbstractMethodError(self)
 
-    def __bytes__(self):
-        """
-        Return a bytes representation for a particular object.
-        """
-        from pandas._config import get_option
-
-        encoding = get_option("display.encoding")
-        return str(self).encode(encoding, 'replace')
-
     def __repr__(self):
         """
         Return a string representation for a particular object.
