@@ -933,9 +933,9 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def __unicode__(self):
+    def __str__(self):
         """
-        Return a unicode string representation for this object.
+        Return a string representation for this object.
         """
         klass = self.__class__.__name__
         data = self._format_data()

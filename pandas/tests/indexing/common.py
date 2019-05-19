@@ -141,7 +141,7 @@ class Base:
         #    v = v.__getitem__(a)
         # return v
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             return f.ix[i]
 
     def check_values(self, f, func, values=False):

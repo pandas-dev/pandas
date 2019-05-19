@@ -610,9 +610,9 @@ class DataFrame(NDFrame):
         return info_repr_option and not (self._repr_fits_horizontal_() and
                                          self._repr_fits_vertical_())
 
-    def __unicode__(self):
+    def __str__(self):
         """
-        Return a unicode string representation for a particular DataFrame.
+        Return a string representation for a particular DataFrame.
         """
         buf = StringIO("")
         if self._info_repr():
