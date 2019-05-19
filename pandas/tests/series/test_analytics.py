@@ -91,7 +91,7 @@ class TestSeriesAnalytics:
                                check_dtype=False)
         tm.assert_series_equal(qindexer, Series(qexpected),
                                check_dtype=False)
-        msg = (r"ndarray Expected type <(class|type) 'numpy\.ndarray'>,"
+        msg = (r"ndarray Expected type <class 'numpy\.ndarray'>,"
                r" found <class 'pandas\.core\.series\.Series'> instead")
         with pytest.raises(AssertionError, match=msg):
             tm.assert_numpy_array_equal(qindexer, mindexer)
@@ -1144,6 +1144,15 @@ class TestSeriesAnalytics:
                r"implementation of sum\(\)")
         with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
+
+    def test_compound_deprecated(self):
+        s = Series([.1, .2, .3, .4])
+        with tm.assert_produces_warning(FutureWarning):
+            s.compound()
+
+        df = pd.DataFrame({'s': s})
+        with tm.assert_produces_warning(FutureWarning):
+            df.compound()
 
 
 main_dtypes = [
