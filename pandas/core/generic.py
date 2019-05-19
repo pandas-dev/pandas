@@ -9919,6 +9919,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 else:
                     names += ['top', 'freq']
                     result += [top, freq]
+            else:
+                names += ['top', 'freq']
+                result += [None, None]
 
             return pd.Series(result, index=names, name=data.name)
 
