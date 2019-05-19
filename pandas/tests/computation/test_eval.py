@@ -1345,6 +1345,40 @@ class TestOperationsNumExprPandas:
         assert_frame_equal(expected, df)
         assert ans is None
 
+    def test_multi_line_expression_callable_local_variable(self):
+        # 26426
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+
+        def local_func(a, b):
+            return b
+
+        expected = df.copy()
+        expected['c'] = expected['a'] * local_func(1, 7)
+        expected['d'] = expected['c'] + local_func(1, 7)
+        ans = df.eval("""
+        c = a * @local_func(1, 7)
+        d = c + @local_func(1, 7)
+        """, inplace=True)
+        assert_frame_equal(expected, df)
+        assert ans is None
+
+    def test_multi_line_expression_callable_local_variable_with_kwargs(self):
+        # 26426
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+
+        def local_func(a, b):
+            return b
+
+        expected = df.copy()
+        expected['c'] = expected['a'] * local_func(b=7, a=1)
+        expected['d'] = expected['c'] + local_func(b=7, a=1)
+        ans = df.eval("""
+        c = a * @local_func(b=7, a=1)
+        d = c + @local_func(b=7, a=1)
+        """, inplace=True)
+        assert_frame_equal(expected, df)
+        assert ans is None
+
     def test_assignment_in_query(self):
         # GH 8664
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})

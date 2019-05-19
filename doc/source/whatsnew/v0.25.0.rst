@@ -298,7 +298,6 @@ Bug Fixes
 ~~~~~~~~~
 
 
-
 Categorical
 ^^^^^^^^^^^
 
@@ -380,6 +379,7 @@ Indexing
 - Bug in which :meth:`DataFrame.append` produced an erroneous warning indicating that a ``KeyError`` will be thrown in the future when the data to be appended contains new columns (:issue:`22252`).
 - Bug in which :meth:`DataFrame.to_csv` caused a segfault for a reindexed data frame, when the indices were single-level :class:`MultiIndex` (:issue:`26303`).
 - Fixed bug where assigning a :class:`arrays.PandasArray` to a :class:`pandas.core.frame.DataFrame` would raise error (:issue:`26390`)
+- Allow keyword arguments for callable local reference used in the :method:`DataFrame.query` string (:issue:`26426`)
 
 
 Missing
