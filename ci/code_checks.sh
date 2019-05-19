@@ -148,8 +148,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for python2 new-style classes' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E "class\s\S*\(object\):" pandas scripts
+    MSG='Check for python2 new-style classes and for empty parentheses' ; echo $MSG
+    invgrep -R --include="*.py" --include="*.pyx" -E "class\s\S*\((object)?\):" pandas scripts
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG
@@ -168,15 +168,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instead)' ; echo $MSG
     invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # Check that we use pytest.raises only as a context manager
-    #
-    # For any flake8-compliant code, the only way this regex gets
-    # matched is if there is no "with" statement preceding "pytest.raises"
-    MSG='Check for pytest.raises as context manager (a line starting with `pytest.raises` is invalid, needs a `with` to precede it)' ; echo $MSG
-    MSG='TODO: This check is currently skipped because so many files fail this. Please enable when all are corrected (xref gh-24332)' ; echo $MSG
-    # invgrep -R --include '*.py' -E '[[:space:]] pytest.raises' pandas/tests
-    # RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for wrong space after code-block directive and before colon (".. code-block ::" instead of ".. code-block::")' ; echo $MSG
     invgrep -R --include="*.rst" ".. code-block ::" doc/source
@@ -239,6 +230,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests datetimes.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/tools/datetimes.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests top-level reshaping functions' ; echo $MSG
     pytest -q --doctest-modules \
         pandas/core/reshape/concat.py \
@@ -261,8 +256,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL03, GL06, GL07, GL09, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT04, RT05, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL06,GL07,GL09,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT04,RT05,SA05
+    MSG='Validate docstrings (GL03, GL06, GL07, GL09, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL06,GL07,GL09,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange, lzip
-
 from pandas import DataFrame, MultiIndex, Series
 from pandas.core import common as com
 import pandas.util.testing as tm
@@ -53,8 +51,8 @@ def test_indexer_caching():
     # GH5727
     # make sure that indexers are in the _internal_names_set
     n = 1000001
-    arrays = [lrange(n), lrange(n)]
-    index = MultiIndex.from_tuples(lzip(*arrays))
+    arrays = (range(n), range(n))
+    index = MultiIndex.from_tuples(zip(*arrays))
     s = Series(np.zeros(n), index=index)
     str(s)
 

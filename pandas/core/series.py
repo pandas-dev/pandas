@@ -28,6 +28,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import (
     isna, na_value_for_dtype, notna, remove_na_arraylike)
 
+import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, SparseArray
@@ -319,6 +320,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated :: 0.23.0
             Use pd.Series(..) constructor instead.
+
+        Returns
+        -------
+        Series
+            Constructed Series.
         """
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.Series(..) "
@@ -486,6 +492,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def get_values(self):
         """
         Same as values (but handles sparseness conversions); is a view.
+
+        Returns
+        -------
+        numpy.ndarray
+            Data of the Series.
         """
         return self._data.get_values()
 
@@ -526,6 +537,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated:: 0.24.0
 
+        Returns
+        -------
+        Series
+            Series without the slices for which condition is false.
+
         See Also
         --------
         numpy.ndarray.compress
@@ -549,6 +565,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         the same (a tuple with an array of indices for each dimension),
         but it will always be a one-item tuple because series only have
         one dimension.
+
+        Returns
+        -------
+        numpy.ndarray
+            Indices of elements that are non-zero.
 
         See Also
         --------
@@ -1367,9 +1388,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __unicode__(self):
+    def __str__(self):
         """
-        Return a unicode string representation for a particular DataFrame.
+        Return a string representation for a particular Series.
         """
         buf = StringIO("")
         width, height = get_terminal_size()
@@ -1479,6 +1500,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def keys(self):
         """
         Return alias for index.
+
+        Returns
+        -------
+        Index
+            Index of the Series.
         """
         return self.index
 
@@ -2440,8 +2466,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        concat : General function to concatenate DataFrame, Series
-            or Panel objects.
+        concat : General function to concatenate DataFrame or Series objects.
 
         Notes
         -----
@@ -2646,7 +2671,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # do in _values_from_sequence. We still want ops to work
                 # though, so we catch any regular Exception.
                 pass
-
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):
@@ -3679,8 +3703,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 mapped = lib.map_infer(values, f, convert=convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], Series):
-            from pandas.core.frame import DataFrame
-            return DataFrame(mapped.tolist(), index=self.index)
+            # GH 25959 use pd.array instead of tolist
+            # so extension arrays can be used
+            return self._constructor_expanddim(pd.array(mapped),
+                                               index=self.index)
         else:
             return self._constructor(mapped,
                                      index=self.index).__finalize__(self)
@@ -3943,6 +3969,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated:: 0.21.0
             Use ``Series.reindex`` instead.
+
+        Returns
+        -------
+        Series
+            Reindexed Series.
         """
         # for compatibility with higher dims
         if axis != 0:
@@ -4406,6 +4437,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated:: 0.23.0
             Use :meth:`Series.dropna` instead.
+
+        Returns
+        -------
+        Series
+            Series without null values.
         """
         warnings.warn("Method .valid will be removed in a future version. "
                       "Use .dropna instead.", FutureWarning, stacklevel=2)

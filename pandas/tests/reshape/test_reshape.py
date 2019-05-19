@@ -587,8 +587,6 @@ class TestCategoricalReshape:
 
     def test_reshaping_multi_index_categorical(self):
 
-        # construct a MultiIndexed DataFrame formerly created
-        #  via `tm.makePanel().to_frame()`
         cols = ['ItemA', 'ItemB', 'ItemC']
         data = {c: tm.makeTimeDataFrame() for c in cols}
         df = pd.concat({c: data[c].stack() for c in data}, axis='columns')

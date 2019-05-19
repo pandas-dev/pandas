@@ -3,15 +3,13 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestDataFrameConcatCommon():
+class TestDataFrameConcatCommon:
 
     def test_concat_multiple_frames_dtypes(self):
 
@@ -216,41 +214,41 @@ class TestDataFrameConcatCommon():
         # row appends of different dtypes (so need to do by-item)
         # can sometimes infer the correct type
 
-        df1 = DataFrame({'bar': Timestamp('20130101')}, index=lrange(5))
+        df1 = DataFrame({'bar': Timestamp('20130101')}, index=range(5))
         df2 = DataFrame()
         result = df1.append(df2)
         expected = df1.copy()
         assert_frame_equal(result, expected)
 
-        df1 = DataFrame({'bar': Timestamp('20130101')}, index=lrange(1))
-        df2 = DataFrame({'bar': 'foo'}, index=lrange(1, 2))
+        df1 = DataFrame({'bar': Timestamp('20130101')}, index=range(1))
+        df2 = DataFrame({'bar': 'foo'}, index=range(1, 2))
         result = df1.append(df2)
         expected = DataFrame({'bar': [Timestamp('20130101'), 'foo']})
         assert_frame_equal(result, expected)
 
-        df1 = DataFrame({'bar': Timestamp('20130101')}, index=lrange(1))
-        df2 = DataFrame({'bar': np.nan}, index=lrange(1, 2))
+        df1 = DataFrame({'bar': Timestamp('20130101')}, index=range(1))
+        df2 = DataFrame({'bar': np.nan}, index=range(1, 2))
         result = df1.append(df2)
         expected = DataFrame(
             {'bar': Series([Timestamp('20130101'), np.nan], dtype='M8[ns]')})
         assert_frame_equal(result, expected)
 
-        df1 = DataFrame({'bar': Timestamp('20130101')}, index=lrange(1))
-        df2 = DataFrame({'bar': np.nan}, index=lrange(1, 2), dtype=object)
+        df1 = DataFrame({'bar': Timestamp('20130101')}, index=range(1))
+        df2 = DataFrame({'bar': np.nan}, index=range(1, 2), dtype=object)
         result = df1.append(df2)
         expected = DataFrame(
             {'bar': Series([Timestamp('20130101'), np.nan], dtype='M8[ns]')})
         assert_frame_equal(result, expected)
 
-        df1 = DataFrame({'bar': np.nan}, index=lrange(1))
-        df2 = DataFrame({'bar': Timestamp('20130101')}, index=lrange(1, 2))
+        df1 = DataFrame({'bar': np.nan}, index=range(1))
+        df2 = DataFrame({'bar': Timestamp('20130101')}, index=range(1, 2))
         result = df1.append(df2)
         expected = DataFrame(
             {'bar': Series([np.nan, Timestamp('20130101')], dtype='M8[ns]')})
         assert_frame_equal(result, expected)
 
-        df1 = DataFrame({'bar': Timestamp('20130101')}, index=lrange(1))
-        df2 = DataFrame({'bar': 1}, index=lrange(1, 2), dtype=object)
+        df1 = DataFrame({'bar': Timestamp('20130101')}, index=range(1))
+        df2 = DataFrame({'bar': 1}, index=range(1, 2), dtype=object)
         result = df1.append(df2)
         expected = DataFrame({'bar': Series([Timestamp('20130101'), 1])})
         assert_frame_equal(result, expected)
@@ -379,7 +377,7 @@ class TestDataFrameConcatCommon():
         str_dates = ['20120209', '20120222']
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
 
-        A = DataFrame(str_dates, index=lrange(2), columns=['aa'])
+        A = DataFrame(str_dates, index=range(2), columns=['aa'])
         C = DataFrame([[1, 2], [3, 4]], index=str_dates, columns=dt_dates)
 
         tst = A.join(C, on='aa')
@@ -532,15 +530,15 @@ class TestDataFrameConcatCommon():
         tm.assert_frame_equal(result, expected)
 
 
-class TestDataFrameCombineFirst():
+class TestDataFrameCombineFirst:
 
     def test_combine_first_mixed(self):
-        a = Series(['a', 'b'], index=lrange(2))
-        b = Series(lrange(2), index=lrange(2))
+        a = Series(['a', 'b'], index=range(2))
+        b = Series(range(2), index=range(2))
         f = DataFrame({'A': a, 'B': b})
 
-        a = Series(['a', 'b'], index=lrange(5, 7))
-        b = Series(lrange(2), index=lrange(5, 7))
+        a = Series(['a', 'b'], index=range(5, 7))
+        b = Series(range(2), index=range(5, 7))
         g = DataFrame({'A': a, 'B': b})
 
         exp = pd.DataFrame({'A': list('abab'), 'B': [0., 1., 0., 1.]},
@@ -861,13 +859,13 @@ class TestDataFrameCombineFirst():
         df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
 
         ind = date_range(start="2000/1/1", freq="D", periods=10)
-        df1 = DataFrame({'date': ind, 'test': lrange(10)})
+        df1 = DataFrame({'date': ind, 'test': range(10)})
 
         # it works!
         pd.concat([df1, df2_obj])
 
 
-class TestDataFrameUpdate():
+class TestDataFrameUpdate:
 
     def test_update_nan(self):
         # #15593 #15617

@@ -7,10 +7,9 @@ from io import StringIO
 import itertools as it
 import operator
 import tokenize
+from typing import Type
 
 import numpy as np
-
-from pandas.compat import lmap
 
 import pandas as pd
 from pandas.core import common as com
@@ -179,7 +178,7 @@ def _preparse(source, f=_compose(_replace_locals, _replace_booleans,
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), 'f must be callable'
-    return tokenize.untokenize(lmap(f, tokenize_string(source)))
+    return tokenize.untokenize((f(x) for x in tokenize_string(source)))
 
 
 def _is_type(t):
@@ -327,7 +326,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     parser : str
     preparser : callable
     """
-    const_type = Constant
+    const_type = Constant  # type: Type[Term]
     term_type = Term
 
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
@@ -634,9 +633,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                                      "'{func}'".format(func=node.func.id))
 
                 if key.arg:
-                    # TODO: bug?
-                    kwargs.append(ast.keyword(
-                        keyword.arg, self.visit(keyword.value)))  # noqa
+                    kwargs[key.arg] = self.visit(key.value).value
 
             return self.const_type(res(*new_args, **kwargs), self.env)
 
@@ -735,7 +732,7 @@ class Expr(StringMixin):
     def __call__(self):
         return self.terms(self.env)
 
-    def __unicode__(self):
+    def __str__(self):
         return printing.pprint_thing(self.terms)
 
     def __len__(self):

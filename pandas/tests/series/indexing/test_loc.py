@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import Series, Timestamp
 from pandas.util.testing import assert_series_equal
@@ -53,7 +51,7 @@ def test_loc_getitem_not_monotonic(test_data):
 
 
 def test_loc_getitem_setitem_integer_slice_keyerrors():
-    s = Series(np.random.randn(10), index=lrange(0, 20, 2))
+    s = Series(np.random.randn(10), index=list(range(0, 20, 2)))
 
     # this is OK
     cp = s.copy()
@@ -73,10 +71,10 @@ def test_loc_getitem_setitem_integer_slice_keyerrors():
     assert_series_equal(result2, expected)
 
     # non-monotonic, raise KeyError
-    s2 = s.iloc[lrange(5) + lrange(5, 10)[::-1]]
-    with pytest.raises(KeyError, match=r"^3L?$"):
+    s2 = s.iloc[list(range(5)) + list(range(9, 4, -1))]
+    with pytest.raises(KeyError, match=r"^3$"):
         s2.loc[3:11]
-    with pytest.raises(KeyError, match=r"^3L?$"):
+    with pytest.raises(KeyError, match=r"^3$"):
         s2.loc[3:11] = 0
 
 
@@ -120,7 +118,7 @@ def test_basic_setitem_with_labels(test_data):
     assert_series_equal(cp, exp)
 
     # integer indexes, be careful
-    s = Series(np.random.randn(10), index=lrange(0, 20, 2))
+    s = Series(np.random.randn(10), index=list(range(0, 20, 2)))
     inds = [0, 4, 6]
     arr_inds = np.array([0, 4, 6])
 
