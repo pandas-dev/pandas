@@ -10,7 +10,8 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, CategoricalIndex, Series, Timestamp, date_range, read_csv)
+    DataFrame, Index, MultiIndex, CategoricalIndex,
+    Series, Timestamp, date_range, read_csv)
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.util.testing import (
@@ -1747,9 +1748,9 @@ def test_groupby_observed():
     df['b'] = df['b'].astype('category')
 
     # test .agg and .apply when observed == False
-    levels = [CategoricalIndex(['x', 'y'], categories=['x', 'y'], ordered=False),
-              CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=False)]
-    index, _ = MultiIndex.from_product(levels, names=['a', 'b']).sortlevel()
+    lvls = [CategoricalIndex(['x', 'y'], categories=['x', 'y'], ordered=False),
+            CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=False)]
+    index, _ = MultiIndex.from_product(lvls, names=['a', 'b']).sortlevel()
     expected = pd.Series(data=[3, 3, 4, np.nan], index=index, name='c')
     actual_agg = df.groupby(['a', 'b']).c.agg(sum)
     actual_apply = df.groupby(['a', 'b']).c.apply(sum)
@@ -1763,7 +1764,8 @@ def test_groupby_observed():
     assert_series_equal(expected, actual)
 
     # test .apply when observed == True
-    index = MultiIndex.from_tuples([('x', 'a'), ('x', 'b'), ('y', 'a')], names=('a', 'b'))
+    index = MultiIndex.from_tuples([('x', 'a'), ('x', 'b'), ('y', 'a')],
+                                   names=('a', 'b'))
     expected = pd.Series([3, 3, 4], index=index, name='c')
     actual = df.groupby(['a', 'b'], observed=True).c.apply(sum)
     assert_series_equal(expected, actual)
@@ -1778,18 +1780,24 @@ def test_groupby_observed_apply_lambda_returns_dict():
     df['b'] = df['b'].astype('category')
 
     # observed == False
-    levels = [CategoricalIndex(['x', 'y'], categories=['x', 'y'], ordered=False),
-              CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=False),
-              Index(['min', 'max'])]
-    index, _ = MultiIndex.from_product(levels, names=['a', 'b', None]).sortlevel()
-    expected = pd.Series(data=[2, 1, 3, 3, 4, 4, np.nan, np.nan], index=index, name='c')
-    actual = df.groupby(['a', 'b']).c.apply(lambda x: {'min': x.min(), 'max': x.max()})
+    lvls = [CategoricalIndex(['x', 'y'], categories=['x', 'y'], ordered=False),
+            CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=False),
+            Index(['min', 'max'])]
+    index, _ = MultiIndex.from_product(lvls,
+                                       names=['a', 'b', None]).sortlevel()
+    expected = pd.Series(data=[2, 1, 3, 3, 4, 4, np.nan, np.nan],
+                         index=index,
+                         name='c')
+    actual = df.groupby(['a', 'b']).c.apply(lambda x: {'min': x.min(),
+                                                       'max': x.max()})
     assert_series_equal(expected, actual)
 
     # observed == True
     index = MultiIndex.from_tuples([('x', 'a', 'max'), ('x', 'a', 'min'),
                                     ('x', 'b', 'max'), ('x', 'b', 'min'),
-                                    ('y', 'a', 'max'), ('y', 'a', 'min')],names=('a', 'b', None))
+                                    ('y', 'a', 'max'), ('y', 'a', 'min')],
+                                   names=('a', 'b', None))
     expected = pd.Series(data=[2, 1, 3, 3, 4, 4], index=index, name='c')
-    actual = df.groupby(['a', 'b'], observed=True).c.apply(lambda x: {'min': x.min(), 'max': x.max()})
+    actual = df.groupby(['a', 'b'], observed=True).c.\
+        apply(lambda x: {'min': x.min(), 'max': x.max()})
     assert_series_equal(expected, actual)

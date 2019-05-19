@@ -859,8 +859,9 @@ class SeriesGroupBy(GroupBy):
             # GH #823 #24880
             index = _get_index()
             result = self._reindex_output(DataFrame(values, index=index))
-            dropna = self.observed  # if self.observed is False, keep all-NaN rows created while re-indexing
-            result = result.stack(dropna=dropna)
+            # if self.observed is False,
+            # keep all-NaN rows created while re-indexing
+            result = result.stack(dropna=self.observed)
             result.name = self._selection_name
             return result
 
@@ -873,7 +874,9 @@ class SeriesGroupBy(GroupBy):
                                         not_indexed_same=not_indexed_same)
         else:
             # GH #6265 #24880
-            result = Series(values, index=_get_index(), name=self._selection_name)
+            result = Series(data=values,
+                            index=_get_index(),
+                            name=self._selection_name)
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
