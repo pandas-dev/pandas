@@ -355,7 +355,7 @@ class TestChaining:
         result4 = df['A'].iloc[2]
         check(result4, expected)
 
-    @pytest.mark.filterwarnings("ignore::DeprecationWarning")
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
