@@ -343,7 +343,7 @@ class ExcelFormatter(object):
 
     max_rows = 2**20
     max_cols = 2**14
-            
+
     def __init__(self, df, na_rep='', float_format=None, cols=None,
                  header=True, index=True, index_label=None, merge_cells=False,
                  inf_rep='inf', style_converter=None):
@@ -650,7 +650,7 @@ class ExcelFormatter(object):
         """
         from pandas.io.excel import ExcelWriter
         from pandas.io.common import _stringify_path
-        
+
         num_rows, num_cols = self.df.shape
         if num_rows > self.max_rows or num_cols > self.max_cols:
             raise ValueError("This sheet is too large! Your sheet size is: " +

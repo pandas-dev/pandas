@@ -1212,7 +1212,9 @@ class _WriterBase(SharedItems):
 class TestExcelWriter(_WriterBase):
     # Base class for test cases to run with different Excel writers.
 
-    def test_excel_sheet_size(self): 
+    def test_excel_sheet_size(self):
+
+        # GH 26080
         breaking_row_count = 2**20 + 1
         breaking_col_count = 2**14 + 1
         #purposely using two arrays to prevent memory issues while testing
@@ -1227,7 +1229,7 @@ class TestExcelWriter(_WriterBase):
 
         with pytest.raises(ValueError, match=msg):
             col_df.to_excel(self.path)
-            
+
     def test_excel_sheet_by_name_raise(self, *_):
         import xlrd
 
