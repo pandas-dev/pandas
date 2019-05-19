@@ -123,10 +123,8 @@ def _stringify_path(filepath_or_buffer):
         _PATHLIB_INSTALLED = False
 
     try:
-        from py.path import local as LocalPath
+        from py.path import local as LocalPath  # Deprecated - 0.25.0
         _PY_PATH_INSTALLED = True
-        warnings.warn("py.path has been deprecated. Use pathlib instead.",
-                      DeprecationWarning, stacklevel=2)
     except ImportError:
         _PY_PATH_INSTALLED = False
 
@@ -135,6 +133,8 @@ def _stringify_path(filepath_or_buffer):
     if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
         return str(filepath_or_buffer)
     if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
+        warnings.warn("py.path has been deprecated. Use pathlib instead.",
+                      DeprecationWarning, stacklevel=2)
         return filepath_or_buffer.strpath
     return _expand_user(filepath_or_buffer)
 
