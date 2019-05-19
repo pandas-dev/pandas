@@ -88,12 +88,6 @@ def test_unicode_string_with_unicode():
     str(idx)
 
 
-def test_bytestring_with_unicode():
-    d = {"a": ["\u05d0", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
-    idx = pd.DataFrame(d).set_index(["a", "b"]).index
-    bytes(idx)
-
-
 def test_repr_max_seq_item_setting(idx):
     # GH10182
     idx = idx.repeat(50)

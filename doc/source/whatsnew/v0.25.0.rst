@@ -250,6 +250,7 @@ Other API Changes
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
 - The ``arg`` argument in :meth:`pandas.core.groupby.DataFrameGroupBy.agg` has been renamed to ``func`` (:issue:`26089`)
 - The ``arg`` argument in :meth:`pandas.core.window._Window.aggregate` has been renamed to ``func`` (:issue:`26372`)
+- Most Pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
 
 .. _whatsnew_0250.deprecations:
 

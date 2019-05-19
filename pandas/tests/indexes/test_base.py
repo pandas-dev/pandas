@@ -2388,10 +2388,12 @@ class TestMixedIntIndex(Base):
                            "c": [7, 8, 9]})
         repr(df.columns)  # should not raise UnicodeDecodeError
 
-    @pytest.mark.parametrize("func", [str, bytes])
-    def test_with_unicode(self, func):
-        index = Index(list(range(1000)))
-        func(index)
+    def test_str_to_bytes_raises(self):
+        # GH 26447
+        index = Index([str(x) for x in range(10)])
+        msg = "^'str' object cannot be interpreted as an integer$"
+        with pytest.raises(TypeError, match=msg):
+            bytes(index)
 
     def test_intersect_str_dates(self):
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]

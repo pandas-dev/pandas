@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+import pytest
 
 from pandas.core.indexes.frozen import FrozenList, FrozenNDArray
 from pandas.tests.test_base import CheckImmutable, CheckStringMixin
@@ -49,6 +50,12 @@ class TestFrozenList(CheckImmutable, CheckStringMixin):
         expected = FrozenList([1, 3])
         self.check_result(result, expected)
 
+    def test_tricky_container_to_bytes_raises(self):
+        # GH 26447
+        msg = "^'str' object cannot be interpreted as an integer$"
+        with pytest.raises(TypeError, match=msg):
+            bytes(self.unicode_container)
+
 
 class TestFrozenNDArray(CheckImmutable, CheckStringMixin):
     mutable_methods = ('put', 'itemset', 'fill')
@@ -67,6 +74,9 @@ class TestFrozenNDArray(CheckImmutable, CheckStringMixin):
         # see gh-9031
         with tm.assert_produces_warning(FutureWarning):
             FrozenNDArray([1, 2, 3])
+
+    def test_tricky_container_to_bytes(self):
+        bytes(self.unicode_container)
 
     def test_shallow_copying(self):
         original = self.container.copy()
