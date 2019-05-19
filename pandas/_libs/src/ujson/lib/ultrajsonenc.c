@@ -968,7 +968,6 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
             enc->iterBegin(obj, &tc);
 
             Buffer_AppendCharUnchecked(enc, '[');
-	    Buffer_AppendIndentNewlineUnchecked (enc);
 
             while (enc->iterNext(obj, &tc)) {
                 if (count > 0) {
@@ -976,7 +975,6 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
 #ifndef JSON_NO_EXTRA_WHITESPACE
                     Buffer_AppendCharUnchecked(buffer, ' ');
 #endif
-		    Buffer_AppendIndentNewlineUnchecked (enc);
                 }
 
                 iterObj = enc->iterGetValue(obj, &tc);
@@ -988,8 +986,6 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
             }
 
             enc->iterEnd(obj, &tc);
-	    Buffer_AppendIndentNewlineUnchecked (enc);
-	    Buffer_AppendIndentUnchecked (enc, enc->level);
             Buffer_Reserve(enc, 2);
             Buffer_AppendCharUnchecked(enc, ']');
             break;
@@ -1001,6 +997,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
 
             Buffer_AppendCharUnchecked(enc, '{');
 	    Buffer_AppendIndentNewlineUnchecked (enc);
+	    Buffer_AppendIndentUnchecked (enc, enc->level + 2);
 
             while (enc->iterNext(obj, &tc)) {
                 if (count > 0) {
@@ -1009,21 +1006,20 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
                     Buffer_AppendCharUnchecked(enc, ' ');
 #endif
 		    Buffer_AppendIndentNewlineUnchecked (enc);
+		    Buffer_AppendIndentUnchecked (enc, enc->level + 2);
                 }
 
                 iterObj = enc->iterGetValue(obj, &tc);
                 objName = enc->iterGetName(obj, &tc, &szlen);
 
                 enc->level++;
-		Buffer_AppendIndentUnchecked (enc, enc->level);
                 encode(iterObj, enc, objName, szlen);
                 count++;
             }
 
             enc->iterEnd(obj, &tc);
 	    Buffer_AppendIndentNewlineUnchecked (enc);
-	    Buffer_AppendIndentUnchecked (enc, enc->level);
-            Buffer_Reserve(enc, 2);
+	    Buffer_AppendIndentUnchecked (enc, enc->level + 1);
             Buffer_AppendCharUnchecked(enc, '}');
             break;
         }

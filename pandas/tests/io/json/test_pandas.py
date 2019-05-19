@@ -1326,13 +1326,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         result = df.to_json(indent=4)
         expected = """{
-    "a": {
-        "0": "foo",
-        "1": "baz"
+    "a":{
+        "0":"foo",
+        "1":"baz"
     },
-    "b": {
-        "0": "bar",
-        "1": "qux"
+    "b":{
+        "0":"bar",
+        "1":"qux"
     }
 }"""
 
