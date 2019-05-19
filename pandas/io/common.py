@@ -116,7 +116,7 @@ def _stringify_path(filepath_or_buffer):
     strings, buffers, or anything else that's not even path-like.
     """
     if hasattr(filepath_or_buffer, '__fspath__'):
-        return str(filepath_or_buffer)
+        return filepath_or_buffer.__fspath__()
     return _expand_user(filepath_or_buffer)
 
 
