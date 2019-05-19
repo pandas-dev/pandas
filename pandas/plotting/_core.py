@@ -2202,14 +2202,25 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     def _get_colors():
         #  num_colors=3 is required as method maybe_color_bp takes the colors
         #  in positions 0 and 2.
-        return _get_standard_colors(color=kwds.get('color'), num_colors=3)
+        #  if colors not provided, use color 2 for medians and 0 for all else
+        result = _get_standard_colors(num_colors=3)
+        result = np.take(result, [0, 0, 2, 0])
+
+        colors = kwds.pop('color', None)
+        if colors and isinstance(colors, dict):
+            valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
+            for i in range(4):
+                if valid_keys[i] in colors:
+                    result[i] = colors[valid_keys[i]]
+
+        return result
 
     def maybe_color_bp(bp):
-        if 'color' not in kwds:
-            from matplotlib.artist import setp
-            setp(bp['boxes'], color=colors[0], alpha=1)
-            setp(bp['whiskers'], color=colors[0], alpha=1)
-            setp(bp['medians'], color=colors[2], alpha=1)
+        from matplotlib.artist import setp
+        setp(bp['boxes'], color=colors[0], alpha=1)
+        setp(bp['whiskers'], color=colors[1], alpha=1)
+        setp(bp['medians'], color=colors[2], alpha=1)
+        setp(bp['caps'], color=colors[3], alpha=1)
 
     def plot_group(keys, values, ax):
         keys = [pprint_thing(x) for x in keys]

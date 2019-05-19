@@ -160,6 +160,24 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(df.boxplot("a", fontsize=16),
                                 xlabelsize=16, ylabelsize=16)
 
+    @pytest.mark.parametrize('dict_colors, expected',
+                             [(dict(boxes='r',
+                                    whiskers='b',
+                                    medians='g',
+                                    caps='c'),
+                               dict(boxes='r',
+                                    whiskers='b',
+                                    medians='g',
+                                    caps='c')),
+                              (dict(boxes='r', invalid='b'), dict(boxes='r')),
+                              (102, dict())])
+    def test_color_kwd(self, dict_colors, expected):
+        # GH: 26214
+        df = DataFrame(random.rand(10, 2))
+        result = df.boxplot(color=dict_colors, return_type='dict')
+        for k, v in expected.items():
+            assert result[k][0].get_color() == v
+
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
