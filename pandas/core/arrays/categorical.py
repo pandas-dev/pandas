@@ -2022,9 +2022,9 @@ class Categorical(ExtensionArray, PandasObject):
         result = formatter.to_string()
         return str(result)
 
-    def __unicode__(self):
+    def __str__(self):
         """
-        Unicode representation.
+        String representation.
         """
         _maxlen = 10
         if len(self._codes) > _maxlen:

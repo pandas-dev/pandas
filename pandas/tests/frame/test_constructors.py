@@ -435,6 +435,11 @@ class TestDataFrameConstructors(TestData):
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B'], index=[1, 2])
 
+        # gh-26429
+        msg = "2 columns passed, passed data had 10 columns"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame((range(10), range(10, 20)), columns=('ones', 'twos'))
+
         msg = ("If using all scalar "
                "values, you must pass "
                "an index")

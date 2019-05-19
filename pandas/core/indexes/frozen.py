@@ -108,7 +108,7 @@ class FrozenList(PandasObject, list):
         raise TypeError("'%s' does not support mutable operations." %
                         self.__class__.__name__)
 
-    def __unicode__(self):
+    def __str__(self):
         return pprint_thing(self, quote_strings=True,
                             escape_chars=('\t', '\r', '\n'))
 
@@ -149,9 +149,9 @@ class FrozenNDArray(PandasObject, np.ndarray):
         arr = self.view(np.ndarray).copy()
         return arr
 
-    def __unicode__(self):
+    def __str__(self):
         """
-        Return a unicode string representation for this object.
+        Return a string representation for this object.
         """
         prepr = pprint_thing(self, escape_chars=('\t', '\r', '\n'),
                              quote_strings=True)
