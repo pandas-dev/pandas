@@ -2178,7 +2178,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
                 default_handler=None, lines=False, compression='infer',
-                index=True):
+                index=True, indent=0):
         """
         Convert the object to a JSON string.
 
@@ -2260,6 +2260,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.23.0
 
+        indent : integer, default 0
+           Length of whitespace used to indent each record.
+
+           .. versionadded:: 0.25.0
+
         Returns
         -------
         None or str
@@ -2325,7 +2330,7 @@ class NDFrame(PandasObject, SelectionMixin):
                             force_ascii=force_ascii, date_unit=date_unit,
                             default_handler=default_handler,
                             lines=lines, compression=compression,
-                            index=index)
+                            index=index, indent=indent)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
         """

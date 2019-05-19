@@ -2397,6 +2397,8 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
         pyEncoder.defaultHandler = odefHandler;
     }
 
+    encoder->indent = indent;
+
     pyEncoder.originalOutputFormat = pyEncoder.outputFormat;
     PRINTMARK();
     ret = JSON_EncodeObject(oinput, encoder, buffer, sizeof(buffer));
