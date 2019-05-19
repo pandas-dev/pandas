@@ -18,7 +18,7 @@ from pandas import (
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, TimedeltaArray
 from pandas.core.internals import (
-    BlockManager, ObjectBlock, SingleBlockManager, make_block)
+    BlockManager, SingleBlockManager, make_block)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal, randn)
@@ -1311,14 +1311,3 @@ def test_make_block_no_pandas_array():
     result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
     assert result.is_integer is True
     assert result.is_extension is False
-
-
-def test_add_column_with_pandas_array():
-    # GH 26390
-    df = pd.DataFrame({'a': [1, 2, 3, 4], 'b': ['a', 'b', 'c', 'd']})
-    df['c'] = pd.array([1, 2, None, 3])
-    df2 = pd.DataFrame({'a': [1, 2, 3, 4], 'b': ['a', 'b', 'c', 'd'],
-                        'c': pd.array([1, 2, None, 3])})
-    assert(df2['c']._data.blocks[0].__class__ == ObjectBlock)
-    assert(df['c']._data.blocks[0].__class__ == ObjectBlock)
-    assert_frame_equal(df, df2)
