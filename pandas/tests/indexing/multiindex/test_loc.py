@@ -88,18 +88,17 @@ class TestMultiIndexLoc:
                        index=[['i', 'i', 'j'], ['X', 'X', 'Y']])
 
         # the first 2 rows
-        expected = DataFrame(
-            df.iloc[[0, 1]], index=['X', 'X'], columns=df.columns)
+        expected = df.iloc[[0, 1]].droplevel(0)
         result = df.loc['i']
         tm.assert_frame_equal(result, expected)
 
         # 2nd (last) column
-        expected = DataFrame(df.iloc[:, [2]], index=df.index, columns=['B'])
+        expected = df.iloc[:, [2]].droplevel(0, axis=1)
         result = df.loc[:, 'j']
         tm.assert_frame_equal(result, expected)
 
-        # bottom right corner column
-        expected = DataFrame(df.iloc[[2], [2]], index=['Y'], columns=['B'])
+        # bottom right corner
+        expected = df.iloc[[2], [2]].droplevel(0).droplevel(0, axis=1)
         result = df.loc['j'].loc[:, 'j']
         tm.assert_frame_equal(result, expected)
 
@@ -112,8 +111,7 @@ class TestMultiIndexLoc:
         df = DataFrame(np.random.randn(3, 3),
                        columns=[[2, 2, 4], [6, 8, 10]],
                        index=[[4, 4, 8], [8, 10, 12]])
-        expected = DataFrame(
-            df.iloc[[0, 1]], index=[8, 10], columns=df.columns)
+        expected = df.iloc[[0, 1]].droplevel(0)
         result = df.loc[4]
         tm.assert_frame_equal(result, expected)
 
