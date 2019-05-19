@@ -15,6 +15,7 @@ from urllib.parse import (  # noqa
     uses_relative)
 from urllib.request import pathname2url, urlopen
 import zipfile
+import warnings
 
 from pandas.errors import (  # noqa
     AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
@@ -124,6 +125,8 @@ def _stringify_path(filepath_or_buffer):
     try:
         from py.path import local as LocalPath
         _PY_PATH_INSTALLED = True
+        warnings.warn("py.path has been deprecated. Use pathlib instead.",
+                      DeprecationWarning, stacklevel=2)
     except ImportError:
         _PY_PATH_INSTALLED = False
 
