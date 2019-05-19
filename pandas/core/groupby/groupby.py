@@ -839,7 +839,6 @@ b  2""")
     def _cython_agg_general(self, how, alt=None, numeric_only=True,
                             min_count=-1):
         output = {}
-
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:

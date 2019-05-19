@@ -76,12 +76,3 @@ def three_group():
                       'D': np.random.randn(11),
                       'E': np.random.randn(11),
                       'F': np.random.randn(11)})
-
-
-AGG_FUNCS = ['sum', 'prod', 'min', 'max', 'mean', 'median', 'var', 'first',
-             'last', 'nth']  # TODO: ohlc?
-
-
-@pytest.fixture(params=AGG_FUNCS)
-def agg_func(request):
-    return request.param
