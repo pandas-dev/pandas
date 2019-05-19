@@ -1740,14 +1740,15 @@ def test_groupby_multiindex_series_keys_len_equal_group_axis():
 
 def test_groupby_groups_in_BaseGrouper():
     # GH 26326
+    # Test if DataFrame grouped with a pandas.Grouper has correct groups
     mi = pd.MultiIndex.from_product([['A', 'B'],
                                      ['C', 'D']], names=['alpha', 'beta'])
     df = pd.DataFrame({'foo': [1, 2, 1, 2], 'bar': [1, 2, 3, 4]},
                       index=mi)
-    grp1 = df.groupby([pd.Grouper(level='alpha'), 'beta'])
-    grp2 = df.groupby(['beta', pd.Grouper(level='alpha')])
-    nbggrp1 = df.groupby(['alpha', 'beta'])
-    nbggrp2 = df.groupby(['beta', 'alpha'])
+    result = df.groupby([pd.Grouper(level='alpha'), 'beta'])
+    expected = df.groupby(['alpha', 'beta'])
+    assert(result.groups == expected.groups)
 
-    assert(grp1.groups == nbggrp1.groups)
-    assert(grp2.groups == nbggrp2.groups)
+    result = df.groupby(['beta', pd.Grouper(level='alpha')])
+    expected = df.groupby(['beta', 'alpha'])
+    assert(result.groups == expected.groups)
