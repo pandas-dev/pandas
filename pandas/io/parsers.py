@@ -3607,8 +3607,8 @@ class FixedWidthReader(BaseIterator):
                 line = next(self.f)
         else:
             # If f is a file like object, use readline
-            if hasattr(f, 'readline'):
-                line = f.readline()
+            if hasattr(self.f, 'readline'):
+                line = self.f.readline()
             # otherwise iterate on it
             else:
                 line = next(self.f)
