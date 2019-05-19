@@ -1346,6 +1346,7 @@ class TestOperationsNumExprPandas:
         assert ans is None
 
     def test_multi_line_expression_callable_local_variable(self):
+        # 26426
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
 
         def local_func(a, b):
@@ -1362,6 +1363,7 @@ class TestOperationsNumExprPandas:
         assert ans is None
 
     def test_multi_line_expression_callable_local_variable_with_kwargs(self):
+        # 26426
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
 
         def local_func(a, b):
