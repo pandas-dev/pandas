@@ -116,10 +116,16 @@ def _sparse_series_to_coo(ss, row_levels=(0, ), column_levels=(1, ),
     return sparse_matrix, rows, columns
 
 
-def _coo_to_sparse_series(A, dense_index=False, sparse_series=True):
+def _coo_to_sparse_series(A, dense_index: bool = False,
+                          sparse_series: bool = True):
     """
     Convert a scipy.sparse.coo_matrix to a SparseSeries.
-    Use the defaults given in the SparseSeries constructor.
+
+    Parameters
+    ----------
+    A : scipy.sparse.coo.coo_matrix
+    dense_index : bool, default False
+    sparse_series : bool, default True
     """
     from pandas import SparseDtype
 

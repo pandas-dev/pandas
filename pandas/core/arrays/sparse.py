@@ -2035,8 +2035,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         result = _coo_to_sparse_series(A, dense_index=dense_index,
                                        sparse_series=False)
-        # SparseSeries -> Series[sparse]
-        result = Series(result.values, index=result.index, copy=False)
+        result = Series(result.array, index=result.index, copy=False)
 
         return result
 
