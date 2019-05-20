@@ -718,9 +718,11 @@ class TestFancy(Base):
                     assert s2.index.is_object()
 
     def test_empty_index_for_empty_dataframe(self):
-        empty_df = pd.DataFrame(columns=['A'])
-        df_with_empty_value = pd.DataFrame(columns=['A'], data=[])
-        assert df_with_empty_value.index.dtype == empty_df.index.dtype
+        index=pd.Index([], name='idx')
+        df = pd.DataFrame(columns=['A'], index=index)
+        df2 = df.copy()
+        df['A'] = []
+        tm.assert_index_equal(df.index, df2.index)
 
 
 class TestMisc(Base):
