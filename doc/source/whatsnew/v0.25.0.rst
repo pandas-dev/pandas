@@ -44,7 +44,7 @@ output columns when applying multiple aggregation functions to specific columns 
 
 Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
 should be tuples where the first element is the column selection, and the second element is the
-aggregation function to apply. Pandas provides the ``pandas.Agg`` namedtuple to make it clearer
+aggregation function to apply. Pandas provides the ``pandas.KeywordAgg`` namedtuple to make it clearer
 what the arguments to the function are, but plain tuples are accepted as well.
 
 See :ref:`_groupby.aggregate.keyword` for more.

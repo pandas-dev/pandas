@@ -1325,7 +1325,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
     The keywords are the column names, and the values should be
     2-tuples where the first element is the column selection and
     the second element is the aggfunc. Pandas provides the
-    ``pandas.Agg`` namedtuple to clarify the meaning of the values.
+    ``pandas.KeywordAgg`` namedtuple to clarify the meaning of the values.
     See :ref:`groupby.aggregate.keyword` for more.
     """)
 
@@ -1648,7 +1648,7 @@ def _normalize_keyword_aggregation(kwargs):
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
-    for i, (name, (column, aggfunc)) in enumerate(zip(columns, pairs)):
+    for name, (column, aggfunc) in zip(columns, pairs):
         if column in func:
             func[column].append(aggfunc)
         else:
