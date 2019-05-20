@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for DataFrame timezone-related methods
 """
@@ -7,8 +6,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 import pytz
-
-from pandas.compat import lrange
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -95,7 +92,7 @@ class TestDataFrameTimezones:
         test2 = DataFrame(np.zeros((3, 3)),
                           index=date_range("2012-11-15 00:00:00", periods=3,
                                            freq="250L", tz="US/Central"),
-                          columns=lrange(3, 6))
+                          columns=range(3, 6))
 
         result = test1.join(test2, how='outer')
         ex_index = test1.index.union(test2.index)

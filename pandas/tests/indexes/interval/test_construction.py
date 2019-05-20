@@ -3,8 +3,6 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas.compat import lzip
-
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 
@@ -249,7 +247,7 @@ class TestFromTuples(Base):
         if len(breaks) == 0:
             return {'data': breaks}
 
-        tuples = lzip(breaks[:-1], breaks[1:])
+        tuples = list(zip(breaks[:-1], breaks[1:]))
         if isinstance(breaks, (list, tuple)):
             return {'data': tuples}
         elif is_categorical_dtype(breaks):
@@ -333,8 +331,7 @@ class TestClassConstructors(Base):
             constructor(5)
 
         # not an interval
-        msg = ("type <(class|type) 'numpy.int64'> with value 0 "
-               "is not an interval")
+        msg = "type <class 'numpy.int64'> with value 0 is not an interval"
         with pytest.raises(TypeError, match=msg):
             constructor([0, 1])
 

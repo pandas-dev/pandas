@@ -1,4 +1,3 @@
-# coding=utf-8
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -40,7 +39,7 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-class TestSeriesMissingData():
+class TestSeriesMissingData:
 
     def test_remove_na_deprecation(self):
         # see gh-16971
@@ -876,7 +875,7 @@ def interp_methods_ind(request):
     return method, kwargs
 
 
-class TestSeriesInterpolateData():
+class TestSeriesInterpolateData:
     def test_interpolate(self, datetime_series, string_series):
         ts = Series(np.arange(len(datetime_series), dtype=float),
                     datetime_series.index)
@@ -1441,12 +1440,10 @@ class TestSeriesInterpolateData():
         if method == "pchip":
             _skip_if_no_pchip()
 
-        if method in {"linear"}:
+        if method in {"linear", "pchip"}:
             result = df[0].interpolate(method=method, **kwargs)
             expected = pd.Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
             assert_series_equal(result, expected)
-        elif method in {"pchip"}:
-            pytest.xfail(reason="gh-26189: broken on scipy master")
         else:
             pytest.skip(
                 "This interpolation method is not supported for "

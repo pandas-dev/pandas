@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
 from decimal import Decimal
 from warnings import catch_warnings, filterwarnings

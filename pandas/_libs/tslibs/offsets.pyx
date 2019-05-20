@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 
 import time
@@ -312,7 +310,7 @@ class ApplyTypeError(TypeError):
 # ---------------------------------------------------------------------
 # Base Classes
 
-class _BaseOffset(object):
+class _BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses
     and will (after pickle errors are resolved) go into a cdef class.
@@ -533,7 +531,7 @@ class BaseOffset(_BaseOffset):
         return -self + other
 
 
-class _Tick(object):
+class _Tick:
     """
     dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
     can do isinstance checks on _Tick and avoid importing tseries.offsets

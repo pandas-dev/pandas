@@ -85,7 +85,7 @@ class SparseSeries(Series):
         elif is_scalar(data) and index is not None:
             data = np.full(len(index), fill_value=data)
 
-        super(SparseSeries, self).__init__(
+        super().__init__(
             SparseArray(data,
                         sparse_index=sparse_index,
                         kind=kind,
@@ -217,9 +217,9 @@ class SparseSeries(Series):
         return SparseArray(self.values, sparse_index=self.sp_index,
                            fill_value=fill_value, kind=kind, copy=copy)
 
-    def __unicode__(self):
+    def __str__(self):
         # currently, unicode is same as repr...fixes infinite loop
-        series_rep = Series.__unicode__(self)
+        series_rep = Series.__str__(self)
         rep = '{series}\n{index!r}'.format(series=series_rep,
                                            index=self.sp_index)
         return rep
@@ -293,7 +293,7 @@ class SparseSeries(Series):
         if is_integer(key) and key not in self.index:
             return self._get_val_at(key)
         else:
-            return super(SparseSeries, self).__getitem__(key)
+            return super().__getitem__(key)
 
     def _get_values(self, indexer):
         try:
@@ -464,9 +464,8 @@ class SparseSeries(Series):
     def reindex(self, index=None, method=None, copy=True, limit=None,
                 **kwargs):
         # TODO: remove?
-        return super(SparseSeries, self).reindex(index=index, method=method,
-                                                 copy=copy, limit=limit,
-                                                 **kwargs)
+        return super().reindex(index=index, method=method, copy=copy,
+                               limit=limit, **kwargs)
 
     def sparse_reindex(self, new_index):
         """

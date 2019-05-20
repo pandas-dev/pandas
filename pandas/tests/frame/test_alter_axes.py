@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime, timedelta
 import inspect
 
 import numpy as np
 import pytest
-
-from pandas.compat import lrange
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_interval_dtype, is_object_dtype)
@@ -17,7 +13,7 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-class TestDataFrameAlterAxes():
+class TestDataFrameAlterAxes:
 
     def test_set_index_directly(self, float_string_frame):
         df = float_string_frame
@@ -464,9 +460,13 @@ class TestDataFrameAlterAxes():
                       name='B')
         tm.assert_series_equal(result, comp)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning) as m:
             result = idx.to_series(index=[0, 1])
         tm.assert_series_equal(result, expected.dt.tz_convert(None))
+        msg = ("The default of the 'keep_tz' keyword in "
+               "DatetimeIndex.to_series will change to True in a future "
+               "release.")
+        assert msg in str(m[0].message)
 
         with tm.assert_produces_warning(FutureWarning):
             result = idx.to_series(keep_tz=False, index=[0, 1])
@@ -1093,13 +1093,13 @@ class TestDataFrameAlterAxes():
         tm.assert_frame_equal(rs, xp)
 
         rs = df.reset_index('a', col_fill=None)
-        xp = DataFrame(full, Index(lrange(3), name='d'),
+        xp = DataFrame(full, Index(range(3), name='d'),
                        columns=[['a', 'b', 'b', 'c'],
                                 ['a', 'mean', 'median', 'mean']])
         tm.assert_frame_equal(rs, xp)
 
         rs = df.reset_index('a', col_fill='blah', col_level=1)
-        xp = DataFrame(full, Index(lrange(3), name='d'),
+        xp = DataFrame(full, Index(range(3), name='d'),
                        columns=[['blah', 'b', 'b', 'c'],
                                 ['a', 'mean', 'median', 'mean']])
         tm.assert_frame_equal(rs, xp)

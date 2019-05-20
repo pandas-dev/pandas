@@ -10,6 +10,7 @@ import itertools
 import os
 import re
 import time
+from typing import List, Optional, Type, Union
 import warnings
 
 import numpy as np
@@ -18,7 +19,6 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -520,7 +520,7 @@ class HDFStore(StringMixin):
     def __len__(self):
         return len(self.groups())
 
-    def __unicode__(self):
+    def __str__(self):
         return '{type}\nFile path: {path}\n'.format(
             type=type(self), path=pprint_thing(self._path))
 
@@ -535,6 +535,10 @@ class HDFStore(StringMixin):
         Return a (potentially unordered) list of the keys corresponding to the
         objects stored in the HDFStore. These are ABSOLUTE path-names (e.g.
         have the leading '/'
+
+        Returns
+        -------
+        list
         """
         return [n._v_pathname for n in self.groups()]
 
@@ -752,8 +756,8 @@ class HDFStore(StringMixin):
         key : object
         column: the column of interest
 
-        Exceptions
-        ----------
+        Raises
+        ------
         raises KeyError if the column is not found (or key is not a valid
             store)
         raises ValueError if the column can not be extracted individually (it
@@ -778,8 +782,8 @@ class HDFStore(StringMixin):
         iterator : boolean, return an iterator, default False
         chunksize : nrows to include in iteration, return an iterator
 
-        Exceptions
-        ----------
+        Raises
+        ------
         raises KeyError if keys or selector is not found or keys is empty
         raises TypeError if keys is not a list or tuple
         raises ValueError if the tables are not ALL THE SAME DIMENSIONS
@@ -891,8 +895,8 @@ class HDFStore(StringMixin):
         -------
         number of rows removed (or None if not a Table)
 
-        Exceptions
-        ----------
+        Raises
+        ------
         raises KeyError if key is not a valid store
 
         """
@@ -1060,8 +1064,8 @@ class HDFStore(StringMixin):
         ----------
         key : object (the node to index)
 
-        Exceptions
-        ----------
+        Raises
+        ------
         raises if the node is not a table
 
         """
@@ -1080,6 +1084,10 @@ class HDFStore(StringMixin):
     def groups(self):
         """return a list of all the top-level nodes (that are not themselves a
         pandas storage object)
+
+        Returns
+        -------
+        list
         """
         _tables()
         self._check_if_open()
@@ -1214,6 +1222,10 @@ class HDFStore(StringMixin):
         Print detailed information on the store.
 
         .. versionadded:: 0.21.0
+
+        Returns
+        -------
+        str
         """
         output = '{type}\nFile path: {path}\n'.format(
             type=type(self), path=pprint_thing(self._path))
@@ -1575,7 +1587,7 @@ class IndexCol(StringMixin):
         self.table = table
         return self
 
-    def __unicode__(self):
+    def __str__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -1866,8 +1878,8 @@ class DataCol(IndexCol):
     def __init__(self, values=None, kind=None, typ=None,
                  cname=None, data=None, meta=None, metadata=None,
                  block=None, **kwargs):
-        super(DataCol, self).__init__(values=values, kind=kind, typ=typ,
-                                      cname=cname, **kwargs)
+        super().__init__(values=values, kind=kind, typ=typ, cname=cname,
+                         **kwargs)
         self.dtype = None
         self.dtype_attr = '{name}_dtype'.format(name=self.name)
         self.meta = meta
@@ -1875,7 +1887,7 @@ class DataCol(IndexCol):
         self.set_data(data)
         self.set_metadata(metadata)
 
-    def __unicode__(self):
+    def __str__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -2315,9 +2327,9 @@ class Fixed(StringMixin):
         parent : my parent HDFStore
         group  : the group node where the table resides
         """
-    pandas_kind = None
-    obj_type = None
-    ndim = None
+    pandas_kind = None  # type: str
+    obj_type = None  # type: Type[Union[DataFrame, Series]]
+    ndim = None  # type: int
     is_table = False
 
     def __init__(self, parent, group, encoding=None, errors='strict',
@@ -2353,7 +2365,7 @@ class Fixed(StringMixin):
     def format_type(self):
         return 'fixed'
 
-    def __unicode__(self):
+    def __str__(self):
         """ return a pretty representation of myself """
         self.infer_axes()
         s = self.shape
@@ -2477,7 +2489,7 @@ class GenericFixed(Fixed):
     """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime', PeriodIndex: 'period'}
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
-    attributes = []
+    attributes = []  # type: List[str]
 
     # indexer helpders
     def _class_to_alias(self, cls):
@@ -2877,7 +2889,7 @@ class SeriesFixed(GenericFixed):
         return Series(values, index=index, name=self.name)
 
     def write(self, obj, **kwargs):
-        super(SeriesFixed, self).write(obj, **kwargs)
+        super().write(obj, **kwargs)
         self.write_index('index', obj.index)
         self.write_array('values', obj.values)
         self.attrs.name = obj.name
@@ -2889,7 +2901,7 @@ class SparseFixed(GenericFixed):
         """
         we don't support start, stop kwds in Sparse
         """
-        kwargs = super(SparseFixed, self).validate_read(kwargs)
+        kwargs = super().validate_read(kwargs)
         if 'start' in kwargs or 'stop' in kwargs:
             raise NotImplementedError("start and/or stop are not supported "
                                       "in fixed Sparse reading")
@@ -2911,7 +2923,7 @@ class SparseSeriesFixed(SparseFixed):
                             name=self.name)
 
     def write(self, obj, **kwargs):
-        super(SparseSeriesFixed, self).write(obj, **kwargs)
+        super().write(obj, **kwargs)
         self.write_index('index', obj.index)
         self.write_index('sp_index', obj.sp_index)
         self.write_array('sp_values', obj.sp_values)
@@ -2939,7 +2951,7 @@ class SparseFrameFixed(SparseFixed):
 
     def write(self, obj, **kwargs):
         """ write it as a collection of individual sparse series """
-        super(SparseFrameFixed, self).write(obj, **kwargs)
+        super().write(obj, **kwargs)
         for name, ss in obj.items():
             key = 'sparse_series_{name}'.format(name=name)
             if key not in self.group._v_children:
@@ -3016,7 +3028,7 @@ class BlockManagerFixed(GenericFixed):
         return self.obj_type(BlockManager(blocks, axes))
 
     def write(self, obj, **kwargs):
-        super(BlockManagerFixed, self).write(obj, **kwargs)
+        super().write(obj, **kwargs)
         data = obj._data
         if not data.is_consolidated():
             data = data.consolidate()
@@ -3070,13 +3082,13 @@ class Table(Fixed):
 
         """
     pandas_kind = 'wide_table'
-    table_type = None
+    table_type = None  # type: str
     levels = 1
     is_table = True
     is_shape_reversed = False
 
     def __init__(self, *args, **kwargs):
-        super(Table, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.index_axes = []
         self.non_index_axes = []
         self.values_axes = []
@@ -3094,7 +3106,7 @@ class Table(Fixed):
     def format_type(self):
         return 'table'
 
-    def __unicode__(self):
+    def __str__(self):
         """ return a pretty representatgion of myself """
         self.infer_axes()
         dc = ",dc->[{columns}]".format(columns=(','.join(
@@ -3412,8 +3424,8 @@ class Table(Fixed):
         optlevel: optimization level (defaults to 6)
         kind    : kind of index (defaults to 'medium')
 
-        Exceptions
-        ----------
+        Raises
+        ------
         raises if the node is not a table
 
         """
@@ -3535,8 +3547,8 @@ class Table(Fixed):
         leagcy tables create an indexable column, indexable index,
         non-indexable fields
 
-            Parameters:
-            -----------
+            Parameters
+            ----------
             axes: a list of the axes in order to create (names or numbers of
                 the axes)
             obj : the object to create axes on
@@ -3926,7 +3938,7 @@ class LegacyTable(Table):
         IndexCol(name='index', axis=1, pos=0),
         IndexCol(name='column', axis=2, pos=1, index_kind='columns_kind'),
         DataCol(name='fields', cname='values', kind_attr='fields', pos=2)
-    ]
+    ]  # type: Optional[List[IndexCol]]
     table_type = 'legacy'
     ndim = 3
 
@@ -3940,8 +3952,6 @@ class LegacyTable(Table):
 
         if not self.read_axes(where=where, **kwargs):
             return None
-
-        raise NotImplementedError("Panel is removed in pandas 0.25.0")
 
 
 class AppendableTable(LegacyTable):
@@ -4165,7 +4175,7 @@ class AppendableTable(LegacyTable):
             # we must remove in reverse order!
             pg = groups.pop()
             for g in reversed(groups):
-                rows = sorted_series.take(lrange(g, pg))
+                rows = sorted_series.take(range(g, pg))
                 table.remove_rows(start=rows[rows.index[0]
                                              ], stop=rows[rows.index[-1]] + 1)
                 pg = g
@@ -4181,7 +4191,7 @@ class AppendableFrameTable(AppendableTable):
     pandas_kind = 'frame_table'
     table_type = 'appendable_frame'
     ndim = 2
-    obj_type = DataFrame
+    obj_type = DataFrame  # type: Type[Union[DataFrame, Series]]
 
     @property
     def is_transposed(self):
@@ -4263,8 +4273,8 @@ class AppendableSeriesTable(AppendableFrameTable):
             name = obj.name or 'values'
             obj = DataFrame({name: obj}, index=obj.index)
             obj.columns = [name]
-        return super(AppendableSeriesTable, self).write(
-            obj=obj, data_columns=obj.columns.tolist(), **kwargs)
+        return super().write(obj=obj, data_columns=obj.columns.tolist(),
+                             **kwargs)
 
     def read(self, columns=None, **kwargs):
 
@@ -4273,7 +4283,7 @@ class AppendableSeriesTable(AppendableFrameTable):
             for n in self.levels:
                 if n not in columns:
                     columns.insert(0, n)
-        s = super(AppendableSeriesTable, self).read(columns=columns, **kwargs)
+        s = super().read(columns=columns, **kwargs)
         if is_multi_index:
             s.set_index(self.levels, inplace=True)
 
@@ -4297,7 +4307,7 @@ class AppendableMultiSeriesTable(AppendableSeriesTable):
         cols = list(self.levels)
         cols.append(name)
         obj.columns = cols
-        return super(AppendableMultiSeriesTable, self).write(obj=obj, **kwargs)
+        return super().write(obj=obj, **kwargs)
 
 
 class GenericTable(AppendableFrameTable):
@@ -4370,12 +4380,11 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         for n in self.levels:
             if n not in data_columns:
                 data_columns.insert(0, n)
-        return super(AppendableMultiFrameTable, self).write(
-            obj=obj, data_columns=data_columns, **kwargs)
+        return super().write(obj=obj, data_columns=data_columns, **kwargs)
 
     def read(self, **kwargs):
 
-        df = super(AppendableMultiFrameTable, self).read(**kwargs)
+        df = super().read(**kwargs)
         df = df.set_index(self.levels)
 
         # remove names for 'level_%d'

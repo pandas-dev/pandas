@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import date, datetime, timedelta
 import functools
 import operator
@@ -274,7 +273,7 @@ class DateOffset(BaseOffset):
                        kwds.get('months', 0)) * self.n)
             if months:
                 shifted = liboffsets.shift_months(i.asi8, months)
-                i = type(i)(shifted, freq=i.freq, dtype=i.dtype)
+                i = type(i)(shifted, dtype=i.dtype)
 
             weeks = (kwds.get('weeks', 0)) * self.n
             if weeks:
@@ -334,6 +333,11 @@ class DateOffset(BaseOffset):
     def rollback(self, dt):
         """
         Roll provided date backward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
@@ -343,6 +347,11 @@ class DateOffset(BaseOffset):
     def rollforward(self, dt):
         """
         Roll provided date forward to next offset only if not on offset.
+
+        Returns
+        -------
+        TimeStamp
+            Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
@@ -680,7 +689,6 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        daytime = self._get_daytime_flag
         businesshours = self._get_business_hours_by_sec
         bhdelta = timedelta(seconds=businesshours)
 
@@ -722,21 +730,19 @@ class BusinessHourMixin(BusinessMixin):
             result = other + timedelta(hours=hours, minutes=minutes)
 
             # because of previous adjustment, time will be larger than start
-            if ((daytime and (result.time() < self.start or
-                              self.end < result.time())) or
-                    not daytime and (self.end < result.time() < self.start)):
-                if n >= 0:
-                    bday_edge = self._prev_opening_time(other)
-                    bday_edge = bday_edge + bhdelta
-                    # calculate remainder
+            if n >= 0:
+                bday_edge = self._prev_opening_time(other) + bhdelta
+                if bday_edge < result:
                     bday_remain = result - bday_edge
                     result = self._next_opening_time(other)
                     result += bday_remain
-                else:
-                    bday_edge = self._next_opening_time(other)
+            else:
+                bday_edge = self._next_opening_time(other)
+                if bday_edge > result:
                     bday_remain = result - bday_edge
                     result = self._next_opening_time(result) + bhdelta
                     result += bday_remain
+
             # edge handling
             if n >= 0:
                 if result.time() == self.end:
@@ -784,7 +790,7 @@ class BusinessHourMixin(BusinessMixin):
             return False
 
     def _repr_attrs(self):
-        out = super(BusinessHourMixin, self)._repr_attrs()
+        out = super()._repr_attrs()
         start = self.start.strftime('%H:%M')
         end = self.end.strftime('%H:%M')
         attrs = ['{prefix}={start}-{end}'.format(prefix=self._prefix,
@@ -806,7 +812,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     def __init__(self, n=1, normalize=False, start='09:00',
                  end='17:00', offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
-        super(BusinessHour, self).__init__(start=start, end=end, offset=offset)
+        super().__init__(start=start, end=end, offset=offset)
 
 
 class CustomBusinessDay(_CustomMixin, BusinessDay):

@@ -317,8 +317,7 @@ def get_calendar(name):
 class HolidayCalendarMetaClass(type):
 
     def __new__(cls, clsname, bases, attrs):
-        calendar_class = super(HolidayCalendarMetaClass, cls).__new__(
-            cls, clsname, bases, attrs)
+        calendar_class = super().__new__(cls, clsname, bases, attrs)
         register(calendar_class)
         return calendar_class
 
@@ -344,7 +343,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         rules : array of Holiday objects
             A set of rules used to create the holidays.
         """
-        super(AbstractHolidayCalendar, self).__init__()
+        super().__init__()
         if name is None:
             name = self.__class__.__name__
         self.name = name

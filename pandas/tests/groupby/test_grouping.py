@@ -1,11 +1,7 @@
-# -*- coding: utf-8 -*-
-
 """ test where we are determining what we are grouping, or getting groups """
 
 import numpy as np
 import pytest
-
-from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -97,7 +93,7 @@ class TestSelection:
 # grouping
 # --------------------------------
 
-class TestGrouping():
+class TestGrouping:
 
     def test_grouper_index_types(self):
         # related GH5375
@@ -483,7 +479,7 @@ class TestGrouping():
     def test_groupby_level_index_names(self):
         # GH4014 this used to raise ValueError since 'exp'>1 (in py2)
         df = DataFrame({'exp': ['A'] * 3 + ['B'] * 3,
-                        'var1': lrange(6), }).set_index('exp')
+                        'var1': range(6), }).set_index('exp')
         df.groupby(level='exp')
         msg = "level name foo is not the name of the index"
         with pytest.raises(ValueError, match=msg):
@@ -556,11 +552,28 @@ class TestGrouping():
         expected = {pd.Timestamp('2011-01-01'): 365}
         tm.assert_dict_equal(result.groups, expected)
 
+    @pytest.mark.parametrize(
+        'func,expected',
+        [
+            ('transform', pd.Series(name=2, index=pd.RangeIndex(0, 0, 1))),
+            ('agg', pd.Series(name=2, index=pd.Float64Index([], name=1))),
+            ('apply', pd.Series(name=2, index=pd.Float64Index([], name=1))),
+        ])
+    def test_evaluate_with_empty_groups(self, func, expected):
+        # 26208
+        # test transform'ing empty groups
+        # (not testing other agg fns, because they return
+        # different index objects.
+        df = pd.DataFrame({1: [], 2: []})
+        g = df.groupby(1)
+        result = getattr(g[2], func)(lambda x: x)
+        assert_series_equal(result, expected)
+
 
 # get_group
 # --------------------------------
 
-class TestGetGroup():
+class TestGetGroup:
     def test_get_group(self):
         # GH 5267
         # be datelike friendly
@@ -664,7 +677,7 @@ class TestGetGroup():
 # groups & iteration
 # --------------------------------
 
-class TestIteration():
+class TestIteration:
 
     def test_groups(self, df):
         grouped = df.groupby(['A'])

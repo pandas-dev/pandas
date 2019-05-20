@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for Fiscal Year and Fiscal Quarter offset classes
 """

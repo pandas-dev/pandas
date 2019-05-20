@@ -4,8 +4,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import lzip
-
 import pandas as pd
 from pandas import (
     Index, Interval, IntervalIndex, Timedelta, Timestamp, date_range,
@@ -358,11 +356,11 @@ class TestIntervalIndex(Base):
 
     @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_max_seq_item_setting(self):
-        super(TestIntervalIndex, self).test_repr_max_seq_item_setting()
+        super().test_repr_max_seq_item_setting()
 
     @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_roundtrip(self):
-        super(TestIntervalIndex, self).test_repr_roundtrip()
+        super().test_repr_roundtrip()
 
     def test_frame_repr(self):
         # https://github.com/pandas-dev/pandas/pull/24134/files
@@ -566,12 +564,12 @@ class TestIntervalIndex(Base):
         value = index[0].mid + Timedelta('12 hours')
         result = np.sort(index.get_loc(value))
         expected = np.array([0, 1], dtype='intp')
-        assert tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         interval = Interval(index[0].left, index[1].right)
         result = np.sort(index.get_loc(interval))
         expected = np.array([0, 1, 2], dtype='intp')
-        assert tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer(self):
@@ -1192,11 +1190,11 @@ class TestIntervalIndex(Base):
         assert result is expected
 
     @pytest.mark.parametrize('tuples', [
-        lzip(range(10), range(1, 11)),
-        lzip(date_range('20170101', periods=10),
-             date_range('20170101', periods=10)),
-        lzip(timedelta_range('0 days', periods=10),
-             timedelta_range('1 day', periods=10))])
+        list(zip(range(10), range(1, 11))),
+        list(zip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10))),
+        list(zip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10)))])
     def test_to_tuples(self, tuples):
         # GH 18756
         idx = IntervalIndex.from_tuples(tuples)
@@ -1205,11 +1203,11 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tuples', [
-        lzip(range(10), range(1, 11)) + [np.nan],
-        lzip(date_range('20170101', periods=10),
-             date_range('20170101', periods=10)) + [np.nan],
-        lzip(timedelta_range('0 days', periods=10),
-             timedelta_range('1 day', periods=10)) + [np.nan]])
+        list(zip(range(10), range(1, 11))) + [np.nan],
+        list(zip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10))) + [np.nan],
+        list(zip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10))) + [np.nan]])
     @pytest.mark.parametrize('na_tuple', [True, False])
     def test_to_tuples_na(self, tuples, na_tuple):
         # GH 18756

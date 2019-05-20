@@ -26,8 +26,9 @@ class Scope(expr.Scope):
 
     def __init__(self, level, global_dict=None, local_dict=None,
                  queryables=None):
-        super(Scope, self).__init__(level + 1, global_dict=global_dict,
-                                    local_dict=local_dict)
+        super().__init__(level + 1,
+                         global_dict=global_dict,
+                         local_dict=local_dict)
         self.queryables = queryables or dict()
 
 
@@ -39,7 +40,7 @@ class Term(ops.Term):
         return supr_new(klass)
 
     def __init__(self, name, env, side=None, encoding=None):
-        super(Term, self).__init__(name, env, side=side, encoding=encoding)
+        super().__init__(name, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         # must be a queryables
@@ -55,7 +56,8 @@ class Term(ops.Term):
         except UndefinedVariableError:
             return self.name
 
-    @property
+    # read-only property overwriting read/write property
+    @property  # type: ignore
     def value(self):
         return self._value
 
@@ -63,8 +65,7 @@ class Term(ops.Term):
 class Constant(Term):
 
     def __init__(self, value, env, side=None, encoding=None):
-        super(Constant, self).__init__(value, env, side=side,
-                                       encoding=encoding)
+        super().__init__(value, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         return self._name
@@ -75,7 +76,7 @@ class BinOp(ops.BinOp):
     _max_selectors = 31
 
     def __init__(self, op, lhs, rhs, queryables, encoding):
-        super(BinOp, self).__init__(op, lhs, rhs)
+        super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
         self.filter = None
@@ -229,7 +230,7 @@ class BinOp(ops.BinOp):
 
 class FilterBinOp(BinOp):
 
-    def __unicode__(self):
+    def __str__(self):
         return pprint_thing("[Filter : [{lhs}] -> [{op}]"
                             .format(lhs=self.filter[0], op=self.filter[1]))
 
@@ -301,7 +302,7 @@ class JointFilterBinOp(FilterBinOp):
 
 class ConditionBinOp(BinOp):
 
-    def __unicode__(self):
+    def __str__(self):
         return pprint_thing("[Condition : [{cond}]]"
                             .format(cond=self.condition))
 
@@ -385,7 +386,7 @@ class ExprVisitor(BaseExprVisitor):
     term_type = Term
 
     def __init__(self, env, engine, parser, **kwargs):
-        super(ExprVisitor, self).__init__(env, engine, parser)
+        super().__init__(env, engine, parser)
         for bin_op in self.binary_ops:
             bin_node = self.binary_op_nodes_map[bin_op]
             setattr(self, 'visit_{node}'.format(node=bin_node),
@@ -548,7 +549,7 @@ class Expr(expr.Expr):
                                         encoding=encoding)
             self.terms = self.parse()
 
-    def __unicode__(self):
+    def __str__(self):
         if self.terms is not None:
             return pprint_thing(self.terms)
         return pprint_thing(self.expr)
