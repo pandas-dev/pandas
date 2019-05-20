@@ -17,7 +17,6 @@ import warnings
 
 import numpy as np
 
-from pandas.core.arrays import Categorical
 from pandas._config.config import option_context
 
 from pandas._libs import Timestamp
@@ -37,13 +36,14 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.api.types import (
     is_datetime64_dtype, is_integer_dtype, is_object_dtype)
 import pandas.core.algorithms as algorithms
+from pandas.core.arrays import Categorical
 from pandas.core.base import (
     DataError, GroupByError, PandasObject, SelectionMixin, SpecificationError)
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
-from pandas.core.index import Index, CategoricalIndex, MultiIndex
+from pandas.core.index import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
