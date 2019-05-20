@@ -946,7 +946,7 @@ class ReadingTestsBase(SharedItems):
 
 @td.skip_if_no('xlrd', '1.0.0')
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
-class TestRoundTrip(SharedItems):
+class TestRoundTrip:
 
     @td.skip_if_no("xlwt")
     @td.skip_if_no("openpyxl")
