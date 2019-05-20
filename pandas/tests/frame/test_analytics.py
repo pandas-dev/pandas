@@ -588,10 +588,12 @@ class TestDataFrameAnalytics:
         result = df3.describe()
         tm.assert_numpy_array_equal(result["cat"].values, result["s"].values)
 
-        # Ensure the index of an an empty categoric DataFrame column also contains (count, unique, top, freq)
+        # Ensure the index of an an empty categoric DataFrame column
+        # also contains (count, unique, top, freq)
         df = pd.DataFrame({"empty_col": Categorical([])})
         result = df.describe()
-        expected = DataFrame({'empty_col': [0, 0, None, None]}, index=['count', 'unique', 'top', 'freq'])
+        expected = DataFrame({'empty_col': [0, 0, None, None]},
+                             index=['count', 'unique', 'top', 'freq'])
         tm.assert_frame_equal(result, expected)
 
     def test_describe_categorical_columns(self):
