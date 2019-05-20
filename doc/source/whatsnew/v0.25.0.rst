@@ -41,7 +41,7 @@ Other Enhancements
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
 - :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
-- :func:`to_numeric` now gives a error message when errors argument value is not in the tuple of accepted values. (:issue:`26466`)
+-
 
 .. _whatsnew_0250.api_breaking:
 
@@ -341,6 +341,7 @@ Numeric
 
 - Bug in :meth:`to_numeric` in which large negative numbers were being improperly handled (:issue:`24910`)
 - Bug in :meth:`to_numeric` in which numbers were being coerced to float, even though ``errors`` was not ``coerce`` (:issue:`24910`)
+- Bug in :meth:`to_numeric` in which invalid values for ``errors`` were being allowed (:issue:`26466`)
 - Bug in :class:`format` in which floating point complex numbers were not being formatted to proper display precision and trimming (:issue:`25514`)
 - Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
 - Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
