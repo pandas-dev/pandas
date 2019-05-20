@@ -865,7 +865,7 @@ which is equivalent to using weights
 
 The difference between the above two variants arises because we are
 dealing with series which have finite history. Consider a series of infinite
-history:
+history, with ``adjust=True``:
 
 .. math::
 
@@ -884,10 +884,11 @@ and a ratio of :math:`1 - \alpha` we have
     &= \alpha x_t + (1 - \alpha)[x_{t-1} + (1 - \alpha) x_{t-2} + ...]\alpha\\
     &= \alpha x_t + (1 - \alpha) y_{t-1}
 
-which shows the equivalence of the above two variants for infinite series.
-When ``adjust=True`` we have :math:`y_0 = x_0` and from the last
-representation above we have :math:`y_t = \alpha x_t + (1 - \alpha) y_{t-1}`,
-therefore there is an assumption that :math:`x_0` is not an ordinary value
+which is the same expression as ``adjust=False`` above and therefore
+shows the equivalence of the two variants for infinite series.
+When ``adjust=False``, we have :math:`y_0 = x_0` and
+:math:`y_t = \alpha x_t + (1 - \alpha) y_{t-1}`.
+Therefore, there is an assumption that :math:`x_0` is not an ordinary value
 but rather an exponentially weighted moment of the infinite series up to that
 point.
 
