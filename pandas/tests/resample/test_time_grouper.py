@@ -16,9 +16,7 @@ test_series = Series(np.random.randn(1000),
 
 
 def test_apply():
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        grouper = pd.TimeGrouper(freq='A', label='right', closed='right')
+    grouper = TimeGrouper(freq='A', label='right', closed='right')
 
     grouped = test_series.groupby(grouper)
 
@@ -38,9 +36,7 @@ def test_count():
 
     expected = test_series.groupby(lambda x: x.year).count()
 
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        grouper = pd.TimeGrouper(freq='A', label='right', closed='right')
+    grouper = TimeGrouper(freq='A', label='right', closed='right')
     result = test_series.groupby(grouper).count()
     expected.index = result.index
     assert_series_equal(result, expected)
