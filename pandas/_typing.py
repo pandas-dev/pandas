@@ -8,8 +8,14 @@ from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timedeltas import Timedelta
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCExtensionArray
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray, ABCIndexClass, ABCSeries, ABCSparseSeries)
 
+AnyArrayLike = Union[ABCExtensionArray,
+                     ABCIndexClass,
+                     ABCSeries,
+                     ABCSparseSeries,
+                     np.ndarray]
 ArrayLike = Union[ABCExtensionArray, np.ndarray]
 DatetimeLikeScalar = Type[Union[Period, Timestamp, Timedelta]]
 Dtype = Union[str, np.dtype, ExtensionDtype]

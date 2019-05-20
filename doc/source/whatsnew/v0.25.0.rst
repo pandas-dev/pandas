@@ -301,7 +301,7 @@ Bug Fixes
 Categorical
 ^^^^^^^^^^^
 
--
+- Bug in :func:`DataFrame.at` and :func:`Series.at` that would raise exception if the index was a :class:`CategoricalIndex` (:issue:`20629`)
 -
 -
 
