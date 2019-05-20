@@ -5,7 +5,6 @@ from io import BytesIO
 import os
 from textwrap import fill
 from urllib.request import urlopen
-import warnings
 
 from pandas._config import config
 
