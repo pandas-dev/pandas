@@ -1,4 +1,5 @@
 from datetime import datetime
+from collections import OrderedDict
 
 import numpy as np
 import pytest
@@ -965,65 +966,31 @@ def test_shift(fill_value):
     assert_equal(res, expected)
 
 
-def test_groupby_series_observed():
+@pytest.mark.parametrize("observed, index, op, data", [
+    (True, 'multi_index_cat_partial', 'agg', [3, 3, 4]),
+    (True, 'multi_index_non_cat_partial', 'apply', [3, 3, 4]),
+    (False, 'multi_index_cat_complete', 'agg', [3, 3, 4, np.nan]),
+    (False, 'multi_index_cat_complete', 'apply', [3, 3, 4, np.nan]),
+    (None, 'multi_index_cat_complete', 'agg', [3, 3, 4, np.nan]),
+    (None, 'multi_index_cat_complete', 'apply', [3, 3, 4, np.nan])])
+def test_groupby_series_observed(request, df_cat, observed, index, op, data):
     # GH 24880
-    df = DataFrame({'a': ['x', 'x', 'x', 'y'],
-                    'b': ['a', 'a', 'b', 'a'],
-                    'c': [1, 2, 3, 4]})
-    df['a'] = df['a'].astype('category')
-    df['b'] = df['b'].astype('category')
-
-    # test .agg and .apply when observed == False
-    lvls = [CategoricalIndex(['x', 'y'], categories=['x', 'y'], ordered=False),
-            CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=False)]
-    index, _ = MultiIndex.from_product(lvls, names=['a', 'b']).sortlevel()
-    expected = pd.Series(data=[3, 3, 4, np.nan], index=index, name='c')
-    actual_agg = df.groupby(['a', 'b']).c.agg(sum)
-    actual_apply = df.groupby(['a', 'b']).c.apply(sum)
-    assert_series_equal(expected, actual_agg)
-    assert_series_equal(expected, actual_apply)
-
-    # test .agg when observed == True
-    index = MultiIndex.from_frame(df[['a', 'b']].drop_duplicates())
-    expected = pd.Series([3, 3, 4], index=index, name='c')
-    actual = df.groupby(['a', 'b'], observed=True).c.agg(sum)
-    assert_series_equal(expected, actual)
-
-    # test .apply when observed == True
-    index = MultiIndex.from_tuples([('x', 'a'), ('x', 'b'), ('y', 'a')],
-                                   names=('a', 'b'))
-    expected = pd.Series([3, 3, 4], index=index, name='c')
-    actual = df.groupby(['a', 'b'], observed=True).c.apply(sum)
+    index = request.getfixturevalue(index)
+    expected = pd.Series(data=data, index=index, name='c')
+    grouped = df_cat.groupby(['a', 'b'], observed=observed).c
+    actual = getattr(grouped, op)(sum)
     assert_series_equal(expected, actual)
 
 
-def test_groupby_series_observed_apply_dict():
+@pytest.mark.parametrize("observed, index, data", [
+    (True, 'multi_index_non_cat_partial_dict', [1, 2, 3, 3, 4, 4]),
+    (False, 'multi_index_cat_compl_dict', [1, 2, 3, 3, 4, 4, np.nan, np.nan]),
+    (None, 'multi_index_cat_compl_dict', [1, 2, 3, 3, 4, 4, np.nan, np.nan])])
+def test_groupby_series_observed_apply_dict(request, df_cat, observed, index,
+                                            data):
     # GH 24880
-    df = DataFrame({'a': ['x', 'x', 'x', 'y'],
-                    'b': ['a', 'a', 'b', 'a'],
-                    'c': [1, 2, 3, 4]})
-    df['a'] = df['a'].astype('category')
-    df['b'] = df['b'].astype('category')
-
-    # observed == False
-    lvls = [CategoricalIndex(['x', 'y'], categories=['x', 'y'], ordered=False),
-            CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=False),
-            Index(['min', 'max'])]
-    index, _ = MultiIndex.from_product(lvls,
-                                       names=['a', 'b', None]).sortlevel()
-    expected = pd.Series(data=[2, 1, 3, 3, 4, 4, np.nan, np.nan],
-                         index=index,
-                         name='c')
-    actual = df.groupby(['a', 'b']).c.apply(lambda x: {'min': x.min(),
-                                                       'max': x.max()})
-    assert_series_equal(expected, actual)
-
-    # observed == True
-    index = MultiIndex.from_tuples([('x', 'a', 'max'), ('x', 'a', 'min'),
-                                    ('x', 'b', 'max'), ('x', 'b', 'min'),
-                                    ('y', 'a', 'max'), ('y', 'a', 'min')],
-                                   names=('a', 'b', None))
-    expected = pd.Series(data=[2, 1, 3, 3, 4, 4], index=index, name='c')
-    actual = df.groupby(['a', 'b'], observed=True).c.\
-        apply(lambda x: {'min': x.min(), 'max': x.max()})
+    index = request.getfixturevalue(index)
+    expected = pd.Series(data=data, index=index, name='c')
+    actual = df_cat.groupby(['a', 'b'], observed=observed).c.\
+        apply(lambda x: OrderedDict([('min', x.min()), ('max', x.max())]))
     assert_series_equal(expected, actual)
