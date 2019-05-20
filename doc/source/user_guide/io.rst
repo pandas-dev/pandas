@@ -2871,6 +2871,7 @@ with ``on_demand=True``.
 
 .. code-block:: python
     
+    import xlrd
     xlrd_book = xlrd.open_workbook('path_to_file.xls', on_demand=True)
     with pd.ExcelFile(xlrd_book) as xls:
         df1 = pd.read_excel(xls, 'Sheet1')
