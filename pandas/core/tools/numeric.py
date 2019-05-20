@@ -105,6 +105,9 @@ def to_numeric(arg, errors='raise', downcast=None):
     if downcast not in (None, 'integer', 'signed', 'unsigned', 'float'):
         raise ValueError('invalid downcasting method provided')
 
+    if errors not in ('ignore', 'raise', 'coerce'):
+        raise ValueError('invalid error value specified')
+
     is_series = False
     is_index = False
     is_scalars = False

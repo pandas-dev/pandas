@@ -41,6 +41,7 @@ Other Enhancements
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
 - :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
+- :func:`to_numeric` now gives a error message when errors argument value is not in the tuple of accepted values. (:issue:`26466`)
 
 .. _whatsnew_0250.api_breaking:
 
