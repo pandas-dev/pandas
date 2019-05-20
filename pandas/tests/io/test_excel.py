@@ -59,6 +59,20 @@ class SharedItems:
         self.tsframe = _tsframe.copy()
         self.mixed_frame = _mixed_frame.copy()
 
+
+@td.skip_if_no('xlrd', '1.0.0')
+class ReadingTestsBase(SharedItems):
+    # This is based on ExcelWriterBase
+
+    @pytest.fixture(autouse=True, params=['xlrd', None])
+    def set_engine(self, request):
+        func_name = "get_exceldf"
+        old_func = getattr(self, func_name)
+        new_func = partial(old_func, engine=request.param)
+        setattr(self, func_name, new_func)
+        yield
+        setattr(self, func_name, old_func)
+
     def get_csv_refdf(self, basename):
         """
         Obtain the reference data from read_csv with the Python engine.
@@ -112,20 +126,6 @@ class SharedItems:
         """
         pth = os.path.join(self.dirpath, basename + ext)
         return read_excel(pth, *args, **kwds)
-
-
-@td.skip_if_no('xlrd', '1.0.0')
-class ReadingTestsBase(SharedItems):
-    # This is based on ExcelWriterBase
-
-    @pytest.fixture(autouse=True, params=['xlrd', None])
-    def set_engine(self, request):
-        func_name = "get_exceldf"
-        old_func = getattr(self, func_name)
-        new_func = partial(old_func, engine=request.param)
-        setattr(self, func_name, new_func)
-        yield
-        setattr(self, func_name, old_func)
 
     @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_usecols_int(self, ext):
