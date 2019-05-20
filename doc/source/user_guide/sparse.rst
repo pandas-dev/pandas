@@ -46,8 +46,8 @@ and in the Python interpreter.
 
 .. ipython:: python
 
-   print('dense : {:0.2f} bytes'.format(df.memory_usage().sum() / 1e3))
-   print('sparse: {:0.2f} bytes'.format(sdf.memory_usage().sum() / 1e3))
+   'dense : {:0.2f} bytes'.format(df.memory_usage().sum() / 1e3)
+   'sparse: {:0.2f} bytes'.format(sdf.memory_usage().sum() / 1e3)
 
 Functionally, their behavior should be nearly
 identical to their dense counterparts.
@@ -75,6 +75,10 @@ A sparse array can be converted to a regular (dense) ndarray with :meth:`numpy.a
 .. ipython:: python
 
    np.asarray(sparr)
+
+
+SparseDtype
+-----------
 
 The :attr:`SparseArray.dtype` property stores two pieces of information
 
@@ -167,8 +171,10 @@ were the preferred way to work with sparse data. With the advent of extension ar
 are no longer needed. Their purpose is better served by using a regular Series or DataFrame with
 sparse values instead.
 
-**There's no performance or memory penalty to using a Series or DataFrame with sparse values,
-rather than a SparseSeries or SparseDataFrame**.
+.. note::
+
+  There's no performance or memory penalty to using a Series or DataFrame with sparse values,
+  rather than a SparseSeries or SparseDataFrame.
 
 This section provides some guidance on migrating your code to the new style. As a reminder,
 you can use the python warnings module to control warnings. But we recommend modifying

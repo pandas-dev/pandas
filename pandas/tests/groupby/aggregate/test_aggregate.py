@@ -313,3 +313,16 @@ def test_order_aggregate_multiple_funcs():
     expected = pd.Index(['sum', 'max', 'mean', 'ohlc', 'min'])
 
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize('dtype', [np.int64, np.uint64])
+@pytest.mark.parametrize('how', ['first', 'last', 'min',
+                                 'max', 'mean', 'median'])
+def test_uint64_type_handling(dtype, how):
+    # GH 26310
+    df = pd.DataFrame({'x': 6903052872240755750, 'y': [1, 2]})
+    expected = df.groupby('y').agg({'x': how})
+    df.x = df.x.astype(dtype)
+    result = df.groupby('y').agg({'x': how})
+    result.x = result.x.astype(np.int64)
+    tm.assert_frame_equal(result, expected, check_exact=True)

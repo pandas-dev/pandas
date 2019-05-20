@@ -353,7 +353,7 @@ class TestPandasContainer:
                         '"index":["1","2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
         msg = "3 columns passed, passed data had 2 columns"
-        with pytest.raises(AssertionError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             read_json(json, orient="split")
 
         # bad key
@@ -864,7 +864,7 @@ class TestPandasContainer:
         error_msg = """DataFrame\\.index are different
 
 DataFrame\\.index values are different \\(100\\.0 %\\)
-\\[left\\]:  Index\\(\\[u?'a', u?'b'\\], dtype='object'\\)
+\\[left\\]:  Index\\(\\['a', 'b'\\], dtype='object'\\)
 \\[right\\]: RangeIndex\\(start=0, stop=2, step=1\\)"""
         with pytest.raises(AssertionError, match=error_msg):
             assert_frame_equal(result, expected, check_index_type=False)

@@ -61,7 +61,7 @@ class TestPeriodIndexRendering:
             '2000-01-03  3')
         assert result == expected
 
-    @pytest.mark.parametrize('method', ['__repr__', '__unicode__', '__str__'])
+    @pytest.mark.parametrize('method', ['__repr__', '__str__'])
     def test_representation(self, method):
         # GH#7601
         idx1 = PeriodIndex([], freq='D')
