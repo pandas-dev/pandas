@@ -9,7 +9,7 @@ from collections import OrderedDict, abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any
+from typing import Any, Iterable, Union
 
 import numpy as np
 
@@ -286,6 +286,15 @@ def index_labels_to_array(labels, dtype=None):
 def maybe_make_list(obj):
     if obj is not None and not isinstance(obj, (tuple, list)):
         return [obj]
+    return obj
+
+
+def maybe_iterable_to_list(obj: Union[Iterable, Any]) -> Union[list, Any]:
+    """
+    If obj is Iterable but not list-like, consume into list.
+    """
+    if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
+        return list(obj)
     return obj
 
 
