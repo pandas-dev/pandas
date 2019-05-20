@@ -3402,7 +3402,7 @@ class DataFrame(NDFrame):
         passed value.
         """
         # GH5632, make sure that we are a Series convertible
-        if not len(self.index) and is_list_like(value):
+        if not len(self.index) and len(value) and is_list_like(value):
             try:
                 value = Series(value)
             except (ValueError, NotImplementedError, TypeError):
