@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import CategoricalIndex, DataFrame, Index, MultiIndex
+from pandas import DataFrame, MultiIndex
 from pandas.util import testing as tm
 
 
@@ -80,45 +80,9 @@ def three_group():
 
 @pytest.fixture
 def df_cat():
-    df = DataFrame({'a': ['x', 'x', 'x', 'y'],
-                    'b': ['a', 'a', 'b', 'a'],
+    df = DataFrame({'a': ['one', 'one', 'one', 'two'],
+                    'b': ['foo', 'foo', 'bar', 'foo'],
                     'c': [1, 2, 3, 4]})
     df['a'] = df['a'].astype('category')
     df['b'] = df['b'].astype('category')
     return df
-
-
-@pytest.fixture
-def multi_index_cat_complete():
-    lvls = [CategoricalIndex(['x', 'y'], categories=['x', 'y'], ordered=False),
-            CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=False)]
-    index = MultiIndex.from_product(lvls, names=['a', 'b'])
-    return index
-
-
-@pytest.fixture
-def multi_index_cat_partial(df_cat):
-    return MultiIndex.from_frame(df_cat[['a', 'b']].drop_duplicates())
-
-
-@pytest.fixture
-def multi_index_non_cat_partial():
-    return MultiIndex.from_tuples([('x', 'a'), ('x', 'b'), ('y', 'a')],
-                                  names=('a', 'b'))
-
-
-@pytest.fixture
-def multi_index_cat_compl_dict():
-    lvls = [CategoricalIndex(['x', 'y'], categories=['x', 'y'], ordered=False),
-            CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=False),
-            Index(['min', 'max'])]
-    index = MultiIndex.from_product(lvls, names=['a', 'b', None])
-    return index
-
-
-@pytest.fixture
-def multi_index_non_cat_partial_dict():
-    return MultiIndex.from_tuples([('x', 'a', 'min'), ('x', 'a', 'max'),
-                                   ('x', 'b', 'min'), ('x', 'b', 'max'),
-                                   ('y', 'a', 'min'), ('y', 'a', 'max')],
-                                  names=('a', 'b', None))
