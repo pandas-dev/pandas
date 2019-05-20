@@ -534,7 +534,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
 
-        .. versionadded:: 0.25.0
+        .. versionadded:: 0.23.0
+
+        .. versionchanged:: 0.25.0
+            - changed default value from False to True
 
     Returns
     -------
