@@ -1,7 +1,7 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
-from collections import OrderedDict, abc
+from collections import OrderedDict
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
@@ -220,15 +220,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
-            # If data is Iterable but not list-like, consume into list.
-            elif (isinstance(data, abc.Iterable) and
-                  not isinstance(data, abc.Sized)):
-                data = list(data)
-            else:
-
+            elif isinstance(data, ABCSparseArray):
                 # handle sparse passed here (and force conversion)
-                if isinstance(data, ABCSparseArray):
-                    data = data.to_dense()
+                data = data.to_dense()
+            else:
+                data = com.maybe_iterable_to_list(data)
 
             if index is None:
                 if not is_list_like(data):

@@ -533,6 +533,30 @@ class TestDataFrameConstructors(TestData):
         expected = DataFrame({k: list(v) for k, v in data.items()})
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_constructor_dict_of_ranges(self):
+        # GH 26356
+        data = {'a': range(3), 'b': range(3, 6)}
+
+        result = DataFrame(data)
+        expected = DataFrame({'a': [0, 1, 2], 'b': [3, 4, 5]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_dict_of_iterators(self):
+        # GH 26349
+        data = {'a': iter(range(3)), 'b': reversed(range(3))}
+
+        result = DataFrame(data)
+        expected = DataFrame({'a': [0, 1, 2], 'b': [2, 1, 0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_dict_of_generators(self):
+        # GH 26349
+        data = {'a': (i for i in (range(3))),
+                'b': (i for i in reversed(range(3)))}
+        result = DataFrame(data)
+        expected = DataFrame({'a': [0, 1, 2], 'b': [2, 1, 0]})
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_dict_multiindex(self):
         def check(result, expected):
             return tm.assert_frame_equal(result, expected, check_dtype=True,
