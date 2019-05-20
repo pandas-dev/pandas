@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, CategoricalIndex, Index, MultiIndex
+from pandas import CategoricalIndex, DataFrame, Index, MultiIndex
 from pandas.util import testing as tm
 
 

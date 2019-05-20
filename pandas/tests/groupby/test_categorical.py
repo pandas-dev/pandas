@@ -1,5 +1,5 @@
-from datetime import datetime
 from collections import OrderedDict
+from datetime import datetime
 
 import numpy as np
 import pytest
@@ -966,20 +966,28 @@ def test_shift(fill_value):
     assert_equal(res, expected)
 
 
-@pytest.mark.parametrize("observed, index, op, data", [
-    (True, 'multi_index_cat_partial', 'agg', [3, 3, 4]),
-    (True, 'multi_index_non_cat_partial', 'apply', [3, 3, 4]),
-    (False, 'multi_index_cat_complete', 'agg', [3, 3, 4, np.nan]),
-    (False, 'multi_index_cat_complete', 'apply', [3, 3, 4, np.nan]),
-    (None, 'multi_index_cat_complete', 'agg', [3, 3, 4, np.nan]),
-    (None, 'multi_index_cat_complete', 'apply', [3, 3, 4, np.nan])])
-def test_groupby_series_observed(request, df_cat, observed, index, op, data):
+@pytest.mark.parametrize("index, op", [
+    ('multi_index_cat_partial', 'agg'),
+    ('multi_index_non_cat_partial', 'apply')])
+def test_groupby_series_observed_true(request, df_cat, index, op):
     # GH 24880
     index = request.getfixturevalue(index)
-    expected = pd.Series(data=data, index=index, name='c')
-    grouped = df_cat.groupby(['a', 'b'], observed=observed).c
-    actual = getattr(grouped, op)(sum)
-    assert_series_equal(expected, actual)
+    expected = pd.Series(data=[3, 3, 4], index=index, name='c')
+    grouped = df_cat.groupby(['a', 'b'], observed=True)['c']
+    result = getattr(grouped, op)(sum)
+    assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ['agg', 'apply'])
+@pytest.mark.parametrize("observed", [False, None])
+def test_groupby_series_observed_false_or_none(
+        df_cat, multi_index_cat_complete, observed, op):
+    # GH 24880
+    index = multi_index_cat_complete
+    expected = pd.Series(data=[3, 3, 4, np.nan], index=index, name='c')
+    grouped = df_cat.groupby(['a', 'b'], observed=observed)['c']
+    result = getattr(grouped, op)(sum)
+    assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("observed, index, data", [
@@ -991,6 +999,6 @@ def test_groupby_series_observed_apply_dict(request, df_cat, observed, index,
     # GH 24880
     index = request.getfixturevalue(index)
     expected = pd.Series(data=data, index=index, name='c')
-    actual = df_cat.groupby(['a', 'b'], observed=observed).c.\
-        apply(lambda x: OrderedDict([('min', x.min()), ('max', x.max())]))
-    assert_series_equal(expected, actual)
+    result = df_cat.groupby(['a', 'b'], observed=observed)['c'].apply(
+        lambda x: OrderedDict([('min', x.min()), ('max', x.max())]))
+    assert_series_equal(result, expected)
