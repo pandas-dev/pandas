@@ -49,7 +49,6 @@ def ignore_xlrd_time_clock_warning():
         yield
 
 
-@td.skip_if_no('xlrd', '1.0.0')
 class SharedItems:
 
     @pytest.fixture(autouse=True)
@@ -115,6 +114,7 @@ class SharedItems:
         return read_excel(pth, *args, **kwds)
 
 
+@td.skip_if_no('xlrd', '1.0.0')
 class ReadingTestsBase(SharedItems):
     # This is based on ExcelWriterBase
 
@@ -944,6 +944,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_series_equal(actual, expected)
 
 
+@td.skip_if_no('xlrd', '1.0.0')
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
 class TestRoundTrip(SharedItems):
 
@@ -1144,6 +1145,7 @@ class TestRoundTrip(SharedItems):
             tm.assert_frame_equal(df, res)
 
 
+@td.skip_if_no('xlrd', '1.0.0')
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
 class TestXlrdReader(ReadingTestsBase):
     """
