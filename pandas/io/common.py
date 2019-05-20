@@ -115,8 +115,11 @@ def _stringify_path(filepath_or_buffer):
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
+    import pathlib
     if hasattr(filepath_or_buffer, '__fspath__'):
         return filepath_or_buffer.__fspath__()
+    elif isinstance(filepath_or_buffer, pathlib.Path):
+        return str(filepath_or_buffer)
     return _expand_user(filepath_or_buffer)
 
 
