@@ -536,10 +536,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         .. versionadded:: 0.25.0
 
-        cache : boolean, default False
-
-            .. versionadded:: 0.23.0
-
     Returns
     -------
     ret : datetime if parsing succeeded.
