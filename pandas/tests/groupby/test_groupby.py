@@ -1739,65 +1739,18 @@ def test_groupby_multiindex_series_keys_len_equal_group_axis():
     assert_series_equal(result, expected)
 
 
-def test_groupby_observed():
-    # GH 24880
-    df = DataFrame({'a': ['x', 'x', 'x', 'y'],
-                    'b': ['a', 'a', 'b', 'a'],
-                    'c': [1, 2, 3, 4]})
-    df['a'] = df['a'].astype('category')
-    df['b'] = df['b'].astype('category')
+def test_groupby_groups_in_BaseGrouper():
+    # GH 26326
+    # Test if DataFrame grouped with a pandas.Grouper has correct groups
+    mi = pd.MultiIndex.from_product([['A', 'B'],
+                                     ['C', 'D']], names=['alpha', 'beta'])
+    df = pd.DataFrame({'foo': [1, 2, 1, 2], 'bar': [1, 2, 3, 4]},
+                      index=mi)
+    result = df.groupby([pd.Grouper(level='alpha'), 'beta'])
+    expected = df.groupby(['alpha', 'beta'])
+    assert(result.groups == expected.groups)
 
-    # test .agg and .apply when observed == False
-    lvls = [CategoricalIndex(['x', 'y'], categories=['x', 'y'], ordered=False),
-            CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=False)]
-    index, _ = MultiIndex.from_product(lvls, names=['a', 'b']).sortlevel()
-    expected = pd.Series(data=[3, 3, 4, np.nan], index=index, name='c')
-    actual_agg = df.groupby(['a', 'b']).c.agg(sum)
-    actual_apply = df.groupby(['a', 'b']).c.apply(sum)
-    assert_series_equal(expected, actual_agg)
-    assert_series_equal(expected, actual_apply)
+    result = df.groupby(['beta', pd.Grouper(level='alpha')])
+    expected = df.groupby(['beta', 'alpha'])
+    assert(result.groups == expected.groups)
 
-    # test .agg when observed == True
-    index = MultiIndex.from_frame(df[['a', 'b']].drop_duplicates())
-    expected = pd.Series([3, 3, 4], index=index, name='c')
-    actual = df.groupby(['a', 'b'], observed=True).c.agg(sum)
-    assert_series_equal(expected, actual)
-
-    # test .apply when observed == True
-    index = MultiIndex.from_tuples([('x', 'a'), ('x', 'b'), ('y', 'a')],
-                                   names=('a', 'b'))
-    expected = pd.Series([3, 3, 4], index=index, name='c')
-    actual = df.groupby(['a', 'b'], observed=True).c.apply(sum)
-    assert_series_equal(expected, actual)
-
-
-def test_groupby_observed_apply_lambda_returns_dict():
-    # GH 24880
-    df = DataFrame({'a': ['x', 'x', 'x', 'y'],
-                    'b': ['a', 'a', 'b', 'a'],
-                    'c': [1, 2, 3, 4]})
-    df['a'] = df['a'].astype('category')
-    df['b'] = df['b'].astype('category')
-
-    # observed == False
-    lvls = [CategoricalIndex(['x', 'y'], categories=['x', 'y'], ordered=False),
-            CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=False),
-            Index(['min', 'max'])]
-    index, _ = MultiIndex.from_product(lvls,
-                                       names=['a', 'b', None]).sortlevel()
-    expected = pd.Series(data=[2, 1, 3, 3, 4, 4, np.nan, np.nan],
-                         index=index,
-                         name='c')
-    actual = df.groupby(['a', 'b']).c.apply(lambda x: {'min': x.min(),
-                                                       'max': x.max()})
-    assert_series_equal(expected, actual)
-
-    # observed == True
-    index = MultiIndex.from_tuples([('x', 'a', 'max'), ('x', 'a', 'min'),
-                                    ('x', 'b', 'max'), ('x', 'b', 'min'),
-                                    ('y', 'a', 'max'), ('y', 'a', 'min')],
-                                   names=('a', 'b', None))
-    expected = pd.Series(data=[2, 1, 3, 3, 4, 4], index=index, name='c')
-    actual = df.groupby(['a', 'b'], observed=True).c.\
-        apply(lambda x: {'min': x.min(), 'max': x.max()})
-    assert_series_equal(expected, actual)

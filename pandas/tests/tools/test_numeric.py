@@ -413,6 +413,16 @@ def test_downcast_invalid_cast():
         to_numeric(data, downcast=invalid_downcast)
 
 
+def test_errors_invalid_value():
+    # see gh-26466
+    data = ["1", 2, 3]
+    invalid_error_value = "invalid"
+    msg = "invalid error value specified"
+
+    with pytest.raises(ValueError, match=msg):
+        to_numeric(data, errors=invalid_error_value)
+
+
 @pytest.mark.parametrize("data", [
     ["1", 2, 3],
     [1, 2, 3],
