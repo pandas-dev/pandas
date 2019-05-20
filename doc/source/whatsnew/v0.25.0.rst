@@ -41,6 +41,7 @@ Other Enhancements
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
 - :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
+-
 
 .. _whatsnew_0250.api_breaking:
 
@@ -301,7 +302,7 @@ Bug Fixes
 Categorical
 ^^^^^^^^^^^
 
--
+- Bug in :func:`DataFrame.at` and :func:`Series.at` that would raise exception if the index was a :class:`CategoricalIndex` (:issue:`20629`)
 -
 -
 
@@ -340,6 +341,7 @@ Numeric
 
 - Bug in :meth:`to_numeric` in which large negative numbers were being improperly handled (:issue:`24910`)
 - Bug in :meth:`to_numeric` in which numbers were being coerced to float, even though ``errors`` was not ``coerce`` (:issue:`24910`)
+- Bug in :meth:`to_numeric` in which invalid values for ``errors`` were being allowed (:issue:`26466`)
 - Bug in :class:`format` in which floating point complex numbers were not being formatted to proper display precision and trimming (:issue:`25514`)
 - Bug in error messages in :meth:`DataFrame.corr` and :meth:`Series.corr`. Added the possibility of using a callable. (:issue:`25729`)
 - Bug in :meth:`Series.divmod` and :meth:`Series.rdivmod` which would raise an (incorrect) ``ValueError`` rather than return a pair of :class:`Series` objects as result (:issue:`25557`)
@@ -447,8 +449,8 @@ Groupby/Resample/Rolling
 - Bug in :meth:`pandas.core.groupby.GroupBy.cumsum`, :meth:`pandas.core.groupby.GroupBy.cumprod`, :meth:`pandas.core.groupby.GroupBy.cummin` and :meth:`pandas.core.groupby.GroupBy.cummax` with categorical column having absent categories, would return incorrect result or segfault (:issue:`16771`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.nth` where NA values in the grouping would return incorrect results (:issue:`26011`)
 - Bug in :meth:`pandas.core.groupby.SeriesGroupBy.transform` where transforming an empty group would raise error (:issue:`26208`)
+- Bug in :meth:`pandas.core.frame.DataFrame.groupby` where passing a :class:`pandas.core.groupby.grouper.Grouper` would return incorrect groups when using the ``.groups`` accessor (:issue:`26326`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.agg` where incorrect results are returned for uint64 columns. (:issue:`26310`)
-
 
 Reshaping
 ^^^^^^^^^
@@ -460,6 +462,7 @@ Reshaping
 - Bug in :func:`pivot_table` where columns with ``NaN`` values are dropped even if ``dropna`` argument is ``False``, when the ``aggfunc`` argument contains a ``list`` (:issue:`22159`)
 - Bug in :func:`concat` where the resulting ``freq`` of two :class:`DatetimeIndex` with the same ``freq`` would be dropped (:issue:`3232`).
 - Bug in :func:`merge` where merging with equivalent Categorical dtypes was raising an error (:issue:`22501`)
+- bug in :class:`DataFrame` instantiating with a dict of iterators or generators (e.g. ``pd.DataFrame({'A': reversed(range(3))})``) raised an error (:issue:`26349`).
 - bug in :class:`DataFrame` instantiating with a ``range`` (e.g. ``pd.DataFrame(range(3))``) raised an error (:issue:`26342`).
 - Bug in :class:`DataFrame` constructor when passing non-empty tuples would cause a segmentation fault (:issue:`25691`)
 - Bug in :func:`Series.apply` failed when the series is a timezone aware :class:`DatetimeIndex` (:issue:`25959`)
