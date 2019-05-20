@@ -291,7 +291,7 @@ class BlockManager(PandasObject):
     def __len__(self):
         return len(self.items)
 
-    def __unicode__(self):
+    def __str__(self):
         output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
