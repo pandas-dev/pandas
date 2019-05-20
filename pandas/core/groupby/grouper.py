@@ -280,7 +280,7 @@ class Grouping:
             if self.name is None:
                 self.name = grouper.result_index.name
             self.obj = self.grouper.obj
-            self.grouper = grouper
+            self.grouper = grouper._get_grouper()
 
         else:
             if self.grouper is None and self.name is not None:
