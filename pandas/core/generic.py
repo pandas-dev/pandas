@@ -9919,6 +9919,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 else:
                     names += ['top', 'freq']
                     result += [top, freq]
+
+            # If the DataFrame is empty, set 'top' and 'freq' to None to maintain output shape consistency
             else:
                 names += ['top', 'freq']
                 result += [None, None]
