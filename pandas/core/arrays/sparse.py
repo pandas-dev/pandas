@@ -21,11 +21,10 @@ from pandas.errors import PerformanceWarning
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     astype_nansafe, construct_1d_arraylike_from_scalar, find_common_type,
-    infer_dtype_from_scalar, maybe_convert_platform)
+    infer_dtype_from_scalar)
 from pandas.core.dtypes.common import (
     is_array_like, is_bool_dtype, is_datetime64_any_dtype, is_dtype_equal,
-    is_integer, is_list_like, is_object_dtype, is_scalar, is_string_dtype,
-    pandas_dtype)
+    is_integer, is_object_dtype, is_scalar, is_string_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
