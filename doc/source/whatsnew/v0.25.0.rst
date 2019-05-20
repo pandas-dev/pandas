@@ -77,6 +77,40 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
 
     df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
 
+
+.. _whatsnew_0250.api_breaking.multi_indexing:
+
+
+MultiIndexing contracted from levels and codes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Constructing a :class:`MultiIndex` with NaN levels or codes value < -1 was allowed previously.
+Now, construction with codes value < -1 is not allowed and NaN levels' corresponding codes
+would be reassigned as -1. (:issue:`19387`)
+
+.. ipython:: python
+
+    pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]], codes=[[0, -1, 1, 2, 3, 4]])
+    pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+    MultiIndex(levels=[[nan, None, NaT, 128, 2]],
+               codes=[[0, -1, 1, 2, 3, 4]])
+    MultiIndex(levels=[[1, 2]],
+               codes=[[0, -2]])
+
+*New Behavior*:
+
+.. ipython:: python
+
+    MultiIndex(levels=[[nan, None, NaT, 128, 2]],
+               codes=[[-1, -1, -1, -1, 3, 4]])
+    ValueError: On level 0, code value (-2) < -1
+
+
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
 
 GroupBy.apply on ``DataFrame`` evaluates first group only once
@@ -387,7 +421,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in which incorrect exception raised by :class:`Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
-- Bug in :class:`Multindex` construction from levels and codes that would incorrectly allows code values < -1 or NaN levels (:issue:`19387`)
+-
 
 I/O
 ^^^
