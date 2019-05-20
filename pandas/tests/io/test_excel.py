@@ -342,12 +342,15 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(parsed, expected)
 
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
-    def test_deprecated_sheetname(self, ext):
+    @pytest.mark.parametrize('arg', ['sheet', 'sheetname'])
+    def test_deprecated_sheetname(self, ext, arg):
         # gh-17964
         excel = self.get_excelfile('test1', ext)
 
-        with pytest.raises(TypeError):
-            read_excel(excel, sheet='Sheet1')
+        kwarg = {arg: 'Sheet1'}
+        msg = "unexpected keyword argument `{}`".format(arg)
+        with pytest.raises(TypeError, match=msg):
+            read_excel(excel, **kwarg)
 
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_excel_table_sheet_by_index(self, ext):

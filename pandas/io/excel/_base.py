@@ -290,9 +290,10 @@ def read_excel(io,
                mangle_dupe_cols=True,
                **kwds):
 
-    if 'sheet' in kwds:
-        raise TypeError("read_excel() got an unexpected keyword argument "
-                        "`sheet`")
+    for arg in ('sheet', 'sheetname'):
+        if arg in kwds:
+            raise TypeError("read_excel() got an unexpected keyword argument "
+                            "`{}`".format(arg))
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
