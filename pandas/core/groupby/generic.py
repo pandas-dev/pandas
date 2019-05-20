@@ -10,6 +10,8 @@ from collections import OrderedDict, abc, namedtuple
 import copy
 from functools import partial
 from textwrap import dedent
+import typing
+from typing import Any, Callable, List, Union
 import warnings
 
 import numpy as np
@@ -43,6 +45,8 @@ from pandas.core.sparse.frame import SparseDataFrame
 from pandas.plotting._core import boxplot_frame_groupby
 
 KeywordAgg = namedtuple("KeywordAgg", ["column", "aggfunc"])
+# TODO(typing) the return value on this callable should be any *scalar*.
+AggScalar = Union[str, Callable[..., Any]]
 
 
 class NDFrameGroupBy(GroupBy):
@@ -1644,7 +1648,7 @@ def _normalize_keyword_aggregation(kwargs):
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to
     # defaultdict(list)
-    func = OrderedDict()
+    func = OrderedDict()  # type: typing.OrderedDict[str, List[AggScalar]]
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
