@@ -2864,6 +2864,16 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     data = pd.read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'],
                          index_col=None, na_values=['NA'])
 
+If control is needed over how a file is read, an ``xlrd`` workbook 
+created with the desired keyword arguments can be passed to ``ExcelFile``.
+
+.. code-block:: python
+
+    xlrd_book = xlrd.open_workbook('path_to_file.xls', on_demand=True)
+    with pd.ExcelFile(xlrd_book) as xls:
+        df1 = pd.read_excel(xls, 'Sheet1')
+        df2 = pd.read_excel(xls, 'Sheet2')
+
 .. _io.excel.specifying_sheets:
 
 Specifying Sheets
