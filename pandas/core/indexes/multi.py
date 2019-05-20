@@ -242,14 +242,30 @@ class MultiIndex(Index):
             result.sortorder = sortorder
 
         if verify_integrity:
-            result._verify_integrity()
+            new_codes = result._verify_integrity()
+            result._codes = new_codes
 
         if _set_identity:
             result._reset_identity()
 
         return result
 
-    def _validate_codes(cls, level, code):
+    def _validate_codes(self, level, code):
+        """
+        Reassign code values as -1 if their corresponding levels are NaN.
+
+        Parameters
+        ----------
+        code : optional list
+            Code to reassign.
+        level : optional list
+            Level to check for Nan.
+
+        Returns
+        -------
+        code : new code where code value = -1 if it corresponds
+        to a NaN level.
+        """
         null_mask = isna(level)
         if np.any(null_mask):
             code = np.where(null_mask[code], -1, code)
@@ -270,6 +286,11 @@ class MultiIndex(Index):
         ValueError
             If length of levels and codes don't match, if the codes for any
             level would exceed level bounds, or there are any duplicate levels.
+
+        Returns
+        -------
+        codes : new codes where code value = -1 if it corresponds to a
+        NaN level.
         """
         # NOTE: Currently does not check, among other things, that cached
         # nlevels matches nor that sortorder matches actually sortorder.
@@ -279,18 +300,18 @@ class MultiIndex(Index):
         if len(levels) != len(codes):
             raise ValueError("Length of levels and codes must match. NOTE:"
                              " this index is in an inconsistent state.")
-        codes_length = len(self.codes[0])
+        codes_length = len(codes[0])
         for i, (level, level_codes) in enumerate(zip(levels, codes)):
             if len(level_codes) != codes_length:
                 raise ValueError("Unequal code lengths: %s" %
                                  ([len(code_) for code_ in codes]))
             if len(level_codes) and level_codes.max() >= len(level):
-                raise ValueError("On level {level}, code max ({max_code})"
-                                 " >= length of level  ({level_len}). "
-                                 "NOTE: this index is in an inconsistent"
-                                 " state".format(
-                                     level=i, max_code=level_codes.max(),
-                                     level_len=len(level)))
+                msg = ("On level {level}, code max ({max_code}) >= length of "
+                       "level ({level_len}). NOTE: this index is in an "
+                       "inconsistent state".format(
+                           level=i, max_code=level_codes.max(),
+                           level_len=len(level)))
+                raise ValueError(msg)
             if len(level_codes) and level_codes.min() < -1:
                 raise ValueError("On level {level}, code value ({code})"
                                  " < -1".format(
@@ -301,9 +322,9 @@ class MultiIndex(Index):
                                      values=[value for value in level],
                                      level=i))
 
-        codes = [self._validate_codes(level, code)
-                 for level, code in zip(levels, codes)]
-        self._set_codes(codes, validate=False)
+        codes = FrozenList([self._validate_codes(level, code)
+                           for level, code in zip(levels, codes)])
+        return codes
 
     @classmethod
     def from_arrays(cls, arrays, sortorder=None, names=None):
@@ -603,7 +624,8 @@ class MultiIndex(Index):
             new_levels = FrozenList(new_levels)
 
         if verify_integrity:
-            self._verify_integrity(levels=new_levels)
+            new_codes = self._verify_integrity(levels=new_levels)
+            self._codes = new_codes
 
         names = self.names
         self._levels = new_levels
@@ -711,10 +733,8 @@ class MultiIndex(Index):
                     level_codes, lev, copy=copy)._shallow_copy()
             new_codes = FrozenList(new_codes)
 
-        if verify_integrity:
-            self._verify_integrity(codes=new_codes)
-        else:
-            self._codes = new_codes
+        new_codes = self._verify_integrity(codes=new_codes)
+        self._codes = new_codes
 
         self._tuples = None
         self._reset_cache()
@@ -1778,9 +1798,10 @@ class MultiIndex(Index):
 
         self._set_levels([Index(x) for x in levels], validate=False)
         self._set_codes(codes)
+        new_codes = self._verify_integrity()
+        self._set_codes(new_codes)
         self._set_names(names)
         self.sortorder = sortorder
-        self._verify_integrity()
         self._reset_identity()
 
     def __getitem__(self, key):
