@@ -1,15 +1,10 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
-from warnings import catch_warnings
 import numpy as np
+import pytest
 
-from pandas import DataFrame, Series, MultiIndex, Panel, Index
 import pandas as pd
-import pandas.util.testing as tm
-
+from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
 
 
 class TestDataFrameSubclassing(TestData):
@@ -34,7 +29,7 @@ class TestDataFrameSubclassing(TestData):
             """
 
             def __init__(self, *args, **kw):
-                super(CustomDataFrame, self).__init__(*args, **kw)
+                super().__init__(*args, **kw)
 
             @property
             def _constructor(self):
@@ -126,29 +121,6 @@ class TestDataFrameSubclassing(TestData):
         tm.assert_series_equal(res, exp)
         assert isinstance(res, tm.SubclassedSeries)
 
-    def test_to_panel_expanddim(self):
-        # GH 9762
-
-        with catch_warnings(record=True):
-            class SubclassedFrame(DataFrame):
-
-                @property
-                def _constructor_expanddim(self):
-                    return SubclassedPanel
-
-            class SubclassedPanel(Panel):
-                pass
-
-            index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
-            df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
-            result = df.to_panel()
-            assert isinstance(result, SubclassedPanel)
-            expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
-                                       items=['X', 'Y'], major_axis=[0],
-                                       minor_axis=[0, 1, 2],
-                                       dtype='int64')
-            tm.assert_panel_equal(result, expected)
-
     def test_subclass_attr_err_propagation(self):
         # GH 11808
         class A(DataFrame):
@@ -156,7 +128,7 @@ class TestDataFrameSubclassing(TestData):
             @property
             def bar(self):
                 return self.i_dont_exist
-        with tm.assert_raises_regex(AttributeError, '.*i_dont_exist.*'):
+        with pytest.raises(AttributeError, match='.*i_dont_exist.*'):
             A().bar
 
     def test_subclass_align(self):
@@ -235,10 +207,12 @@ class TestDataFrameSubclassing(TestData):
 
         tm.assert_sp_series_equal(ssdf.loc[1],
                                   tm.SubclassedSparseSeries(rows[1]),
-                                  check_names=False)
+                                  check_names=False,
+                                  check_kind=False)
         tm.assert_sp_series_equal(ssdf.iloc[1],
                                   tm.SubclassedSparseSeries(rows[1]),
-                                  check_names=False)
+                                  check_names=False,
+                                  check_kind=False)
 
     def test_subclass_sparse_transpose(self):
         ossdf = tm.SubclassedSparseDataFrame([[1, 2, 3],

@@ -12,22 +12,28 @@ source:
 
 requirements:
   build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
     - python
+    - pip
     - cython
-    - numpy 1.11.*
+    - numpy
     - setuptools >=3.3
     - python-dateutil >=2.5.0
     - pytz
-
   run:
-    - python
-    - numpy >=1.11.*
+    - python {{ python }}
+    - {{ pin_compatible('numpy') }}
     - python-dateutil >=2.5.0
     - pytz
 
 test:
-  imports:
-    - pandas
+  requires:
+    - pytest
+  commands:
+    - python -c "import pandas; pandas.test()"
+
 
 about:
   home: http://pandas.pydata.org

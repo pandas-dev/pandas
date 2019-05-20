@@ -1,16 +1,15 @@
-import operator
 import collections
+import operator
 
 import pytest
 
+from pandas.compat import PY36
+
 import pandas as pd
-import pandas.util.testing as tm
-from pandas.compat import PY2, PY36
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
-
-pytestmark = pytest.mark.skipif(PY2, reason="Py2 doesn't have a UserDict")
 
 
 @pytest.fixture
@@ -21,7 +20,18 @@ def dtype():
 @pytest.fixture
 def data():
     """Length-100 PeriodArray for semantics test."""
-    return JSONArray(make_data())
+    data = make_data()
+
+    # Why the while loop? NumPy is unable to construct an ndarray from
+    # equal-length ndarrays. Many of our operations involve coercing the
+    # EA to an ndarray of objects. To avoid random test failures, we ensure
+    # that our data is coercable to an ndarray. Several tests deal with only
+    # the first two elements, so that's what we'll check.
+
+    while len(data[0]) == len(data[1]):
+        data = make_data()
+
+    return JSONArray(data)
 
 
 @pytest.fixture
@@ -41,8 +51,8 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def na_value():
-    return {}
+def na_value(dtype):
+    return dtype.na_value
 
 
 @pytest.fixture
@@ -61,7 +71,7 @@ def data_for_grouping():
     ])
 
 
-class BaseJSON(object):
+class BaseJSON:
     # NumPy doesn't handle an array of equal-length UserDicts.
     # The default assert_series_equal eventually does a
     # Series.values, which raises. We work around it by
@@ -119,11 +129,28 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
-    pass
+
+    @pytest.mark.skip(reason="not implemented constructor from dtype")
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        pass
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
-    pass
+
+    @pytest.mark.skip(reason="Different definitions of NA")
+    def test_stack(self):
+        """
+        The test does .astype(object).stack(). If we happen to have
+        any missing values in `data`, then we'll end up with different
+        rows since we consider `{}` NA, but `.astype(object)` doesn't.
+        """
+
+    @pytest.mark.xfail(reason="dict for NA")
+    def test_unstack(self, data, index):
+        # The base test has NaN for the expected NA value.
+        # this matches otherwise
+        return super().test_unstack(data, index)
 
 
 class TestGetitem(BaseJSON, base.BaseGetitemTests):
@@ -131,11 +158,11 @@ class TestGetitem(BaseJSON, base.BaseGetitemTests):
 
 
 class TestMissing(BaseJSON, base.BaseMissingTests):
-    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    @pytest.mark.skip(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
 
-    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    @pytest.mark.skip(reason="Setting a dict as a scalar")
     def test_fillna_frame(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
 
@@ -143,6 +170,10 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
 unhashable = pytest.mark.skip(reason="Unhashable")
 unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
                               reason="Dictionary order unstable")
+
+
+class TestReduce(base.BaseNoReduceTests):
+    pass
 
 
 class TestMethods(BaseJSON, base.BaseMethodsTests):
@@ -157,28 +188,52 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
 
     @unstable
     def test_argsort(self, data_for_sorting):
-        super(TestMethods, self).test_argsort(data_for_sorting)
+        super().test_argsort(data_for_sorting)
 
     @unstable
     def test_argsort_missing(self, data_missing_for_sorting):
-        super(TestMethods, self).test_argsort_missing(
-            data_missing_for_sorting)
+        super().test_argsort_missing(data_missing_for_sorting)
 
     @unstable
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values(self, data_for_sorting, ascending):
-        super(TestMethods, self).test_sort_values(
-            data_for_sorting, ascending)
+        super().test_sort_values(data_for_sorting, ascending)
 
     @unstable
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values_missing(self, data_missing_for_sorting, ascending):
-        super(TestMethods, self).test_sort_values_missing(
-            data_missing_for_sorting, ascending)
+        super().test_sort_values_missing(data_missing_for_sorting, ascending)
+
+    @pytest.mark.skip(reason="combine for JSONArray not supported")
+    def test_combine_le(self, data_repeated):
+        pass
+
+    @pytest.mark.skip(reason="combine for JSONArray not supported")
+    def test_combine_add(self, data_repeated):
+        pass
+
+    @pytest.mark.skip(reason="combine for JSONArray not supported")
+    def test_combine_first(self, data):
+        pass
+
+    @unhashable
+    def test_hash_pandas_object_works(self, data, kind):
+        super().test_hash_pandas_object_works(data, kind)
+
+    @pytest.mark.skip(reason="broadcasting error")
+    def test_where_series(self, data, na_value):
+        # Fails with
+        # *** ValueError: operands could not be broadcast together
+        # with shapes (4,) (4,) (0,)
+        super().test_where_series(data, na_value)
+
+    @pytest.mark.skip(reason="Can't compare dicts.")
+    def test_searchsorted(self, data_for_sorting):
+        super().test_searchsorted(data_for_sorting)
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
-    @pytest.mark.xfail
+    @pytest.mark.skip(reason="failing on np.array(self, dtype=str)")
     def test_astype_str(self):
         """This currently fails in NumPy on np.array(self, dtype=str) with
 
@@ -216,6 +271,30 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
     @unstable
     @pytest.mark.parametrize('as_index', [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        super(TestGroupby, self).test_groupby_extension_agg(
-            as_index, data_for_grouping
-        )
+        super().test_groupby_extension_agg(as_index, data_for_grouping)
+
+
+class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
+    def test_error(self, data, all_arithmetic_operators):
+        pass
+
+    def test_add_series_with_extension_array(self, data):
+        ser = pd.Series(data)
+        with pytest.raises(TypeError, match="unsupported"):
+            ser + data
+
+    def test_divmod_series_array(self):
+        # GH 23287
+        # skipping because it is not implemented
+        pass
+
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        return super()._check_divmod_op(s, op, other, exc=TypeError)
+
+
+class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
+    pass
+
+
+class TestPrinting(BaseJSON, base.BasePrintingTests):
+    pass

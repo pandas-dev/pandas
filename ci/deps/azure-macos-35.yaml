@@ -1,0 +1,31 @@
+name: pandas-dev
+channels:
+  - defaults
+dependencies:
+  - beautifulsoup4
+  - bottleneck
+  - cython>=0.28.2
+  - html5lib
+  - jinja2
+  - lxml
+  - matplotlib=2.2.3
+  - nomkl
+  - numexpr
+  - numpy=1.13.3
+  - openpyxl
+  - pyarrow
+  - pytables
+  - python=3.5.*
+  - pytz
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - isort
+  - pip:
+    - python-dateutil==2.5.3
+    # universal
+    - pytest>=4.0.2
+    - pytest-xdist
+    - pytest-mock
+    - hypothesis>=3.58.0

@@ -1,14 +1,22 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
+from pandas import Index, Timedelta, TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, compat, Index, Timedelta
 
 
-class TestGetItem(object):
+class TestGetItem:
+    def test_ellipsis(self):
+        # GH#21282
+        idx = timedelta_range('1 day', '31 day', freq='D', name='idx')
+
+        result = idx[...]
+        assert result.equals(idx)
+        assert result is not idx
+
     def test_getitem(self):
         idx1 = timedelta_range('1 day', '31 day', freq='D', name='idx')
 
@@ -41,13 +49,22 @@ class TestGetItem(object):
             tm.assert_index_equal(result, expected)
             assert result.freq == expected.freq
 
+    @pytest.mark.parametrize('key', [pd.Timestamp('1970-01-01'),
+                                     pd.Timestamp('1970-01-02'),
+                                     datetime(1970, 1, 1)])
+    def test_timestamp_invalid_key(self, key):
+        # GH#20464
+        tdi = pd.timedelta_range(0, periods=10)
+        with pytest.raises(TypeError):
+            tdi.get_loc(key)
 
-class TestWhere(object):
+
+class TestWhere:
     # placeholder for symmetry with DatetimeIndex and PeriodIndex tests
     pass
 
 
-class TestTake(object):
+class TestTake:
     def test_take(self):
         # GH 10295
         idx1 = timedelta_range('1 day', '31 day', freq='D', name='idx')
@@ -92,21 +109,21 @@ class TestTake(object):
         indices = [1, 6, 5, 9, 10, 13, 15, 3]
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assert_raises_regex(TypeError, msg, idx.take,
-                               indices, foo=2)
+        with pytest.raises(TypeError, match=msg):
+            idx.take(indices, foo=2)
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, out=indices)
+        with pytest.raises(ValueError, match=msg):
+            idx.take(indices, out=indices)
 
         msg = "the 'mode' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, mode='clip')
+        with pytest.raises(ValueError, match=msg):
+            idx.take(indices, mode='clip')
 
     # TODO: This method came from test_timedelta; de-dup with version above
     def test_take2(self):
         tds = ['1day 02:00:00', '1 day 04:00:00', '1 day 10:00:00']
-        idx = TimedeltaIndex(start='1d', end='2d', freq='H', name='idx')
+        idx = timedelta_range(start='1d', end='2d', freq='H', name='idx')
         expected = TimedeltaIndex(tds, freq=None, name='idx')
 
         taken1 = idx.take([2, 4, 10])
@@ -142,16 +159,16 @@ class TestTake(object):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
 
-class TestTimedeltaIndex(object):
+class TestTimedeltaIndex:
 
     def test_insert(self):
 
@@ -223,15 +240,15 @@ class TestTimedeltaIndex(object):
                  -1: expected_4,
                  4: expected_4,
                  1: expected_1}
-        for n, expected in compat.iteritems(cases):
+        for n, expected in cases.items():
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
             assert result.freq == expected.freq
 
         with pytest.raises((IndexError, ValueError)):
-            # either depeidnig on numpy version
-            result = idx.delete(5)
+            # either depending on numpy version
+            idx.delete(5)
 
     def test_delete_slice(self):
         idx = timedelta_range(start='1 days', periods=10, freq='D', name='idx')
@@ -250,7 +267,7 @@ class TestTimedeltaIndex(object):
         cases = {(0, 1, 2): expected_0_2,
                  (7, 8, 9): expected_7_9,
                  (3, 4, 5): expected_3_5}
-        for n, expected in compat.iteritems(cases):
+        for n, expected in cases.items():
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
@@ -276,8 +293,7 @@ class TestTimedeltaIndex(object):
         assert idx.get_loc(idx[1], 'pad',
                            tolerance=timedelta(0)) == 1
 
-        with tm.assert_raises_regex(ValueError,
-                                    'unit abbreviation w/o a number'):
+        with pytest.raises(ValueError, match='unit abbreviation w/o a number'):
             idx.get_loc(idx[1], method='nearest', tolerance='foo')
 
         with pytest.raises(

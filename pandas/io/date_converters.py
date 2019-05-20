@@ -1,6 +1,6 @@
 """This module is designed for community supported date conversion functions"""
-from pandas.compat import range, map
 import numpy as np
+
 from pandas._libs.tslibs import parsing
 
 

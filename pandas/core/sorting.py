@@ -1,18 +1,18 @@
 """ miscellaneous sorting / groupby utilities """
+import warnings
 
 import numpy as np
-from pandas.compat import long, string_types, PY3
-from pandas.core.dtypes.common import (
-    _ensure_platform_int,
-    _ensure_int64,
-    is_list_like,
-    is_categorical_dtype)
-from pandas.core.dtypes.cast import infer_dtype_from_array
-from pandas.core.dtypes.missing import isna
-import pandas.core.algorithms as algorithms
-from pandas._libs import lib, algos, hashtable
+
+from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
 
+from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_platform_int, is_categorical_dtype,
+    is_extension_array_dtype, is_list_like)
+from pandas.core.dtypes.missing import isna
+
+import pandas.core.algorithms as algorithms
 
 _INT64_MAX = np.iinfo(np.int64).max
 
@@ -45,14 +45,28 @@ def get_group_index(labels, shape, sort, xnull):
     labels are equal at all location.
     """
     def _int64_cut_off(shape):
-        acc = long(1)
+        acc = 1
         for i, mul in enumerate(shape):
-            acc *= long(mul)
+            acc *= int(mul)
             if not acc < _INT64_MAX:
                 return i
         return len(shape)
 
-    def loop(labels, shape):
+    def maybe_lift(lab, size):
+        # promote nan values (assigned -1 label in lab array)
+        # so that all output values are non-negative
+        return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
+
+    labels = map(ensure_int64, labels)
+    if not xnull:
+        labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
+
+    labels = list(labels)
+    shape = list(shape)
+
+    # Iteratively process all the labels in chunks sized so less
+    # than _INT64_MAX unique int ids will be required for each chunk
+    while True:
         # how many levels can be done without overflow:
         nlev = _int64_cut_off(shape)
 
@@ -74,7 +88,7 @@ def get_group_index(labels, shape, sort, xnull):
             out[mask] = -1
 
         if nlev == len(shape):  # all levels done!
-            return out
+            break
 
         # compress what has been done so far in order to avoid overflow
         # to retain lexical ranks, obs_ids should be sorted
@@ -83,16 +97,7 @@ def get_group_index(labels, shape, sort, xnull):
         labels = [comp_ids] + labels[nlev:]
         shape = [len(obs_ids)] + shape[nlev:]
 
-        return loop(labels, shape)
-
-    def maybe_lift(lab, size):  # pormote nan values
-        return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
-
-    labels = map(_ensure_int64, labels)
-    if not xnull:
-        labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
-
-    return loop(list(labels), list(shape))
+    return out
 
 
 def get_compressed_ids(labels, sizes):
@@ -117,9 +122,9 @@ def get_compressed_ids(labels, sizes):
 
 
 def is_int64_overflow_possible(shape):
-    the_prod = long(1)
+    the_prod = 1
     for x in shape:
-        the_prod *= long(x)
+        the_prod *= int(x)
 
     return the_prod >= _INT64_MAX
 
@@ -236,9 +241,27 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
 
     # specially handle Categorical
     if is_categorical_dtype(items):
-        return items.argsort(ascending=ascending, kind=kind)
+        if na_position not in {'first', 'last'}:
+            raise ValueError('invalid na_position: {!r}'.format(na_position))
 
-    items = np.asanyarray(items)
+        mask = isna(items)
+        cnt_null = mask.sum()
+        sorted_idx = items.argsort(ascending=ascending, kind=kind)
+        if ascending and na_position == 'last':
+            # NaN is coded as -1 and is listed in front after sorting
+            sorted_idx = np.roll(sorted_idx, -cnt_null)
+        elif not ascending and na_position == 'first':
+            # NaN is coded as -1 and is listed in the end after sorting
+            sorted_idx = np.roll(sorted_idx, cnt_null)
+        return sorted_idx
+
+    with warnings.catch_warnings():
+        # https://github.com/pandas-dev/pandas/issues/25439
+        # can be removed once ExtensionArrays are properly handled by nargsort
+        warnings.filterwarnings(
+            "ignore", category=FutureWarning,
+            message="Converting timezone-aware DatetimeArray to")
+        items = np.asanyarray(items)
     idx = np.arange(len(items))
     mask = isna(items)
     non_nans = items[~mask]
@@ -261,7 +284,7 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
     return indexer
 
 
-class _KeyMapper(object):
+class _KeyMapper:
 
     """
     Ease my suffering. Map compressed group id -> key tuple
@@ -333,9 +356,9 @@ def get_group_index_sorter(group_index, ngroups):
     do_groupsort = (count > 0 and ((alpha + beta * ngroups) <
                                    (count * np.log(count))))
     if do_groupsort:
-        sorter, _ = algos.groupsort_indexer(_ensure_int64(group_index),
+        sorter, _ = algos.groupsort_indexer(ensure_int64(group_index),
                                             ngroups)
-        return _ensure_platform_int(sorter)
+        return ensure_platform_int(sorter)
     else:
         return group_index.argsort(kind='mergesort')
 
@@ -350,7 +373,7 @@ def compress_group_index(group_index, sort=True):
     size_hint = min(len(group_index), hashtable._SIZE_HINT_LIMIT)
     table = hashtable.Int64HashTable(size_hint)
 
-    group_index = _ensure_int64(group_index)
+    group_index = ensure_int64(group_index)
 
     # note, group labels come out ascending (ie, 1,2,3 etc)
     comp_ids, obs_group_ids = table.get_labels_groupby(group_index)
@@ -381,7 +404,8 @@ def _reorder_by_uniques(uniques, labels):
     return uniques, labels
 
 
-def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
+def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False,
+              verify=True):
     """
     Sort ``values`` and reorder corresponding ``labels``.
     ``values`` should be unique if ``labels`` is not None.
@@ -402,6 +426,12 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     assume_unique : bool, default False
         When True, ``values`` are assumed to be unique, which can speed up
         the calculation. Ignored when ``labels`` is None.
+    verify : bool, default True
+        Check if labels are out of bound for the values and put out of bound
+        labels equal to na_sentinel. If ``verify=False``, it is assumed there
+        are no out of bound labels. Ignored when ``labels`` is None.
+
+        .. versionadded:: 0.25.0
 
     Returns
     -------
@@ -423,22 +453,23 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
         raise TypeError("Only list-like objects are allowed to be passed to"
                         "safe_sort as values")
 
-    if not isinstance(values, np.ndarray):
-
+    if (not isinstance(values, np.ndarray)
+            and not is_extension_array_dtype(values)):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
         values = np.asarray(values, dtype=dtype)
 
     def sort_mixed(values):
         # order ints before strings, safe in py3
-        str_pos = np.array([isinstance(x, string_types) for x in values],
+        str_pos = np.array([isinstance(x, str) for x in values],
                            dtype=bool)
         nums = np.sort(values[~str_pos])
         strs = np.sort(values[str_pos])
         return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
     sorter = None
-    if PY3 and lib.infer_dtype(values) == 'mixed-integer':
+    if (not is_extension_array_dtype(values)
+            and lib.infer_dtype(values, skipna=False) == 'mixed-integer'):
         # unorderable in py3 if mixed str/int
         ordered = sort_mixed(values)
     else:
@@ -457,7 +488,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     if not is_list_like(labels):
         raise TypeError("Only list-like objects or None are allowed to be"
                         "passed to safe_sort as labels")
-    labels = _ensure_platform_int(np.asarray(labels))
+    labels = ensure_platform_int(np.asarray(labels))
 
     from pandas import Index
     if not assume_unique and not Index(values).is_unique:
@@ -469,17 +500,28 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
             values, algorithms._hashtables)
         t = hash_klass(len(values))
         t.map_locations(values)
-        sorter = _ensure_platform_int(t.lookup(ordered))
+        sorter = ensure_platform_int(t.lookup(ordered))
 
-    reverse_indexer = np.empty(len(sorter), dtype=np.int_)
-    reverse_indexer.put(sorter, np.arange(len(sorter)))
+    if na_sentinel == -1:
+        # take_1d is faster, but only works for na_sentinels of -1
+        order2 = sorter.argsort()
+        new_labels = algorithms.take_1d(order2, labels, fill_value=-1)
+        if verify:
+            mask = (labels < -len(values)) | (labels >= len(values))
+        else:
+            mask = None
+    else:
+        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
+        reverse_indexer.put(sorter, np.arange(len(sorter)))
+        # Out of bound indices will be masked with `na_sentinel` next, so we
+        # may deal with them here without performance loss using `mode='wrap'`
+        new_labels = reverse_indexer.take(labels, mode='wrap')
 
-    mask = (labels < -len(values)) | (labels >= len(values)) | \
-        (labels == na_sentinel)
+        mask = labels == na_sentinel
+        if verify:
+            mask = mask | (labels < -len(values)) | (labels >= len(values))
 
-    # (Out of bound indices will be masked with `na_sentinel` next, so we may
-    # deal with them here without performance loss using `mode='wrap'`.)
-    new_labels = reverse_indexer.take(labels, mode='wrap')
-    np.putmask(new_labels, mask, na_sentinel)
+    if mask is not None:
+        np.putmask(new_labels, mask, na_sentinel)
 
-    return ordered, _ensure_platform_int(new_labels)
+    return ordered, ensure_platform_int(new_labels)

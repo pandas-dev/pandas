@@ -1,13 +1,11 @@
 """ test scalar indexing, including at and iat """
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-from pandas import (Series, DataFrame, Timestamp,
-                    Timedelta, date_range)
-from pandas.util import testing as tm
+from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
 from pandas.tests.indexing.common import Base
+from pandas.util import testing as tm
 
 
 class TestScalar(Base):
@@ -32,7 +30,9 @@ class TestScalar(Base):
 
             for f in [d['labels'], d['ts'], d['floats']]:
                 if f is not None:
-                    pytest.raises(ValueError, self.check_values, f, 'iat')
+                    msg = "iAt based indexing can only have integer indexers"
+                    with pytest.raises(ValueError, match=msg):
+                        self.check_values(f, 'iat')
 
             # at
             for f in [d['ints'], d['uints'], d['labels'],
@@ -59,7 +59,9 @@ class TestScalar(Base):
 
             for f in [d['labels'], d['ts'], d['floats']]:
                 if f is not None:
-                    pytest.raises(ValueError, _check, f, 'iat')
+                    msg = "iAt based indexing can only have integer indexers"
+                    with pytest.raises(ValueError, match=msg):
+                        _check(f, 'iat')
 
             # at
             for f in [d['ints'], d['uints'], d['labels'],
@@ -109,8 +111,12 @@ class TestScalar(Base):
         result = s.iat[2]
         assert result == 2
 
-        pytest.raises(IndexError, lambda: s.iat[10])
-        pytest.raises(IndexError, lambda: s.iat[-10])
+        msg = "index 10 is out of bounds for axis 0 with size 5"
+        with pytest.raises(IndexError, match=msg):
+            s.iat[10]
+        msg = "index -10 is out of bounds for axis 0 with size 5"
+        with pytest.raises(IndexError, match=msg):
+            s.iat[-10]
 
         result = s.iloc[[2, 3]]
         expected = Series([2, 3], [2, 2], dtype='int64')
@@ -130,22 +136,30 @@ class TestScalar(Base):
         s = Series([1, 2, 3], index=list('abc'))
         result = s.at['a']
         assert result == 1
-        pytest.raises(ValueError, lambda: s.at[0])
+        msg = ("At based indexing on an non-integer index can only have"
+               " non-integer indexers")
+        with pytest.raises(ValueError, match=msg):
+            s.at[0]
 
         df = DataFrame({'A': [1, 2, 3]}, index=list('abc'))
         result = df.at['a', 'A']
         assert result == 1
-        pytest.raises(ValueError, lambda: df.at['a', 0])
+        with pytest.raises(ValueError, match=msg):
+            df.at['a', 0]
 
         s = Series([1, 2, 3], index=[3, 2, 1])
         result = s.at[1]
         assert result == 3
-        pytest.raises(ValueError, lambda: s.at['a'])
+        msg = ("At based indexing on an integer index can only have integer"
+               " indexers")
+        with pytest.raises(ValueError, match=msg):
+            s.at['a']
 
         df = DataFrame({0: [1, 2, 3]}, index=[3, 2, 1])
         result = df.at[1, 0]
         assert result == 3
-        pytest.raises(ValueError, lambda: df.at['a', 0])
+        with pytest.raises(ValueError, match=msg):
+            df.at['a', 0]
 
         # GH 13822, incorrect error string with non-unique columns when missing
         # column is accessed
@@ -153,8 +167,8 @@ class TestScalar(Base):
         df.columns = ['x', 'x', 'z']
 
         # Check that we get the correct value in the KeyError
-        tm.assert_raises_regex(KeyError, r"\['y'\] not in index",
-                               lambda: df[['x', 'y', 'z']])
+        with pytest.raises(KeyError, match=r"\['y'\] not in index"):
+            df[['x', 'y', 'z']]
 
     def test_at_with_tz(self):
         # gh-15822
@@ -170,3 +184,61 @@ class TestScalar(Base):
 
         result = df.at[0, 'date']
         assert result == expected
+
+    def test_series_set_tz_timestamp(self, tz_naive_fixture):
+        # GH 25506
+        ts = Timestamp('2017-08-05 00:00:00+0100', tz=tz_naive_fixture)
+        result = Series(ts)
+        result.at[1] = ts
+        expected = Series([ts, ts])
+        tm.assert_series_equal(result, expected)
+
+    def test_mixed_index_at_iat_loc_iloc_series(self):
+        # GH 19860
+        s = Series([1, 2, 3, 4, 5], index=['a', 'b', 'c', 1, 2])
+        for el, item in s.iteritems():
+            assert s.at[el] == s.loc[el] == item
+        for i in range(len(s)):
+            assert s.iat[i] == s.iloc[i] == i + 1
+
+        with pytest.raises(KeyError):
+            s.at[4]
+        with pytest.raises(KeyError):
+            s.loc[4]
+
+    def test_mixed_index_at_iat_loc_iloc_dataframe(self):
+        # GH 19860
+        df = DataFrame([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]],
+                       columns=['a', 'b', 'c', 1, 2])
+        for rowIdx, row in df.iterrows():
+            for el, item in row.iteritems():
+                assert df.at[rowIdx, el] == df.loc[rowIdx, el] == item
+
+        for row in range(2):
+            for i in range(5):
+                assert df.iat[row, i] == df.iloc[row, i] == row * 5 + i
+
+        with pytest.raises(KeyError):
+            df.at[0, 3]
+        with pytest.raises(KeyError):
+            df.loc[0, 3]
+
+    def test_iat_setter_incompatible_assignment(self):
+        # GH 23236
+        result = DataFrame({'a': [0, 1], 'b': [4, 5]})
+        result.iat[0, 0] = None
+        expected = DataFrame({"a": [None, 1], "b": [4, 5]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_getitem_zerodim_np_array(self):
+        # GH24924
+        # dataframe __getitem__
+        df = DataFrame([[1, 2], [3, 4]])
+        result = df[np.array(0)]
+        expected = Series([1, 3], name=0)
+        tm.assert_series_equal(result, expected)
+
+        # series __getitem__
+        s = Series([1, 2])
+        result = s[np.array(0)]
+        assert result == 1

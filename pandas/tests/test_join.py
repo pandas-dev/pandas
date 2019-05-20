@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
-from pandas import Index, DataFrame, Categorical, merge
 
 from pandas._libs import join as _join
+
+from pandas import Categorical, DataFrame, Index, merge
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 
 
-class TestIndexer(object):
+class TestIndexer:
 
     def test_outer_join_indexer(self):
         typemap = [('int32', _join.outer_join_indexer_int32),

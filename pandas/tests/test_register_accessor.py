@@ -20,7 +20,7 @@ def ensure_removed(obj, attr):
         obj._accessors.discard(attr)
 
 
-class MyAccessor(object):
+class MyAccessor:
 
     def __init__(self, obj):
         self.obj = obj
@@ -81,9 +81,9 @@ def test_raises_attribute_error():
     with ensure_removed(pd.Series, 'bad'):
 
         @pd.api.extensions.register_series_accessor("bad")
-        class Bad(object):
+        class Bad:
             def __init__(self, data):
                 raise AttributeError("whoops")
 
-        with tm.assert_raises_regex(AttributeError, "whoops"):
+        with pytest.raises(AttributeError, match="whoops"):
             pd.Series([]).bad

@@ -7,12 +7,8 @@ except ImportError:
     # For compatibility with older versions
     from pandas.core.datetools import * # noqa
 
-from .pandas_vb_common import setup # noqa
 
-
-class FromDicts(object):
-
-    goal_time = 0.2
+class FromDicts:
 
     def setup(self):
         N, K = 5000, 50
@@ -45,9 +41,7 @@ class FromDicts(object):
         DataFrame(self.data2)
 
 
-class FromSeries(object):
-
-    goal_time = 0.2
+class FromSeries:
 
     def setup(self):
         mi = MultiIndex.from_product([range(100), range(100)])
@@ -57,9 +51,8 @@ class FromSeries(object):
         DataFrame(self.s)
 
 
-class FromDictwithTimestamp(object):
+class FromDictwithTimestamp:
 
-    goal_time = 0.2
     params = [Nano(1), Hour(1)]
     param_names = ['offset']
 
@@ -74,9 +67,8 @@ class FromDictwithTimestamp(object):
         DataFrame(self.d)
 
 
-class FromRecords(object):
+class FromRecords:
 
-    goal_time = 0.2
     params = [None, 1000]
     param_names = ['nrows']
 
@@ -89,9 +81,7 @@ class FromRecords(object):
         self.df = DataFrame.from_records(self.gen, nrows=nrows)
 
 
-class FromNDArray(object):
-
-    goal_time = 0.2
+class FromNDArray:
 
     def setup(self):
         N = 100000
@@ -99,3 +89,19 @@ class FromNDArray(object):
 
     def time_frame_from_ndarray(self):
         self.df = DataFrame(self.data)
+
+
+class FromLists:
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 1000
+        M = 100
+        self.data = [[j for j in range(M)] for i in range(N)]
+
+    def time_frame_from_lists(self):
+        self.df = DataFrame(self.data)
+
+
+from .pandas_vb_common import setup  # noqa: F401

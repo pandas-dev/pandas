@@ -9,11 +9,10 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
-import pandas.core.config as cf
-from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
-                                is_one_of_factory, is_callable)
-from pandas.io.formats.console import detect_console_encoding
-from pandas.io.formats.terminal import is_terminal
+import pandas._config.config as cf
+from pandas._config.config import (
+    is_bool, is_callable, is_instance_factory, is_int, is_one_of_factory,
+    is_text)
 
 # compute
 
@@ -108,16 +107,6 @@ pc_nb_repr_h_doc = """
     pandas objects (if it is available).
 """
 
-pc_date_dayfirst_doc = """
-: boolean
-    When True, prints and parses dates with the day first, eg 20/01/2005
-"""
-
-pc_date_yearfirst_doc = """
-: boolean
-    When True, prints and parses dates with the year first, eg 2005/01/20
-"""
-
 pc_pprint_nest_depth = """
 : int
     Controls the number of nested levels to process when pretty-printing
@@ -127,13 +116,6 @@ pc_multi_sparse_doc = """
 : boolean
     "sparsify" MultiIndex display (don't display repeated
     elements in outer levels within groups)
-"""
-
-pc_encoding_doc = """
-: str/unicode
-    Defaults to the detected encoding of the console.
-    Specifies the encoding to be used for strings returned by to_string,
-    these are generally strings meant to be displayed on the console.
 """
 
 float_format_doc = """
@@ -295,12 +277,27 @@ pc_latex_multirow = """
     Valid values: False,True
 """
 
-style_backup = dict()
-
 
 def table_schema_cb(key):
     from pandas.io.formats.printing import _enable_data_resource_formatter
     _enable_data_resource_formatter(cf.get_option(key))
+
+
+def is_terminal():
+    """
+    Detect if Python is running in a terminal.
+
+    Returns True if Python is running in a terminal or False if not.
+    """
+    try:
+        ip = get_ipython()
+    except NameError:  # assume standard Python interpreter in a terminal
+        return True
+    else:
+        if hasattr(ip, 'kernel'):  # IPython as a Jupyter kernel
+            return False
+        else:  # IPython in a terminal
+            return True
 
 
 with cf.config_prefix('display'):
@@ -329,16 +326,10 @@ with cf.config_prefix('display'):
                        validator=is_text)
     cf.register_option('notebook_repr_html', True, pc_nb_repr_h_doc,
                        validator=is_bool)
-    cf.register_option('date_dayfirst', False, pc_date_dayfirst_doc,
-                       validator=is_bool)
-    cf.register_option('date_yearfirst', False, pc_date_yearfirst_doc,
-                       validator=is_bool)
     cf.register_option('pprint_nest_depth', 3, pc_pprint_nest_depth,
                        validator=is_int)
     cf.register_option('multi_sparse', True, pc_multi_sparse_doc,
                        validator=is_bool)
-    cf.register_option('encoding', detect_console_encoding(), pc_encoding_doc,
-                       validator=is_text)
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
     cf.register_option('show_dimensions', 'truncate', pc_show_dimensions_doc,
                        validator=is_one_of_factory([True, False, 'truncate']))

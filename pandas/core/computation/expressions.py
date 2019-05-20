@@ -7,11 +7,15 @@ Offer fast expression evaluation through numexpr
 """
 
 import warnings
+
 import numpy as np
+
+from pandas._config import get_option
+
+from pandas.core.dtypes.generic import ABCDataFrame
 
 import pandas.core.common as com
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
-from pandas.core.config import get_option
 
 if _NUMEXPR_INSTALLED:
     import numexpr as ne
@@ -24,8 +28,8 @@ _where = None
 
 # the set of dtypes that we will allow pass to numexpr
 _ALLOWED_DTYPES = {
-    'evaluate': set(['int64', 'int32', 'float64', 'float32', 'bool']),
-    'where': set(['int64', 'float64', 'bool'])
+    'evaluate': {'int64', 'int32', 'float64', 'float32', 'bool'},
+    'where': {'int64', 'float64', 'bool'}
 }
 
 # the minimum prod shape that we will use numexpr
@@ -81,7 +85,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
                         return False
                     dtypes |= set(s.index)
                 elif isinstance(o, np.ndarray):
-                    dtypes |= set([o.dtype.name])
+                    dtypes |= {o.dtype.name}
 
             # allowed are a superset
             if not len(dtypes) or _ALLOWED_DTYPES[dtype_check] >= dtypes:
@@ -123,8 +127,8 @@ def _evaluate_numexpr(op, op_str, a, b, truediv=True,
 
 
 def _where_standard(cond, a, b):
-    return np.where(com._values_from_object(cond), com._values_from_object(a),
-                    com._values_from_object(b))
+    return np.where(com.values_from_object(cond), com.values_from_object(a),
+                    com.values_from_object(b))
 
 
 def _where_numexpr(cond, a, b):
@@ -159,12 +163,12 @@ set_use_numexpr(get_option('compute.use_numexpr'))
 
 def _has_bool_dtype(x):
     try:
-        return x.dtype == bool
-    except AttributeError:
-        try:
+        if isinstance(x, ABCDataFrame):
             return 'bool' in x.dtypes
-        except AttributeError:
-            return isinstance(x, (bool, np.bool_))
+        else:
+            return x.dtype == bool
+    except AttributeError:
+        return isinstance(x, (bool, np.bool_))
 
 
 def _bool_arith_check(op_str, a, b, not_allowed=frozenset(('/', '//', '**')),

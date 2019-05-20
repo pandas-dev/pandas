@@ -1,16 +1,16 @@
-# -*- coding: utf-8 -*-
 """
 Tests for TimedeltaIndex methods behaving like their Timedelta counterparts
 """
 
 import numpy as np
+import pytest
 
 import pandas as pd
+from pandas import Index, Series, Timedelta, TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
-from pandas import timedelta_range, Timedelta, TimedeltaIndex, Index, Series
 
 
-class TestVectorizedTimedelta(object):
+class TestVectorizedTimedelta:
     def test_tdi_total_seconds(self):
         # GH#10939
         # test index
@@ -50,14 +50,14 @@ class TestVectorizedTimedelta(object):
         tm.assert_index_equal(td.round(freq='H'), expected_rng)
         assert elt.round(freq='H') == expected_elt
 
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
-        with tm.assert_raises_regex(ValueError, msg):
+        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
+        with pytest.raises(ValueError, match=msg):
             td.round(freq='foo')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             elt.round(freq='foo')
 
         msg = "<MonthEnd> is a non-fixed frequency"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             td.round(freq='M')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             elt.round(freq='M')

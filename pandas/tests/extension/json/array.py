@@ -1,4 +1,16 @@
-import collections
+"""Test extension array for storing nested data in a pandas container.
+
+The JSONArray stores lists of dictionaries. The storage mechanism is a list,
+not an ndarray.
+
+Note:
+
+We currently store lists of UserDicts. Pandas has a few places
+internally that specifically check for dicts, and does non-scalar things
+in that case. We *want* the dictionaries to be treated as scalars, so we
+hack around pandas by using UserDicts.
+"""
+from collections import UserDict, abc
 import itertools
 import numbers
 import random
@@ -8,12 +20,24 @@ import sys
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
+
 from pandas.core.arrays import ExtensionArray
 
 
 class JSONDtype(ExtensionDtype):
-    type = collections.Mapping
+    type = abc.Mapping
     name = 'json'
+    na_value = UserDict()
+
+    @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        return JSONArray
 
     @classmethod
     def construct_from_string(cls, string):
@@ -26,11 +50,13 @@ class JSONDtype(ExtensionDtype):
 
 class JSONArray(ExtensionArray):
     dtype = JSONDtype()
+    __array_priority__ = 1000
 
-    def __init__(self, values):
+    def __init__(self, values, dtype=None, copy=False):
         for val in values:
             if not isinstance(val, self.dtype.type):
-                raise TypeError
+                raise TypeError("All values must be of type " +
+                                str(self.dtype.type))
         self.data = values
 
         # Some aliases for common attribute names to ensure pandas supports
@@ -41,19 +67,19 @@ class JSONArray(ExtensionArray):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
         return cls(scalars)
 
     @classmethod
     def _from_factorized(cls, values, original):
-        return cls([collections.UserDict(x) for x in values if x != ()])
+        return cls([UserDict(x) for x in values if x != ()])
 
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
             return self._from_sequence([x for x, m in zip(self, item) if m])
-        elif isinstance(item, collections.Iterable):
+        elif isinstance(item, abc.Iterable):
             # fancy indexing
             return type(self)([self.data[i] for i in item])
         else:
@@ -64,8 +90,7 @@ class JSONArray(ExtensionArray):
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
-            if not isinstance(value, (type(self),
-                                      collections.Sequence)):
+            if not isinstance(value, (type(self), abc.Sequence)):
                 # broadcast value
                 value = itertools.cycle([value])
 
@@ -83,23 +108,39 @@ class JSONArray(ExtensionArray):
     def __len__(self):
         return len(self.data)
 
-    def __repr__(self):
-        return 'JSONArary({!r})'.format(self.data)
-
     @property
     def nbytes(self):
         return sys.getsizeof(self.data)
 
     def isna(self):
-        return np.array([x == self._na_value for x in self.data])
+        return np.array([x == self.dtype.na_value for x in self.data],
+                        dtype=bool)
 
-    def take(self, indexer, allow_fill=True, fill_value=None):
-        try:
-            output = [self.data[loc] if loc != -1 else self._na_value
-                      for loc in indexer]
-        except IndexError:
-            raise IndexError("Index is out of bounds or cannot do a "
-                             "non-empty take from an empty array.")
+    def take(self, indexer, allow_fill=False, fill_value=None):
+        # re-implement here, since NumPy has trouble setting
+        # sized objects like UserDicts into scalar slots of
+        # an ndarary.
+        indexer = np.asarray(indexer)
+        msg = ("Index is out of bounds or cannot do a "
+               "non-empty take from an empty array.")
+
+        if allow_fill:
+            if fill_value is None:
+                fill_value = self.dtype.na_value
+            # bounds check
+            if (indexer < -1).any():
+                raise ValueError
+            try:
+                output = [self.data[loc] if loc != -1 else fill_value
+                          for loc in indexer]
+            except IndexError:
+                raise IndexError(msg)
+        else:
+            try:
+                output = [self.data[loc] for loc in indexer]
+            except IndexError:
+                raise IndexError(msg)
+
         return self._from_sequence(output)
 
     def copy(self, deep=False):
@@ -109,18 +150,20 @@ class JSONArray(ExtensionArray):
         # NumPy has issues when all the dicts are the same length.
         # np.array([UserDict(...), UserDict(...)]) fails,
         # but np.array([{...}, {...}]) works, so cast.
+
+        # needed to add this check for the Series constructor
+        if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
+            if copy:
+                return self.copy()
+            return self
         return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def unique(self):
         # Parent method doesn't work since np.array will try to infer
         # a 2-dim object.
         return type(self)([
-            dict(x) for x in list(set(tuple(d.items()) for d in self.data))
+            dict(x) for x in list({tuple(d.items()) for d in self.data})
         ])
-
-    @property
-    def _na_value(self):
-        return {}
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -129,18 +172,21 @@ class JSONArray(ExtensionArray):
 
     def _values_for_factorize(self):
         frozen = self._values_for_argsort()
+        if len(frozen) == 0:
+            # _factorize_array expects 1-d array, this is a len-0 2-d array.
+            frozen = frozen.ravel()
         return frozen, ()
 
     def _values_for_argsort(self):
         # Disable NumPy's shape inference by including an empty tuple...
         # If all the elemnts of self are the same size P, NumPy will
         # cast them to an (N, P) array, instead of an (N,) array of tuples.
-        frozen = [()] + list(tuple(x.items()) for x in self)
+        frozen = [()] + [tuple(x.items()) for x in self]
         return np.array(frozen, dtype=object)[1:]
 
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
-    return [collections.UserDict([
+    return [UserDict([
         (random.choice(string.ascii_letters), random.randint(0, 100))
         for _ in range(random.randint(0, 10))]) for _ in range(100)]

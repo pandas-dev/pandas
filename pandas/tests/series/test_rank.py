@@ -1,23 +1,18 @@
-# -*- coding: utf-8 -*-
-from pandas import compat, Timestamp
+from itertools import chain, product
 
+import numpy as np
+from numpy import nan
 import pytest
 
-from distutils.version import LooseVersion
-from numpy import nan
-import numpy as np
-
-from pandas import Series, date_range, NaT
-from pandas.api.types import CategoricalDtype
-
-from pandas.compat import product
-from pandas.util.testing import assert_series_equal
-import pandas.util.testing as tm
-from pandas.tests.series.common import TestData
-from pandas._libs.tslib import iNaT
 from pandas._libs.algos import Infinity, NegInfinity
-from itertools import chain
+from pandas._libs.tslib import iNaT
 import pandas.util._test_decorators as td
+
+from pandas import NaT, Series, Timestamp, date_range
+from pandas.api.types import CategoricalDtype
+from pandas.tests.series.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesRank(TestData):
@@ -183,6 +178,16 @@ class TestSeriesRank(TestData):
             exp_keep
         )
 
+        # Test invalid values for na_option
+        msg = "na_option must be one of 'keep', 'top', or 'bottom'"
+
+        with pytest.raises(ValueError, match=msg):
+            na_ser.rank(na_option='bad', ascending=False)
+
+        # invalid type
+        with pytest.raises(ValueError, match=msg):
+            na_ser.rank(na_option=True, ascending=False)
+
         # Test with pct=True
         na_ser = Series(['first', 'second', 'third', 'fourth', np.NaN]).astype(
             CategoricalDtype(['first', 'second', 'third', 'fourth'], True))
@@ -197,7 +202,10 @@ class TestSeriesRank(TestData):
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method='average')
-        pytest.raises(ValueError, s.rank, 'average')
+        msg = ("No axis named average for object type"
+               " <class 'pandas.core.series.Series'>")
+        with pytest.raises(ValueError, match=msg):
+            s.rank('average')
 
     @pytest.mark.parametrize('contents,dtype', [
         ([-np.inf, -50, -1, -1e-20, -1e-25, -1e-50, 0, 1e-40, 1e-20, 1e-10,
@@ -213,7 +221,7 @@ class TestSeriesRank(TestData):
                      'int64',
                      marks=pytest.mark.xfail(
                          reason="iNaT is equivalent to minimum value of dtype"
-                         "int64 pending issue #16674")),
+                                "int64 pending issue GH#16674")),
         ([NegInfinity(), '1', 'A', 'BA', 'Ba', 'C', Infinity()],
          'object')
     ])
@@ -250,7 +258,7 @@ class TestSeriesRank(TestData):
             tm.assert_series_equal(result, Series(expected))
 
         dtypes = [None, object]
-        disabled = set([(object, 'first')])
+        disabled = {(object, 'first')}
         results = self.results
 
         for method, dtype in product(results, dtypes):
@@ -268,7 +276,7 @@ class TestSeriesRank(TestData):
         dtypes = [('object', None, Infinity(), NegInfinity()),
                   ('float64', np.nan, np.inf, -np.inf)]
         chunk = 3
-        disabled = set([('object', 'first')])
+        disabled = {('object', 'first')}
 
         def _check(s, method, na_option, ascending):
             exp_ranks = {
@@ -309,7 +317,6 @@ class TestSeriesRank(TestData):
     def test_rank_methods_series(self):
         pytest.importorskip('scipy.stats.special')
         rankdata = pytest.importorskip('scipy.stats.rankdata')
-        import scipy
 
         xs = np.random.randn(9)
         xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates
@@ -323,10 +330,7 @@ class TestSeriesRank(TestData):
             for m in ['average', 'min', 'max', 'first', 'dense']:
                 result = ts.rank(method=m)
                 sprank = rankdata(vals, m if m != 'first' else 'ordinal')
-                expected = Series(sprank, index=index)
-
-                if LooseVersion(scipy.__version__) >= LooseVersion('0.17.0'):
-                    expected = expected.astype('float64')
+                expected = Series(sprank, index=index).astype('float64')
                 tm.assert_series_equal(result, expected)
 
     def test_rank_dense_method(self):
@@ -370,7 +374,7 @@ class TestSeriesRank(TestData):
     def test_rank_int(self):
         s = self.s.dropna().astype('i8')
 
-        for method, res in compat.iteritems(self.results):
+        for method, res in self.results.items():
             result = s.rank(method=method)
             expected = Series(res).dropna()
             expected.index = result.index
@@ -408,10 +412,10 @@ class TestSeriesRank(TestData):
     ([1, 1, 3, 3, 5, 5], [1. / 3, 1. / 3, 2. / 3, 2. / 3, 3. / 3, 3. / 3]),
     ([-5, -4, -3, -2, -1], [1. / 5, 2. / 5, 3. / 5, 4. / 5, 5. / 5])])
 def test_rank_dense_pct(dtype, ser, exp):
-        s = Series(ser).astype(dtype)
-        result = s.rank(method='dense', pct=True)
-        expected = Series(exp).astype(result.dtype)
-        assert_series_equal(result, expected)
+    s = Series(ser).astype(dtype)
+    result = s.rank(method='dense', pct=True)
+    expected = Series(exp).astype(result.dtype)
+    assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize('dtype', ['O', 'f8', 'i8'])
@@ -426,10 +430,10 @@ def test_rank_dense_pct(dtype, ser, exp):
     ([1, 1, 3, 3, 5, 5], [1. / 6, 1. / 6, 3. / 6, 3. / 6, 5. / 6, 5. / 6]),
     ([-5, -4, -3, -2, -1], [1. / 5, 2. / 5, 3. / 5, 4. / 5, 5. / 5])])
 def test_rank_min_pct(dtype, ser, exp):
-        s = Series(ser).astype(dtype)
-        result = s.rank(method='min', pct=True)
-        expected = Series(exp).astype(result.dtype)
-        assert_series_equal(result, expected)
+    s = Series(ser).astype(dtype)
+    result = s.rank(method='min', pct=True)
+    expected = Series(exp).astype(result.dtype)
+    assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize('dtype', ['O', 'f8', 'i8'])
@@ -444,10 +448,10 @@ def test_rank_min_pct(dtype, ser, exp):
     ([1, 1, 3, 3, 5, 5], [2. / 6, 2. / 6, 4. / 6, 4. / 6, 6. / 6, 6. / 6]),
     ([-5, -4, -3, -2, -1], [1. / 5, 2. / 5, 3. / 5, 4. / 5, 5. / 5])])
 def test_rank_max_pct(dtype, ser, exp):
-        s = Series(ser).astype(dtype)
-        result = s.rank(method='max', pct=True)
-        expected = Series(exp).astype(result.dtype)
-        assert_series_equal(result, expected)
+    s = Series(ser).astype(dtype)
+    result = s.rank(method='max', pct=True)
+    expected = Series(exp).astype(result.dtype)
+    assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize('dtype', ['O', 'f8', 'i8'])
@@ -463,10 +467,10 @@ def test_rank_max_pct(dtype, ser, exp):
      [1.5 / 6, 1.5 / 6, 3.5 / 6, 3.5 / 6, 5.5 / 6, 5.5 / 6]),
     ([-5, -4, -3, -2, -1], [1. / 5, 2. / 5, 3. / 5, 4. / 5, 5. / 5])])
 def test_rank_average_pct(dtype, ser, exp):
-        s = Series(ser).astype(dtype)
-        result = s.rank(method='average', pct=True)
-        expected = Series(exp).astype(result.dtype)
-        assert_series_equal(result, expected)
+    s = Series(ser).astype(dtype)
+    result = s.rank(method='average', pct=True)
+    expected = Series(exp).astype(result.dtype)
+    assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize('dtype', ['f8', 'i8'])
@@ -481,7 +485,16 @@ def test_rank_average_pct(dtype, ser, exp):
     ([1, 1, 3, 3, 5, 5], [1. / 6, 2. / 6, 3. / 6, 4. / 6, 5. / 6, 6. / 6]),
     ([-5, -4, -3, -2, -1], [1. / 5, 2. / 5, 3. / 5, 4. / 5, 5. / 5])])
 def test_rank_first_pct(dtype, ser, exp):
-        s = Series(ser).astype(dtype)
-        result = s.rank(method='first', pct=True)
-        expected = Series(exp).astype(result.dtype)
-        assert_series_equal(result, expected)
+    s = Series(ser).astype(dtype)
+    result = s.rank(method='first', pct=True)
+    expected = Series(exp).astype(result.dtype)
+    assert_series_equal(result, expected)
+
+
+@pytest.mark.single
+@pytest.mark.high_memory
+def test_pct_max_many_rows():
+    # GH 18271
+    s = Series(np.arange(2**24 + 1))
+    result = s.rank(pct=True).max()
+    assert result == 1

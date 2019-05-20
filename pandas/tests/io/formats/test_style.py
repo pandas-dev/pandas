@@ -1,19 +1,21 @@
 import copy
-import textwrap
 import re
+import textwrap
 
-import pytest
 import numpy as np
+import pytest
+
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 
 jinja2 = pytest.importorskip('jinja2')
-from pandas.io.formats.style import Styler, _get_level_lengths  # noqa
+from pandas.io.formats.style import Styler, _get_level_lengths  # noqa  # isort:skip
 
 
-class TestStyler(object):
+class TestStyler:
 
     def setup_method(self, method):
         np.random.seed(24)
@@ -250,11 +252,11 @@ class TestStyler(object):
             for slice_ in slices:
                 result = self.df.style.apply(self.h, axis=ax, subset=slice_,
                                              foo='baz')._compute().ctx
-                expected = dict(((r, c), ['color: baz'])
-                                for r, row in enumerate(self.df.index)
-                                for c, col in enumerate(self.df.columns)
-                                if row in self.df.loc[slice_].index and
-                                col in self.df.loc[slice_].columns)
+                expected = {(r, c): ['color: baz']
+                            for r, row in enumerate(self.df.index)
+                            for c, col in enumerate(self.df.columns)
+                            if row in self.df.loc[slice_].index and
+                            col in self.df.loc[slice_].columns}
                 assert result == expected
 
     def test_applymap_subset(self):
@@ -267,12 +269,38 @@ class TestStyler(object):
 
         for slice_ in slices:
             result = self.df.style.applymap(f, subset=slice_)._compute().ctx
-            expected = dict(((r, c), ['foo: bar'])
-                            for r, row in enumerate(self.df.index)
-                            for c, col in enumerate(self.df.columns)
-                            if row in self.df.loc[slice_].index and
-                            col in self.df.loc[slice_].columns)
+            expected = {(r, c): ['foo: bar']
+                        for r, row in enumerate(self.df.index)
+                        for c, col in enumerate(self.df.columns)
+                        if row in self.df.loc[slice_].index and
+                        col in self.df.loc[slice_].columns}
             assert result == expected
+
+    def test_applymap_subset_multiindex(self):
+        # GH 19861
+        # Smoke test for applymap
+        def color_negative_red(val):
+            """
+            Takes a scalar and returns a string with
+            the css property `'color: red'` for negative
+            strings, black otherwise.
+            """
+            color = 'red' if val < 0 else 'black'
+            return 'color: %s' % color
+
+        dic = {
+            ('a', 'd'): [-1.12, 2.11],
+            ('a', 'c'): [2.78, -2.88],
+            ('b', 'c'): [-3.99, 3.77],
+            ('b', 'd'): [4.21, -1.22],
+        }
+
+        idx = pd.IndexSlice
+        df = pd.DataFrame(dic, index=[0, 1])
+
+        (df.style
+         .applymap(color_negative_red, subset=idx[:, idx['b', 'd']])
+         .render())
 
     def test_where_with_one_style(self):
         # GH 17474
@@ -282,10 +310,9 @@ class TestStyler(object):
         style1 = 'foo: bar'
 
         result = self.df.style.where(f, style1)._compute().ctx
-        expected = dict(((r, c),
-                        [style1 if f(self.df.loc[row, col]) else ''])
-                        for r, row in enumerate(self.df.index)
-                        for c, col in enumerate(self.df.columns))
+        expected = {(r, c): [style1 if f(self.df.loc[row, col]) else '']
+                    for r, row in enumerate(self.df.index)
+                    for c, col in enumerate(self.df.columns)}
         assert result == expected
 
     def test_where_subset(self):
@@ -303,12 +330,12 @@ class TestStyler(object):
         for slice_ in slices:
             result = self.df.style.where(f, style1, style2,
                                          subset=slice_)._compute().ctx
-            expected = dict(((r, c),
-                            [style1 if f(self.df.loc[row, col]) else style2])
-                            for r, row in enumerate(self.df.index)
-                            for c, col in enumerate(self.df.columns)
-                            if row in self.df.loc[slice_].index and
-                            col in self.df.loc[slice_].columns)
+            expected = {(r, c):
+                        [style1 if f(self.df.loc[row, col]) else style2]
+                        for r, row in enumerate(self.df.index)
+                        for c, col in enumerate(self.df.columns)
+                        if row in self.df.loc[slice_].index and
+                        col in self.df.loc[slice_].columns}
             assert result == expected
 
     def test_where_subset_compare_with_applymap(self):
@@ -350,10 +377,10 @@ class TestStyler(object):
             (0, 0): ['width: 10em', ' height: 80%'],
             (1, 0): ['width: 10em', ' height: 80%',
                      'background: linear-gradient('
-                     '90deg,#d65f5f 50.0%, transparent 0%)'],
+                     '90deg,#d65f5f 50.0%, transparent 50.0%)'],
             (2, 0): ['width: 10em', ' height: 80%',
                      'background: linear-gradient('
-                     '90deg,#d65f5f 100.0%, transparent 0%)']
+                     '90deg,#d65f5f 100.0%, transparent 100.0%)']
         }
         assert result == expected
 
@@ -362,10 +389,10 @@ class TestStyler(object):
             (0, 0): ['width: 10em', ' height: 80%'],
             (1, 0): ['width: 10em', ' height: 80%',
                      'background: linear-gradient('
-                     '90deg,red 25.0%, transparent 0%)'],
+                     '90deg,red 25.0%, transparent 25.0%)'],
             (2, 0): ['width: 10em', ' height: 80%',
                      'background: linear-gradient('
-                     '90deg,red 50.0%, transparent 0%)']
+                     '90deg,red 50.0%, transparent 50.0%)']
         }
         assert result == expected
 
@@ -384,46 +411,46 @@ class TestStyler(object):
                     (0, 2): ['width: 10em', ' height: 80%'],
                     (1, 0): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 50.0%,'
-                             ' transparent 0%)'],
+                             ' transparent 50.0%)'],
                     (1, 1): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 50.0%,'
-                             ' transparent 0%)'],
+                             ' transparent 50.0%)'],
                     (1, 2): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 50.0%,'
-                             ' transparent 0%)'],
+                             ' transparent 50.0%)'],
                     (2, 0): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 100.0%'
-                             ', transparent 0%)'],
+                             ', transparent 100.0%)'],
                     (2, 1): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 100.0%'
-                             ', transparent 0%)'],
+                             ', transparent 100.0%)'],
                     (2, 2): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 100.0%'
-                             ', transparent 0%)']}
+                             ', transparent 100.0%)']}
         assert result == expected
 
         result = df.style.bar(axis=1)._compute().ctx
         expected = {(0, 0): ['width: 10em', ' height: 80%'],
                     (0, 1): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 50.0%,'
-                             ' transparent 0%)'],
+                             ' transparent 50.0%)'],
                     (0, 2): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 100.0%'
-                             ', transparent 0%)'],
+                             ', transparent 100.0%)'],
                     (1, 0): ['width: 10em', ' height: 80%'],
                     (1, 1): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 50.0%'
-                             ', transparent 0%)'],
+                             ', transparent 50.0%)'],
                     (1, 2): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 100.0%'
-                             ', transparent 0%)'],
+                             ', transparent 100.0%)'],
                     (2, 0): ['width: 10em', ' height: 80%'],
                     (2, 1): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 50.0%'
-                             ', transparent 0%)'],
+                             ', transparent 50.0%)'],
                     (2, 2): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg,#d65f5f 100.0%'
-                             ', transparent 0%)']}
+                             ', transparent 100.0%)']}
         assert result == expected
 
     def test_bar_align_mid_pos_and_neg(self):
@@ -433,21 +460,16 @@ class TestStyler(object):
                               '#d65f5f', '#5fba7d'])._compute().ctx
 
         expected = {(0, 0): ['width: 10em', ' height: 80%',
-                             'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 0.0%, #d65f5f 0.0%, '
+                             'background: linear-gradient(90deg,'
                              '#d65f5f 10.0%, transparent 10.0%)'],
-                    (1, 0): ['width: 10em', ' height: 80%',
-                             'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 10.0%, '
-                             '#d65f5f 10.0%, #d65f5f 10.0%, '
-                             'transparent 10.0%)'],
+                    (1, 0): ['width: 10em', ' height: 80%', ],
                     (2, 0): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 10.0%, #5fba7d 10.0%'
+                             'transparent 10.0%, #5fba7d 10.0%'
                              ', #5fba7d 30.0%, transparent 30.0%)'],
                     (3, 0): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 10.0%, '
+                             'transparent 10.0%, '
                              '#5fba7d 10.0%, #5fba7d 100.0%, '
                              'transparent 100.0%)']}
 
@@ -460,20 +482,16 @@ class TestStyler(object):
                               '#d65f5f', '#5fba7d'])._compute().ctx
 
         expected = {(0, 0): ['width: 10em', ' height: 80%',
-                             'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             'background: linear-gradient(90deg,'
                              '#5fba7d 10.0%, transparent 10.0%)'],
                     (1, 0): ['width: 10em', ' height: 80%',
-                             'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             'background: linear-gradient(90deg,'
                              '#5fba7d 20.0%, transparent 20.0%)'],
                     (2, 0): ['width: 10em', ' height: 80%',
-                             'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             'background: linear-gradient(90deg,'
                              '#5fba7d 50.0%, transparent 50.0%)'],
                     (3, 0): ['width: 10em', ' height: 80%',
-                             'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             'background: linear-gradient(90deg,'
                              '#5fba7d 100.0%, transparent 100.0%)']}
 
         assert result == expected
@@ -485,23 +503,21 @@ class TestStyler(object):
                               '#d65f5f', '#5fba7d'])._compute().ctx
 
         expected = {(0, 0): ['width: 10em', ' height: 80%',
-                             'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 0.0%, '
-                             '#d65f5f 0.0%, #d65f5f 100.0%, '
-                             'transparent 100.0%)'],
+                             'background: linear-gradient(90deg,'
+                             '#d65f5f 100.0%, transparent 100.0%)'],
                     (1, 0): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 40.0%, '
+                             'transparent 40.0%, '
                              '#d65f5f 40.0%, #d65f5f 100.0%, '
                              'transparent 100.0%)'],
                     (2, 0): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 70.0%, '
+                             'transparent 70.0%, '
                              '#d65f5f 70.0%, #d65f5f 100.0%, '
                              'transparent 100.0%)'],
                     (3, 0): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 80.0%, '
+                             'transparent 80.0%, '
                              '#d65f5f 80.0%, #d65f5f 100.0%, '
                              'transparent 100.0%)']}
         assert result == expected
@@ -512,25 +528,194 @@ class TestStyler(object):
 
         result = df.style.bar(align='zero', color=[
                               '#d65f5f', '#5fba7d'], width=90)._compute().ctx
-
         expected = {(0, 0): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 45.0%, '
-                             '#d65f5f 45.0%, #d65f5f 50%, '
-                             'transparent 50%)'],
-                    (1, 0): ['width: 10em', ' height: 80%',
-                             'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 50%, '
-                             '#5fba7d 50%, #5fba7d 50.0%, '
-                             'transparent 50.0%)'],
+                             'transparent 40.0%, #d65f5f 40.0%, '
+                             '#d65f5f 45.0%, transparent 45.0%)'],
+                    (1, 0): ['width: 10em', ' height: 80%'],
                     (2, 0): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 50%, #5fba7d 50%, '
-                             '#5fba7d 60.0%, transparent 60.0%)'],
+                             'transparent 45.0%, #5fba7d 45.0%, '
+                             '#5fba7d 55.0%, transparent 55.0%)'],
                     (3, 0): ['width: 10em', ' height: 80%',
                              'background: linear-gradient(90deg, '
-                             'transparent 0%, transparent 50%, #5fba7d 50%, '
-                             '#5fba7d 95.0%, transparent 95.0%)']}
+                             'transparent 45.0%, #5fba7d 45.0%, '
+                             '#5fba7d 90.0%, transparent 90.0%)']}
+        assert result == expected
+
+    def test_bar_align_left_axis_none(self):
+        df = pd.DataFrame({'A': [0, 1], 'B': [2, 4]})
+        result = df.style.bar(axis=None)._compute().ctx
+        expected = {
+            (0, 0): ['width: 10em', ' height: 80%'],
+            (1, 0): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg,'
+                     '#d65f5f 25.0%, transparent 25.0%)'],
+            (0, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg,'
+                     '#d65f5f 50.0%, transparent 50.0%)'],
+            (1, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg,'
+                     '#d65f5f 100.0%, transparent 100.0%)']
+        }
+        assert result == expected
+
+    def test_bar_align_zero_axis_none(self):
+        df = pd.DataFrame({'A': [0, 1], 'B': [-2, 4]})
+        result = df.style.bar(align='zero', axis=None)._compute().ctx
+        expected = {
+            (0, 0): ['width: 10em', ' height: 80%'],
+            (1, 0): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 50.0%, #d65f5f 50.0%, '
+                     '#d65f5f 62.5%, transparent 62.5%)'],
+            (0, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 25.0%, #d65f5f 25.0%, '
+                     '#d65f5f 50.0%, transparent 50.0%)'],
+            (1, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 50.0%, #d65f5f 50.0%, '
+                     '#d65f5f 100.0%, transparent 100.0%)']
+        }
+        assert result == expected
+
+    def test_bar_align_mid_axis_none(self):
+        df = pd.DataFrame({'A': [0, 1], 'B': [-2, 4]})
+        result = df.style.bar(align='mid', axis=None)._compute().ctx
+        expected = {
+            (0, 0): ['width: 10em', ' height: 80%'],
+            (1, 0): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 33.3%, #d65f5f 33.3%, '
+                     '#d65f5f 50.0%, transparent 50.0%)'],
+            (0, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg,'
+                     '#d65f5f 33.3%, transparent 33.3%)'],
+            (1, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 33.3%, #d65f5f 33.3%, '
+                     '#d65f5f 100.0%, transparent 100.0%)']
+        }
+        assert result == expected
+
+    def test_bar_align_mid_vmin(self):
+        df = pd.DataFrame({'A': [0, 1], 'B': [-2, 4]})
+        result = df.style.bar(align='mid', axis=None, vmin=-6)._compute().ctx
+        expected = {
+            (0, 0): ['width: 10em', ' height: 80%'],
+            (1, 0): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 60.0%, #d65f5f 60.0%, '
+                     '#d65f5f 70.0%, transparent 70.0%)'],
+            (0, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 40.0%, #d65f5f 40.0%, '
+                     '#d65f5f 60.0%, transparent 60.0%)'],
+            (1, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 60.0%, #d65f5f 60.0%, '
+                     '#d65f5f 100.0%, transparent 100.0%)']
+        }
+        assert result == expected
+
+    def test_bar_align_mid_vmax(self):
+        df = pd.DataFrame({'A': [0, 1], 'B': [-2, 4]})
+        result = df.style.bar(align='mid', axis=None, vmax=8)._compute().ctx
+        expected = {
+            (0, 0): ['width: 10em', ' height: 80%'],
+            (1, 0): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 20.0%, #d65f5f 20.0%, '
+                     '#d65f5f 30.0%, transparent 30.0%)'],
+            (0, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg,'
+                     '#d65f5f 20.0%, transparent 20.0%)'],
+            (1, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 20.0%, #d65f5f 20.0%, '
+                     '#d65f5f 60.0%, transparent 60.0%)']
+        }
+        assert result == expected
+
+    def test_bar_align_mid_vmin_vmax_wide(self):
+        df = pd.DataFrame({'A': [0, 1], 'B': [-2, 4]})
+        result = df.style.bar(align='mid', axis=None,
+                              vmin=-3, vmax=7)._compute().ctx
+        expected = {
+            (0, 0): ['width: 10em', ' height: 80%'],
+            (1, 0): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 30.0%, #d65f5f 30.0%, '
+                     '#d65f5f 40.0%, transparent 40.0%)'],
+            (0, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 10.0%, #d65f5f 10.0%, '
+                     '#d65f5f 30.0%, transparent 30.0%)'],
+            (1, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 30.0%, #d65f5f 30.0%, '
+                     '#d65f5f 70.0%, transparent 70.0%)']
+        }
+        assert result == expected
+
+    def test_bar_align_mid_vmin_vmax_clipping(self):
+        df = pd.DataFrame({'A': [0, 1], 'B': [-2, 4]})
+        result = df.style.bar(align='mid', axis=None,
+                              vmin=-1, vmax=3)._compute().ctx
+        expected = {
+            (0, 0): ['width: 10em', ' height: 80%'],
+            (1, 0): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 25.0%, #d65f5f 25.0%, '
+                     '#d65f5f 50.0%, transparent 50.0%)'],
+            (0, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg,'
+                     '#d65f5f 25.0%, transparent 25.0%)'],
+            (1, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 25.0%, #d65f5f 25.0%, '
+                     '#d65f5f 100.0%, transparent 100.0%)']
+        }
+        assert result == expected
+
+    def test_bar_align_mid_nans(self):
+        df = pd.DataFrame({'A': [1, None], 'B': [-1, 3]})
+        result = df.style.bar(align='mid', axis=None)._compute().ctx
+        expected = {
+            (0, 0): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 25.0%, #d65f5f 25.0%, '
+                     '#d65f5f 50.0%, transparent 50.0%)'],
+            (1, 0): [''],
+            (0, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg,'
+                     '#d65f5f 25.0%, transparent 25.0%)'],
+            (1, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 25.0%, #d65f5f 25.0%, '
+                     '#d65f5f 100.0%, transparent 100.0%)']
+        }
+        assert result == expected
+
+    def test_bar_align_zero_nans(self):
+        df = pd.DataFrame({'A': [1, None], 'B': [-1, 2]})
+        result = df.style.bar(align='zero', axis=None)._compute().ctx
+        expected = {
+            (0, 0): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 50.0%, #d65f5f 50.0%, '
+                     '#d65f5f 75.0%, transparent 75.0%)'],
+            (1, 0): [''],
+            (0, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 25.0%, #d65f5f 25.0%, '
+                     '#d65f5f 50.0%, transparent 50.0%)'],
+            (1, 1): ['width: 10em', ' height: 80%',
+                     'background: linear-gradient(90deg, '
+                     'transparent 50.0%, #d65f5f 50.0%, '
+                     '#d65f5f 100.0%, transparent 100.0%)']
+        }
         assert result == expected
 
     def test_bar_bad_align_raises(self):
@@ -1016,10 +1201,26 @@ class TestStyler(object):
         assert ctx['body'][1][2]['is_visible']
         assert ctx['body'][1][2]['display_value'] == 3
 
+    def test_pipe(self):
+        def set_caption_from_template(styler, a, b):
+            return styler.set_caption(
+                'Dataframe with a = {a} and b = {b}'.format(a=a, b=b))
 
-class TestStylerMatplotlibDep(object):
+        styler = self.df.style.pipe(set_caption_from_template, 'A', b='B')
+        assert 'Dataframe with a = A and b = B' in styler.render()
 
-    @td.skip_if_no_mpl
+        # Test with an argument that is a (callable, keyword_name) pair.
+        def f(a, b, styler):
+            return (a, b, styler)
+
+        styler = self.df.style
+        result = styler.pipe((f, 'styler'), a=1, b=2)
+        assert result == (1, 2, styler)
+
+
+@td.skip_if_no_mpl
+class TestStylerMatplotlibDep:
+
     def test_background_gradient(self):
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
 
@@ -1031,7 +1232,58 @@ class TestStylerMatplotlibDep(object):
 
         result = df.style.background_gradient(
             subset=pd.IndexSlice[1, 'A'])._compute().ctx
-        assert result[(1, 0)] == ['background-color: #fff7fb']
+
+        assert result[(1, 0)] == ['background-color: #fff7fb',
+                                  'color: #000000']
+
+    @pytest.mark.parametrize(
+        'c_map,expected', [
+            (None, {
+                (0, 0): ['background-color: #440154', 'color: #f1f1f1'],
+                (1, 0): ['background-color: #fde725', 'color: #000000']}),
+            ('YlOrRd', {
+                (0, 0): ['background-color: #ffffcc', 'color: #000000'],
+                (1, 0): ['background-color: #800026', 'color: #f1f1f1']})])
+    def test_text_color_threshold(self, c_map, expected):
+        df = pd.DataFrame([1, 2], columns=['A'])
+        result = df.style.background_gradient(cmap=c_map)._compute().ctx
+        assert result == expected
+
+    @pytest.mark.parametrize("text_color_threshold", [1.1, '1', -1, [2, 2]])
+    def test_text_color_threshold_raises(self, text_color_threshold):
+        df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
+        msg = "`text_color_threshold` must be a value from 0 to 1."
+        with pytest.raises(ValueError, match=msg):
+            df.style.background_gradient(
+                text_color_threshold=text_color_threshold)._compute()
+
+    @td.skip_if_no_mpl
+    def test_background_gradient_axis(self):
+        df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
+
+        low = ['background-color: #f7fbff', 'color: #000000']
+        high = ['background-color: #08306b', 'color: #f1f1f1']
+        mid = ['background-color: #abd0e6', 'color: #000000']
+        result = df.style.background_gradient(cmap='Blues',
+                                              axis=0)._compute().ctx
+        assert result[(0, 0)] == low
+        assert result[(0, 1)] == low
+        assert result[(1, 0)] == high
+        assert result[(1, 1)] == high
+
+        result = df.style.background_gradient(cmap='Blues',
+                                              axis=1)._compute().ctx
+        assert result[(0, 0)] == low
+        assert result[(0, 1)] == high
+        assert result[(1, 0)] == low
+        assert result[(1, 1)] == high
+
+        result = df.style.background_gradient(cmap='Blues',
+                                              axis=None)._compute().ctx
+        assert result[(0, 0)] == low
+        assert result[(0, 1)] == mid
+        assert result[(1, 0)] == mid
+        assert result[(1, 1)] == high
 
 
 def test_block_names():
@@ -1061,11 +1313,3 @@ def test_from_custom_template(tmpdir):
     assert result.template is not Styler.template
     styler = result(pd.DataFrame({"A": [1, 2]}))
     assert styler.render()
-
-
-def test_shim():
-    # https://github.com/pandas-dev/pandas/pull/16059
-    # Remove in 0.21
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        from pandas.formats.style import Styler as _styler  # noqa

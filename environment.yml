@@ -1,0 +1,60 @@
+name: pandas-dev
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  # required
+  - numpy>=1.15
+  - python=3
+  - python-dateutil>=2.5.0
+  - pytz
+
+  # development
+  - asv
+  - cython>=0.28.2
+  - flake8
+  - flake8-comprehensions
+  - flake8-rst>=0.6.0,<=0.7.0
+  - gitpython
+  - hypothesis>=3.82
+  - isort
+  - moto
+  - mypy
+  - pycodestyle
+  - pytest>=4.0.2
+  - pytest-mock
+  - sphinx
+  - numpydoc>=0.9.0
+  - pip
+
+  # optional
+  - beautifulsoup4>=4.2.1
+  - blosc
+  - botocore>=1.11
+  - boto3
+  - bottleneck>=1.2.1
+  - fastparquet>=0.2.1
+  - html5lib
+  - ipython>=5.6.0
+  - ipykernel
+  - jinja2
+  - lxml
+  - matplotlib>=2.2.2
+  - nbsphinx
+  - numexpr>=2.6.8
+  - openpyxl
+  - pyarrow>=0.9.0
+  - pytables>=3.4.2
+  - pytest-cov
+  - pytest-xdist
+  - s3fs
+  - scipy>=1.1
+  - seaborn
+  - sqlalchemy
+  - statsmodels
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - pip:
+    - cpplint

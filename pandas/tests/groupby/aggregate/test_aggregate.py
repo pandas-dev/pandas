@@ -1,17 +1,15 @@
-# -*- coding: utf-8 -*-
-
 """
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
-
-import pytest
+from collections import OrderedDict
 
 import numpy as np
-import pandas as pd
+import pytest
 
-from pandas import concat, DataFrame, Index, MultiIndex, Series
-from pandas.core.groupby.groupby import Grouping, SpecificationError
-from pandas.compat import OrderedDict
+import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, Series, concat
+from pandas.core.base import SpecificationError
+from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
 
 
@@ -26,9 +24,9 @@ def test_agg_must_agg(df):
     grouped = df.groupby('A')['C']
 
     msg = "Must produce aggregated value"
-    with tm.assert_raises_regex(Exception, msg):
+    with pytest.raises(Exception, match=msg):
         grouped.agg(lambda x: x.describe())
-    with tm.assert_raises_regex(Exception, msg):
+    with pytest.raises(Exception, match=msg):
         grouped.agg(lambda x: x.index[:2])
 
 
@@ -216,7 +214,7 @@ def test_agg_multiple_functions_too_many_lambdas(df):
     funcs = ['mean', lambda x: x.mean(), lambda x: x.std()]
 
     msg = 'Function names must be unique, found multiple named <lambda>'
-    with tm.assert_raises_regex(SpecificationError, msg):
+    with pytest.raises(SpecificationError, match=msg):
         grouped.agg(funcs)
 
 
@@ -286,3 +284,45 @@ def test_multi_function_flexible_mix(df):
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = grouped.aggregate(d)
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_coercing_bools():
+    # issue 14873
+    dat = pd.DataFrame(
+        {'a': [1, 1, 2, 2], 'b': [0, 1, 2, 3], 'c': [None, None, 1, 1]})
+    gp = dat.groupby('a')
+
+    index = Index([1, 2], name='a')
+
+    result = gp['b'].aggregate(lambda x: (x != 0).all())
+    expected = Series([False, True], index=index, name='b')
+    tm.assert_series_equal(result, expected)
+
+    result = gp['c'].aggregate(lambda x: x.isnull().all())
+    expected = Series([True, False], index=index, name='c')
+    tm.assert_series_equal(result, expected)
+
+
+def test_order_aggregate_multiple_funcs():
+    # GH 25692
+    df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, 2, 3, 4]})
+
+    res = df.groupby('A').agg(['sum', 'max', 'mean', 'ohlc', 'min'])
+    result = res.columns.levels[1]
+
+    expected = pd.Index(['sum', 'max', 'mean', 'ohlc', 'min'])
+
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize('dtype', [np.int64, np.uint64])
+@pytest.mark.parametrize('how', ['first', 'last', 'min',
+                                 'max', 'mean', 'median'])
+def test_uint64_type_handling(dtype, how):
+    # GH 26310
+    df = pd.DataFrame({'x': 6903052872240755750, 'y': [1, 2]})
+    expected = df.groupby('y').agg({'x': how})
+    df.x = df.x.astype(dtype)
+    result = df.groupby('y').agg({'x': how})
+    result.x = result.x.astype(np.int64)
+    tm.assert_frame_equal(result, expected, check_exact=True)

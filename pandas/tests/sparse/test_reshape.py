@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -35,4 +35,8 @@ def test_sparse_frame_unstack(sparse_df):
 
 def test_sparse_series_unstack(sparse_df, multi_index3):
     frame = pd.SparseSeries(np.ones(3), index=multi_index3).unstack()
-    tm.assert_sp_frame_equal(frame, sparse_df)
+
+    arr = np.array([1, np.nan, np.nan])
+    arrays = {i: pd.SparseArray(np.roll(arr, i)) for i in range(3)}
+    expected = pd.DataFrame(arrays)
+    tm.assert_frame_equal(frame, expected)

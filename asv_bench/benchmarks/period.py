@@ -1,8 +1,9 @@
-from pandas import (DataFrame, Series, Period, PeriodIndex, date_range,
-                    period_range)
+from pandas import (
+    DataFrame, Period, PeriodIndex, Series, date_range, period_range)
+from pandas.tseries.frequencies import to_offset
 
 
-class PeriodProperties(object):
+class PeriodProperties:
 
     params = (['M', 'min'],
               ['year', 'month', 'day', 'hour', 'minute', 'second',
@@ -17,7 +18,7 @@ class PeriodProperties(object):
         getattr(self.per, attr)
 
 
-class PeriodUnaryMethods(object):
+class PeriodUnaryMethods:
 
     params = ['M', 'min']
     param_names = ['freq']
@@ -35,27 +36,50 @@ class PeriodUnaryMethods(object):
         self.per.asfreq('A')
 
 
-class PeriodIndexConstructor(object):
+class PeriodConstructor:
+    params = [['D'], [True, False]]
+    param_names = ['freq', 'is_offset']
 
-    goal_time = 0.2
+    def setup(self, freq, is_offset):
+        if is_offset:
+            self.freq = to_offset(freq)
+        else:
+            self.freq = freq
 
-    params = ['D']
-    param_names = ['freq']
+    def time_period_constructor(self, freq, is_offset):
+        Period('2012-06-01', freq=freq)
 
-    def setup(self, freq):
+
+class PeriodIndexConstructor:
+
+    params = [['D'], [True, False]]
+    param_names = ['freq', 'is_offset']
+
+    def setup(self, freq, is_offset):
         self.rng = date_range('1985', periods=1000)
         self.rng2 = date_range('1985', periods=1000).to_pydatetime()
+        self.ints = list(range(2000, 3000))
+        self.daily_ints = date_range('1/1/2000', periods=1000,
+                                     freq=freq).strftime('%Y%m%d').map(int)
+        if is_offset:
+            self.freq = to_offset(freq)
+        else:
+            self.freq = freq
 
-    def time_from_date_range(self, freq):
+    def time_from_date_range(self, freq, is_offset):
         PeriodIndex(self.rng, freq=freq)
 
-    def time_from_pydatetime(self, freq):
+    def time_from_pydatetime(self, freq, is_offset):
         PeriodIndex(self.rng2, freq=freq)
 
+    def time_from_ints(self, freq, is_offset):
+        PeriodIndex(self.ints, freq=freq)
 
-class DataFramePeriodColumn(object):
+    def time_from_ints_daily(self, freq, is_offset):
+        PeriodIndex(self.daily_ints, freq=freq)
 
-    goal_time = 0.2
+
+class DataFramePeriodColumn:
 
     def setup(self):
         self.rng = period_range(start='1/1/1990', freq='S', periods=20000)
@@ -64,10 +88,13 @@ class DataFramePeriodColumn(object):
     def time_setitem_period_column(self):
         self.df['col'] = self.rng
 
+    def time_set_index(self):
+        # GH#21582 limited by comparisons of Period objects
+        self.df['col2'] = self.rng
+        self.df.set_index('col2', append=True)
 
-class Algorithms(object):
 
-    goal_time = 0.2
+class Algorithms:
 
     params = ['index', 'series']
     param_names = ['typ']
@@ -88,12 +115,10 @@ class Algorithms(object):
         self.vector.value_counts()
 
 
-class Indexing(object):
-
-    goal_time = 0.2
+class Indexing:
 
     def setup(self):
-        self.index = PeriodIndex(start='1985', periods=1000, freq='D')
+        self.index = period_range(start='1985', periods=1000, freq='D')
         self.series = Series(range(1000), index=self.index)
         self.period = self.index[500]
 
@@ -114,3 +139,6 @@ class Indexing(object):
 
     def time_intersection(self):
         self.index[:750].intersection(self.index[250:])
+
+    def time_unique(self):
+        self.index.unique()

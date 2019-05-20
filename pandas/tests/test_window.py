@@ -1,24 +1,25 @@
+from collections import OrderedDict
+from datetime import datetime, timedelta
 from itertools import product
-import pytest
 import warnings
 from warnings import catch_warnings
 
-from datetime import datetime, timedelta
-from numpy.random import randn
 import numpy as np
-from pandas import _np_version_under1p12
+from numpy.random import randn
+import pytest
+
+from pandas.errors import UnsupportedFunctionCall
+import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (Series, DataFrame, bdate_range,
-                    isna, notna, concat, Timestamp, Index)
-import pandas.core.window as rwindow
-import pandas.tseries.offsets as offsets
+from pandas import (
+    DataFrame, Index, Series, Timestamp, bdate_range, concat, isna, notna)
 from pandas.core.base import SpecificationError
-from pandas.errors import UnsupportedFunctionCall
 from pandas.core.sorting import safe_sort
+import pandas.core.window as rwindow
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.compat import range, zip
+
+import pandas.tseries.offsets as offsets
 
 N, K = 100, 10
 
@@ -41,12 +42,13 @@ def win_types(request):
     return request.param
 
 
-@pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian', 'slepian'])
+@pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian',
+                        'exponential'])
 def win_types_special(request):
     return request.param
 
 
-class Base(object):
+class Base:
 
     _nan_locs = np.arange(20, 40)
     _inf_locs = np.array([])
@@ -87,10 +89,9 @@ class TestApi(Base):
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
         g = df.rolling(window=5)
-        pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
-
-        pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
-        with tm.assert_raises_regex(KeyError, '^[^A]+$'):
+        with pytest.raises(KeyError, match="Columns not found: 'C'"):
+            g[['C']]
+        with pytest.raises(KeyError, match='^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
             g[['A', 'C']]
@@ -100,12 +101,13 @@ class TestApi(Base):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
         r = df.rolling(window=5)
         tm.assert_series_equal(r.A.sum(), r['A'].sum())
-        pytest.raises(AttributeError, lambda: r.F)
+        msg = "'Rolling' object has no attribute 'F'"
+        with pytest.raises(AttributeError, match=msg):
+            r.F
 
     def tests_skip_nuisance(self):
 
         df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
-
         r = df.rolling(window=3)
         result = r[['A', 'B']].sum()
         expected = DataFrame({'A': [np.nan, np.nan, 3, 6, 9],
@@ -113,9 +115,12 @@ class TestApi(Base):
                              columns=list('AB'))
         tm.assert_frame_equal(result, expected)
 
-        expected = concat([r[['A', 'B']].sum(), df[['C']]], axis=1)
-        result = r.sum()
-        tm.assert_frame_equal(result, expected, check_like=True)
+    def test_skip_sum_object_raises(self):
+        df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
+        r = df.rolling(window=3)
+
+        with pytest.raises(TypeError, match='cannot handle this type'):
+            r.sum()
 
     def test_agg(self):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
@@ -151,6 +156,8 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
+            # using a dict with renaming
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
         expected = concat([a_mean, a_sum], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
@@ -158,6 +165,7 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected, check_like=True)
 
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.aggregate({'A': {'mean': 'mean',
                                         'sum': 'sum'},
                                   'B': {'mean2': 'mean',
@@ -210,22 +218,23 @@ class TestApi(Base):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
         r = df.rolling(window=3)
 
-        def f():
+        msg = r"cannot perform renaming for (r1|r2) with a nested dictionary"
+        with pytest.raises(SpecificationError, match=msg):
             r.aggregate({'r1': {'A': ['mean', 'sum']},
                          'r2': {'B': ['mean', 'sum']}})
-
-        pytest.raises(SpecificationError, f)
 
         expected = concat([r['A'].mean(), r['A'].std(),
                            r['B'].mean(), r['B'].std()], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
             'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
                                         'B': {'rb': ['mean', 'std']}})
         tm.assert_frame_equal(result, expected, check_like=True)
 
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.agg({'A': {'ra': ['mean', 'std']},
                             'B': {'rb': ['mean', 'std']}})
         expected.columns = pd.MultiIndex.from_tuples([('A', 'ra', 'mean'), (
@@ -276,6 +285,7 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no_scipy
+    @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
     def test_window_with_args(self):
         # make sure that we are aggregating window functions correctly with arg
         r = Series(np.random.randn(100)).rolling(window=10, min_periods=1,
@@ -306,7 +316,55 @@ class TestApi(Base):
         assert s2.name == 'foo'
         assert s3.name == 'foo'
 
+    @pytest.mark.parametrize("func,window_size,expected_vals", [
+        ('rolling', 2, [[np.nan, np.nan, np.nan, np.nan],
+                        [15., 20., 25., 20.],
+                        [25., 30., 35., 30.],
+                        [np.nan, np.nan, np.nan, np.nan],
+                        [20., 30., 35., 30.],
+                        [35., 40., 60., 40.],
+                        [60., 80., 85., 80]]),
+        ('expanding', None, [[10., 10., 20., 20.],
+                             [15., 20., 25., 20.],
+                             [20., 30., 30., 20.],
+                             [10., 10., 30., 30.],
+                             [20., 30., 35., 30.],
+                             [26.666667, 40., 50., 30.],
+                             [40., 80., 60., 30.]])])
+    def test_multiple_agg_funcs(self, func, window_size, expected_vals):
+        # GH 15072
+        df = pd.DataFrame([
+            ['A', 10, 20],
+            ['A', 20, 30],
+            ['A', 30, 40],
+            ['B', 10, 30],
+            ['B', 30, 40],
+            ['B', 40, 80],
+            ['B', 80, 90]], columns=['stock', 'low', 'high'])
 
+        f = getattr(df.groupby('stock'), func)
+        if window_size:
+            window = f(window_size)
+        else:
+            window = f()
+
+        index = pd.MultiIndex.from_tuples([
+            ('A', 0), ('A', 1), ('A', 2),
+            ('B', 3), ('B', 4), ('B', 5), ('B', 6)], names=['stock', None])
+        columns = pd.MultiIndex.from_tuples([
+            ('low', 'mean'), ('low', 'max'), ('high', 'mean'),
+            ('high', 'min')])
+        expected = pd.DataFrame(expected_vals, index=index, columns=columns)
+
+        result = window.agg(OrderedDict((
+            ('low', ['mean', 'max']),
+            ('high', ['mean', 'min']),
+        )))
+
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestWindow(Base):
 
     def setup_method(self, method):
@@ -354,10 +412,10 @@ class TestWindow(Base):
 
         msg = "numpy operations are not valid with window objects"
 
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(w, method), 1, 2, 3)
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(w, method), dtype=np.float64)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(w, method)(1, 2, 3)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(w, method)(dtype=np.float64)
 
 
 class TestRolling(Base):
@@ -387,8 +445,8 @@ class TestRolling(Base):
         c(window=2, min_periods=1, center=False)
 
         # GH 13383
-        c(0)
         with pytest.raises(ValueError):
+            c(0)
             c(-1)
 
         # not valid
@@ -407,7 +465,6 @@ class TestRolling(Base):
         # GH 13383
         o = getattr(self, which)
         c = o.rolling
-        c(0, win_type='boxcar')
         with pytest.raises(ValueError):
             c(-1, win_type='boxcar')
 
@@ -452,16 +509,90 @@ class TestRolling(Base):
 
         msg = "numpy operations are not valid with window objects"
 
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(r, method), 1, 2, 3)
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(r, method), dtype=np.float64)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(r, method)(1, 2, 3)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(r, method)(dtype=np.float64)
 
     def test_closed(self):
         df = DataFrame({'A': [0, 1, 2, 3, 4]})
         # closed only allowed for datetimelike
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
+
+    @pytest.mark.parametrize("func", ['min', 'max'])
+    def test_closed_one_entry(self, func):
+        # GH24718
+        ser = pd.Series(data=[2], index=pd.date_range('2000', periods=1))
+        result = getattr(ser.rolling('10D', closed='left'), func)()
+        tm.assert_series_equal(result, pd.Series([np.nan], index=ser.index))
+
+    @pytest.mark.parametrize("func", ['min', 'max'])
+    def test_closed_one_entry_groupby(self, func):
+        # GH24718
+        ser = pd.DataFrame(data={'A': [1, 1, 2], 'B': [3, 2, 1]},
+                           index=pd.date_range('2000', periods=3))
+        result = getattr(
+            ser.groupby('A', sort=False)['B'].rolling('10D', closed='left'),
+            func)()
+        exp_idx = pd.MultiIndex.from_arrays(arrays=[[1, 1, 2], ser.index],
+                                            names=('A', None))
+        expected = pd.Series(data=[np.nan, 3, np.nan], index=exp_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("input_dtype", ['int', 'float'])
+    @pytest.mark.parametrize("func,closed,expected", [
+        ('min', 'right', [0.0, 0, 0, 1, 2, 3, 4, 5, 6, 7]),
+        ('min', 'both', [0.0, 0, 0, 0, 1, 2, 3, 4, 5, 6]),
+        ('min', 'neither', [np.nan, 0, 0, 1, 2, 3, 4, 5, 6, 7]),
+        ('min', 'left', [np.nan, 0, 0, 0, 1, 2, 3, 4, 5, 6]),
+        ('max', 'right', [0.0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        ('max', 'both', [0.0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        ('max', 'neither', [np.nan, 0, 1, 2, 3, 4, 5, 6, 7, 8]),
+        ('max', 'left', [np.nan, 0, 1, 2, 3, 4, 5, 6, 7, 8])
+    ])
+    def test_closed_min_max_datetime(self, input_dtype,
+                                     func, closed,
+                                     expected):
+        # see gh-21704
+        ser = pd.Series(data=np.arange(10).astype(input_dtype),
+                        index=pd.date_range('2000', periods=10))
+
+        result = getattr(ser.rolling('3D', closed=closed), func)()
+        expected = pd.Series(expected, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+    def test_closed_uneven(self):
+        # see gh-21704
+        ser = pd.Series(data=np.arange(10),
+                        index=pd.date_range('2000', periods=10))
+
+        # uneven
+        ser = ser.drop(index=ser.index[[1, 5]])
+        result = ser.rolling('3D', closed='left').min()
+        expected = pd.Series([np.nan, 0, 0, 2, 3, 4, 6, 6],
+                             index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("func,closed,expected", [
+        ('min', 'right', [np.nan, 0, 0, 1, 2, 3, 4, 5, np.nan, np.nan]),
+        ('min', 'both', [np.nan, 0, 0, 0, 1, 2, 3, 4, 5, np.nan]),
+        ('min', 'neither', [np.nan, np.nan, 0, 1, 2, 3, 4, 5, np.nan, np.nan]),
+        ('min', 'left', [np.nan, np.nan, 0, 0, 1, 2, 3, 4, 5, np.nan]),
+        ('max', 'right', [np.nan, 1, 2, 3, 4, 5, 6, 6, np.nan, np.nan]),
+        ('max', 'both', [np.nan, 1, 2, 3, 4, 5, 6, 6, 6, np.nan]),
+        ('max', 'neither', [np.nan, np.nan, 1, 2, 3, 4, 5, 6, np.nan, np.nan]),
+        ('max', 'left', [np.nan, np.nan, 1, 2, 3, 4, 5, 6, 6, np.nan])
+    ])
+    def test_closed_min_max_minp(self, func, closed, expected):
+        # see gh-21704
+        ser = pd.Series(data=np.arange(10),
+                        index=pd.date_range('2000', periods=10))
+        ser[ser.index[-3:]] = np.nan
+        result = getattr(ser.rolling('3D', min_periods=2, closed=closed),
+                         func)()
+        expected = pd.Series(expected, index=ser.index)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('roller', ['1s', 1])
     def tests_empty_df_rolling(self, roller):
@@ -510,6 +641,47 @@ class TestRolling(Base):
         tm.assert_index_equal(result.columns, df.columns)
         assert result.index.names == [None, '1', '2']
 
+    @pytest.mark.parametrize('klass', [pd.Series, pd.DataFrame])
+    def test_iter_raises(self, klass):
+        # https://github.com/pandas-dev/pandas/issues/11704
+        # Iteration over a Window
+        obj = klass([1, 2, 3, 4])
+        with pytest.raises(NotImplementedError):
+            iter(obj.rolling(2))
+
+    def test_rolling_axis_sum(self, axis_frame):
+        # see gh-23372.
+        df = DataFrame(np.ones((10, 20)))
+        axis = df._get_axis_number(axis_frame)
+
+        if axis == 0:
+            expected = DataFrame({
+                i: [np.nan] * 2 + [3.0] * 8
+                for i in range(20)
+            })
+        else:
+            # axis == 1
+            expected = DataFrame([
+                [np.nan] * 2 + [3.0] * 18
+            ] * 10)
+
+        result = df.rolling(3, axis=axis_frame).sum()
+        tm.assert_frame_equal(result, expected)
+
+    def test_rolling_axis_count(self, axis_frame):
+        # see gh-26055
+        df = DataFrame({'x': range(3), 'y': range(3)})
+
+        axis = df._get_axis_number(axis_frame)
+
+        if axis in [0, 'index']:
+            expected = DataFrame({'x': [1.0, 2.0, 2.0], 'y': [1.0, 2.0, 2.0]})
+        else:
+            expected = DataFrame({'x': [1.0, 1.0, 1.0], 'y': [2.0, 2.0, 2.0]})
+
+        result = df.rolling(2, axis=axis_frame).count()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExpanding(Base):
 
@@ -550,15 +722,15 @@ class TestExpanding(Base):
 
         msg = "numpy operations are not valid with window objects"
 
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(e, method), 1, 2, 3)
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(e, method), dtype=np.float64)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(e, method)(1, 2, 3)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(e, method)(dtype=np.float64)
 
     @pytest.mark.parametrize(
         'expander',
         [1, pytest.param('ls', marks=pytest.mark.xfail(
-                         reason='GH 16425 expanding with '
+                         reason='GH#16425 expanding with '
                                 'offset not supported'))])
     def test_empty_df_expanding(self, expander):
         # GH 15819 Verifies that datetime and integer expanding windows can be
@@ -587,6 +759,33 @@ class TestExpanding(Base):
         result = x.expanding(min_periods=1).sum()
         expected = pd.Series([np.nan])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('klass', [pd.Series, pd.DataFrame])
+    def test_iter_raises(self, klass):
+        # https://github.com/pandas-dev/pandas/issues/11704
+        # Iteration over a Window
+        obj = klass([1, 2, 3, 4])
+        with pytest.raises(NotImplementedError):
+            iter(obj.expanding(2))
+
+    def test_expanding_axis(self, axis_frame):
+        # see gh-23372.
+        df = DataFrame(np.ones((10, 20)))
+        axis = df._get_axis_number(axis_frame)
+
+        if axis == 0:
+            expected = DataFrame({
+                i: [np.nan] * 2 + [float(j) for j in range(3, 11)]
+                for i in range(20)
+            })
+        else:
+            # axis == 1
+            expected = DataFrame([
+                [np.nan] * 2 + [float(i) for i in range(3, 21)]
+            ] * 10)
+
+        result = df.expanding(3, axis=axis_frame).sum()
+        tm.assert_frame_equal(result, expected)
 
 
 class TestEWM(Base):
@@ -648,10 +847,10 @@ class TestEWM(Base):
 
         msg = "numpy operations are not valid with window objects"
 
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(e, method), 1, 2, 3)
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(e, method), dtype=np.float64)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(e, method)(1, 2, 3)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(e, method)(dtype=np.float64)
 
 
 # gh-12373 : rolling functions error on float32 data
@@ -662,7 +861,7 @@ class TestEWM(Base):
 #
 # further note that we are only checking rolling for fully dtype
 # compliance (though both expanding and ewm inherit)
-class Dtype(object):
+class Dtype:
     window = 2
 
     funcs = {
@@ -868,6 +1067,7 @@ class TestDtype_datetime64UTC(DatetimeLike):
                     "datetime64[ns, UTC] is not supported ATM")
 
 
+@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestMoments(Base):
 
     def setup_method(self, method):
@@ -1062,7 +1262,7 @@ class TestMoments(Base):
             'kaiser': {'beta': 1.},
             'gaussian': {'std': 1.},
             'general_gaussian': {'power': 2., 'width': 2.},
-            'slepian': {'width': 0.5}}
+            'exponential': {'tau': 10}}
 
         vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48,
                          10.63, 14.48])
@@ -1072,10 +1272,10 @@ class TestMoments(Base):
                          13.65671, 12.01002, np.nan, np.nan],
             'general_gaussian': [np.nan, np.nan, 9.85011, 10.71589, 11.73161,
                                  13.08516, 12.95111, 12.74577, np.nan, np.nan],
-            'slepian': [np.nan, np.nan, 9.81073, 10.89359, 11.70284, 12.88331,
-                        12.96079, 12.77008, np.nan, np.nan],
             'kaiser': [np.nan, np.nan, 9.86851, 11.02969, 11.65161, 12.75129,
-                       12.90702, 12.83757, np.nan, np.nan]
+                       12.90702, 12.83757, np.nan, np.nan],
+            'exponential': [np.nan, np.nan, 9.83364, 11.10472, 11.64551,
+                            12.66138, 12.92379, 12.83770, np.nan, np.nan],
         }
 
         xp = Series(xps[win_types_special])
@@ -1091,7 +1291,8 @@ class TestMoments(Base):
             'kaiser': {'beta': 1.},
             'gaussian': {'std': 1.},
             'general_gaussian': {'power': 2., 'width': 2.},
-            'slepian': {'width': 0.5}}
+            'slepian': {'width': 0.5},
+            'exponential': {'tau': 10}}
 
         vals = np.array(range(10), dtype=np.float)
         xp = vals.copy()
@@ -1167,8 +1368,6 @@ class TestMoments(Base):
 
         tm.assert_almost_equal(df_quantile.values, np.array(np_percentile))
 
-    @pytest.mark.skipif(_np_version_under1p12,
-                        reason='numpy midpoint interpolation is broken')
     @pytest.mark.parametrize('quantile', [0.0, 0.1, 0.45, 0.5, 1])
     @pytest.mark.parametrize('interpolation', ['linear', 'lower', 'higher',
                                                'nearest', 'midpoint'])
@@ -1625,26 +1824,38 @@ class TestMoments(Base):
     def test_ewm_domain_checks(self):
         # GH 12492
         s = Series(self.arr)
-        # com must satisfy: com >= 0
-        pytest.raises(ValueError, s.ewm, com=-0.1)
+        msg = "comass must satisfy: comass >= 0"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(com=-0.1)
         s.ewm(com=0.0)
         s.ewm(com=0.1)
-        # span must satisfy: span >= 1
-        pytest.raises(ValueError, s.ewm, span=-0.1)
-        pytest.raises(ValueError, s.ewm, span=0.0)
-        pytest.raises(ValueError, s.ewm, span=0.9)
+
+        msg = "span must satisfy: span >= 1"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(span=-0.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(span=0.0)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(span=0.9)
         s.ewm(span=1.0)
         s.ewm(span=1.1)
-        # halflife must satisfy: halflife > 0
-        pytest.raises(ValueError, s.ewm, halflife=-0.1)
-        pytest.raises(ValueError, s.ewm, halflife=0.0)
+
+        msg = "halflife must satisfy: halflife > 0"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(halflife=-0.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(halflife=0.0)
         s.ewm(halflife=0.1)
-        # alpha must satisfy: 0 < alpha <= 1
-        pytest.raises(ValueError, s.ewm, alpha=-0.1)
-        pytest.raises(ValueError, s.ewm, alpha=0.0)
+
+        msg = "alpha must satisfy: 0 < alpha <= 1"
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(alpha=-0.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(alpha=0.0)
         s.ewm(alpha=0.1)
         s.ewm(alpha=1.0)
-        pytest.raises(ValueError, s.ewm, alpha=1.1)
+        with pytest.raises(ValueError, match=msg):
+            s.ewm(alpha=1.1)
 
     @pytest.mark.parametrize('method', ['mean', 'vol', 'var'])
     def test_ew_empty_series(self, method):
@@ -1708,7 +1919,7 @@ class TestMoments(Base):
         assert result2.dtype == np.float_
 
 
-class TestPairwise(object):
+class TestPairwise:
 
     # GH 7738
     df1s = [DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0, 1]),
@@ -1832,18 +2043,19 @@ class TestPairwise(object):
         for (df, result) in zip(self.df1s, results):
             if result is not None:
                 with catch_warnings(record=True):
+                    warnings.simplefilter("ignore", RuntimeWarning)
                     # we can have int and str columns
                     expected_index = df.index.union(self.df2.index)
                     expected_columns = df.columns.union(self.df2.columns)
                 tm.assert_index_equal(result.index, expected_index)
                 tm.assert_index_equal(result.columns, expected_columns)
             else:
-                tm.assert_raises_regex(
-                    ValueError, "'arg1' columns are not unique", f, df,
-                    self.df2)
-                tm.assert_raises_regex(
-                    ValueError, "'arg2' columns are not unique", f,
-                    self.df2, df)
+                with pytest.raises(ValueError,
+                                   match="'arg1' columns are not unique"):
+                    f(df, self.df2)
+                with pytest.raises(ValueError,
+                                   match="'arg2' columns are not unique"):
+                    f(self.df2, df)
 
     @pytest.mark.parametrize(
         'f', [lambda x, y: x.expanding().cov(y),
@@ -1923,7 +2135,7 @@ _consistency_data = _create_consistency_data()
 
 def _rolling_consistency_cases():
     for window in [1, 2, 3, 10, 20]:
-        for min_periods in set([0, 1, 2, 3, 4, window]):
+        for min_periods in {0, 1, 2, 3, 4, window}:
             if min_periods and (min_periods > window):
                 continue
             for center in [False, True]:
@@ -1969,7 +2181,7 @@ class TestMomentsConsistency(Base):
     ]
 
     def _create_data(self):
-        super(TestMomentsConsistency, self)._create_data()
+        super()._create_data()
         self.data = _consistency_data
 
     def setup_method(self, method):
@@ -2091,10 +2303,9 @@ class TestMomentsConsistency(Base):
                                              (mean_x * mean_y))
 
     @pytest.mark.slow
-    @pytest.mark.parametrize(
-        'min_periods, adjust, ignore_na', product([0, 1, 2, 3, 4],
-                                                  [True, False],
-                                                  [False, True]))
+    @pytest.mark.parametrize('min_periods', [0, 1, 2, 3, 4])
+    @pytest.mark.parametrize('adjust', [True, False])
+    @pytest.mark.parametrize('ignore_na', [True, False])
     def test_ewm_consistency(self, min_periods, adjust, ignore_na):
         def _weights(s, com, adjust, ignore_na):
             if isinstance(s, DataFrame):
@@ -2417,7 +2628,10 @@ class TestMomentsConsistency(Base):
     def test_flex_binary_moment(self):
         # GH3155
         # don't blow the stack
-        pytest.raises(TypeError, rwindow._flex_binary_moment, 5, 6, None)
+        msg = ("arguments to moment function must be of type"
+               " np.ndarray/Series/DataFrame")
+        with pytest.raises(TypeError, match=msg):
+            rwindow._flex_binary_moment(5, 6, None)
 
     def test_corr_sanity(self):
         # GH 3155
@@ -2454,8 +2668,8 @@ class TestMomentsConsistency(Base):
         frame2.values[:] = np.random.randn(*frame2.shape)
 
         res3 = getattr(self.frame.rolling(window=10), method)(frame2)
-        exp = DataFrame(dict((k, getattr(self.frame[k].rolling(
-            window=10), method)(frame2[k])) for k in self.frame))
+        exp = DataFrame({k: getattr(self.frame[k].rolling(
+            window=10), method)(frame2[k]) for k in self.frame})
         tm.assert_frame_equal(res3, exp)
 
     def test_ewmcov(self):
@@ -2501,7 +2715,10 @@ class TestMomentsConsistency(Base):
                 Series([1.]), Series([1.]), 50, min_periods=min_periods)
             tm.assert_series_equal(result, Series([np.NaN]))
 
-        pytest.raises(Exception, func, A, randn(50), 20, min_periods=5)
+        msg = "Input arrays must be of the same type!"
+        # exception raised is Exception
+        with pytest.raises(Exception, match=msg):
+            func(A, randn(50), 20, min_periods=5)
 
     def test_expanding_apply_args_kwargs(self, raw):
 
@@ -3076,7 +3293,7 @@ class TestMomentsConsistency(Base):
             assert result.dtypes[0] == np.dtype("f8")
 
 
-class TestGrouperGrouping(object):
+class TestGrouperGrouping:
 
     def setup_method(self, method):
         self.series = Series(np.arange(10))
@@ -3085,9 +3302,9 @@ class TestGrouperGrouping(object):
 
     def test_mutated(self):
 
-        def f():
+        msg = r"group\(\) got an unexpected keyword argument 'foo'"
+        with pytest.raises(TypeError, match=msg):
             self.frame.groupby('A', foo=1)
-        pytest.raises(TypeError, f)
 
         g = self.frame.groupby('A')
         assert not g.mutated
@@ -3174,6 +3391,28 @@ class TestGrouperGrouping(object):
             lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
         tm.assert_frame_equal(result, expected)
 
+    def test_rolling_apply_mutability(self):
+        # GH 14013
+        df = pd.DataFrame({'A': ['foo'] * 3 + ['bar'] * 3, 'B': [1] * 6})
+        g = df.groupby('A')
+
+        mi = pd.MultiIndex.from_tuples([('bar', 3), ('bar', 4), ('bar', 5),
+                                        ('foo', 0), ('foo', 1), ('foo', 2)])
+
+        mi.names = ['A', None]
+        # Grouped column should not be a part of the output
+        expected = pd.DataFrame([np.nan, 2., 2.] * 2, columns=['B'], index=mi)
+
+        result = g.rolling(window=2).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Call an arbitrary function on the groupby
+        g.sum()
+
+        # Make sure nothing has been mutated
+        result = g.rolling(window=2).sum()
+        tm.assert_frame_equal(result, expected)
+
     def test_expanding(self):
         g = self.frame.groupby('A')
         r = g.expanding()
@@ -3223,7 +3462,7 @@ class TestGrouperGrouping(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestRollingTS(object):
+class TestRollingTS:
 
     # rolling time-series friendly
     # xref GH13327

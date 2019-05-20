@@ -1,5 +1,7 @@
-import pytest
+import itertools
+
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas.core.internals import ExtensionBlock
@@ -46,8 +48,7 @@ class BaseReshapingTests(BaseExtensionTests):
         df1 = pd.DataFrame({'A': data[:3]})
         df2 = pd.DataFrame({"A": [1, 2, 3]})
         df3 = pd.DataFrame({"A": ['a', 'b', 'c']}).astype('category')
-        df4 = pd.DataFrame({"A": pd.SparseArray([1, 2, 3])})
-        dfs = [df1, df2, df3, df4]
+        dfs = [df1, df2, df3]
 
         # dataframes
         result = pd.concat(dfs)
@@ -64,14 +65,43 @@ class BaseReshapingTests(BaseExtensionTests):
         expected = pd.concat([df1.astype('object'), df2.astype('object')])
         self.assert_frame_equal(result, expected)
 
+        result = pd.concat([df1['A'], df2['A']])
+        expected = pd.concat([df1['A'].astype('object'),
+                              df2['A'].astype('object')])
+        self.assert_series_equal(result, expected)
+
+    def test_concat_columns(self, data, na_value):
+        df1 = pd.DataFrame({'A': data[:3]})
+        df2 = pd.DataFrame({'B': [1, 2, 3]})
+
+        expected = pd.DataFrame({'A': data[:3], 'B': [1, 2, 3]})
+        result = pd.concat([df1, df2], axis=1)
+        self.assert_frame_equal(result, expected)
+        result = pd.concat([df1['A'], df2['B']], axis=1)
+        self.assert_frame_equal(result, expected)
+
+        # non-aligned
+        df2 = pd.DataFrame({'B': [1, 2, 3]}, index=[1, 2, 3])
+        expected = pd.DataFrame({
+            'A': data._from_sequence(list(data[:3]) + [na_value],
+                                     dtype=data.dtype),
+            'B': [np.nan, 1, 2, 3]})
+
+        result = pd.concat([df1, df2], axis=1)
+        self.assert_frame_equal(result, expected)
+        result = pd.concat([df1['A'], df2['B']], axis=1)
+        self.assert_frame_equal(result, expected)
+
     def test_align(self, data, na_value):
         a = data[:3]
         b = data[2:5]
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
 
         # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.Series(data._from_sequence(list(a) + [na_value]))
-        e2 = pd.Series(data._from_sequence([na_value] + list(b)))
+        e1 = pd.Series(data._from_sequence(list(a) + [na_value],
+                                           dtype=data.dtype))
+        e2 = pd.Series(data._from_sequence([na_value] + list(b),
+                                           dtype=data.dtype))
         self.assert_series_equal(r1, e1)
         self.assert_series_equal(r2, e2)
 
@@ -83,8 +113,10 @@ class BaseReshapingTests(BaseExtensionTests):
         )
 
         # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.DataFrame({'A': data._from_sequence(list(a) + [na_value])})
-        e2 = pd.DataFrame({'A': data._from_sequence([na_value] + list(b))})
+        e1 = pd.DataFrame({'A': data._from_sequence(list(a) + [na_value],
+                                                    dtype=data.dtype)})
+        e2 = pd.DataFrame({'A': data._from_sequence([na_value] + list(b),
+                                                    dtype=data.dtype)})
         self.assert_frame_equal(r1, e1)
         self.assert_frame_equal(r2, e2)
 
@@ -94,7 +126,8 @@ class BaseReshapingTests(BaseExtensionTests):
         df = pd.DataFrame({"col": np.arange(len(ser) + 1)})
         r1, r2 = ser.align(df)
 
-        e1 = pd.Series(data._from_sequence(list(data) + [na_value]),
+        e1 = pd.Series(data._from_sequence(list(data) + [na_value],
+                                           dtype=data.dtype),
                        name=ser.name)
 
         self.assert_series_equal(r1, e1)
@@ -127,7 +160,8 @@ class BaseReshapingTests(BaseExtensionTests):
         res = pd.merge(df1, df2)
         exp = pd.DataFrame(
             {'int1': [1, 1, 2], 'int2': [1, 2, 3], 'key': [0, 0, 1],
-             'ext': data._from_sequence([data[0], data[0], data[1]])})
+             'ext': data._from_sequence([data[0], data[0], data[1]],
+                                        dtype=data.dtype)})
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
 
         res = pd.merge(df1, df2, how='outer')
@@ -135,5 +169,103 @@ class BaseReshapingTests(BaseExtensionTests):
             {'int1': [1, 1, 2, 3, np.nan], 'int2': [1, 2, 3, np.nan, 4],
              'key': [0, 0, 1, 2, 3],
              'ext': data._from_sequence(
-                 [data[0], data[0], data[1], data[2], na_value])})
+                 [data[0], data[0], data[1], data[2], na_value],
+                 dtype=data.dtype)})
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
+
+    def test_merge_on_extension_array(self, data):
+        # GH 23020
+        a, b = data[:2]
+        key = type(data)._from_sequence([a, b], dtype=data.dtype)
+
+        df = pd.DataFrame({"key": key, "val": [1, 2]})
+        result = pd.merge(df, df, on='key')
+        expected = pd.DataFrame({"key": key,
+                                 "val_x": [1, 2],
+                                 "val_y": [1, 2]})
+        self.assert_frame_equal(result, expected)
+
+        # order
+        result = pd.merge(df.iloc[[1, 0]], df, on='key')
+        expected = expected.iloc[[1, 0]].reset_index(drop=True)
+        self.assert_frame_equal(result, expected)
+
+    def test_merge_on_extension_array_duplicates(self, data):
+        # GH 23020
+        a, b = data[:2]
+        key = type(data)._from_sequence([a, b, a], dtype=data.dtype)
+        df1 = pd.DataFrame({"key": key, "val": [1, 2, 3]})
+        df2 = pd.DataFrame({"key": key, "val": [1, 2, 3]})
+
+        result = pd.merge(df1, df2, on='key')
+        expected = pd.DataFrame({
+            "key": key.take([0, 0, 0, 0, 1]),
+            "val_x": [1, 1, 3, 3, 2],
+            "val_y": [1, 3, 1, 3, 2],
+        })
+        self.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("columns", [
+        ["A", "B"],
+        pd.MultiIndex.from_tuples([('A', 'a'), ('A', 'b')],
+                                  names=['outer', 'inner']),
+    ])
+    def test_stack(self, data, columns):
+        df = pd.DataFrame({"A": data[:5], "B": data[:5]})
+        df.columns = columns
+        result = df.stack()
+        expected = df.astype(object).stack()
+        # we need a second astype(object), in case the constructor inferred
+        # object -> specialized, as is done for period.
+        expected = expected.astype(object)
+
+        if isinstance(expected, pd.Series):
+            assert result.dtype == df.iloc[:, 0].dtype
+        else:
+            assert all(result.dtypes == df.iloc[:, 0].dtype)
+
+        result = result.astype(object)
+        self.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("index", [
+        # Two levels, uniform.
+        pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b']]),
+                                   names=['a', 'b']),
+
+        # non-uniform
+        pd.MultiIndex.from_tuples([('A', 'a'), ('A', 'b'), ('B', 'b')]),
+
+        # three levels, non-uniform
+        pd.MultiIndex.from_product([('A', 'B'), ('a', 'b', 'c'), (0, 1, 2)]),
+        pd.MultiIndex.from_tuples([
+            ('A', 'a', 1),
+            ('A', 'b', 0),
+            ('A', 'a', 0),
+            ('B', 'a', 0),
+            ('B', 'c', 1),
+        ]),
+    ])
+    @pytest.mark.parametrize("obj", ["series", "frame"])
+    def test_unstack(self, data, index, obj):
+        data = data[:len(index)]
+        if obj == "series":
+            ser = pd.Series(data, index=index)
+        else:
+            ser = pd.DataFrame({"A": data, "B": data}, index=index)
+
+        n = index.nlevels
+        levels = list(range(n))
+        # [0, 1, 2]
+        # [(0,), (1,), (2,), (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)]
+        combinations = itertools.chain.from_iterable(
+            itertools.permutations(levels, i) for i in range(1, n)
+        )
+
+        for level in combinations:
+            result = ser.unstack(level=level)
+            assert all(isinstance(result[col].array, type(data))
+                       for col in result.columns)
+            expected = ser.astype(object).unstack(level=level)
+            result = result.astype(object)
+
+            self.assert_frame_equal(result, expected)

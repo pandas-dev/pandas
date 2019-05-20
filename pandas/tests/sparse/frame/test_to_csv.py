@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
+
 from pandas import SparseDataFrame, read_csv
 from pandas.util import testing as tm
 
 
-class TestSparseDataFrameToCsv(object):
+class TestSparseDataFrameToCsv:
     fill_values = [np.nan, 0, None, 1]
 
     @pytest.mark.parametrize('fill_value', fill_values)

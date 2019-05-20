@@ -3,84 +3,53 @@ test methods relating to generic function evaluation
 the so-called white/black lists
 """
 
-import pytest
 from string import ascii_lowercase
+
 import numpy as np
-from pandas import DataFrame, Series, compat, date_range, Index, MultiIndex
+import pytest
+
+from pandas import DataFrame, Index, MultiIndex, Series, date_range
 from pandas.util import testing as tm
-from pandas.compat import lrange, product
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                  'mad', 'std', 'var', 'sem']
 AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
 
-df_whitelist = frozenset([
-    'last',
-    'first',
-    'mean',
-    'sum',
-    'min',
-    'max',
-    'head',
-    'tail',
-    'cumcount',
-    'ngroup',
-    'resample',
-    'rank',
+df_whitelist = [
     'quantile',
     'fillna',
     'mad',
-    'any',
-    'all',
     'take',
     'idxmax',
     'idxmin',
-    'shift',
     'tshift',
-    'ffill',
-    'bfill',
-    'pct_change',
     'skew',
     'plot',
     'hist',
-    'median',
     'dtypes',
     'corrwith',
     'corr',
     'cov',
     'diff',
-])
+]
 
-s_whitelist = frozenset([
-    'last',
-    'first',
-    'mean',
-    'sum',
-    'min',
-    'max',
-    'head',
-    'tail',
-    'cumcount',
-    'ngroup',
-    'resample',
-    'rank',
+
+@pytest.fixture(params=df_whitelist)
+def df_whitelist_fixture(request):
+    return request.param
+
+
+s_whitelist = [
     'quantile',
     'fillna',
     'mad',
-    'any',
-    'all',
     'take',
     'idxmax',
     'idxmin',
-    'shift',
     'tshift',
-    'ffill',
-    'bfill',
-    'pct_change',
     'skew',
     'plot',
     'hist',
-    'median',
     'dtype',
     'corr',
     'cov',
@@ -90,15 +59,20 @@ s_whitelist = frozenset([
     'nsmallest',
     'is_monotonic_increasing',
     'is_monotonic_decreasing',
-])
+]
+
+
+@pytest.fixture(params=s_whitelist)
+def s_whitelist_fixture(request):
+    return request.param
 
 
 @pytest.fixture
 def mframe():
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                               'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['first', 'second'])
     return DataFrame(np.random.randn(10, 3), index=index,
                      columns=['A', 'B', 'C'])
@@ -123,50 +97,60 @@ def df_letters():
     return df
 
 
-@pytest.mark.parametrize(
-    "obj, whitelist", zip((df_letters(), df_letters().floats),
-                          (df_whitelist, s_whitelist)))
-def test_groupby_whitelist(df_letters, obj, whitelist):
+@pytest.mark.parametrize("whitelist", [df_whitelist, s_whitelist])
+def test_groupby_whitelist(df_letters, whitelist):
     df = df_letters
-
-    # these are aliases so ok to have the alias __name__
-    alias = {'bfill': 'backfill',
-             'ffill': 'pad',
-             'boxplot': None}
+    if whitelist == df_whitelist:
+        # dataframe
+        obj = df_letters
+    else:
+        obj = df_letters['floats']
 
     gb = obj.groupby(df.letters)
 
-    assert whitelist == gb._apply_whitelist
-    for m in whitelist:
+    assert set(whitelist) == set(gb._apply_whitelist)
 
-        m = alias.get(m, m)
-        if m is None:
-            continue
 
-        f = getattr(type(gb), m)
+def check_whitelist(obj, df, m):
+    # check the obj for a particular whitelist m
 
-        # name
-        try:
-            n = f.__name__
-        except AttributeError:
-            continue
-        assert n == m
+    gb = obj.groupby(df.letters)
 
-        # qualname
-        if compat.PY3:
-            try:
-                n = f.__qualname__
-            except AttributeError:
-                continue
-            assert n.endswith(m)
+    f = getattr(type(gb), m)
+
+    # name
+    try:
+        n = f.__name__
+    except AttributeError:
+        return
+    assert n == m
+
+    # qualname
+    try:
+        n = f.__qualname__
+    except AttributeError:
+        return
+    assert n.endswith(m)
+
+
+def test_groupby_series_whitelist(df_letters, s_whitelist_fixture):
+    m = s_whitelist_fixture
+    df = df_letters
+    check_whitelist(df.letters, df, m)
+
+
+def test_groupby_frame_whitelist(df_letters, df_whitelist_fixture):
+    m = df_whitelist_fixture
+    df = df_letters
+    check_whitelist(df, df, m)
 
 
 @pytest.fixture
 def raw_frame():
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                               'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['first', 'second'])
     raw_frame = DataFrame(np.random.randn(10, 3), index=index,
                           columns=Index(['A', 'B', 'C'], name='exp'))
@@ -175,12 +159,11 @@ def raw_frame():
     return raw_frame
 
 
-@pytest.mark.parametrize(
-    "op, level, axis, skipna, sort",
-    product(AGG_FUNCTIONS,
-            lrange(2), lrange(2),
-            [True, False],
-            [True, False]))
+@pytest.mark.parametrize('op', AGG_FUNCTIONS)
+@pytest.mark.parametrize('level', [0, 1])
+@pytest.mark.parametrize('axis', [0, 1])
+@pytest.mark.parametrize('skipna', [True, False])
+@pytest.mark.parametrize('sort', [True, False])
 def test_regression_whitelist_methods(
         raw_frame, op, level,
         axis, skipna, sort):
@@ -234,7 +217,7 @@ def test_groupby_blacklist(df_letters):
         for obj in (df, s):
             gb = obj.groupby(df.letters)
             msg = fmt.format(bl, type(gb).__name__)
-            with tm.assert_raises_regex(AttributeError, msg):
+            with pytest.raises(AttributeError, match=msg):
                 getattr(gb, bl)
 
 

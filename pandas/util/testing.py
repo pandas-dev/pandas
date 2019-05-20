@@ -1,60 +1,54 @@
-from __future__ import division
-# pylint: disable-msg=W0402
-
-import re
-import string
-import sys
-import tempfile
-import warnings
-import inspect
-import os
-import subprocess
-import locale
-import traceback
-
+import bz2
+from collections import Counter
+from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from contextlib import contextmanager
+import gzip
+import http.client
+import lzma
+import os
+import re
+from shutil import rmtree
+import string
+import tempfile
+import traceback
+import warnings
+import zipfile
 
-from numpy.random import randn, rand
 import numpy as np
+from numpy.random import rand, randn
+
+from pandas._config.localization import (  # noqa:F401
+    can_set_locale, get_locales, set_locale)
+
+import pandas._libs.testing as _testing
+from pandas.compat import raise_with_traceback
+
+from pandas.core.dtypes.common import (
+    is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_datetimelike_v_numeric, is_datetimelike_v_object,
+    is_extension_array_dtype, is_interval_dtype, is_list_like, is_number,
+    is_period_dtype, is_sequence, is_timedelta64_dtype, needs_i8_conversion)
+from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
-from pandas.core.arrays import ExtensionArray
-from pandas.core.dtypes.missing import array_equivalent
-from pandas.core.dtypes.common import (
-    is_datetimelike_v_numeric,
-    is_datetimelike_v_object,
-    is_number, is_bool,
-    needs_i8_conversion,
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_sequence,
-    is_list_like)
-from pandas.io.formats.printing import pprint_thing
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
+    IntervalIndex, MultiIndex, RangeIndex, Series, bdate_range)
 from pandas.core.algorithms import take_1d
-import pandas.core.common as com
+from pandas.core.arrays import (
+    DatetimeArray, ExtensionArray, IntervalArray, PeriodArray, TimedeltaArray,
+    period_array)
 
-import pandas.compat as compat
-from pandas.compat import (
-    filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, StringIO, string_types, PY3, PY2)
-
-from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
-                    DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
-                    Index, MultiIndex,
-                    Series, DataFrame, Panel)
-
-from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
-
+from pandas.io.formats.printing import pprint_thing
 
 N = 30
 K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
 # set testing_mode
-_testing_mode_warnings = (DeprecationWarning, compat.ResourceWarning)
+_testing_mode_warnings = (DeprecationWarning, ResourceWarning)
 
 
 def set_testing_mode():
@@ -100,7 +94,7 @@ def round_trip_pickle(obj, path=None):
     """
 
     if path is None:
-        path = u('__{random_bytes}__.pickle'.format(random_bytes=rands(10)))
+        path = '__{random_bytes}__.pickle'.format(random_bytes=rands(10))
     with ensure_clean(path) as path:
         pd.to_pickle(obj, path)
         return pd.read_pickle(path)
@@ -184,16 +178,12 @@ def decompress_file(path, compression):
     if compression is None:
         f = open(path, 'rb')
     elif compression == 'gzip':
-        import gzip
         f = gzip.open(path, 'rb')
     elif compression == 'bz2':
-        import bz2
         f = bz2.BZ2File(path, 'rb')
     elif compression == 'xz':
-        lzma = compat.import_lzma()
         f = lzma.LZMAFile(path, 'rb')
     elif compression == 'zip':
-        import zipfile
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
         if len(zip_names) == 1:
@@ -205,64 +195,129 @@ def decompress_file(path, compression):
         msg = 'Unrecognized compression type: {}'.format(compression)
         raise ValueError(msg)
 
-    yield f
-    f.close()
+    try:
+        yield f
+    finally:
+        f.close()
+        if compression == "zip":
+            zip_file.close()
 
 
-def assert_almost_equal(left, right, check_exact=False,
-                        check_dtype='equiv', check_less_precise=False,
-                        **kwargs):
+def write_to_compressed(compression, path, data, dest="test"):
+    """
+    Write data to a compressed file.
+
+    Parameters
+    ----------
+    compression : {'gzip', 'bz2', 'zip', 'xz'}
+        The compression type to use.
+    path : str
+        The file path to write the data.
+    data : str
+        The data to write.
+    dest : str, default "test"
+        The destination file (for ZIP only)
+
+    Raises
+    ------
+    ValueError : An invalid compression value was passed in.
+    """
+
+    if compression == "zip":
+        import zipfile
+        compress_method = zipfile.ZipFile
+    elif compression == "gzip":
+        import gzip
+        compress_method = gzip.GzipFile
+    elif compression == "bz2":
+        import bz2
+        compress_method = bz2.BZ2File
+    elif compression == "xz":
+        import lzma
+        compress_method = lzma.LZMAFile
+    else:
+        msg = "Unrecognized compression type: {}".format(compression)
+        raise ValueError(msg)
+
+    if compression == "zip":
+        mode = "w"
+        args = (dest, data)
+        method = "writestr"
+    else:
+        mode = "wb"
+        args = (data,)
+        method = "write"
+
+    with compress_method(path, mode=mode) as f:
+        getattr(f, method)(*args)
+
+
+def assert_almost_equal(left, right, check_dtype="equiv",
+                        check_less_precise=False, **kwargs):
     """
     Check that the left and right objects are approximately equal.
+
+    By approximately equal, we refer to objects that are numbers or that
+    contain numbers which may be equivalent to specific levels of precision.
 
     Parameters
     ----------
     left : object
     right : object
-    check_exact : bool, default False
-        Whether to compare number exactly.
-    check_dtype: bool, default True
-        check dtype if both a and b are the same type
+    check_dtype : bool / string {'equiv'}, default 'equiv'
+        Check dtype if both a and b are the same type. If 'equiv' is passed in,
+        then `RangeIndex` and `Int64Index` are also considered equivalent
+        when doing type checking.
     check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when check_exact is False.
-        5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
+        Specify comparison precision. 5 digits (False) or 3 digits (True)
+        after decimal points are compared. If int, then specify the number
+        of digits to compare.
+
+        When comparing two numbers, if the first number has magnitude less
+        than 1e-5, we compare the two numbers directly and check whether
+        they are equivalent within the specified precision. Otherwise, we
+        compare the **ratio** of the second number to the first number and
+        check whether it is equivalent to 1 within the specified precision.
     """
+
     if isinstance(left, pd.Index):
-        return assert_index_equal(left, right, check_exact=check_exact,
-                                  exact=check_dtype,
-                                  check_less_precise=check_less_precise,
-                                  **kwargs)
+        assert_index_equal(left, right,
+                           check_exact=False,
+                           exact=check_dtype,
+                           check_less_precise=check_less_precise,
+                           **kwargs)
 
     elif isinstance(left, pd.Series):
-        return assert_series_equal(left, right, check_exact=check_exact,
-                                   check_dtype=check_dtype,
-                                   check_less_precise=check_less_precise,
-                                   **kwargs)
+        assert_series_equal(left, right,
+                            check_exact=False,
+                            check_dtype=check_dtype,
+                            check_less_precise=check_less_precise,
+                            **kwargs)
 
     elif isinstance(left, pd.DataFrame):
-        return assert_frame_equal(left, right, check_exact=check_exact,
-                                  check_dtype=check_dtype,
-                                  check_less_precise=check_less_precise,
-                                  **kwargs)
+        assert_frame_equal(left, right,
+                           check_exact=False,
+                           check_dtype=check_dtype,
+                           check_less_precise=check_less_precise,
+                           **kwargs)
 
     else:
-        # other sequences
+        # Other sequences.
         if check_dtype:
             if is_number(left) and is_number(right):
-                # do not compare numeric classes, like np.float64 and float
+                # Do not compare numeric classes, like np.float64 and float.
                 pass
             elif is_bool(left) and is_bool(right):
-                # do not compare bool classes, like np.bool_ and bool
+                # Do not compare bool classes, like np.bool_ and bool.
                 pass
             else:
                 if (isinstance(left, np.ndarray) or
                         isinstance(right, np.ndarray)):
-                    obj = 'numpy array'
+                    obj = "numpy array"
                 else:
-                    obj = 'Input'
+                    obj = "Input"
                 assert_class_equal(left, right, obj=obj)
-        return _testing.assert_almost_equal(
+        _testing.assert_almost_equal(
             left, right,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
@@ -300,7 +355,7 @@ def _check_isinstance(left, right, cls):
 def assert_dict_equal(left, right, compare_keys=True):
 
     _check_isinstance(left, right, dict)
-    return _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
+    _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
 def randbool(size=(), p=0.5):
@@ -309,7 +364,7 @@ def randbool(size=(), p=0.5):
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits),
                        dtype=(np.str_, 1))
-RANDU_CHARS = np.array(list(u("").join(map(unichr, lrange(1488, 1488 + 26))) +
+RANDU_CHARS = np.array(list("".join(map(chr, range(1488, 1488 + 26))) +
                             string.digits), dtype=(np.unicode_, 1))
 
 
@@ -364,320 +419,6 @@ def close(fignum=None):
 
 
 # -----------------------------------------------------------------------------
-# locale utilities
-
-
-def check_output(*popenargs, **kwargs):
-    # shamelessly taken from Python 2.7 source
-    r"""Run command with arguments and return its output as a byte string.
-
-    If the exit code was non-zero it raises a CalledProcessError.  The
-    CalledProcessError object will have the return code in the returncode
-    attribute and output in the output attribute.
-
-    The arguments are the same as for the Popen constructor.  Example:
-
-    >>> check_output(["ls", "-l", "/dev/null"])
-    'crw-rw-rw- 1 root root 1, 3 Oct 18  2007 /dev/null\n'
-
-    The stdout argument is not allowed as it is used internally.
-    To capture standard error in the result, use stderr=STDOUT.
-
-    >>> check_output(["/bin/sh", "-c",
-    ...               "ls -l non_existent_file ; exit 0"],
-    ...              stderr=STDOUT)
-    'ls: non_existent_file: No such file or directory\n'
-    """
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = subprocess.Popen(stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                               *popenargs, **kwargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        raise subprocess.CalledProcessError(retcode, cmd, output=output)
-    return output
-
-
-def _default_locale_getter():
-    try:
-        raw_locales = check_output(['locale -a'], shell=True)
-    except subprocess.CalledProcessError as e:
-        raise type(e)("{exception}, the 'locale -a' command cannot be found "
-                      "on your system".format(exception=e))
-    return raw_locales
-
-
-def get_locales(prefix=None, normalize=True,
-                locale_getter=_default_locale_getter):
-    """Get all the locales that are available on the system.
-
-    Parameters
-    ----------
-    prefix : str
-        If not ``None`` then return only those locales with the prefix
-        provided. For example to get all English language locales (those that
-        start with ``"en"``), pass ``prefix="en"``.
-    normalize : bool
-        Call ``locale.normalize`` on the resulting list of available locales.
-        If ``True``, only locales that can be set without throwing an
-        ``Exception`` are returned.
-    locale_getter : callable
-        The function to use to retrieve the current locales. This should return
-        a string with each locale separated by a newline character.
-
-    Returns
-    -------
-    locales : list of strings
-        A list of locale strings that can be set with ``locale.setlocale()``.
-        For example::
-
-            locale.setlocale(locale.LC_ALL, locale_string)
-
-    On error will return None (no locale available, e.g. Windows)
-
-    """
-    try:
-        raw_locales = locale_getter()
-    except Exception:
-        return None
-
-    try:
-        # raw_locales is "\n" separated list of locales
-        # it may contain non-decodable parts, so split
-        # extract what we can and then rejoin.
-        raw_locales = raw_locales.split(b'\n')
-        out_locales = []
-        for x in raw_locales:
-            if PY3:
-                out_locales.append(str(
-                    x, encoding=pd.options.display.encoding))
-            else:
-                out_locales.append(str(x))
-
-    except TypeError:
-        pass
-
-    if prefix is None:
-        return _valid_locales(out_locales, normalize)
-
-    found = re.compile('{prefix}.*'.format(prefix=prefix)) \
-              .findall('\n'.join(out_locales))
-    return _valid_locales(found, normalize)
-
-
-@contextmanager
-def set_locale(new_locale, lc_var=locale.LC_ALL):
-    """Context manager for temporarily setting a locale.
-
-    Parameters
-    ----------
-    new_locale : str or tuple
-        A string of the form <language_country>.<encoding>. For example to set
-        the current locale to US English with a UTF8 encoding, you would pass
-        "en_US.UTF-8".
-
-    Notes
-    -----
-    This is useful when you want to run a particular block of code under a
-    particular locale, without globally setting the locale. This probably isn't
-    thread-safe.
-    """
-    current_locale = locale.getlocale()
-
-    try:
-        locale.setlocale(lc_var, new_locale)
-
-        try:
-            normalized_locale = locale.getlocale()
-        except ValueError:
-            yield new_locale
-        else:
-            if com._all_not_none(*normalized_locale):
-                yield '.'.join(normalized_locale)
-            else:
-                yield new_locale
-    finally:
-        locale.setlocale(lc_var, current_locale)
-
-
-def _can_set_locale(lc):
-    """Check to see if we can set a locale without throwing an exception.
-
-    Parameters
-    ----------
-    lc : str
-        The locale to attempt to set.
-
-    Returns
-    -------
-    isvalid : bool
-        Whether the passed locale can be set
-    """
-    try:
-        with set_locale(lc):
-            pass
-    except locale.Error:  # horrible name for a Exception subclass
-        return False
-    else:
-        return True
-
-
-def _valid_locales(locales, normalize):
-    """Return a list of normalized locales that do not throw an ``Exception``
-    when set.
-
-    Parameters
-    ----------
-    locales : str
-        A string where each locale is separated by a newline.
-    normalize : bool
-        Whether to call ``locale.normalize`` on each locale.
-
-    Returns
-    -------
-    valid_locales : list
-        A list of valid locales.
-    """
-    if normalize:
-        normalizer = lambda x: locale.normalize(x.strip())
-    else:
-        normalizer = lambda x: x.strip()
-
-    return list(filter(_can_set_locale, map(normalizer, locales)))
-
-# -----------------------------------------------------------------------------
-# Stdout / stderr decorators
-
-
-def capture_stdout(f):
-    """
-    Decorator to capture stdout in a buffer so that it can be checked
-    (or suppressed) during testing.
-
-    Parameters
-    ----------
-    f : callable
-        The test that is capturing stdout.
-
-    Returns
-    -------
-    f : callable
-        The decorated test ``f``, which captures stdout.
-
-    Examples
-    --------
-
-    >>> from pandas.util.testing import capture_stdout
-    >>>
-    >>> import sys
-    >>>
-    >>> @capture_stdout
-    ... def test_print_pass():
-    ...     print("foo")
-    ...     out = sys.stdout.getvalue()
-    ...     assert out == "foo\n"
-    >>>
-    >>> @capture_stdout
-    ... def test_print_fail():
-    ...     print("foo")
-    ...     out = sys.stdout.getvalue()
-    ...     assert out == "bar\n"
-    ...
-    AssertionError: assert 'foo\n' == 'bar\n'
-    """
-
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            sys.stdout = StringIO()
-            f(*args, **kwargs)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    return wrapper
-
-
-def capture_stderr(f):
-    """
-    Decorator to capture stderr in a buffer so that it can be checked
-    (or suppressed) during testing.
-
-    Parameters
-    ----------
-    f : callable
-        The test that is capturing stderr.
-
-    Returns
-    -------
-    f : callable
-        The decorated test ``f``, which captures stderr.
-
-    Examples
-    --------
-
-    >>> from pandas.util.testing import capture_stderr
-    >>>
-    >>> import sys
-    >>>
-    >>> @capture_stderr
-    ... def test_stderr_pass():
-    ...     sys.stderr.write("foo")
-    ...     out = sys.stderr.getvalue()
-    ...     assert out == "foo\n"
-    >>>
-    >>> @capture_stderr
-    ... def test_stderr_fail():
-    ...     sys.stderr.write("foo")
-    ...     out = sys.stderr.getvalue()
-    ...     assert out == "bar\n"
-    ...
-    AssertionError: assert 'foo\n' == 'bar\n'
-    """
-
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            sys.stderr = StringIO()
-            f(*args, **kwargs)
-        finally:
-            sys.stderr = sys.__stderr__
-
-    return wrapper
-
-# -----------------------------------------------------------------------------
-# Console debugging tools
-
-
-def debug(f, *args, **kwargs):
-    from pdb import Pdb as OldPdb
-    try:
-        from IPython.core.debugger import Pdb
-        kw = dict(color_scheme='Linux')
-    except ImportError:
-        Pdb = OldPdb
-        kw = {}
-    pdb = Pdb(**kw)
-    return pdb.runcall(f, *args, **kwargs)
-
-
-def pudebug(f, *args, **kwargs):
-    import pudb
-    return pudb.runcall(f, *args, **kwargs)
-
-
-def set_trace():
-    from IPython.core.debugger import Pdb
-    try:
-        Pdb(color_scheme='Linux').set_trace(sys._getframe().f_back)
-    except Exception:
-        from pdb import Pdb as OldPdb
-        OldPdb().set_trace(sys._getframe().f_back)
-
-# -----------------------------------------------------------------------------
 # contextmanager to ensure the file cleanup
 
 
@@ -719,7 +460,7 @@ def ensure_clean(filename=None, return_filelike=False):
         finally:
             try:
                 os.close(fd)
-            except Exception as e:
+            except Exception:
                 print("Couldn't close file descriptor: {fdesc} (file: {fname})"
                       .format(fdesc=fd, fname=filename))
             try:
@@ -729,14 +470,40 @@ def ensure_clean(filename=None, return_filelike=False):
                 print("Exception on removing file: {error}".format(error=e))
 
 
-def get_data_path(f=''):
-    """Return the path of a data file, these are relative to the current test
-    directory.
+@contextmanager
+def ensure_clean_dir():
     """
-    # get our callers file
-    _, filename, _, _, _, _ = inspect.getouterframes(inspect.currentframe())[1]
-    base_dir = os.path.abspath(os.path.dirname(filename))
-    return os.path.join(base_dir, 'data', f)
+    Get a temporary directory path and agrees to remove on close.
+
+    Yields
+    ------
+    Temporary directory path
+    """
+    directory_name = tempfile.mkdtemp(suffix='')
+    try:
+        yield directory_name
+    finally:
+        try:
+            rmtree(directory_name)
+        except Exception:
+            pass
+
+
+@contextmanager
+def ensure_safe_environment_variables():
+    """
+    Get a context manager to safely set environment variables
+
+    All changes will be undone on close, hence environment variables set
+    within this contextmanager will neither persist nor change global state.
+    """
+    saved_environ = dict(os.environ)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(saved_environ)
+
 
 # -----------------------------------------------------------------------------
 # Comparators
@@ -757,7 +524,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     ----------
     left : Index
     right : Index
-    exact : bool / string {'equiv'}, default False
+    exact : bool / string {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -775,11 +542,16 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         Specify object name being compared, internally used to show appropriate
         assertion message
     """
+    __tracebackhide__ = True
 
     def _check_types(l, r, obj='Index'):
         if exact:
-            assert_class_equal(left, right, exact=exact, obj=obj)
-            assert_attr_equal('dtype', l, r, obj=obj)
+            assert_class_equal(l, r, exact=exact, obj=obj)
+
+            # Skip exact dtype checking when `check_categorical` is False
+            if check_categorical:
+                assert_attr_equal('dtype', l, r, obj=obj)
+
             # allow string-like to have different inferred_types
             if l.inferred_type in ('string', 'unicode'):
                 assert r.inferred_type in ('string', 'unicode')
@@ -789,7 +561,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     def _get_ilevel_values(index, level):
         # accept level number only
         unique = index.levels[level]
-        labels = index.labels[level]
+        labels = index.codes[level]
         filled = take_1d(unique.values, labels, fill_value=unique._na_value)
         values = unique._shallow_copy(filled, name=index.names[level])
         return values
@@ -829,7 +601,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             # get_level_values may change dtype
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
-    if check_exact:
+    # skip exact index checking when `check_categorical` is False
+    if check_exact and check_categorical:
         if not left.equals(right):
             diff = np.sum((left.values != right.values)
                           .astype(int)) * 100.0 / len(left)
@@ -849,7 +622,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         assert_attr_equal('freq', left, right, obj=obj)
     if (isinstance(left, pd.IntervalIndex) or
             isinstance(right, pd.IntervalIndex)):
-        assert_attr_equal('closed', left, right, obj=obj)
+        assert_interval_array_equal(left.values, right.values)
 
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
@@ -859,6 +632,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
 def assert_class_equal(left, right, exact=True, obj='Input'):
     """checks classes are equal."""
+    __tracebackhide__ = True
 
     def repr_class(x):
         if isinstance(x, Index):
@@ -873,8 +647,8 @@ def assert_class_equal(left, right, exact=True, obj='Input'):
     if exact == 'equiv':
         if type(left) != type(right):
             # allow equivalence of Int64Index/RangeIndex
-            types = set([type(left).__name__, type(right).__name__])
-            if len(types - set(['Int64Index', 'RangeIndex'])):
+            types = {type(left).__name__, type(right).__name__}
+            if len(types - {'Int64Index', 'RangeIndex'}):
                 msg = '{obj} classes are not equivalent'.format(obj=obj)
                 raise_assert_detail(obj, msg, repr_class(left),
                                     repr_class(right))
@@ -898,6 +672,7 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
         Specify object name being compared, internally used to show appropriate
         assertion message
     """
+    __tracebackhide__ = True
 
     left_attr = getattr(left, attr)
     right_attr = getattr(right, attr)
@@ -928,45 +703,46 @@ def assert_is_valid_plot_return_object(objs):
     import matplotlib.pyplot as plt
     if isinstance(objs, (pd.Series, np.ndarray)):
         for el in objs.ravel():
-            msg = ('one of \'objs\' is not a matplotlib Axes instance, type '
-                   'encountered {name!r}').format(name=el.__class__.__name__)
+            msg = ("one of 'objs' is not a matplotlib Axes instance, type "
+                   "encountered {name!r}").format(name=el.__class__.__name__)
             assert isinstance(el, (plt.Axes, dict)), msg
     else:
-        assert isinstance(objs, (plt.Artist, tuple, dict)), \
-            ('objs is neither an ndarray of Artist instances nor a '
-             'single Artist instance, tuple, or dict, "objs" is a {name!r}'
-             ).format(name=objs.__class__.__name__)
+        assert isinstance(objs, (plt.Artist, tuple, dict)), (
+            'objs is neither an ndarray of Artist instances nor a '
+            'single Artist instance, tuple, or dict, "objs" is a {name!r}'
+            .format(name=objs.__class__.__name__))
 
 
 def isiterable(obj):
     return hasattr(obj, '__iter__')
 
 
-def is_sorted(seq):
+def assert_is_sorted(seq):
+    """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
-    return assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    assert_numpy_array_equal(seq, np.sort(np.array(seq)))
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
-                             obj='Categorical', check_category_order=True):
+                             check_category_order=True, obj='Categorical'):
     """Test that Categoricals are equivalent.
 
     Parameters
     ----------
-    left, right : Categorical
-        Categoricals to compare
+    left : Categorical
+    right : Categorical
     check_dtype : bool, default True
         Check that integer dtype of the codes are the same
-    obj : str, default 'Categorical'
-        Specify object name being compared, internally used to show appropriate
-        assertion message
     check_category_order : bool, default True
         Whether the order of the categories should be compared, which
         implies identical integer codes.  If False, only the resulting
         values are compared.  The ordered attribute is
         checked regardless.
+    obj : str, default 'Categorical'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
     """
     _check_isinstance(left, right, Categorical)
 
@@ -987,24 +763,69 @@ def assert_categorical_equal(left, right, check_dtype=True,
     assert_attr_equal('ordered', left, right, obj=obj)
 
 
+def assert_interval_array_equal(left, right, exact='equiv',
+                                obj='IntervalArray'):
+    """Test that two IntervalArrays are equivalent.
+
+    Parameters
+    ----------
+    left, right : IntervalArray
+        The IntervalArrays to compare.
+    exact : bool / string {'equiv'}, default 'equiv'
+        Whether to check the Index class, dtype and inferred_type
+        are identical. If 'equiv', then RangeIndex can be substituted for
+        Int64Index as well.
+    obj : str, default 'IntervalArray'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
+    """
+    _check_isinstance(left, right, IntervalArray)
+
+    assert_index_equal(left.left, right.left, exact=exact,
+                       obj='{obj}.left'.format(obj=obj))
+    assert_index_equal(left.right, right.right, exact=exact,
+                       obj='{obj}.left'.format(obj=obj))
+    assert_attr_equal('closed', left, right, obj=obj)
+
+
+def assert_period_array_equal(left, right, obj='PeriodArray'):
+    _check_isinstance(left, right, PeriodArray)
+
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}.values'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
+
+
+def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
+    __tracebackhide__ = True
+    _check_isinstance(left, right, DatetimeArray)
+
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}._data'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
+    assert_attr_equal('tz', left, right, obj=obj)
+
+
+def assert_timedelta_array_equal(left, right, obj='TimedeltaArray'):
+    __tracebackhide__ = True
+    _check_isinstance(left, right, TimedeltaArray)
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}._data'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
+
+
 def raise_assert_detail(obj, message, left, right, diff=None):
+    __tracebackhide__ = True
+
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
     elif is_categorical_dtype(left):
         left = repr(left)
 
-    if PY2 and isinstance(left, string_types):
-        # left needs to be printable in native text type in python2
-        left = left.encode('utf-8')
-
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
     elif is_categorical_dtype(right):
         right = repr(right)
-
-    if PY2 and isinstance(right, string_types):
-        # right needs to be printable in native text type in python2
-        right = right.encode('utf-8')
 
     msg = """{obj} are different
 
@@ -1020,7 +841,7 @@ def raise_assert_detail(obj, message, left, right, diff=None):
 
 def assert_numpy_array_equal(left, right, strict_nan=False,
                              check_dtype=True, err_msg=None,
-                             obj='numpy array', check_same=None):
+                             check_same=None, obj='numpy array'):
     """ Checks that 'np.ndarray' is equivalent
 
     Parameters
@@ -1033,12 +854,13 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         check dtype if both a and b are np.ndarray
     err_msg : str, default None
         If provided, used as assertion message
+    check_same : None|'copy'|'same', default None
+        Ensure left and right refer/do not refer to the same memory area
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message
-    check_same : None|'copy'|'same', default None
-        Ensure left and right refer/do not refer to the same memory area
     """
+    __tracebackhide__ = True
 
     # instance validation
     # Show a detailed error message when classes are different
@@ -1090,16 +912,24 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
             assert_attr_equal('dtype', left, right, obj=obj)
 
-    return True
 
-
-def assert_extension_array_equal(left, right):
+def assert_extension_array_equal(left, right, check_dtype=True,
+                                 check_less_precise=False,
+                                 check_exact=False):
     """Check that left and right ExtensionArrays are equal.
 
     Parameters
     ----------
     left, right : ExtensionArray
         The two arrays to compare
+    check_dtype : bool, default True
+        Whether to check if the ExtensionArray dtypes are identical.
+    check_less_precise : bool or int, default False
+        Specify comparison precision. Only used when check_exact is False.
+        5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare.
+    check_exact : bool, default False
+        Whether to compare number exactly.
 
     Notes
     -----
@@ -1107,16 +937,29 @@ def assert_extension_array_equal(left, right):
     A mask of missing values is computed for each and checked to match.
     The remaining all-valid values are cast to object dtype and checked.
     """
-    assert isinstance(left, ExtensionArray)
-    assert left.dtype == right.dtype
-    left_na = left.isna()
-    right_na = right.isna()
-    assert_numpy_array_equal(left_na, right_na)
+    assert isinstance(left, ExtensionArray), 'left is not an ExtensionArray'
+    assert isinstance(right, ExtensionArray), 'right is not an ExtensionArray'
+    if check_dtype:
+        assert_attr_equal('dtype', left, right, obj='ExtensionArray')
 
-    left_valid = left[~left_na].astype(object)
-    right_valid = right[~right_na].astype(object)
+    if hasattr(left, "asi8") and type(right) == type(left):
+        # Avoid slow object-dtype comparisons
+        assert_numpy_array_equal(left.asi8, right.asi8)
+        return
 
-    assert_numpy_array_equal(left_valid, right_valid)
+    left_na = np.asarray(left.isna())
+    right_na = np.asarray(right.isna())
+    assert_numpy_array_equal(left_na, right_na, obj='ExtensionArray NA mask')
+
+    left_valid = np.asarray(left[~left_na].astype(object))
+    right_valid = np.asarray(right[~right_na].astype(object))
+    if check_exact:
+        assert_numpy_array_equal(left_valid, right_valid, obj='ExtensionArray')
+    else:
+        _testing.assert_almost_equal(left_valid, right_valid,
+                                     check_dtype=check_dtype,
+                                     check_less_precise=check_less_precise,
+                                     obj='ExtensionArray')
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1145,19 +988,26 @@ def assert_series_equal(left, right, check_dtype=True,
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
-    check_exact : bool, default False
-        Whether to compare number exactly.
+        If int, then specify the digits to compare.
+
+        When comparing two numbers, if the first number has magnitude less
+        than 1e-5, we compare the two numbers directly and check whether
+        they are equivalent within the specified precision. Otherwise, we
+        compare the **ratio** of the second number to the first number and
+        check whether it is equivalent to 1 within the specified precision.
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
+    check_exact : bool, default False
+        Whether to compare number exactly.
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
     """
+    __tracebackhide__ = True
 
     # instance validation
     _check_isinstance(left, right, Series)
@@ -1215,11 +1065,17 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
-        # TODO: big hack here
-        left = pd.IntervalIndex(left)
-        right = pd.IntervalIndex(right)
-        assert_index_equal(left, right, obj='{obj}.index'.format(obj=obj))
+        assert_interval_array_equal(left.array, right.array)
 
+    elif (is_extension_array_dtype(left.dtype) and
+          is_datetime64tz_dtype(left.dtype)):
+        # .values is an ndarray, but ._values is the ExtensionArray.
+        # TODO: Use .array
+        assert is_extension_array_dtype(right.dtype)
+        assert_extension_array_equal(left._values, right._values)
+    elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
+          is_extension_array_dtype(right) and not is_categorical_dtype(right)):
+        assert_extension_array_equal(left.array, right.array)
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
                                      check_less_precise=check_less_precise,
@@ -1249,28 +1105,47 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_categorical=True,
                        check_like=False,
                        obj='DataFrame'):
-    """Check that left and right DataFrame are equal.
+    """
+    Check that left and right DataFrame are equal.
+
+    This function is intended to compare two DataFrames and output any
+    differences. Is is mostly intended for use in unit tests.
+    Additional parameters allow varying the strictness of the
+    equality checks performed.
 
     Parameters
     ----------
     left : DataFrame
+        First DataFrame to compare.
     right : DataFrame
+        Second DataFrame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
-    check_index_type : bool / string {'equiv'}, default False
+    check_index_type : bool / string {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_column_type : bool / string {'equiv'}, default False
+    check_column_type : bool / string {'equiv'}, default 'equiv'
         Whether to check the columns class, dtype and inferred_type
-        are identical.
-    check_frame_type : bool, default False
+        are identical. Is passed as the ``exact`` argument of
+        :func:`assert_index_equal`.
+    check_frame_type : bool, default True
         Whether to check the DataFrame class is identical.
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
+        If int, then specify the digits to compare.
+
+        When comparing two numbers, if the first number has magnitude less
+        than 1e-5, we compare the two numbers directly and check whether
+        they are equivalent within the specified precision. Otherwise, we
+        compare the **ratio** of the second number to the first number and
+        check whether it is equivalent to 1 within the specified precision.
     check_names : bool, default True
-        Whether to check the Index names attribute.
+        Whether to check that the `names` attribute for both the `index`
+        and `column` attributes of the DataFrame is identical, i.e.
+
+        * left.index.names == right.index.names
+        * left.columns.names == right.columns.names
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
@@ -1281,11 +1156,46 @@ def assert_frame_equal(left, right, check_dtype=True,
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     check_like : bool, default False
-        If true, ignore the order of rows & columns
+        If True, ignore the order of index & columns.
+        Note: index labels must match their respective rows
+        (same as in columns) - same labels must be with the same data.
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
+
+    See Also
+    --------
+    assert_series_equal : Equivalent method for asserting Series equality.
+    DataFrame.equals : Check DataFrame equality.
+
+    Examples
+    --------
+    This example shows comparing two DataFrames that are equal
+    but with columns of differing dtypes.
+
+    >>> from pandas.util.testing import assert_frame_equal
+    >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
+
+    df1 equals itself.
+
+    >>> assert_frame_equal(df1, df1)
+
+    df1 differs from df2 as column 'b' is of a different type.
+
+    >>> assert_frame_equal(df1, df2)
+    Traceback (most recent call last):
+    AssertionError: Attributes are different
+    ...
+    Attribute "dtype" are different
+    [left]:  int64
+    [right]: float64
+
+    Ignore differing dtypes in columns with check_dtype.
+
+    >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
+    __tracebackhide__ = True
 
     # instance validation
     _check_isinstance(left, right, DataFrame)
@@ -1348,74 +1258,99 @@ def assert_frame_equal(left, right, check_dtype=True,
                 obj='DataFrame.iloc[:, {idx}]'.format(idx=i))
 
 
-def assert_panel_equal(left, right,
-                       check_dtype=True,
-                       check_panel_type=False,
-                       check_less_precise=False,
-                       check_names=False,
-                       by_blocks=False,
-                       obj='Panel'):
-    """Check that left and right Panels are equal.
+def assert_equal(left, right, **kwargs):
+    """
+    Wrapper for tm.assert_*_equal to dispatch to the appropriate test function.
 
     Parameters
     ----------
-    left : Panel (or nd)
-    right : Panel (or nd)
-    check_dtype : bool, default True
-        Whether to check the Panel dtype is identical.
-    check_panel_type : bool, default False
-        Whether to check the Panel class is identical.
-    check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when check_exact is False.
-        5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
-    check_names : bool, default True
-        Whether to check the Index names attribute.
-    by_blocks : bool, default False
-        Specify how to compare internal data. If False, compare by columns.
-        If True, compare by blocks.
-    obj : str, default 'Panel'
-        Specify the object name being compared, internally used to show
-        the appropriate assertion message.
+    left : Index, Series, DataFrame, ExtensionArray, or np.ndarray
+    right : Index, Series, DataFrame, ExtensionArray, or np.ndarray
+    **kwargs
     """
+    __tracebackhide__ = True
 
-    if check_panel_type:
-        assert_class_equal(left, right, obj=obj)
-
-    for axis in left._AXIS_ORDERS:
-        left_ind = getattr(left, axis)
-        right_ind = getattr(right, axis)
-        assert_index_equal(left_ind, right_ind, check_names=check_names)
-
-    if by_blocks:
-        rblocks = right._to_dict_of_blocks()
-        lblocks = left._to_dict_of_blocks()
-        for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
-            assert dtype in lblocks
-            assert dtype in rblocks
-            array_equivalent(lblocks[dtype].values, rblocks[dtype].values)
+    if isinstance(left, pd.Index):
+        assert_index_equal(left, right, **kwargs)
+    elif isinstance(left, pd.Series):
+        assert_series_equal(left, right, **kwargs)
+    elif isinstance(left, pd.DataFrame):
+        assert_frame_equal(left, right, **kwargs)
+    elif isinstance(left, IntervalArray):
+        assert_interval_array_equal(left, right, **kwargs)
+    elif isinstance(left, PeriodArray):
+        assert_period_array_equal(left, right, **kwargs)
+    elif isinstance(left, DatetimeArray):
+        assert_datetime_array_equal(left, right, **kwargs)
+    elif isinstance(left, TimedeltaArray):
+        assert_timedelta_array_equal(left, right, **kwargs)
+    elif isinstance(left, ExtensionArray):
+        assert_extension_array_equal(left, right, **kwargs)
+    elif isinstance(left, np.ndarray):
+        assert_numpy_array_equal(left, right, **kwargs)
     else:
+        raise NotImplementedError(type(left))
 
-        # can potentially be slow
-        for i, item in enumerate(left._get_axis(0)):
-            msg = "non-matching item (right) '{item}'".format(item=item)
-            assert item in right, msg
-            litem = left.iloc[i]
-            ritem = right.iloc[i]
-            assert_frame_equal(litem, ritem,
-                               check_less_precise=check_less_precise,
-                               check_names=check_names)
 
-        for i, item in enumerate(right._get_axis(0)):
-            msg = "non-matching item (left) '{item}'".format(item=item)
-            assert item in left, msg
+def box_expected(expected, box_cls, transpose=True):
+    """
+    Helper function to wrap the expected output of a test in a given box_class.
+
+    Parameters
+    ----------
+    expected : np.ndarray, Index, Series
+    box_cls : {Index, Series, DataFrame}
+
+    Returns
+    -------
+    subclass of box_cls
+    """
+    if box_cls is pd.Index:
+        expected = pd.Index(expected)
+    elif box_cls is pd.Series:
+        expected = pd.Series(expected)
+    elif box_cls is pd.DataFrame:
+        expected = pd.Series(expected).to_frame()
+        if transpose:
+            # for vector operations, we we need a DataFrame to be a single-row,
+            #  not a single-column, in order to operate against non-DataFrame
+            #  vectors of the same length.
+            expected = expected.T
+    elif box_cls is PeriodArray:
+        # the PeriodArray constructor is not as flexible as period_array
+        expected = period_array(expected)
+    elif box_cls is DatetimeArray:
+        expected = DatetimeArray(expected)
+    elif box_cls is TimedeltaArray:
+        expected = TimedeltaArray(expected)
+    elif box_cls is np.ndarray:
+        expected = np.array(expected)
+    elif box_cls is to_array:
+        expected = to_array(expected)
+    else:
+        raise NotImplementedError(box_cls)
+    return expected
+
+
+def to_array(obj):
+    # temporary implementation until we get pd.array in place
+    if is_period_dtype(obj):
+        return period_array(obj)
+    elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
+        return DatetimeArray._from_sequence(obj)
+    elif is_timedelta64_dtype(obj):
+        return TimedeltaArray._from_sequence(obj)
+    else:
+        return np.array(obj)
 
 
 # -----------------------------------------------------------------------------
 # Sparse
 
 
-def assert_sp_array_equal(left, right, check_dtype=True):
+def assert_sp_array_equal(left, right, check_dtype=True, check_kind=True,
+                          check_fill_value=True,
+                          consolidate_block_indices=False):
     """Check that the left and right SparseArray are equal.
 
     Parameters
@@ -1424,6 +1359,16 @@ def assert_sp_array_equal(left, right, check_dtype=True):
     right : SparseArray
     check_dtype : bool, default True
         Whether to check the data dtype is identical.
+    check_kind : bool, default True
+        Whether to just the kind of the sparse index for each column.
+    check_fill_value : bool, default True
+        Whether to check that left.fill_value matches right.fill_value
+    consolidate_block_indices : bool, default False
+        Whether to consolidate contiguous blocks for sparse arrays with
+        a BlockIndex. Some operations, e.g. concat, will end up with
+        block indices that could be consolidated. Setting this to true will
+        create a new BlockIndex for that array, with consolidated
+        block indices.
     """
 
     _check_isinstance(left, right, pd.SparseArray)
@@ -1435,11 +1380,27 @@ def assert_sp_array_equal(left, right, check_dtype=True):
     assert isinstance(left.sp_index, pd._libs.sparse.SparseIndex)
     assert isinstance(right.sp_index, pd._libs.sparse.SparseIndex)
 
-    if not left.sp_index.equals(right.sp_index):
-        raise_assert_detail('SparseArray.index', 'index are not equal',
-                            left.sp_index, right.sp_index)
+    if not check_kind:
+        left_index = left.sp_index.to_block_index()
+        right_index = right.sp_index.to_block_index()
+    else:
+        left_index = left.sp_index
+        right_index = right.sp_index
 
-    assert_attr_equal('fill_value', left, right)
+    if consolidate_block_indices and left.kind == 'block':
+        # we'll probably remove this hack...
+        left_index = left_index.to_int_index().to_block_index()
+        right_index = right_index.to_int_index().to_block_index()
+
+    if not left_index.equals(right_index):
+        raise_assert_detail('SparseArray.index', 'index are not equal',
+                            left_index, right_index)
+    else:
+        # Just ensure a
+        pass
+
+    if check_fill_value:
+        assert_attr_equal('fill_value', left, right)
     if check_dtype:
         assert_attr_equal('dtype', left, right)
     assert_numpy_array_equal(left.values, right.values,
@@ -1448,6 +1409,9 @@ def assert_sp_array_equal(left, right, check_dtype=True):
 
 def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
                            check_series_type=True, check_names=True,
+                           check_kind=True,
+                           check_fill_value=True,
+                           consolidate_block_indices=False,
                            obj='SparseSeries'):
     """Check that the left and right SparseSeries are equal.
 
@@ -1462,6 +1426,16 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
         Whether to check the SparseSeries class is identical.
     check_names : bool, default True
         Whether to check the SparseSeries name attribute.
+    check_kind : bool, default True
+        Whether to just the kind of the sparse index for each column.
+    check_fill_value : bool, default True
+        Whether to check that left.fill_value matches right.fill_value
+    consolidate_block_indices : bool, default False
+        Whether to consolidate contiguous blocks for sparse arrays with
+        a BlockIndex. Some operations, e.g. concat, will end up with
+        block indices that could be consolidated. Setting this to true will
+        create a new BlockIndex for that array, with consolidated
+        block indices.
     obj : str, default 'SparseSeries'
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
@@ -1474,18 +1448,25 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
     assert_index_equal(left.index, right.index,
                        obj='{obj}.index'.format(obj=obj))
 
-    assert_sp_array_equal(left.block.values, right.block.values)
+    assert_sp_array_equal(left.values, right.values,
+                          check_kind=check_kind,
+                          check_fill_value=check_fill_value,
+                          consolidate_block_indices=consolidate_block_indices)
 
     if check_names:
         assert_attr_equal('name', left, right)
     if check_dtype:
         assert_attr_equal('dtype', left, right)
 
-    assert_numpy_array_equal(left.values, right.values)
+    assert_numpy_array_equal(np.asarray(left.values),
+                             np.asarray(right.values))
 
 
 def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
-                          check_frame_type=True, obj='SparseDataFrame'):
+                          check_frame_type=True, check_kind=True,
+                          check_fill_value=True,
+                          consolidate_block_indices=False,
+                          obj='SparseDataFrame'):
     """Check that the left and right SparseDataFrame are equal.
 
     Parameters
@@ -1499,6 +1480,16 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
         otherwise just compare dense representations.
     check_frame_type : bool, default True
         Whether to check the SparseDataFrame class is identical.
+    check_kind : bool, default True
+        Whether to just the kind of the sparse index for each column.
+    check_fill_value : bool, default True
+        Whether to check that left.fill_value matches right.fill_value
+    consolidate_block_indices : bool, default False
+        Whether to consolidate contiguous blocks for sparse arrays with
+        a BlockIndex. Some operations, e.g. concat, will end up with
+        block indices that could be consolidated. Setting this to true will
+        create a new BlockIndex for that array, with consolidated
+        block indices.
     obj : str, default 'SparseDataFrame'
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
@@ -1513,18 +1504,24 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
     assert_index_equal(left.columns, right.columns,
                        obj='{obj}.columns'.format(obj=obj))
 
-    for col, series in compat.iteritems(left):
+    if check_fill_value:
+        assert_attr_equal('default_fill_value', left, right, obj=obj)
+
+    for col, series in left.items():
         assert (col in right)
         # trade-off?
 
         if exact_indices:
-            assert_sp_series_equal(series, right[col],
-                                   check_dtype=check_dtype)
+            assert_sp_series_equal(
+                series, right[col],
+                check_dtype=check_dtype,
+                check_kind=check_kind,
+                check_fill_value=check_fill_value,
+                consolidate_block_indices=consolidate_block_indices
+            )
         else:
             assert_series_equal(series.to_dense(), right[col].to_dense(),
                                 check_dtype=check_dtype)
-
-    assert_attr_equal('default_fill_value', left, right, obj=obj)
 
     # do I care?
     # assert(left.default_kind == right.default_kind)
@@ -1562,10 +1559,6 @@ def getCols(k):
     return string.ascii_uppercase[:k]
 
 
-def getArangeMat():
-    return np.arange(N * K).reshape((N, K))
-
-
 # make index
 def makeStringIndex(k=10, name=None):
     return Index(rands_array(nchars=10, size=k), name=name)
@@ -1596,11 +1589,11 @@ def makeBoolIndex(k=10, name=None):
 
 
 def makeIntIndex(k=10, name=None):
-    return Index(lrange(k), name=name)
+    return Index(list(range(k)), name=name)
 
 
 def makeUIntIndex(k=10, name=None):
-    return Index([2**63 + i for i in lrange(k)], name=name)
+    return Index([2**63 + i for i in range(k)], name=name)
 
 
 def makeRangeIndex(k=10, name=None, **kwargs):
@@ -1619,13 +1612,13 @@ def makeDateIndex(k=10, freq='B', name=None, **kwargs):
 
 
 def makeTimedeltaIndex(k=10, freq='D', name=None, **kwargs):
-    return TimedeltaIndex(start='1 day', periods=k, freq=freq,
-                          name=name, **kwargs)
+    return pd.timedelta_range(start='1 day', periods=k, freq=freq,
+                              name=name, **kwargs)
 
 
 def makePeriodIndex(k=10, name=None, **kwargs):
     dt = datetime(2000, 1, 1)
-    dr = PeriodIndex(start=dt, periods=k, freq='B', name=name, **kwargs)
+    dr = pd.period_range(start=dt, periods=k, freq='B', name=name, **kwargs)
     return dr
 
 
@@ -1751,20 +1744,6 @@ def makePeriodFrame(nper=None):
     return DataFrame(data)
 
 
-def makePanel(nper=None):
-    with warnings.catch_warnings(record=True):
-        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-        data = {c: makeTimeDataFrame(nper) for c in cols}
-        return Panel.fromDict(data)
-
-
-def makePeriodPanel(nper=None):
-    with warnings.catch_warnings(record=True):
-        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-        data = {c: makePeriodFrame(nper) for c in cols}
-        return Panel.fromDict(data)
-
-
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
                     idx_type=None):
     """Create an index/multindex with given dimensions, levels, names, etc'
@@ -1794,8 +1773,9 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     assert (is_sequence(ndupe_l) and len(ndupe_l) <= nlevels)
     assert (names is None or names is False or
             names is True or len(names) is nlevels)
-    assert idx_type is None or \
-        (idx_type in ('i', 'f', 's', 'u', 'dt', 'p', 'td') and nlevels == 1)
+    assert idx_type is None or (idx_type in ('i', 'f', 's', 'u',
+                                             'dt', 'p', 'td')
+                                and nlevels == 1)
 
     if names is True:
         # build default names
@@ -1805,7 +1785,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         names = None
 
     # make singelton case uniform
-    if isinstance(names, compat.string_types) and nlevels == 1:
+    if isinstance(names, str) and nlevels == 1:
         names = [names]
 
     # specific 1D index type requested?
@@ -1835,7 +1815,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         def keyfunc(x):
             import re
             numeric_tuple = re.sub(r"[^\d_]_?", "", x).split("_")
-            return lmap(int, numeric_tuple)
+            return [int(num) for num in numeric_tuple]
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
@@ -1847,7 +1827,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
         tuples.append(result)
 
-    tuples = lzip(*tuples)
+    tuples = list(zip(*tuples))
 
     # convert tuples to index
     if nentries == 1:
@@ -1922,12 +1902,12 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
 
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
-    assert r_idx_type is None or \
-        (r_idx_type in ('i', 'f', 's',
-                        'u', 'dt', 'p', 'td') and r_idx_nlevels == 1)
-    assert c_idx_type is None or \
-        (c_idx_type in ('i', 'f', 's',
-                        'u', 'dt', 'p', 'td') and c_idx_nlevels == 1)
+    assert r_idx_type is None or (r_idx_type in ('i', 'f', 's',
+                                                 'u', 'dt', 'p', 'td')
+                                  and r_idx_nlevels == 1)
+    assert c_idx_type is None or (c_idx_type in ('i', 'f', 's',
+                                                 'u', 'dt', 'p', 'td')
+                                  and c_idx_nlevels == 1)
 
     columns = makeCustomIndex(ncols, nlevels=c_idx_nlevels, prefix='C',
                               names=c_idx_names, ndupe_l=c_ndupe_l,
@@ -2011,22 +1991,6 @@ def makeMissingDataframe(density=.9, random_state=None):
     return df
 
 
-def add_nans(panel):
-    I, J, N = panel.shape
-    for i, item in enumerate(panel.items):
-        dm = panel[item]
-        for j, col in enumerate(dm.columns):
-            dm[col][:i + j] = np.NaN
-    return panel
-
-
-def add_nans_panel4d(panel4d):
-    for l, label in enumerate(panel4d.labels):
-        panel = panel4d[label]
-        add_nans(panel)
-    return panel4d
-
-
 class TestSubDict(dict):
 
     def __init__(self, *args, **kwargs):
@@ -2095,10 +2059,7 @@ _network_errno_vals = (
 # servers.
 
 # and conditionally raise on these exception types
-_network_error_classes = (IOError, httplib.HTTPException)
-
-if PY3:
-    _network_error_classes += (TimeoutError,)  # noqa
+_network_error_classes = (IOError, http.client.HTTPException, TimeoutError)
 
 
 def can_connect(url, error_classes=_network_error_classes):
@@ -2218,7 +2179,7 @@ def network(t, url="http://www.google.com",
     from pytest import skip
     t.network = True
 
-    @compat.wraps(t)
+    @wraps(t)
     def wrapper(*args, **kwargs):
         if check_before_test and not raise_on_error:
             if not can_connect(url, error_classes):
@@ -2250,65 +2211,12 @@ def network(t, url="http://www.google.com",
                 raise
             else:
                 skip("Skipping test due to lack of connectivity"
-                     " and error {error}".format(e))
+                     " and error {error}".format(error=e))
 
     return wrapper
 
 
 with_connectivity_check = network
-
-
-class SimpleMock(object):
-
-    """
-    Poor man's mocking object
-
-    Note: only works for new-style classes, assumes  __getattribute__ exists.
-
-    >>> a = type("Duck",(),{})
-    >>> a.attr1,a.attr2 ="fizz","buzz"
-    >>> b = SimpleMock(a,"attr1","bar")
-    >>> b.attr1 == "bar" and b.attr2 == "buzz"
-    True
-    >>> a.attr1 == "fizz" and a.attr2 == "buzz"
-    True
-    """
-
-    def __init__(self, obj, *args, **kwds):
-        assert(len(args) % 2 == 0)
-        attrs = kwds.get("attrs", {})
-        for k, v in zip(args[::2], args[1::2]):
-            # dict comprehensions break 2.6
-            attrs[k] = v
-        self.attrs = attrs
-        self.obj = obj
-
-    def __getattribute__(self, name):
-        attrs = object.__getattribute__(self, "attrs")
-        obj = object.__getattribute__(self, "obj")
-        return attrs.get(name, type(obj).__getattribute__(obj, name))
-
-
-@contextmanager
-def stdin_encoding(encoding=None):
-    """
-    Context manager for running bits of code while emulating an arbitrary
-    stdin encoding.
-
-    >>> import sys
-    >>> _encoding = sys.stdin.encoding
-    >>> with stdin_encoding('AES'): sys.stdin.encoding
-    'AES'
-    >>> sys.stdin.encoding==_encoding
-    True
-
-    """
-    import sys
-
-    _stdin = sys.stdin
-    sys.stdin = SimpleMock(sys.stdin, "encoding", encoding)
-    yield
-    sys.stdin = _stdin
 
 
 def assert_raises_regex(_exception, _regexp, _callable=None,
@@ -2319,6 +2227,9 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     expression object or a string containing a regular expression suitable
     for use by `re.search()`. This is a port of the `assertRaisesRegexp`
     function from unittest in Python 2.7.
+
+    .. deprecated:: 0.24.0
+        Use `pytest.raises` instead.
 
     Examples
     --------
@@ -2339,7 +2250,8 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     AssertionError: "pear" does not match "'apple'"
 
     You can also use this in a with statement.
-    >>> with assert_raises_regex(TypeError, 'unsupported operand type\(s\)'):
+
+    >>> with assert_raises_regex(TypeError, r'unsupported operand type\(s\)'):
     ...     1 + {}
     >>> with assert_raises_regex(TypeError, 'banana'):
     ...     'apple'[0] = 'b'
@@ -2348,6 +2260,10 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     AssertionError: "banana" does not match "'str' object does not support \
 item assignment"
     """
+    warnings.warn(("assert_raises_regex has been deprecated and will "
+                   "be removed in the next release. Please use "
+                   "`pytest.raises` instead."), FutureWarning, stacklevel=2)
+
     manager = _AssertRaisesContextmanager(exception=_exception, regexp=_regexp)
     if _callable is not None:
         with manager:
@@ -2356,7 +2272,7 @@ item assignment"
         return manager
 
 
-class _AssertRaisesContextmanager(object):
+class _AssertRaisesContextmanager:
     """
     Context manager behind `assert_raises_regex`.
     """
@@ -2436,7 +2352,8 @@ class _AssertRaisesContextmanager(object):
 
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
-                            clear=None, check_stacklevel=True):
+                            clear=None, check_stacklevel=True,
+                            raise_on_extra_warnings=True):
     """
     Context manager for running code expected to either raise a specific
     warning, or not raise any warnings. Verifies that the code raises the
@@ -2449,7 +2366,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         The type of Exception raised. ``exception.Warning`` is the base
         class for all warnings. To check that no warning is returned,
         specify ``False`` or ``None``.
-    filter_level : str, default "always"
+    filter_level : str or None, default "always"
         Specifies whether warnings are ignored, displayed, or turned
         into errors.
         Valid values are:
@@ -2468,11 +2385,14 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         the ``__warningsregistry__`` to ensure that no warning messages are
         suppressed by this context manager. If ``None`` is specified,
         the ``__warningsregistry__`` keeps track of which warnings have been
-         shown, and does not show them again.
+        shown, and does not show them again.
     check_stacklevel : bool, default True
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
         line that implements the function is displayed.
+    raise_on_extra_warnings : bool, default True
+        Whether extra warnings not of the type `expected_warning` should
+        cause the test to fail.
 
     Examples
     --------
@@ -2494,10 +2414,12 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
 
     ..warn:: This is *not* thread-safe.
     """
+    __tracebackhide__ = True
+
     with warnings.catch_warnings(record=True) as w:
 
         if clear is not None:
-            # make sure that we are clearning these warnings
+            # make sure that we are clearing these warnings
             # if they have happened before
             # to guarantee that we will catch them
             if not is_list_like(clear):
@@ -2531,16 +2453,21 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                                     message=actual_warning.message)
                     assert actual_warning.filename == caller.filename, msg
             else:
-                extra_warnings.append(actual_warning.category.__name__)
+                extra_warnings.append((actual_warning.category.__name__,
+                                       actual_warning.message,
+                                       actual_warning.filename,
+                                       actual_warning.lineno))
         if expected_warning:
             msg = "Did not see expected warning of class {name!r}.".format(
                 name=expected_warning.__name__)
             assert saw_warning, msg
-        assert not extra_warnings, ("Caused unexpected warning(s): {extra!r}."
-                                    ).format(extra=extra_warnings)
+        if raise_on_extra_warnings and extra_warnings:
+            raise AssertionError(
+                "Caused unexpected warning(s): {!r}.".format(extra_warnings)
+            )
 
 
-class RNGContext(object):
+class RNGContext:
     """
     Context manager to set the numpy random number generator speed. Returns
     to the original value upon exiting the context manager.
@@ -2568,6 +2495,37 @@ class RNGContext(object):
     def __exit__(self, exc_type, exc_value, traceback):
 
         np.random.set_state(self.start_state)
+
+
+@contextmanager
+def with_csv_dialect(name, **kwargs):
+    """
+    Context manager to temporarily register a CSV dialect for parsing CSV.
+
+    Parameters
+    ----------
+    name : str
+        The name of the dialect.
+    kwargs : mapping
+        The parameters for the dialect.
+
+    Raises
+    ------
+    ValueError : the name of the dialect conflicts with a builtin one.
+
+    See Also
+    --------
+    csv : Python's CSV library.
+    """
+    import csv
+    _BUILTIN_DIALECTS = {"excel", "excel-tab", "unix"}
+
+    if name in _BUILTIN_DIALECTS:
+        raise ValueError("Cannot override builtin dialect.")
+
+    csv.register_dialect(name, **kwargs)
+    yield
+    csv.unregister_dialect(name)
 
 
 @contextmanager
@@ -2688,58 +2646,6 @@ class SubclassedCategorical(Categorical):
 
 
 @contextmanager
-def patch(ob, attr, value):
-    """Temporarily patch an attribute of an object.
-
-    Parameters
-    ----------
-    ob : any
-        The object to patch. This must support attribute assignment for `attr`.
-    attr : str
-        The name of the attribute to patch.
-    value : any
-        The temporary attribute to assign.
-
-    Examples
-    --------
-    >>> class C(object):
-    ...     attribute = 'original'
-    ...
-    >>> C.attribute
-    'original'
-    >>> with patch(C, 'attribute', 'patched'):
-    ...     in_context = C.attribute
-    ...
-    >>> in_context
-    'patched'
-    >>> C.attribute  # the value is reset when the context manager exists
-    'original'
-
-    Correctly replaces attribute when the manager exits with an exception.
-    >>> with patch(C, 'attribute', 'patched'):
-    ...     in_context = C.attribute
-    ...     raise ValueError()
-    Traceback (most recent call last):
-       ...
-    ValueError
-    >>> in_context
-    'patched'
-    >>> C.attribute
-    'original'
-    """
-    noattr = object()  # mark that the attribute never existed
-    old = getattr(ob, attr, noattr)
-    setattr(ob, attr, value)
-    try:
-        yield
-    finally:
-        if old is noattr:
-            delattr(ob, attr)
-        else:
-            setattr(ob, attr, old)
-
-
-@contextmanager
 def set_timezone(tz):
     """Context manager for temporarily setting a timezone.
 
@@ -2809,3 +2715,24 @@ def _make_skipna_wrapper(alternative, skipna_alternative=None):
             return alternative(nona)
 
     return skipna_wrapper
+
+
+def convert_rows_list_to_csv_str(rows_list):
+    """
+    Convert list of CSV rows to single CSV-formatted string for current OS.
+
+    This method is used for creating expected value of to_csv() method.
+
+    Parameters
+    ----------
+    rows_list : list
+        The list of string. Each element represents the row of csv.
+
+    Returns
+    -------
+    expected : string
+        Expected output of to_csv() in current OS
+    """
+    sep = os.linesep
+    expected = sep.join(rows_list) + sep
+    return expected

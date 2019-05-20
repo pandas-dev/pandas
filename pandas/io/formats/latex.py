@@ -1,15 +1,11 @@
-# -*- coding: utf-8 -*-
 """
 Module for formatting output data in Latex.
 """
-
-from __future__ import print_function
-
-from pandas.core.index import MultiIndex
-from pandas import compat
-from pandas.compat import range, map, zip, u
-from pandas.io.formats.format import TableFormatter
 import numpy as np
+
+from pandas.core.dtypes.generic import ABCMultiIndex
+
+from pandas.io.formats.format import TableFormatter
 
 
 class LatexFormatter(TableFormatter):
@@ -48,7 +44,7 @@ class LatexFormatter(TableFormatter):
 
         # string representation of the columns
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
-            info_line = (u('Empty {name}\nColumns: {col}\nIndex: {idx}')
+            info_line = ('Empty {name}\nColumns: {col}\nIndex: {idx}'
                          .format(name=type(self.frame).__name__,
                                  col=self.frame.columns,
                                  idx=self.frame.index))
@@ -63,7 +59,7 @@ class LatexFormatter(TableFormatter):
                 return 'l'
 
         # reestablish the MultiIndex that has been joined by _to_str_column
-        if self.fmt.index and isinstance(self.frame.index, MultiIndex):
+        if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
             out = self.frame.index.format(
                 adjoin=False, sparsify=self.fmt.sparsify,
                 names=self.fmt.has_index_names, na_rep=self.fmt.na_rep
@@ -98,8 +94,7 @@ class LatexFormatter(TableFormatter):
             if self.fmt.index:
                 index_format = 'l' * self.frame.index.nlevels
                 column_format = index_format + column_format
-        elif not isinstance(column_format,
-                            compat.string_types):  # pragma: no cover
+        elif not isinstance(column_format, str):  # pragma: no cover
             raise AssertionError('column_format must be str or unicode, '
                                  'not {typ}'.format(typ=type(column_format)))
 
@@ -134,11 +129,13 @@ class LatexFormatter(TableFormatter):
                     buf.write('\\endlastfoot\n')
             if self.fmt.kwds.get('escape', True):
                 # escape backslashes first
-                crow = [(x.replace('\\', '\\textbackslash').replace('_', '\\_')
+                crow = [(x.replace('\\', '\\textbackslash ')
+                         .replace('_', '\\_')
                          .replace('%', '\\%').replace('$', '\\$')
                          .replace('#', '\\#').replace('{', '\\{')
-                         .replace('}', '\\}').replace('~', '\\textasciitilde')
-                         .replace('^', '\\textasciicircum').replace('&', '\\&')
+                         .replace('}', '\\}').replace('~', '\\textasciitilde ')
+                         .replace('^', '\\textasciicircum ')
+                         .replace('&', '\\&')
                          if (x and x != '{}') else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]

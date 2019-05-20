@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
-
+import numpy as np
 import pytest
 
-import numpy as np
-from pandas import Index
 from pandas._libs import lib, writers as libwriters
+
+from pandas import Index
 import pandas.util.testing as tm
 
 
-class TestMisc(object):
+class TestMisc:
 
     def test_max_len_string_array(self):
 
@@ -24,8 +23,8 @@ class TestMisc(object):
         assert libwriters.max_len_string_array(arr) == 3
 
         # raises
-        pytest.raises(TypeError,
-                      lambda: libwriters.max_len_string_array(arr.astype('U')))
+        with pytest.raises(TypeError):
+            libwriters.max_len_string_array(arr.astype('U'))
 
     def test_fast_unique_multiple_list_gen_sort(self):
         keys = [['p', 'a'], ['n', 'd'], ['a', 's']]
@@ -41,7 +40,7 @@ class TestMisc(object):
         tm.assert_numpy_array_equal(np.array(out), expected)
 
 
-class TestIndexing(object):
+class TestIndexing:
 
     def test_maybe_indices_to_slice_left_edge(self):
         target = np.arange(100)

@@ -1,23 +1,21 @@
-# -*- coding: utf-8 -*-
 """
 Tests for Series timezone-related methods
 """
 from datetime import datetime
 
+from dateutil.tz import tzoffset
+import numpy as np
 import pytest
 import pytz
-import numpy as np
-from dateutil.tz import tzoffset
 
-import pandas.util.testing as tm
-from pandas._libs import tslib
-from pandas._libs.tslibs import timezones
-from pandas.compat import lrange
+from pandas._libs.tslibs import conversion, timezones
+
+from pandas import DatetimeIndex, Index, NaT, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
-from pandas import Series, Timestamp, DatetimeIndex, Index
+import pandas.util.testing as tm
 
 
-class TestSeriesTimezones(object):
+class TestSeriesTimezones:
     # -----------------------------------------------------------------
     # Series.tz_localize
     def test_series_tz_localize(self):
@@ -31,8 +29,24 @@ class TestSeriesTimezones(object):
         # Can't localize if already tz-aware
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
         ts = Series(1, index=rng)
-        tm.assert_raises_regex(TypeError, 'Already tz-aware',
-                               ts.tz_localize, 'US/Eastern')
+
+        with pytest.raises(TypeError, match='Already tz-aware'):
+            ts.tz_localize('US/Eastern')
+
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
+    def test_tz_localize_errors_deprecation(self):
+        # GH 22644
+        tz = 'Europe/Warsaw'
+        n = 60
+        rng = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
+        ts = Series(rng)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            with pytest.raises(ValueError):
+                ts.dt.tz_localize(tz, errors='foo')
+            # make sure errors='coerce' gets mapped correctly to nonexistent
+            result = ts.dt.tz_localize(tz, errors='coerce')
+            expected = ts.dt.tz_localize(tz, nonexistent='NaT')
+            tm.assert_series_equal(result, expected)
 
     def test_series_tz_localize_ambiguous_bool(self):
         # make sure that we are correctly accepting bool values as ambiguous
@@ -61,6 +75,29 @@ class TestSeriesTimezones(object):
         result = ser.dt.tz_localize('US/Central', ambiguous=[False])
         tm.assert_series_equal(result, expected1)
 
+    @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
+    @pytest.mark.parametrize('method, exp', [
+        ['shift_forward', '2015-03-29 03:00:00'],
+        ['NaT', NaT],
+        ['raise', None],
+        ['foo', 'invalid']
+    ])
+    def test_series_tz_localize_nonexistent(self, tz, method, exp):
+        # GH 8917
+        n = 60
+        dti = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
+        s = Series(1, dti)
+        if method == 'raise':
+            with pytest.raises(pytz.NonExistentTimeError):
+                s.tz_localize(tz, nonexistent=method)
+        elif exp == 'invalid':
+            with pytest.raises(ValueError):
+                dti.tz_localize(tz, nonexistent=method)
+        else:
+            result = s.tz_localize(tz, nonexistent=method)
+            expected = Series(1, index=DatetimeIndex([exp] * n, tz=tz))
+            tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
     def test_series_tz_localize_empty(self, tzstr):
         # GH#2248
@@ -85,8 +122,9 @@ class TestSeriesTimezones(object):
         # can't convert tz-naive
         rng = date_range('1/1/2011', periods=200, freq='D')
         ts = Series(1, index=rng)
-        tm.assert_raises_regex(TypeError, "Cannot convert tz-naive",
-                               ts.tz_convert, 'US/Eastern')
+
+        with pytest.raises(TypeError, match="Cannot convert tz-naive"):
+            ts.tz_convert('US/Eastern')
 
     def test_series_tz_convert_to_utc(self):
         base = DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'],
@@ -155,7 +193,7 @@ class TestSeriesTimezones(object):
 
         # mixed
         rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
-        rng2 = lrange(100)
+        rng2 = range(100)
         ser1 = Series(np.random.randn(len(rng1)), index=rng1)
         ser2 = Series(np.random.randn(len(rng2)), index=rng2)
         ts_result = ser1.append(ser2)
@@ -298,5 +336,37 @@ class TestSeriesTimezones(object):
         time_pandas = Timestamp('2012-12-24 17:00', tz=tzstr)
 
         dt = datetime(2012, 12, 24, 17, 0)
-        time_datetime = tslib._localize_pydatetime(dt, tz)
+        time_datetime = conversion.localize_pydatetime(dt, tz)
         assert ts[time_pandas] == ts[time_datetime]
+
+    def test_series_truncate_datetimeindex_tz(self):
+        # GH 9243
+        idx = date_range('4/1/2005', '4/30/2005', freq='D', tz='US/Pacific')
+        s = Series(range(len(idx)), index=idx)
+        result = s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
+        expected = Series([1, 2, 3], index=idx[1:4])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize('method, tz', [
+        ['tz_localize', None],
+        ['tz_convert', 'Europe/Berlin']
+    ])
+    def test_tz_localize_convert_copy_inplace_mutate(self, copy, method, tz):
+        # GH 6326
+        result = Series(np.arange(0, 5),
+                        index=date_range('20131027', periods=5, freq='1H',
+                                         tz=tz))
+        getattr(result, method)('UTC', copy=copy)
+        expected = Series(np.arange(0, 5),
+                          index=date_range('20131027', periods=5, freq='1H',
+                                           tz=tz))
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
+        # GH 25843
+        tz = tz_aware_fixture
+        result = Series([Timestamp('2019', tz=tz)],
+                        dtype='datetime64[ns]')
+        expected = Series([Timestamp('2019')])
+        tm.assert_series_equal(result, expected)

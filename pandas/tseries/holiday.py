@@ -1,11 +1,15 @@
+from datetime import datetime, timedelta
+from typing import List
 import warnings
 
-from pandas import DateOffset, DatetimeIndex, Series, Timestamp
-from pandas.compat import add_metaclass
-from datetime import datetime, timedelta
-from dateutil.relativedelta import MO, TU, WE, TH, FR, SA, SU  # noqa
-from pandas.tseries.offsets import Easter, Day
+from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE  # noqa
 import numpy as np
+
+from pandas.errors import PerformanceWarning
+
+from pandas import DateOffset, Series, Timestamp, date_range
+
+from pandas.tseries.offsets import Day, Easter
 
 
 def next_monday(dt):
@@ -117,7 +121,7 @@ def after_nearest_workday(dt):
     return next_workday(nearest_workday(dt))
 
 
-class Holiday(object):
+class Holiday:
     """
     Class that defines a holiday with start/end dates and rules
     for observance.
@@ -143,12 +147,11 @@ class Holiday(object):
         Examples
         --------
         >>> from pandas.tseries.holiday import Holiday, nearest_workday
-        >>> from pandas import DateOffset
         >>> from dateutil.relativedelta import MO
         >>> USMemorialDay = Holiday('MemorialDay', month=5, day=24,
-                                    offset=DateOffset(weekday=MO(1)))
+                                    offset=pd.DateOffset(weekday=MO(1)))
         >>> USLaborDay = Holiday('Labor Day', month=9, day=1,
-                            offset=DateOffset(weekday=MO(1)))
+                                offset=pd.DateOffset(weekday=MO(1)))
         >>> July3rd = Holiday('July 3rd', month=7, day=3,)
         >>> NewYears = Holiday('New Years Day', month=1,  day=1,
                                observance=nearest_workday),
@@ -251,9 +254,9 @@ class Holiday(object):
         reference_end_date = Timestamp(
             datetime(end_date.year + 1, self.month, self.day))
         # Don't process unnecessary holidays
-        dates = DatetimeIndex(start=reference_start_date,
-                              end=reference_end_date,
-                              freq=year_offset, tz=start_date.tz)
+        dates = date_range(start=reference_start_date,
+                           end=reference_end_date,
+                           freq=year_offset, tz=start_date.tz)
 
         return dates
 
@@ -282,7 +285,8 @@ class Holiday(object):
 
                 # if we are adding a non-vectorized value
                 # ignore the PerformanceWarnings:
-                with warnings.catch_warnings(record=True):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", PerformanceWarning)
                     dates += offset
         return dates
 
@@ -293,7 +297,7 @@ holiday_calendars = {}
 def register(cls):
     try:
         name = cls.name
-    except:
+    except AttributeError:
         name = cls.__name__
     holiday_calendars[name] = cls
 
@@ -313,19 +317,16 @@ def get_calendar(name):
 class HolidayCalendarMetaClass(type):
 
     def __new__(cls, clsname, bases, attrs):
-        calendar_class = super(HolidayCalendarMetaClass, cls).__new__(
-            cls, clsname, bases, attrs)
+        calendar_class = super().__new__(cls, clsname, bases, attrs)
         register(calendar_class)
         return calendar_class
 
 
-@add_metaclass(HolidayCalendarMetaClass)
-class AbstractHolidayCalendar(object):
+class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     """
     Abstract interface to create holidays following certain rules.
     """
-    __metaclass__ = HolidayCalendarMetaClass
-    rules = []
+    rules = []  # type: List[Holiday]
     start_date = Timestamp(datetime(1970, 1, 1))
     end_date = Timestamp(datetime(2030, 12, 31))
     _cache = None
@@ -342,7 +343,7 @@ class AbstractHolidayCalendar(object):
         rules : array of Holiday objects
             A set of rules used to create the holidays.
         """
-        super(AbstractHolidayCalendar, self).__init__()
+        super().__init__()
         if name is None:
             name = self.__class__.__name__
         self.name = name
@@ -425,7 +426,7 @@ class AbstractHolidayCalendar(object):
         """
         try:
             other = other.rules
-        except:
+        except AttributeError:
             pass
 
         if not isinstance(other, list):
@@ -434,7 +435,7 @@ class AbstractHolidayCalendar(object):
 
         try:
             base = base.rules
-        except:
+        except AttributeError:
             pass
 
         if not isinstance(base, list):

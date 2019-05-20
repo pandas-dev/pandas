@@ -1,14 +1,17 @@
 """ pickle compat """
+from io import BytesIO
+import pickle
 import warnings
 
-import numpy as np
-from numpy.lib.format import read_array, write_array
-from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc, PY3
-from pandas.core.dtypes.common import is_datetime64_dtype, _NS_DTYPE
-from pandas.io.common import _get_handle, _infer_compression, _stringify_path
+from numpy.lib.format import read_array
+
+from pandas.compat import pickle_compat as pc
+
+from pandas.io.common import _get_handle, _stringify_path
 
 
-def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
+def to_pickle(obj, path, compression='infer',
+              protocol=pickle.HIGHEST_PROTOCOL):
     """
     Pickle (serialize) object to file.
 
@@ -67,15 +70,15 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
-    inferred_compression = _infer_compression(path, compression)
     f, fh = _get_handle(path, 'wb',
-                        compression=inferred_compression,
+                        compression=compression,
                         is_text=False)
     if protocol < 0:
-        protocol = pkl.HIGHEST_PROTOCOL
+        protocol = pickle.HIGHEST_PROTOCOL
     try:
-        f.write(pkl.dumps(obj, protocol=protocol))
+        f.write(pickle.dumps(obj, protocol=protocol))
     finally:
+        f.close()
         for _f in fh:
             _f.close()
 
@@ -103,7 +106,7 @@ def read_pickle(path, compression='infer'):
 
     Returns
     -------
-    unpickled : type of object stored in file
+    unpickled : same type as object stored in file
 
     See Also
     --------
@@ -138,68 +141,31 @@ def read_pickle(path, compression='infer'):
     >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
-    inferred_compression = _infer_compression(path, compression)
+    f, fh = _get_handle(path, 'rb', compression=compression, is_text=False)
 
-    def read_wrapper(func):
-        # wrapper file handle open/close operation
-        f, fh = _get_handle(path, 'rb',
-                            compression=inferred_compression,
-                            is_text=False)
-        try:
-            return func(f)
-        finally:
-            for _f in fh:
-                _f.close()
+    # 1) try standard libary Pickle
+    # 2) try pickle_compat (older pandas version) to handle subclass changes
+    # 3) try pickle_compat with latin1 encoding
 
-    def try_read(path, encoding=None):
-        # try with cPickle
-        # try with current pickle, if we have a Type Error then
-        # try with the compat pickle to handle subclass changes
-        # pass encoding only if its not None as py2 doesn't handle
-        # the param
-
-        # cpickle
-        # GH 6899
-        try:
-            with warnings.catch_warnings(record=True):
-                # We want to silencce any warnings about, e.g. moved modules.
-                return read_wrapper(lambda f: pkl.load(f))
-        except Exception:
-            # reg/patched pickle
-            try:
-                return read_wrapper(
-                    lambda f: pc.load(f, encoding=encoding, compat=False))
-            # compat pickle
-            except:
-                return read_wrapper(
-                    lambda f: pc.load(f, encoding=encoding, compat=True))
     try:
-        return try_read(path)
-    except:
-        if PY3:
-            return try_read(path, encoding='latin1')
-        raise
-
+        with warnings.catch_warnings(record=True):
+            # We want to silence any warnings about, e.g. moved modules.
+            warnings.simplefilter("ignore", Warning)
+            return pickle.load(f)
+    except Exception:  # noqa: E722
+        try:
+            return pc.load(f, encoding=None)
+        except Exception:  # noqa: E722
+            return pc.load(f, encoding='latin1')
+    finally:
+        f.close()
+        for _f in fh:
+            _f.close()
 
 # compat with sparse pickle / unpickle
 
 
-def _pickle_array(arr):
-    arr = arr.view(np.ndarray)
-
-    buf = BytesIO()
-    write_array(buf, arr)
-
-    return buf.getvalue()
-
-
 def _unpickle_array(bytes):
     arr = read_array(BytesIO(bytes))
-
-    # All datetimes should be stored as M8[ns].  When unpickling with
-    # numpy1.6, it will read these as M8[us].  So this ensures all
-    # datetime64 types are read as MS[ns]
-    if is_datetime64_dtype(arr):
-        arr = arr.view(_NS_DTYPE)
 
     return arr
