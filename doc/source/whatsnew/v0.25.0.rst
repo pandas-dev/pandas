@@ -268,7 +268,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Removed ``Panel`` (:issue:`25047`, :issue:`25191`, :issue:`25231`)
-- Removed the previously deprecated `ExcelWriter.sheetname` (:issue:`16442`, :issue:`20938`)
+- Removed the previously deprecated ``ExcelWriter.sheetname`` (:issue:`16442`, :issue:`20938`)
 -
 -
 
