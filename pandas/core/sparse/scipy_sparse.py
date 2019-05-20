@@ -126,6 +126,10 @@ def _coo_to_sparse_series(A, dense_index: bool = False,
     A : scipy.sparse.coo.coo_matrix
     dense_index : bool, default False
     sparse_series : bool, default True
+
+    Returns
+    -------
+    Series or SparseSeries
     """
     from pandas import SparseDtype
 
