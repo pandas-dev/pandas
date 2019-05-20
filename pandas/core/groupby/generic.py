@@ -1634,6 +1634,7 @@ def _is_multi_agg_with_relabel(**kwargs):
     ...                            a_min=('a', 'min'))
     True
     >>> _is_multi_agg_with_relabel()
+    False
     """
     return all(
         isinstance(v, tuple) and len(v) == 2
