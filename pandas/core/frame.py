@@ -6327,7 +6327,7 @@ class DataFrame(NDFrame):
                   versionadded='\n.. versionadded:: 0.20.0\n',
                   **_shared_doc_kwargs)
     @Appender(_shared_docs['aggregate'])
-    def aggregate(self, func=None, axis=0, *args, **kwargs):
+    def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
         result = None
