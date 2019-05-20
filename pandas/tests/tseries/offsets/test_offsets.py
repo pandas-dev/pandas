@@ -770,7 +770,8 @@ class TestBusinessHour(Base):
     def test_constructor_errors(self):
         from datetime import time as dt_time
         with pytest.raises(ValueError,
-                           match='time data must be specified only with hour and minute'):
+                           match='time data must be specified only with hour '
+                           'and minute'):
             BusinessHour(start=dt_time(11, 0, 5))
         with pytest.raises(ValueError,
                            match="time data must match '%H:%M' format"):
@@ -779,10 +780,10 @@ class TestBusinessHour(Base):
                            match="time data must match '%H:%M' format"):
             BusinessHour(start='14:00:05')
         with pytest.raises(ValueError,
-                           match='number of starting time cannot be 0'):
+                           match='Must include at least 1 start time'):
             BusinessHour(start=[])
         with pytest.raises(ValueError,
-                           match='number of ending time cannot be 0'):
+                           match='Must include at least 1 end time'):
             BusinessHour(end=[])
         with pytest.raises(ValueError,
                            match='number of starting time and ending time '
@@ -793,7 +794,9 @@ class TestBusinessHour(Base):
                                  'must be the same'):
             BusinessHour(start=['09:00', '11:00'], end=['10:00'])
         with pytest.raises(ValueError,
-                           match=r'invalid starting and ending time\(s\)'):
+                           match=r'invalid starting and ending time\(s\): '
+                           'opening hours should not touch or overlap with '
+                           'one another'):
             BusinessHour(start=['09:00', '11:00'], end=['12:00', '20:00'])
 
     def test_different_normalize_equals(self):

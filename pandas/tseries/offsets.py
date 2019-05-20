@@ -583,21 +583,13 @@ class BusinessHourMixin(BusinessMixin):
         if _iterable_not_string(start):
             start = np.asarray(start)
             if len(start) == 0:
-<<<<<<< HEAD
                 raise ValueError('Must include at least 1 start time')
-=======
-                raise ValueError('number of starting time cannot be 0')
->>>>>>> Edit comments and tests
         else:
             start = np.array([start])
         if _iterable_not_string(end):
             end = np.asarray(end)
             if len(end) == 0:
-<<<<<<< HEAD
                 raise ValueError('Must include at least 1 end time')
-=======
-                raise ValueError('number of ending time cannot be 0')
->>>>>>> Edit comments and tests
         else:
             end = np.array([end])
 
@@ -653,16 +645,10 @@ class BusinessHourMixin(BusinessMixin):
 
     def _next_opening_time(self, other, sign=1):
         """
-<<<<<<< HEAD
         If self.n and sign have the same sign, return the earliest opening time
         later than or equal to current time.
         Otherwise the latest opening time earlier than or equal to current
         time.
-=======
-        If self.n and dir have the same sign, return the earliest opening time
-        later than or equal to current time.
-        Otherwise the latest opening time earlier than or equal to current time.
->>>>>>> Edit comments and tests
 
         Opening time always locates on BusinessDay.
         However, closing time may not if business hour extends over midnight.
@@ -671,20 +657,14 @@ class BusinessHourMixin(BusinessMixin):
         latest_start = self.start[-1]
         if not self.next_bday.onOffset(other):
             # today is not business day
-<<<<<<< HEAD
             other = other + sign * self.next_bday
             if self.n * sign >= 0:
-=======
-            other = other + dir * self.next_bday
-            if self.n * dir >= 0:
->>>>>>> Edit comments and tests
                 return datetime(other.year, other.month, other.day,
                                 earliest_start.hour, earliest_start.minute)
             else:
                 return datetime(other.year, other.month, other.day,
                                 latest_start.hour, latest_start.minute)
         else:
-<<<<<<< HEAD
             if self.n * sign >= 0 and latest_start < other.time():
                 # current time is after latest starting time in today
                 other = other + sign * self.next_bday
@@ -696,19 +676,6 @@ class BusinessHourMixin(BusinessMixin):
                 return datetime(other.year, other.month, other.day,
                                 latest_start.hour, latest_start.minute)
         if self.n * sign >= 0:
-=======
-            if self.n * dir >= 0 and latest_start < other.time():
-                # current time is after latest starting time in today
-                other = other + dir * self.next_bday
-                return datetime(other.year, other.month, other.day,
-                                earliest_start.hour, earliest_start.minute)
-            elif self.n * dir < 0 and other.time() < earliest_start:
-                # current time is before earliest starting time in today
-                other = other + dir * self.next_bday
-                return datetime(other.year, other.month, other.day,
-                                latest_start.hour, latest_start.minute)
-        if self.n * dir >= 0:
->>>>>>> Edit comments and tests
             # find earliest starting time later than or equal to current time
             for st in self.start:
                 if other.time() <= st:
@@ -725,12 +692,8 @@ class BusinessHourMixin(BusinessMixin):
         """
         If n is positive, return the latest opening time earlier than or equal
         to current time.
-<<<<<<< HEAD
         Otherwise the earliest opening time later than or equal to current
         time.
-=======
-        Otherwise the earliest opening time later than or equal to current time.
->>>>>>> Edit comments and tests
 
         """
         return self._next_opening_time(other, sign=-1)
