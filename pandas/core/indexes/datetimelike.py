@@ -509,7 +509,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         cls.__rsub__ = __rsub__
 
-    def isin(self, values):
+    def isin(self, values, level=None):
         """
         Compute boolean array of whether each index value is found in the
         passed set of values.
