@@ -889,6 +889,8 @@ class TestIndex(Base):
         # i.e. identity is not preserved when sort is True
         assert (union is first) is (not sort)
 
+        # This should no longer be the same object, since [] is not consistent,
+        # both objects will be recast to dtype('O')
         union = first.union([], sort=sort)
         assert (union is first) is (not sort)
 

@@ -1077,7 +1077,10 @@ class TestDatetimeIndexTimezones:
                           tz="US/Eastern")
 
         result = rng.union(rng2)
-        assert result.tz.zone == 'UTC'
+        expected = rng.astype('O').union(rng2.astype('O'))
+        tm.assert_index_equal(result, expected)
+        assert result[0].tz.zone == 'US/Central'
+        assert result[-1].tz.zone == 'US/Eastern'
 
     @pytest.mark.parametrize('tz', [None, 'UTC', "US/Central",
                                     dateutil.tz.tzoffset(None, -28800)])

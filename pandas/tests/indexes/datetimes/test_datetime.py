@@ -298,9 +298,9 @@ class TestDatetimeIndex:
             c_idx_type='p', r_idx_type='dt')
         s = df.iloc[:5, 0]
 
-        msg = 'can only call with other PeriodIndex-ed objects'
-        with pytest.raises(ValueError, match=msg):
-            df.columns.join(s.index, how=join_type)
+        expected = df.columns.astype('O').join(s.index, how=join_type)
+        result = df.columns.join(s.index, how=join_type)
+        tm.assert_index_equal(expected, result)
 
     def test_factorize(self):
         idx1 = DatetimeIndex(['2014-01', '2014-01', '2014-02', '2014-02',

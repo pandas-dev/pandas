@@ -451,35 +451,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def union(self, other, sort=None):
-        """
-        Specialized union for DatetimeIndex objects. If combine
-        overlapping ranges with the same DateOffset, will be much
-        faster than Index.union
-
-        Parameters
-        ----------
-        other : DatetimeIndex or array-like
-        sort : bool or None, default None
-            Whether to sort the resulting Index.
-
-            * None : Sort the result, except when
-
-              1. `self` and `other` are equal.
-              2. `self` or `other` has length 0.
-              3. Some values in `self` or `other` cannot be compared.
-                 A RuntimeWarning is issued in this case.
-
-            * False : do not sort the result
-
-            .. versionadded:: 0.25.0
-
-        Returns
-        -------
-        y : Index or DatetimeIndex
-        """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
+    def _union(self, other, sort):
+        if not len(other) or self.equals(other) or not len(self):
+            return super()._union(other, sort=sort)
 
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super().union(other, sort=sort)
@@ -495,7 +469,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if this._can_fast_union(other):
             return this._fast_union(other, sort=sort)
         else:
-            result = Index.union(this, other, sort=sort)
+            result = Index._union(this, other, sort=sort)
             if isinstance(result, DatetimeIndex):
                 # TODO: we shouldn't be setting attributes like this;
                 #  in all the tests this equality already holds
