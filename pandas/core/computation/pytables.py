@@ -11,7 +11,6 @@ from pandas.compat.chainmap import DeepChainMap
 from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
-from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.core.computation import expr, ops
 from pandas.core.computation.common import _ensure_decoded
@@ -36,7 +35,7 @@ class Term(ops.Term):
 
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
-        supr_new = StringMixin.__new__
+        supr_new = object.__new__
         return supr_new(klass)
 
     def __init__(self, name, env, side=None, encoding=None):
@@ -230,7 +229,7 @@ class BinOp(ops.BinOp):
 
 class FilterBinOp(BinOp):
 
-    def __str__(self):
+    def __repr__(self):
         return pprint_thing("[Filter : [{lhs}] -> [{op}]"
                             .format(lhs=self.filter[0], op=self.filter[1]))
 
@@ -302,7 +301,7 @@ class JointFilterBinOp(FilterBinOp):
 
 class ConditionBinOp(BinOp):
 
-    def __str__(self):
+    def __repr__(self):
         return pprint_thing("[Condition : [{cond}]]"
                             .format(cond=self.condition))
 
@@ -549,7 +548,7 @@ class Expr(expr.Expr):
                                         encoding=encoding)
             self.terms = self.parse()
 
-    def __str__(self):
+    def __repr__(self):
         if self.terms is not None:
             return pprint_thing(self.terms)
         return pprint_thing(self.expr)
