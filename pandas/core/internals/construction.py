@@ -538,10 +538,7 @@ def sanitize_array(data, index, dtype=None, copy=False,
     Sanitize input data to an ndarray, copy if specified, coerce to the
     dtype if specified.
     """
-    # GH 26336: don't convert 'category' to CategoricalDtype
-    if isinstance(dtype, str) and dtype == 'category':
-        pass
-    elif dtype is not None:
+    if dtype is not None:
         dtype = pandas_dtype(dtype)
 
     if isinstance(data, ma.MaskedArray):

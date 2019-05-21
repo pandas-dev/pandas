@@ -623,19 +623,9 @@ def decode(obj):
         return Interval(obj['left'], obj['right'], obj['closed'])
     elif typ == 'series':
         dtype = dtype_for(obj['dtype'])
-
-        # GH 26336: don't convert 'category' to CategoricalDtype
-        if isinstance(dtype, str) and dtype == 'category':
-            pd_dtype = dtype
-        else:
-            pd_dtype = pandas_dtype(dtype)
-
         index = obj['index']
-        result = Series(unconvert(obj['data'], dtype, obj['compress']),
-                        index=index,
-                        dtype=pd_dtype,
-                        name=obj['name'])
-        return result
+        data = unconvert(obj['data'], dtype, obj['compress'])
+        return Series(data, index=index, dtype=dtype, name=obj['name'])
 
     elif typ == 'block_manager':
         axes = obj['axes']

@@ -175,10 +175,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def _validate_dtype(self, dtype):
         """ validate the passed dtype """
 
-        # GH 26336: don't convert 'category' to CategoricalDtype
-        if isinstance(dtype, str) and dtype == 'category':
-            pass
-        elif dtype is not None:
+        if dtype is not None:
             dtype = pandas_dtype(dtype)
 
             # a compound dtype
