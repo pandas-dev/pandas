@@ -970,11 +970,17 @@ def test_shift(fill_value):
 def test_groupby_series_observed_true(df_cat, operation):
     # GH 24880
     index = {
-        'agg': MultiIndex.from_frame(df_cat[['a', 'b']].drop_duplicates()),
-        'apply': MultiIndex.from_tuples(
-            [tuple(grp) for grp in
-             df_cat.select_dtypes('category').drop_duplicates().values],
-            names=df_cat.select_dtypes('category'))
+        'agg': MultiIndex(levels=[CategoricalIndex(['one', 'two'],
+                                                   categories=['one', 'two'],
+                                                   ordered=False),
+                                  CategoricalIndex(['bar', 'foo'],
+                                                   categories=['bar', 'foo'],
+                                                   ordered=False)],
+                          codes=[[0, 0, 1], [1, 0, 1]],
+                          names=['a', 'b']),
+        'apply': MultiIndex(levels=[['one', 'two'], ['bar', 'foo']],
+                            codes=[[0, 0, 1], [1, 0, 1]],
+                            names=['a', 'b'])
     }[operation]
 
     expected = pd.Series(data=[3, 3, 4], index=index, name='c')
@@ -987,11 +993,14 @@ def test_groupby_series_observed_true(df_cat, operation):
 @pytest.mark.parametrize('observed', [False, None])
 def test_groupby_series_observed_false_or_none(df_cat, observed, operation):
     # GH 24880
-    index, _ = MultiIndex.from_product(
-        iterables=(CategoricalIndex(data=d)
-                   for d in np.apply_along_axis(
-            np.unique, 1, df_cat.select_dtypes('category').T.values)),
-        names=df_cat.select_dtypes('category').columns).sortlevel()
+    index, _ = MultiIndex(levels=[CategoricalIndex(['one', 'two'],
+                                                   categories=['one', 'two'],
+                                                   ordered=False),
+                                  CategoricalIndex(['bar', 'foo'],
+                                                   categories=['bar', 'foo'],
+                                                   ordered=False)],
+                          codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                          names=['a', 'b']).sortlevel()
 
     expected = pd.Series(data=[3, 3, np.nan, 4], index=index, name='c')
     grouped = df_cat.groupby(['a', 'b'], observed=observed)['c']
@@ -1005,21 +1014,25 @@ def test_groupby_series_observed_false_or_none(df_cat, observed, operation):
     (None, [3, 3, 1, 2, np.nan, np.nan, 4.0, 4.0])])
 def test_groupby_series_observed_apply_dict(df_cat, observed, data):
     # GH 24880
-    index_names = df_cat.select_dtypes(
-        'category').columns.values.tolist() + [None]
     index = {
-        True: MultiIndex.from_tuples(
-            [tuple(list(grp) + [p])
-             for grp in df_cat.select_dtypes(
-                'category').drop_duplicates().values
-             for p in ('min', 'max')],
-            names=index_names),
-        False: MultiIndex.from_product(
-            [CategoricalIndex(data=d)
-             for d in np.apply_along_axis(
-                np.unique, 1, df_cat.select_dtypes('category').T.values)
-             ] + [Index(['min', 'max'])],
-            names=index_names)
+        True: MultiIndex(levels=[['one', 'two'],
+                                 ['bar', 'foo'],
+                                 ['max', 'min']],
+                         codes=[[0, 0, 0, 0, 1, 1],
+                                [1, 1, 0, 0, 1, 1],
+                                [1, 0, 1, 0, 1, 0]],
+                         names=['a', 'b', None]),
+        False: MultiIndex(levels=[CategoricalIndex(['one', 'two'],
+                                                   categories=['one', 'two'],
+                                                   ordered=False),
+                                  CategoricalIndex(['bar', 'foo'],
+                                                   categories=['bar', 'foo'],
+                                                   ordered=False),
+                                  Index(['max', 'min'])],
+                          codes=[[0, 0, 0, 0, 1, 1, 1, 1],
+                                 [0, 0, 1, 1, 0, 0, 1, 1],
+                                 [1, 0, 1, 0, 1, 0, 1, 0]],
+                          names=['a', 'b', None])
     }[bool(observed)]
 
     expected = pd.Series(data=data, index=index, name='c')
