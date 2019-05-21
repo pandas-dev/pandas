@@ -322,9 +322,12 @@ class MultiIndex(Index):
                                      values=[value for value in level],
                                      level=i))
 
-        codes = FrozenList([self._validate_codes(level, code)
-                           for level, code in zip(levels, codes)])
-        return codes
+        codes = [self._validate_codes(level, code)
+                 for level, code in zip(levels, codes)]
+        new_codes = FrozenList(
+            _ensure_frozen(level_codes, lev, copy=False)._shallow_copy()
+            for lev, level_codes in zip(levels, codes))
+        return new_codes
 
     @classmethod
     def from_arrays(cls, arrays, sortorder=None, names=None):
