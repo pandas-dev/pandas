@@ -82,8 +82,8 @@ Other Enhancements
 - :meth:`DataFrame.query` and :meth:`DataFrame.eval` now supports quoting column names with backticks to refer to names with spaces (:issue:`6508`)
 - :func:`merge_asof` now gives a more clear error message when merge keys are categoricals that are not equal (:issue:`26136`)
 - :meth:`pandas.core.window.Rolling` supports exponential (or Poisson) window type (:issue:`21303`)
+<<<<<<< HEAD
 - :meth:`ExtensionArray.argsort` places NA values at the end of the sorted array (:issue:`21801`)
->>>>>>> Add whatsnew note
 
 .. _whatsnew_0250.api_breaking:
 
@@ -435,10 +435,14 @@ Other API Changes
 - Comparing :class:`Timestamp` with unsupported objects now returns :py:obj:`NotImplemented` instead of raising ``TypeError``. This implies that unsupported rich comparisons are delegated to the other object, and are now consistent with Python 3 behavior for ``datetime`` objects (:issue:`24011`)
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
 - The ``arg`` argument in :meth:`pandas.core.groupby.DataFrameGroupBy.agg` has been renamed to ``func`` (:issue:`26089`)
+<<<<<<< HEAD
 - The ``arg`` argument in :meth:`pandas.core.window._Window.aggregate` has been renamed to ``func`` (:issue:`26372`)
 - Most Pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
 - The ``.str``-accessor has been disabled for 1-level :class:`MultiIndex`, use :meth:`MultiIndex.to_flat_index` if necessary (:issue:`23679`)
 - Removed support of gtk package for clipboards (:issue:`26563`)
+=======
+- :meth:`ExtensionArray.argsort` places the nan at the end of the sorted array (:issue:`21801`)
+>>>>>>> Change docstring and move the entry in whatsnew
 
 .. _whatsnew_0250.deprecations:
 

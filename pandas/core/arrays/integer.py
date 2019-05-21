@@ -521,7 +521,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             The transformed values should maintain the ordering between values
             within the array.
         ndarray
-            The mask which indicates the NaN values.
+            The mask which indicates the NA values.
 
         See Also
         --------
