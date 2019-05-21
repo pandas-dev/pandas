@@ -26,6 +26,27 @@ from .converter import (
 
 
 def tsplot(series, plotf, ax=None, **kwargs):
+    import warnings
+    """
+    Plots a Series on the given Matplotlib axes or the current axes
+
+    Parameters
+    ----------
+    axes : Axes
+    series : Series
+
+    Notes
+    _____
+    Supports same kwargs as Axes.plot
+
+
+    .. deprecated:: 0.23.0
+       Use Series.plot() instead
+    """
+    warnings.warn("'tsplot' is deprecated and will be removed in a "
+                  "future version. Please use Series.plot() instead.",
+                  FutureWarning, stacklevel=2)
+
     # Used inferred freq is possible, need a test case for inferred
     if ax is None:
         ax = plt.gca()
@@ -124,8 +145,10 @@ def _replot_ax(ax, freq, kwargs):
 
             # for tsplot
             if isinstance(plotf, str):
-                from pandas.plotting._core import _plot_klass
-                plotf = _plot_klass[plotf]._plot
+                # FIXME _plot_classes should not exist, at least the way it is
+                # implemented, and should not be imported from here
+                from pandas.plotting._core import _plot_classes
+                plotf = _plot_classes()[plotf]._plot
 
             lines.append(plotf(ax, series.index._mpl_repr(),
                                series.values, **kwds)[0])
