@@ -210,7 +210,7 @@ class TestDataFramePlots(TestPlotBase):
             ser.hist(foo='bar')
 
     @pytest.mark.slow
-    def test_hist_non_numerical(self):
+    def test_hist_non_numerical_raises(self):
         # check non-numerical df raises appropriate exception and error message
         df = DataFrame(np.random.rand(10, 2))
         df_o = df.astype(np.object)
