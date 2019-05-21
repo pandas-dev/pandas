@@ -10,7 +10,6 @@ import numpy as np
 from numpy.random import rand, randn
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -230,7 +229,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_data(df.plot(y='B'), df.B.plot())
 
         # columns.inferred_type == 'integer'
-        df.columns = lrange(1, len(df.columns) + 1)
+        df.columns = np.arange(1, len(df.columns) + 1)
         self._check_data(df.plot(x=1, y=2), df.set_index(1)[2].plot())
         self._check_data(df.plot(x=1), df.set_index(1).plot())
         self._check_data(df.plot(y=1), df[1].plot())
@@ -1279,7 +1278,7 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame(randn(10, 15),
                        index=list(string.ascii_letters[:10]),
-                       columns=lrange(15))
+                       columns=range(15))
         _check_plot_works(df.plot.bar)
 
         df = DataFrame({'a': [0, 1], 'b': [1, 0]})
@@ -1357,7 +1356,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_bar_stacked_center(self):
         # GH2157
-        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
+        df = DataFrame({'A': [3] * 5, 'B': list(range(5))}, index=range(5))
         self._check_bar_alignment(df, kind='bar', stacked=True)
         self._check_bar_alignment(df, kind='bar', stacked=True, width=0.9)
         self._check_bar_alignment(df, kind='barh', stacked=True)
@@ -1365,7 +1364,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_bar_center(self):
-        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
+        df = DataFrame({'A': [3] * 5, 'B': list(range(5))}, index=range(5))
         self._check_bar_alignment(df, kind='bar', stacked=False)
         self._check_bar_alignment(df, kind='bar', stacked=False, width=0.9)
         self._check_bar_alignment(df, kind='barh', stacked=False)
@@ -1373,7 +1372,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_bar_subplots_center(self):
-        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
+        df = DataFrame({'A': [3] * 5, 'B': list(range(5))}, index=range(5))
         self._check_bar_alignment(df, kind='bar', subplots=True)
         self._check_bar_alignment(df, kind='bar', subplots=True, width=0.9)
         self._check_bar_alignment(df, kind='barh', subplots=True)
@@ -1391,7 +1390,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_bar_edge(self):
-        df = DataFrame({'A': [3] * 5, 'B': lrange(5)}, index=lrange(5))
+        df = DataFrame({'A': [3] * 5, 'B': list(range(5))}, index=range(5))
 
         self._check_bar_alignment(df, kind='bar', stacked=True, align='edge')
         self._check_bar_alignment(df, kind='bar', stacked=True, width=0.9,
@@ -1421,7 +1420,7 @@ class TestDataFramePlots(TestPlotBase):
         expected = np.array([.1, 1., 10., 100])
 
         # no subplots
-        df = DataFrame({'A': [3] * 5, 'B': lrange(1, 6)}, index=lrange(5))
+        df = DataFrame({'A': [3] * 5, 'B': list(range(1, 6))}, index=range(5))
         ax = df.plot.bar(grid=True, log=True)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
 

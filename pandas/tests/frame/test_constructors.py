@@ -435,6 +435,11 @@ class TestDataFrameConstructors(TestData):
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B'], index=[1, 2])
 
+        # gh-26429
+        msg = "2 columns passed, passed data had 10 columns"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame((range(10), range(10, 20)), columns=('ones', 'twos'))
+
         msg = ("If using all scalar "
                "values, you must pass "
                "an index")
@@ -527,6 +532,30 @@ class TestDataFrameConstructors(TestData):
         result = DataFrame(data)
         expected = DataFrame({k: list(v) for k, v in data.items()})
         tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_constructor_dict_of_ranges(self):
+        # GH 26356
+        data = {'a': range(3), 'b': range(3, 6)}
+
+        result = DataFrame(data)
+        expected = DataFrame({'a': [0, 1, 2], 'b': [3, 4, 5]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_dict_of_iterators(self):
+        # GH 26349
+        data = {'a': iter(range(3)), 'b': reversed(range(3))}
+
+        result = DataFrame(data)
+        expected = DataFrame({'a': [0, 1, 2], 'b': [2, 1, 0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_dict_of_generators(self):
+        # GH 26349
+        data = {'a': (i for i in (range(3))),
+                'b': (i for i in reversed(range(3)))}
+        result = DataFrame(data)
+        expected = DataFrame({'a': [0, 1, 2], 'b': [2, 1, 0]})
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_dict_multiindex(self):
         def check(result, expected):
