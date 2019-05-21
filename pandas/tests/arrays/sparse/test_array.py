@@ -435,9 +435,9 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(arr.sp_index.indices,
                                     np.array([2, 3], np.int32))
 
-        for dense in [arr.to_dense(), arr.values]:
-            assert dense.dtype == bool
-            tm.assert_numpy_array_equal(dense, data)
+        dense = arr.to_dense()
+        assert dense.dtype == bool
+        tm.assert_numpy_array_equal(dense, data)
 
     def test_constructor_bool_fill_value(self):
         arr = SparseArray([True, False, True], dtype=None)
@@ -465,9 +465,9 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(arr.sp_index.indices,
                                     np.array([0, 2], dtype=np.int32))
 
-        for dense in [arr.to_dense(), arr.values]:
-            assert dense.dtype == np.float32
-            tm.assert_numpy_array_equal(dense, data)
+        dense = arr.to_dense()
+        assert dense.dtype == np.float32
+        tm.assert_numpy_array_equal(dense, data)
 
     def test_astype(self):
         # float -> float
@@ -516,7 +516,7 @@ class TestSparseArray:
         assert res.dtype == SparseDtype(typ, 1)
         assert res.sp_values.dtype == typ
 
-        tm.assert_numpy_array_equal(np.asarray(res.values),
+        tm.assert_numpy_array_equal(np.asarray(res.to_dense()),
                                     vals.astype(typ))
 
     @pytest.mark.parametrize('array, dtype, expected', [
@@ -598,7 +598,6 @@ class TestSparseArray:
         assert arr2.sp_index is self.arr.sp_index
 
     def test_values_asarray(self):
-        assert_almost_equal(self.arr.values, self.arr_data)
         assert_almost_equal(self.arr.to_dense(), self.arr_data)
 
     @pytest.mark.parametrize('data,shape,dtype', [
@@ -629,7 +628,7 @@ class TestSparseArray:
 
     def test_getitem(self):
         def _checkit(i):
-            assert_almost_equal(self.arr[i], self.arr.values[i])
+            assert_almost_equal(self.arr[i], self.arr.to_dense()[i])
 
         for i in range(len(self.arr)):
             _checkit(i)
@@ -643,11 +642,11 @@ class TestSparseArray:
 
     def test_getslice(self):
         result = self.arr[:-3]
-        exp = SparseArray(self.arr.values[:-3])
+        exp = SparseArray(self.arr.to_dense()[:-3])
         tm.assert_sp_array_equal(result, exp)
 
         result = self.arr[-4:]
-        exp = SparseArray(self.arr.values[-4:])
+        exp = SparseArray(self.arr.to_dense()[-4:])
         tm.assert_sp_array_equal(result, exp)
 
         # two corner cases from Series
@@ -656,7 +655,7 @@ class TestSparseArray:
         tm.assert_sp_array_equal(result, exp)
 
         result = self.arr[:-12]
-        exp = SparseArray(self.arr.values[:0])
+        exp = SparseArray(self.arr.to_dense()[:0])
         tm.assert_sp_array_equal(result, exp)
 
     def test_getslice_tuple(self):
@@ -704,16 +703,16 @@ class TestSparseArray:
 
         def _check_op(op, first, second):
             res = op(first, second)
-            exp = SparseArray(op(first.values, second.values),
+            exp = SparseArray(op(first.to_dense(), second.to_dense()),
                               fill_value=first.fill_value)
             assert isinstance(res, SparseArray)
-            assert_almost_equal(res.values, exp.values)
+            assert_almost_equal(res.to_dense(), exp.to_dense())
 
-            res2 = op(first, second.values)
+            res2 = op(first, second.to_dense())
             assert isinstance(res2, SparseArray)
             tm.assert_sp_array_equal(res, res2)
 
-            res3 = op(first.values, second)
+            res3 = op(first.to_dense(), second)
             assert isinstance(res3, SparseArray)
             tm.assert_sp_array_equal(res, res3)
 
@@ -722,13 +721,13 @@ class TestSparseArray:
 
             # Ignore this if the actual op raises (e.g. pow).
             try:
-                exp = op(first.values, 4)
+                exp = op(first.to_dense(), 4)
                 exp_fv = op(first.fill_value, 4)
             except ValueError:
                 pass
             else:
                 assert_almost_equal(res4.fill_value, exp_fv)
-                assert_almost_equal(res4.values, exp)
+                assert_almost_equal(res4.to_dense(), exp)
 
         with np.errstate(all="ignore"):
             for first_arr, second_arr in [(arr1, arr2), (farr1, farr2)]:
@@ -1233,3 +1232,12 @@ def test_map_missing():
 
     result = arr.map({0: 10, 1: 11})
     tm.assert_sp_array_equal(result, expected)
+
+
+def test_deprecated_values():
+    arr = SparseArray([0, 1, 2])
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = arr.values
+
+    tm.assert_numpy_array_equal(result, arr.to_dense())

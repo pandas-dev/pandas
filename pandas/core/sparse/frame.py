@@ -639,7 +639,7 @@ class SparseDataFrame(DataFrame):
             # .take returns SparseArray
             new = values.take(indexer)
             if need_mask:
-                new = new.values
+                new = new.to_dense()
                 # convert integer to float if necessary. need to do a lot
                 # more than that, handle boolean etc also
                 new, fill_value = maybe_upcast(new, fill_value=fill_value)
