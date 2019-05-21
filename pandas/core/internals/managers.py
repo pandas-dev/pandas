@@ -375,8 +375,8 @@ class BlockManager(PandasObject):
         # with a .values attribute.
         aligned_args = {k: kwargs[k]
                         for k in align_keys
-                        if hasattr(kwargs[k], 'values') and
-                        not isinstance(kwargs[k], ABCExtensionArray)}
+                        if not isinstance(kwargs[k], ABCExtensionArray) and
+                        hasattr(kwargs[k], 'values')}
 
         for b in self.blocks:
             if filter is not None:

@@ -210,9 +210,29 @@ static TypeContext *createTypeContext(void) {
     return pc;
 }
 
+
+static int is_sparse_array(PyObject *obj) {
+    // TODO can be removed again once SparseArray.values is removed (GH26421)
+    if (PyObject_HasAttrString(obj, "_subtyp")) {
+        PyObject *_subtype = PyObject_GetAttrString(obj, "_subtyp");
+        PyObject *sparse_array = PyUnicode_FromString("sparse_array");
+        int ret = PyUnicode_Compare(_subtype, sparse_array);
+
+        if (ret == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
 static PyObject *get_values(PyObject *obj) {
-    PyObject *values = PyObject_GetAttrString(obj, "values");
-    PRINTMARK();
+    PyObject *values = NULL;
+
+    if (!is_sparse_array(obj)) {
+        values = PyObject_GetAttrString(obj, "values");
+        PRINTMARK();
+    }
 
     if (values && !PyArray_CheckExact(values)) {
 
@@ -220,7 +240,7 @@ static PyObject *get_values(PyObject *obj) {
             values = PyObject_CallMethod(values, "to_numpy", NULL);
         }
 
-        if (PyObject_HasAttrString(values, "values")) {
+        if (!is_sparse_array(values) && PyObject_HasAttrString(values, "values")) {
             PyObject *subvals = get_values(values);
             PyErr_Clear();
             PRINTMARK();

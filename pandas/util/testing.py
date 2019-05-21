@@ -1403,7 +1403,7 @@ def assert_sp_array_equal(left, right, check_dtype=True, check_kind=True,
         assert_attr_equal('fill_value', left, right)
     if check_dtype:
         assert_attr_equal('dtype', left, right)
-    assert_numpy_array_equal(left.values, right.values,
+    assert_numpy_array_equal(left.to_dense(), right.to_dense(),
                              check_dtype=check_dtype)
 
 
