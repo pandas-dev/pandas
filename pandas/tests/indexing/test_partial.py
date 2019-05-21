@@ -451,7 +451,7 @@ class TestPartialSetting:
         # these work as they don't really change
         # anything but the index
         # GH5632
-        expected = DataFrame(columns=['foo'], index=Index([], dtype='int64'))
+        expected = DataFrame(columns=['foo'], index=Index([]))
 
         def f():
             df = DataFrame()
