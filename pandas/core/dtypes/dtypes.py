@@ -546,7 +546,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 msg = ("ordered=None is deprecated and will default to False "
                        "in a future version; ordered=True must be explicitly "
                        "passed in order to be retained")
-                warnings.warn(msg, FutureWarning, stacklevel=2)
+                warnings.warn(msg, FutureWarning, stacklevel=3)
 
         return CategoricalDtype(new_categories, new_ordered)
 

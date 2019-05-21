@@ -495,7 +495,7 @@ class TestCategoricalIndex(Base):
         cdt1 = CategoricalDtype(categories=list('cdab'), ordered=True)
         cdt2 = CategoricalDtype(categories=list('cedafb'))
         idx = CategoricalIndex(list('abcdaba'), dtype=cdt1)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             idx.astype(cdt2)
 
     def test_reindex_base(self):

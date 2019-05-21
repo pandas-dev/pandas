@@ -365,6 +365,33 @@ class TestSeriesConstructors:
                           dtype=CategoricalDtype(['a', 'b'], ordered=True))
         tm.assert_series_equal(result, expected, check_categorical=True)
 
+    def test_constructor_categorical_string(self):
+        # GH 26336: the string 'category' maintains existing CategoricalDtype
+        cdt = CategoricalDtype(categories=list('dabc'), ordered=True)
+        expected = Series(list('abcabc'), dtype=cdt)
+
+        # Series(Categorical, dtype='category') keeps existing dtype
+        cat = Categorical(list('abcabc'), dtype=cdt)
+        result = Series(cat, dtype='category')
+        tm.assert_series_equal(result, expected)
+
+        # Series(Series[Categorical], dtype='category') keeps existing dtype
+        result = Series(result, dtype='category')
+        tm.assert_series_equal(result, expected)
+
+    def test_categorical_ordered_none_deprecated(self):
+        # GH 26336
+        cdt1 = CategoricalDtype(categories=list('cdab'), ordered=True)
+        cdt2 = CategoricalDtype(categories=list('cedafb'))
+
+        cat = Categorical(list('abcdaba'), dtype=cdt1)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            Series(cat, dtype=cdt2)
+
+        s = Series(cat)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            Series(s, dtype=cdt2)
+
     def test_categorical_sideeffects_free(self):
         # Passing a categorical to a Series and then changing values in either
         # the series or the categorical should not change the values in the

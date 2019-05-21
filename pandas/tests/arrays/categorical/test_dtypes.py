@@ -165,7 +165,7 @@ class TestCategoricalDtypes:
         cdt1 = CategoricalDtype(categories=list('cdab'), ordered=True)
         cdt2 = CategoricalDtype(categories=list('cedafb'))
         cat = Categorical(list('abcdaba'), dtype=cdt1)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             cat.astype(cdt2)
 
     def test_iter_python_types(self):

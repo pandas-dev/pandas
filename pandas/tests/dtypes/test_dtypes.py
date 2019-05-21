@@ -819,7 +819,8 @@ class TestCategoricalDtypeParametrized:
 
         # GH 26336
         if new_ordered is None and ordered_fixture is True:
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
                 result = dtype.update_dtype(new_dtype)
         else:
             result = dtype.update_dtype(new_dtype)

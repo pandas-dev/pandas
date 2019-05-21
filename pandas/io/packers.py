@@ -623,7 +623,12 @@ def decode(obj):
         return Interval(obj['left'], obj['right'], obj['closed'])
     elif typ == 'series':
         dtype = dtype_for(obj['dtype'])
-        pd_dtype = pandas_dtype(dtype)
+
+        # GH 26336: don't convert 'category' to CategoricalDtype
+        if isinstance(dtype, str) and dtype == 'category':
+            pd_dtype = dtype
+        else:
+            pd_dtype = pandas_dtype(dtype)
 
         index = obj['index']
         result = Series(unconvert(obj['data'], dtype, obj['compress']),
