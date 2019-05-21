@@ -211,7 +211,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_non_numerical_raises(self):
-        # check non-numerical df raises appropriate exception and error message
+        # gh-10444
         df = DataFrame(np.random.rand(10, 2))
         df_o = df.astype(np.object)
 
