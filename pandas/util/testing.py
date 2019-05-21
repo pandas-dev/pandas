@@ -21,7 +21,7 @@ from numpy.random import rand, randn
 from pandas._config.localization import (  # noqa:F401
     can_set_locale, get_locales, set_locale)
 
-from pandas._libs import testing as _testing
+import pandas._libs.testing as _testing
 from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.common import (

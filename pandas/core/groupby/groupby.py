@@ -373,8 +373,8 @@ class _GroupBy(PandasObject, SelectionMixin):
     def __len__(self):
         return len(self.groups)
 
-    def __unicode__(self):
-        # TODO: Better unicode/repr for GroupBy object
+    def __str__(self):
+        # TODO: Better str/repr for GroupBy object
         return object.__repr__(self)
 
     def _assure_grouper(self):
