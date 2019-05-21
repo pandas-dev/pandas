@@ -543,8 +543,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         if new_ordered is None:
             new_ordered = self.ordered
             if self.ordered:
-                msg = ("ordered=None is deprecated and will default to False "
-                       "in a future version; ordered=True must be explicitly "
+                msg = ("Constructing a CategoricalDtype without specifying "
+                       "`ordered` or explicitly passing `ordered=None` is "
+                       "deprecated and will default to `ordered=False` in a "
+                       "future version; `ordered=True` must be explicitly "
                        "passed in order to be retained")
                 warnings.warn(msg, FutureWarning, stacklevel=3)
 

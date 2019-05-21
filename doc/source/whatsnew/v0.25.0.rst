@@ -264,6 +264,7 @@ Deprecations
 - The :meth:`DataFrame.compound` and :meth:`Series.compound` methods are deprecated and will be removed in a future version.
 - The default value ``ordered=None`` in :class:`~pandas.api.types.CategoricalDtype` has been deprecated in favor of ``ordered=False``. When converting between categorical types ``ordered=True`` must be explicitly passed in order to be preserved. (:issue:`26336`)
 
+
 .. _whatsnew_0250.prior_deprecations:
 
 Removal of prior version deprecations/changes
