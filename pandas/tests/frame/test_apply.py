@@ -1153,22 +1153,3 @@ class TestDataFrameAggregate:
         df = DataFrame(1, index=index, columns=range(num_cols))
         df.apply(lambda x: x)
         assert index.freq == original.freq
-
-
-class TestKeywordAgg:
-    def test_basic(self):
-        df = pd.DataFrame({"A": [1, 2]})
-        agg_funcs = ['sum', 'mean', 'min', 'max']
-        result = df.agg(**{k: ("A", k) for k in agg_funcs})
-        expected = df.agg(agg_funcs)
-        tm.assert_frame_equal(result, expected)
-
-        result = df.agg(**{k: pd.KeywordAgg("A", k) for k in agg_funcs})
-        expected = df.agg(agg_funcs)
-        tm.assert_frame_equal(result, expected)
-
-    def test_multiple(self):
-        df = pd.DataFrame({"A": [1, 2], "B": ['a', 'b']})
-        result = df.agg(a_min=("A", np.min), b_min=("B", "min"))
-        expected = df.agg('min')
-        tm.assert_frame_equal(result, expected)

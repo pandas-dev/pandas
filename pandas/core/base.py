@@ -317,8 +317,6 @@ class SelectionMixin:
         how can be a string describe the required post-processing, or
         None if not required
         """
-        from pandas.core.groupby.generic import (
-            _is_multi_agg_with_relabel, _normalize_keyword_aggregation)
         is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
         is_nested_renamer = False
 
@@ -326,11 +324,6 @@ class SelectionMixin:
         if _axis is None:
             _axis = getattr(self, 'axis', 0)
         _level = kwargs.pop('_level', None)
-        is_relabeling = arg is None and _is_multi_agg_with_relabel(**kwargs)
-        if is_relabeling:
-            arg, columns, order = _normalize_keyword_aggregation(kwargs)
-            args = ()  # TODO: test
-            kwargs = {}
 
         if isinstance(arg, str):
             return self._try_aggregate_string_function(arg, *args,
