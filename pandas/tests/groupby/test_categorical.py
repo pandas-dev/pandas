@@ -971,7 +971,8 @@ def test_shift(fill_value):
                                                 'b': ['foo', 'bar', 'foo']},
                                                dtype='category'))),
     ('apply', MultiIndex.from_frame(pd.DataFrame({'a': ['one', 'one', 'two'],
-                                                  'b': ['foo', 'bar', 'foo']})))])
+                                                  'b': ['foo', 'bar', 'foo']}))
+     )])
 def test_groupby_series_observed_true(df_cat, operation, index):
     # GH 24880
     expected = pd.Series(data=[3, 3, 4], index=index, name='c')
@@ -985,8 +986,12 @@ def test_groupby_series_observed_true(df_cat, operation, index):
 def test_groupby_series_observed_false_or_none(df_cat, observed, operation):
     # GH 24880
     index, _ = MultiIndex.from_product(
-        [CategoricalIndex(['one', 'two'], categories=['one', 'two'], ordered=False),
-         CategoricalIndex(['bar', 'foo'], categories=['bar', 'foo'], ordered=False)],
+        [CategoricalIndex(['one', 'two'],
+                          categories=['one', 'two'],
+                          ordered=False),
+         CategoricalIndex(['bar', 'foo'],
+                          categories=['bar', 'foo'],
+                          ordered=False)],
         names=['a', 'b']).sortlevel()
 
     expected = pd.Series(data=[3, 3, np.nan, 4], index=index, name='c')
@@ -1002,13 +1007,21 @@ def test_groupby_series_observed_false_or_none(df_cat, observed, operation):
          ('two', 'foo', 'min'), ('two', 'foo', 'max')],
         names=['a', 'b', None]), [1, 2, 3, 3, 4, 4]),
     (False, MultiIndex.from_product(
-        [CategoricalIndex(['one', 'two'], categories=['one', 'two'], ordered=False),
-         CategoricalIndex(['bar', 'foo'], categories=['bar', 'foo'], ordered=False),
+        [CategoricalIndex(['one', 'two'],
+                          categories=['one', 'two'],
+                          ordered=False),
+         CategoricalIndex(['bar', 'foo'],
+                          categories=['bar', 'foo'],
+                          ordered=False),
          Index(['min', 'max'])],
-        names=['a', 'b', None]),  [3, 3, 1, 2, np.nan, np.nan, 4.0, 4.0]),
+        names=['a', 'b', None]), [3, 3, 1, 2, np.nan, np.nan, 4.0, 4.0]),
     (None, MultiIndex.from_product(
-        [CategoricalIndex(['one', 'two'], categories=['one', 'two'], ordered=False),
-         CategoricalIndex(['bar', 'foo'], categories=['bar', 'foo'], ordered=False),
+        [CategoricalIndex(['one', 'two'],
+                          categories=['one', 'two'],
+                          ordered=False),
+         CategoricalIndex(['bar', 'foo'],
+                          categories=['bar', 'foo'],
+                          ordered=False),
          Index(['min', 'max'])],
         names=['a', 'b', None]), [3, 3, 1, 2, np.nan, np.nan, 4.0, 4.0])])
 def test_groupby_series_observed_apply_dict(df_cat, observed, index, data):
