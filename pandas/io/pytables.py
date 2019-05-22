@@ -867,8 +867,8 @@ class HDFStore(StringMixin):
             This will force Table format, append the input data to the
             existing.
         data_columns : list of columns to create as data columns, or True to
-            use all columns. See
-            `here <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+            use all columns. See `here
+            <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : default None, provide an encoding for strings
         dropna   : boolean, default False, do not write an ALL nan row to
             the store settable by the option 'io.hdf.dropna_table'
