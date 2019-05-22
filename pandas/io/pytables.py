@@ -10,6 +10,7 @@ import itertools
 import os
 import re
 import time
+from typing import List, Optional, Type, Union
 import warnings
 
 import numpy as np
@@ -519,7 +520,7 @@ class HDFStore(StringMixin):
     def __len__(self):
         return len(self.groups())
 
-    def __unicode__(self):
+    def __str__(self):
         return '{type}\nFile path: {path}\n'.format(
             type=type(self), path=pprint_thing(self._path))
 
@@ -1586,7 +1587,7 @@ class IndexCol(StringMixin):
         self.table = table
         return self
 
-    def __unicode__(self):
+    def __str__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -1880,7 +1881,7 @@ class DataCol(IndexCol):
         self.set_data(data)
         self.set_metadata(metadata)
 
-    def __unicode__(self):
+    def __str__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -2297,9 +2298,9 @@ class Fixed(StringMixin):
         parent : my parent HDFStore
         group  : the group node where the table resides
         """
-    pandas_kind = None
-    obj_type = None
-    ndim = None
+    pandas_kind = None  # type: str
+    obj_type = None  # type: Type[Union[DataFrame, Series]]
+    ndim = None  # type: int
     is_table = False
 
     def __init__(self, parent, group, encoding=None, errors='strict',
@@ -2335,7 +2336,7 @@ class Fixed(StringMixin):
     def format_type(self):
         return 'fixed'
 
-    def __unicode__(self):
+    def __str__(self):
         """ return a pretty representation of myself """
         self.infer_axes()
         s = self.shape
@@ -2459,7 +2460,7 @@ class GenericFixed(Fixed):
     """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime', PeriodIndex: 'period'}
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
-    attributes = []
+    attributes = []  # type: List[str]
 
     # indexer helpders
     def _class_to_alias(self, cls):
@@ -3052,7 +3053,7 @@ class Table(Fixed):
 
         """
     pandas_kind = 'wide_table'
-    table_type = None
+    table_type = None  # type: str
     levels = 1
     is_table = True
     is_shape_reversed = False
@@ -3076,7 +3077,7 @@ class Table(Fixed):
     def format_type(self):
         return 'table'
 
-    def __unicode__(self):
+    def __str__(self):
         """ return a pretty representatgion of myself """
         self.infer_axes()
         dc = ",dc->[{columns}]".format(columns=(','.join(
@@ -3873,7 +3874,7 @@ class LegacyTable(Table):
         IndexCol(name='index', axis=1, pos=0),
         IndexCol(name='column', axis=2, pos=1, index_kind='columns_kind'),
         DataCol(name='fields', cname='values', kind_attr='fields', pos=2)
-    ]
+    ]  # type: Optional[List[IndexCol]]
     table_type = 'legacy'
     ndim = 3
 
@@ -4126,7 +4127,7 @@ class AppendableFrameTable(AppendableTable):
     pandas_kind = 'frame_table'
     table_type = 'appendable_frame'
     ndim = 2
-    obj_type = DataFrame
+    obj_type = DataFrame  # type: Type[Union[DataFrame, Series]]
 
     @property
     def is_transposed(self):

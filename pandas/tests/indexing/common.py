@@ -5,8 +5,6 @@ from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 
-from pandas.compat import lrange
-
 from pandas.core.dtypes.common import is_scalar
 
 from pandas import (
@@ -38,16 +36,16 @@ class Base:
 
     def setup_method(self, method):
 
-        self.series_ints = Series(np.random.rand(4), index=lrange(0, 8, 2))
+        self.series_ints = Series(np.random.rand(4), index=np.arange(0, 8, 2))
         self.frame_ints = DataFrame(np.random.randn(4, 4),
-                                    index=lrange(0, 8, 2),
-                                    columns=lrange(0, 12, 3))
+                                    index=np.arange(0, 8, 2),
+                                    columns=np.arange(0, 12, 3))
 
         self.series_uints = Series(np.random.rand(4),
-                                   index=UInt64Index(lrange(0, 8, 2)))
+                                   index=UInt64Index(np.arange(0, 8, 2)))
         self.frame_uints = DataFrame(np.random.randn(4, 4),
-                                     index=UInt64Index(lrange(0, 8, 2)),
-                                     columns=UInt64Index(lrange(0, 12, 3)))
+                                     index=UInt64Index(range(0, 8, 2)),
+                                     columns=UInt64Index(range(0, 12, 3)))
 
         self.series_floats = Series(np.random.rand(4),
                                     index=Float64Index(range(0, 8, 2)))
@@ -105,7 +103,7 @@ class Base:
 
         axes = f.axes
         if values:
-            axes = [lrange(len(a)) for a in axes]
+            axes = (list(range(len(a))) for a in axes)
 
         return itertools.product(*axes)
 
@@ -143,7 +141,7 @@ class Base:
         #    v = v.__getitem__(a)
         # return v
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             return f.ix[i]
 
     def check_values(self, f, func, values=False):

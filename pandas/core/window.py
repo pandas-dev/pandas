@@ -5,6 +5,7 @@ similar to how we have a Groupby object.
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
+from typing import Set
 import warnings
 
 import numpy as np
@@ -42,7 +43,7 @@ _doc_template = """
 class _Window(PandasObject, SelectionMixin):
     _attributes = ['window', 'min_periods', 'center', 'win_type',
                    'axis', 'on', 'closed']
-    exclusions = set()
+    exclusions = set()  # type: Set[str]
 
     def __init__(self, obj, window=None, min_periods=None,
                  center=False, win_type=None, axis=0, on=None, closed=None,
@@ -156,7 +157,7 @@ class _Window(PandasObject, SelectionMixin):
     def _window_type(self):
         return self.__class__.__name__
 
-    def __unicode__(self):
+    def __str__(self):
         """
         Provide a nice str repr of our rolling object.
         """
@@ -305,10 +306,10 @@ class _Window(PandasObject, SelectionMixin):
                 result = np.copy(result[tuple(lead_indexer)])
         return result
 
-    def aggregate(self, arg, *args, **kwargs):
-        result, how = self._aggregate(arg, *args, **kwargs)
+    def aggregate(self, func, *args, **kwargs):
+        result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
-            return self.apply(arg, raw=False, args=args, kwargs=kwargs)
+            return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
 
     agg = aggregate
@@ -788,7 +789,7 @@ class _GroupByMixin(GroupByMixin):
     corr = GroupByMixin._dispatch('corr', other=None, pairwise=None)
     cov = GroupByMixin._dispatch('cov', other=None, pairwise=None)
 
-    def _apply(self, func, name, window=None, center=None,
+    def _apply(self, func, name=None, window=None, center=None,
                check_minp=None, **kwargs):
         """
         Dispatch to apply; we are stripping all of the _apply kwargs and

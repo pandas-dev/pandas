@@ -9,6 +9,7 @@ from pandas.core.dtypes.common import (
     is_bool, is_bool_dtype, is_dtype_equal, is_extension_array_dtype, is_float,
     is_integer_dtype, is_scalar, needs_i8_conversion, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.generic import ABCInt64Index, ABCRangeIndex
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -220,6 +221,13 @@ class Int64Index(IntegerIndex):
             if not np.array_equal(data, subarr):
                 raise TypeError('Unsafe NumPy casting, you must '
                                 'explicitly cast')
+
+    def _is_compatible_with_other(self, other):
+        return (
+            super()._is_compatible_with_other(other)
+            or all(isinstance(type(obj), (ABCInt64Index, ABCRangeIndex))
+                   for obj in [self, other])
+        )
 
 
 Int64Index._add_numeric_methods()

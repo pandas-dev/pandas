@@ -340,9 +340,9 @@ class Panel(NDFrame):
     # ----------------------------------------------------------------------
     # Magic methods
 
-    def __unicode__(self):
+    def __str__(self):
         """
-        Return a unicode string representation for a particular Panel.
+        Return a string representation for a particular Panel.
         """
 
         class_name = str(self.__class__)

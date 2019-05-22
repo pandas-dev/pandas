@@ -373,8 +373,8 @@ class _GroupBy(PandasObject, SelectionMixin):
     def __len__(self):
         return len(self.groups)
 
-    def __unicode__(self):
-        # TODO: Better unicode/repr for GroupBy object
+    def __str__(self):
+        # TODO: Better str/repr for GroupBy object
         return object.__repr__(self)
 
     def _assure_grouper(self):
@@ -2235,7 +2235,6 @@ class GroupBy(_GroupBy):
                                                      limit=limit, freq=freq,
                                                      axis=axis))
         filled = getattr(self, fill_method)(limit=limit)
-        filled = filled.drop(self.grouper.names, axis=1)
         fill_grp = filled.groupby(self.grouper.labels)
         shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
