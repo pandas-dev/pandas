@@ -88,8 +88,8 @@ class IndexingError(Exception):
 
 
 class _NDFrameIndexer(_NDFrameIndexerBase):
-    _valid_types = None
-    _exception = KeyError
+    _valid_types = None  # type: str
+    _exception = Exception
     axis = None
 
     def __call__(self, axis=None):
@@ -1419,7 +1419,7 @@ class _IXIndexer(_NDFrameIndexer):
 
     def __init__(self, name, obj):
         warnings.warn(self._ix_deprecation_warning,
-                      DeprecationWarning, stacklevel=2)
+                      FutureWarning, stacklevel=2)
         super().__init__(name, obj)
 
     @Appender(_NDFrameIndexer._validate_key.__doc__)

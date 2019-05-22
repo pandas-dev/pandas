@@ -1,5 +1,4 @@
 import itertools
-from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -25,7 +24,6 @@ def frame_random_data_integer_multi_index():
     return DataFrame(np.random.randn(6, 2), index=index)
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
 class TestMultiIndexLoc:
 
     def test_loc_getitem_series(self):
@@ -84,54 +82,48 @@ class TestMultiIndexLoc:
         result = x.loc[scalar]
         tm.assert_series_equal(result, expected)
 
-    def test_loc_multiindex(self):
+    def test_loc_multiindex_labels(self):
+        df = DataFrame(np.random.randn(3, 3),
+                       columns=[['i', 'i', 'j'], ['A', 'A', 'B']],
+                       index=[['i', 'i', 'j'], ['X', 'X', 'Y']])
 
-        mi_labels = DataFrame(np.random.randn(3, 3),
-                              columns=[['i', 'i', 'j'], ['A', 'A', 'B']],
-                              index=[['i', 'i', 'j'], ['X', 'X', 'Y']])
+        # the first 2 rows
+        expected = df.iloc[[0, 1]].droplevel(0)
+        result = df.loc['i']
+        tm.assert_frame_equal(result, expected)
 
-        mi_int = DataFrame(np.random.randn(3, 3),
-                           columns=[[2, 2, 4], [6, 8, 10]],
-                           index=[[4, 4, 8], [8, 10, 12]])
+        # 2nd (last) column
+        expected = df.iloc[:, [2]].droplevel(0, axis=1)
+        result = df.loc[:, 'j']
+        tm.assert_frame_equal(result, expected)
 
-        # the first row
-        rs = mi_labels.loc['i']
-        with catch_warnings(record=True):
-            xp = mi_labels.ix['i']
-        tm.assert_frame_equal(rs, xp)
-
-        # 2nd (last) columns
-        rs = mi_labels.loc[:, 'j']
-        with catch_warnings(record=True):
-            xp = mi_labels.ix[:, 'j']
-        tm.assert_frame_equal(rs, xp)
-
-        # corner column
-        rs = mi_labels.loc['j'].loc[:, 'j']
-        with catch_warnings(record=True):
-            xp = mi_labels.ix['j'].ix[:, 'j']
-        tm.assert_frame_equal(rs, xp)
+        # bottom right corner
+        expected = df.iloc[[2], [2]].droplevel(0).droplevel(0, axis=1)
+        result = df.loc['j'].loc[:, 'j']
+        tm.assert_frame_equal(result, expected)
 
         # with a tuple
-        rs = mi_labels.loc[('i', 'X')]
-        with catch_warnings(record=True):
-            xp = mi_labels.ix[('i', 'X')]
-        tm.assert_frame_equal(rs, xp)
+        expected = df.iloc[[0, 1]]
+        result = df.loc[('i', 'X')]
+        tm.assert_frame_equal(result, expected)
 
-        rs = mi_int.loc[4]
-        with catch_warnings(record=True):
-            xp = mi_int.ix[4]
-        tm.assert_frame_equal(rs, xp)
+    def test_loc_multiindex_ints(self):
+        df = DataFrame(np.random.randn(3, 3),
+                       columns=[[2, 2, 4], [6, 8, 10]],
+                       index=[[4, 4, 8], [8, 10, 12]])
+        expected = df.iloc[[0, 1]].droplevel(0)
+        result = df.loc[4]
+        tm.assert_frame_equal(result, expected)
 
-        # missing label
+    def test_loc_multiindex_missing_label_raises(self):
+        df = DataFrame(np.random.randn(3, 3),
+                       columns=[[2, 2, 4], [6, 8, 10]],
+                       index=[[4, 4, 8], [8, 10, 12]])
+
         with pytest.raises(KeyError, match=r"^2$"):
-            mi_int.loc[2]
-        with catch_warnings(record=True):
-            # GH 21593
-            with pytest.raises(KeyError, match=r"^2$"):
-                mi_int.ix[2]
+            df.loc[2]
 
-    def test_loc_multiindex_too_many_dims(self):
+    def test_loc_multiindex_too_many_dims_raises(self):
         # GH 14885
         s = Series(range(8), index=MultiIndex.from_product(
             [['a', 'b'], ['c', 'd'], ['e', 'f']]))
@@ -227,7 +219,6 @@ class TestMultiIndexLoc:
         tm.assert_frame_equal(result, expected)
 
         result = df.loc[:, 10]
-        # expected = df.ix[:,10] (this fails)
         expected = df[10]
         tm.assert_frame_equal(result, expected)
 
@@ -309,17 +300,11 @@ def test_loc_getitem_duplicates_multiindex_missing_indexers(indexer, is_level1,
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-@pytest.mark.parametrize('indexer', [
-    lambda s: s.loc[[(2000, 3, 10), (2000, 3, 13)]],
-    lambda s: s.ix[[(2000, 3, 10), (2000, 3, 13)]]
-])
 def test_series_loc_getitem_fancy(
-        multiindex_year_month_day_dataframe_random_data, indexer):
+        multiindex_year_month_day_dataframe_random_data):
     s = multiindex_year_month_day_dataframe_random_data['A']
     expected = s.reindex(s.index[49:51])
-
-    result = indexer(s)
+    result = s.loc[[(2000, 3, 10), (2000, 3, 13)]]
     tm.assert_series_equal(result, expected)
 
 
