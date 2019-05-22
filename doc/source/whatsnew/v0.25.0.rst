@@ -90,25 +90,26 @@ would be reassigned as -1. (:issue:`19387`)
 
 .. ipython:: python
 
-    pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]], codes=[[0, -1, 1, 2, 3, 4]])
-    pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
+    mi1 = pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]], codes=[[0, -1, 1, 2, 3, 4]])
+    mi2 = pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
 
 *Previous Behavior*:
 
 .. code-block:: ipython
 
+    In [1]: mi1
     Out[1]: MultiIndex(levels=[[nan, None, NaT, 128, 2]],
                        codes=[[0, -1, 1, 2, 3, 4]])
+    In [2]: mi2
     Out[2]: MultiIndex(levels=[[1, 2]],
                        codes=[[0, -2]])
 
 *New Behavior*:
 
-.. ipython:: ipython
+.. ipython:: python
 
-    Out[1]: MultiIndex(levels=[[nan, None, NaT, 128, 2]],
-               codes=[[-1, -1, -1, -1, 3, 4]])
-    Out[2]: ValueError: On level 0, code value (-2) < -1
+    mi1
+    mi2
 
 
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
