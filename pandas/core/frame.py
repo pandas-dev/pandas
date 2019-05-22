@@ -918,7 +918,7 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Compute the matrix mutiplication between the DataFrame and other.
+        Compute the matrix multiplication between the DataFrame and other.
 
         This method computes the matrix product between the DataFrame and the
         values of an other Series, DataFrame or a numpy array.
