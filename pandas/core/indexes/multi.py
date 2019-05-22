@@ -182,7 +182,7 @@ class MultiIndex(Index):
     Notes
     -----
     See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/advanced.html>`_ for more.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`_ for more.
 
     Examples
     --------

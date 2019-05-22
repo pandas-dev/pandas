@@ -525,15 +525,15 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     'ms', 'us', 'ns']) or plurals of the same
 
     >>> df = pd.DataFrame({'year': [2015, 2016],
-                           'month': [2, 3],
-                           'day': [4, 5]})
+    ...                    'month': [2, 3],
+    ...                    'day': [4, 5]})
     >>> pd.to_datetime(df)
     0   2015-02-04
     1   2016-03-05
     dtype: datetime64[ns]
 
     If a date does not meet the `timestamp limitations
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
     #timeseries-timestamp-limits>`_, passing errors='ignore'
     will return the original input instead of raising any exception.
 
@@ -577,7 +577,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     Using a non-unix epoch origin
 
     >>> pd.to_datetime([1, 2, 3], unit='D',
-                       origin=pd.Timestamp('1960-01-01'))
+    ...                origin=pd.Timestamp('1960-01-01'))
     0    1960-01-02
     1    1960-01-03
     2    1960-01-04
