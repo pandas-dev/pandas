@@ -804,7 +804,7 @@ class StataMissingValue(StringMixin):
     value = property(lambda self: self._value,
                      doc='The binary representation of the missing value.')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.string
 
     def __repr__(self):
