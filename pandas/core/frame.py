@@ -944,7 +944,9 @@ class DataFrame(NDFrame):
         Notes
         -----
         The dimensions of DataFrame and other must be compatible in order to
-        compute the matrix multiplication.
+        compute the matrix multiplication. In addition, the column names of
+        DataFrame and the index of other must contain the same values, as they
+        will be aligned prior to the multiplication.
 
         The dot method for Series computes the inner product, instead of the
         matrix product here.
@@ -982,6 +984,14 @@ class DataFrame(NDFrame):
             0   1
         0   1   4
         1   2   2
+
+        Note how shuffling of the objects does not change the result.
+
+        >>> s2 = s.reindex([1, 0, 2, 3])
+        >>> df.dot(s2)
+        0    -4
+        1     5
+        dtype: int64
         """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)
