@@ -213,7 +213,7 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_line_plot_period_mlt_series(self):
         # test period index line plot for series with multiples (`mlt`) of the
-        # frequency rule code
+        # frequency rule code. tests resolution of issue #14763
         multiplier = [1, 9]  # multiplier for freq.rule_code
         for mult in multiplier:
             for base in self.freq:
@@ -235,7 +235,7 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_line_plot_period_mlt_frame(self):
         # test period index line plot for DataFrames with multiples (`mlt`)
-        # of the frequency rule code
+        # of the frequency rule code. tests resolution of issue #14763
         multiplier = [1, 9]  # multiplier for freq.rule_code
         for mult in multiplier:
             for base in self.freq:
