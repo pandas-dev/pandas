@@ -1117,21 +1117,6 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_index_shared_docs['intersection'])
     @setop_check(op_name='intersection')
     def intersection(self, other, sort=False):
-    def _setop(op_name, sort=None):
-        def func(self, other, sort=sort):
-            self._assert_can_do_setop(other)
-            other = ensure_index(other)
-            if not isinstance(other, IntervalIndex):
-                result = getattr(self.astype(object), op_name)(other)
-                if op_name in ('difference',):
-                    result = result.astype(self.dtype)
-                return result
-            elif self.closed != other.closed:
-                msg = ('can only do set operations between two IntervalIndex '
-                       'objects that are closed on the same side')
-                raise ValueError(msg)
->>>>>>> upstream/master
-
         if self.left.is_unique and self.right.is_unique:
             taken = self._intersection_unique(other)
         else:

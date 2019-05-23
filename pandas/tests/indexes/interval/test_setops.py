@@ -140,15 +140,19 @@ class TestIntervalIndex:
 
     @pytest.mark.parametrize('op_name', [
         'union', 'intersection', 'difference', 'symmetric_difference'])
-    def test_set_operation_errors(self, closed, op_name, sort):
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_set_incompatible_types(self, closed, op_name, sort):
         index = monotonic_index(0, 11, closed=closed)
         set_op = getattr(index, op_name)
 
+        # TODO: standardize return type of non-union setops type(self vs other)
         # non-IntervalIndex
-        msg = ('the other index needs to be an IntervalIndex too, but '
-               'was type Int64Index')
-        with pytest.raises(TypeError, match=msg):
-            set_op(Index([1, 2, 3]), sort=sort)
+        if op_name == 'difference':
+            expected = index
+        else:
+            expected = getattr(index.astype('O'), op_name)(Index([1, 2, 3]))
+        result = set_op(Index([1, 2, 3]), sort=sort)
+        tm.assert_index_equal(result, expected)
 
         # mixed closed
         msg = ('can only do set operations between two IntervalIndex objects '
