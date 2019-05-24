@@ -932,7 +932,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def __str__(self):
+    def __repr__(self):
         """
         Return a string representation for this object.
         """

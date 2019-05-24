@@ -2022,7 +2022,7 @@ class Categorical(ExtensionArray, PandasObject):
         result = formatter.to_string()
         return str(result)
 
-    def __str__(self):
+    def __repr__(self):
         """
         String representation.
         """
@@ -2036,10 +2036,6 @@ class Categorical(ExtensionArray, PandasObject):
             result = ('[], {repr_msg}'.format(repr_msg=msg))
 
         return result
-
-    def __repr__(self):
-        # We want to bypass the ExtensionArray.__repr__
-        return str(self)
 
     def _maybe_coerce_indexer(self, indexer):
         """

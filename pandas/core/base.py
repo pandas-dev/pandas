@@ -55,7 +55,7 @@ class StringMixin:
         return str(self)
 
 
-class PandasObject(StringMixin, DirNamesMixin):
+class PandasObject(DirNamesMixin):
 
     """baseclass for various pandas objects"""
 
@@ -64,7 +64,7 @@ class PandasObject(StringMixin, DirNamesMixin):
         """class constructor (for this class it's just `__class__`"""
         return self.__class__
 
-    def __str__(self):
+    def __repr__(self):
         """
         Return a string representation for a particular object.
         """

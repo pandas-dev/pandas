@@ -213,6 +213,20 @@ are returned. (:issue:`21521`)
     df.groupby("a").ffill()
 
 
+``__str__`` methods now call ``__repr__`` rather than vica-versa
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas has until now mostly defined string representations in a Pandas objects's
+``__str__``/``__unicode__``/``__bytes__`` methods, and called ``__str__`` from the ``__repr__``
+method, if a specific ``__repr__`` method is not found. This is not needed for Python3.
+In Pandas 0.25, the string representations of Pandas objects are now generally
+defined in ``__repr__``, and calls to ``__str__`` in general now pass the call on to
+the ``__repr__``, if a specific ``__str__`` method doesn't exist, as is standard for Python.
+This change is backward compatible for direct usage of Pandas, but if you subclass
+Pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
+you may have to adjust your ``__str__``/``__repr__`` methods (:issue:`26495`).
+
+
 .. _whatsnew_0250.api_breaking.deps:
 
 Increased minimum versions for dependencies

@@ -217,9 +217,8 @@ class SparseSeries(Series):
         return SparseArray(self.values, sparse_index=self.sp_index,
                            fill_value=fill_value, kind=kind, copy=copy)
 
-    def __str__(self):
-        # currently, unicode is same as repr...fixes infinite loop
-        series_rep = Series.__str__(self)
+    def __repr__(self):
+        series_rep = Series.__repr__(self)
         rep = '{series}\n{index!r}'.format(series=series_rep,
                                            index=self.sp_index)
         return rep

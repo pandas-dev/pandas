@@ -157,7 +157,7 @@ class _Window(PandasObject, SelectionMixin):
     def _window_type(self):
         return self.__class__.__name__
 
-    def __str__(self):
+    def __repr__(self):
         """
         Provide a nice str repr of our rolling object.
         """
