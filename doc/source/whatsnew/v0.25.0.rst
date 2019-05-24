@@ -313,7 +313,7 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Removed ``Panel`` (:issue:`25047`, :issue:`25191`, :issue:`25231`)
 -
--
+- Removed previously deprecated ``TimeGrouper`` (:issue:`16942`)
 -
 
 .. _whatsnew_0250.performance:

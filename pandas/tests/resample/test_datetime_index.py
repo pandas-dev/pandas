@@ -10,10 +10,10 @@ from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import DataFrame, Series, Timedelta, Timestamp, isna, notna
+from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
-from pandas.core.resample import (
-    DatetimeIndex, TimeGrouper, _get_timestamp_range_edges)
+from pandas.core.resample import DatetimeIndex, _get_timestamp_range_edges
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -42,7 +42,7 @@ def test_custom_grouper(index):
     dti = index
     s = Series(np.array([1] * len(dti)), index=dti, dtype='int64')
 
-    b = TimeGrouper(Minute(5))
+    b = Grouper(freq=Minute(5))
     g = s.groupby(b)
 
     # check all cython functions work
@@ -50,7 +50,7 @@ def test_custom_grouper(index):
     for f in funcs:
         g._cython_agg_general(f)
 
-    b = TimeGrouper(Minute(5), closed='right', label='right')
+    b = Grouper(freq=Minute(5), closed='right', label='right')
     g = s.groupby(b)
     # check all cython functions work
     funcs = ['add', 'mean', 'prod', 'ohlc', 'min', 'max', 'var']
@@ -116,7 +116,7 @@ def test_resample_integerarray():
 def test_resample_basic_grouper(series):
     s = series
     result = s.resample('5Min').last()
-    grouper = TimeGrouper(Minute(5), closed='left', label='left')
+    grouper = Grouper(freq=Minute(5), closed='left', label='left')
     expected = s.groupby(grouper).agg(lambda x: x[-1])
     assert_series_equal(result, expected)
 
@@ -373,7 +373,7 @@ def test_resample_upsampling_picked_but_not_correct():
 def test_resample_frame_basic():
     df = tm.makeTimeDataFrame()
 
-    b = TimeGrouper('M')
+    b = Grouper(freq='M')
     g = df.groupby(b)
 
     # check all cython functions work
@@ -521,7 +521,7 @@ def test_nearest_upsample_with_limit():
 def test_resample_ohlc(series):
     s = series
 
-    grouper = TimeGrouper(Minute(5))
+    grouper = Grouper(freq=Minute(5))
     expect = s.groupby(grouper).agg(lambda x: x[-1])
     result = s.resample('5Min').ohlc()
 

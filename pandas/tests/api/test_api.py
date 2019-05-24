@@ -50,7 +50,7 @@ class TestPDApi(Base):
                ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['TimeGrouper', 'Panel']
+    deprecated_classes = ['Panel']
 
     # these should be deprecated in the future
     deprecated_classes_in_future = []
@@ -130,17 +130,6 @@ class TestTesting(Base):
 
         from pandas import testing
         self.check(testing, self.funcs)
-
-
-class TestTopLevelDeprecations:
-
-    # top-level API deprecations
-    # GH 13790
-
-    def test_TimeGrouper(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.TimeGrouper(freq='D')
 
 
 class TestCDateRange:

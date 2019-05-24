@@ -6,8 +6,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
+from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.resample import TimeGrouper
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -16,9 +16,7 @@ test_series = Series(np.random.randn(1000),
 
 
 def test_apply():
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        grouper = pd.TimeGrouper(freq='A', label='right', closed='right')
+    grouper = Grouper(freq='A', label='right', closed='right')
 
     grouped = test_series.groupby(grouper)
 
@@ -38,9 +36,7 @@ def test_count():
 
     expected = test_series.groupby(lambda x: x.year).count()
 
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        grouper = pd.TimeGrouper(freq='A', label='right', closed='right')
+    grouper = Grouper(freq='A', label='right', closed='right')
     result = test_series.groupby(grouper).count()
     expected.index = result.index
     assert_series_equal(result, expected)
@@ -64,7 +60,7 @@ def test_apply_iteration():
     N = 1000
     ind = pd.date_range(start="2000-01-01", freq="D", periods=N)
     df = DataFrame({'open': 1, 'close': 2}, index=ind)
-    tg = TimeGrouper('M')
+    tg = Grouper(freq='M')
 
     _, grouper, _ = tg._get_grouper(df)
 
@@ -93,7 +89,7 @@ def test_fails_on_no_datetime_index(name, func):
     msg = ("Only valid with DatetimeIndex, TimedeltaIndex "
            "or PeriodIndex, but got an instance of '{}'".format(name))
     with pytest.raises(TypeError, match=msg):
-        df.groupby(TimeGrouper('D'))
+        df.groupby(Grouper(freq='D'))
 
 
 def test_aaa_group_order():
@@ -105,7 +101,7 @@ def test_aaa_group_order():
     df['key'] = [datetime(2013, 1, 1), datetime(2013, 1, 2),
                  datetime(2013, 1, 3), datetime(2013, 1, 4),
                  datetime(2013, 1, 5)] * 4
-    grouped = df.groupby(TimeGrouper(key='key', freq='D'))
+    grouped = df.groupby(Grouper(key='key', freq='D'))
 
     tm.assert_frame_equal(grouped.get_group(datetime(2013, 1, 1)),
                           df[::5])
@@ -135,7 +131,7 @@ def test_aggregate_normal(resample_method):
                     datetime(2013, 1, 5)] * 4
 
     normal_grouped = normal_df.groupby('key')
-    dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
+    dt_grouped = dt_df.groupby(Grouper(key='key', freq='D'))
 
     expected = getattr(normal_grouped, resample_method)()
     dt_result = getattr(dt_grouped, resample_method)()
@@ -195,7 +191,7 @@ def test_aggregate_with_nat(func, fill_value):
                     datetime(2013, 1, 4), datetime(2013, 1, 5)] * 4
 
     normal_grouped = normal_df.groupby('key')
-    dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
+    dt_grouped = dt_df.groupby(Grouper(key='key', freq='D'))
 
     normal_result = getattr(normal_grouped, func)()
     dt_result = getattr(dt_grouped, func)()
@@ -222,7 +218,7 @@ def test_aggregate_with_nat_size():
                     datetime(2013, 1, 4), datetime(2013, 1, 5)] * 4
 
     normal_grouped = normal_df.groupby('key')
-    dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
+    dt_grouped = dt_df.groupby(Grouper(key='key', freq='D'))
 
     normal_result = normal_grouped.size()
     dt_result = dt_grouped.size()
@@ -238,7 +234,7 @@ def test_aggregate_with_nat_size():
 
 def test_repr():
     # GH18203
-    result = repr(TimeGrouper(key='A', freq='H'))
+    result = repr(Grouper(key='A', freq='H'))
     expected = ("TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, "
                 "closed='left', label='left', how='mean', "
                 "convention='e', base=0)")

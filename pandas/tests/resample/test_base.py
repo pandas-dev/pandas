@@ -6,10 +6,10 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.groupby.groupby import DataError
+from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
-from pandas.core.resample import TimeGrouper
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_index_equal,
@@ -214,7 +214,7 @@ def test_apply_to_empty_series(empty_series):
 def test_resampler_is_iterable(series):
     # GH 15314
     freq = 'H'
-    tg = TimeGrouper(freq, convention='start')
+    tg = Grouper(freq=freq, convention='start')
     grouped = series.groupby(tg)
     resampled = series.resample(freq)
     for (rk, rv), (gk, gv) in zip(resampled, grouped):
