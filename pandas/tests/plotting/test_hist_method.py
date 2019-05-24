@@ -210,6 +210,16 @@ class TestDataFramePlots(TestPlotBase):
             ser.hist(foo='bar')
 
     @pytest.mark.slow
+    def test_hist_non_numerical_raises(self):
+        # gh-10444
+        df = DataFrame(np.random.rand(10, 2))
+        df_o = df.astype(np.object)
+
+        msg = "hist method requires numerical columns, nothing to plot."
+        with pytest.raises(ValueError, match=msg):
+            df_o.hist()
+
+    @pytest.mark.slow
     def test_hist_layout(self):
         df = DataFrame(randn(100, 3))
 
