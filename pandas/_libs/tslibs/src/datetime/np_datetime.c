@@ -573,7 +573,7 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt,
             perday = 24LL * 60 * 60;
 
             set_datetimestruct_days(extract_unit(&dt, perday), out);
-            out->hour = (int)extract_unit(&dt, 60*60);
+            out->hour = (int)extract_unit(&dt, 60 * 60);
             out->min  = (int)extract_unit(&dt, 60);
             out->sec  = (int)dt;
             break;
@@ -582,8 +582,8 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt,
             perday = 24LL * 60 * 60 * 1000;
 
             set_datetimestruct_days(extract_unit(&dt, perday), out);
-            out->hour = (int)extract_unit(&dt, 1000LL*60*60);
-            out->min  = (int)extract_unit(&dt, 1000LL*60);
+            out->hour = (int)extract_unit(&dt, 1000LL * 60 * 60);
+            out->min  = (int)extract_unit(&dt, 1000LL * 60);
             out->sec  = (int)extract_unit(&dt, 1000LL);
             out->us   = (int)(dt * 1000);
             break;
@@ -592,9 +592,9 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt,
             perday = 24LL * 60LL * 60LL * 1000LL * 1000LL;
 
             set_datetimestruct_days(extract_unit(&dt, perday), out);
-            out->hour = (int)extract_unit(&dt, 1000LL*1000*60*60);
-            out->min  = (int)extract_unit(&dt, 1000LL*1000*60);
-            out->sec  = (int)extract_unit(&dt, 1000LL*1000);
+            out->hour = (int)extract_unit(&dt, 1000LL * 1000 * 60 * 60);
+            out->min  = (int)extract_unit(&dt, 1000LL * 1000 * 60);
+            out->sec  = (int)extract_unit(&dt, 1000LL * 1000);
             out->us   = (int)dt;
             break;
 
@@ -602,9 +602,9 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt,
             perday = 24LL * 60LL * 60LL * 1000LL * 1000LL * 1000LL;
 
             set_datetimestruct_days(extract_unit(&dt, perday), out);
-            out->hour = (int)extract_unit(&dt, 1000LL*1000*1000*60*60);
-            out->min  = (int)extract_unit(&dt, 1000LL*1000*1000*60);
-            out->sec  = (int)extract_unit(&dt, 1000LL*1000*1000);
+            out->hour = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60 * 60);
+            out->min  = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60);
+            out->sec  = (int)extract_unit(&dt, 1000LL * 1000 * 1000);
             out->us   = (int)extract_unit(&dt, 1000LL);
             out->ps   = (int)(dt * 1000);
             break;
@@ -613,16 +613,17 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt,
             perday = 24LL * 60 * 60 * 1000 * 1000 * 1000 * 1000;
 
             set_datetimestruct_days(extract_unit(&dt, perday), out);
-            out->hour = (int)extract_unit(&dt, 1000LL*1000*1000*60*60);
-            out->min  = (int)extract_unit(&dt, 1000LL*1000*1000*60);
-            out->sec  = (int)extract_unit(&dt, 1000LL*1000*1000);
+            out->hour = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60 * 60);
+            out->min  = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60);
+            out->sec  = (int)extract_unit(&dt, 1000LL * 1000 * 1000);
             out->us   = (int)extract_unit(&dt, 1000LL);
             out->ps   = (int)(dt * 1000);
             break;
 
         case NPY_FR_fs:
             /* entire range is only +- 2.6 hours */
-            out->hour = (int)extract_unit(&dt, 1000LL*1000*1000*1000*1000*60*60);
+            out->hour = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 *
+                                        1000 * 60 * 60);
             if (out->hour < 0) {
                 out->year  = 1969;
                 out->month = 12;
@@ -630,16 +631,19 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt,
                 out->hour  += 24;
                 assert(out->hour >= 0);
             }
-            out->min  = (int)extract_unit(&dt, 1000LL*1000*1000*1000*1000*60);
-            out->sec  = (int)extract_unit(&dt, 1000LL*1000*1000*1000*1000);
-            out->us   = (int)extract_unit(&dt, 1000LL*1000*1000);
+            out->min  = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 *
+                                        1000 * 60);
+            out->sec  = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 *
+                                        1000);
+            out->us   = (int)extract_unit(&dt, 1000LL * 1000 * 1000);
             out->ps   = (int)extract_unit(&dt, 1000LL);
             out->as   = (int)(dt * 1000);
             break;
 
         case NPY_FR_as:
             /* entire range is only +- 9.2 seconds */
-            out->sec = (int)extract_unit(&dt, 1000LL*1000*1000*1000*1000*1000);
+            out->sec = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 *
+                                        1000 * 1000);
             if (out->sec < 0) {
                 out->year  = 1969;
                 out->month = 12;
@@ -649,8 +653,8 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt,
                 out->sec   += 60;
                 assert(out->sec >= 0);
             }
-            out->us   = (int)extract_unit(&dt, 1000LL*1000*1000*1000);
-            out->ps   = (int)extract_unit(&dt, 1000LL*1000);
+            out->us   = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000);
+            out->ps   = (int)extract_unit(&dt, 1000LL * 1000);
             out->as   = (int)dt;
             break;
 
