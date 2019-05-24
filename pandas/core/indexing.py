@@ -10,7 +10,7 @@ from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     ensure_platform_int, is_float, is_integer, is_integer_dtype, is_iterator,
-    is_list_like, is_numeric_dtype, is_scalar, is_sequence, is_sparse)
+    is_list_like, is_numeric_dtype, is_scalar, is_sequence)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
