@@ -100,7 +100,15 @@ def _cat_compare_op(op):
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
-                return getattr(self._codes, op)(i)
+                f = getattr(self._codes, op)
+                ret = f(i)
+
+                # check for NaN in self
+                na_mask = (self._codes == -1)
+                if na_mask.any():
+                    # In other series, the leads to False, so do that here too
+                    ret[na_mask] = False
+                return ret
             else:
                 if op == '__eq__':
                     return np.repeat(False, len(self))

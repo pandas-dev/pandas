@@ -186,6 +186,19 @@ class TestCategoricalOps:
         tm.assert_numpy_array_equal(cat != 4,
                                     np.array([True, True, True]))
 
+    def test_comparison_with_known_scalars(self):
+        # https://github.com/pandas-dev/pandas/issues/26504
+        # and following comparisons with scalars in categories with None should
+        # be evaluated as False
+
+        cat1 = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
+        cat2 = Categorical([None, 1, 2, 3], categories=[1, 2, 3], ordered=True)
+
+        tm.assert_numpy_array_equal(cat1 <= 2,
+                                    np.array([True, True, False, False]))
+        tm.assert_numpy_array_equal(cat2 <= 2,
+                                    np.array([False, True, True, False]))
+
     @pytest.mark.parametrize('data,reverse,base', [
         (list("abc"), list("cba"), list("bbb")),
         ([1, 2, 3], [3, 2, 1], [2, 2, 2])]
