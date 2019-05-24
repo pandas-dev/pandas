@@ -145,8 +145,10 @@ def _replot_ax(ax, freq, kwargs):
 
             # for tsplot
             if isinstance(plotf, str):
-                # FIXME _plot_classes should not exist, at least the way it is
-                # implemented, and should not be imported from here
+                # XXX _plot_classes is private and shouldn't be imported
+                # here. But as tsplot is deprecated, and we'll remove this
+                # code soon, it's probably better to not overcomplicate
+                # things, and just leave this the way it was implemented
                 from pandas.plotting._core import _plot_classes
                 plotf = _plot_classes()[plotf]._plot
 

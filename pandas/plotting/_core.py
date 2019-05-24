@@ -650,7 +650,6 @@ def _plot(data, x=None, y=None, subplots=False,
                 # converted to series actually. copy to not modify
                 data = data[y].copy()
                 data.index.name = y
-        ax = klass.get_default_ax(ax)
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
     else:
         if isinstance(data, ABCDataFrame):
