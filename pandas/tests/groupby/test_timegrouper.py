@@ -10,8 +10,8 @@ import pytz
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
+from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
-from pandas.core.resample import TimeGrouper
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
@@ -366,7 +366,7 @@ class TestGroupBy:
             return x.value.sum()
 
         expected = df.groupby(pd.Grouper(key='date')).apply(sumfunc_value)
-        result = (df_dt.groupby(TimeGrouper(freq='M', key='date'))
+        result = (df_dt.groupby(Grouper(freq='M', key='date'))
                   .apply(sumfunc_value))
         assert_series_equal(result.reset_index(drop=True),
                             expected.reset_index(drop=True))
