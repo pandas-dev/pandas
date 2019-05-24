@@ -343,7 +343,7 @@ class ReadingTestsBase(SharedItems):
 
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     @pytest.mark.parametrize('arg', ['sheet', 'sheetname'])
-    def test_deprecated_sheetname(self, ext, arg):
+    def test_unexpected_kwargs_raises(self, ext, arg):
         # gh-17964
         excel = self.get_excelfile('test1', ext)
 
