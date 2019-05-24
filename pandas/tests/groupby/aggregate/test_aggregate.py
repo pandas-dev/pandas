@@ -329,7 +329,7 @@ def test_uint64_type_handling(dtype, how):
     tm.assert_frame_equal(result, expected, check_exact=True)
 
 
-class TestKeywordAggregation:
+class TestNamedAggregation:
 
     def test_agg_relabel(self):
         df = pd.DataFrame({"group": ['a', 'a', 'b', 'b'],
@@ -419,8 +419,8 @@ class TestKeywordAggregation:
     def test_agg_namedtuple(self):
         df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
         result = df.groupby("A").agg(
-            b=pd.KeywordAgg("B", "sum"),
-            c=pd.KeywordAgg(column="B", aggfunc="count")
+            b=pd.NamedAgg("B", "sum"),
+            c=pd.NamedAgg(column="B", aggfunc="count")
         )
         expected = df.groupby("A").agg(b=("B", "sum"),
                                        c=("B", "count"))

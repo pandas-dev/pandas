@@ -44,7 +44,7 @@ from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting._core import boxplot_frame_groupby
 
-KeywordAgg = namedtuple("KeywordAgg", ["column", "aggfunc"])
+NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
 
@@ -1316,11 +1316,11 @@ class DataFrameGroupBy(NDFrameGroupBy):
     2   3   4  0.704907
 
     To control the output names with different aggregations per column,
-    pandas supports "keyword aggregation"
+    pandas supports "named aggregation"
 
     >>> df.groupby("A").agg(
-    ...     b_min=pd.KeywordAgg(column="B", aggfunc="min"),
-    ...     c_sum=pd.KeywordAgg(column="C", aggfunc="sum"))
+    ...     b_min=pd.NamedAgg(column="B", aggfunc="min"),
+    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum"))
        b_min     c_sum
     A
     1      1 -1.956929
@@ -1329,11 +1329,11 @@ class DataFrameGroupBy(NDFrameGroupBy):
     - The keywords are the *output* column names
     - The values are tuples whose first element is the column to select
       and the second element is the aggregation to apply to that column.
-      Pandas provides the ``pandas.KeywordAgg`` namedtuple with the fields
+      Pandas provides the ``pandas.NamedAgg`` namedtuple with the fields
       ``['column', 'aggfunc']`` to make it clearer what the arguments are.
       As usual, the aggregation can be a callable or a string alias.
 
-    See :ref:`groupby.aggregate.keyword` for more.
+    See :ref:`groupby.aggregate.named` for more.
     """)
 
     @Substitution(see_also=_agg_see_also_doc,
@@ -1647,9 +1647,9 @@ def _is_multi_agg_with_relabel(**kwargs):
 
 def _normalize_keyword_aggregation(kwargs):
     """
-    Normalize user-provided "keyword aggregation" kwargs.
+    Normalize user-provided "named aggregation" kwargs.
 
-    Transforms from the new ``Dict[str, KeywordAgg]`` style kwargs
+    Transforms from the new ``Dict[str, NamedAgg]`` style kwargs
     to the old OrderedDict[str, List[scalar]]].
 
     Parameters
