@@ -1919,25 +1919,6 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Array Interface
 
-    # This is also set in IndexOpsMixin
-    # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
-    __array_priority__ = 1000
-
-    def __array__(self, dtype=None):
-        return com.values_from_object(self)
-
-    def __array_wrap__(self, result, context=None):
-        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        return self._constructor(result, **d).__finalize__(self)
-
-    # ideally we would define this to avoid the getattr checks, but
-    # is slower
-    # @property
-    # def __array_interface__(self):
-    #    """ provide numpy array interface method """
-    #    values = self.values
-    #    return dict(typestr=values.dtype.str,shape=values.shape,data=values)
-
     def to_dense(self):
         """
         Return dense representation of NDFrame (as opposed to sparse).
@@ -5692,6 +5673,11 @@ class NDFrame(PandasObject, SelectionMixin):
             new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
                                          **kwargs)
             return self._constructor(new_data).__finalize__(self)
+
+        if not results:
+            if copy:
+                self = self.copy()
+            return self
 
         # GH 19920: retain column metadata after concat
         result = pd.concat(results, axis=1, copy=False)

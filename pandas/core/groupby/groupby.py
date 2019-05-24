@@ -786,6 +786,8 @@ b  2""")
             elif is_extension_array_dtype(dtype):
                 # The function can return something of any type, so check
                 # if the type is compatible with the calling EA.
+
+                # return the same type (Series) as our caller
                 try:
                     result = obj._values._from_sequence(result, dtype=dtype)
                 except Exception:
@@ -1157,7 +1159,8 @@ class GroupBy(_GroupBy):
         """
         nv.validate_groupby_func('mean', args, kwargs, ['numeric_only'])
         try:
-            return self._cython_agg_general('mean', **kwargs)
+            return self._cython_agg_general(
+                'mean', alt=lambda x, axis: Series(x).mean(**kwargs), **kwargs)
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
@@ -1179,7 +1182,11 @@ class GroupBy(_GroupBy):
             Median of values within each group.
         """
         try:
-            return self._cython_agg_general('median', **kwargs)
+            return self._cython_agg_general(
+                'median',
+                alt=lambda x,
+                axis: Series(x).median(**kwargs),
+                **kwargs)
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
@@ -1235,7 +1242,10 @@ class GroupBy(_GroupBy):
         nv.validate_groupby_func('var', args, kwargs)
         if ddof == 1:
             try:
-                return self._cython_agg_general('var', **kwargs)
+                return self._cython_agg_general(
+                    'var',
+                    alt=lambda x, axis: Series(x).var(ddof=ddof, **kwargs),
+                    **kwargs)
             except Exception:
                 f = lambda x: x.var(ddof=ddof, **kwargs)
                 with _group_selection_context(self):
@@ -1263,7 +1273,6 @@ class GroupBy(_GroupBy):
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
-
         return self.std(ddof=ddof) / np.sqrt(self.count())
 
     @Substitution(name='groupby')
@@ -1320,6 +1329,16 @@ class GroupBy(_GroupBy):
                 except Exception:
                     result = self.aggregate(
                         lambda x: npfunc(x, axis=self.axis))
+
+                    # coerce the columns if we can
+                    if isinstance(result, DataFrame):
+                        for col in result.columns:
+                            result[col] = self._try_cast(
+                                result[col], self.obj[col])
+                    else:
+                        result = self._try_cast(
+                            result, self.obj)
+
                     if _convert:
                         result = result._convert(datetime=True)
                     return result

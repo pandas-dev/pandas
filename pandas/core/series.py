@@ -762,12 +762,31 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             dtype = 'M8[ns]'
         return np.asarray(self.array, dtype)
 
-    def __array_wrap__(self, result, context=None):
+    def __array_wrap__(self, result: np.ndarray, context=None) -> 'Series':
         """
-        Gets called after a ufunc.
+        We are called post ufunc; reconstruct the original object and dtypes.
+
+        Parameters
+        ----------
+        result : np.ndarray
+        context
+
+        Returns
+        -------
+        Series
         """
-        return self._constructor(result, index=self.index,
-                                 copy=False).__finalize__(self)
+
+        result = self._constructor(result, index=self.index,
+                                   copy=False)
+
+        # we try to cast extension array types back to the original
+        if is_extension_array_dtype(self):
+            result = result.astype(self.dtype,
+                                   copy=False,
+                                   errors='ignore',
+                                   casting='same_kind')
+
+        return result.__finalize__(self)
 
     def __array_prepare__(self, result, context=None):
         """

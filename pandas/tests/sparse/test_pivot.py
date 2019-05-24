@@ -47,10 +47,20 @@ class TestPivotTable:
         #                            values='E', aggfunc='sum')
         # tm.assert_frame_equal(res_sparse, res_dense)
 
-    def test_pivot_table_multi(self):
+    @pytest.mark.parametrize(
+        'func',
+        ['mean',
+         'std',
+         'var',
+         'sem',
+         'median',
+         'first',
+         'last'])
+    def test_pivot_table_multi(self, func):
+
         res_sparse = pd.pivot_table(self.sparse, index='A', columns='B',
-                                    values=['D', 'E'])
+                                    values=['D', 'E'], aggfunc=func)
         res_dense = pd.pivot_table(self.dense, index='A', columns='B',
-                                   values=['D', 'E'])
+                                   values=['D', 'E'], aggfunc=func)
         res_dense = res_dense.apply(lambda x: x.astype("Sparse[float64]"))
         tm.assert_frame_equal(res_sparse, res_dense)

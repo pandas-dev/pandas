@@ -2642,6 +2642,51 @@ class DataFrame(NDFrame):
     T = property(transpose)
 
     # ----------------------------------------------------------------------
+    # Array Interface
+
+    # This is also set in IndexOpsMixin
+    # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
+    __array_priority__ = 1000
+
+    def __array__(self, dtype=None):
+        return com.values_from_object(self)
+
+    def __array_wrap__(self, result: np.ndarray, context=None) -> 'DataFrame':
+        """
+        We are called post ufunc; reconstruct the original object and dtypes.
+
+        Parameters
+        ----------
+        result : np.ndarray
+        context
+
+        Returns
+        -------
+        DataFrame
+        """
+
+        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
+        result = self._constructor(result, **d)
+
+        # we try to cast extension array types back to the original
+        # TODO: this fails with duplicates, ugh
+        if self._data.any_extension_types:
+            result = result.astype(self.dtypes,
+                                   copy=False,
+                                   errors='ignore',
+                                   casting='same_kind')
+
+        return result.__finalize__(self)
+
+    # ideally we would define this to avoid the getattr checks, but
+    # is slower
+    # @property
+    # def __array_interface__(self):
+    #    """ provide numpy array interface method """
+    #    values = self.values
+    #    return dict(typestr=values.dtype.str,shape=values.shape,data=values)
+
+    # ----------------------------------------------------------------------
     # Picklability
 
     # legacy pickle formats

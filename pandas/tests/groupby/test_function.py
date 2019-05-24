@@ -144,6 +144,7 @@ def test_arg_passthru():
         index=Index([1, 2], name='group'),
         columns=['int', 'float', 'category_int',
                  'datetime', 'datetimetz', 'timedelta'])
+
     for attr in ['mean', 'median']:
         f = getattr(df.groupby('group'), attr)
         result = f()
@@ -459,35 +460,35 @@ def test_groupby_cumprod():
     tm.assert_series_equal(actual, expected)
 
 
-def test_ops_general():
-    ops = [('mean', np.mean),
-           ('median', np.median),
-           ('std', np.std),
-           ('var', np.var),
-           ('sum', np.sum),
-           ('prod', np.prod),
-           ('min', np.min),
-           ('max', np.max),
-           ('first', lambda x: x.iloc[0]),
-           ('last', lambda x: x.iloc[-1]),
-           ('count', np.size), ]
+def scipy_sem(*args, **kwargs):
     try:
         from scipy.stats import sem
+        return sem(*args, ddof=1, **kwargs)
     except ImportError:
-        pass
-    else:
-        ops.append(('sem', sem))
+        pytest.skip("No Scipy installed")
+
+
+@pytest.mark.parametrize(
+    'op,targop',
+    [('mean', np.mean),
+     ('median', np.median),
+     ('std', np.std),
+     ('var', np.var),
+     ('sum', np.sum),
+     ('prod', np.prod),
+     ('min', np.min),
+     ('max', np.max),
+     ('first', lambda x: x.iloc[0]),
+     ('last', lambda x: x.iloc[-1]),
+     ('count', np.size),
+     ('sem', scipy_sem)])
+def test_ops_general(op, targop):
     df = DataFrame(np.random.randn(1000))
     labels = np.random.randint(0, 50, size=1000).astype(float)
 
-    for op, targop in ops:
-        result = getattr(df.groupby(labels), op)().astype(float)
-        expected = df.groupby(labels).agg(targop)
-        try:
-            tm.assert_frame_equal(result, expected)
-        except BaseException as exc:
-            exc.args += ('operation: %s' % op, )
-            raise
+    result = getattr(df.groupby(labels), op)().astype(float)
+    expected = df.groupby(labels).agg(targop)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_max_nan_bug():

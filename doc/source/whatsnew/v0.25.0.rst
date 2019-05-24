@@ -316,6 +316,65 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
     s
     s.str.startswith(b'a')
 
+<<<<<<< HEAD
+=======
+.. _whatsnew_0250.api_breaking.ufuncs:
+
+ufuncs on Extension Dtype
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Operations with ``numpy`` ufuncs on Extension Arrays, including Sparse Dtypes will now coerce the
+resulting dtypes to same as the input dtype; previously this would coerce to a dense dtype. (:issue:`23743`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': pd.Series([1, np.nan, 3], dtype=pd.SparseDtype('float64', np.nan))})
+   df
+   df.dtypes
+
+*Previous Behavior*:
+
+.. code-block:: python
+
+   In [3]: np.sqrt(df).dtypes
+   Out[3]:
+   A    float64
+   dtype: object
+
+*New Behavior*:
+
+.. ipython:: python
+
+   np.sqrt(df).dtypes
+
+.. _whatsnew_0250.api_breaking.groupby_categorical:
+
+Categorical dtypes are preserved during groupby
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. Pandas now will preserve these dtypes. (:issue:`18502`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({'payload': [-1,-2,-1,-2],
+                      'col': pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)})
+   df
+   df.dtypes
+
+*Previous Behavior*:
+
+.. code-block:: python
+
+   In [5]: df.groupby('payload').first().col.dtype
+   Out[5]: dtype('O')
+
+*New Behavior*:
+
+.. ipython:: python
+
+   df.groupby('payload').first().col.dtype
+
+
 .. _whatsnew_0250.api_breaking.incompatible_index_unions:
 
 Incompatible Index Type Unions

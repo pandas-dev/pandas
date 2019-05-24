@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, SparseDataFrame, SparseSeries
+from pandas import (
+    DataFrame, Series, SparseDataFrame, SparseDtype, SparseSeries)
 from pandas.util import testing as tm
 
 
@@ -39,3 +40,16 @@ def test_quantile_multi():
 
     tm.assert_frame_equal(result, dense_expected)
     tm.assert_sp_frame_equal(result, sparse_expected)
+
+
+@pytest.mark.parametrize('func', [np.exp, np.sqrt], ids=lambda x: x.__name__)
+def test_ufunc(func):
+    # GH 23743
+    # assert we preserve the incoming dtype on ufunc operation
+    df = DataFrame(
+        {'A': Series([1, np.nan, 3], dtype=SparseDtype('float64', np.nan))})
+    result = func(df)
+    expected = DataFrame(
+        {'A': Series(func([1, np.nan, 3]),
+                     dtype=SparseDtype('float64', np.nan))})
+    tm.assert_frame_equal(result, expected)

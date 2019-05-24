@@ -605,7 +605,7 @@ def coerce_to_dtypes(result, dtypes):
     return [conv(r, dtype) for r, dtype in zip(result, dtypes)]
 
 
-def astype_nansafe(arr, dtype, copy=True, skipna=False):
+def astype_nansafe(arr, dtype, copy=True, skipna=False, casting='unsafe'):
     """
     Cast the elements of an array to a given dtype a nan-safe manner.
 
@@ -616,8 +616,10 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
     copy : bool, default True
         If False, a view will be attempted but may fail, if
         e.g. the item sizes don't align.
-    skipna: bool, default False
+    skipna : bool, default False
         Whether or not we should skip NaN when casting as a string-type.
+    casting : {‘no’, ‘equiv’, ‘safe’, ‘same_kind’, ‘unsafe’}
+        optional, default 'unsafe'
 
     Raises
     ------
@@ -703,7 +705,7 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
 
     if copy or is_object_dtype(arr) or is_object_dtype(dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
-        return arr.astype(dtype, copy=True)
+        return arr.astype(dtype, copy=True, casting=casting)
 
     return arr.view(dtype)
 
