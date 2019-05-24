@@ -1315,8 +1315,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
     1   1   2  0.590716
     2   3   4  0.704907
 
-    To control the output names with different aggregations
-    per column, pass supports "keyword aggregation"
+    To control the output names with different aggregations per column,
+    pandas supports "keyword aggregation"
 
     >>> df.groupby("A").agg(
     ...     b_min=pd.KeywordAgg(column="B", aggfunc="min"),
@@ -1326,10 +1326,13 @@ class DataFrameGroupBy(NDFrameGroupBy):
     1      1 -1.956929
     2      3 -0.322183
 
-    The keywords are the column names, and the values should be
-    2-tuples where the first element is the column selection and
-    the second element is the aggfunc. Pandas provides the
-    ``pandas.KeywordAgg`` namedtuple to clarify the meaning of the values.
+    - The keywords are the *output* column names
+    - The values are tuples whose first element is the column to select
+      and the second element is the aggregation to apply to that column.
+      Pandas provides the ``pandas.KeywordAgg`` namedtuple with the fields
+      ``['column', 'aggfunc']`` to make it clearer what the arguments are.
+      As usual, the aggregation can be a callable or a string alias.
+
     See :ref:`groupby.aggregate.keyword` for more.
     """)
 
@@ -1643,21 +1646,45 @@ def _is_multi_agg_with_relabel(**kwargs):
 
 
 def _normalize_keyword_aggregation(kwargs):
+    """
+    Normalize user-provided "keyword aggregation" kwargs.
+
+    Transforms from the new ``Dict[str, KeywordAgg]`` style kwargs
+    to the old OrderedDict[str, List[scalar]]].
+
+    Parameters
+    ----------
+    kwargs : dict
+
+    Returns
+    -------
+    aggspec : dict
+        The transformed kwargs.
+    columns : List[str]
+        The user-provided keys.
+    order : List[Tuple[str, str]]
+        Pairs of the input and output column names.
+
+    Examples
+    --------
+    >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
+    (OrderedDict([('input', ['sum'])]), ('output',), [('input', 'sum')])
+    """
     if not PY36:
         kwargs = OrderedDict(sorted(kwargs.items()))
     # Normalize the aggregation functions as Dict[column, List[func]],
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to
     # defaultdict(list)
-    func = OrderedDict()  # type: typing.OrderedDict[str, List[AggScalar]]
+    aggspec = OrderedDict()  # type: typing.OrderedDict[str, List[AggScalar]]
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
     for name, (column, aggfunc) in zip(columns, pairs):
-        if column in func:
-            func[column].append(aggfunc)
+        if column in aggspec:
+            aggspec[column].append(aggfunc)
         else:
-            func[column] = [aggfunc]
+            aggspec[column] = [aggfunc]
         order.append((column,
                       com.get_callable_name(aggfunc) or aggfunc))
-    return func, columns, order
+    return aggspec, columns, order
