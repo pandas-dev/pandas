@@ -648,6 +648,8 @@ class IntervalIndex(IntervalMixin, Index):
             return
 
         if method in ['bfill', 'backfill', 'pad', 'ffill', 'nearest']:
+            # The documentation warns that these methods are not yet implemented
+            # so it would be worth updating the documentation when fixing.
             msg = 'method {method} not yet implemented for IntervalIndex'
             raise NotImplementedError(msg.format(method=method))
 
@@ -723,6 +725,7 @@ class IntervalIndex(IntervalMixin, Index):
         key : label
         method : {None}, optional
             * default: matches where the label is within an interval only.
+            * other methods not
 
         Returns
         -------
@@ -805,7 +808,7 @@ class IntervalIndex(IntervalMixin, Index):
             loc = self.get_loc(key)
         return series.iloc[loc]
 
-    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
+    @Appender(_index_shared_docs['get_indexer_interval'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
 
         self._check_method(method)
