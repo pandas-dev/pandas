@@ -610,7 +610,7 @@ class DataFrame(NDFrame):
         return info_repr_option and not (self._repr_fits_horizontal_() and
                                          self._repr_fits_vertical_())
 
-    def __str__(self):
+    def __repr__(self):
         """
         Return a string representation for a particular DataFrame.
         """
@@ -918,7 +918,7 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Compute the matrix mutiplication between the DataFrame and other.
+        Compute the matrix multiplication between the DataFrame and other.
 
         This method computes the matrix product between the DataFrame and the
         values of an other Series, DataFrame or a numpy array.
@@ -944,7 +944,9 @@ class DataFrame(NDFrame):
         Notes
         -----
         The dimensions of DataFrame and other must be compatible in order to
-        compute the matrix multiplication.
+        compute the matrix multiplication. In addition, the column names of
+        DataFrame and the index of other must contain the same values, as they
+        will be aligned prior to the multiplication.
 
         The dot method for Series computes the inner product, instead of the
         matrix product here.
@@ -982,6 +984,14 @@ class DataFrame(NDFrame):
             0   1
         0   1   4
         1   2   2
+
+        Note how shuffling of the objects does not change the result.
+
+        >>> s2 = s.reindex([1, 0, 2, 3])
+        >>> df.dot(s2)
+        0    -4
+        1     5
+        dtype: int64
         """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)

@@ -470,7 +470,7 @@ class RangeIndex(Int64Index):
             old_t, t = t, old_t - quotient * t
         return old_r, old_s, old_t
 
-    def union(self, other, sort=None):
+    def _union(self, other, sort):
         """
         Form the union of two Index objects and sorts if possible
 
@@ -490,9 +490,8 @@ class RangeIndex(Int64Index):
         -------
         union : Index
         """
-        self._assert_can_do_setop(other)
-        if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super().union(other, sort=sort)
+        if not len(other) or self.equals(other) or not len(self):
+            return super()._union(other, sort=sort)
 
         if isinstance(other, RangeIndex) and sort is None:
             start_s, step_s = self._start, self._step
@@ -530,8 +529,7 @@ class RangeIndex(Int64Index):
                         (start_s + step_o >= start_o) and
                         (end_s - step_o <= end_o)):
                     return RangeIndex(start_r, end_r + step_o, step_o)
-
-        return self._int64index.union(other, sort=sort)
+        return self._int64index._union(other, sort=sort)
 
     @Appender(_index_shared_docs['join'])
     def join(self, other, how='left', level=None, return_indexers=False,
