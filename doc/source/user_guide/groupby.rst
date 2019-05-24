@@ -626,9 +626,9 @@ requires additional arguments, partially apply them with :meth:`functools.partia
 .. note::
 
    For Python 3.5 and earlier, the order of ``**kwargs`` in a functions was not
-   preserved. Because the indeterminate keyword ordering would result in indeterminate
-   output column ordering, the output columns will always be sorted for Python 3.5.
-
+   preserved. This means that the output column ordering would not be
+   consistent. To ensure consistent ordering, the keys (and so output columns)
+   will always be sorted for Python 3.5.
 
 Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -648,20 +648,6 @@ must be either implemented on GroupBy or available via :ref:`dispatching
 .. ipython:: python
 
    grouped.agg({'C': 'sum', 'D': 'std'})
-
-.. note::
-
-    If you pass a dict to ``aggregate``, the ordering of the output columns is
-    non-deterministic. If you want to be sure the output columns will be in a specific
-    order, you can use an ``OrderedDict``.  Compare the output of the following two commands:
-
-.. ipython:: python
-
-   from collections import OrderedDict
-
-   grouped.agg({'D': 'std', 'C': 'mean'})
-   grouped.agg(OrderedDict([('D', 'std'), ('C', 'mean')]))
-
 
 .. _groupby.aggregate.cython:
 
