@@ -57,7 +57,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     common ops mixin to support a unified interface datetimelike Index
     """
-    _data = None  # type: DatetimeLikeArrayMixin
+    _data = None
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -220,9 +220,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
-    def map(self, f):
+    def map(self, mapper, na_action=None):
         try:
-            result = f(self)
+            result = mapper(self)
 
             # Try to use this result if we can
             if isinstance(result, np.ndarray):
@@ -232,7 +232,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
                 raise TypeError('The map function must return an Index object')
             return result
         except Exception:
-            return self.astype(object).map(f)
+            return self.astype(object).map(mapper)
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
@@ -430,8 +430,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _format_with_header(self, header, **kwargs):
-        return header + list(self._format_native_types(**kwargs))
+    def _format_with_header(self, header, na_rep='NaT', **kwargs):
+        return header + list(self._format_native_types(na_rep, **kwargs))
 
     @property
     def _formatter_func(self):
@@ -509,7 +509,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         cls.__rsub__ = __rsub__
 
-    def isin(self, values):
+    def isin(self, values, level=None):
         """
         Compute boolean array of whether each index value is found in the
         passed set of values.
