@@ -8,7 +8,7 @@ from pandas._config import get_option
 
 from pandas._libs import Timedelta, Timestamp
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
