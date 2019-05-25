@@ -2761,10 +2761,13 @@ class Index(IndexOpsMixin, PandasObject):
         target : %(target_klass)s
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
-            * pad / ffill: find the PREVIOUS index value if no exact match.
-            * backfill / bfill: use NEXT index value if no exact match
+            * pad / ffill: find the PREVIOUS index value if no exact
+              match%(method_param_pad_notes)s.
+            * backfill / bfill: use NEXT index value if no exact
+              match%(method_param_backfill_notes)s.
             * nearest: use the NEAREST index value if no exact match. Tied
-              distances are broken by preferring the larger index value.
+              distances are broken by preferring the larger index
+              value%(method_param_nearest_notes)s.
         limit : int, optional
             Maximum number of consecutive labels in ``target`` to match for
             inexact matches.
@@ -2798,6 +2801,8 @@ class Index(IndexOpsMixin, PandasObject):
         and ``x`` is marked by -1, as it is not in ``index``.
         """
 
+    @Substitution(method_param_pad_notes='', method_param_backfill_notes='',
+                  method_param_nearest_notes='')
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
