@@ -499,6 +499,8 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 }
 
 /*
+ * Port numpy#13188 https://github.com/numpy/numpy/pull/13188/S
+ *
  * Computes the python `ret, d = divmod(d, unit)`.
  *
  * Note that GCC is smart enough at -O2 to eliminate the `if(*d < 0)` branch
