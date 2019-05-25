@@ -147,17 +147,9 @@ class ReadingTestsBase(SharedItems):
                 df2 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
                                        index_col=0, usecols=3)
 
-        # parse_cols instead of usecols, usecols as int
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            with ignore_xlrd_time_clock_warning():
-                df3 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
-                                       index_col=0, parse_cols=3)
-
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
-        tm.assert_frame_equal(df3, df_ref, check_names=False)
 
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_list(self, ext):
@@ -169,15 +161,9 @@ class ReadingTestsBase(SharedItems):
         df2 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
                                index_col=0, usecols=[0, 2, 3])
 
-        with tm.assert_produces_warning(FutureWarning):
-            with ignore_xlrd_time_clock_warning():
-                df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                       index_col=0, parse_cols=[0, 2, 3])
-
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
-        tm.assert_frame_equal(df3, dfref, check_names=False)
 
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_str(self, ext):
@@ -190,15 +176,9 @@ class ReadingTestsBase(SharedItems):
         df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
                                index_col=0, usecols='A:D')
 
-        with tm.assert_produces_warning(FutureWarning):
-            with ignore_xlrd_time_clock_warning():
-                df4 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                       index_col=0, parse_cols='A:D')
-
         # TODO add index to xls, read xls ignores index name ?
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
-        tm.assert_frame_equal(df4, df1, check_names=False)
 
         df1 = dfref.reindex(columns=['B', 'C'])
         df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
@@ -342,7 +322,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(parsed, expected)
 
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
-    @pytest.mark.parametrize('arg', ['sheet', 'sheetname'])
+    @pytest.mark.parametrize('arg', ['sheet', 'sheetname', 'parse_cols'])
     def test_unexpected_kwargs_raises(self, ext, arg):
         # gh-17964
         excel = self.get_excelfile('test1', ext)
