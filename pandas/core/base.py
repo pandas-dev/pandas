@@ -48,15 +48,6 @@ class StringMixin:
         """
         raise AbstractMethodError(self)
 
-    def __bytes__(self):
-        """
-        Return a bytes representation for a particular object.
-        """
-        from pandas._config import get_option
-
-        encoding = get_option("display.encoding")
-        return str(self).encode(encoding, 'replace')
-
     def __repr__(self):
         """
         Return a string representation for a particular object.
@@ -64,7 +55,7 @@ class StringMixin:
         return str(self)
 
 
-class PandasObject(StringMixin, DirNamesMixin):
+class PandasObject(DirNamesMixin):
 
     """baseclass for various pandas objects"""
 
@@ -73,7 +64,7 @@ class PandasObject(StringMixin, DirNamesMixin):
         """class constructor (for this class it's just `__class__`"""
         return self.__class__
 
-    def __str__(self):
+    def __repr__(self):
         """
         Return a string representation for a particular object.
         """

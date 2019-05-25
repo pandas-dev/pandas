@@ -149,7 +149,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
         arr = self.view(np.ndarray).copy()
         return arr
 
-    def __str__(self):
+    def __repr__(self):
         """
         Return a string representation for this object.
         """

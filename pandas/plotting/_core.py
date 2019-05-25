@@ -2426,6 +2426,10 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     data = data._get_numeric_data()
     naxes = len(data.columns)
 
+    if naxes == 0:
+        raise ValueError("hist method requires numerical columns, "
+                         "nothing to plot.")
+
     fig, axes = _subplots(naxes=naxes, ax=ax, squeeze=False,
                           sharex=sharex, sharey=sharey, figsize=figsize,
                           layout=layout)

@@ -1419,7 +1419,7 @@ class _IXIndexer(_NDFrameIndexer):
 
     def __init__(self, name, obj):
         warnings.warn(self._ix_deprecation_warning,
-                      DeprecationWarning, stacklevel=2)
+                      FutureWarning, stacklevel=2)
         super().__init__(name, obj)
 
     @Appender(_NDFrameIndexer._validate_key.__doc__)
