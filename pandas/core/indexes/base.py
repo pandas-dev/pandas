@@ -2689,7 +2689,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    _get_loc_template = """
+    _index_shared_docs['get_loc'] = """
         Get integer location, slice or boolean mask for requested label.
 
         Parameters
@@ -2697,13 +2697,10 @@ class Index(IndexOpsMixin, PandasObject):
         key : label
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
-            * pad / ffill: find the PREVIOUS index value if no exact
-              match%(notes)s.
-            * backfill / bfill: use NEXT index value if no exact
-              match%(notes)s.
+            * pad / ffill: find the PREVIOUS index value if no exact match.
+            * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
-              distances are broken by preferring the larger index
-              value%(notes)s.
+              distances are broken by preferring the larger index value.
         tolerance : optional
             Maximum distance from index value for inexact matches. The value of
             the index at the matching location most satisfy the equation
@@ -2735,14 +2732,8 @@ class Index(IndexOpsMixin, PandasObject):
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
-    _index_shared_docs['get_loc_base'] = _get_loc_template % {
-        'notes': '',
-    }
-    _index_shared_docs['get_loc_interval'] = _get_loc_template % {
-        'notes': ' (not yet implemented for IntervalIndex)',
-    }
 
-    @Appender(_index_shared_docs['get_loc_base'])
+    @Appender(_index_shared_docs['get_loc'])
     def get_loc(self, key, method=None, tolerance=None):
         if method is None:
             if tolerance is not None:
@@ -2760,7 +2751,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise KeyError(key)
         return loc
 
-    _get_indexer_template = """
+    _index_shared_docs['get_indexer'] = """
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
         current data to the new index.
@@ -2770,13 +2761,10 @@ class Index(IndexOpsMixin, PandasObject):
         target : %(target_klass)s
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
-            * pad / ffill: find the PREVIOUS index value if no exact
-              match%(notes)s.
-            * backfill / bfill: use NEXT index value if no exact
-              match%(notes)s.
-            * nearest: use the NEAREST index value if no exact match.
-              Tied distances are broken by preferring the larger index
-              value%(notes)s.
+            * pad / ffill: find the PREVIOUS index value if no exact match.
+            * backfill / bfill: use NEXT index value if no exact match
+            * nearest: use the NEAREST index value if no exact match. Tied
+              distances are broken by preferring the larger index value.
         limit : int, optional
             Maximum number of consecutive labels in ``target`` to match for
             inexact matches.
@@ -2809,14 +2797,8 @@ class Index(IndexOpsMixin, PandasObject):
         Notice that the return value is an array of locations in ``index``
         and ``x`` is marked by -1, as it is not in ``index``.
         """
-    _index_shared_docs['get_indexer_base'] = _get_indexer_template % {
-        'notes': '',
-    }
-    _index_shared_docs['get_indexer_interval'] = _get_indexer_template % {
-        'notes': ' (not yet implemented for IntervalIndex)',
-    }
 
-    @Appender(_index_shared_docs['get_indexer_base'] % _index_doc_kwargs)
+    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)

@@ -648,8 +648,6 @@ class IntervalIndex(IntervalMixin, Index):
             return
 
         if method in ['bfill', 'backfill', 'pad', 'ffill', 'nearest']:
-            # The documentation warns that these methods are not yet implemented
-            # so it would be worth updating the documentation when fixing.
             msg = 'method {method} not yet implemented for IntervalIndex'
             raise NotImplementedError(msg.format(method=method))
 
@@ -725,7 +723,6 @@ class IntervalIndex(IntervalMixin, Index):
         key : label
         method : {None}, optional
             * default: matches where the label is within an interval only.
-            * other methods not
 
         Returns
         -------
@@ -808,8 +805,49 @@ class IntervalIndex(IntervalMixin, Index):
             loc = self.get_loc(key)
         return series.iloc[loc]
 
-    @Appender(_index_shared_docs['get_indexer_interval'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
+        """
+        Compute indexer and mask for new index given the current index. The
+        indexer should be then used as an input to ndarray.take to align the
+        current data to the new index.
+
+        Parameters
+        ----------
+        target : %(target_klass)s
+        method : {None}, optional
+            * default: exact matches only.
+        limit : int, optional
+            Maximum number of consecutive labels in ``target`` to match for
+            inexact matches.
+        tolerance : optional
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations most
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
+
+            .. versionadded:: 0.21.0 (list-like tolerance)
+
+        Returns
+        -------
+        indexer : ndarray of int
+            Integers from 0 to n - 1 indicating that the index at these
+            positions matches the corresponding target values. Missing values
+            in the target are marked by -1.
+
+        Examples
+        --------
+        >>> index = pd.Index(['c', 'a', 'b'])
+        >>> index.get_indexer(['a', 'b', 'x'])
+        array([ 1,  2, -1])
+
+        Notice that the return value is an array of locations in ``index``
+        and ``x`` is marked by -1, as it is not in ``index``.
+        """
 
         self._check_method(method)
         target = ensure_index(target)
