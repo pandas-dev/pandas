@@ -52,6 +52,9 @@ _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
 _index_doc_kwargs = dict(klass='Index', inplace='',
                          target_klass='Index',
+                         method_param_pad_notes='',
+                         method_param_backfill_notes='',
+                         method_param_nearest_notes='',
                          unique='Index', duplicated='np.ndarray')
 _index_shared_docs = dict()
 
@@ -2801,8 +2804,6 @@ class Index(IndexOpsMixin, PandasObject):
         and ``x`` is marked by -1, as it is not in ``index``.
         """
 
-    @Substitution(method_param_pad_notes='', method_param_backfill_notes='',
-                  method_param_nearest_notes='')
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
