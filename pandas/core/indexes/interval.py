@@ -1164,14 +1164,20 @@ class IntervalIndex(IntervalMixin, Index):
         -------
         taken : IntervalIndex
         """
+        mask = np.zeros(len(self), dtype=bool)
 
         lmiss = other.left.get_indexer_non_unique(self.left)[1]
-        rmiss = other.right.get_indexer_non_unique(self.right)[1]
+        lmatch = np.setdiff1d(np.arange(len(self)), lmiss)
 
-        indexer = functools.reduce(np.setdiff1d, (np.arange(len(self)),
-                                                  lmiss, rmiss))
+        for i in lmatch:
+            potential = other.left.get_loc(self.left[i])
+            if is_scalar(potential):
+                if self.right[i] == other.right[potential]:
+                    mask[i] = True
+            elif self.right[i] in other.right[potential]:
+                mask[i] = True
 
-        return self[indexer]
+        return self[mask]
 
     def _setop(op_name, sort=None):
         @setop_check(op_name=op_name)

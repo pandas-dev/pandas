@@ -96,6 +96,13 @@ class TestIntervalIndex:
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
+        # GH 26225
+        index = IntervalIndex.from_tuples([(0, 3), (0, 2)])
+        other = IntervalIndex.from_tuples([(0, 2), (1, 3)])
+        expected = IntervalIndex.from_tuples([(0, 2)])
+        result = index.intersection(other)
+        tm.assert_index_equal(result, expected)
+
     def test_difference(self, closed, sort):
         index = IntervalIndex.from_arrays([1, 0, 3, 2],
                                           [1, 2, 3, 4],
