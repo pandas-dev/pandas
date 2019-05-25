@@ -499,7 +499,7 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 }
 
 /*
- * Port numpy#13188 https://github.com/numpy/numpy/pull/13188/S
+ * Port numpy#13188 https://github.com/numpy/numpy/pull/13188/
  *
  * Computes the python `ret, d = divmod(d, unit)`.
  *
