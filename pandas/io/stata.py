@@ -712,7 +712,7 @@ class StataValueLabel:
         return bio.read()
 
 
-class StataMissingValue(StringMixin):
+class StataMissingValue:
     """
     An observation's missing value.
 

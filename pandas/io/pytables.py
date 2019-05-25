@@ -399,7 +399,6 @@ def _is_metadata_of(group, parent_group):
 
 
 class HDFStore(StringMixin):
-
     """
     Dict-like IO interface for storing pandas objects in PyTables
     either Fixed or Table format.
@@ -520,7 +519,7 @@ class HDFStore(StringMixin):
     def __len__(self):
         return len(self.groups())
 
-    def __str__(self):
+    def __repr__(self):
         return '{type}\nFile path: {path}\n'.format(
             type=type(self), path=pprint_thing(self._path))
 
@@ -1519,8 +1518,7 @@ class TableIterator:
         return results
 
 
-class IndexCol(StringMixin):
-
+class IndexCol:
     """ an index column description class
 
         Parameters
@@ -1587,7 +1585,7 @@ class IndexCol(StringMixin):
         self.table = table
         return self
 
-    def __str__(self):
+    def __repr__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -1881,7 +1879,7 @@ class DataCol(IndexCol):
         self.set_data(data)
         self.set_metadata(metadata)
 
-    def __str__(self):
+    def __repr__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -2286,8 +2284,7 @@ class GenericDataIndexableCol(DataIndexableCol):
         pass
 
 
-class Fixed(StringMixin):
-
+class Fixed:
     """ represent an object in my store
         facilitate read/write of various types of objects
         this is an abstract base class
@@ -2336,7 +2333,7 @@ class Fixed(StringMixin):
     def format_type(self):
         return 'fixed'
 
-    def __str__(self):
+    def __repr__(self):
         """ return a pretty representation of myself """
         self.infer_axes()
         s = self.shape
@@ -3077,7 +3074,7 @@ class Table(Fixed):
     def format_type(self):
         return 'table'
 
-    def __str__(self):
+    def __repr__(self):
         """ return a pretty representatgion of myself """
         self.infer_axes()
         dc = ",dc->[{columns}]".format(columns=(','.join(

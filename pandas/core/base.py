@@ -34,30 +34,27 @@ _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
 
 class StringMixin:
     """
-    Implements string methods so long as object defines a `__str__` method.
+    Require that an object defines a `__repr__` method.
     """
-    # side note - this could be made into a metaclass if more than one
-    #             object needs
+    # TODO: Remove this class from the code base. It's not needed after
+    #  dropping python2.
 
-    # ----------------------------------------------------------------------
-    # Formatting
-
-    def __str__(self):
+    def __repr__(self):
         """
         Return a string representation for a particular Object
         """
         raise AbstractMethodError(self)
 
-    def __repr__(self):
-        """
-        Return a string representation for a particular object.
-        """
-        return str(self)
-
 
 class PandasObject(DirNamesMixin):
 
     """baseclass for various pandas objects"""
+
+    subclasses = []
+
+    def __init_subclass__(cls, **kwargs):
+        if hasattr(cls, '_cache'):
+            PandasObject.subclasses.append(cls)
 
     @property
     def _constructor(self):

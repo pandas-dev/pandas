@@ -78,8 +78,7 @@ def _get_pretty_string(obj):
     return sio.getvalue()
 
 
-class Scope(StringMixin):
-
+class Scope:
     """Object to hold scope, with a few bells to deal with some custom syntax
     and contexts added by pandas.
 
@@ -135,13 +134,13 @@ class Scope(StringMixin):
         self.resolvers = DeepChainMap(*resolvers)
         self.temps = {}
 
-    def __str__(self):
+    def __repr__(self):
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
-        unicode_str = '{name}(scope={scope_keys}, resolvers={res_keys})'
-        return unicode_str.format(name=type(self).__name__,
-                                  scope_keys=scope_keys,
-                                  res_keys=res_keys)
+        template = '{name}(scope={scope_keys}, resolvers={res_keys})'
+        return template.format(name=type(self).__name__,
+                               scope_keys=scope_keys,
+                               res_keys=res_keys)
 
     @property
     def has_resolvers(self):
