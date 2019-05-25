@@ -807,9 +807,9 @@ class IntervalIndex(IntervalMixin, Index):
             loc = self.get_loc(key)
         return series.iloc[loc]
 
-    @Substitution(method_param_pad_notes=' (not yet supported).',
-                  method_param_backfill_notes=' (not yet supported).',
-                  method_param_nearest_notes=' (not yet supported).')
+    @Substitution(method_param_pad_notes=' (not yet supported)',
+                  method_param_backfill_notes=' (not yet supported)',
+                  method_param_nearest_notes=' (not yet supported)')
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
 
