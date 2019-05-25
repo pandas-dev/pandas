@@ -312,7 +312,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Removed ``Panel`` (:issue:`25047`, :issue:`25191`, :issue:`25231`)
--
+- Removed the previously deprecated ``sheetname`` keyword in :func:`read_excel` (:issue:`16442`, :issue:`20938`)
 - Removed previously deprecated ``TimeGrouper`` (:issue:`16942`)
 -
 
