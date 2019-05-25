@@ -200,5 +200,8 @@ class IntervalIndexMethod:
     def time_intersection(self, N):
         self.left.intersection(self.right)
 
+    def time_intersection_duplicate(self, N):
+        self.intv.intersection(self.right)
+
 
 from .pandas_vb_common import setup  # noqa: F401
