@@ -1,5 +1,4 @@
 """ define the IntervalIndex """
-import functools
 import textwrap
 import warnings
 
