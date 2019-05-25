@@ -342,15 +342,15 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(parsed, expected)
 
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
-    def test_deprecated_sheetname(self, ext):
+    @pytest.mark.parametrize('arg', ['sheet', 'sheetname'])
+    def test_unexpected_kwargs_raises(self, ext, arg):
         # gh-17964
         excel = self.get_excelfile('test1', ext)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            read_excel(excel, sheetname='Sheet1')
-
-        with pytest.raises(TypeError):
-            read_excel(excel, sheet='Sheet1')
+        kwarg = {arg: 'Sheet1'}
+        msg = "unexpected keyword argument `{}`".format(arg)
+        with pytest.raises(TypeError, match=msg):
+            read_excel(excel, **kwarg)
 
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_excel_table_sheet_by_index(self, ext):
@@ -588,31 +588,19 @@ class ReadingTestsBase(SharedItems):
         df_ref = self.get_csv_refdf(filename)
         df1 = self.get_exceldf(filename, ext,
                                sheet_name=sheet_name, index_col=0)  # doc
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            with ignore_xlrd_time_clock_warning():
-                df2 = self.get_exceldf(filename, ext, index_col=0,
-                                       sheetname=sheet_name)  # backward compat
+        with ignore_xlrd_time_clock_warning():
+            df2 = self.get_exceldf(filename, ext, index_col=0,
+                                   sheet_name=sheet_name)
 
         excel = self.get_excelfile(filename, ext)
         df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df2_parse = excel.parse(index_col=0,
-                                    sheetname=sheet_name)  # backward compat
+        df2_parse = excel.parse(index_col=0,
+                                sheet_name=sheet_name)
 
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
         tm.assert_frame_equal(df1_parse, df_ref, check_names=False)
         tm.assert_frame_equal(df2_parse, df_ref, check_names=False)
-
-    def test_sheet_name_both_raises(self, ext):
-        with pytest.raises(TypeError, match="Cannot specify both"):
-            self.get_exceldf('test1', ext, sheetname='Sheet1',
-                             sheet_name='Sheet1')
-
-        excel = self.get_excelfile('test1', ext)
-        with pytest.raises(TypeError, match="Cannot specify both"):
-            excel.parse(sheetname='Sheet1',
-                        sheet_name='Sheet1')
 
     def test_excel_read_buffer(self, ext):
 
