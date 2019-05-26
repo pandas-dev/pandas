@@ -39,9 +39,6 @@ _index_doc_kwargs.update(
     dict(klass='IntervalIndex',
          qualname="IntervalIndex",
          target_klass='IntervalIndex or list of Intervals',
-         method_param_pad_notes=' (not yet supported)',
-         method_param_backfill_notes=' (not yet supported)',
-         method_param_nearest_notes=' (not yet supported)',
          name=textwrap.dedent("""\
          name : object, optional
               Name to be stored in the index.
@@ -651,8 +648,6 @@ class IntervalIndex(IntervalMixin, Index):
             return
 
         if method in ['bfill', 'backfill', 'pad', 'ffill', 'nearest']:
-            # The documentation warns these methods are not implemented so if
-            # this is fixed please fix the doc string.
             msg = 'method {method} not yet implemented for IntervalIndex'
             raise NotImplementedError(msg.format(method=method))
 

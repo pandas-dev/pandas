@@ -52,9 +52,6 @@ _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
 _index_doc_kwargs = dict(klass='Index', inplace='',
                          target_klass='Index',
-                         method_param_pad_notes='',
-                         method_param_backfill_notes='',
-                         method_param_nearest_notes='',
                          unique='Index', duplicated='np.ndarray')
 _index_shared_docs = dict()
 
@@ -2764,13 +2761,10 @@ class Index(IndexOpsMixin, PandasObject):
         target : %(target_klass)s
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
-            * pad / ffill: find the PREVIOUS index value if no exact
-              match%(method_param_pad_notes)s.
-            * backfill / bfill: use NEXT index value if no exact
-              match%(method_param_backfill_notes)s.
+            * pad / ffill: find the PREVIOUS index value if no exact match.
+            * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
-              distances are broken by preferring the larger index
-              value%(method_param_nearest_notes)s.
+              distances are broken by preferring the larger index value.
         limit : int, optional
             Maximum number of consecutive labels in ``target`` to match for
             inexact matches.
