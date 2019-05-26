@@ -1,8 +1,6 @@
 """
-
-accessor.py contains base classes for implementing accessor properties
+Accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
-
 """
 from typing import Set
 import warnings
@@ -196,7 +194,7 @@ def _register_accessor(name, cls):
     return decorator
 
 
-_doc = """\
+_doc = """
 Register a custom accessor on %(klass)s objects.
 
 Parameters

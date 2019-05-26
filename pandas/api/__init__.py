@@ -1,2 +1,4 @@
-""" public toolkit API """
+"""
+Public toolkit API
+"""
 from . import types, extensions  # noqa
