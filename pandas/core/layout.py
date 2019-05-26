@@ -68,7 +68,7 @@ class ArrayLayout(object):
         :return: `ArrayLayout` instance as singleton
         """
         return cls._instance if cls._instance is not None \
-            else super(cls).__new__()
+            else super(ArrayLayout, cls).__new__(ArrayLayout)
 
     def __init__(self):
         """
