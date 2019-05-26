@@ -97,7 +97,7 @@ def _new_IntervalIndex(cls, d):
     return cls.from_arrays(**d)
 
 
-class setop_check:
+class SetopCheck:
     """
     This is called to decorate the set operations of IntervalIndex
     to perform the type check in advance.
@@ -1114,7 +1114,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self._data.overlaps(other)
 
     @Appender(_index_shared_docs['intersection'])
-    @setop_check(op_name='intersection')
+    @SetopCheck(op_name='intersection')
     def intersection(self, other, sort=False):
         if self.left.is_unique and self.right.is_unique:
             taken = self._intersection_unique(other)
@@ -1179,7 +1179,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self[mask]
 
     def _setop(op_name, sort=None):
-        @setop_check(op_name=op_name)
+        @SetopCheck(op_name=op_name)
         def func(self, other, sort=sort):
             result = getattr(self._multiindex, op_name)(other._multiindex,
                                                         sort=sort)
