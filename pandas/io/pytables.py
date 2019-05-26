@@ -479,7 +479,9 @@ class HDFStore(StringMixin):
 
     @property
     def root(self):
-        """ return the root node """
+        """ 
+        Return the root node
+        """
         self._check_if_open()
         return self._handle.root
 
@@ -497,7 +499,9 @@ class HDFStore(StringMixin):
         return self.remove(key)
 
     def __getattr__(self, name):
-        """ allow attribute access to get stores """
+        """
+        Allow attribute access to get stores
+        """
         try:
             return self.get(name)
         except (KeyError, ClosedFileError):
@@ -507,9 +511,11 @@ class HDFStore(StringMixin):
                 object=type(self).__name__, name=name))
 
     def __contains__(self, key):
-        """ check for existence of this key
+        """
+        Check for existence of this key
               can match the exact pathname or the pathnm w/o the leading '/'
-              """
+        
+        """
         node = self.get_node(key)
         if node is not None:
             name = node._v_pathname
@@ -547,7 +553,7 @@ class HDFStore(StringMixin):
 
     def items(self):
         """
-        iterate on key->group
+        Iterate on key->group
         """
         for g in self.groups():
             yield g._v_pathname, g
@@ -638,7 +644,7 @@ class HDFStore(StringMixin):
     @property
     def is_open(self):
         """
-        return a boolean indicating whether the file is open
+        Return a boolean indicating whether the file is open
         """
         if self._handle is None:
             return False
@@ -1082,7 +1088,8 @@ class HDFStore(StringMixin):
         s.create_index(**kwargs)
 
     def groups(self):
-        """return a list of all the top-level nodes (that are not themselves a
+        """
+        Return a list of all the top-level nodes (that are not themselves a
         pandas storage object)
 
         Returns
@@ -1101,7 +1108,8 @@ class HDFStore(StringMixin):
         ]
 
     def walk(self, where="/"):
-        """ Walk the pytables group hierarchy for pandas objects
+        """
+        Walk the pytables group hierarchy for pandas objects
 
         This generator will yield the group path, subgroups and pandas object
         names for each group.
