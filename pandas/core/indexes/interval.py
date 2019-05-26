@@ -811,8 +811,9 @@ class IntervalIndex(IntervalMixin, Index):
                        **{'raises_section': textwrap.dedent("""\
         Raises
         ------
-        raises NotImplementedError if any method other than than the default
-            method is specified as these are not yet implemented.
+        NotImplementedError
+            If any method other than than the default method is specified as
+            these are not yet implemented.
 
         """)}))
     @Appender(_index_shared_docs['get_indexer'])
