@@ -8,6 +8,7 @@ import operator
 from datetime import datetime, timedelta, date
 from collections import defaultdict
 from functools import partial
+from pandas.core.layout import array_layout
 
 import numpy as np
 
@@ -775,7 +776,10 @@ class Block(PandasObject):
         """ copy constructor """
         values = self.values
         if deep:
-            values = values.copy()
+            # If DataFrame axes are reversed, we need to set the
+            # appropriate memory layout on the transposed array
+            # with an appropriate copyier ...
+            values = array_layout.copy_transposed(values)
         return self.make_block_same_class(values)
 
     def replace(self, to_replace, value, inplace=False, filter=None,
