@@ -2302,33 +2302,43 @@ class GroupBy(_GroupBy):
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
 
-    def _reindex_output(self, result):
+    def _reindex_output(self, output):
         """
-        If we have categorical groupers, then we want to make sure that
-        we have a fully reindex-output to the levels. These may have not
-        participated in the groupings (e.g. may have all been
-        nan groups);
+        If we have categorical groupers, then we might want to make sure that
+        we have a fully re-indexed output to the levels. This means expanding
+        the output space to accommodate all values in the cartesian product of
+        our groups, regardless of whether they were observed in the data or
+        not. This will expand the output space if there are missing groups.
 
-        This can re-expand the output space
+        The method returns early without modifying the input if the number of
+        groupings is less than 2, self.observed == True or none of the groupers
+        are categorical.
+
+        Parameters
+        ----------
+        output: Series or DataFrame
+            Object resulting from grouping and applying an operation.
+
+        Returns
+        -------
+        Series or DataFrame
+            Object (potentially) re-indexed to include all possible groups.
         """
-
-        # we need to re-expand the output space to accomodate all values
-        # whether observed or not in the cartesian product of our groupes
         groupings = self.grouper.groupings
         if groupings is None:
-            return result
+            return output
         elif len(groupings) == 1:
-            return result
+            return output
 
         # if we only care about the observed values
         # we are done
         elif self.observed:
-            return result
+            return output
 
         # reindexing only applies to a Categorical grouper
         elif not any(isinstance(ping.grouper, (Categorical, CategoricalIndex))
                      for ping in groupings):
-            return result
+            return output
 
         levels_list = [ping.group_index for ping in groupings]
         index, _ = MultiIndex.from_product(
@@ -2336,34 +2346,34 @@ class GroupBy(_GroupBy):
 
         if self.as_index:
             d = {self.obj._get_axis_name(self.axis): index, 'copy': False}
-            return result.reindex(**d)
+            return output.reindex(**d)
 
         # GH 13204
         # Here, the categorical in-axis groupers, which need to be fully
-        # expanded, are columns in `result`. An idea is to do:
-        # result = result.set_index(self.grouper.names)
+        # expanded, are columns in `output`. An idea is to do:
+        # output = output.set_index(self.grouper.names)
         #                .reindex(index).reset_index()
         # but special care has to be taken because of possible not-in-axis
         # groupers.
         # So, we manually select and drop the in-axis grouper columns,
-        # reindex `result`, and then reset the in-axis grouper columns.
+        # reindex `output`, and then reset the in-axis grouper columns.
 
         # Select in-axis groupers
         in_axis_grps = ((i, ping.name) for (i, ping)
                         in enumerate(groupings) if ping.in_axis)
         g_nums, g_names = zip(*in_axis_grps)
 
-        result = result.drop(labels=list(g_names), axis=1)
+        output = output.drop(labels=list(g_names), axis=1)
 
         # Set a temp index and reindex (possibly expanding)
-        result = result.set_index(self.grouper.result_index
+        output = output.set_index(self.grouper.result_index
                                   ).reindex(index, copy=False)
 
         # Reset in-axis grouper columns
         # (using level numbers `g_nums` because level names may not be unique)
-        result = result.reset_index(level=g_nums)
+        output = output.reset_index(level=g_nums)
 
-        return result.reset_index(drop=True)
+        return output.reset_index(drop=True)
 
 
 GroupBy._add_numeric_operations()
