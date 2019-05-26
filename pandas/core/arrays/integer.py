@@ -523,6 +523,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         ndarray
             The mask which indicates the NA values.
 
+            .. versionadded:: 0.25.0
+
         See Also
         --------
         ExtensionArray.argsort

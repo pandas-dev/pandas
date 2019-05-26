@@ -373,6 +373,8 @@ class ExtensionArray:
         ndarray
             The mask which indicates the NA values.
 
+            .. versionadded:: 0.25.0
+
         See Also
         --------
         ExtensionArray.argsort
@@ -410,17 +412,15 @@ class ExtensionArray:
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
         values, mask = self._values_for_argsort()
 
-        def permutation(mask):
-            # Return a permutation which maps the indices of the
-            # subarray without nan to the indices of the original array.
-            permu = np.arange(len(mask))
-            permu = permu[~mask]
-            return permu
-
         if mask.any():
             notmask = ~mask
             notnull = np.argsort(values[notmask], kind=kind, **kwargs)
-            permu = permutation(mask)
+
+            # permu maps the indices of the subarray
+            # without nan to the indices of the original array.
+            permu = np.arange(len(mask))
+            permu = permu[~mask]
+
             notnull = permu[notnull]
             allnan = np.arange(len(self))[mask]
             result = np.append(notnull, allnan)
