@@ -31,7 +31,6 @@ from pandas.core.dtypes.common import (
 from pandas import (
     Categorical, DatetimeIndex, NaT, Timestamp, concat, isna, to_datetime,
     to_timedelta)
-from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
@@ -712,7 +711,7 @@ class StataValueLabel:
         return bio.read()
 
 
-class StataMissingValue(StringMixin):
+class StataMissingValue:
     """
     An observation's missing value.
 

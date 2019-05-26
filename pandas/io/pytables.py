@@ -32,7 +32,6 @@ from pandas import (
     to_datetime)
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
-from pandas.core.base import StringMixin
 import pandas.core.common as com
 from pandas.core.computation.pytables import Expr, maybe_expression
 from pandas.core.index import ensure_index
@@ -398,7 +397,7 @@ def _is_metadata_of(group, parent_group):
     return False
 
 
-class HDFStore(StringMixin):
+class HDFStore:
 
     """
     Dict-like IO interface for storing pandas objects in PyTables
@@ -520,7 +519,7 @@ class HDFStore(StringMixin):
     def __len__(self):
         return len(self.groups())
 
-    def __str__(self):
+    def __repr__(self):
         return '{type}\nFile path: {path}\n'.format(
             type=type(self), path=pprint_thing(self._path))
 
@@ -1519,7 +1518,7 @@ class TableIterator:
         return results
 
 
-class IndexCol(StringMixin):
+class IndexCol:
 
     """ an index column description class
 
@@ -1587,7 +1586,7 @@ class IndexCol(StringMixin):
         self.table = table
         return self
 
-    def __str__(self):
+    def __repr__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -1881,7 +1880,7 @@ class DataCol(IndexCol):
         self.set_data(data)
         self.set_metadata(metadata)
 
-    def __str__(self):
+    def __repr__(self):
         temp = tuple(
             map(pprint_thing,
                     (self.name,
@@ -2286,7 +2285,7 @@ class GenericDataIndexableCol(DataIndexableCol):
         pass
 
 
-class Fixed(StringMixin):
+class Fixed:
 
     """ represent an object in my store
         facilitate read/write of various types of objects
@@ -2336,7 +2335,7 @@ class Fixed(StringMixin):
     def format_type(self):
         return 'fixed'
 
-    def __str__(self):
+    def __repr__(self):
         """ return a pretty representation of myself """
         self.infer_axes()
         s = self.shape
@@ -3077,8 +3076,8 @@ class Table(Fixed):
     def format_type(self):
         return 'table'
 
-    def __str__(self):
-        """ return a pretty representatgion of myself """
+    def __repr__(self):
+        """ return a pretty representation of myself """
         self.infer_axes()
         dc = ",dc->[{columns}]".format(columns=(','.join(
             self.data_columns) if len(self.data_columns) else ''))
