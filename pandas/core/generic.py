@@ -235,7 +235,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @classmethod
     def _setup_axes(cls, axes, info_axis=None, stat_axis=None, aliases=None,
-                    slicers=None, axes_are_reversed=True, build_axes=True,
+                    slicers=None, axes_are_reversed=False, build_axes=True,
                     ns=None, docs=None):
         """Provide axes setup for the major PandasObjects.
 
