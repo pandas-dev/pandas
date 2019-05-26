@@ -2788,8 +2788,8 @@ class Index(IndexOpsMixin, PandasObject):
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
-
-        %(raises_section)sExamples
+        %(raises_section)s
+        Examples
         --------
         >>> index = pd.Index(['c', 'a', 'b'])
         >>> index.get_indexer(['a', 'b', 'x'])
