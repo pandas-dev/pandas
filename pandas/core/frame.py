@@ -408,7 +408,8 @@ class DataFrame(NDFrame):
             raise TypeError("data argument can't be an iterator")
         else:
             try:
-                arr = np.array(data, dtype=dtype, copy=copy, order=array_layout.order)
+                arr = np.array(data, dtype=dtype, copy=copy,
+                               order=array_layout.order)
             except (ValueError, TypeError) as e:
                 exc = TypeError('DataFrame constructor called with '
                                 'incompatible data and dtype: {e}'.format(e=e))
@@ -527,7 +528,9 @@ class DataFrame(NDFrame):
 
         index, columns = _get_axes(*values.shape)
         values = array_layout.apply(values)
-        values = values.T  # numpy changes only the array layout, no re-shuffling of data
+        # numpy transpose changes only the array layout from F to C
+        # and vice versa, no re-shuffling of data
+        values = values.T
 
         # if we don't have a dtype specified, then try to convert objects
         # on the entire block; this is to convert if we have datetimelike's
@@ -7442,7 +7445,9 @@ def _prep_ndarray(values, copy=True):
         # drop subclass info, do not copy data
         values = np.asarray(values)
         if copy:
-            values = array_layout.copy(values, order='K')  # keep memory layout in any case
+            # keep memory layout in this case! no implicit
+            # changes to default
+            values = array_layout.copy(values, order='K')
 
     if values.ndim == 1:
         values = values.reshape((values.shape[0], 1))

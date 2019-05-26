@@ -1,7 +1,8 @@
 """
-Implements ArrayLayout copy factory to change memory layout of `numpy.ndarrays`.
-Depending on the use case, operations on DataFrames can be much faster if
-the appropriate memory layout is set and preserved.
+Implements ArrayLayout copy factory to change memory layout
+of `numpy.ndarrays`.
+Depending on the use case, operations on DataFrames can be much
+faster if the appropriate memory layout is set and preserved.
 
 The implementation allows for changing the desired layout. Changes apply when
 copies or new objects are created, as for example, when slicing or aggregating
@@ -66,7 +67,8 @@ class ArrayLayout(object):
 
         :return: `ArrayLayout` instance as singleton
         """
-        return cls._instance if cls._instance is not None else super().__new__(cls)
+        return cls._instance if cls._instance is not None \
+            else super().__new__(cls)
 
     def __init__(self):
         """
@@ -160,9 +162,11 @@ class ArrayLayout(object):
         :return:
         """
         if self.__class__._order == 'K':
-            return array.copy(order={'C': 'C', 'F': 'F', 'O': None}[self.get_from(array)])
+            return array.copy(
+                order={'C': 'C', 'F': 'F', 'O': None}[self.get_from(array)])
         else:
-            return array.copy(order={'C': 'F', 'F': 'C'}[self.__class__._order])
+            return array.copy(
+                order={'C': 'F', 'F': 'C'}[self.__class__._order])
 
     def __str__(self):
         return str(self.__class__._order)
