@@ -807,7 +807,8 @@ class IntervalIndex(IntervalMixin, Index):
             loc = self.get_loc(key)
         return series.iloc[loc]
 
-    @Substitution(dict(_index_doc_kwargs, **{'raises_section': textwrap.dedent("""\
+    @Substitution(dict(_index_doc_kwargs,
+                       **{'raises_section': textwrap.dedent("""\
         Raises
         ------
         raises NotImplementedError if any method other than than the default
