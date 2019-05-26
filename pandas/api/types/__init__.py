@@ -1,5 +1,5 @@
-""" 
-Public toolkit API 
+"""
+Public toolkit API
 """
 
 from pandas.core.dtypes.api import *  # noqa
