@@ -527,9 +527,14 @@ class DataFrame(NDFrame):
                     raise_with_traceback(e)
 
         index, columns = _get_axes(*values.shape)
-        values = array_layout.apply(values)
+        # Make sure, right memory layout is set on np.ndarray
+        # of a pd.DataFrame
+        if isinstance(values, np.ndarray):
+            values = array_layout.apply(values)
         # numpy transpose changes only the array layout from F to C
         # and vice versa, no re-shuffling of data
+        # Attention: later np.ndarray.copy will change to C-order
+        # if order is not explicitly set.
         values = values.T
 
         # if we don't have a dtype specified, then try to convert objects
