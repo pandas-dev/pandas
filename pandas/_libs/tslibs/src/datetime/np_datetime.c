@@ -499,6 +499,27 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 }
 
 /*
+ * Port numpy#13188 https://github.com/numpy/numpy/pull/13188/
+ *
+ * Computes the python `ret, d = divmod(d, unit)`.
+ *
+ * Note that GCC is smart enough at -O2 to eliminate the `if(*d < 0)` branch
+ * for subsequent calls to this command - it is able to deduce that `*d >= 0`.
+ */
+npy_int64 extract_unit(npy_datetime *d, npy_datetime unit) {
+    assert(unit > 0);
+    npy_int64 div = *d / unit;
+    npy_int64 mod = *d % unit;
+    if (mod < 0) {
+        mod += unit;
+        div -= 1;
+    }
+    assert(mod >= 0);
+    *d = mod;
+    return div;
+}
+
+/*
  * Converts a datetime based on the given metadata into a datetimestruct
  */
 void pandas_datetime_to_datetimestruct(npy_datetime dt,
@@ -522,13 +543,8 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt,
             break;
 
         case NPY_FR_M:
-            if (dt >= 0) {
-                out->year = 1970 + dt / 12;
-                out->month = dt % 12 + 1;
-            } else {
-                out->year = 1969 + (dt + 1) / 12;
-                out->month = 12 + (dt + 1) % 12;
-            }
+            out->year  = 1970 + extract_unit(&dt, 12);
+            out->month = dt + 1;
             break;
 
         case NPY_FR_W:
@@ -543,167 +559,105 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt,
         case NPY_FR_h:
             perday = 24LL;
 
-            if (dt >= 0) {
-                set_datetimestruct_days(dt / perday, out);
-                dt = dt % perday;
-            } else {
-                set_datetimestruct_days(
-                    dt / perday - (dt % perday == 0 ? 0 : 1), out);
-                dt = (perday - 1) + (dt + 1) % perday;
-            }
+            set_datetimestruct_days(extract_unit(&dt, perday), out);
             out->hour = dt;
             break;
 
         case NPY_FR_m:
             perday = 24LL * 60;
 
-            if (dt >= 0) {
-                set_datetimestruct_days(dt / perday, out);
-                dt = dt % perday;
-            } else {
-                set_datetimestruct_days(
-                    dt / perday - (dt % perday == 0 ? 0 : 1), out);
-                dt = (perday - 1) + (dt + 1) % perday;
-            }
-            out->hour = dt / 60;
-            out->min = dt % 60;
+            set_datetimestruct_days(extract_unit(&dt, perday), out);
+            out->hour = (int)extract_unit(&dt, 60);
+            out->min = (int)dt;
             break;
 
         case NPY_FR_s:
             perday = 24LL * 60 * 60;
 
-            if (dt >= 0) {
-                set_datetimestruct_days(dt / perday, out);
-                dt = dt % perday;
-            } else {
-                set_datetimestruct_days(
-                    dt / perday - (dt % perday == 0 ? 0 : 1), out);
-                dt = (perday - 1) + (dt + 1) % perday;
-            }
-            out->hour = dt / (60 * 60);
-            out->min = (dt / 60) % 60;
-            out->sec = dt % 60;
+            set_datetimestruct_days(extract_unit(&dt, perday), out);
+            out->hour = (int)extract_unit(&dt, 60 * 60);
+            out->min  = (int)extract_unit(&dt, 60);
+            out->sec  = (int)dt;
             break;
 
         case NPY_FR_ms:
             perday = 24LL * 60 * 60 * 1000;
 
-            if (dt >= 0) {
-                set_datetimestruct_days(dt / perday, out);
-                dt = dt % perday;
-            } else {
-                set_datetimestruct_days(
-                    dt / perday - (dt % perday == 0 ? 0 : 1), out);
-                dt = (perday - 1) + (dt + 1) % perday;
-            }
-            out->hour = dt / (60 * 60 * 1000LL);
-            out->min = (dt / (60 * 1000LL)) % 60;
-            out->sec = (dt / 1000LL) % 60;
-            out->us = (dt % 1000LL) * 1000;
+            set_datetimestruct_days(extract_unit(&dt, perday), out);
+            out->hour = (int)extract_unit(&dt, 1000LL * 60 * 60);
+            out->min  = (int)extract_unit(&dt, 1000LL * 60);
+            out->sec  = (int)extract_unit(&dt, 1000LL);
+            out->us   = (int)(dt * 1000);
             break;
 
         case NPY_FR_us:
             perday = 24LL * 60LL * 60LL * 1000LL * 1000LL;
 
-            if (dt >= 0) {
-                set_datetimestruct_days(dt / perday, out);
-                dt = dt % perday;
-            } else {
-                set_datetimestruct_days(
-                    dt / perday - (dt % perday == 0 ? 0 : 1), out);
-                dt = (perday - 1) + (dt + 1) % perday;
-            }
-            out->hour = dt / (60 * 60 * 1000000LL);
-            out->min = (dt / (60 * 1000000LL)) % 60;
-            out->sec = (dt / 1000000LL) % 60;
-            out->us = dt % 1000000LL;
+            set_datetimestruct_days(extract_unit(&dt, perday), out);
+            out->hour = (int)extract_unit(&dt, 1000LL * 1000 * 60 * 60);
+            out->min  = (int)extract_unit(&dt, 1000LL * 1000 * 60);
+            out->sec  = (int)extract_unit(&dt, 1000LL * 1000);
+            out->us   = (int)dt;
             break;
 
         case NPY_FR_ns:
             perday = 24LL * 60LL * 60LL * 1000LL * 1000LL * 1000LL;
 
-            if (dt >= 0) {
-                set_datetimestruct_days(dt / perday, out);
-                dt = dt % perday;
-            } else {
-                set_datetimestruct_days(
-                    dt / perday - (dt % perday == 0 ? 0 : 1), out);
-                dt = (perday - 1) + (dt + 1) % perday;
-            }
-            out->hour = dt / (60 * 60 * 1000000000LL);
-            out->min = (dt / (60 * 1000000000LL)) % 60;
-            out->sec = (dt / 1000000000LL) % 60;
-            out->us = (dt / 1000LL) % 1000000LL;
-            out->ps = (dt % 1000LL) * 1000;
+            set_datetimestruct_days(extract_unit(&dt, perday), out);
+            out->hour = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60 * 60);
+            out->min  = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60);
+            out->sec  = (int)extract_unit(&dt, 1000LL * 1000 * 1000);
+            out->us   = (int)extract_unit(&dt, 1000LL);
+            out->ps   = (int)(dt * 1000);
             break;
 
         case NPY_FR_ps:
             perday = 24LL * 60 * 60 * 1000 * 1000 * 1000 * 1000;
 
-            if (dt >= 0) {
-                set_datetimestruct_days(dt / perday, out);
-                dt = dt % perday;
-            } else {
-                set_datetimestruct_days(
-                    dt / perday - (dt % perday == 0 ? 0 : 1), out);
-                dt = (perday - 1) + (dt + 1) % perday;
-            }
-            out->hour = dt / (60 * 60 * 1000000000000LL);
-            out->min = (dt / (60 * 1000000000000LL)) % 60;
-            out->sec = (dt / 1000000000000LL) % 60;
-            out->us = (dt / 1000000LL) % 1000000LL;
-            out->ps = dt % 1000000LL;
+            set_datetimestruct_days(extract_unit(&dt, perday), out);
+            out->hour = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60 * 60);
+            out->min  = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 60);
+            out->sec  = (int)extract_unit(&dt, 1000LL * 1000 * 1000);
+            out->us   = (int)extract_unit(&dt, 1000LL);
+            out->ps   = (int)(dt * 1000);
             break;
 
         case NPY_FR_fs:
             /* entire range is only +- 2.6 hours */
-            if (dt >= 0) {
-                out->hour = dt / (60 * 60 * 1000000000000000LL);
-                out->min = (dt / (60 * 1000000000000000LL)) % 60;
-                out->sec = (dt / 1000000000000000LL) % 60;
-                out->us = (dt / 1000000000LL) % 1000000LL;
-                out->ps = (dt / 1000LL) % 1000000LL;
-                out->as = (dt % 1000LL) * 1000;
-            } else {
-                npy_datetime minutes;
-
-                minutes = dt / (60 * 1000000000000000LL);
-                dt = dt % (60 * 1000000000000000LL);
-                if (dt < 0) {
-                    dt += (60 * 1000000000000000LL);
-                    --minutes;
-                }
-                /* Offset the negative minutes */
-                add_minutes_to_datetimestruct(out, minutes);
-                out->sec = (dt / 1000000000000000LL) % 60;
-                out->us = (dt / 1000000000LL) % 1000000LL;
-                out->ps = (dt / 1000LL) % 1000000LL;
-                out->as = (dt % 1000LL) * 1000;
+            out->hour = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 *
+                                        1000 * 60 * 60);
+            if (out->hour < 0) {
+                out->year  = 1969;
+                out->month = 12;
+                out->day   = 31;
+                out->hour  += 24;
+                assert(out->hour >= 0);
             }
+            out->min  = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 *
+                                        1000 * 60);
+            out->sec  = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 *
+                                        1000);
+            out->us   = (int)extract_unit(&dt, 1000LL * 1000 * 1000);
+            out->ps   = (int)extract_unit(&dt, 1000LL);
+            out->as   = (int)(dt * 1000);
             break;
 
         case NPY_FR_as:
             /* entire range is only +- 9.2 seconds */
-            if (dt >= 0) {
-                out->sec = (dt / 1000000000000000000LL) % 60;
-                out->us = (dt / 1000000000000LL) % 1000000LL;
-                out->ps = (dt / 1000000LL) % 1000000LL;
-                out->as = dt % 1000000LL;
-            } else {
-                npy_datetime seconds;
-
-                seconds = dt / 1000000000000000000LL;
-                dt = dt % 1000000000000000000LL;
-                if (dt < 0) {
-                    dt += 1000000000000000000LL;
-                    --seconds;
-                }
-                /* Offset the negative seconds */
-                add_seconds_to_datetimestruct(out, seconds);
-                out->us = (dt / 1000000000000LL) % 1000000LL;
-                out->ps = (dt / 1000000LL) % 1000000LL;
-                out->as = dt % 1000000LL;
+            out->sec = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 *
+                                        1000 * 1000);
+            if (out->sec < 0) {
+                out->year  = 1969;
+                out->month = 12;
+                out->day   = 31;
+                out->hour  = 23;
+                out->min   = 59;
+                out->sec   += 60;
+                assert(out->sec >= 0);
             }
+            out->us   = (int)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000);
+            out->ps   = (int)extract_unit(&dt, 1000LL * 1000);
+            out->as   = (int)dt;
             break;
 
         default:
