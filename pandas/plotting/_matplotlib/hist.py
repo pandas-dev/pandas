@@ -10,9 +10,9 @@ from pandas.core.dtypes.missing import isna, remove_na_arraylike
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-
-from .core import LinePlot, MPLPlot
-from .tools import _flatten, _set_ticks_props, _subplots
+from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
+from pandas.plotting._matplotlib.tools import (
+    _flatten, _set_ticks_props, _subplots)
 
 
 class HistPlot(LinePlot):

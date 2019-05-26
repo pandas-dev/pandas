@@ -20,11 +20,10 @@ import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting import plot_params
-
-from . import converter
-from .compat import _mpl_ge_3_0_0
-from .style import _get_standard_colors
-from .tools import (
+from pandas.plotting._matplotlib import converter
+from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+from pandas.plotting._matplotlib.style import _get_standard_colors
+from pandas.plotting._matplotlib.tools import (
     _flatten, _get_all_lines, _get_xlim, _handle_shared_axes, _subplots,
     format_date_labels, table)
 
@@ -949,12 +948,13 @@ class LinePlot(MPLPlot):
         return not self.x_compat and self.use_index and self._use_dynamic_x()
 
     def _use_dynamic_x(self):
-        from .timeseries import _use_dynamic_x
+        from pandas.plotting._matplotlib.timeseries import _use_dynamic_x
         return _use_dynamic_x(self._get_ax(0), self.data)
 
     def _make_plot(self):
         if self._is_ts_plot():
-            from .timeseries import _maybe_convert_index
+            from pandas.plotting._matplotlib.timeseries import (
+                _maybe_convert_index)
             data = _maybe_convert_index(self._get_ax(0), self.data)
 
             x = data.index      # dummy, not used
@@ -1004,9 +1004,9 @@ class LinePlot(MPLPlot):
 
     @classmethod
     def _ts_plot(cls, ax, x, data, style=None, **kwds):
-        from .timeseries import (_maybe_resample,
-                                 _decorate_axes,
-                                 format_dateaxis)
+        from pandas.plotting._matplotlib.timeseries import (_maybe_resample,
+                                                            _decorate_axes,
+                                                            format_dateaxis)
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose

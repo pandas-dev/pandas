@@ -5,9 +5,8 @@ import numpy as np
 from pandas.core.dtypes.missing import notna
 
 from pandas.io.formats.printing import pprint_thing
-
-from .style import _get_standard_colors
-from .tools import _set_ticks_props, _subplots
+from pandas.plotting._matplotlib.style import _get_standard_colors
+from pandas.plotting._matplotlib.tools import _set_ticks_props, _subplots
 
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,

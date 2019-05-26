@@ -369,18 +369,6 @@ _shared_docs['kde'] = """
         """
 
 
-def _get_standard_kind(kind):
-    return {'density': 'kde'}.get(kind, kind)
-
-
-def _get_plot_backend():
-    try:
-        import pandas.plotting._matplotlib as plot_backend
-    except ImportError:
-        raise ImportError("matplotlib is required for plotting.")
-    return plot_backend
-
-
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                 xrot=None, ylabelsize=None, yrot=None, figsize=None,
                 bins=10, **kwds):
@@ -609,6 +597,30 @@ _dataframe_kinds = ['scatter', 'hexbin']
 # kinds supported only by series or dataframe single column
 _series_kinds = ['pie']
 _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
+
+
+def _get_standard_kind(kind):
+    return {'density': 'kde'}.get(kind, kind)
+
+
+def _get_plot_backend():
+    """
+    Return the plotting backend to use (e.g. `pandas.plotting._matplotlib`).
+
+    The plotting system of pandas has been using matplotlib, but the idea here
+    is that it can also work with other third-party backends. In the future,
+    this function will return the backend from a pandas option, and all the
+    rest of the code in this file will use the backend specified there for the
+    plotting.
+
+    The backend is imported lazily, as matplotlib is a soft dependency, and
+    pandas can be used without it being installed.
+    """
+    try:
+        import pandas.plotting._matplotlib as plot_backend
+    except ImportError:
+        raise ImportError("matplotlib is required for plotting.")
+    return plot_backend
 
 
 def _plot_classes():

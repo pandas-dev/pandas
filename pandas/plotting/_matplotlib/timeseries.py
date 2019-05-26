@@ -14,12 +14,11 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
 
 from pandas.io.formats.printing import pprint_thing
-import pandas.tseries.frequencies as frequencies
-from pandas.tseries.offsets import DateOffset
-
-from .converter import (
+from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateFormatter, TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter)
+import pandas.tseries.frequencies as frequencies
+from pandas.tseries.offsets import DateOffset
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
