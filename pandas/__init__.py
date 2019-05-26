@@ -38,6 +38,9 @@ from datetime import datetime
 
 # let init-time option registration happen
 import pandas.core.config_init
+from pandas.core.layout import ArrayLayout
+
+ArrayLayout().order = 'F'
 
 from pandas.core.api import *
 from pandas.core.sparse.api import *

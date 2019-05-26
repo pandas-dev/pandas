@@ -23,6 +23,7 @@ from textwrap import dedent
 import numpy as np
 import numpy.ma as ma
 
+from pandas.core.layout import array_layout
 from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.cast import (
     maybe_upcast,
@@ -407,7 +408,7 @@ class DataFrame(NDFrame):
             raise TypeError("data argument can't be an iterator")
         else:
             try:
-                arr = np.array(data, dtype=dtype, copy=copy)
+                arr = np.array(data, dtype=dtype, copy=copy, order=array_layout.order)
             except (ValueError, TypeError) as e:
                 exc = TypeError('DataFrame constructor called with '
                                 'incompatible data and dtype: {e}'.format(e=e))
@@ -525,7 +526,8 @@ class DataFrame(NDFrame):
                     raise_with_traceback(e)
 
         index, columns = _get_axes(*values.shape)
-        values = values.T
+        values = array_layout.apply(values)
+        values = values.T  # numpy changes only the array layout, no re-shuffling of data
 
         # if we don't have a dtype specified, then try to convert objects
         # on the entire block; this is to convert if we have datetimelike's
@@ -7440,7 +7442,7 @@ def _prep_ndarray(values, copy=True):
         # drop subclass info, do not copy data
         values = np.asarray(values)
         if copy:
-            values = values.copy()
+            values = array_layout.copy(values, order='K')  # keep memory layout in any case
 
     if values.ndim == 1:
         values = values.reshape((values.shape[0], 1))
