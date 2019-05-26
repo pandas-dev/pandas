@@ -9,6 +9,7 @@ from io import BytesIO
 import lzma
 import mmap
 import os
+import pathlib
 from urllib.error import URLError  # noqa
 from urllib.parse import (  # noqa
     urlencode, urljoin, urlparse as parse_url, uses_netloc, uses_params,
@@ -115,24 +116,10 @@ def _stringify_path(filepath_or_buffer):
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
-    try:
-        import pathlib
-        _PATHLIB_INSTALLED = True
-    except ImportError:
-        _PATHLIB_INSTALLED = False
-
-    try:
-        from py.path import local as LocalPath
-        _PY_PATH_INSTALLED = True
-    except ImportError:
-        _PY_PATH_INSTALLED = False
-
     if hasattr(filepath_or_buffer, '__fspath__'):
         return filepath_or_buffer.__fspath__()
-    if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
+    elif isinstance(filepath_or_buffer, pathlib.Path):
         return str(filepath_or_buffer)
-    if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
-        return filepath_or_buffer.strpath
     return _expand_user(filepath_or_buffer)
 
 
