@@ -56,12 +56,15 @@ class StringMixin:
 
 
 class PandasObject(DirNamesMixin):
-
-    """baseclass for various pandas objects"""
+    """
+    Baseclass for various pandas objects
+    """
 
     @property
     def _constructor(self):
-        """class constructor (for this class it's just `__class__`"""
+        """
+        Class constructor (for this class it's just `__class__`
+        """
         return self.__class__
 
     def __repr__(self):
@@ -99,7 +102,8 @@ class PandasObject(DirNamesMixin):
 
 
 class NoNewAttributesMixin:
-    """Mixin which prevents adding new attributes.
+    """
+    Mixin which prevents adding new attributes.
 
     Prevents additional attributes via xxx.attribute = "something" after a
     call to `self.__freeze()`. Mainly used to prevent the user from using
@@ -110,7 +114,9 @@ class NoNewAttributesMixin:
     """
 
     def _freeze(self):
-        """Prevents setting additional attributes"""
+        """
+        Prevents setting additional attributes
+        """
         object.__setattr__(self, "__frozen", True)
 
     # prevent adding any attribute via s.xxx.new_attribute = ...
@@ -634,7 +640,8 @@ class SelectionMixin:
 
 
 class IndexOpsMixin:
-    """ common ops mixin to support a unified interface / docs for Series /
+    """ 
+    Common ops mixin to support a unified interface / docs for Series /
     Index
     """
 
@@ -652,8 +659,10 @@ class IndexOpsMixin:
         nv.validate_transpose(args, kwargs)
         return self
 
-    T = property(transpose, doc="Return the transpose, which is by "
-                                "definition self.")
+    T = property(transpose, doc="""
+    Return the transpose, which is by
+                                definition self.
+                                """)
 
     @property
     def _is_homogeneous_type(self):
