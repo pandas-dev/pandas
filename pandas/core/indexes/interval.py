@@ -648,8 +648,6 @@ class IntervalIndex(IntervalMixin, Index):
             return
 
         if method in ['bfill', 'backfill', 'pad', 'ffill', 'nearest']:
-            # The documentation warns these methods are not implemented so if
-            # this is fixed please fix the doc string.
             msg = 'method {method} not yet implemented for IntervalIndex'
             raise NotImplementedError(msg.format(method=method))
 
