@@ -171,7 +171,7 @@ _apply_docs = dict(
     {examples}
     """)
 
-_pipe_template = """
+_pipe_template = """\
 Apply a function `func` with arguments to this %(klass)s object and return
 the function's result.
 
@@ -556,8 +556,7 @@ pass, you can do
    B
 A
 a  2
-b  2
-""")
+b  2""")
     @Appender(_pipe_template)
     def pipe(self, func, *args, **kwargs):
         return com._pipe(self, func, *args, **kwargs)
