@@ -100,13 +100,12 @@ def _cat_compare_op(op):
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
-                f = getattr(self._codes, op)
-                ret = f(i)
+                ret = getattr(self._codes, op)(i)
 
                 # check for NaN in self
                 na_mask = (self._codes == -1)
                 if na_mask.any():
-                    # In other series, the leads to False, so do that here too
+                    # comparison to missing values NaN leads to False
                     ret[na_mask] = False
                 return ret
             else:
@@ -1412,6 +1411,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         ret = self._codes == -1
         return ret
+
     isnull = isna
 
     def notna(self):
@@ -1433,6 +1433,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         """
         return ~self.isna()
+
     notnull = notna
 
     def put(self, *args, **kwargs):
@@ -2554,6 +2555,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
              FutureWarning,
              stacklevel=2)
         return self._index
+
 
 # utility routines
 

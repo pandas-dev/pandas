@@ -17,7 +17,6 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         tm.assert_categorical_equal(factor, self.factor)
 
     def test_comparisons(self):
-
         result = self.factor[self.factor == 'a']
         expected = self.factor[np.asarray(self.factor) == 'a']
         tm.assert_categorical_equal(result, expected)
@@ -186,23 +185,21 @@ class TestCategoricalOps:
         tm.assert_numpy_array_equal(cat != 4,
                                     np.array([True, True, True]))
 
-    def test_comparison_with_known_scalars(self):
+    def test_comparison_of_ordered_categorical_with_missing_values(self):
         # https://github.com/pandas-dev/pandas/issues/26504
-        # and following comparisons with scalars in categories with None should
-        # be evaluated as False
+        # BUG: fix ordered categorical comparison with missing values (#26504 )
+        # and following comparisons with scalars in categories with missing values
+        # should be evaluated as False
 
-        cat1 = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
-        cat2 = Categorical([None, 1, 2, 3], categories=[1, 2, 3], ordered=True)
+        cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
 
-        tm.assert_numpy_array_equal(cat1 <= 2,
+        tm.assert_numpy_array_equal(cat <= 2,
                                     np.array([True, True, False, False]))
-        tm.assert_numpy_array_equal(cat2 <= 2,
-                                    np.array([False, True, True, False]))
 
     @pytest.mark.parametrize('data,reverse,base', [
         (list("abc"), list("cba"), list("bbb")),
         ([1, 2, 3], [3, 2, 1], [2, 2, 2])]
-    )
+                             )
     def test_comparisons(self, data, reverse, base):
         cat_rev = Series(
             Categorical(data, categories=reverse, ordered=True))
