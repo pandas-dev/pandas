@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
@@ -50,7 +48,7 @@ cdef inline bint are_diff(object left, object right):
         return left != right
 
 
-class Infinity(object):
+class Infinity:
     """ provide a positive Infinity comparison method for ranking """
 
     __lt__ = lambda self, other: False
@@ -62,7 +60,7 @@ class Infinity(object):
     __ge__ = lambda self, other: not missing.checknull(other)
 
 
-class NegInfinity(object):
+class NegInfinity:
     """ provide a negative Infinity comparison method for ranking """
 
     __lt__ = lambda self, other: (not isinstance(other, NegInfinity) and

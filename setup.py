@@ -203,15 +203,18 @@ AUTHOR = "The PyData Development Team"
 EMAIL = "pydata@googlegroups.com"
 URL = "http://pandas.pydata.org"
 DOWNLOAD_URL = ''
+PROJECT_URLS = {
+    'Bug Tracker': 'https://github.com/pandas-dev/pandas/issues',
+    'Documentation': 'http://pandas.pydata.org/pandas-docs/stable/',
+    'Source Code': 'https://github.com/pandas-dev/pandas'
+}
 CLASSIFIERS = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Operating System :: OS Independent',
     'Intended Audience :: Science/Research',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
@@ -629,7 +632,8 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
-        'include': []},
+        'depends': ['pandas/_libs/src/parser/tokenizer.h'],
+        'sources': ['pandas/_libs/src/parser/tokenizer.c']},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'include': ts_include,
@@ -757,6 +761,9 @@ _move_ext = Extension('pandas.util._move',
                       extra_link_args=extra_link_args)
 extensions.append(_move_ext)
 
+# ----------------------------------------------------------------------
+
+
 # The build cache system does string matching below this point.
 # if you change something, be careful.
 
@@ -772,8 +779,9 @@ setup(name=DISTNAME,
       cmdclass=cmdclass,
       url=URL,
       download_url=DOWNLOAD_URL,
+      project_urls=PROJECT_URLS,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',
-      python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
+      python_requires='>=3.5',
       **setuptools_kwargs)

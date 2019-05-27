@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # pandas documentation build configuration file, created by
 #
@@ -320,7 +319,7 @@ header = """\
    pd.options.display.max_rows = 15
 
    import os
-   os.chdir('{}')
+   os.chdir(r'{}')
 """.format(os.path.dirname(os.path.dirname(__file__)))
 
 

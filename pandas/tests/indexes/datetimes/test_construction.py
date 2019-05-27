@@ -17,7 +17,7 @@ from pandas.core.arrays import DatetimeArray, period_array
 import pandas.util.testing as tm
 
 
-class TestDatetimeIndex(object):
+class TestDatetimeIndex:
 
     @pytest.mark.parametrize('dt_cls', [DatetimeIndex,
                                         DatetimeArray._from_sequence])
@@ -667,7 +667,7 @@ class TestDatetimeIndex(object):
             pd.DatetimeIndex(['2000'], dtype='datetime64[us]')
 
 
-class TestTimeSeries(object):
+class TestTimeSeries:
 
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')
@@ -747,7 +747,7 @@ class TestTimeSeries(object):
 
     def test_datetimeindex_constructor_misc(self):
         arr = ['1/1/2005', '1/2/2005', 'Jn 3, 2005', '2005-01-04']
-        msg = r"(\(u?')?Unknown string format(:', 'Jn 3, 2005'\))?"
+        msg = r"(\(')?Unknown string format(:', 'Jn 3, 2005'\))?"
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(arr)
 

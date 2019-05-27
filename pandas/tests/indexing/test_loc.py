@@ -5,8 +5,6 @@ from warnings import catch_warnings, filterwarnings
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
-
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
@@ -234,7 +232,7 @@ class TestLoc(Base):
         with pytest.raises(KeyError, match=msg):
             s.loc[[-1, -2]]
 
-        msg = (r"\"None of \[Index\(\[u?'4'\], dtype='object'\)\] are"
+        msg = (r"\"None of \[Index\(\['4'\], dtype='object'\)\] are"
                r" in the \[index\]\"")
         with pytest.raises(KeyError, match=msg):
             s.loc[['4']]
@@ -620,7 +618,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def gen_test(l, l2):
             return pd.concat([
                 DataFrame(np.random.randn(l, len(columns)),
-                          index=lrange(l), columns=columns),
+                          index=np.arange(l), columns=columns),
                 DataFrame(np.ones((l2, len(columns))),
                           index=[0] * l2, columns=columns)])
 
@@ -656,7 +654,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert result == 'index_name'
 
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             result = df.ix[[0, 1]].index.name
         assert result == 'index_name'
 

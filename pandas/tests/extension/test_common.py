@@ -35,7 +35,7 @@ class DummyArray(ExtensionArray):
         return np.array(self, dtype=dtype, copy=copy)
 
 
-class TestExtensionArrayDtype(object):
+class TestExtensionArrayDtype:
 
     @pytest.mark.parametrize('values', [
         pd.Categorical([]),

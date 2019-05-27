@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
@@ -7,7 +5,7 @@ from pandas import Categorical, Index
 import pandas.util.testing as tm
 
 
-class TestCategoricalSort(object):
+class TestCategoricalSort:
 
     def test_argsort(self):
         c = Categorical([5, 3, 1, 4, 2], ordered=True)

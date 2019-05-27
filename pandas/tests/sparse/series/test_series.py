@@ -1,5 +1,3 @@
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime
 import operator
 
@@ -14,7 +12,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
-    DataFrame, Series, SparseDtype, SparseSeries, bdate_range, compat, isna)
+    DataFrame, Series, SparseDtype, SparseSeries, bdate_range, isna)
 from pandas.core.reshape.util import cartesian_product
 import pandas.core.sparse.frame as spf
 from pandas.tests.series.test_api import SharedWithSparse
@@ -257,7 +255,7 @@ class TestSparseSeries(SharedWithSparse):
         assert isinstance(self.iseries.sp_index, IntIndex)
 
         assert self.zbseries.fill_value == 0
-        tm.assert_numpy_array_equal(self.zbseries.values.values,
+        tm.assert_numpy_array_equal(self.zbseries.values.to_dense(),
                                     self.bseries.to_dense().fillna(0).values)
 
         # pass SparseSeries
@@ -324,7 +322,7 @@ class TestSparseSeries(SharedWithSparse):
     def test_constructor_nonnan(self):
         arr = [0, 0, 0, nan, nan]
         sp_series = SparseSeries(arr, fill_value=0)
-        tm.assert_numpy_array_equal(sp_series.values.values, np.array(arr))
+        tm.assert_numpy_array_equal(sp_series.values.to_dense(), np.array(arr))
         assert len(sp_series) == 5
         assert sp_series.shape == (5, )
 
@@ -431,7 +429,7 @@ class TestSparseSeries(SharedWithSparse):
 
     def test_getitem(self):
         def _check_getitem(sp, dense):
-            for idx, val in compat.iteritems(dense):
+            for idx, val in dense.items():
                 tm.assert_almost_equal(val, sp[idx])
 
             for i in range(len(dense)):
@@ -516,7 +514,7 @@ class TestSparseSeries(SharedWithSparse):
                 sparse_result = sp.take(idx)
                 assert isinstance(sparse_result, SparseSeries)
                 tm.assert_almost_equal(dense_result,
-                                       sparse_result.values.values)
+                                       sparse_result.values.to_dense())
 
             _compare([1., 2., 3., 4., 5., 0.])
             _compare([7, 2, 9, 0, 4])
@@ -850,7 +848,7 @@ class TestSparseSeries(SharedWithSparse):
             # homogenized is only valid with NaN fill values
             homogenized = spf.homogenize(data)
 
-            for k, v in compat.iteritems(homogenized):
+            for k, v in homogenized.items():
                 assert (v.sp_index.equals(expected))
 
         indices1 = [BlockIndex(10, [2], [7]), BlockIndex(10, [1, 6], [3, 4]),
@@ -1034,7 +1032,7 @@ class TestSparseSeries(SharedWithSparse):
         assert sparse_usage < dense_usage
 
 
-class TestSparseHandlingMultiIndexes(object):
+class TestSparseHandlingMultiIndexes:
 
     def setup_method(self, method):
         miindex = pd.MultiIndex.from_product(
@@ -1064,7 +1062,7 @@ class TestSparseHandlingMultiIndexes(object):
 @pytest.mark.filterwarnings(
     "ignore:the matrix subclass:PendingDeprecationWarning"
 )
-class TestSparseSeriesScipyInteraction(object):
+class TestSparseSeriesScipyInteraction:
     # Issue 8048: add SparseSeries coo methods
 
     def setup_method(self, method):
@@ -1427,7 +1425,7 @@ def _dense_series_compare(s, f):
     tm.assert_series_equal(result.to_dense(), dense_result)
 
 
-class TestSparseSeriesAnalytics(object):
+class TestSparseSeriesAnalytics:
 
     def setup_method(self, method):
         arr, index = _test_data1()

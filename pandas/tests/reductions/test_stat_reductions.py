@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for statistical reductions of 2nd moment or higher: var, skew, kurt, ...
 """
@@ -7,7 +6,6 @@ import inspect
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -15,7 +13,7 @@ from pandas import DataFrame, Series
 import pandas.util.testing as tm
 
 
-class TestSeriesStatReductions(object):
+class TestSeriesStatReductions:
     # Note: the name TestSeriesStatReductions indicates these tests
     #  were moved from a series-specific test file, _not_ that these tests are
     #  intended long-term to be series-specific
@@ -55,7 +53,7 @@ class TestSeriesStatReductions(object):
 
             # GH#2888
             items = [0]
-            items.extend(lrange(2 ** 40, 2 ** 40 + 1000))
+            items.extend(range(2 ** 40, 2 ** 40 + 1000))
             s = Series(items, dtype='int64')
             tm.assert_almost_equal(float(f(s)), float(alternate(s.values)))
 
@@ -93,7 +91,7 @@ class TestSeriesStatReductions(object):
         self._check_stat_op('median', np.median, string_series)
 
         # test with integers, test failure
-        int_ts = Series(np.ones(10, dtype=int), index=lrange(10))
+        int_ts = Series(np.ones(10, dtype=int), index=range(10))
         tm.assert_almost_equal(np.median(int_ts), int_ts.median())
 
     def test_prod(self):

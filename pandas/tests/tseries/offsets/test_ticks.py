@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for offsets.Tick and subclasses
 """

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101
-
 """ test fancy indexing & misc """
 
 from datetime import datetime
@@ -9,8 +6,6 @@ import weakref
 
 import numpy as np
 import pytest
-
-from pandas.compat import lrange
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
@@ -32,7 +27,7 @@ class TestFancy(Base):
         # GH5508
 
         # len of indexer vs length of the 1d ndarray
-        df = DataFrame(index=Index(lrange(1, 11)))
+        df = DataFrame(index=Index(np.arange(1, 11)))
         df['foo'] = np.zeros(10, dtype=np.float64)
         df['bar'] = np.zeros(10, dtype=np.complex)
 
@@ -51,7 +46,7 @@ class TestFancy(Base):
         tm.assert_series_equal(result, expected)
 
         # dtype getting changed?
-        df = DataFrame(index=Index(lrange(1, 11)))
+        df = DataFrame(index=Index(np.arange(1, 11)))
         df['foo'] = np.zeros(10, dtype=np.float64)
         df['bar'] = np.zeros(10, dtype=np.complex)
 
@@ -243,6 +238,14 @@ class TestFancy(Base):
         result = df.loc[[1, 2], ['a', 'b']]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('case', [lambda s: s, lambda s: s.loc])
+    def test_duplicate_int_indexing(self, case):
+        # GH 17347
+        s = pd.Series(range(3), index=[1, 1, 3])
+        expected = s[1]
+        result = case(s)[[1]]
+        tm.assert_series_equal(result, expected)
+
     def test_indexing_mixed_frame_bug(self):
 
         # GH3492
@@ -340,8 +343,9 @@ class TestFancy(Base):
         # GH 3626, an assignment of a sub-df to a df
         df = DataFrame({'FC': ['a', 'b', 'a', 'b', 'a', 'b'],
                         'PF': [0, 0, 0, 0, 1, 1],
-                        'col1': lrange(6),
-                        'col2': lrange(6, 12)})
+                        'col1': list(range(6)),
+                        'col2': list(range(6, 12)),
+                        })
         df.iloc[1, 0] = np.nan
         df2 = df.copy()
 
@@ -406,7 +410,7 @@ class TestFancy(Base):
         tm.assert_frame_equal(result, df)
 
         # ix with an object
-        class TO(object):
+        class TO:
 
             def __init__(self, value):
                 self.value = value
@@ -856,7 +860,7 @@ class TestMisc(Base):
         assert wr() is None
 
 
-class TestSeriesNoneCoercion(object):
+class TestSeriesNoneCoercion:
     EXPECTED_RESULTS = [
         # For numeric series, we should coerce to NaN.
         ([1, 2, 3], [np.nan, 2, 3]),
@@ -903,7 +907,7 @@ class TestSeriesNoneCoercion(object):
             tm.assert_series_equal(start_series, expected_series)
 
 
-class TestDataframeNoneCoercion(object):
+class TestDataframeNoneCoercion:
     EXPECTED_SINGLE_ROW_RESULTS = [
         # For numeric series, we should coerce to NaN.
         ([1, 2, 3], [np.nan, 2, 3]),

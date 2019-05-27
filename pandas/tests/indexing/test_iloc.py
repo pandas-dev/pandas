@@ -5,8 +5,6 @@ from warnings import catch_warnings, filterwarnings, simplefilter
 import numpy as np
 import pytest
 
-from pandas.compat import lmap, lrange
-
 import pandas as pd
 from pandas import DataFrame, Series, concat, date_range, isna
 from pandas.api.types import is_scalar
@@ -253,7 +251,7 @@ class TestiLoc(Base):
     def test_iloc_getitem_array(self):
 
         # array like
-        s = Series(index=lrange(1, 4))
+        s = Series(index=range(1, 4))
         self.check_result('array like', 'iloc', s.index, 'ix',
                           {0: [2, 4, 6], 1: [3, 6, 9], 2: [4, 8, 12]},
                           typs=['ints', 'uints'])
@@ -380,66 +378,66 @@ class TestiLoc(Base):
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_getitem_frame(self):
-        df = DataFrame(np.random.randn(10, 4), index=lrange(0, 20, 2),
-                       columns=lrange(0, 8, 2))
+        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2),
+                       columns=range(0, 8, 2))
 
         result = df.iloc[2]
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             exp = df.ix[4]
         tm.assert_series_equal(result, exp)
 
         result = df.iloc[2, 2]
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             exp = df.ix[4, 4]
         assert result == exp
 
         # slice
         result = df.iloc[4:8]
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             expected = df.ix[8:14]
         tm.assert_frame_equal(result, expected)
 
         result = df.iloc[:, 2:3]
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             expected = df.ix[:, 4:5]
         tm.assert_frame_equal(result, expected)
 
         # list of integers
         result = df.iloc[[0, 1, 3]]
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             expected = df.ix[[0, 2, 6]]
         tm.assert_frame_equal(result, expected)
 
         result = df.iloc[[0, 1, 3], [0, 1]]
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             expected = df.ix[[0, 2, 6], [0, 2]]
         tm.assert_frame_equal(result, expected)
 
         # neg indices
         result = df.iloc[[-1, 1, 3], [-1, 1]]
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             expected = df.ix[[18, 2, 6], [6, 2]]
         tm.assert_frame_equal(result, expected)
 
         # dups indices
         result = df.iloc[[-1, -1, 1, 3], [-1, 1]]
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             expected = df.ix[[18, 18, 2, 6], [6, 2]]
         tm.assert_frame_equal(result, expected)
 
         # with index-like
-        s = Series(index=lrange(1, 5))
+        s = Series(index=range(1, 5))
         result = df.iloc[s.index]
         with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             expected = df.ix[[2, 4, 6, 8]]
         tm.assert_frame_equal(result, expected)
 
@@ -531,7 +529,7 @@ class TestiLoc(Base):
         result = df.iloc[:, 2:3]
         tm.assert_frame_equal(result, expected)
 
-        s = Series(np.random.randn(10), index=lrange(0, 20, 2))
+        s = Series(np.random.randn(10), index=range(0, 20, 2))
 
         s.iloc[1] = 1
         result = s.iloc[1]
@@ -584,13 +582,13 @@ class TestiLoc(Base):
     def test_iloc_mask(self):
 
         # GH 3631, iloc with a mask (of a series) should raise
-        df = DataFrame(lrange(5), list('ABCDE'), columns=['a'])
+        df = DataFrame(list(range(5)), index=list('ABCDE'), columns=['a'])
         mask = (df.a % 2 == 0)
         msg = ("iLocation based boolean indexing cannot use an indexable as"
                " a mask")
         with pytest.raises(ValueError, match=msg):
             df.iloc[mask]
-        mask.index = lrange(len(mask))
+        mask.index = range(len(mask))
         msg = ("iLocation based boolean indexing on an integer type is not"
                " available")
         with pytest.raises(NotImplementedError, match=msg):
@@ -603,7 +601,7 @@ class TestiLoc(Base):
         # the possibilities
         locs = np.arange(4)
         nums = 2 ** locs
-        reps = lmap(bin, nums)
+        reps = [bin(num) for num in nums]
         df = DataFrame({'locs': locs, 'nums': nums}, reps)
 
         expected = {
@@ -653,7 +651,7 @@ class TestiLoc(Base):
 
         # GH 4017, non-unique indexing (on the axis)
         df = DataFrame({'A': [0.1] * 3000, 'B': [1] * 3000})
-        idx = np.array(lrange(30)) * 99
+        idx = np.arange(30) * 99
         expected = df.iloc[idx]
 
         df3 = concat([df, 2 * df, 3 * df])

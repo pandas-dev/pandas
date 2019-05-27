@@ -9,12 +9,12 @@ from collections import OrderedDict, abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any
+from typing import Any, Iterable, Union
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas.compat import PY36, iteritems
+from pandas.compat import PY36
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -289,6 +289,15 @@ def maybe_make_list(obj):
     return obj
 
 
+def maybe_iterable_to_list(obj: Union[Iterable, Any]) -> Union[list, Any]:
+    """
+    If obj is Iterable but not list-like, consume into list.
+    """
+    if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
+        return list(obj)
+    return obj
+
+
 def is_null_slice(obj):
     """
     We have a null slice.
@@ -362,7 +371,7 @@ def dict_compat(d):
     dict
 
     """
-    return {maybe_box_datetimelike(key): value for key, value in iteritems(d)}
+    return {maybe_box_datetimelike(key): value for key, value in d.items()}
 
 
 def standardize_mapping(into):

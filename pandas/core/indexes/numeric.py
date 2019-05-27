@@ -9,6 +9,7 @@ from pandas.core.dtypes.common import (
     is_bool, is_bool_dtype, is_dtype_equal, is_extension_array_dtype, is_float,
     is_integer_dtype, is_scalar, needs_i8_conversion, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.generic import ABCInt64Index, ABCRangeIndex
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -68,8 +69,7 @@ class NumericIndex(Index):
         if values is not None and not self._can_hold_na:
             # Ensure we are not returning an Int64Index with float data:
             return self._shallow_copy_with_infer(values=values, **kwargs)
-        return (super(NumericIndex, self)._shallow_copy(values=values,
-                                                        **kwargs))
+        return super()._shallow_copy(values=values, **kwargs)
 
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
@@ -121,7 +121,7 @@ class NumericIndex(Index):
         # treat NA values as nans:
         if is_scalar(item) and isna(item):
             item = self._na_value
-        return super(NumericIndex, self).insert(loc, item)
+        return super().insert(loc, item)
 
 
 _num_index_shared_docs['class_descr'] = """
@@ -206,8 +206,7 @@ class Int64Index(IntegerIndex):
         # don't coerce ilocs to integers
         if kind != 'iloc':
             key = self._maybe_cast_indexer(key)
-        return (super(Int64Index, self)
-                ._convert_scalar_indexer(key, kind=kind))
+        return super()._convert_scalar_indexer(key, kind=kind)
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
@@ -222,6 +221,13 @@ class Int64Index(IntegerIndex):
             if not np.array_equal(data, subarr):
                 raise TypeError('Unsafe NumPy casting, you must '
                                 'explicitly cast')
+
+    def _is_compatible_with_other(self, other):
+        return (
+            super()._is_compatible_with_other(other)
+            or all(isinstance(type(obj), (ABCInt64Index, ABCRangeIndex))
+                   for obj in [self, other])
+        )
 
 
 Int64Index._add_numeric_methods()
@@ -260,8 +266,7 @@ class UInt64Index(IntegerIndex):
         # don't coerce ilocs to integers
         if kind != 'iloc':
             key = self._maybe_cast_indexer(key)
-        return (super(UInt64Index, self)
-                ._convert_scalar_indexer(key, kind=kind))
+        return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
@@ -332,7 +337,7 @@ class Float64Index(NumericIndex):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
             raise ValueError('Cannot convert NA to integer')
-        return super(Float64Index, self).astype(dtype, copy=copy)
+        return super().astype(dtype, copy=copy)
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -350,8 +355,7 @@ class Float64Index(NumericIndex):
             return key
 
         if kind == 'iloc':
-            return super(Float64Index, self)._convert_slice_indexer(key,
-                                                                    kind=kind)
+            return super()._convert_slice_indexer(key, kind=kind)
 
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
@@ -400,7 +404,7 @@ class Float64Index(NumericIndex):
             return False
 
     def __contains__(self, other):
-        if super(Float64Index, self).__contains__(other):
+        if super().__contains__(other):
             return True
 
         try:
@@ -431,12 +435,11 @@ class Float64Index(NumericIndex):
                     return nan_idxs
         except (TypeError, NotImplementedError):
             pass
-        return super(Float64Index, self).get_loc(key, method=method,
-                                                 tolerance=tolerance)
+        return super().get_loc(key, method=method, tolerance=tolerance)
 
     @cache_readonly
     def is_unique(self):
-        return super(Float64Index, self).is_unique and self._nan_idxs.size < 2
+        return super().is_unique and self._nan_idxs.size < 2
 
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):

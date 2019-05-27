@@ -7,7 +7,7 @@ from pandas import DataFrame, MultiIndex
 from pandas.util import testing as tm
 
 
-class TestMultiIndexPartial(object):
+class TestMultiIndexPartial:
 
     def test_getitem_partial_int(self):
         # GH 12416
@@ -100,7 +100,7 @@ class TestMultiIndexPartial(object):
         tm.assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.ix[('a', 'y'), [1, 0]]
         tm.assert_frame_equal(result, expected)
 
@@ -132,7 +132,7 @@ class TestMultiIndexPartial(object):
     # ---------------------------------------------------------------------
     # AMBIGUOUS CASES!
 
-    def test_partial_ix_missing(
+    def test_partial_loc_missing(
             self, multiindex_year_month_day_dataframe_random_data):
         pytest.skip("skipping for now")
 
