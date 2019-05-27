@@ -76,13 +76,3 @@ def three_group():
                       'D': np.random.randn(11),
                       'E': np.random.randn(11),
                       'F': np.random.randn(11)})
-
-
-@pytest.fixture
-def df_cat():
-    df = DataFrame({'a': ['one', 'one', 'one', 'two'],
-                    'b': ['foo', 'foo', 'bar', 'foo'],
-                    'c': [1, 2, 3, 4]})
-    df['a'] = df['a'].astype('category')
-    df['b'] = df['b'].astype('category')
-    return df
