@@ -14,7 +14,8 @@ https://github.com/pandas-dev/pandas/issues/26502
 """
 import numpy as np
 
-DEFAULT_MEMORY_LAYOUT = 'F'
+
+_DEFAULT_MEMORY_LAYOUT = 'F'
 
 class ArrayLayout(object):
     """
@@ -35,7 +36,7 @@ class ArrayLayout(object):
 
     """
 
-    _order = DEFAULT_MEMORY_LAYOUT
+    _order = _DEFAULT_MEMORY_LAYOUT
     _instance = None
 
     @property
