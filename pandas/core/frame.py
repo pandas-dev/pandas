@@ -17,6 +17,7 @@ import sys
 import warnings
 from textwrap import dedent
 from typing import FrozenSet, List, Optional, Set, Type, Union
+from pandas.core.layout import array_layout
 
 import numpy as np
 import numpy.ma as ma
@@ -34,6 +35,7 @@ from pandas.util._validators import (validate_bool_kwarg,
 from pandas.compat import PY36, raise_with_traceback
 from pandas.compat.numpy import function as nv
 from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.core.layout import array_layout
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -452,7 +454,8 @@ class DataFrame(NDFrame):
                 mgr = init_dict({}, index, columns, dtype=dtype)
         else:
             try:
-                arr = np.array(data, dtype=dtype, copy=copy)
+                arr = np.array(data, dtype=dtype, copy=copy,
+                               order=array_layout.order)
             except (ValueError, TypeError) as e:
                 exc = TypeError('DataFrame constructor called with '
                                 'incompatible data and dtype: {e}'.format(e=e))
@@ -1175,7 +1178,7 @@ class DataFrame(NDFrame):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
-        result = np.array(self.values, dtype=dtype, copy=copy)
+        result = np.array(self.values, dtype=dtype, copy=copy, order=array_layout.order)
         return result
 
     def to_dict(self, orient='dict', into=dict):

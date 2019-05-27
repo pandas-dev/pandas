@@ -119,6 +119,10 @@ __version__ = v.get('closest-tag', v['version'])
 __git_version__ = v.get('full-revisionid')
 del get_versions, v
 
+from pandas.core.layout import ArrayLayout
+array_layout = ArrayLayout()
+array_layout = 'F'
+
 # module level doc-string
 __doc__ = """
 pandas - a powerful data analysis and manipulation library for Python

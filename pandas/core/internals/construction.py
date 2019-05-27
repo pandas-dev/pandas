@@ -33,6 +33,7 @@ from pandas.core.indexes import base as ibase
 from pandas.core.internals import (
     create_block_manager_from_arrays, create_block_manager_from_blocks)
 from pandas.core.internals.arrays import extract_array
+from pandas.core.layout import array_layout
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -154,6 +155,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
                 raise_with_traceback(e)
 
     index, columns = _get_axes(*values.shape, index=index, columns=columns)
+    values = array_layout.apply(values)
     values = values.T
 
     # if we don't have a dtype specified, then try to convert objects
@@ -235,6 +237,8 @@ def prep_ndarray(values, copy=True):
         values = np.asarray(values)
         if copy:
             values = values.copy()
+            values = array_layout.copy(values, order='K')
+            # keep memory layout in any case
 
     if values.ndim == 1:
         values = values.reshape((values.shape[0], 1))

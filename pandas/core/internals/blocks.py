@@ -6,7 +6,7 @@ from typing import Any, List
 import warnings
 
 import numpy as np
-
+from pandas.core.layout import array_layout
 from pandas._libs import lib, tslib, tslibs
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion, is_null_datetimelike
@@ -724,7 +724,12 @@ class Block(PandasObject):
         """ copy constructor """
         values = self.values
         if deep:
-            values = values.copy()
+            # values = values.copy()
+            # If DataFrame axes are reversed, we need to set the
+            # appropriate memory layout on the transposed array
+            # with an appropriate copyier ...
+            values = array_layout.copy_transposed(values)
+
         return self.make_block_same_class(values, ndim=self.ndim)
 
     def replace(self, to_replace, value, inplace=False, filter=None,
