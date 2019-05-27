@@ -457,7 +457,8 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
                          use_columns=False, xticks=None, colormap=None,
                          axvlines=True, axvlines_kwds=None, sort_labels=False,
                          **kwds):
-    """Parallel coordinates plotting.
+    """
+    Parallel coordinates plotting.
 
     Parameters
     ----------
@@ -568,7 +569,8 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
 
 def lag_plot(series, lag=1, ax=None, **kwds):
-    """Lag plot for time series.
+    """
+    Lag plot for time series.
 
     Parameters
     ----------
