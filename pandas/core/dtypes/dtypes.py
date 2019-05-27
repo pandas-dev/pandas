@@ -644,12 +644,16 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     @property
     def unit(self):
-        """The precision of the datetime data."""
+        """
+        The precision of the datetime data.
+        """
         return self._unit
 
     @property
     def tz(self):
-        """The timezone."""
+        """
+        The timezone.
+        """
         return self._tz
 
     @classmethod
