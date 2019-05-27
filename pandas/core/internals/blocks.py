@@ -728,7 +728,10 @@ class Block(PandasObject):
             # If DataFrame axes are reversed, we need to set the
             # appropriate memory layout on the transposed array
             # with an appropriate copyier ...
-            values = array_layout.copy_transposed(values)
+            if isinstance(values, np.ndarray):
+                values = array_layout.copy_transposed(values)
+            else:
+                values = values.copy()
 
         return self.make_block_same_class(values, ndim=self.ndim)
 
