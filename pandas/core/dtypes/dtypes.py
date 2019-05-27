@@ -957,7 +957,9 @@ class IntervalDtype(PandasExtensionDtype):
 
     @property
     def subtype(self):
-        """The dtype of the Interval bounds."""
+        """
+        The dtype of the Interval bounds.
+        """
         return self._subtype
 
     @classmethod
