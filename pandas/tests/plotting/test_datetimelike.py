@@ -212,7 +212,7 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
-            'frqncy', ['1S', '3S', '5T', '7H', '4D', '8W', '11M', '3A'])
+        'frqncy', ['1S', '3S', '5T', '7H', '4D', '8W', '11M', '3A'])
     def test_line_plot_period_mlt_series(self, frqncy):
         # test period index line plot for series with multiples (`mlt`) of the
         # frequency (`frqncy`) rule code. tests resolution of issue #14763
