@@ -2160,7 +2160,7 @@ class DataFrame(NDFrame):
             Whether the generated HTML is for IPython Notebook.
         border : int
             A ``border=border`` attribute is included in the opening
-            `<table>` tag. Default ``pd.options.html.border``.
+            `<table>` tag. Default ``pd.options.display.html.border``.
 
             .. versionadded:: 0.19.0
 
