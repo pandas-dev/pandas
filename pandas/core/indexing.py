@@ -1940,7 +1940,7 @@ class _iLocIndexer(_LocationIndexer):
     out-of-bounds, except *slice* indexers which allow out-of-bounds
     indexing (this conforms with python/numpy *slice* semantics).
 
-    See more at ref:`Selection by Position <indexing.integer>`.
+    See more at :ref:`Selection by Position <indexing.integer>`.
 
     See Also
     --------
