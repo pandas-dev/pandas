@@ -64,12 +64,6 @@ index_col : int, list of int, default None
     those columns will be combined into a ``MultiIndex``.  If a
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
-parse_cols : int or list, default None
-    Alias of `usecols`.
-
-    .. deprecated:: 0.21.0
-       Use `usecols` instead.
-
 usecols : int, str, list-like, or callable default None
     Return a subset of the columns.
 
@@ -260,14 +254,12 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 
 
 @Appender(_read_excel_doc)
-@deprecate_kwarg("parse_cols", "usecols")
 @deprecate_kwarg("skip_footer", "skipfooter")
 def read_excel(io,
                sheet_name=0,
                header=0,
                names=None,
                index_col=None,
-               parse_cols=None,
                usecols=None,
                squeeze=False,
                dtype=None,
@@ -290,7 +282,7 @@ def read_excel(io,
                mangle_dupe_cols=True,
                **kwds):
 
-    for arg in ('sheet', 'sheetname'):
+    for arg in ('sheet', 'sheetname', 'parse_cols'):
         if arg in kwds:
             raise TypeError("read_excel() got an unexpected keyword argument "
                             "`{}`".format(arg))
