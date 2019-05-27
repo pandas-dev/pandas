@@ -23,5 +23,5 @@ def read_spss(path, usecols=None, categorical=True):
         if isinstance(usecols, str):
             usecols = [usecols]
     df, _ = read_sav(path, usecols=usecols,
-                     apply_value_formats=use_categorical)
+                     apply_value_formats=categorical)
     return df
