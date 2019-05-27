@@ -17,6 +17,7 @@ import numpy as np
 
 _DEFAULT_MEMORY_LAYOUT = 'F'
 
+
 class ArrayLayout(object):
     """
     Array layout management for numpy.ndarrays.

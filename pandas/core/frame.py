@@ -1178,7 +1178,8 @@ class DataFrame(NDFrame):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
-        result = np.array(self.values, dtype=dtype, copy=copy, order=array_layout.order)
+        result = np.array(self.values, dtype=dtype, copy=copy,
+                          order=array_layout.order)
         return result
 
     def to_dict(self, orient='dict', into=dict):
