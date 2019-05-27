@@ -358,10 +358,6 @@ with cf.config_prefix('display'):
     cf.register_option('html.use_mathjax', True, pc_html_use_mathjax_doc,
                        validator=is_bool)
 
-with cf.config_prefix('html'):
-    cf.register_option('border', 1, pc_html_border_doc,
-                       validator=is_int)
-
 tc_sim_interactive_doc = """
 : boolean
     Whether to simulate interactive mode for purposes of testing
