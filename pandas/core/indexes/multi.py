@@ -256,10 +256,10 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        code : optional list
+        code : list,  optional
             Code to reassign.
-        level : optional list
-            Level to check for Nan.
+        level : list, optional
+            Level to check for missing values (NaN, NaT, None).
 
         Returns
         -------
@@ -324,9 +324,7 @@ class MultiIndex(Index):
 
         codes = [self._validate_codes(level, code)
                  for level, code in zip(levels, codes)]
-        new_codes = FrozenList(
-            _ensure_frozen(level_codes, lev, copy=False)._shallow_copy()
-            for lev, level_codes in zip(levels, codes))
+        new_codes = FrozenList(codes)
         return new_codes
 
     @classmethod
