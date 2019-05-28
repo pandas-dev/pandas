@@ -13,7 +13,7 @@ else:
     _HAVE_PYREADSTAT = True
 
 
-@pytest.mark.skipif(not _HAVE_PYREADSTAT)
+@pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_labelled_num():
     fname = "data/labelled-num.sav"
 
@@ -27,7 +27,7 @@ def test_spss_labelled_num():
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.skipif(not _HAVE_PYREADSTAT)
+@pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_labelled_num_na():
     fname = "data/labelled-num-na.sav"
 
@@ -41,7 +41,7 @@ def test_spss_labelled_num_na():
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.skipif(not _HAVE_PYREADSTAT)
+@pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_labelled_str():
     fname = "data/labelled-str.sav"
 
@@ -55,7 +55,7 @@ def test_spss_labelled_str():
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.skipif(not _HAVE_PYREADSTAT)
+@pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_umlauts():
     fname = "data/umlauts.sav"
 
