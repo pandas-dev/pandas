@@ -213,6 +213,20 @@ are returned. (:issue:`21521`)
     df.groupby("a").ffill()
 
 
+``__str__`` methods now call ``__repr__`` rather than vica-versa
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas has until now mostly defined string representations in a Pandas objects's
+``__str__``/``__unicode__``/``__bytes__`` methods, and called ``__str__`` from the ``__repr__``
+method, if a specific ``__repr__`` method is not found. This is not needed for Python3.
+In Pandas 0.25, the string representations of Pandas objects are now generally
+defined in ``__repr__``, and calls to ``__str__`` in general now pass the call on to
+the ``__repr__``, if a specific ``__str__`` method doesn't exist, as is standard for Python.
+This change is backward compatible for direct usage of Pandas, but if you subclass
+Pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
+you may have to adjust your ``__str__``/``__repr__`` methods (:issue:`26495`).
+
+
 .. _whatsnew_0250.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -298,9 +312,10 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Removed ``Panel`` (:issue:`25047`, :issue:`25191`, :issue:`25231`)
--
--
--
+- Removed the previously deprecated ``sheetname`` keyword in :func:`read_excel` (:issue:`16442`, :issue:`20938`)
+- Removed the previously deprecated ``TimeGrouper`` (:issue:`16942`)
+- Removed the previously deprecated ``parse_cols`` keyword in :func:`read_excel` (:issue:`16488`)
+- Removed the previously deprecated ``pd.options.html.border`` (:issue:`16970`)
 
 .. _whatsnew_0250.performance:
 
@@ -322,6 +337,7 @@ Performance Improvements
 - Improved performance of :meth:`IntervalIndex.intersection` (:issue:`24813`)
 - Improved performance of :meth:`read_csv` by faster concatenating date columns without extra conversion to string for integer/float zero
   and float NaN; by faster checking the string for the possibility of being a date (:issue:`25754`)
+- Improved performance of :meth:`IntervalIndex.is_unique` by removing conversion to `MultiIndex` (:issue:`24813`)
 
 .. _whatsnew_0250.bug_fixes:
 
