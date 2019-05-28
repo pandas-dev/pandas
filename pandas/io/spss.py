@@ -2,7 +2,7 @@ def read_spss(path, usecols=None, categorical=True):
     """
     Load an SPSS file from the file path, returning a DataFrame.
 
-    .. versionadded 0.24.3
+    .. versionadded 0.25.0
 
     Parameters
     ----------
