@@ -809,9 +809,8 @@ class IntervalIndex(IntervalMixin, Index):
                          **{'raises_section': textwrap.dedent("""
         Raises
         ------
-        NotImplementedError
-            If any method other than than the default method is specified as
-            these are not yet implemented.
+        NotImplementedError: If any method argument other than the default of
+            None is specified as these are not yet implemented.
         """)}))
     @Appender(_index_shared_docs['get_indexer'])
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
