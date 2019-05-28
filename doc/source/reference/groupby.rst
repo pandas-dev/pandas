@@ -27,7 +27,8 @@ Indexing, iteration
 
    Grouper
 
-.. currentmodule:: pandas.core.groupby
+..
+
 
 Function application
 --------------------

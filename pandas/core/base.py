@@ -344,7 +344,7 @@ class SelectionMixin:
                 using a dict with renaming is deprecated and will be removed
                 in a future version.
 
-                For column-specific groupby renaming, use keyword aggregation
+                For column-specific groupby renaming, use named aggregation
 
                     >>> df.groupby(...).agg(name=('column', aggfunc))
                 """)

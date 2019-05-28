@@ -1672,6 +1672,7 @@ def _normalize_keyword_aggregation(kwargs):
     """
     if not PY36:
         kwargs = OrderedDict(sorted(kwargs.items()))
+
     # Normalize the aggregation functions as Dict[column, List[func]],
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to
