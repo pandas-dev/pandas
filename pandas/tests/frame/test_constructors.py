@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, MultiIndex, RangeIndex, Series, Timedelta,
-    Timestamp, date_range, isna)
+    Timestamp, compat, date_range, isna)
 from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
@@ -113,6 +113,7 @@ class TestDataFrameConstructors(TestData):
         assert df.loc[1, 0] is None
         assert df.loc[0, 1] == '2'
 
+    @pytest.mark.xfail(compat.numpy._is_numpy_dev, reason="GH-26546")
     def test_constructor_list_frames(self):
         # see gh-3243
         result = DataFrame([DataFrame()])
