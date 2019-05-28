@@ -231,7 +231,7 @@ From dense to sparse, use :meth:`DataFrame.astype` with a :class:`SparseDtype`.
 
 **Sparse Properties**
 
-Sparse-specific properties, like ``density``, are available on the ``.sparse`` accssor.
+Sparse-specific properties, like ``density``, are available on the ``.sparse`` accessor.
 
 .. ipython:: python
 
@@ -239,8 +239,8 @@ Sparse-specific properties, like ``density``, are available on the ``.sparse`` a
 
 **General Differences**
 
-In a SparseDataFrame, *all* columns were sparse. A :class:`DataFrame` can have a mixture of
-sparse and dense columns. As a consequence, assigning new columns to a DataFrame with sparse
+In a ``SparseDataFrame``, *all* columns were sparse. A :class:`DataFrame` can have a mixture of
+sparse and dense columns. As a consequence, assigning new columns to a ``DataFrame`` with sparse
 values will not automatically convert the input to be sparse.
 
 .. code-block:: python
@@ -294,7 +294,7 @@ To convert back to sparse SciPy matrix in COO format, you can use the :meth:`Dat
 
    sdf.sparse.to_coo()
 
-:meth:`Series.sparse.to_coo` is implemented for transforming a ``Series`` with sparse values indexed by a ``MultiIndex`` to a ``scipy.sparse.coo_matrix``.
+meth:`Series.sparse.to_coo` is implemented for transforming a ``Series`` with sparse values indexed by a :class:`MultiIndex` to a :class:`scipy.sparse.coo_matrix`.
 
 The method requires a ``MultiIndex`` with two or more levels.
 

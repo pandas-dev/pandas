@@ -136,6 +136,9 @@ def _coo_to_sparse_series(A, dense_index: bool = False,
     s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
     s = s.sort_index()
     if sparse_series:
+        # TODO(SparseSeries): remove this and the sparse_series keyword.
+        # This is just here to avoid a DeprecationWarning when
+        # _coo_to_sparse_series is called via Series.sparse.from_coo
         s = s.to_sparse()  # TODO: specify kind?
     else:
         s = s.astype(SparseDtype(s.dtype))
