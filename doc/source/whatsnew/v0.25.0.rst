@@ -99,6 +99,7 @@ Other Enhancements
 - Error message for missing required imports now includes the original import error's text (:issue:`23868`)
 - :class:`DatetimeIndex` and :class:`TimedeltaIndex` now have a ``mean`` method (:issue:`24757`)
 - :meth:`DataFrame.describe` now formats integer percentiles without decimal point (:issue:`26660`)
+- Added support for reading SPSS .sav files using :func:`read_spss` (:issue:`26537`)
 
 .. _whatsnew_0250.api_breaking:
 
