@@ -83,6 +83,21 @@ class TestTimeConversionFormats:
         result = to_datetime(s, format='%Y%m%d', cache=cache)
         assert_series_equal(result, expected)
 
+        # GH 25512
+        # strings with invalid date values, errors=coerce
+        s = Series(['19801222', '20010012', '10019999', np.nan])
+        result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
+                                cache=cache)
+        expected = Series([Timestamp('19801222'), np.nan, np.nan, np.nan])
+        tm.assert_series_equal(result, expected)
+
+        # integers with invalid date values, errors=coerce
+        s = Series([20010012, 20190813, 20019999, np.nan])
+        result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
+                                cache=cache)
+        expected = Series([np.nan, Timestamp('20190813'), np.nan, np.nan])
+        tm.assert_series_equal(result, expected)
+
         # coercion
         # GH 7930
         s = Series([20121231, 20141231, 99991231])
