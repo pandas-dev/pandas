@@ -1,15 +1,19 @@
+import pytest
 import numpy as np
 import pandas as pd
 from pandas.io.spss import read_spss
 from pandas.util import testing as tm
 
 
-data = ["data/labelled-num.sav",
-        "data/labelled-num-na.sav",
-        "data/labelled-str.sav",
-        "data/umlauts.sav"]
+try:
+    import pyreadstat
+except ImportError:
+    _HAVE_PYREADSTAT = False
+else:
+    _HAVE_PYREADSTAT = True
 
 
+@pytest.mark.skipif(not _HAVE_PYREADSTAT)
 def test_spss_labelled_num():
     fname = "data/labelled-num.sav"
 
@@ -23,6 +27,7 @@ def test_spss_labelled_num():
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.skipif(not _HAVE_PYREADSTAT)
 def test_spss_labelled_num_na():
     fname = "data/labelled-num-na.sav"
 
@@ -36,6 +41,7 @@ def test_spss_labelled_num_na():
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.skipif(not _HAVE_PYREADSTAT)
 def test_spss_labelled_str():
     fname = "data/labelled-str.sav"
 
@@ -49,6 +55,7 @@ def test_spss_labelled_str():
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.skipif(not _HAVE_PYREADSTAT)
 def test_spss_umlauts():
     fname = "data/umlauts.sav"
 
