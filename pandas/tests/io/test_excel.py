@@ -84,7 +84,7 @@ class ReadingTestsBase(SharedItems):
         Obtain the reference data from read_csv with the Python engine.
         """
         df_ref = read_csv('test1.csv', index_col=0,
-                         parse_dates=True, engine='python')
+                          parse_dates=True, engine='python')
         return df_ref
 
     @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
