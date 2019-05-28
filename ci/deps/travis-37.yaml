@@ -21,3 +21,4 @@ dependencies:
   - pip
   - pip:
     - moto
+    - pyreadstat
