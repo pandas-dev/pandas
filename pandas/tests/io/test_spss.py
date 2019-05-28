@@ -6,7 +6,7 @@ from pandas.util import testing as tm
 
 
 try:
-    import pyreadstat
+    import pyreadstat  # noqa
 except ImportError:
     _HAVE_PYREADSTAT = False
 else:
