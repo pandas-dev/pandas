@@ -336,6 +336,7 @@ Performance Improvements
 - Improved performance of :meth:`Series.map` for dictionary mappers on categorical series by mapping the categories instead of mapping all values (:issue:`23785`)
 - Improved performance of :meth:`read_csv` by faster concatenating date columns without extra conversion to string for integer/float zero
   and float NaN; by faster checking the string for the possibility of being a date (:issue:`25754`)
+- Improved performance of :meth:`IntervalIndex.is_unique` by removing conversion to `MultiIndex` (:issue:`24813`)
 
 .. _whatsnew_0250.bug_fixes:
 

@@ -183,7 +183,7 @@ class Float64IndexMethod:
 
 class IntervalIndexMethod:
     # GH 24813
-    params = [10**3, 10**5]
+    params = [10**3, 10**5, 10**7]
 
     def setup(self, N):
         left = np.append(np.arange(N), np.array(0))
@@ -193,6 +193,9 @@ class IntervalIndexMethod:
 
     def time_monotonic_inc(self, N):
         self.intv.is_monotonic_increasing
+
+    def time_is_unique(self, N):
+        self.intv.is_unique
 
 
 from .pandas_vb_common import setup  # noqa: F401
