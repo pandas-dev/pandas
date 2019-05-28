@@ -1,9 +1,9 @@
-import pytest
 import numpy as np
+import pytest
+
 import pandas as pd
 from pandas.io.spss import read_spss
 from pandas.util import testing as tm
-
 
 try:
     import pyreadstat  # noqa
