@@ -1831,7 +1831,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ----------
     # Formatting
     # -----------
-    def __str__(self):
+    def __repr__(self):
         return '{self}\nFill: {fill}\n{index}'.format(
             self=printing.pprint_thing(self),
             fill=printing.pprint_thing(self.fill_value),

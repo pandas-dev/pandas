@@ -461,7 +461,24 @@ class IntervalIndex(IntervalMixin, Index):
         """
         Return True if the IntervalIndex contains unique elements, else False
         """
-        return self._multiindex.is_unique
+        left = self.left
+        right = self.right
+
+        if self.isna().sum() > 1:
+            return False
+
+        if left.is_unique or right.is_unique:
+            return True
+
+        seen_pairs = set()
+        check_idx = np.where(left.duplicated(keep=False))[0]
+        for idx in check_idx:
+            pair = (left[idx], right[idx])
+            if pair in seen_pairs:
+                return False
+            seen_pairs.add(pair)
+
+        return True
 
     @cache_readonly
     @Appender(_interval_shared_docs['is_non_overlapping_monotonic']
@@ -964,19 +981,6 @@ class IntervalIndex(IntervalMixin, Index):
         new_right = self.right.insert(loc, right_insert)
         return self._shallow_copy(new_left, new_right)
 
-    def _as_like_interval_index(self, other):
-        self._assert_can_do_setop(other)
-        other = ensure_index(other)
-        if not isinstance(other, IntervalIndex):
-            msg = ('the other index needs to be an IntervalIndex too, but '
-                   'was type {}').format(other.__class__.__name__)
-            raise TypeError(msg)
-        elif self.closed != other.closed:
-            msg = ('can only do set operations between two IntervalIndex '
-                   'objects that are closed on the same side')
-            raise ValueError(msg)
-        return other
-
     def _concat_same_dtype(self, to_concat, name):
         """
         assert that we all have the same .closed
@@ -1092,7 +1096,17 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _setop(op_name, sort=None):
         def func(self, other, sort=sort):
-            other = self._as_like_interval_index(other)
+            self._assert_can_do_setop(other)
+            other = ensure_index(other)
+            if not isinstance(other, IntervalIndex):
+                result = getattr(self.astype(object), op_name)(other)
+                if op_name in ('difference',):
+                    result = result.astype(self.dtype)
+                return result
+            elif self.closed != other.closed:
+                msg = ('can only do set operations between two IntervalIndex '
+                       'objects that are closed on the same side')
+                raise ValueError(msg)
 
             # GH 19016: ensure set op will not return a prohibited dtype
             subtypes = [self.dtype.subtype, other.dtype.subtype]
@@ -1114,6 +1128,7 @@ class IntervalIndex(IntervalMixin, Index):
 
             return type(self).from_tuples(result, closed=self.closed,
                                           name=result_name)
+
         return func
 
     @property

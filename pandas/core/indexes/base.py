@@ -20,11 +20,10 @@ from pandas.core.dtypes.common import (
     ensure_categorical, ensure_int64, ensure_object, ensure_platform_int,
     is_bool, is_bool_dtype, is_categorical, is_categorical_dtype,
     is_datetime64_any_dtype, is_datetime64tz_dtype, is_dtype_equal,
-    is_dtype_union_equal, is_extension_array_dtype, is_float, is_float_dtype,
-    is_hashable, is_integer, is_integer_dtype, is_interval_dtype, is_iterator,
-    is_list_like, is_object_dtype, is_period_dtype, is_scalar,
-    is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype,
-    pandas_dtype)
+    is_extension_array_dtype, is_float, is_float_dtype, is_hashable,
+    is_integer, is_integer_dtype, is_interval_dtype, is_iterator, is_list_like,
+    is_object_dtype, is_period_dtype, is_scalar, is_signed_integer_dtype,
+    is_timedelta64_dtype, is_unsigned_integer_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCDateOffset, ABCDatetimeArray, ABCIndexClass,
@@ -933,7 +932,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def __str__(self):
+    def __repr__(self):
         """
         Return a string representation for this object.
         """
@@ -2262,6 +2261,47 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
+    def _union_incompatible_dtypes(self, other, sort):
+        """
+        Casts this and other index to object dtype to allow the formation
+        of a union between incompatible types.
+
+        Parameters
+        ----------
+        other : Index or array-like
+        sort : False or None, default False
+            Whether to sort the resulting index.
+
+            * False : do not sort the result.
+            * None : sort the result, except when `self` and `other` are equal
+              or when the values cannot be compared.
+
+        Returns
+        -------
+        Index
+        """
+        this = self.astype(object, copy=False)
+        # cast to Index for when `other` is list-like
+        other = Index(other).astype(object, copy=False)
+        return Index.union(this, other, sort=sort).astype(object, copy=False)
+
+    def _is_compatible_with_other(self, other):
+        """
+        Check whether this and the other dtype are compatible with each other.
+        Meaning a union can be formed between them without needing to be cast
+        to dtype object.
+
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        bool
+        """
+        return (type(self) is type(other)
+                and is_dtype_equal(self.dtype, other.dtype))
+
     def _validate_sort_keyword(self, sort):
         if sort not in [None, False]:
             raise ValueError("The 'sort' keyword only takes the values of "
@@ -2270,6 +2310,11 @@ class Index(IndexOpsMixin, PandasObject):
     def union(self, other, sort=None):
         """
         Form the union of two Index objects.
+
+        If the Index objects are incompatible, both Index objects will be
+        cast to dtype('object') first.
+
+            .. versionchanged:: 0.25.0
 
         Parameters
         ----------
@@ -2300,29 +2345,53 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
 
+        Union matching dtypes
+
         >>> idx1 = pd.Index([1, 2, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.union(idx2)
         Int64Index([1, 2, 3, 4, 5, 6], dtype='int64')
+
+        Union mismatched dtypes
+
+        >>> idx1 = pd.Index(['a', 'b', 'c', 'd'])
+        >>> idx2 = pd.Index([1, 2, 3, 4])
+        >>> idx1.union(idx2)
+        Index(['a', 'b', 'c', 'd', 1, 2, 3, 4], dtype='object')
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
 
-        if len(other) == 0 or self.equals(other):
+        if not self._is_compatible_with_other(other):
+            return self._union_incompatible_dtypes(other, sort=sort)
+
+        return self._union(other, sort=sort)
+
+    def _union(self, other, sort):
+        """
+        Specific union logic should go here. In subclasses, union behavior
+        should be overwritten here rather than in `self.union`.
+
+        Parameters
+        ----------
+        other : Index or array-like
+        sort : False or None, default False
+            Whether to sort the resulting index.
+
+            * False : do not sort the result.
+            * None : sort the result, except when `self` and `other` are equal
+              or when the values cannot be compared.
+
+        Returns
+        -------
+        Index
+        """
+
+        if not len(other) or self.equals(other):
             return self._get_reconciled_name_object(other)
 
-        if len(self) == 0:
+        if not len(self):
             return other._get_reconciled_name_object(self)
-
-        # TODO: is_dtype_union_equal is a hack around
-        # 1. buggy set ops with duplicates (GH #13432)
-        # 2. CategoricalIndex lacking setops (GH #10186)
-        # Once those are fixed, this workaround can be removed
-        if not is_dtype_union_equal(self.dtype, other.dtype):
-            this = self.astype('O')
-            other = other.astype('O')
-            return this.union(other, sort=sort)
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self) or is_datetime64tz_dtype(self):
@@ -2370,6 +2439,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _wrap_setop_result(self, other, result):
         return self._constructor(result, name=get_op_result_name(self, other))
 
+    # TODO: standardize return type of non-union setops type(self vs other)
     def intersection(self, other, sort=False):
         """
         Form the intersection of two Index objects.
