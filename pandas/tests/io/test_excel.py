@@ -98,23 +98,6 @@ class ReadingTestsBase(SharedItems):
                          parse_dates=True, engine='python')
         return dfref
 
-    def get_excelfile(self, basename, ext):
-        """
-        Return test data ExcelFile instance.
-
-        Parameters
-        ----------
-
-        basename : str
-            File base name, excluding file extension.
-
-        Returns
-        -------
-
-        excel : io.excel.ExcelFile
-        """
-        return ExcelFile(basename + ext)
-
     def get_exceldf(self, basename, ext, *args, **kwds):
         """
         Return test data DataFrame.
@@ -297,7 +280,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_passes_na(self, ext):
 
-        excel = self.get_excelfile('test4', ext)
+        excel = ExcelFile('test4' + ext)
 
         parsed = read_excel(excel, 'Sheet1', keep_default_na=False,
                             na_values=['apple'])
@@ -312,7 +295,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(parsed, expected)
 
         # 13967
-        excel = self.get_excelfile('test5', ext)
+        excel = ExcelFile('test5' + ext)
 
         parsed = read_excel(excel, 'Sheet1', keep_default_na=False,
                             na_values=['apple'])
@@ -330,7 +313,7 @@ class ReadingTestsBase(SharedItems):
     @pytest.mark.parametrize('arg', ['sheet', 'sheetname', 'parse_cols'])
     def test_unexpected_kwargs_raises(self, ext, arg):
         # gh-17964
-        excel = self.get_excelfile('test1', ext)
+        excel = ExcelFile('test1' + ext)
 
         kwarg = {arg: 'Sheet1'}
         msg = "unexpected keyword argument `{}`".format(arg)
@@ -340,7 +323,7 @@ class ReadingTestsBase(SharedItems):
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_excel_table_sheet_by_index(self, ext):
 
-        excel = self.get_excelfile('test1', ext)
+        excel = ExcelFile('test1' + ext)
         dfref = self.get_csv_refdf('test1')
 
         df1 = read_excel(excel, 0, index_col=0)
@@ -577,7 +560,7 @@ class ReadingTestsBase(SharedItems):
             df2 = self.get_exceldf(filename, ext, index_col=0,
                                    sheet_name=sheet_name)
 
-        excel = self.get_excelfile(filename, ext)
+        excel = ExcelFile(filename + ext)
         df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
         df2_parse = excel.parse(index_col=0,
                                 sheet_name=sheet_name)
