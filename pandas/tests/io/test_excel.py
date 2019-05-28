@@ -53,7 +53,6 @@ class SharedItems:
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
-        self.dirpath = datapath("io", "data")
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
         self.tsframe = _tsframe.copy()
@@ -63,6 +62,13 @@ class SharedItems:
 @td.skip_if_no('xlrd', '1.0.0')
 class ReadingTestsBase(SharedItems):
     # This is based on ExcelWriterBase
+
+    @pytest.fixture(autouse=True)
+    def change_to_data_directory(self, datapath):
+        cwd = os.getcwd()
+        os.chdir(datapath("io", "data"))
+        yield
+        os.chdir(cwd)
 
     @pytest.fixture(autouse=True, params=['xlrd', None])
     def set_engine(self, request):
@@ -88,8 +94,8 @@ class ReadingTestsBase(SharedItems):
 
         dfref : DataFrame
         """
-        pref = os.path.join(self.dirpath, basename + '.csv')
-        dfref = read_csv(pref, index_col=0, parse_dates=True, engine='python')
+        dfref = read_csv(basename + '.csv', index_col=0,
+                         parse_dates=True, engine='python')
         return dfref
 
     def get_excelfile(self, basename, ext):
@@ -107,7 +113,7 @@ class ReadingTestsBase(SharedItems):
 
         excel : io.excel.ExcelFile
         """
-        return ExcelFile(os.path.join(self.dirpath, basename + ext))
+        return ExcelFile(basename + ext)
 
     def get_exceldf(self, basename, ext, *args, **kwds):
         """
@@ -124,8 +130,7 @@ class ReadingTestsBase(SharedItems):
 
         df : DataFrame
         """
-        pth = os.path.join(self.dirpath, basename + ext)
-        return read_excel(pth, *args, **kwds)
+        return read_excel(basename + ext, *args, **kwds)
 
     @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_usecols_int(self, ext):
@@ -584,7 +589,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_read_buffer(self, ext):
 
-        pth = os.path.join(self.dirpath, 'test1' + ext)
+        pth = 'test1' + ext
         expected = read_excel(pth, 'Sheet1', index_col=0)
         with open(pth, 'rb') as f:
             actual = read_excel(f, 'Sheet1', index_col=0)
@@ -611,9 +616,7 @@ class ReadingTestsBase(SharedItems):
     @td.skip_if_not_us_locale
     def test_read_from_s3_url(self, ext, s3_resource):
         # Bucket "pandas-test" created in tests/io/conftest.py
-        file_name = os.path.join(self.dirpath, 'test1' + ext)
-
-        with open(file_name, "rb") as f:
+        with open('test1' + ext, "rb") as f:
             s3_resource.Bucket("pandas-test").put_object(Key="test1" + ext,
                                                          Body=f)
 
@@ -628,7 +631,7 @@ class ReadingTestsBase(SharedItems):
     def test_read_from_file_url(self, ext):
 
         # FILE
-        localtable = os.path.join(self.dirpath, 'test1' + ext)
+        localtable = 'test1' + ext
         local_table = read_excel(localtable)
 
         try:
@@ -646,10 +649,10 @@ class ReadingTestsBase(SharedItems):
         # GH12655
         from pathlib import Path
 
-        str_path = os.path.join(self.dirpath, 'test1' + ext)
+        str_path = 'test1' + ext
         expected = read_excel(str_path, 'Sheet1', index_col=0)
 
-        path_obj = Path(self.dirpath, 'test1' + ext)
+        path_obj = Path('test1' + ext)
         actual = read_excel(path_obj, 'Sheet1', index_col=0)
 
         tm.assert_frame_equal(expected, actual)
@@ -660,19 +663,17 @@ class ReadingTestsBase(SharedItems):
         # GH12655
         from py.path import local as LocalPath
 
-        str_path = os.path.join(self.dirpath, 'test1' + ext)
+        str_path = os.path.join('test1' + ext)
         expected = read_excel(str_path, 'Sheet1', index_col=0)
 
-        abs_dir = os.path.abspath(self.dirpath)
-        path_obj = LocalPath(abs_dir).join('test1' + ext)
+        path_obj = LocalPath().join('test1' + ext)
         actual = read_excel(path_obj, 'Sheet1', index_col=0)
 
         tm.assert_frame_equal(expected, actual)
 
     def test_reader_closes_file(self, ext):
 
-        pth = os.path.join(self.dirpath, 'test1' + ext)
-        f = open(pth, 'rb')
+        f = open('test1' + ext, 'rb')
         with ExcelFile(f) as xlsx:
             # parses okay
             read_excel(xlsx, 'Sheet1', index_col=0)
@@ -703,7 +704,7 @@ class ReadingTestsBase(SharedItems):
     def test_read_excel_multiindex(self, ext):
         # see gh-4679
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]])
-        mi_file = os.path.join(self.dirpath, "testmultiindex" + ext)
+        mi_file = "testmultiindex" + ext
 
         # "mi_column" sheet
         expected = DataFrame([[1, 2.5, pd.Timestamp("2015-01-01"), True],
@@ -768,7 +769,7 @@ class ReadingTestsBase(SharedItems):
         # see gh-11733.
         #
         # Don't try to parse a header name if there isn't one.
-        mi_file = os.path.join(self.dirpath, "testmultiindex" + ext)
+        mi_file = "testmultiindex" + ext
         result = read_excel(mi_file, "index_col_none", header=[0, 1])
 
         exp_columns = MultiIndex.from_product([("A", "B"), ("key", "val")])
@@ -778,7 +779,6 @@ class ReadingTestsBase(SharedItems):
     def test_excel_old_index_format(self, ext):
         # see gh-4679
         filename = "test_index_name_pre17" + ext
-        in_file = os.path.join(self.dirpath, filename)
 
         # We detect headers to determine if index names exist, so
         # that "index" name in the "names" version of the data will
@@ -801,12 +801,12 @@ class ReadingTestsBase(SharedItems):
 
         expected = pd.DataFrame(data, index=si, columns=columns)
 
-        actual = pd.read_excel(in_file, "single_names", index_col=0)
+        actual = pd.read_excel(filename, "single_names", index_col=0)
         tm.assert_frame_equal(actual, expected)
 
         expected.index = mi
 
-        actual = pd.read_excel(in_file, "multi_names", index_col=[0, 1])
+        actual = pd.read_excel(filename, "multi_names", index_col=[0, 1])
         tm.assert_frame_equal(actual, expected)
 
         # The analogous versions of the "names" version data
@@ -828,31 +828,28 @@ class ReadingTestsBase(SharedItems):
 
         expected = pd.DataFrame(data, index=si, columns=columns)
 
-        actual = pd.read_excel(in_file, "single_no_names", index_col=0)
+        actual = pd.read_excel(filename, "single_no_names", index_col=0)
         tm.assert_frame_equal(actual, expected)
 
         expected.index = mi
 
-        actual = pd.read_excel(in_file, "multi_no_names", index_col=[0, 1])
+        actual = pd.read_excel(filename, "multi_no_names", index_col=[0, 1])
         tm.assert_frame_equal(actual, expected, check_names=False)
 
     def test_read_excel_bool_header_arg(self, ext):
         # GH 6114
         for arg in [True, False]:
             with pytest.raises(TypeError):
-                pd.read_excel(os.path.join(self.dirpath, 'test1' + ext),
-                              header=arg)
+                pd.read_excel('test1' + ext, header=arg)
 
     def test_read_excel_chunksize(self, ext):
         # GH 8011
         with pytest.raises(NotImplementedError):
-            pd.read_excel(os.path.join(self.dirpath, 'test1' + ext),
-                          chunksize=100)
+            pd.read_excel('test1' + ext, chunksize=100)
 
     def test_read_excel_skiprows_list(self, ext):
         # GH 4903
-        actual = pd.read_excel(os.path.join(self.dirpath,
-                                            'testskiprows' + ext),
+        actual = pd.read_excel('testskiprows' + ext,
                                'skiprows_list', skiprows=[0, 2])
         expected = DataFrame([[1, 2.5, pd.Timestamp('2015-01-01'), True],
                               [2, 3.5, pd.Timestamp('2015-01-02'), False],
@@ -861,41 +858,35 @@ class ReadingTestsBase(SharedItems):
                              columns=['a', 'b', 'c', 'd'])
         tm.assert_frame_equal(actual, expected)
 
-        actual = pd.read_excel(os.path.join(self.dirpath,
-                                            'testskiprows' + ext),
+        actual = pd.read_excel('testskiprows' + ext,
                                'skiprows_list', skiprows=np.array([0, 2]))
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_nrows(self, ext):
         # GH 16645
         num_rows_to_pull = 5
-        actual = pd.read_excel(os.path.join(self.dirpath, 'test1' + ext),
-                               nrows=num_rows_to_pull)
-        expected = pd.read_excel(os.path.join(self.dirpath,
-                                              'test1' + ext))
+        actual = pd.read_excel('test1' + ext, nrows=num_rows_to_pull)
+        expected = pd.read_excel('test1' + ext)
         expected = expected[:num_rows_to_pull]
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_nrows_greater_than_nrows_in_file(self, ext):
         # GH 16645
-        expected = pd.read_excel(os.path.join(self.dirpath,
-                                              'test1' + ext))
+        expected = pd.read_excel('test1' + ext)
         num_records_in_file = len(expected)
         num_rows_to_pull = num_records_in_file + 10
-        actual = pd.read_excel(os.path.join(self.dirpath, 'test1' + ext),
-                               nrows=num_rows_to_pull)
+        actual = pd.read_excel('test1' + ext, nrows=num_rows_to_pull)
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_nrows_non_integer_parameter(self, ext):
         # GH 16645
         msg = "'nrows' must be an integer >=0"
         with pytest.raises(ValueError, match=msg):
-            pd.read_excel(os.path.join(self.dirpath, 'test1' + ext),
-                          nrows='5')
+            pd.read_excel('test1' + ext, nrows='5')
 
     def test_read_excel_squeeze(self, ext):
         # GH 12157
-        f = os.path.join(self.dirpath, 'test_squeeze' + ext)
+        f = 'test_squeeze' + ext
 
         actual = pd.read_excel(f, 'two_columns', index_col=0, squeeze=True)
         expected = pd.Series([2, 3, 4], [4, 5, 6], name='b')
