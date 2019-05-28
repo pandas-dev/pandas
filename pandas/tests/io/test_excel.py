@@ -72,12 +72,11 @@ class ReadingTestsBase(SharedItems):
 
     @pytest.fixture(autouse=True, params=['xlrd', None])
     def set_engine(self, request):
-        func_name = "get_exceldf"
-        old_func = getattr(self, func_name)
-        new_func = partial(old_func, engine=request.param)
-        setattr(self, func_name, new_func)
+        global read_excel
+        original_func = read_excel
+        read_excel = partial(read_excel, engine=request.param)
         yield
-        setattr(self, func_name, old_func)
+        read_excel = original_func
 
     def get_csv_refdf(self, basename):
         """
@@ -98,23 +97,6 @@ class ReadingTestsBase(SharedItems):
                          parse_dates=True, engine='python')
         return dfref
 
-    def get_exceldf(self, basename, ext, *args, **kwds):
-        """
-        Return test data DataFrame.
-
-        Parameters
-        ----------
-
-        basename : str
-            File base name, excluding file extension.
-
-        Returns
-        -------
-
-        df : DataFrame
-        """
-        return read_excel(basename + ext, *args, **kwds)
-
     @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_usecols_int(self, ext):
 
@@ -125,14 +107,14 @@ class ReadingTestsBase(SharedItems):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             with ignore_xlrd_time_clock_warning():
-                df1 = self.get_exceldf("test1", ext, "Sheet1",
-                                       index_col=0, usecols=3)
+                df1 = read_excel("test1" + ext, "Sheet1",
+                                 index_col=0, usecols=3)
 
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             with ignore_xlrd_time_clock_warning():
-                df2 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
+                df2 = read_excel("test1" + ext, "Sheet2", skiprows=[1],
                                        index_col=0, usecols=3)
 
         # TODO add index to xls file)
@@ -144,10 +126,10 @@ class ReadingTestsBase(SharedItems):
 
         dfref = self.get_csv_refdf('test1')
         dfref = dfref.reindex(columns=['B', 'C'])
-        df1 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
+        df1 = read_excel('test1' + ext, 'Sheet1', index_col=0,
                                usecols=[0, 2, 3])
-        df2 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0, usecols=[0, 2, 3])
+        df2 = read_excel('test1' + ext, 'Sheet2', skiprows=[1],
+                         index_col=0, usecols=[0, 2, 3])
 
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
@@ -159,29 +141,29 @@ class ReadingTestsBase(SharedItems):
         dfref = self.get_csv_refdf('test1')
 
         df1 = dfref.reindex(columns=['A', 'B', 'C'])
-        df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
-                               usecols='A:D')
-        df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0, usecols='A:D')
+        df2 = read_excel('test1' + ext, 'Sheet1', index_col=0,
+                         usecols='A:D')
+        df3 = read_excel('test1' + ext, 'Sheet2', skiprows=[1],
+                         index_col=0, usecols='A:D')
 
         # TODO add index to xls, read xls ignores index name ?
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
         df1 = dfref.reindex(columns=['B', 'C'])
-        df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
-                               usecols='A,C,D')
-        df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0, usecols='A,C,D')
+        df2 = read_excel('test1' + ext, 'Sheet1', index_col=0,
+                         usecols='A,C,D')
+        df3 = read_excel('test1' + ext, 'Sheet2', skiprows=[1],
+                         index_col=0, usecols='A,C,D')
         # TODO add index to xls file
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
         df1 = dfref.reindex(columns=['B', 'C'])
-        df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
-                               usecols='A,C:D')
-        df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0, usecols='A,C:D')
+        df2 = read_excel('test1' + ext, 'Sheet1', index_col=0,
+                         usecols='A,C:D')
+        df3 = read_excel('test1' + ext, 'Sheet2', skiprows=[1],
+                         index_col=0, usecols='A,C:D')
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
@@ -192,8 +174,8 @@ class ReadingTestsBase(SharedItems):
     ])
     def test_usecols_diff_positional_int_columns_order(self, ext, usecols):
         expected = self.get_csv_refdf("test1")[["A", "C"]]
-        result = self.get_exceldf("test1", ext, "Sheet1",
-                                  index_col=0, usecols=usecols)
+        result = read_excel("test1" +  ext, "Sheet1",
+                            index_col=0, usecols=usecols)
         tm.assert_frame_equal(result, expected, check_names=False)
 
     @pytest.mark.parametrize("usecols", [
@@ -203,37 +185,37 @@ class ReadingTestsBase(SharedItems):
         expected = self.get_csv_refdf("test1")[["B", "D"]]
         expected.index = range(len(expected))
 
-        result = self.get_exceldf("test1", ext, "Sheet1", usecols=usecols)
+        result = read_excel("test1" + ext, "Sheet1", usecols=usecols)
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_read_excel_without_slicing(self, ext):
         expected = self.get_csv_refdf("test1")
-        result = self.get_exceldf("test1", ext, "Sheet1", index_col=0)
+        result = read_excel("test1" + ext, "Sheet1", index_col=0)
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_usecols_excel_range_str(self, ext):
         expected = self.get_csv_refdf("test1")[["C", "D"]]
-        result = self.get_exceldf("test1", ext, "Sheet1",
-                                  index_col=0, usecols="A,D:E")
+        result = read_excel("test1" + ext, "Sheet1",
+                            index_col=0, usecols="A,D:E")
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_usecols_excel_range_str_invalid(self, ext):
         msg = "Invalid column name: E1"
 
         with pytest.raises(ValueError, match=msg):
-            self.get_exceldf("test1", ext, "Sheet1", usecols="D:E1")
+            read_excel("test1" + ext, "Sheet1", usecols="D:E1")
 
     def test_index_col_label_error(self, ext):
         msg = "list indices must be integers.*, not str"
 
         with pytest.raises(TypeError, match=msg):
-            self.get_exceldf("test1", ext, "Sheet1", index_col=["A"],
-                             usecols=["A", "C"])
+            read_excel("test1" + ext, "Sheet1", index_col=["A"],
+                       usecols=["A", "C"])
 
     def test_index_col_empty(self, ext):
         # see gh-9208
-        result = self.get_exceldf("test1", ext, "Sheet3",
-                                  index_col=["A", "B", "C"])
+        result = read_excel("test1" + ext, "Sheet3",
+                            index_col=["A", "B", "C"])
         expected = DataFrame(columns=["D", "E", "F"],
                              index=MultiIndex(levels=[[]] * 3,
                                               codes=[[]] * 3,
@@ -243,8 +225,7 @@ class ReadingTestsBase(SharedItems):
     @pytest.mark.parametrize("index_col", [None, 2])
     def test_index_col_with_unnamed(self, ext, index_col):
         # see gh-18792
-        result = self.get_exceldf("test1", ext, "Sheet4",
-                                  index_col=index_col)
+        result = read_excel("test1" + ext, "Sheet4", index_col=index_col)
         expected = DataFrame([["i1", "a", "x"], ["i2", "b", "y"]],
                              columns=["Unnamed: 0", "col1", "col2"])
         if index_col:
@@ -257,24 +238,24 @@ class ReadingTestsBase(SharedItems):
                "columns expected but not found: " + r"\['E'\]")
 
         with pytest.raises(ValueError, match=msg):
-            self.get_exceldf("test1", ext, usecols=["E"])
+            read_excel("test1" + ext, usecols=["E"])
 
     def test_usecols_wrong_type(self, ext):
         msg = ("'usecols' must either be list-like of "
                "all strings, all unicode, all integers or a callable.")
 
         with pytest.raises(ValueError, match=msg):
-            self.get_exceldf("test1", ext, usecols=["E1", 0])
+            read_excel("test1" + ext, usecols=["E1", 0])
 
     def test_excel_stop_iterator(self, ext):
 
-        parsed = self.get_exceldf('test2', ext, 'Sheet1')
+        parsed = read_excel('test2' + ext, 'Sheet1')
         expected = DataFrame([['aaaa', 'bbbbb']], columns=['Test', 'Test1'])
         tm.assert_frame_equal(parsed, expected)
 
     def test_excel_cell_error_na(self, ext):
 
-        parsed = self.get_exceldf('test3', ext, 'Sheet1')
+        parsed = read_excel('test3' + ext, 'Sheet1')
         expected = DataFrame([[np.nan]], columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
@@ -354,15 +335,14 @@ class ReadingTestsBase(SharedItems):
 
         dfref = self.get_csv_refdf('test1')
 
-        df1 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0)
-        df2 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0)
+        df1 = read_excel('test1' + ext, 'Sheet1', index_col=0)
+        df2 = read_excel('test1' + ext, 'Sheet2', skiprows=[1],
+                         index_col=0)
         # TODO add index to file
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
-        df3 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
-                               skipfooter=1)
+        df3 = read_excel('test1' + ext, 'Sheet1', index_col=0, skipfooter=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
     def test_reader_special_dtypes(self, ext):
@@ -381,31 +361,31 @@ class ReadingTestsBase(SharedItems):
         basename = 'test_types'
 
         # should read in correctly and infer types
-        actual = self.get_exceldf(basename, ext, 'Sheet1')
+        actual = read_excel(basename + ext, 'Sheet1')
         tm.assert_frame_equal(actual, expected)
 
         # if not coercing number, then int comes in as float
         float_expected = expected.copy()
         float_expected["IntCol"] = float_expected["IntCol"].astype(float)
         float_expected.loc[float_expected.index[1], "Str2Col"] = 3.0
-        actual = self.get_exceldf(basename, ext, 'Sheet1', convert_float=False)
+        actual = read_excel(basename + ext, 'Sheet1', convert_float=False)
         tm.assert_frame_equal(actual, float_expected)
 
         # check setting Index (assuming xls and xlsx are the same here)
         for icol, name in enumerate(expected.columns):
-            actual = self.get_exceldf(basename, ext, 'Sheet1', index_col=icol)
+            actual = read_excel(basename + ext, 'Sheet1', index_col=icol)
             exp = expected.set_index(name)
             tm.assert_frame_equal(actual, exp)
 
         # convert_float and converters should be different but both accepted
         expected["StrCol"] = expected["StrCol"].apply(str)
-        actual = self.get_exceldf(
-            basename, ext, 'Sheet1', converters={"StrCol": str})
+        actual = read_excel(basename + ext, 'Sheet1',
+                            converters={"StrCol": str})
         tm.assert_frame_equal(actual, expected)
 
         no_convert_float = float_expected.copy()
         no_convert_float["StrCol"] = no_convert_float["StrCol"].apply(str)
-        actual = self.get_exceldf(basename, ext, 'Sheet1', convert_float=False,
+        actual = read_excel(basename + ext, 'Sheet1', convert_float=False,
                                   converters={"StrCol": str})
         tm.assert_frame_equal(actual, no_convert_float)
 
@@ -429,14 +409,13 @@ class ReadingTestsBase(SharedItems):
 
         # should read in correctly and set types of single cells (not array
         # dtypes)
-        actual = self.get_exceldf(basename, ext, 'Sheet1',
-                                  converters=converters)
+        actual = read_excel(basename + ext, 'Sheet1', converters=converters)
         tm.assert_frame_equal(actual, expected)
 
     def test_reader_dtype(self, ext):
         # GH 8212
         basename = 'testdtype'
-        actual = self.get_exceldf(basename, ext)
+        actual = read_excel(basename + ext)
 
         expected = DataFrame({
             'a': [1, 2, 3, 4],
@@ -447,10 +426,10 @@ class ReadingTestsBase(SharedItems):
 
         tm.assert_frame_equal(actual, expected)
 
-        actual = self.get_exceldf(basename, ext,
-                                  dtype={'a': 'float64',
-                                         'b': 'float32',
-                                         'c': str})
+        actual = read_excel(basename + ext,
+                            dtype={'a': 'float64',
+                                   'b': 'float32',
+                                   'c': str})
 
         expected['a'] = expected['a'].astype('float64')
         expected['b'] = expected['b'].astype('float32')
@@ -458,7 +437,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(actual, expected)
 
         with pytest.raises(ValueError):
-            self.get_exceldf(basename, ext, dtype={'d': 'int64'})
+            read_excel(basename + ext, dtype={'d': 'int64'})
 
     @pytest.mark.parametrize("dtype,expected", [
         (None,
@@ -484,7 +463,7 @@ class ReadingTestsBase(SharedItems):
         # see gh-20377
         basename = "testdtype"
 
-        actual = self.get_exceldf(basename, ext, dtype=dtype)
+        actual = read_excel(basename + ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
     def test_reading_all_sheets(self, ext):
@@ -492,7 +471,7 @@ class ReadingTestsBase(SharedItems):
         # Ensure a dict is returned.
         # See PR #9450
         basename = 'test_multisheet'
-        dfs = self.get_exceldf(basename, ext, sheet_name=None)
+        dfs = read_excel(basename + ext, sheet_name=None)
         # ensure this is not alphabetical to test order preservation
         expected_keys = ['Charlie', 'Alpha', 'Beta']
         tm.assert_contains_all(expected_keys, dfs.keys())
@@ -509,7 +488,7 @@ class ReadingTestsBase(SharedItems):
         basename = 'test_multisheet'
         # Explicitly request duplicates. Only the set should be returned.
         expected_keys = [2, 'Charlie', 'Charlie']
-        dfs = self.get_exceldf(basename, ext, sheet_name=expected_keys)
+        dfs = read_excel(basename + ext, sheet_name=expected_keys)
         expected_keys = list(set(expected_keys))
         tm.assert_contains_all(expected_keys, dfs.keys())
         assert len(expected_keys) == len(dfs.keys())
@@ -519,18 +498,18 @@ class ReadingTestsBase(SharedItems):
         # In the case where some sheets are blank.
         # Issue #11711
         basename = 'blank_with_header'
-        dfs = self.get_exceldf(basename, ext, sheet_name=None)
+        dfs = read_excel(basename + ext, sheet_name=None)
         expected_keys = ['Sheet1', 'Sheet2', 'Sheet3']
         tm.assert_contains_all(expected_keys, dfs.keys())
 
     # GH6403
     def test_read_excel_blank(self, ext):
-        actual = self.get_exceldf('blank', ext, 'Sheet1')
+        actual = read_excel('blank' + ext, 'Sheet1')
         tm.assert_frame_equal(actual, DataFrame())
 
     def test_read_excel_blank_with_header(self, ext):
         expected = DataFrame(columns=['col_1', 'col_2'])
-        actual = self.get_exceldf('blank_with_header', ext, 'Sheet1')
+        actual = read_excel('blank_with_header' + ext, 'Sheet1')
         tm.assert_frame_equal(actual, expected)
 
     def test_date_conversion_overflow(self, ext):
@@ -540,7 +519,7 @@ class ReadingTestsBase(SharedItems):
                                  [1e+20, 'Timothy Brown']],
                                 columns=['DateColWithBigInt', 'StringCol'])
 
-        result = self.get_exceldf('testdateoverflow', ext)
+        result = read_excel('testdateoverflow' + ext)
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
@@ -554,11 +533,11 @@ class ReadingTestsBase(SharedItems):
         sheet_name = "Sheet1"
 
         df_ref = self.get_csv_refdf(filename)
-        df1 = self.get_exceldf(filename, ext,
-                               sheet_name=sheet_name, index_col=0)  # doc
+        df1 = read_excel(filename + ext,
+                         sheet_name=sheet_name, index_col=0)  # doc
         with ignore_xlrd_time_clock_warning():
-            df2 = self.get_exceldf(filename, ext, index_col=0,
-                                   sheet_name=sheet_name)
+            df2 = read_excel(filename + ext, index_col=0,
+                             sheet_name=sheet_name)
 
         excel = ExcelFile(filename + ext)
         df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
@@ -593,7 +572,7 @@ class ReadingTestsBase(SharedItems):
         url = ('https://raw.github.com/pandas-dev/pandas/master/'
                'pandas/tests/io/data/test1' + ext)
         url_table = read_excel(url)
-        local_table = self.get_exceldf('test1', ext)
+        local_table = read_excel('test1' + ext)
         tm.assert_frame_equal(url_table, local_table)
 
     @td.skip_if_not_us_locale
@@ -605,7 +584,7 @@ class ReadingTestsBase(SharedItems):
 
         url = ('s3://pandas-test/test1' + ext)
         url_table = read_excel(url)
-        local_table = self.get_exceldf('test1', ext)
+        local_table = read_excel('test1' + ext)
         tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.slow
@@ -678,10 +657,10 @@ class ReadingTestsBase(SharedItems):
                                                  time(16, 37, 0, 900000),
                                                  time(18, 20, 54)]})
 
-        actual = self.get_exceldf('times_1900', ext, 'Sheet1')
+        actual = read_excel('times_1900' + ext, 'Sheet1')
         tm.assert_frame_equal(actual, expected)
 
-        actual = self.get_exceldf('times_1904', ext, 'Sheet1')
+        actual = read_excel('times_1904' + ext, 'Sheet1')
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_multiindex(self, ext):
