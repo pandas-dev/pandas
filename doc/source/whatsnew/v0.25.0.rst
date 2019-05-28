@@ -474,6 +474,8 @@ Plotting
 - Fixed bug where :class:`api.extensions.ExtensionArray` could not be used in matplotlib plotting (:issue:`25587`)
 - Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
 - Bug in incorrect ticklabel positions when plotting an index that are non-numeric / non-datetime (:issue:`7612` :issue:`15912` :issue:`22334`)
+- Fixed bug causing plots of :class:`PeriodIndex` timeseries to fail if the frequency is a multiple of the frequency rule code (:issue:`14763`)
+-
 -
 -
 

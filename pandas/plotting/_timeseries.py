@@ -262,7 +262,7 @@ def _get_index_freq(data):
 def _maybe_convert_index(ax, data):
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
-    if isinstance(data.index, ABCDatetimeIndex):
+    if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
         freq = getattr(data.index, 'freq', None)
 
         if freq is None:
@@ -279,7 +279,10 @@ def _maybe_convert_index(ax, data):
         freq = get_base_alias(freq)
         freq = frequencies.get_period_alias(freq)
 
-        data = data.to_period(freq=freq)
+        if isinstance(data.index, ABCDatetimeIndex):
+            data = data.to_period(freq=freq)
+        elif isinstance(data.index, ABCPeriodIndex):
+            data.index = data.index.asfreq(freq=freq)
     return data
 
 
