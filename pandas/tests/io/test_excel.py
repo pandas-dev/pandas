@@ -104,7 +104,7 @@ class ReadingTestsBase(SharedItems):
                                         check_stacklevel=False):
             with ignore_xlrd_time_clock_warning():
                 df2 = read_excel("test1" + ext, "Sheet2", skiprows=[1],
-                                       index_col=0, usecols=3)
+                                 index_col=0, usecols=3)
 
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, df_ref, check_names=False)
@@ -115,7 +115,7 @@ class ReadingTestsBase(SharedItems):
 
         df_ref = df_ref.reindex(columns=['B', 'C'])
         df1 = read_excel('test1' + ext, 'Sheet1', index_col=0,
-                               usecols=[0, 2, 3])
+                         usecols=[0, 2, 3])
         df2 = read_excel('test1' + ext, 'Sheet2', skiprows=[1],
                          index_col=0, usecols=[0, 2, 3])
 
@@ -371,7 +371,7 @@ class ReadingTestsBase(SharedItems):
         no_convert_float = float_expected.copy()
         no_convert_float["StrCol"] = no_convert_float["StrCol"].apply(str)
         actual = read_excel(basename + ext, 'Sheet1', convert_float=False,
-                                  converters={"StrCol": str})
+                            converters={"StrCol": str})
         tm.assert_frame_equal(actual, no_convert_float)
 
     # GH8212 - support for converters and missing values
