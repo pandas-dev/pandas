@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 import collections
 from datetime import datetime
 from io import StringIO
@@ -17,7 +14,7 @@ from pandas.util.testing import (
 from pandas.io.common import _get_handle
 
 
-class TestSeriesToCSV():
+class TestSeriesToCSV:
 
     def read_csv(self, path, **kwargs):
         params = dict(squeeze=True, index_col=0,
@@ -194,7 +191,7 @@ class TestSeriesToCSV():
                                                    encoding=encoding))
 
 
-class TestSeriesIO():
+class TestSeriesIO:
 
     def test_to_frame(self, datetime_series):
         datetime_series.name = None

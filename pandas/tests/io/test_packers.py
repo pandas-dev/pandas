@@ -14,7 +14,7 @@ from pandas.errors import PerformanceWarning
 import pandas
 from pandas import (
     Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Period, Series,
-    Timestamp, bdate_range, compat, date_range, period_range)
+    Timestamp, bdate_range, date_range, period_range)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_categorical_equal, assert_frame_equal, assert_index_equal,
@@ -85,7 +85,7 @@ def check_arbitrary(a, b):
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-class TestPackers(object):
+class TestPackers:
 
     def setup_method(self, method):
         self.path = '__%s__.msg' % tm.rands(10)
@@ -148,13 +148,12 @@ class TestAPI(TestPackers):
 
     def test_invalid_arg(self):
         # GH10369
-        class A(object):
+        class A:
 
             def __init__(self):
                 self.read = 0
 
-        msg = (r"Invalid file path or buffer object type: <(class|type)"
-               r" '{}'>")
+        msg = "Invalid file path or buffer object type: <class '{}'>"
         with pytest.raises(ValueError, match=msg.format('NoneType')):
             read_msgpack(path_or_buf=None)
         with pytest.raises(ValueError, match=msg.format('dict')):
@@ -329,7 +328,7 @@ class TestBasic(TestPackers):
 class TestIndex(TestPackers):
 
     def setup_method(self, method):
-        super(TestIndex, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {
             'string': tm.makeStringIndex(100),
@@ -394,7 +393,7 @@ class TestIndex(TestPackers):
 class TestSeries(TestPackers):
 
     def setup_method(self, method):
-        super(TestSeries, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {}
 
@@ -444,7 +443,7 @@ class TestSeries(TestPackers):
 class TestCategorical(TestPackers):
 
     def setup_method(self, method):
-        super(TestCategorical, self).setup_method(method)
+        super().setup_method(method)
 
         self.d = {}
 
@@ -468,7 +467,7 @@ class TestCategorical(TestPackers):
 class TestNDFrame(TestPackers):
 
     def setup_method(self, method):
-        super(TestNDFrame, self).setup_method(method)
+        super().setup_method(method)
 
         data = {
             'A': [0., 1., 2., 3., np.nan],
@@ -610,7 +609,7 @@ class TestCompression(TestPackers):
         else:
             self._SQLALCHEMY_INSTALLED = True
 
-        super(TestCompression, self).setup_method(method)
+        super().setup_method(method)
         data = {
             'A': np.arange(1000, dtype=np.float64),
             'B': np.arange(1000, dtype=np.int32),
@@ -799,7 +798,7 @@ class TestCompression(TestPackers):
 class TestEncoding(TestPackers):
 
     def setup_method(self, method):
-        super(TestEncoding, self).setup_method(method)
+        super().setup_method(method)
         data = {
             'A': ['\u2019'] * 1000,
             'B': np.arange(1000, dtype=np.int32),
@@ -818,12 +817,12 @@ class TestEncoding(TestPackers):
     def test_utf(self):
         # GH10581
         for encoding in self.utf_encodings:
-            for frame in compat.itervalues(self.frame):
+            for frame in self.frame.values():
                 result = self.encode_decode(frame, encoding=encoding)
                 assert_frame_equal(result, frame)
 
     def test_default_encoding(self):
-        for frame in compat.itervalues(self.frame):
+        for frame in self.frame.values():
             result = frame.to_msgpack()
             expected = frame.to_msgpack(encoding='utf8')
             assert result == expected
@@ -841,7 +840,7 @@ def legacy_packer(request, datapath):
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
-class TestMsgpack(object):
+class TestMsgpack:
     """
     How to add msgpack tests:
 

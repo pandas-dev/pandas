@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, timedelta
 import operator
 
@@ -11,15 +8,17 @@ import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, Series, bdate_range, date_range, isna)
 from pandas.core import ops
+from pandas.core.indexes.base import InvalidIndexError
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_series_equal)
+    assert_almost_equal, assert_frame_equal, assert_index_equal,
+    assert_series_equal)
 
 from .common import TestData
 
 
-class TestSeriesLogicalOps(object):
+class TestSeriesLogicalOps:
     @pytest.mark.parametrize('bool_op', [operator.and_,
                                          operator.or_, operator.xor])
     def test_bool_operators_with_nas(self, bool_op):
@@ -174,7 +173,6 @@ class TestSeriesLogicalOps(object):
         operator.and_,
         operator.or_,
         operator.xor,
-
     ])
     def test_logical_ops_with_index(self, op):
         # GH#22092, GH#19792
@@ -192,6 +190,37 @@ class TestSeriesLogicalOps(object):
 
         result = op(ser, idx2)
         assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('op', [
+        pytest.param(ops.rand_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation returns "
+                                                    "Index",
+                                             raises=AssertionError,
+                                             strict=True)),
+        pytest.param(ops.ror_,
+                     marks=pytest.mark.xfail(reason="Index.get_indexer "
+                                                    "with non unique index",
+                                             raises=InvalidIndexError,
+                                             strict=True)),
+        ops.rxor,
+    ])
+    def test_reversed_logical_ops_with_index(self, op):
+        # GH#22092, GH#19792
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
+
+        # symmetric_difference is only for rxor, but other 2 should fail
+        expected = idx1.symmetric_difference(ser)
+
+        result = op(ser, idx1)
+        assert_index_equal(result, expected)
+
+        expected = idx2.symmetric_difference(ser)
+
+        result = op(ser, idx2)
+        assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("op, expected", [
         (ops.rand_, pd.Index([False, True])),
@@ -358,7 +387,7 @@ class TestSeriesLogicalOps(object):
         assert_frame_equal(s4.to_frame() | s3.to_frame(), exp)
 
 
-class TestSeriesComparisons(object):
+class TestSeriesComparisons:
     def test_comparisons(self):
         left = np.random.randn(10)
         right = np.random.randn(10)
@@ -568,7 +597,7 @@ class TestSeriesComparisons(object):
         assert_series_equal(result, expected)
 
 
-class TestSeriesFlexComparisonOps(object):
+class TestSeriesFlexComparisonOps:
 
     def test_comparison_flex_alignment(self):
         left = Series([1, 3, 2], index=list('abc'))
@@ -749,7 +778,7 @@ class TestSeriesOperators(TestData):
         assert_series_equal(result[1], expected[1])
 
 
-class TestSeriesUnaryOps(object):
+class TestSeriesUnaryOps:
     # __neg__, __pos__, __inv__
 
     def test_neg(self):

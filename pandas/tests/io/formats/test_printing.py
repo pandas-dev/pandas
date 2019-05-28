@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -33,7 +32,7 @@ def test_repr_binary_type():
     assert res == b
 
 
-class TestFormattBase(object):
+class TestFormattBase:
 
     def test_adjoin(self):
         data = [['a', 'b', 'c'], ['dd', 'ee', 'ff'], ['ggg', 'hhh', 'iii']]
@@ -121,7 +120,7 @@ c        ff         いいい"""
         assert adjoined == expected
 
 
-class TestTableSchemaRepr(object):
+class TestTableSchemaRepr:
 
     @classmethod
     def setup_class(cls):

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
@@ -18,7 +16,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import lrange
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
@@ -925,8 +922,9 @@ def test_skip_initial_space(all_parsers):
             '-9999.0,   -9999.0,   -9999.0,  -9999.0, 000, 012, 128')
     parser = all_parsers
 
-    result = parser.read_csv(StringIO(data), names=lrange(33), header=None,
-                             na_values=["-9999.0"], skipinitialspace=True)
+    result = parser.read_csv(StringIO(data), names=list(range(33)),
+                             header=None, na_values=["-9999.0"],
+                             skipinitialspace=True)
     expected = DataFrame([["09-Apr-2012", "01:10:18.300", 2456026.548822908,
                            12849, 1.00361, 1.12551, 330.65659,
                            355626618.16711, 73.48821, 314.11625, 1917.09447,
@@ -1792,7 +1790,7 @@ def test_file_handles_with_open(all_parsers, csv1):
 
 def test_invalid_file_buffer_class(all_parsers):
     # see gh-15337
-    class InvalidBuffer(object):
+    class InvalidBuffer:
         pass
 
     parser = all_parsers
@@ -1807,7 +1805,7 @@ def test_invalid_file_buffer_mock(all_parsers):
     parser = all_parsers
     msg = "Invalid file path or buffer object type"
 
-    class Foo():
+    class Foo:
         pass
 
     with pytest.raises(ValueError, match=msg):

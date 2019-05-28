@@ -1,11 +1,10 @@
-# pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613,W0201
 from functools import partial
 import itertools
 
 import numpy as np
 
-from pandas._libs import algos as _algos, reshape as _reshape
+import pandas._libs.algos as _algos
+import pandas._libs.reshape as _reshape
 from pandas._libs.sparse import IntIndex
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -26,7 +25,7 @@ from pandas.core.sorting import (
     get_group_index)
 
 
-class _Unstacker(object):
+class _Unstacker:
     """
     Helper class to unstack data / pivot with multi-level index
 
@@ -720,7 +719,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         If `columns` is None then all the columns with
         `object` or `category` dtype will be converted.
     sparse : bool, default False
-        Whether the dummy-encoded columns should be be backed by
+        Whether the dummy-encoded columns should be backed by
         a :class:`SparseArray` (True) or a regular NumPy array (False).
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the

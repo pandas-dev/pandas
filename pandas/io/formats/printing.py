@@ -175,7 +175,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
 
     Returns
     -------
-    result - unicode object on py2, str on py3. Always Unicode.
+    result - unicode str
 
     """
 

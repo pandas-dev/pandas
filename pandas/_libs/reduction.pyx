@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
@@ -16,7 +15,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 cimport pandas._libs.util as util
-from pandas._libs.lib import maybe_convert_objects
+from pandas._libs.lib import maybe_convert_objects, values_from_object
 
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
@@ -27,6 +26,14 @@ cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
         raise ValueError('function does not reduce')
 
     return np.empty(size, dtype='O')
+
+
+cdef bint _is_sparse_array(object obj):
+    # TODO can be removed one SparseArray.values is removed (GH26421)
+    if hasattr(obj, '_subtyp'):
+        if obj._subtyp == 'sparse_array':
+            return True
+    return False
 
 
 cdef class Reducer:
@@ -147,7 +154,8 @@ cdef class Reducer:
                 else:
                     res = self.f(chunk)
 
-                if hasattr(res, 'values') and util.is_array(res.values):
+                if (not _is_sparse_array(res) and hasattr(res, 'values')
+                        and util.is_array(res.values)):
                     res = res.values
                 if i == 0:
                     result = _get_result_array(res,
@@ -433,7 +441,8 @@ cdef class SeriesGrouper:
 cdef inline _extract_result(object res):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
-    if hasattr(res, 'values') and util.is_array(res.values):
+    if (not _is_sparse_array(res) and hasattr(res, 'values')
+            and util.is_array(res.values)):
         res = res.values
     if not np.isscalar(res):
         if util.is_array(res):
@@ -636,8 +645,7 @@ def reduce(arr, f, axis=0, dummy=None, labels=None):
             raise Exception('Cannot use shortcut')
 
         # pass as an ndarray
-        if hasattr(labels, 'values'):
-            labels = labels.values
+        labels = values_from_object(labels)
 
     reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)
     return reducer.get_result()

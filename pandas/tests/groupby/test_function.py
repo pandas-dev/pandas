@@ -10,7 +10,7 @@ from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range, isna)
+    DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna)
 import pandas.core.nanops as nanops
 from pandas.util import testing as tm
 
@@ -392,7 +392,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
                        "args": [1]},
                "count": {"expected": 2}}
 
-    for method, data in compat.iteritems(grp_exp):
+    for method, data in grp_exp.items():
         if "args" not in data:
             data["args"] = []
 
@@ -1041,10 +1041,10 @@ def test_count_uses_size_on_exception():
     class RaisingObjectException(Exception):
         pass
 
-    class RaisingObject(object):
+    class RaisingObject:
 
         def __init__(self, msg='I will raise inside Cython'):
-            super(RaisingObject, self).__init__()
+            super().__init__()
             self.msg = msg
 
         def __eq__(self, other):
@@ -1088,6 +1088,15 @@ def test_size(df):
     df = DataFrame(columns=['A', 'B'])
     out = Series(dtype='int64', index=Index([], name='A'))
     tm.assert_series_equal(df.groupby('A').size(), out)
+
+
+def test_size_groupby_all_null():
+    # GH23050
+    # Assert no 'Value Error : Length of passed values is 2, index implies 0'
+    df = DataFrame({'A': [None, None]})  # all-null groups
+    result = df.groupby('A').size()
+    expected = Series(dtype='int64', index=Index([], name='A'))
+    tm.assert_series_equal(result, expected)
 
 
 # quantile

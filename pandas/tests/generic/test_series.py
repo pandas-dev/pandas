@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=E1101,W0612
-
 from distutils.version import LooseVersion
 from operator import methodcaller
 

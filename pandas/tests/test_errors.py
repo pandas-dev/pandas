@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pytest
 
 from pandas.errors import AbstractMethodError
@@ -47,7 +45,7 @@ def test_error_rename():
         pass
 
 
-class Foo(object):
+class Foo:
     @classmethod
     def classmethod(cls):
         raise AbstractMethodError(cls, methodtype='classmethod')

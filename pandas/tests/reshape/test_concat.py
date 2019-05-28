@@ -11,8 +11,6 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.compat import iteritems
-
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -41,7 +39,7 @@ def sort_with_none(request):
     return request.param
 
 
-class ConcatenateBase(object):
+class ConcatenateBase:
 
     def setup_method(self, method):
         self.frame = DataFrame(tm.getSeriesData())
@@ -102,13 +100,13 @@ class TestConcatAppendCommon(ConcatenateBase):
 
     def test_dtypes(self):
         # to confirm test case covers intended dtypes
-        for typ, vals in iteritems(self.data):
+        for typ, vals in self.data.items():
             self._check_expected_dtype(pd.Index(vals), typ)
             self._check_expected_dtype(pd.Series(vals), typ)
 
     def test_concatlike_same_dtypes(self):
         # GH 13660
-        for typ1, vals1 in iteritems(self.data):
+        for typ1, vals1 in self.data.items():
 
             vals2 = vals1
             vals3 = vals1
@@ -214,8 +212,8 @@ class TestConcatAppendCommon(ConcatenateBase):
 
     def test_concatlike_dtypes_coercion(self):
         # GH 13660
-        for typ1, vals1 in iteritems(self.data):
-            for typ2, vals2 in iteritems(self.data):
+        for typ1, vals1 in self.data.items():
+            for typ2, vals2 in self.data.items():
 
                 vals3 = vals2
 
@@ -962,22 +960,23 @@ class TestAppend(ConcatenateBase):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=index_can_append)
         ser = pd.Series([7, 8, 9], index=index_cannot_append_with_other,
                         name=2)
-        msg = ("the other index needs to be an IntervalIndex too, but was"
+        msg = (r"unorderable types: (Interval|int)\(\) (<|>) "
+               r"(int|long|float|str|Timestamp)\(\)|"
+               r"Expected tuple, got (int|long|float|str)|"
+               r"Cannot compare type 'Timestamp' with type '(int|long)'|"
+               r"'(<|>)' not supported between instances of 'int' "
+               r"and '(str|Timestamp)'|"
+               r"the other index needs to be an IntervalIndex too, but was"
                r" type {}|"
                r"object of type '(int|float|Timestamp)' has no len\(\)|"
                "Expected tuple, got str")
-        with pytest.raises(TypeError, match=msg.format(
-                index_can_append.__class__.__name__)):
+        with pytest.raises(TypeError, match=msg):
             df.append(ser)
 
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]],
                           columns=index_cannot_append_with_other)
         ser = pd.Series([7, 8, 9], index=index_can_append, name=2)
-        msg = (r"unorderable types: (Interval|int)\(\) > "
-               r"(int|float|str)\(\)|"
-               r"Expected tuple, got (int|float|str)|"
-               r"Cannot compare type 'Timestamp' with type 'int'|"
-               r"'>' not supported between instances of 'int' and 'str'")
+
         with pytest.raises(TypeError, match=msg):
             df.append(ser)
 
@@ -1730,7 +1729,7 @@ class TestConcatenate(ConcatenateBase):
         assert_frame_equal(
             concat(deque((df1, df2)), ignore_index=True), expected)
 
-        class CustomIterator1(object):
+        class CustomIterator1:
 
             def __len__(self):
                 return 2
@@ -2031,7 +2030,8 @@ bar2,12,13,14,15
         s1 = pd.Series([1, 2, 3], name='x')
         s2 = pd.Series(name='y')
         res = pd.concat([s1, s2], axis=1)
-        exp = pd.DataFrame({'x': [1, 2, 3], 'y': [np.nan, np.nan, np.nan]})
+        exp = pd.DataFrame({'x': [1, 2, 3], 'y': [np.nan, np.nan, np.nan]},
+                           index=pd.Index([0, 1, 2], dtype='O'))
         tm.assert_frame_equal(res, exp)
 
         s1 = pd.Series([1, 2, 3], name='x')
@@ -2046,7 +2046,8 @@ bar2,12,13,14,15
         s2 = pd.Series(name=None)
         res = pd.concat([s1, s2], axis=1)
         exp = pd.DataFrame({'x': [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
-                           columns=['x', 0])
+                           columns=['x', 0],
+                           index=pd.Index([0, 1, 2], dtype='O'))
         tm.assert_frame_equal(res, exp)
 
     @pytest.mark.parametrize('tz', [None, 'UTC'])

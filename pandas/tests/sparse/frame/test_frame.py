@@ -1,5 +1,3 @@
-# pylint: disable-msg=E1101,W0612
-
 import operator
 
 import numpy as np
@@ -7,11 +5,10 @@ from numpy import nan
 import pytest
 
 from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Panel, Series, bdate_range, compat
+from pandas import DataFrame, Series, bdate_range, compat
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.sparse import frame as spf
 from pandas.core.sparse.api import (
@@ -78,7 +75,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_constructor(self, float_frame, float_frame_int_kind,
                          float_frame_fill0):
-        for col, series in compat.iteritems(float_frame):
+        for col, series in float_frame.items():
             assert isinstance(series, SparseSeries)
 
         assert isinstance(float_frame_int_kind['A'].sp_index, IntIndex)
@@ -96,11 +93,11 @@ class TestSparseDataFrame(SharedWithSparse):
 
         # construct no data
         sdf = SparseDataFrame(columns=np.arange(10), index=np.arange(10))
-        for col, series in compat.iteritems(sdf):
+        for col, series in sdf.items():
             assert isinstance(series, SparseSeries)
 
         # construct from nested dict
-        data = {c: s.to_dict() for c, s in compat.iteritems(float_frame)}
+        data = {c: s.to_dict() for c, s in float_frame.items()}
 
         sdf = SparseDataFrame(data)
         tm.assert_sp_frame_equal(sdf, float_frame)
@@ -170,7 +167,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_constructor_convert_index_once(self):
         arr = np.array([1.5, 2.5, 3.5])
-        sdf = SparseDataFrame(columns=lrange(4), index=arr)
+        sdf = SparseDataFrame(columns=range(4), index=arr)
         assert sdf[0].index is sdf[1].index
 
     def test_constructor_from_series(self):
@@ -214,7 +211,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_constructor_from_unknown_type(self):
         # GH 19393
-        class Unknown(object):
+        class Unknown:
             pass
         with pytest.raises(TypeError,
                            match=('SparseDataFrame called with unknown type '
@@ -768,8 +765,8 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(result, expected)
 
     def test_fillna(self, float_frame_fill0, float_frame_fill0_dense):
-        df = float_frame_fill0.reindex(lrange(5))
-        dense = float_frame_fill0_dense.reindex(lrange(5))
+        df = float_frame_fill0.reindex(list(range(5)))
+        dense = float_frame_fill0_dense.reindex(list(range(5)))
 
         result = df.fillna(0)
         expected = dense.fillna(0)
@@ -1055,14 +1052,12 @@ class TestSparseDataFrame(SharedWithSparse):
         _check(float_frame_fill0, float_frame_fill0_dense)
         _check(float_frame_fill2, float_frame_fill2_dense)
 
-    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_stack_sparse_frame(self, float_frame, float_frame_int_kind,
                                 float_frame_fill0, float_frame_fill2):
         def _check(frame):
             dense_frame = frame.to_dense()  # noqa
 
-            wp = Panel.from_dict({'foo': frame})
-            from_dense_lp = wp.to_frame()
+            from_dense_lp = frame.stack().to_frame()
 
             from_sparse_lp = spf.stack_sparse_frame(frame)
 
@@ -1285,7 +1280,7 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(expected, result)
 
 
-class TestSparseDataFrameArithmetic(object):
+class TestSparseDataFrameArithmetic:
 
     def test_numeric_op_scalar(self):
         df = pd.DataFrame({'A': [nan, nan, 0, 1, ],
@@ -1314,7 +1309,7 @@ class TestSparseDataFrameArithmetic(object):
         tm.assert_frame_equal(res.to_dense(), df != 0)
 
 
-class TestSparseDataFrameAnalytics(object):
+class TestSparseDataFrameAnalytics:
 
     def test_cumsum(self, float_frame):
         expected = SparseDataFrame(float_frame.to_dense().cumsum())

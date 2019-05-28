@@ -12,8 +12,9 @@ def f():
 
 @pytest.mark.filterwarnings('ignore:f1:FutureWarning')
 def test_assert_produces_warning_honors_filter():
-    # raise by default
-    with pytest.raises(AssertionError):
+    # Raise by default.
+    msg = r"Caused unexpected warning\(s\)"
+    with pytest.raises(AssertionError, match=msg):
         with tm.assert_produces_warning(RuntimeWarning):
             f()
 

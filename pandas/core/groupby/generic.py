@@ -15,8 +15,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-import pandas.compat as compat
-from pandas.compat import lzip
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
@@ -68,27 +66,6 @@ class NDFrameGroupBy(GroupBy):
         new_items, new_blocks = self._cython_agg_blocks(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count)
         return self._wrap_agged_blocks(new_items, new_blocks)
-
-    def _wrap_agged_blocks(self, items, blocks):
-        obj = self._obj_with_exclusions
-
-        new_axes = list(obj._data.axes)
-
-        # more kludge
-        if self.axis == 0:
-            new_axes[0], new_axes[1] = new_axes[1], self.grouper.result_index
-        else:
-            new_axes[self.axis] = self.grouper.result_index
-
-        # Make sure block manager integrity check passes.
-        assert new_axes[0].equals(items)
-        new_axes[0] = items
-
-        mgr = BlockManager(blocks, new_axes)
-
-        new_obj = type(obj)(mgr)
-
-        return self._post_process_cython_aggregate(new_obj)
 
     _block_agg_axis = 0
 
@@ -166,23 +143,10 @@ class NDFrameGroupBy(GroupBy):
 
         return new_items, new_blocks
 
-    def _get_data_to_aggregate(self):
-        obj = self._obj_with_exclusions
-        if self.axis == 0:
-            return obj.swapaxes(0, 1)._data, 1
-        else:
-            return obj._data, self.axis
-
-    def _post_process_cython_aggregate(self, obj):
-        # undoing kludge from below
-        if self.axis == 0:
-            obj = obj.swapaxes(0, 1)
-        return obj
-
-    def aggregate(self, arg, *args, **kwargs):
+    def aggregate(self, func, *args, **kwargs):
 
         _level = kwargs.pop('_level', None)
-        result, how = self._aggregate(arg, _level=_level, *args, **kwargs)
+        result, how = self._aggregate(func, _level=_level, *args, **kwargs)
         if how is None:
             return result
 
@@ -190,14 +154,14 @@ class NDFrameGroupBy(GroupBy):
 
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
-                return self._python_agg_general(arg, *args, **kwargs)
+                return self._python_agg_general(func, *args, **kwargs)
             else:
 
                 # try to treat as if we are passing a list
                 try:
                     assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
-                        [arg], _level=_level, _axis=self.axis)
+                        [func], _level=_level, _axis=self.axis)
 
                     result.columns = Index(
                         result.columns.levels[0],
@@ -209,7 +173,7 @@ class NDFrameGroupBy(GroupBy):
                         # to SparseDataFrame, so we do it here.
                         result = SparseDataFrame(result._data)
                 except Exception:
-                    result = self._aggregate_generic(arg, *args, **kwargs)
+                    result = self._aggregate_generic(func, *args, **kwargs)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -757,7 +721,7 @@ class SeriesGroupBy(GroupBy):
               .format(input='series',
                       examples=_apply_docs['series_examples']))
     def apply(self, func, *args, **kwargs):
-        return super(SeriesGroupBy, self).apply(func, *args, **kwargs)
+        return super().apply(func, *args, **kwargs)
 
     @Substitution(see_also=_agg_see_also_doc,
                   examples=_agg_examples_doc,
@@ -816,13 +780,13 @@ class SeriesGroupBy(GroupBy):
                     FutureWarning, stacklevel=3)
 
             columns = list(arg.keys())
-            arg = list(arg.items())
+            arg = arg.items()
         elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x
                    for x in arg]
 
             # indicated column order
-            columns = lzip(*arg)[0]
+            columns = next(zip(*arg))
         else:
             # list of functions / function names
             columns = []
@@ -832,7 +796,7 @@ class SeriesGroupBy(GroupBy):
                 else:
                     # protect against callables without names
                     columns.append(com.get_callable_name(f))
-            arg = lzip(columns, arg)
+            arg = zip(columns, arg)
 
         results = OrderedDict()
         for name, func in arg:
@@ -850,7 +814,7 @@ class SeriesGroupBy(GroupBy):
                 obj._selection = name
             results[name] = obj.aggregate(func)
 
-        if any(isinstance(x, DataFrame) for x in compat.itervalues(results)):
+        if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
             if _level:
                 return results
@@ -952,8 +916,12 @@ class SeriesGroupBy(GroupBy):
             s = klass(res, indexer)
             results.append(s)
 
-        from pandas.core.reshape.concat import concat
-        result = concat(results).sort_index()
+        # check for empty "results" to avoid concat ValueError
+        if results:
+            from pandas.core.reshape.concat import concat
+            result = concat(results).sort_index()
+        else:
+            result = Series()
 
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* udfs
@@ -1034,6 +1002,11 @@ class SeriesGroupBy(GroupBy):
     def nunique(self, dropna=True):
         """
         Return number of unique elements in the group.
+
+        Returns
+        -------
+        Series
+            Number of unique values within each group.
         """
         ids, _, _ = self.grouper.group_info
 
@@ -1216,7 +1189,14 @@ class SeriesGroupBy(GroupBy):
         return Series(out, index=mi, name=self._selection_name)
 
     def count(self):
-        """ Compute count of group, excluding missing values """
+        """
+        Compute count of group, excluding missing values.
+
+        Returns
+        -------
+        Series
+            Count of values within each group.
+        """
         ids, _, ngroups = self.grouper.group_info
         val = self.obj.get_values()
 
@@ -1325,7 +1305,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
                   axis='')
     @Appender(_shared_docs['aggregate'])
     def aggregate(self, arg, *args, **kwargs):
-        return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
+        return super().aggregate(arg, *args, **kwargs)
 
     agg = aggregate
 
@@ -1504,17 +1484,15 @@ class DataFrameGroupBy(NDFrameGroupBy):
              in self._iterate_column_groupbys()),
             keys=self._selected_obj.columns, axis=1)
 
-    def _fill(self, direction, limit=None):
-        """Overridden method to join grouped columns in output"""
-        res = super(DataFrameGroupBy, self)._fill(direction, limit=limit)
-        output = OrderedDict(
-            (grp.name, grp.grouper) for grp in self.grouper.groupings)
-
-        from pandas import concat
-        return concat((self._wrap_transformed_output(output), res), axis=1)
-
     def count(self):
-        """ Compute count of group, excluding missing values """
+        """
+        Compute count of group, excluding missing values.
+
+        Returns
+        -------
+        DataFrame
+            Count of values within each group.
+        """
         from pandas.core.dtypes.missing import _isna_ndarraylike as _isna
 
         data, _ = self._get_data_to_aggregate()
@@ -1569,7 +1547,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
         ham    1       1       2
         spam   1       2       1
 
-        # check for rows with the same id but conflicting values
+        Check for rows with the same id but conflicting values:
+
         >>> df.groupby('id').filter(lambda g: (g.nunique() > 1).any())
              id  value1 value2
         0  spam       1      a

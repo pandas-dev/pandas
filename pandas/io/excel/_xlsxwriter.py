@@ -4,7 +4,7 @@ from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import _validate_freeze_panes
 
 
-class _XlsxStyler(object):
+class _XlsxStyler:
     # Map from openpyxl-oriented styles to flatter xlsxwriter representation
     # Ordering necessary for both determinism and because some are keyed by
     # prefixes of others.
@@ -160,11 +160,11 @@ class _XlsxWriter(ExcelWriter):
         if mode == 'a':
             raise ValueError('Append mode is not supported with xlsxwriter!')
 
-        super(_XlsxWriter, self).__init__(path, engine=engine,
-                                          date_format=date_format,
-                                          datetime_format=datetime_format,
-                                          mode=mode,
-                                          **engine_kwargs)
+        super().__init__(path, engine=engine,
+                         date_format=date_format,
+                         datetime_format=datetime_format,
+                         mode=mode,
+                         **engine_kwargs)
 
         self.book = xlsxwriter.Workbook(path, **engine_kwargs)
 

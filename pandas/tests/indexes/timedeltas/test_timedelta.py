@@ -338,7 +338,7 @@ class TestTimedeltaIndex(DatetimeLike):
         assert re.match(msg, str(w[0].message))
 
 
-class TestTimeSeries(object):
+class TestTimeSeries:
 
     def test_series_box_timedelta(self):
         rng = timedelta_range('1 day 1 s', periods=5, freq='h')

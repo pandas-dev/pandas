@@ -1,5 +1,4 @@
 # being a bit too dynamic
-# pylint: disable=E1101
 from collections import namedtuple
 import re
 from typing import List, Optional, Type
@@ -9,8 +8,6 @@ import numpy as np
 
 from pandas._config import get_option
 
-import pandas.compat as compat
-from pandas.compat import lrange
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -62,7 +59,7 @@ def _gcf():
     return plt.gcf()
 
 
-class MPLPlot(object):
+class MPLPlot:
     """
     Base class for assembling a pandas plot using matplotlib
 
@@ -404,16 +401,7 @@ class MPLPlot(object):
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
 
-        def get_label(i):
-            try:
-                return pprint_thing(data.index[i])
-            except Exception:
-                return ''
-
         if self.orientation == 'vertical' or self.orientation is None:
-            if self._need_to_set_index:
-                xticklabels = [get_label(x) for x in ax.get_xticks()]
-                ax.set_xticklabels(xticklabels)
             self._apply_axis_properties(ax.xaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
@@ -423,9 +411,6 @@ class MPLPlot(object):
                                             fontsize=self.fontsize)
 
         elif self.orientation == 'horizontal':
-            if self._need_to_set_index:
-                yticklabels = [get_label(y) for y in ax.get_yticks()]
-                ax.set_yticklabels(yticklabels)
             self._apply_axis_properties(ax.yaxis, rot=self.rot,
                                         fontsize=self.fontsize)
             self._apply_axis_properties(ax.xaxis, fontsize=self.fontsize)
@@ -597,9 +582,9 @@ class MPLPlot(object):
                 x = self.data.index._mpl_repr()
             else:
                 self._need_to_set_index = True
-                x = lrange(len(index))
+                x = list(range(len(index)))
         else:
-            x = lrange(len(index))
+            x = list(range(len(index)))
 
         return x
 
@@ -885,7 +870,7 @@ class ScatterPlot(PlanePlot):
             # hide the matplotlib default for size, in case we want to change
             # the handling of this argument later
             s = 20
-        super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
+        super().__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
         self.c = c
@@ -942,7 +927,7 @@ class HexBinPlot(PlanePlot):
     _kind = 'hexbin'
 
     def __init__(self, data, x, y, C=None, **kwargs):
-        super(HexBinPlot, self).__init__(data, x, y, **kwargs)
+        super().__init__(data, x, y, **kwargs)
         if is_integer(C) and not self.data.columns.holds_integer():
             C = self.data.columns[C]
         self.C = C
@@ -1109,6 +1094,20 @@ class LinePlot(MPLPlot):
             ax._stacker_neg_prior[stacking_id] += values
 
     def _post_plot_logic(self, ax, data):
+        from matplotlib.ticker import FixedLocator
+
+        def get_label(i):
+            try:
+                return pprint_thing(data.index[i])
+            except Exception:
+                return ''
+
+        if self._need_to_set_index:
+            xticks = ax.get_xticks()
+            xticklabels = [get_label(x) for x in xticks]
+            ax.set_xticklabels(xticklabels)
+            ax.xaxis.set_major_locator(FixedLocator(xticks))
+
         condition = (not self._use_dynamic_x() and
                      data.index.is_all_dates and
                      not self.subplots or
@@ -1627,7 +1626,7 @@ class BoxPlot(LinePlot):
 
             if isinstance(self.color, dict):
                 valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
-                for key, values in compat.iteritems(self.color):
+                for key, values in self.color.items():
                     if key not in valid_keys:
                         raise ValueError("color dict contains invalid "
                                          "key '{0}' "
@@ -1725,7 +1724,7 @@ class BoxPlot(LinePlot):
     @property
     def result(self):
         if self.return_type is None:
-            return super(BoxPlot, self).result
+            return super().result
         else:
             return self._return_obj
 
@@ -2090,15 +2089,15 @@ _shared_docs['boxplot'] = """
     -----
     The return type depends on the `return_type` parameter:
 
-        * 'axes' : object of class matplotlib.axes.Axes
-        * 'dict' : dict of matplotlib.lines.Line2D objects
-        * 'both' : a namedtuple with structure (ax, lines)
+    * 'axes' : object of class matplotlib.axes.Axes
+    * 'dict' : dict of matplotlib.lines.Line2D objects
+    * 'both' : a namedtuple with structure (ax, lines)
 
-        For data grouped with ``by``:
+    For data grouped with ``by``, return a Series of the above or a numpy
+    array:
 
-        * :class:`~pandas.Series`
-        * :class:`~numpy.array` (for ``return_type = None``)
-        Return Series or numpy.array.
+    * :class:`~pandas.Series`
+    * :class:`~numpy.array` (for ``return_type = None``)
 
     Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines
@@ -2427,6 +2426,10 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     data = data._get_numeric_data()
     naxes = len(data.columns)
 
+    if naxes == 0:
+        raise ValueError("hist method requires numerical columns, "
+                         "nothing to plot.")
+
     fig, axes = _subplots(naxes=naxes, ax=ax, squeeze=False,
                           sharex=sharex, sharey=sharey, figsize=figsize,
                           layout=layout)
@@ -2478,6 +2481,11 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         Number of histogram bins to be used
     `**kwds` : keywords
         To be passed to the actual plotting function
+
+    Returns
+    -------
+    matplotlib.AxesSubplot
+        A histogram plot.
 
     See Also
     --------

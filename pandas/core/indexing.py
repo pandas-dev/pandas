@@ -1,4 +1,3 @@
-# pylint: disable=W0223
 import textwrap
 import warnings
 
@@ -36,7 +35,7 @@ _NS = slice(None, None)
 
 
 # the public IndexSlicerMaker
-class _IndexSlice(object):
+class _IndexSlice:
     """
     Create an object to more easily perform multi-index slicing
 
@@ -89,8 +88,8 @@ class IndexingError(Exception):
 
 
 class _NDFrameIndexer(_NDFrameIndexerBase):
-    _valid_types = None
-    _exception = KeyError
+    _valid_types = None  # type: str
+    _exception = Exception
     axis = None
 
     def __call__(self, axis=None):
@@ -671,8 +670,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             a `pd.MultiIndex`, to avoid unnecessary broadcasting.
 
 
-        Returns:
-        --------
+        Returns
+        -------
         `np.array` of `ser` broadcast to the appropriate shape for assignment
         to the locations selected by `indexer`
 
@@ -945,6 +944,12 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         except TypeError:
             # slices are unhashable
             pass
+        except KeyError as ek:
+            # raise KeyError if number of indexers match
+            # else IndexingError will be raised
+            if (len(tup) <= self.obj.index.nlevels
+                    and len(tup) > self.obj.ndim):
+                raise ek
         except Exception as e1:
             if isinstance(tup[0], (slice, Index)):
                 raise IndexingError("Handle elsewhere")
@@ -1414,8 +1419,8 @@ class _IXIndexer(_NDFrameIndexer):
 
     def __init__(self, name, obj):
         warnings.warn(self._ix_deprecation_warning,
-                      DeprecationWarning, stacklevel=2)
-        super(_IXIndexer, self).__init__(name, obj)
+                      FutureWarning, stacklevel=2)
+        super().__init__(name, obj)
 
     @Appender(_NDFrameIndexer._validate_key.__doc__)
     def _validate_key(self, key, axis):
@@ -1935,7 +1940,7 @@ class _iLocIndexer(_LocationIndexer):
     out-of-bounds, except *slice* indexers which allow out-of-bounds
     indexing (this conforms with python/numpy *slice* semantics).
 
-    See more at ref:`Selection by Position <indexing.integer>`.
+    See more at :ref:`Selection by Position <indexing.integer>`.
 
     See Also
     --------

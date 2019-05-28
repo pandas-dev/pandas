@@ -5,8 +5,6 @@ Currently only includes SparseSeries.to_coo helpers.
 """
 from collections import OrderedDict
 
-from pandas.compat import lmap
-
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 
@@ -53,7 +51,7 @@ def _to_ijv(ss, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
             """ Return OrderedDict of unique labels to number.
             Optionally sort by label.
             """
-            labels = Index(lmap(tuple, labels)).unique().tolist()  # squish
+            labels = Index(map(tuple, labels)).unique().tolist()  # squish
             if sort_labels:
                 labels = sorted(list(labels))
             d = OrderedDict((k, i) for i, k in enumerate(labels))

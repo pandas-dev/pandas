@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=W0612,E1101
-
 from collections import OrderedDict
 
 import numpy as np
@@ -16,7 +13,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
-class TestGetDummies(object):
+class TestGetDummies:
 
     @pytest.fixture
     def df(self):
@@ -586,12 +583,10 @@ class TestGetDummies(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestCategoricalReshape(object):
+class TestCategoricalReshape:
 
     def test_reshaping_multi_index_categorical(self):
 
-        # construct a MultiIndexed DataFrame formerly created
-        #  via `tm.makePanel().to_frame()`
         cols = ['ItemA', 'ItemB', 'ItemC']
         data = {c: tm.makeTimeDataFrame() for c in cols}
         df = pd.concat({c: data[c].stack() for c in data}, axis='columns')
@@ -613,7 +608,7 @@ class TestCategoricalReshape(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestMakeAxisDummies(object):
+class TestMakeAxisDummies:
 
     def test_preserve_categorical_dtype(self):
         # GH13854

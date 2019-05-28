@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from itertools import product
 import operator
 
@@ -8,7 +5,6 @@ import numpy as np
 from numpy import nan
 import pytest
 
-from pandas.compat import lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -23,7 +19,7 @@ from pandas.util.testing import (
     assert_series_equal)
 
 
-class TestSeriesAnalytics(object):
+class TestSeriesAnalytics:
 
     def test_describe(self):
         s = Series([0, 1, 2, 3, 4], name='int_data')
@@ -76,11 +72,11 @@ class TestSeriesAnalytics(object):
         assert isna(shifted[4])
 
         result = s.argsort()
-        expected = Series(lrange(5), dtype='int64')
+        expected = Series(range(5), dtype='int64')
         assert_series_equal(result, expected)
 
         result = shifted.argsort()
-        expected = Series(lrange(4) + [-1], dtype='int64')
+        expected = Series(list(range(4)) + [-1], dtype='int64')
         assert_series_equal(result, expected)
 
     def test_argsort_stable(self):
@@ -95,7 +91,7 @@ class TestSeriesAnalytics(object):
                                check_dtype=False)
         tm.assert_series_equal(qindexer, Series(qexpected),
                                check_dtype=False)
-        msg = (r"ndarray Expected type <(class|type) 'numpy\.ndarray'>,"
+        msg = (r"ndarray Expected type <class 'numpy\.ndarray'>,"
                r" found <class 'pandas\.core\.series\.Series'> instead")
         with pytest.raises(AssertionError, match=msg):
             tm.assert_numpy_array_equal(qindexer, mindexer)
@@ -292,18 +288,18 @@ class TestSeriesAnalytics(object):
         assert_series_equal(result, expected)
 
     def test_built_in_round(self):
-        s = Series([1.123, 2.123, 3.123], index=lrange(3))
+        s = Series([1.123, 2.123, 3.123], index=range(3))
         result = round(s)
-        expected_rounded0 = Series([1., 2., 3.], index=lrange(3))
+        expected_rounded0 = Series([1., 2., 3.], index=range(3))
         tm.assert_series_equal(result, expected_rounded0)
 
         decimals = 2
-        expected_rounded = Series([1.12, 2.12, 3.12], index=lrange(3))
+        expected_rounded = Series([1.12, 2.12, 3.12], index=range(3))
         result = round(s, decimals)
         tm.assert_series_equal(result, expected_rounded)
 
     def test_prod_numpy16_bug(self):
-        s = Series([1., 1., 1.], index=lrange(3))
+        s = Series([1., 1., 1.], index=range(3))
         result = s.prod()
 
         assert not isinstance(result, Series)
@@ -474,7 +470,7 @@ class TestSeriesAnalytics(object):
         assert_almost_equal(a.dot(b['1']), expected['1'])
         assert_almost_equal(a.dot(b2['1']), expected['1'])
 
-        msg = r"Dot product shape mismatch, \(4L?,\) vs \(3L?,\)"
+        msg = r"Dot product shape mismatch, \(4,\) vs \(3,\)"
         # exception raised is of type Exception
         with pytest.raises(Exception, match=msg):
             a.dot(a.values[:3])
@@ -741,7 +737,7 @@ class TestSeriesAnalytics(object):
         assert_series_equal(result, expected)
 
         # timedelta64[ns]
-        s = Series(pd.to_timedelta(lrange(5), unit='d'))
+        s = Series(pd.to_timedelta(range(5), unit='d'))
         result = s.isin(s[0:2])
         assert_series_equal(result, expected)
 
@@ -1149,6 +1145,15 @@ class TestSeriesAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
 
+    def test_compound_deprecated(self):
+        s = Series([.1, .2, .3, .4])
+        with tm.assert_produces_warning(FutureWarning):
+            s.compound()
+
+        df = pd.DataFrame({'s': s})
+        with tm.assert_produces_warning(FutureWarning):
+            df.compound()
+
 
 main_dtypes = [
     'datetime',
@@ -1213,7 +1218,7 @@ def assert_check_nselect_boundary(vals, dtype, method):
     tm.assert_series_equal(result, expected)
 
 
-class TestNLargestNSmallest(object):
+class TestNLargestNSmallest:
 
     @pytest.mark.parametrize(
         "r", [Series([3., 2, 1, 2, '5'], dtype='object'),
@@ -1332,8 +1337,18 @@ class TestNLargestNSmallest(object):
         expected = Series([6, 7, 7, 7, 7], index=[7, 3, 4, 5, 6])
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('data,expected',
+                             [([True, False], [True]),
+                              ([True, False, True, True], [True])])
+    def test_boolean(self, data, expected):
+        # GH 26154 : ensure True > False
+        s = Series(data)
+        result = s.nlargest(1)
+        expected = Series(expected)
+        assert_series_equal(result, expected)
 
-class TestCategoricalSeriesAnalytics(object):
+
+class TestCategoricalSeriesAnalytics:
 
     def test_count(self):
 
@@ -1406,16 +1421,16 @@ class TestCategoricalSeriesAnalytics(object):
         "dtype",
         ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
          pytest.param("datetime64[D]",
-                      marks=pytest.mark.xfail(reason="GH#7996"))]
+                      marks=pytest.mark.xfail(reason="GH#7996", strict=False))]
     )
-    @pytest.mark.parametrize("is_ordered", [True, False])
-    def test_drop_duplicates_categorical_non_bool(self, dtype, is_ordered):
+    def test_drop_duplicates_categorical_non_bool(self, dtype,
+                                                  ordered_fixture):
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
         # Test case 1
         input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
         tc1 = Series(Categorical(input1, categories=cat_array,
-                                 ordered=is_ordered))
+                                 ordered=ordered_fixture))
 
         expected = Series([False, False, False, True])
         tm.assert_series_equal(tc1.duplicated(), expected)
@@ -1442,7 +1457,7 @@ class TestCategoricalSeriesAnalytics(object):
         # Test case 2
         input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
         tc2 = Series(Categorical(
-            input2, categories=cat_array, ordered=is_ordered)
+            input2, categories=cat_array, ordered=ordered_fixture)
         )
 
         expected = Series([False, False, False, False, True, True, False])
@@ -1467,10 +1482,10 @@ class TestCategoricalSeriesAnalytics(object):
         sc.drop_duplicates(keep=False, inplace=True)
         tm.assert_series_equal(sc, tc2[~expected])
 
-    @pytest.mark.parametrize("is_ordered", [True, False])
-    def test_drop_duplicates_categorical_bool(self, is_ordered):
+    def test_drop_duplicates_categorical_bool(self, ordered_fixture):
         tc = Series(Categorical([True, False, True, False],
-                                categories=[True, False], ordered=is_ordered))
+                                categories=[True, False],
+                                ordered=ordered_fixture))
 
         expected = Series([False, False, True, True])
         tm.assert_series_equal(tc.duplicated(), expected)
