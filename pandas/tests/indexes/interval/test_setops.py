@@ -103,6 +103,13 @@ class TestIntervalIndex:
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
+        # GH 26225: duplicate nan element
+        index = IntervalIndex([np.nan, np.nan])
+        other = IntervalIndex([np.nan])
+        expected = IntervalIndex([np.nan])
+        result = index.intersection(other)
+        tm.assert_index_equal(result, expected)
+
     def test_difference(self, closed, sort):
         index = IntervalIndex.from_arrays([1, 0, 3, 2],
                                           [1, 2, 3, 4],

@@ -1165,6 +1165,10 @@ class IntervalIndex(IntervalMixin, Index):
         """
         mask = np.zeros(len(self), dtype=bool)
 
+        if self.hasnans and other.hasnans:
+            first_nan_loc = np.arange(len(self))[self.isna()][0]
+            mask[first_nan_loc] = True
+
         lmiss = other.left.get_indexer_non_unique(self.left)[1]
         lmatch = np.setdiff1d(np.arange(len(self)), lmiss)
 
