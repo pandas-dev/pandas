@@ -1147,8 +1147,7 @@ class HDFStore(StringMixin):
             yield (g._v_pathname.rstrip('/'), groups, leaves)
 
     def get_node(self, key):
-        """ return the node with the key or None if it does not exist
-        """
+        """ return the node with the key or None if it does not exist """
         self._check_if_open()
         try:
             if not key.startswith('/'):
@@ -1158,8 +1157,7 @@ class HDFStore(StringMixin):
             return None
 
     def get_storer(self, key):
-        """ return the storer object for a key, raise if not in the file
-        """
+        """ return the storer object for a key, raise if not in the file """
         group = self.get_node(key)
         if group is None:
             raise KeyError('No object named {key} in the file'.format(key=key))
@@ -1183,7 +1181,7 @@ class HDFStore(StringMixin):
             Returns
             -------
             open file handle of the new store
-            
+
         """
         new_store = HDFStore(
             file,
@@ -1264,8 +1262,7 @@ class HDFStore(StringMixin):
             raise ClosedFileError("{0} file is not open!".format(self._path))
 
     def _validate_format(self, format, kwargs):
-        """ validate / deprecate formats; return the new kwargs
-        """
+        """ validate / deprecate formats; return the new kwargs """
         kwargs = kwargs.copy()
 
         # validate
@@ -1689,7 +1686,7 @@ class IndexCol(StringMixin):
     def maybe_set_size(self, min_itemsize=None):
         """ maybe set a string col itemsize:
                min_itemsize can be an integer or a dict with this columns name
-               with an integer size"""
+               with an integer size """
         if _ensure_decoded(self.kind) == 'string':
 
             if isinstance(min_itemsize, dict):
