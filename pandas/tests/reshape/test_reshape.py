@@ -13,6 +13,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestGetDummies:
 
     @pytest.fixture

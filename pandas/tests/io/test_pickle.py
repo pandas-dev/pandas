@@ -196,6 +196,7 @@ def legacy_pickle(request, datapath):
 # ---------------------
 # tests
 # ---------------------
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_pickles(current_pickle_data, legacy_pickle):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
@@ -206,6 +207,7 @@ def test_pickles(current_pickle_data, legacy_pickle):
         compare(current_pickle_data, legacy_pickle, version)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_round_trip_current(current_pickle_data):
 
     def python_pickler(obj, path):

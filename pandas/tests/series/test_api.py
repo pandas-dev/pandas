@@ -122,6 +122,7 @@ class SharedWithSparse:
         result = self.ts.sort_index(ascending=False)
         assert result.name == self.ts.name
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_to_sparse_pass_name(self):
         result = self.ts.to_sparse()
         assert result.name == self.ts.name
@@ -194,9 +195,12 @@ class SharedWithSparse:
         )
         self._assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_from_array_deprecated(self):
 
-        with tm.assert_produces_warning(FutureWarning):
+        # multiple FutureWarnings, so can't assert stacklevel
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
             self.series_klass.from_array([1, 2, 3])
 
     def test_sparse_accessor_updates_on_inplace(self):

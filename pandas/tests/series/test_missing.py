@@ -780,6 +780,7 @@ class TestSeriesMissingData:
         expected[:3] = np.nan
         assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series_fillna_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
@@ -787,7 +788,8 @@ class TestSeriesMissingData:
         ss = s[:2].reindex(index).to_sparse()
         # TODO: what is this test doing? why are result an expected
         # the same call to fillna?
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             # TODO: release-note fillna performance warning
             result = ss.fillna(method='pad', limit=5)
             expected = ss.fillna(method='pad', limit=5)
@@ -797,7 +799,8 @@ class TestSeriesMissingData:
         assert_series_equal(result, expected)
 
         ss = s[-2:].reindex(index).to_sparse()
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             result = ss.fillna(method='backfill', limit=5)
             expected = ss.fillna(method='backfill')
         expected = expected.to_dense()
@@ -805,13 +808,15 @@ class TestSeriesMissingData:
         expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse_series_pad_backfill_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
         s = s.to_sparse()
 
         result = s[:2].reindex(index, method='pad', limit=5)
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             expected = s[:2].reindex(index).fillna(method='pad')
         expected = expected.to_dense()
         expected[-3:] = np.nan
@@ -819,13 +824,15 @@ class TestSeriesMissingData:
         assert_series_equal(result, expected)
 
         result = s[-2:].reindex(index, method='backfill', limit=5)
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        raise_on_extra_warnings=False):
             expected = s[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected[:3] = np.nan
         expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_series_pad_backfill_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)

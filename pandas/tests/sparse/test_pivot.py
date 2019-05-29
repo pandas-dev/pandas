@@ -1,9 +1,11 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestPivotTable:
 
     def setup_method(self, method):

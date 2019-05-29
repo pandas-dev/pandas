@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
 
@@ -9,6 +10,7 @@ import pandas.util.testing as tm
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseSeriesFormatting:
 
     @property
@@ -105,6 +107,7 @@ class TestSparseSeriesFormatting:
             assert result == exp
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseDataFrameFormatting:
 
     def test_sparse_frame(self):
