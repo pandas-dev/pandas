@@ -299,13 +299,38 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
+Sparse Subclasses
+^^^^^^^^^^^^^^^^^
+
+The ``SparseSeries`` and ``SparseDataFrame`` subclasses are deprecated. Their functionality is better-provided
+by a ``Series`` or ``DataFrame`` with sparse values.
+
+**Previous Way**
+
+.. ipython:: python
+   :okwarning:
+
+   df = pd.SparseDataFrame({"A": [0, 0, 1, 2]})
+   df.dtypes
+
+**New Way**
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": pd.SparseArray([0, 0, 1, 2])})
+   df.dtypes
+
+The memory usage of the two approaches is identical. See :ref:`sparse.migration` for more (:issue:`19239`).
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
+
 - The deprecated ``.ix[]`` indexer now raises a more visible FutureWarning instead of DeprecationWarning (:issue:`26438`).
 - Deprecated the ``units=M`` (months) and ``units=Y`` (year) parameters for ``units`` of :func:`pandas.to_timedelta`, :func:`pandas.Timedelta` and :func:`pandas.TimedeltaIndex` (:issue:`16344`)
 - The :attr:`SparseArray.values` attribute is deprecated. You can use ``np.asarray(...)`` or
   the :meth:`SparseArray.to_dense` method instead (:issue:`26421`).
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
 - The :meth:`DataFrame.compound` and :meth:`Series.compound` methods are deprecated and will be removed in a future version (:issue:`26405`).
-
 
 .. _whatsnew_0250.prior_deprecations:
 
