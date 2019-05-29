@@ -256,9 +256,9 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        code : list,  optional
+        code : list
             Code to reassign.
-        level : list, optional
+        level : list
             Level to check for missing values (NaN, NaT, None).
 
         Returns
@@ -734,7 +734,9 @@ class MultiIndex(Index):
                     level_codes, lev, copy=copy)._shallow_copy()
             new_codes = FrozenList(new_codes)
 
-        new_codes = self._verify_integrity(codes=new_codes)
+        if verify_integrity:
+            new_codes = self._verify_integrity(codes=new_codes)
+
         self._codes = new_codes
 
         self._tuples = None
