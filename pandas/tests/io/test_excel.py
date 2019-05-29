@@ -63,20 +63,15 @@ class SharedItems:
 class ReadingTestsBase(SharedItems):
     # This is based on ExcelWriterBase
 
-    @pytest.fixture(autouse=True)
-    def change_to_data_directory(self, datapath):
-        cwd = os.getcwd()
-        os.chdir(datapath("io", "data"))
-        yield
-        os.chdir(cwd)
-
     @pytest.fixture(autouse=True, params=['xlrd', None])
-    def set_engine(self, request):
-        global read_excel
-        original_func = read_excel
-        read_excel = partial(read_excel, engine=request.param)
-        yield
-        read_excel = original_func
+    def cd_and_set_engine(self, request, datapath, monkeypatch):
+        """Change directory to enable easier read_excel calls."""
+        func = partial(read_excel, engine=request.param)
+
+        with monkeypatch.context() as m:
+            m.chdir(datapath("io", "data"))
+            m.setitem(globals(), 'read_excel', func)
+            yield
 
     @pytest.fixture
     def df_ref(self):
