@@ -80,7 +80,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     Parameters
     ----------
-    data : array-like (1-dimensional) - PeriodArray, optional
+    data : array-like (1d integer np.ndarray or PeriodArray), optional
         Optional period-like data to construct index with
     copy : bool
         Make a copy of input ndarray
