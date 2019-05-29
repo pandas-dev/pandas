@@ -174,15 +174,26 @@ class ExtensionDtype:
     @classmethod
     def construct_from_string(cls, string):
         """
-        Attempt to construct this type from a string.
+        Construct this type from a string.
+
+        This is useful mainly for data types that accept parameters.
+        For example, datetime types can accept units (e.g. nanoseconds)
+        or timezones. In those cases, the expected type could be
+        something like ``datetime64[ns, UTC]``.
+
+        By default, in the abstract class, just the name of the type is
+        expected. But subclasses can overwrite this method to accept
+        type parameters.
 
         Parameters
         ----------
         string : str
+            The name of the type, for example ``category``.
 
         Returns
         -------
-        self : instance of 'cls'
+        ExtensionDtype
+            Instance of the dtype.
 
         Raises
         ------
@@ -191,16 +202,18 @@ class ExtensionDtype:
 
         Examples
         --------
-        If the extension dtype can be constructed without any arguments,
-        the following may be an adequate implementation.
+        For extension dtypes with arguments the following may be an
+        adequate implementation.
 
         >>> @classmethod
-        ... def construct_from_string(cls, string)
-        ...     if string == cls.name:
-        ...         return cls()
+        ... def construct_from_string(cls, string):
+        ...     pattern = re.compile(r"^my_type\[(?P<arg_name>.+)\]$")
+        ...     match = pattern.match(string)
+        ...     if match:
+        ...         return cls(**match.groupdict())
         ...     else:
         ...         raise TypeError("Cannot construct a '{}' from "
-        ...                         "'{}'".format(cls, string))
+        ...                         "'{}'".format(cls.__name__, string))
         """
         if string != cls.name:
             raise TypeError("Cannot construct a '{}' from '{}'".format(
