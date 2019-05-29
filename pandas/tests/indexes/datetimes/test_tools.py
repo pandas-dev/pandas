@@ -84,18 +84,32 @@ class TestTimeConversionFormats:
         assert_series_equal(result, expected)
 
         # GH 25512
-        # strings with invalid date values, errors=coerce
+        # NaN before strings with invalid date values, errors=coerce
+        s = Series(['19801222', np.nan, '20010012', '10019999'])
+        result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
+                                cache=cache)
+        expected = Series([Timestamp('19801222'), np.nan, np.nan, np.nan])
+        tm.assert_series_equal(result, expected)
+
+        # NaN after strings with invalid date values, errors=coerce
         s = Series(['19801222', '20010012', '10019999', np.nan])
         result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
                                 cache=cache)
         expected = Series([Timestamp('19801222'), np.nan, np.nan, np.nan])
         tm.assert_series_equal(result, expected)
 
-        # integers with invalid date values, errors=coerce
-        s = Series([20010012, 20190813, 20019999, np.nan])
+        # NaN before integers with invalid date values, errors=coerce
+        s = Series([20190813, np.nan, 20010012, 20019999])
         result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
                                 cache=cache)
-        expected = Series([np.nan, Timestamp('20190813'), np.nan, np.nan])
+        expected = Series([Timestamp('20190813'), np.nan, np.nan, np.nan])
+        tm.assert_series_equal(result, expected)
+
+        # NaN after integers with invalid date values, errors=coerce
+        s = Series([20190813, 20010012, np.nan, 20019999])
+        result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
+                                cache=cache)
+        expected = Series([Timestamp('20190813'), np.nan, np.nan, np.nan])
         tm.assert_series_equal(result, expected)
 
         # coercion
