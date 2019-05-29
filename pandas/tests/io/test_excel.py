@@ -2065,11 +2065,10 @@ class TestExcelWriter(_WriterBase):
 
 
 @td.skip_if_no('openpyxl')
-@pytest.mark.parametrize("merge_cells,ext,engine", [
-    (None, '.xlsx', 'openpyxl')])
-class TestOpenpyxlTests(_WriterBase):
+@pytest.mark.parametrize("ext,engine", [('.xlsx', 'openpyxl')])
+class TestOpenpyxlTests:
 
-    def test_to_excel_styleconverter(self, merge_cells, ext, engine):
+    def test_to_excel_styleconverter(self, ext, engine):
         from openpyxl import styles
 
         hstyle = {
@@ -2123,7 +2122,7 @@ class TestOpenpyxlTests(_WriterBase):
         assert kw['number_format'] == number_format
         assert kw['protection'] == protection
 
-    def test_write_cells_merge_styled(self, merge_cells, ext, engine):
+    def test_write_cells_merge_styled(self, ext, engine):
         from pandas.io.formats.excel import ExcelCell
 
         sheet_name = 'merge_styled'
@@ -2157,7 +2156,7 @@ class TestOpenpyxlTests(_WriterBase):
 
     @pytest.mark.parametrize("mode,expected", [
         ('w', ['baz']), ('a', ['foo', 'bar', 'baz'])])
-    def test_write_append_mode(self, merge_cells, ext, engine, mode, expected):
+    def test_write_append_mode(self, ext, engine, mode, expected):
         import openpyxl
         df = DataFrame([1], columns=['baz'])
 
@@ -2184,7 +2183,7 @@ class TestOpenpyxlTests(_WriterBase):
 @td.skip_if_no('xlwt')
 @pytest.mark.parametrize("merge_cells,ext,engine", [
     (None, '.xls', 'xlwt')])
-class TestXlwtTests(_WriterBase):
+class TestXlwtTests:
 
     def test_excel_raise_error_on_multiindex_columns_and_no_index(
             self, merge_cells, ext, engine):
@@ -2245,7 +2244,7 @@ class TestXlwtTests(_WriterBase):
 @td.skip_if_no('xlsxwriter')
 @pytest.mark.parametrize("merge_cells,ext,engine", [
     (None, '.xlsx', 'xlsxwriter')])
-class TestXlsxWriterTests(_WriterBase):
+class TestXlsxWriterTests:
 
     @td.skip_if_no('openpyxl')
     def test_column_format(self, merge_cells, ext, engine):
