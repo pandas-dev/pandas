@@ -1082,8 +1082,7 @@ class HDFStore(StringMixin):
         s.create_index(**kwargs)
 
     def groups(self):
-        """
-        Return a list of all the top-level nodes (that are not themselves a
+        """return a list of all the top-level nodes (that are not themselves a
         pandas storage object)
 
         Returns
