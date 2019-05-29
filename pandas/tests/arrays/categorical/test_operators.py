@@ -185,7 +185,7 @@ class TestCategoricalOps:
         tm.assert_numpy_array_equal(cat != 4,
                                     np.array([True, True, True]))
 
-    def test_comparison_of_ordered_categorical_with_missing_values(self):
+    def test_comparison_of_ordered_categorical_with_missing_values_to_scalar(self):
         # https://github.com/pandas-dev/pandas/issues/26504
         # BUG: fix ordered categorical comparison with missing values (#26504 )
         # and following comparisons with scalars in categories with missing
