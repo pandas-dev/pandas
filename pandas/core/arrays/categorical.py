@@ -89,12 +89,12 @@ def _cat_compare_op(op):
             else:
                 other_codes = other._codes
 
-            na_mask = (self._codes == -1) | (other_codes == -1)
+            mask = (self._codes == -1) | (other_codes == -1)
             f = getattr(self._codes, op)
             ret = f(other_codes)
-            if na_mask.any():
+            if mask.any():
                 # In other series, the leads to False, so do that here too
-                ret[na_mask] = False
+                ret[mask] = False
             return ret
 
         if is_scalar(other):
@@ -103,10 +103,10 @@ def _cat_compare_op(op):
                 ret = getattr(self._codes, op)(i)
 
                 # check for NaN in self
-                na_mask = (self._codes == -1)
-                if na_mask.any():
+                mask = (self._codes == -1)
+                if mask.any():
                     # comparison to missing values NaN leads to False
-                    ret[na_mask] = False
+                    ret[mask] = False
                 return ret
             else:
                 if op == '__eq__':
