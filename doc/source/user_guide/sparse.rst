@@ -269,7 +269,7 @@ have no replacement.
 Interaction with scipy.sparse
 -----------------------------
 
-Use :meth:`DataFrame.sparse.from_coo` to create a ``DataFrame`` with sparse values from a sparse matrix.
+Use :meth:`DataFrame.sparse.from_spmatrix` to create a ``DataFrame`` with sparse values from a sparse matrix.
 
 .. versionadded:: 0.25.0
 
