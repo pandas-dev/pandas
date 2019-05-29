@@ -924,8 +924,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               tupleize_cols=None, thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
               keep_default_na=True, displayed_only=True):
-    """
-    Read HTML tables into a ``list`` of ``DataFrame`` objects.
+    r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
     ----------
