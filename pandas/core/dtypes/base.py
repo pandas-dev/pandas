@@ -202,7 +202,10 @@ class ExtensionDtype:
         ...         raise TypeError("Cannot construct a '{}' from "
         ...                         "'{}'".format(cls, string))
         """
-        raise AbstractMethodError(cls)
+        if string != cls.name:
+            raise TypeError("Cannot construct a '{}' from '{}'".format(
+                cls.__name__, string))
+        return cls()
 
     @classmethod
     def is_dtype(cls, dtype):
