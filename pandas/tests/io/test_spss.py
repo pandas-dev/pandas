@@ -6,15 +6,10 @@ from pandas.util import testing as tm
 
 from pandas.io.spss import read_spss
 
-try:
-    import pyreadstat  # noqa
-except ImportError:
-    _HAVE_PYREADSTAT = False
-else:
-    _HAVE_PYREADSTAT = True
+
+pyreadstat = pytest.importorskip("pyreadstat")
 
 
-@pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_labelled_num(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "labelled-num.sav")
@@ -29,7 +24,6 @@ def test_spss_labelled_num(datapath):
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_labelled_num_na(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "labelled-num-na.sav")
@@ -44,7 +38,6 @@ def test_spss_labelled_num_na(datapath):
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_labelled_str(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "labelled-str.sav")
@@ -59,7 +52,6 @@ def test_spss_labelled_str(datapath):
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_umlauts(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "umlauts.sav")
