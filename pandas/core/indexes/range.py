@@ -22,6 +22,8 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
 
+from pandas.io.formats.printing import pprint_thing
+
 
 class RangeIndex(Int64Index):
     """
@@ -64,6 +66,8 @@ class RangeIndex(Int64Index):
     _typ = 'rangeindex'
     _engine_type = libindex.Int64Engine
 
+    # check whether self._data has benn called
+    _has_called_data = False  # type: bool
     # --------------------------------------------------------------------
     # Constructors
 
@@ -164,6 +168,8 @@ class RangeIndex(Int64Index):
         for k, v in kwargs.items():
             setattr(result, k, v)
 
+        result._range = range(result._start, result._stop, result._step)
+
         result._reset_identity()
         return result
 
@@ -182,6 +188,7 @@ class RangeIndex(Int64Index):
 
     @cache_readonly
     def _data(self):
+        self._has_called_data = True
         return np.arange(self._start, self._stop, self._step, dtype=np.int64)
 
     @cache_readonly
@@ -214,6 +221,9 @@ class RangeIndex(Int64Index):
     def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
+
+    def _format_with_header(self, header, na_rep='NaN', **kwargs):
+        return header + [pprint_thing(x) for x in self._range]
 
     # --------------------------------------------------------------------
     @property
@@ -295,6 +305,15 @@ class RangeIndex(Int64Index):
     @property
     def has_duplicates(self):
         return False
+
+    @Appender(_index_shared_docs['get_loc'])
+    def get_loc(self, key, method=None, tolerance=None):
+        if method is None and tolerance is None:
+            try:
+                return self._range.index(key)
+            except ValueError:
+                raise KeyError(key)
+        return super().__get_loc(key, method=method, tolerance=tolerance)
 
     def tolist(self):
         return list(range(self._start, self._stop, self._step))

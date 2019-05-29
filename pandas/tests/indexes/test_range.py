@@ -241,6 +241,36 @@ class TestRangeIndex(Numeric):
     def test_dtype(self):
         assert self.index.dtype == np.int64
 
+    def test_has_called_data(self):
+        # Calling RangeIndex._data caches a array of the same length.
+        # This tests whether RangeIndex._data has been called by doing methods
+        idx = RangeIndex(0, 100, 10)
+        assert idx._has_called_data is False
+
+        repr(idx)
+        assert idx._has_called_data is False
+
+        str(idx)
+        assert idx._has_called_data is False
+
+        idx.get_loc(20)
+        assert idx._has_called_data is False
+
+        df = pd.DataFrame({'a': range(10)}, index=idx)
+
+        df.loc[50]
+        assert idx._has_called_data is False
+
+        with pytest.raises(KeyError):
+            df.loc[51]
+        assert idx._has_called_data is False
+
+        df.loc[10:50]
+        assert idx._has_called_data is False
+
+        df.iloc[5:10]
+        assert idx._has_called_data is False
+
     def test_is_monotonic(self):
         assert self.index.is_monotonic is True
         assert self.index.is_monotonic_increasing is True
