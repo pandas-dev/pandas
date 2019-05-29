@@ -14,9 +14,8 @@ else:
 
 
 @pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
-def test_spss_labelled_num():
-    fname = "io/data/labelled-num.sav"
-
+def test_spss_labelled_num(datapath):
+    fname = datapath("io", "data", "labelled-num.sav")
     df = read_spss(fname, categorical=True)
     expected = pd.DataFrame({"VAR00002": "This is one"}, index=[0])
     expected["VAR00002"] = pd.Categorical(expected["VAR00002"])
@@ -28,8 +27,8 @@ def test_spss_labelled_num():
 
 
 @pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
-def test_spss_labelled_num_na():
-    fname = "io/data/labelled-num-na.sav"
+def test_spss_labelled_num_na(datapath):
+    fname = datapath("io", "data", "labelled-num-na.sav")
 
     df = read_spss(fname, categorical=True)
     expected = pd.DataFrame({"VAR00002": ["This is one", None]})
@@ -42,8 +41,8 @@ def test_spss_labelled_num_na():
 
 
 @pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
-def test_spss_labelled_str():
-    fname = "io/data/labelled-str.sav"
+def test_spss_labelled_str(datapath):
+    fname = datapath("io", "data", "labelled-str.sav")
 
     df = read_spss(fname, categorical=True)
     expected = pd.DataFrame({"gender": ["Male", "Female"]})
@@ -56,8 +55,8 @@ def test_spss_labelled_str():
 
 
 @pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
-def test_spss_umlauts():
-    fname = "io/data/umlauts.sav"
+def test_spss_umlauts(datapath):
+    fname = datapath("io", "data", "umlauts.sav")
 
     df = read_spss(fname, categorical=True)
     expected = pd.DataFrame({"var1": ["the ä umlaut",
