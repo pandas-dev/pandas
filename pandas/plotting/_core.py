@@ -2945,8 +2945,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
 
 class FramePlotMethods(BasePlotMethods):
-    """
-    DataFrame plotting accessor and method
+    """DataFrame plotting accessor and method
 
     Examples
     --------
