@@ -610,7 +610,7 @@ class DataFrame(NDFrame):
         return info_repr_option and not (self._repr_fits_horizontal_() and
                                          self._repr_fits_vertical_())
 
-    def __str__(self):
+    def __repr__(self):
         """
         Return a string representation for a particular DataFrame.
         """
@@ -1930,13 +1930,13 @@ class DataFrame(NDFrame):
         >>> type(df)
         <class 'pandas.core.frame.DataFrame'>
 
-        >>> sdf = df.to_sparse()
-        >>> sdf
+        >>> sdf = df.to_sparse()  # doctest: +SKIP
+        >>> sdf  # doctest: +SKIP
              0    1
         0  NaN  NaN
         1  1.0  NaN
         2  NaN  1.0
-        >>> type(sdf)
+        >>> type(sdf)  # doctest: +SKIP
         <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
         from pandas.core.sparse.api import SparseDataFrame
@@ -2160,7 +2160,7 @@ class DataFrame(NDFrame):
             Whether the generated HTML is for IPython Notebook.
         border : int
             A ``border=border`` attribute is included in the opening
-            `<table>` tag. Default ``pd.options.html.border``.
+            `<table>` tag. Default ``pd.options.display.html.border``.
 
             .. versionadded:: 0.19.0
 
