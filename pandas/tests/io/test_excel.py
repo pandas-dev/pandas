@@ -65,7 +65,9 @@ class ReadingTestsBase(SharedItems):
 
     @pytest.fixture(autouse=True, params=['xlrd', None])
     def cd_and_set_engine(self, request, datapath, monkeypatch):
-        """Change directory to enable easier read_excel calls."""
+        """
+        Change directory and set engine for read_excel calls.
+        """
         func = partial(read_excel, engine=request.param)
 
         with monkeypatch.context() as m:
