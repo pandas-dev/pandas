@@ -358,7 +358,7 @@ class ReadingTestsBase(SharedItems):
         # convert_float and converters should be different but both accepted
         expected["StrCol"] = expected["StrCol"].apply(str)
         actual = pd.read_excel(basename + ext, 'Sheet1',
-                            converters={"StrCol": str})
+                               converters={"StrCol": str})
         tm.assert_frame_equal(actual, expected)
 
         no_convert_float = float_expected.copy()
@@ -1163,17 +1163,19 @@ class TestExcelWriter(_WriterBase):
         tm.assert_frame_equal(self.frame, recons)
 
         self.frame.to_excel(self.path, 'test1', na_rep='NA')
-        recons = pd.read_excel(self.path, 'test1', index_col=0, na_values=['NA'])
+        recons = pd.read_excel(
+            self.path, 'test1', index_col=0, na_values=['NA'])
         tm.assert_frame_equal(self.frame, recons)
 
         # GH 3611
         self.frame.to_excel(self.path, 'test1', na_rep='88')
-        recons = pd.read_excel(self.path, 'test1', index_col=0, na_values=['88'])
+        recons = pd.read_excel(
+            self.path, 'test1', index_col=0, na_values=['88'])
         tm.assert_frame_equal(self.frame, recons)
 
         self.frame.to_excel(self.path, 'test1', na_rep='88')
-        recons = pd.read_excel(self.path, 'test1', index_col=0,
-                            na_values=[88, 88.0])
+        recons = pd.read_excel(
+            self.path, 'test1', index_col=0, na_values=[88, 88.0])
         tm.assert_frame_equal(self.frame, recons)
 
         # GH 6573
@@ -1324,9 +1326,8 @@ class TestExcelWriter(_WriterBase):
                        index_label=['test'],
                        merge_cells=merge_cells)
         reader = ExcelFile(self.path)
-        recons = pd.read_excel(reader, 'test1',
-                            index_col=0,
-                            ).astype(np.int64)
+        recons = pd.read_excel(
+            reader, 'test1', index_col=0).astype(np.int64)
         frame.index.names = ['test']
         assert frame.index.names == recons.index.names
 
