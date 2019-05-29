@@ -116,7 +116,7 @@ Read a Stata dta file in 10,000 line chunks:
        _statafile_processing_params2, _chunksize_params,
        _iterator_params)
 
-_data_method_doc = """
+_data_method_doc = """\
 Read observations from Stata file, converting them into a dataframe
 
 .. deprecated::
