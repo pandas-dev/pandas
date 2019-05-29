@@ -246,8 +246,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
 
 def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
                    parse_dates=None, chunksize=None):
-    """
-    Read SQL query into a DataFrame.
+    """Read SQL query into a DataFrame.
 
     Returns a DataFrame corresponding to the result set of the query
     string. Optionally provide an `index_col` parameter to use one of the
