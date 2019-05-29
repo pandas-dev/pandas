@@ -1930,13 +1930,13 @@ class DataFrame(NDFrame):
         >>> type(df)
         <class 'pandas.core.frame.DataFrame'>
 
-        >>> sdf = df.to_sparse()
-        >>> sdf
+        >>> sdf = df.to_sparse()  # doctest: +SKIP
+        >>> sdf  # doctest: +SKIP
              0    1
         0  NaN  NaN
         1  1.0  NaN
         2  NaN  1.0
-        >>> type(sdf)
+        >>> type(sdf)  # doctest: +SKIP
         <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
         from pandas.core.sparse.api import SparseDataFrame
