@@ -1,6 +1,4 @@
-"""
-Public toolkit API
-"""
+""" public toolkit API """
 
 from pandas.core.dtypes.api import *  # noqa
 from pandas.core.dtypes.dtypes import (CategoricalDtype,  # noqa
