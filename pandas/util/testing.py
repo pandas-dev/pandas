@@ -518,8 +518,7 @@ def equalContents(arr1, arr2):
 def assert_index_equal(left, right, exact='equiv', check_names=True,
                        check_less_precise=False, check_exact=True,
                        check_categorical=True, obj='Index'):
-    """
-    Check that left and right Index are equal.
+    """Check that left and right Index are equal.
 
     Parameters
     ----------
@@ -973,8 +972,7 @@ def assert_series_equal(left, right, check_dtype=True,
                         check_datetimelike_compat=False,
                         check_categorical=True,
                         obj='Series'):
-    """
-    Check that left and right Series are equal.
+    """Check that left and right Series are equal.
 
     Parameters
     ----------
