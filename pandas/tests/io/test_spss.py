@@ -2,8 +2,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.io.spss import read_spss
 from pandas.util import testing as tm
+
+from pandas.io.spss import read_spss
 
 try:
     import pyreadstat  # noqa
