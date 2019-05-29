@@ -188,8 +188,8 @@ class TestCategoricalOps:
     def test_comparison_of_ordered_categorical_with_missing_values(self):
         # https://github.com/pandas-dev/pandas/issues/26504
         # BUG: fix ordered categorical comparison with missing values (#26504 )
-        # and following comparisons with scalars in categories with missing values
-        # should be evaluated as False
+        # and following comparisons with scalars in categories with missing
+        # values should be evaluated as False
 
         cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
 
@@ -198,8 +198,7 @@ class TestCategoricalOps:
 
     @pytest.mark.parametrize('data,reverse,base', [
         (list("abc"), list("cba"), list("bbb")),
-        ([1, 2, 3], [3, 2, 1], [2, 2, 2])]
-                             )
+        ([1, 2, 3], [3, 2, 1], [2, 2, 2])])
     def test_comparisons(self, data, reverse, base):
         cat_rev = Series(
             Categorical(data, categories=reverse, ordered=True))
