@@ -1101,8 +1101,7 @@ class HDFStore(StringMixin):
         ]
 
     def walk(self, where="/"):
-        """
-        Walk the pytables group hierarchy for pandas objects
+        """ Walk the pytables group hierarchy for pandas objects
 
         This generator will yield the group path, subgroups and pandas object
         names for each group.
@@ -1148,8 +1147,7 @@ class HDFStore(StringMixin):
             yield (g._v_pathname.rstrip('/'), groups, leaves)
 
     def get_node(self, key):
-        """
-        Return the node with the key or None if it does not exist
+        """ return the node with the key or None if it does not exist
         """
         self._check_if_open()
         try:
@@ -1160,8 +1158,7 @@ class HDFStore(StringMixin):
             return None
 
     def get_storer(self, key):
-        """
-        Return the storer object for a key, raise if not in the file
+        """ return the storer object for a key, raise if not in the file
         """
         group = self.get_node(key)
         if group is None:
@@ -1173,8 +1170,7 @@ class HDFStore(StringMixin):
 
     def copy(self, file, mode='w', propindexes=True, keys=None, complib=None,
              complevel=None, fletcher32=False, overwrite=True):
-        """
-        Copy the existing store to a new file, upgrading in place
+        """ copy the existing store to a new file, upgrading in place
 
             Parameters
             ----------
@@ -1187,6 +1183,7 @@ class HDFStore(StringMixin):
             Returns
             -------
             open file handle of the new store
+            
         """
         new_store = HDFStore(
             file,
@@ -1267,8 +1264,7 @@ class HDFStore(StringMixin):
             raise ClosedFileError("{0} file is not open!".format(self._path))
 
     def _validate_format(self, format, kwargs):
-        """
-        Validate / deprecate formats; return the new kwargs
+        """ validate / deprecate formats; return the new kwargs
         """
         kwargs = kwargs.copy()
 
@@ -1283,9 +1279,7 @@ class HDFStore(StringMixin):
 
     def _create_storer(self, group, format=None, value=None, append=False,
                        **kwargs):
-        """
-        Return a suitable class to operate
-        """
+        """ return a suitable class to operate """
 
         def error(t):
             raise TypeError(
@@ -1433,8 +1427,7 @@ class HDFStore(StringMixin):
 
 class TableIterator:
 
-    """
-    Define the iteration interface on a table
+    """ define the iteration interface on a table
 
         Parameters
         ----------
@@ -1451,7 +1444,7 @@ class TableIterator:
         auto_close : boolean, automatically close the store at the end of
             iteration, default is False
         kwargs : the passed kwargs
-    """
+        """
 
     def __init__(self, store, s, func, where, nrows, start=None, stop=None,
                  iterator=False, chunksize=None, auto_close=False):
@@ -1531,8 +1524,7 @@ class TableIterator:
 
 class IndexCol(StringMixin):
 
-    """
-    An index column description class
+    """ an index column description class
 
         Parameters
         ----------
@@ -1543,7 +1535,7 @@ class IndexCol(StringMixin):
         typ    : the pytables type
         pos    : the position in the pytables
 
-    """
+        """
     is_an_indexable = True
     is_data_indexable = True
     _info_fields = ['freq', 'tz', 'index_name']
@@ -1573,9 +1565,7 @@ class IndexCol(StringMixin):
             self.set_pos(pos)
 
     def set_name(self, name, kind_attr=None):
-        """
-        Set the name of this indexer
-        """
+        """ set the name of this indexer """
         self.name = name
         self.kind_attr = kind_attr or "{name}_kind".format(name=name)
         if self.cname is None:
@@ -1584,17 +1574,13 @@ class IndexCol(StringMixin):
         return self
 
     def set_axis(self, axis):
-        """
-        Set the axis over which I index
-        """
+        """ set the axis over which I index """
         self.axis = axis
 
         return self
 
     def set_pos(self, pos):
-        """
-        Set the position of this column in the Table
-        """
+        """ set the position of this column in the Table """
         self.pos = pos
         if pos is not None and self.typ is not None:
             self.typ._v_pos = pos
@@ -1617,9 +1603,7 @@ class IndexCol(StringMixin):
             ['name', 'cname', 'axis', 'pos', 'kind'], temp)))
 
     def __eq__(self, other):
-        """
-        Compare 2 col items
-        """
+        """ compare 2 col items """
         return all(getattr(self, a, None) == getattr(other, a, None)
                    for a in ['name', 'cname', 'axis', 'pos'])
 
@@ -1628,9 +1612,7 @@ class IndexCol(StringMixin):
 
     @property
     def is_indexed(self):
-        """
-        Return whether I am an indexed column
-        """
+        """ return whether I am an indexed column """
         try:
             return getattr(self.table.cols, self.cname).is_indexed
         except AttributeError:
@@ -1641,9 +1623,7 @@ class IndexCol(StringMixin):
         return new_self
 
     def infer(self, handler):
-        """
-        Infer this column from the table: create and return a new object
-        """
+        """infer this column from the table: create and return a new object"""
         table = handler.table
         new_self = self.copy()
         new_self.set_table(table)
@@ -1652,9 +1632,7 @@ class IndexCol(StringMixin):
         return new_self
 
     def convert(self, values, nan_rep, encoding, errors):
-        """
-        Set the values from this selection: take = take ownership
-        """
+        """ set the values from this selection: take = take ownership """
 
         # values is a recarray
         if values.dtype.fields is not None:
@@ -1683,9 +1661,7 @@ class IndexCol(StringMixin):
         return self
 
     def take_data(self):
-        """
-        Return the values & release the memory
-        """
+        """ return the values & release the memory """
         self.values, values = None, self.values
         return values
 
@@ -1699,27 +1675,21 @@ class IndexCol(StringMixin):
 
     @property
     def col(self):
-        """
-        Return my current col description
-        """
+        """ return my current col description """
         return getattr(self.description, self.cname, None)
 
     @property
     def cvalues(self):
-        """
-        Return my cython values
-        """
+        """ return my cython values """
         return self.values
 
     def __iter__(self):
         return iter(self.values)
 
     def maybe_set_size(self, min_itemsize=None):
-        """
-        Maybe set a string col itemsize:
+        """ maybe set a string col itemsize:
                min_itemsize can be an integer or a dict with this columns name
-               with an integer size
-        """
+               with an integer size"""
         if _ensure_decoded(self.kind) == 'string':
 
             if isinstance(min_itemsize, dict):
@@ -1744,9 +1714,7 @@ class IndexCol(StringMixin):
         self.set_attr()
 
     def validate_col(self, itemsize=None):
-        """
-        Validate this column: return the compared against itemsize
-        """
+        """ validate this column: return the compared against itemsize """
 
         # validate this column for string truncation (or reset to the max size)
         if _ensure_decoded(self.kind) == 'string':
