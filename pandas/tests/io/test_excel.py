@@ -569,10 +569,10 @@ class ReadingTestsBase(SharedItems):
     @pytest.mark.slow
     # ignore warning from old xlrd
     @pytest.mark.filterwarnings("ignore:This metho:PendingDeprecationWarning")
-    def test_read_from_file_url(self, ext):
+    def test_read_from_file_url(self, ext, datapath):
 
         # FILE
-        localtable = 'test1' + ext
+        localtable = os.path.join(datapath("io", "data"), 'test1' + ext)
         local_table = read_excel(localtable)
 
         try:
