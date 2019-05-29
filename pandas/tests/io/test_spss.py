@@ -15,7 +15,9 @@ else:
 
 @pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_labelled_num(datapath):
+    # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "labelled-num.sav")
+
     df = read_spss(fname, categorical=True)
     expected = pd.DataFrame({"VAR00002": "This is one"}, index=[0])
     expected["VAR00002"] = pd.Categorical(expected["VAR00002"])
@@ -28,6 +30,7 @@ def test_spss_labelled_num(datapath):
 
 @pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_labelled_num_na(datapath):
+    # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "labelled-num-na.sav")
 
     df = read_spss(fname, categorical=True)
@@ -42,6 +45,7 @@ def test_spss_labelled_num_na(datapath):
 
 @pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_labelled_str(datapath):
+    # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "labelled-str.sav")
 
     df = read_spss(fname, categorical=True)
@@ -56,6 +60,7 @@ def test_spss_labelled_str(datapath):
 
 @pytest.mark.skipif(not _HAVE_PYREADSTAT, reason="pyreadstat not installed")
 def test_spss_umlauts(datapath):
+    # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "umlauts.sav")
 
     df = read_spss(fname, categorical=True)
