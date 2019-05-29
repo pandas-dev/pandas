@@ -308,12 +308,12 @@ class RangeIndex(Int64Index):
 
     @Appender(_index_shared_docs['get_loc'])
     def get_loc(self, key, method=None, tolerance=None):
-        if method is None and tolerance is None:
+        if is_integer(key) and method is None and tolerance is None:
             try:
                 return self._range.index(key)
             except ValueError:
                 raise KeyError(key)
-        return super().__get_loc(key, method=method, tolerance=tolerance)
+        return super().get_loc(key, method=method, tolerance=tolerance)
 
     def tolist(self):
         return list(range(self._start, self._stop, self._step))
