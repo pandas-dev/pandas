@@ -91,7 +91,8 @@ def test_constructor_mismatched_codes_levels(idx):
 
 def test_na_levels():
     # GH26408
-    # test if codes are re-assigned value -1 for levels with na values
+    # test if codes are re-assigned value -1 for levels
+    # with mising values (NaN, NaT, None)
     result = MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
                         codes=[[0, -1, 1, 2, 3, 4]])
     expected = MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],

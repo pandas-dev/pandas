@@ -250,7 +250,7 @@ class MultiIndex(Index):
 
         return result
 
-    def _validate_codes(self, level, code):
+    def _validate_codes(self, level: list, code: list):
         """
         Reassign code values as -1 if their corresponding levels are NaN.
 
@@ -264,7 +264,7 @@ class MultiIndex(Index):
         Returns
         -------
         code : new code where code value = -1 if it corresponds
-        to a NaN level.
+        to a level with missing values (NaN, NaT, None).
         """
         null_mask = isna(level)
         if np.any(null_mask):
