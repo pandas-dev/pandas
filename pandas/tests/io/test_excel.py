@@ -2181,12 +2181,11 @@ class TestOpenpyxlTests:
 
 
 @td.skip_if_no('xlwt')
-@pytest.mark.parametrize("merge_cells,ext,engine", [
-    (None, '.xls', 'xlwt')])
+@pytest.mark.parametrize("ext,engine", [('.xls', 'xlwt')])
 class TestXlwtTests:
 
     def test_excel_raise_error_on_multiindex_columns_and_no_index(
-            self, merge_cells, ext, engine):
+            self, ext, engine):
         # MultiIndex as columns is not yet implemented 9794
         cols = MultiIndex.from_tuples([('site', ''),
                                        ('2014', 'height'),
@@ -2196,8 +2195,7 @@ class TestXlwtTests:
             with ensure_clean(ext) as path:
                 df.to_excel(path, index=False)
 
-    def test_excel_multiindex_columns_and_index_true(self, merge_cells, ext,
-                                                     engine):
+    def test_excel_multiindex_columns_and_index_true(self, ext, engine):
         cols = MultiIndex.from_tuples([('site', ''),
                                        ('2014', 'height'),
                                        ('2014', 'weight')])
@@ -2205,7 +2203,7 @@ class TestXlwtTests:
         with ensure_clean(ext) as path:
             df.to_excel(path, index=True)
 
-    def test_excel_multiindex_index(self, merge_cells, ext, engine):
+    def test_excel_multiindex_index(self, ext, engine):
         # MultiIndex as index works so assert no error #9794
         cols = MultiIndex.from_tuples([('site', ''),
                                        ('2014', 'height'),
@@ -2214,7 +2212,7 @@ class TestXlwtTests:
         with ensure_clean(ext) as path:
             df.to_excel(path, index=False)
 
-    def test_to_excel_styleconverter(self, merge_cells, ext, engine):
+    def test_to_excel_styleconverter(self, ext, engine):
         import xlwt
 
         hstyle = {"font": {"bold": True},
@@ -2233,7 +2231,7 @@ class TestXlwtTests:
         assert xlwt.Alignment.HORZ_CENTER == xls_style.alignment.horz
         assert xlwt.Alignment.VERT_TOP == xls_style.alignment.vert
 
-    def test_write_append_mode_raises(self, merge_cells, ext, engine):
+    def test_write_append_mode_raises(self, ext, engine):
         msg = "Append mode is not supported with xlwt!"
 
         with ensure_clean(ext) as f:
@@ -2242,12 +2240,11 @@ class TestXlwtTests:
 
 
 @td.skip_if_no('xlsxwriter')
-@pytest.mark.parametrize("merge_cells,ext,engine", [
-    (None, '.xlsx', 'xlsxwriter')])
+@pytest.mark.parametrize("ext,engine", [('.xlsx', 'xlsxwriter')])
 class TestXlsxWriterTests:
 
     @td.skip_if_no('openpyxl')
-    def test_column_format(self, merge_cells, ext, engine):
+    def test_column_format(self, ext, engine):
         # Test that column formats are applied to cells. Test for issue #9167.
         # Applicable to xlsxwriter only.
         with warnings.catch_warnings():
@@ -2291,7 +2288,7 @@ class TestXlsxWriterTests:
 
             assert read_num_format == num_format
 
-    def test_write_append_mode_raises(self, merge_cells, ext, engine):
+    def test_write_append_mode_raises(self, ext, engine):
         msg = "Append mode is not supported with xlsxwriter!"
 
         with ensure_clean(ext) as f:
