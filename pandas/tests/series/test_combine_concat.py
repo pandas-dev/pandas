@@ -211,6 +211,7 @@ class TestSeriesCombine:
         exp = pd.Series(exp_vals, name='ser1')
         assert_series_equal(exp, result)
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_concat_empty_series_dtypes(self):
 
         # booleans

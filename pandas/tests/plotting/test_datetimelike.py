@@ -26,8 +26,9 @@ class TestTSPlot(TestPlotBase):
     def setup_method(self, method):
         TestPlotBase.setup_method(self, method)
 
-        freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
-        idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
+        self.freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
+        idx = [
+            period_range('12/31/1999', freq=x, periods=100) for x in self.freq]
         self.period_ser = [Series(np.random.randn(len(x)), x) for x in idx]
         self.period_df = [DataFrame(np.random.randn(len(x), 3), index=x,
                                     columns=['A', 'B', 'C'])
@@ -210,6 +211,16 @@ class TestTSPlot(TestPlotBase):
             _check_plot_works(s.plot, s.index.freq)
 
     @pytest.mark.slow
+    @pytest.mark.parametrize(
+        'frqncy', ['1S', '3S', '5T', '7H', '4D', '8W', '11M', '3A'])
+    def test_line_plot_period_mlt_series(self, frqncy):
+        # test period index line plot for series with multiples (`mlt`) of the
+        # frequency (`frqncy`) rule code. tests resolution of issue #14763
+        idx = period_range('12/31/1999', freq=frqncy, periods=100)
+        s = Series(np.random.randn(len(idx)), idx)
+        _check_plot_works(s.plot, s.index.freq.rule_code)
+
+    @pytest.mark.slow
     def test_line_plot_datetime_series(self):
         for s in self.datetime_ser:
             _check_plot_works(s.plot, s.index.freq.rule_code)
@@ -218,6 +229,19 @@ class TestTSPlot(TestPlotBase):
     def test_line_plot_period_frame(self):
         for df in self.period_df:
             _check_plot_works(df.plot, df.index.freq)
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        'frqncy', ['1S', '3S', '5T', '7H', '4D', '8W', '11M', '3A'])
+    def test_line_plot_period_mlt_frame(self, frqncy):
+        # test period index line plot for DataFrames with multiples (`mlt`)
+        # of the frequency (`frqncy`) rule code. tests resolution of issue
+        # #14763
+        idx = period_range('12/31/1999', freq=frqncy, periods=100)
+        df = DataFrame(np.random.randn(len(idx), 3), index=idx,
+                       columns=['A', 'B', 'C'])
+        freq = df.index.asfreq(df.index.freq.rule_code).freq
+        _check_plot_works(df.plot, freq)
 
     @pytest.mark.slow
     def test_line_plot_datetime_frame(self):

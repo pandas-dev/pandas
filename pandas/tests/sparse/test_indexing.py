@@ -6,6 +6,7 @@ from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseSeriesIndexing:
 
     def setup_method(self, method):
@@ -454,6 +455,7 @@ class TestSparseSeriesIndexing:
             s.iloc[indexer]
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
 
     def setup_method(self, method):
@@ -599,6 +601,7 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         assert sparse is not res
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparseDataFrameIndexing:
 
     def test_getitem(self):
@@ -976,6 +979,7 @@ class TestSparseDataFrameIndexing:
         tm.assert_sp_frame_equal(res, exp)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestMultitype:
 
     def setup_method(self, method):
