@@ -207,7 +207,7 @@ class ExtensionDtype:
 
         >>> @classmethod
         ... def construct_from_string(cls, string):
-        ...     pattern = re.compile(r"^my_type\[(?P<arg_name>.+)\]$")
+        ...     pattern = re.compile(r"^my_type\[(?P<arg_name>.+)\]$")  # noqa
         ...     match = pattern.match(string)
         ...     if match:
         ...         return cls(**match.groupdict())
