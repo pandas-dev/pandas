@@ -568,8 +568,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
 
 def lag_plot(series, lag=1, ax=None, **kwds):
-    """
-    Lag plot for time series.
+    """Lag plot for time series.
 
     Parameters
     ----------
