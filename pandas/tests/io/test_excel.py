@@ -69,11 +69,8 @@ class ReadingTestsBase(SharedItems):
         Change directory and set engine for read_excel calls.
         """
         func = partial(read_excel, engine=request.param)
-
-        with monkeypatch.context() as m:
-            m.chdir(datapath("io", "data"))
-            m.setitem(globals(), 'read_excel', func)
-            yield
+        monkeypatch.chdir(datapath("io", "data"))
+        monkeypatch.setitem(globals(), 'read_excel', func)
 
     @pytest.fixture
     def df_ref(self):
