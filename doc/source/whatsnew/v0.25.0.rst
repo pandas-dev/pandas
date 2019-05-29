@@ -348,7 +348,7 @@ Categorical
 ^^^^^^^^^^^
 
 - Bug in :func:`DataFrame.at` and :func:`Series.at` that would raise exception if the index was a :class:`CategoricalIndex` (:issue:`20629`)
-- Fixed Bug in :func:`_cat_compare_op` that would evaluate comparison of ordered `Categorical` with missing values with scalar to True sometimes (:issue:`26504`)
+- Fixed bug in comparison of ordered `Categorical` that contained missing values with a scalar which sometimes incorrectly resulted in True (:issue:`26504`)
 -
 
 Datetimelike
