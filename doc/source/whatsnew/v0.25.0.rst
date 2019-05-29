@@ -328,7 +328,9 @@ resulting dtypes to same as the input dtype; previously this would coerce to a d
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': pd.Series([1, np.nan, 3], dtype=pd.SparseDtype('float64', np.nan))})
+   df = pd.DataFrame(
+       {'A': pd.Series([1, np.nan, 3],
+                       dtype=pd.SparseDtype('float64', np.nan))})
    df
    df.dtypes
 
@@ -356,8 +358,9 @@ Previously, columns that were categorical, but not the groupby key(s) would be c
 
 .. ipython:: python
 
-   df = pd.DataFrame({'payload': [-1,-2,-1,-2],
-                      'col': pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)})
+   df = pd.DataFrame(
+       {'payload': [-1, -2, -1, -2],
+        'col': pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)})
    df
    df.dtypes
 

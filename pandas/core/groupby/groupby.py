@@ -1185,7 +1185,7 @@ class GroupBy(_GroupBy):
             return self._cython_agg_general(
                 'median',
                 alt=lambda x,
-                axis: Series(x).median(**kwargs),
+                axis: Series(x).median(axis=axis, **kwargs),
                 **kwargs)
         except GroupByError:
             raise
