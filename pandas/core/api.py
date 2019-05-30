@@ -21,7 +21,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
 )
 from pandas.core.arrays import Categorical, array
-from pandas.core.groupby import Grouper
+from pandas.core.groupby import Grouper, NamedAgg
 from pandas.io.formats.format import set_eng_float_format
 from pandas.core.index import (Index, CategoricalIndex, Int64Index,
                                UInt64Index, RangeIndex, Float64Index,

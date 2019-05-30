@@ -217,6 +217,7 @@ def test_agg_dict_renaming_deprecation():
         df.groupby('A').agg({'B': {'foo': ['sum', 'max']},
                              'C': {'bar': ['count', 'min']}})
         assert "using a dict with renaming" in str(w[0].message)
+        assert "named aggregation" in str(w[0].message)
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby('A')[['B', 'C']].agg({'ma': 'max'})
