@@ -195,6 +195,7 @@ as np.NaN in the case of an empty :class:`DataFrame` (:issue:`26397`)
 .. ipython:: python
 
    df = pd.DataFrame({"empty_col": pd.Categorical([])})
+   df
 
 *Previous Behavior*:
 
@@ -208,16 +209,9 @@ as np.NaN in the case of an empty :class:`DataFrame` (:issue:`26397`)
 
 *New Behavior*:
 
-.. code-block:: python
+.. ipython:: python
 
-    In [4]: df.describe()
-    Out[4]:
-            empty_col
-    count         0.0
-    unique        0.0
-    top           NaN
-    freq          NaN
-
+    df.describe()
 
 .. _whatsnew_0250.api_breaking.deps:
 
