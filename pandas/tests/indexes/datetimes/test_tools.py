@@ -98,35 +98,23 @@ class TestTimeConversionFormats:
         expected = Series(['20121231', '20141231', 'NaT'], dtype='M8[ns]')
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('cache', [True, False])
-    def test_to_datetime_format_YYYYMMDD_overflow(self, cache):
+    @pytest.mark.parametrize("input_s, expected", [
+        # NaN before strings with invalid date values
+        [Series(['19801222', np.nan, '20010012', '10019999']),
+         Series([Timestamp('19801222'), np.nan, np.nan, np.nan])],
+        # NaN after strings with invalid date values
+        [Series(['19801222', '20010012', '10019999', np.nan]),
+         Series([Timestamp('19801222'), np.nan, np.nan, np.nan])],
+        # NaN before integers with invalid date values
+        [Series([20190813, np.nan, 20010012, 20019999]),
+         Series([Timestamp('20190813'), np.nan, np.nan, np.nan])],
+        # NaN after integers with invalid date values
+        [Series([20190813, 20010012, np.nan, 20019999]),
+         Series([Timestamp('20190813'), np.nan, np.nan, np.nan])]])
+    def test_to_datetime_format_YYYYMMDD_overflow(self, input_s, expected):
         # GH 25512
-        # NaN before strings with invalid date values, errors=coerce
-        s = Series(['19801222', np.nan, '20010012', '10019999'])
-        result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
-                                cache=cache)
-        expected = Series([Timestamp('19801222'), np.nan, np.nan, np.nan])
-        assert_series_equal(result, expected)
-
-        # NaN after strings with invalid date values, errors=coerce
-        s = Series(['19801222', '20010012', '10019999', np.nan])
-        result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
-                                cache=cache)
-        expected = Series([Timestamp('19801222'), np.nan, np.nan, np.nan])
-        assert_series_equal(result, expected)
-
-        # NaN before integers with invalid date values, errors=coerce
-        s = Series([20190813, np.nan, 20010012, 20019999])
-        result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
-                                cache=cache)
-        expected = Series([Timestamp('20190813'), np.nan, np.nan, np.nan])
-        assert_series_equal(result, expected)
-
-        # NaN after integers with invalid date values, errors=coerce
-        s = Series([20190813, 20010012, np.nan, 20019999])
-        result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
-                                cache=cache)
-        expected = Series([Timestamp('20190813'), np.nan, np.nan, np.nan])
+        # format='%Y%m%d', errors='coerce'
+        result = pd.to_datetime(input_s, format='%Y%m%d', errors='coerce')
         assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('cache', [True, False])
