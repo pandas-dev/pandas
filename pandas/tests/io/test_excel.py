@@ -26,6 +26,7 @@ from pandas.io.excel import (
 from pandas.io.formats.excel import ExcelFormatter
 from pandas.io.parsers import read_csv
 
+
 @pytest.fixture
 def frame(seriesd):
     return DataFrame(seriesd)[:10]
@@ -1545,7 +1546,8 @@ class TestExcelWriter(_WriterBase):
             frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
         tm.assert_frame_equal(frame, df)
 
-    def test_to_excel_multiindex_dates(self, merge_cells, engine, ext, tsframe):
+    def test_to_excel_multiindex_dates(
+            self, merge_cells, engine, ext, tsframe):
         # try multiindex with dates
         new_index = [tsframe.index, np.arange(len(tsframe.index))]
         tsframe.index = MultiIndex.from_arrays(new_index)
