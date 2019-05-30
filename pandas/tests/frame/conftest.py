@@ -6,23 +6,23 @@ import pandas.util.testing as tm
 
 
 @pytest.fixture
-def float_frame():
+def float_frame(seriesd):
     """
     Fixture for DataFrame of floats with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D'].
     """
-    return DataFrame(tm.getSeriesData())
+    return DataFrame(seriesd)
 
 
 @pytest.fixture
-def float_frame_with_na():
+def float_frame_with_na(seriesd):
     """
     Fixture for DataFrame of floats with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']; some entries are missing
     """
-    df = DataFrame(tm.getSeriesData())
+    df = DataFrame(seriesd)
     # set some NAs
     df.loc[5:10] = np.nan
     df.loc[15:20, -2:] = np.nan
@@ -30,13 +30,13 @@ def float_frame_with_na():
 
 
 @pytest.fixture
-def bool_frame_with_na():
+def bool_frame_with_na(seriesd):
     """
     Fixture for DataFrame of booleans with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']; some entries are missing
     """
-    df = DataFrame(tm.getSeriesData()) > 0
+    df = DataFrame(seriesd) > 0
     df = df.astype(object)
     # set some NAs
     df.loc[5:10] = np.nan
@@ -45,13 +45,13 @@ def bool_frame_with_na():
 
 
 @pytest.fixture
-def int_frame():
+def int_frame(seriesd):
     """
     Fixture for DataFrame of ints with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']
     """
-    df = DataFrame({k: v.astype(int) for k, v in tm.getSeriesData().items()})
+    df = DataFrame({k: v.astype(int) for k, v in seriesd.items()})
     # force these all to int64 to avoid platform testing issues
     return DataFrame({c: s for c, s in df.items()}, dtype=np.int64)
 
@@ -67,25 +67,25 @@ def datetime_frame():
 
 
 @pytest.fixture
-def float_string_frame():
+def float_string_frame(seriesd):
     """
     Fixture for DataFrame of floats and strings with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D', 'foo'].
     """
-    df = DataFrame(tm.getSeriesData())
+    df = DataFrame(seriesd)
     df['foo'] = 'bar'
     return df
 
 
 @pytest.fixture
-def mixed_float_frame():
+def mixed_float_frame(seriesd):
     """
     Fixture for DataFrame of different float types with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D'].
     """
-    df = DataFrame(tm.getSeriesData())
+    df = DataFrame(seriesd)
     df.A = df.A.astype('float32')
     df.B = df.B.astype('float32')
     df.C = df.C.astype('float16')
@@ -94,13 +94,13 @@ def mixed_float_frame():
 
 
 @pytest.fixture
-def mixed_int_frame():
+def mixed_int_frame(seriesd):
     """
     Fixture for DataFrame of different int types with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D'].
     """
-    df = DataFrame({k: v.astype(int) for k, v in tm.getSeriesData().items()})
+    df = DataFrame({k: v.astype(int) for k, v in seriesd.items()})
     df.A = df.A.astype('int32')
     df.B = np.ones(len(df.B), dtype='uint64')
     df.C = df.C.astype('uint8')

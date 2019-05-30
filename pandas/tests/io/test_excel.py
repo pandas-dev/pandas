@@ -26,10 +26,9 @@ from pandas.io.excel import (
 from pandas.io.formats.excel import ExcelFormatter
 from pandas.io.parsers import read_csv
 
-_seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
-_frame = DataFrame(_seriesd)[:10]
-_frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])[:10]
+_frame = DataFrame(seriesd)[:10]
+_frame2 = DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])[:10]
 _tsframe = tm.makeTimeDataFrame()[:5]
 _mixed_frame = _frame.copy()
 _mixed_frame['foo'] = 'bar'

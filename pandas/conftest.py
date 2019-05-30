@@ -10,6 +10,7 @@ import pytest
 from pytz import FixedOffset, utc
 
 import pandas.util._test_decorators as td
+import pandas.util.testing as tm
 
 import pandas as pd
 
@@ -682,3 +683,8 @@ for name in 'QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd'.split():
         normalize=st.booleans(),
         startingMonth=st.integers(min_value=1, max_value=12)
     ))
+
+
+@pytest.fixture
+def seriesd():
+    return tm.getSeriesData()

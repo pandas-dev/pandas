@@ -31,11 +31,6 @@ def ts():
 
 
 @pytest.fixture
-def seriesd():
-    return tm.getSeriesData()
-
-
-@pytest.fixture
 def tsd():
     return tm.getTimeSeriesData()
 
