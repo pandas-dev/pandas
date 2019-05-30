@@ -3240,6 +3240,31 @@ class TestDataFrameIndexing(TestData):
         result = df.loc[1, 'A']
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('key', [1.5, pd.Interval(1, 2)])
+    def test_interval_index_columns(self, key):
+        # GH 26490
+        columns = pd.interval_range(0, 3)
+        df = pd.DataFrame([[0, 1, 2], [3, 4, 5], [6, 7, 8]], columns=columns)
+        expected = pd.Series([1, 4, 7], name=pd.Interval(1, 2))
+
+        result = df[key]
+        assert_series_equal(result, expected)
+
+        result = df.loc[:, key]
+        assert_series_equal(result, expected)
+
+    def test_interval_index_columns_overlapping(self):
+        # GH 26490
+        columns = pd.IntervalIndex.from_arrays([0, 1, 2], [2, 3, 4])
+        df = pd.DataFrame([[0, 1, 2], [3, 4, 5], [6, 7, 8]], columns=columns)
+        expected = pd.DataFrame([[1, 2], [4, 5], [7, 8]], columns=columns[1:])
+
+        result = df[2.5]
+        assert_frame_equal(result, expected)
+
+        result = df.loc[:, 2.5]
+        assert_frame_equal(result, expected)
+
 
 class TestDataFrameIndexingDatetimeWithTZ(TestData):
 

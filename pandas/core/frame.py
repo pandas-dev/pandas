@@ -2887,7 +2887,7 @@ class DataFrame(NDFrame):
             # - the key itself is repeated (test on data.shape, #9519), or
             # - we have a MultiIndex on columns (test on self.columns, #21309)
             if data.shape[1] == 1 and not isinstance(self.columns, MultiIndex):
-                data = data[key]
+                data = data.squeeze()
 
         return data
 
