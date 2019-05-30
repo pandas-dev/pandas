@@ -172,7 +172,7 @@ class ExtensionDtype:
         raise NotImplementedError
 
     @classmethod
-    def construct_from_string(cls, string):
+    def construct_from_string(cls, string: str):
         r"""
         Construct this type from a string.
 
@@ -220,7 +220,7 @@ class ExtensionDtype:
         return cls()
 
     @classmethod
-    def is_dtype(cls, dtype):
+    def is_dtype(cls, dtype) -> bool:
         """Check if we match 'dtype'.
 
         Parameters
