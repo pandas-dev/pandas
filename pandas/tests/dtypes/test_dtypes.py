@@ -870,13 +870,18 @@ def test_registry_find(dtype, expected):
     (pd.Series([1, 2]), False),
     (np.array([True, False]), True),
     (pd.Series([True, False]), True),
-    (pd.SparseSeries([True, False]), True),
     (pd.SparseArray([True, False]), True),
     (SparseDtype(bool), True)
 ])
 def test_is_bool_dtype(dtype, expected):
     result = is_bool_dtype(dtype)
     assert result is expected
+
+
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+def test_is_bool_dtype_sparse():
+    result = is_bool_dtype(pd.SparseSeries([True, False]))
+    assert result is True
 
 
 @pytest.mark.parametrize("check", [

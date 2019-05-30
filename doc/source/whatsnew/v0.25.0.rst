@@ -19,6 +19,47 @@ These are the changes in pandas 0.25.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_0250.enhancements.agg_relabel:
+
+Groupby Aggregation with Relabeling
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas has added special groupby behavior, known as "named aggregation", for naming the
+output columns when applying multiple aggregation functions to specific columns (:issue:`18366`).
+
+.. ipython:: python
+
+   animals = pd.DataFrame({'kind': ['cat', 'dog', 'cat', 'dog'],
+                           'height': [9.1, 6.0, 9.5, 34.0],
+                           'weight': [7.9, 7.5, 9.9, 198.0]})
+   animals
+   animals.groupby("kind").agg(
+       min_height=pd.NamedAgg(column='height', aggfunc='min'),
+       max_height=pd.NamedAgg(column='height', aggfunc='max'),
+       average_weight=pd.NamedAgg(column='height', aggfunc=np.mean),
+   )
+
+Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
+should be tuples where the first element is the column selection, and the second element is the
+aggregation function to apply. Pandas provides the ``pandas.NamedAgg`` namedtuple to make it clearer
+what the arguments to the function are, but plain tuples are accepted as well.
+
+.. ipython:: python
+
+   animals.groupby("kind").agg(
+       min_height=('height', 'min'),
+       max_height=('height', 'max'),
+       average_weight=('height', np.mean),
+   )
+
+Named aggregation is the recommended replacement for the deprecated "dict-of-dicts"
+approach to naming the output of column-specific aggregations (:ref:`whatsnew_0200.api_breaking.deprecate_group_agg_dict`).
+
+See :ref:`_groupby.aggregate.named` for more.
+
 .. _whatsnew_0250.enhancements.other:
 
 Other Enhancements
@@ -299,6 +340,32 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
+Sparse Subclasses
+^^^^^^^^^^^^^^^^^
+
+The ``SparseSeries`` and ``SparseDataFrame`` subclasses are deprecated. Their functionality is better-provided
+by a ``Series`` or ``DataFrame`` with sparse values.
+
+**Previous Way**
+
+.. ipython:: python
+   :okwarning:
+
+   df = pd.SparseDataFrame({"A": [0, 0, 1, 2]})
+   df.dtypes
+
+**New Way**
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": pd.SparseArray([0, 0, 1, 2])})
+   df.dtypes
+
+The memory usage of the two approaches is identical. See :ref:`sparse.migration` for more (:issue:`19239`).
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
+
 - The deprecated ``.ix[]`` indexer now raises a more visible FutureWarning instead of DeprecationWarning (:issue:`26438`).
 - Deprecated the ``units=M`` (months) and ``units=Y`` (year) parameters for ``units`` of :func:`pandas.to_timedelta`, :func:`pandas.Timedelta` and :func:`pandas.TimedeltaIndex` (:issue:`16344`)
 - The :attr:`SparseArray.values` attribute is deprecated. You can use ``np.asarray(...)`` or
@@ -306,15 +373,15 @@ Deprecations
 - The functions :func:`pandas.to_datetime` and :func:`pandas.to_timedelta` have deprecated the ``box`` keyword. Instead, use :meth:`to_numpy` or :meth:`Timestamp.to_datetime64` or :meth:`Timedelta.to_timedelta64`. (:issue:`24416`)
 - The :meth:`DataFrame.compound` and :meth:`Series.compound` methods are deprecated and will be removed in a future version (:issue:`26405`).
 
-
 .. _whatsnew_0250.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Removed ``Panel`` (:issue:`25047`, :issue:`25191`, :issue:`25231`)
 - Removed the previously deprecated ``sheetname`` keyword in :func:`read_excel` (:issue:`16442`, :issue:`20938`)
-- Removed previously deprecated ``TimeGrouper`` (:issue:`16942`)
--
+- Removed the previously deprecated ``TimeGrouper`` (:issue:`16942`)
+- Removed the previously deprecated ``parse_cols`` keyword in :func:`read_excel` (:issue:`16488`)
+- Removed the previously deprecated ``pd.options.html.border`` (:issue:`16970`)
 
 .. _whatsnew_0250.performance:
 
@@ -335,6 +402,7 @@ Performance Improvements
 - Improved performance of :meth:`Series.map` for dictionary mappers on categorical series by mapping the categories instead of mapping all values (:issue:`23785`)
 - Improved performance of :meth:`read_csv` by faster concatenating date columns without extra conversion to string for integer/float zero
   and float NaN; by faster checking the string for the possibility of being a date (:issue:`25754`)
+- Improved performance of :meth:`IntervalIndex.is_unique` by removing conversion to `MultiIndex` (:issue:`24813`)
 
 .. _whatsnew_0250.bug_fixes:
 
@@ -472,6 +540,8 @@ Plotting
 - Fixed bug where :class:`api.extensions.ExtensionArray` could not be used in matplotlib plotting (:issue:`25587`)
 - Bug in an error message in :meth:`DataFrame.plot`. Improved the error message if non-numerics are passed to :meth:`DataFrame.plot` (:issue:`25481`)
 - Bug in incorrect ticklabel positions when plotting an index that are non-numeric / non-datetime (:issue:`7612` :issue:`15912` :issue:`22334`)
+- Fixed bug causing plots of :class:`PeriodIndex` timeseries to fail if the frequency is a multiple of the frequency rule code (:issue:`14763`)
+-
 -
 -
 
@@ -483,6 +553,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying a aggregation function to timezone aware data (:issue:`23683`)
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
 - Bug in :func:`pandas.core.groupby.GroupBy.size` when grouping only NA values (:issue:`23050`)
+- Bug in :func:`Series.groupby` where ``observed`` kwarg was previously ignored (:issue:`24880`)
 - Bug in :func:`Series.groupby` where using ``groupby`` with a :class:`MultiIndex` Series with a list of labels equal to the length of the series caused incorrect grouping (:issue:`25704`)
 - Ensured that ordering of outputs in ``groupby`` aggregation functions is consistent across all versions of Python (:issue:`25692`)
 - Ensured that result group order is correct when grouping on an ordered ``Categorical`` and specifying ``observed=True`` (:issue:`25871`, :issue:`25167`)

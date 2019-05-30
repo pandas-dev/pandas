@@ -244,12 +244,6 @@ def test_to_html_border(option, result, expected):
     assert expected in result
 
 
-def test_display_option_warning():
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        pd.options.html.border
-
-
 @pytest.mark.parametrize('biggie_df_fixture', ['mixed'], indirect=True)
 def test_to_html(biggie_df_fixture):
     # TODO: split this test
