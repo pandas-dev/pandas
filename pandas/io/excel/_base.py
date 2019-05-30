@@ -591,7 +591,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     def __new__(cls, path, engine=None, **kwargs):
         # only switch class if generic(ExcelWriter)
 
-        if issubclass(cls, ExcelWriter):
+        if cls is ExcelWriter:
             if engine is None or (isinstance(engine, str) and
                                   engine == 'auto'):
                 if isinstance(path, str):
