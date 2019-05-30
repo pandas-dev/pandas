@@ -1,11 +1,11 @@
 from pathlib import Path
-from typing import Sequence, Union
+from typing import Optional, Sequence, Union
 
 from pandas.core.api import DataFrame
 
 
 def read_spss(path: Union[str, Path],
-              usecols: Union[str, Sequence[str], None] = None,
+              usecols: Optional[Union[str, Sequence[str]]] = None,
               categorical: bool = True) -> DataFrame:
     """
     Load an SPSS file from the file path, returning a DataFrame.
