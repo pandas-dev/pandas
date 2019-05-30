@@ -1734,11 +1734,11 @@ def forbid_nonstring_types(forbidden, name=None):
 
     :meth:`StringMethods.__init__` allows the *union* of types its different
     methods allow (after skipping NaNs; see :meth:`StringMethods._validate`),
-    namely: ['string', 'unicode', 'empty', 'bytes', 'mixed', 'mixed-integer'].
+    namely: ['string', 'empty', 'bytes', 'mixed', 'mixed-integer'].
 
-    The default string types ['string', 'unicode', 'empty'] are allowed for all
-    methods. For the additional types ['bytes', 'mixed', 'mixed-integer'], each
-    method then needs to forbid the types it is not intended for.
+    The default string types ['string', 'empty'] are allowed for all methods.
+    For the additional types ['bytes', 'mixed', 'mixed-integer'], each method
+    then needs to forbid the types it is not intended for.
 
     Parameters
     ----------
@@ -1766,8 +1766,8 @@ def forbid_nonstring_types(forbidden, name=None):
     # deal with None
     forbidden = [] if forbidden is None else forbidden
 
-    allowed_types = {'string', 'unicode', 'empty',
-                     'bytes', 'mixed', 'mixed-integer'} - set(forbidden)
+    allowed_types = {'string', 'empty', 'bytes',
+                     'mixed', 'mixed-integer'} - set(forbidden)
 
     def _forbid_nonstring_types(func):
         func_name = func.__name__ if name is None else name
@@ -1887,8 +1887,7 @@ class StringMethods(NoNewAttributesMixin):
                                  'not MultiIndex')
 
         # see _libs/lib.pyx for list of inferred types
-        allowed_types = ['string', 'unicode', 'empty',
-                         'bytes', 'mixed', 'mixed-integer']
+        allowed_types = ['string', 'empty', 'bytes', 'mixed', 'mixed-integer']
 
         values = getattr(data, 'values', data)  # Series / Index
         values = getattr(values, 'categories', values)  # categorical / normal
