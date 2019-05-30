@@ -478,7 +478,9 @@ def scipy_sem(*args, **kwargs):
      ('first', lambda x: x.iloc[0]),
      ('last', lambda x: x.iloc[-1]),
      ('count', np.size),
-     pytest.param('sem', scipy_sem, mark=td._skip_if_no_scipy)])
+     pytest.param(
+         'sem', scipy_sem, marks=[pytest.mark.skipif(
+             td._skip_if_no_scipy(), reason='scipy not installed')])])
 def test_ops_general(op, targop):
     df = DataFrame(np.random.randn(1000))
     labels = np.random.randint(0, 50, size=1000).astype(float)
