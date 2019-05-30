@@ -16,7 +16,7 @@ from pandas.util import testing as tm
 
 class TestPartialSetting:
 
-    @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+    @pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
     def test_partial_setting(self):
 
         # GH2578, allow ix and friends to partially set
@@ -316,7 +316,7 @@ class TestPartialSetting:
 
         # raises as nothing in in the index
         msg = (r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64',"
-               r" name=u?'idx'\)\] are in the \[index\]\"")
+               r" name='idx'\)\] are in the \[index\]\"")
         with pytest.raises(KeyError, match=msg):
             ser.loc[[3, 3, 3]]
 

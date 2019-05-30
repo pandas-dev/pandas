@@ -13,7 +13,6 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import lrange
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -245,10 +244,9 @@ def test_parse_ragged_csv(c_parser_only):
     # too many columns, cause segfault if not careful
     data = "1,2\n3,4,5"
 
-    result = parser.read_csv(StringIO(data), header=None,
-                             names=lrange(50))
+    result = parser.read_csv(StringIO(data), header=None, names=range(50))
     expected = parser.read_csv(StringIO(data), header=None,
-                               names=lrange(3)).reindex(columns=lrange(50))
+                               names=range(3)).reindex(columns=range(50))
 
     tm.assert_frame_equal(result, expected)
 
