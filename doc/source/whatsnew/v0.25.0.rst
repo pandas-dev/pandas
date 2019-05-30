@@ -187,10 +187,10 @@ are returned. (:issue:`21521`)
 ``DataFrame`` describe on an empty categorical / object column will return top and freq
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When calling :func:`describe`` on a :class:`DataFrame` with an empty categorical / object
+When calling :meth:`DataFrame.describe` with an empty categorical / object
 column, the 'top' and 'freq' columns were previously omitted, which was inconsistent with
-the output for non-empty columns. Now, the 'top' and 'freq' for the column will be shown
-as np.NaN in the case of an empty :class:`DataFrame` (:issue:`26397`)
+the output for non-empty columns. Now the 'top' and 'freq' columns will always be included,
+with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397`)
 
 .. ipython:: python
 
