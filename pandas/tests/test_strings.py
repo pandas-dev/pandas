@@ -223,7 +223,7 @@ class TestStringMethods:
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
         method = getattr(t.str, method_name)
 
-        bytes_allowed = method_name in ['decode', 'len']
+        bytes_allowed = method_name in ['decode', 'get', 'len', 'slice']
         # as of v0.23.4, all methods except 'cat' are very lenient with the
         # allowed data types, just returning NaN for entries that error.
         # This could be changed with an 'errors'-kwarg to the `str`-accessor,
