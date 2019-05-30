@@ -688,3 +688,8 @@ for name in 'QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd'.split():
 @pytest.fixture
 def seriesd():
     return tm.getSeriesData()
+
+
+@pytest.fixture
+def tdf():
+    return tm.makeTimeDataFrame()

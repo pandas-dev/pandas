@@ -34,7 +34,11 @@ def frame(seriesd):
 @pytest.fixture
 def frame2(seriesd):
     return DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])[:10]
-_tsframe = tm.makeTimeDataFrame()[:5]
+
+
+@pytest.fixture
+def tsframe(tdf):
+    return tm.makeTimeDataFrame()[:5]
 
 
 @contextlib.contextmanager
@@ -51,15 +55,8 @@ def ignore_xlrd_time_clock_warning():
         yield
 
 
-class SharedItems:
-
-    @pytest.fixture(autouse=True)
-    def setup_method(self, datapath):
-        self.tsframe = _tsframe.copy()
-
-
 @td.skip_if_no('xlrd', '1.0.0')
-class ReadingTestsBase(SharedItems):
+class ReadingTestsBase:
     # This is based on ExcelWriterBase
 
     @pytest.fixture(autouse=True, params=['xlrd', None])
@@ -1074,7 +1071,7 @@ class TestXlrdReader(ReadingTestsBase):
             tm.assert_frame_equal(df, result)
 
 
-class _WriterBase(SharedItems):
+class _WriterBase:
 
     @pytest.fixture(autouse=True)
     def set_engine_and_path(self, request, merge_cells, engine, ext):
@@ -1275,7 +1272,7 @@ class TestExcelWriter(_WriterBase):
 
         tm.assert_frame_equal(frame, recons)
 
-    def test_sheets(self, merge_cells, engine, ext, frame):
+    def test_sheets(self, merge_cells, engine, ext, frame, tsframe):
         frame['A'][:5] = nan
 
         frame.to_excel(self.path, 'test1')
@@ -1286,13 +1283,13 @@ class TestExcelWriter(_WriterBase):
         # Test writing to separate sheets
         writer = ExcelWriter(self.path)
         frame.to_excel(writer, 'test1')
-        self.tsframe.to_excel(writer, 'test2')
+        tsframe.to_excel(writer, 'test2')
         writer.save()
         reader = ExcelFile(self.path)
         recons = pd.read_excel(reader, 'test1', index_col=0)
         tm.assert_frame_equal(frame, recons)
         recons = pd.read_excel(reader, 'test2', index_col=0)
-        tm.assert_frame_equal(self.tsframe, recons)
+        tm.assert_frame_equal(tsframe, recons)
         assert 2 == len(reader.sheet_names)
         assert 'test1' == reader.sheet_names[0]
         assert 'test2' == reader.sheet_names[1]
@@ -1379,17 +1376,17 @@ class TestExcelWriter(_WriterBase):
         tm.assert_frame_equal(result, df)
         assert result.index.name == 'foo'
 
-    def test_excel_roundtrip_datetime(self, merge_cells, *_):
+    def test_excel_roundtrip_datetime(self, merge_cells, tsframe, *_):
         # datetime.date, not sure what to test here exactly
-        tsf = self.tsframe.copy()
+        tsf = tsframe.copy()
 
-        tsf.index = [x.date() for x in self.tsframe.index]
+        tsf.index = [x.date() for x in tsframe.index]
         tsf.to_excel(self.path, "test1", merge_cells=merge_cells)
 
         reader = ExcelFile(self.path)
         recons = pd.read_excel(reader, "test1", index_col=0)
 
-        tm.assert_frame_equal(self.tsframe, recons)
+        tm.assert_frame_equal(tsframe, recons)
 
     def test_excel_date_datetime_format(self, merge_cells, engine, ext):
         # see gh-4133
@@ -1483,9 +1480,9 @@ class TestExcelWriter(_WriterBase):
         recons = pd.read_excel(reader, "test1", index_col=0)
         tm.assert_frame_equal(expected, recons)
 
-    def test_to_excel_periodindex(self, merge_cells, engine, ext, frame):
-        frame = self.tsframe
-        xp = frame.resample('M', kind='period').mean()
+    def test_to_excel_periodindex(
+            self, merge_cells, engine, ext, tsframe):
+        xp = tsframe.resample('M', kind='period').mean()
 
         xp.to_excel(self.path, 'sht1')
 
@@ -1548,9 +1545,8 @@ class TestExcelWriter(_WriterBase):
             frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
         tm.assert_frame_equal(frame, df)
 
-    def test_to_excel_multiindex_dates(self, merge_cells, engine, ext):
+    def test_to_excel_multiindex_dates(self, merge_cells, engine, ext, tsframe):
         # try multiindex with dates
-        tsframe = self.tsframe.copy()
         new_index = [tsframe.index, np.arange(len(tsframe.index))]
         tsframe.index = MultiIndex.from_arrays(new_index)
 
