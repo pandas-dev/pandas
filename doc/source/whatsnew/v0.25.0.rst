@@ -198,8 +198,10 @@ cause a ``SparseSeries`` or ``SparseDataFrame`` to be returned, as before.
 The ``.str``-accessor performs stricter type checks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Due to the lack of a native string dtype in numpy, :attr:`Series.str` only checked whether the data was of ``object`` dtype.
-From now on, the inferred dtype of the Series is checked to be correct (particularly, not ``'bytes'``), as :attr:`Index.str` does already.
+Due to the lack of more fine-grained dtypes, :attr:`Series.str` so far only checked whether the data was
+of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* the Series; in particular,
+``'bytes'``-only data will raise an exception (except for :meth:`Series.str.decode`, :meth:`Series.str.get`,
+:meth:`Series.str.len`, :meth:`Series.str.slice`), see :issue:`23163`, :issue:`23011`, :issue:`23551`.
 
 *Previous Behaviour*:
 
