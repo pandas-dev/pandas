@@ -186,7 +186,7 @@ class TestCategoricalOps:
                                     np.array([True, True, True]))
 
     def test_comparison_of_ordered_categorical_with_nan_to_scalar(
-        self, compare_operators_no_eq_ne):
+            self, compare_operators_no_eq_ne):
         # https://github.com/pandas-dev/pandas/issues/26504
         # BUG: fix ordered categorical comparison with missing values (#26504 )
         # and following comparisons with scalars in categories with missing
@@ -198,8 +198,8 @@ class TestCategoricalOps:
 
     def test_comparison_of_ordered_categorical_with_nan_to_listlike(
             self, compare_operators_no_eq_ne):
-        # https://github.com/pandas-dev/pandas/issues/26504 
-        # and following comparisons of missing values in ordered Categorical 
+        # https://github.com/pandas-dev/pandas/issues/26504
+        # and following comparisons of missing values in ordered Categorical
         # with listlike should be evaluated as False
 
         cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
