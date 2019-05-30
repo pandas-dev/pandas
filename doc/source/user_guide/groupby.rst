@@ -568,6 +568,67 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
                             'mean': 'bar',
                             'std': 'baz'}))
 
+.. _groupby.aggregate.named:
+
+Named Aggregation
+~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.25.0
+
+To support column-specific aggregation *with control over the output column names*, pandas
+accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation", where
+
+- The keywords are the *output* column names
+- The values are tuples whose first element is the column to select
+  and the second element is the aggregation to apply to that column. Pandas
+  provides the ``pandas.NamedAgg`` namedtuple with the fields ``['column', 'aggfunc']``
+  to make it clearer what the arguments are. As usual, the aggregation can
+  be a callable or a string alias.
+
+.. ipython:: python
+
+   animals = pd.DataFrame({'kind': ['cat', 'dog', 'cat', 'dog'],
+                           'height': [9.1, 6.0, 9.5, 34.0],
+                           'weight': [7.9, 7.5, 9.9, 198.0]})
+   animals
+
+   animals.groupby("kind").agg(
+       min_height=pd.NamedAgg(column='height', aggfunc='min'),
+       max_height=pd.NamedAgg(column='height', aggfunc='max'),
+       average_weight=pd.NamedAgg(column='height', aggfunc=np.mean),
+   )
+
+
+``pandas.NamedAgg`` is just a ``namedtuple``. Plain tuples are allowed as well.
+
+.. ipython:: python
+
+   animals.groupby("kind").agg(
+       min_height=('height', 'min'),
+       max_height=('height', 'max'),
+       average_weight=('height', np.mean),
+   )
+
+
+If your desired output column names are not valid python keywords, construct a dictionary
+and unpack the keyword arguments
+
+.. ipython:: python
+
+   animals.groupby("kind").agg(**{
+       'total weight': pd.NamedAgg(column='weight', aggfunc=sum),
+   })
+
+Additional keyword arguments are not passed through to the aggregation functions. Only pairs
+of ``(column, aggfunc)`` should be passed as ``**kwargs``. If your aggregation functions
+requires additional arguments, partially apply them with :meth:`functools.partial`.
+
+.. note::
+
+   For Python 3.5 and earlier, the order of ``**kwargs`` in a functions was not
+   preserved. This means that the output column ordering would not be
+   consistent. To ensure consistent ordering, the keys (and so output columns)
+   will always be sorted for Python 3.5.
 
 Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -587,19 +648,6 @@ must be either implemented on GroupBy or available via :ref:`dispatching
 .. ipython:: python
 
    grouped.agg({'C': 'sum', 'D': 'std'})
-
-.. note::
-
-    If you pass a dict to ``aggregate``, the ordering of the output columns is
-    non-deterministic. If you want to be sure the output columns will be in a specific
-    order, you can use an ``OrderedDict``.  Compare the output of the following two commands:
-
-.. ipython:: python
-
-   from collections import OrderedDict
-
-   grouped.agg({'D': 'std', 'C': 'mean'})
-   grouped.agg(OrderedDict([('D', 'std'), ('C', 'mean')]))
 
 .. _groupby.aggregate.cython:
 

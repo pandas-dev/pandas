@@ -52,6 +52,7 @@ _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
 _index_doc_kwargs = dict(klass='Index', inplace='',
                          target_klass='Index',
+                         raises_section='',
                          unique='Index', duplicated='np.ndarray')
 _index_shared_docs = dict()
 
@@ -2787,7 +2788,7 @@ class Index(IndexOpsMixin, PandasObject):
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
-
+        %(raises_section)s
         Examples
         --------
         >>> index = pd.Index(['c', 'a', 'b'])
