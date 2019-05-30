@@ -6,6 +6,7 @@ from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
 import warnings
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -762,20 +763,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             dtype = 'M8[ns]'
         return np.asarray(self.array, dtype)
 
-    def __array_wrap__(self, result: np.ndarray, context=None) -> 'Series':
+    def __array_wrap__(self, result: np.ndarray,
+                       context: Optional[Tuple] = None) -> 'Series':
         """
         We are called post ufunc; reconstruct the original object and dtypes.
 
         Parameters
         ----------
         result : np.ndarray
-        context
+        context : tuple, optional
 
         Returns
         -------
         Series
         """
-
         result = self._constructor(result, index=self.index,
                                    copy=False)
 

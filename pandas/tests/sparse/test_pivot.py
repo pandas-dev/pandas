@@ -56,11 +56,14 @@ class TestPivotTable:
          'median',
          'first',
          'last'])
-    def test_pivot_table_multi(self, func):
+    @pytest.mark.parametrize('dropna', [True, False])
+    def test_pivot_table_multi(self, func, dropna):
 
-        res_sparse = pd.pivot_table(self.sparse, index='A', columns='B',
-                                    values=['D', 'E'], aggfunc=func)
-        res_dense = pd.pivot_table(self.dense, index='A', columns='B',
-                                   values=['D', 'E'], aggfunc=func)
+        res_sparse = pd.pivot_table(
+            self.sparse, index='A', columns='B',
+            values=['D', 'E'], aggfunc=func, dropna=dropna)
+        res_dense = pd.pivot_table(
+            self.dense, index='A', columns='B',
+            values=['D', 'E'], aggfunc=func, dropna=dropna)
         res_dense = res_dense.apply(lambda x: x.astype("Sparse[float64]"))
         tm.assert_frame_equal(res_sparse, res_dense)

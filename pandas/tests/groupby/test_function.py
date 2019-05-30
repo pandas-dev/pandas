@@ -12,7 +12,7 @@ import pandas as pd
 from pandas import (
     DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna)
 import pandas.core.nanops as nanops
-from pandas.util import testing as tm
+from pandas.util import _test_decorators as td, testing as tm
 
 
 @pytest.mark.parametrize("agg_func", ['any', 'all'])
@@ -461,11 +461,8 @@ def test_groupby_cumprod():
 
 
 def scipy_sem(*args, **kwargs):
-    try:
-        from scipy.stats import sem
-        return sem(*args, ddof=1, **kwargs)
-    except ImportError:
-        pytest.skip("No Scipy installed")
+    from scipy.stats import sem
+    return sem(*args, ddof=1, **kwargs)
 
 
 @pytest.mark.parametrize(
@@ -481,7 +478,7 @@ def scipy_sem(*args, **kwargs):
      ('first', lambda x: x.iloc[0]),
      ('last', lambda x: x.iloc[-1]),
      ('count', np.size),
-     ('sem', scipy_sem)])
+     pytest.param('sem', scipy_sem, mark=td._skip_if_no_scipy)])
 def test_ops_general(op, targop):
     df = DataFrame(np.random.randn(1000))
     labels = np.random.randint(0, 50, size=1000).astype(float)

@@ -42,7 +42,7 @@ def test_quantile_multi():
     tm.assert_sp_frame_equal(result, sparse_expected)
 
 
-@pytest.mark.parametrize('func', [np.exp, np.sqrt], ids=lambda x: x.__name__)
+@pytest.mark.parametrize('func', [np.exp, np.sqrt], ids=str)
 def test_ufunc(func):
     # GH 23743
     # assert we preserve the incoming dtype on ufunc operation

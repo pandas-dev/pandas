@@ -16,7 +16,7 @@ import itertools
 import sys
 import warnings
 from textwrap import dedent
-from typing import FrozenSet, List, Optional, Set, Type, Union
+from typing import FrozenSet, List, Optional, Tuple, Set, Type, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -2651,14 +2651,15 @@ class DataFrame(NDFrame):
     def __array__(self, dtype=None):
         return com.values_from_object(self)
 
-    def __array_wrap__(self, result: np.ndarray, context=None) -> 'DataFrame':
+    def __array_wrap__(self, result: np.ndarray,
+                       context: Optional[Tuple] = None) -> 'DataFrame':
         """
         We are called post ufunc; reconstruct the original object and dtypes.
 
         Parameters
         ----------
         result : np.ndarray
-        context
+        context : tuple, optional
 
         Returns
         -------

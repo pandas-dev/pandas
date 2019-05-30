@@ -5,7 +5,7 @@ from pandas import Series, SparseDtype
 from pandas.util import testing as tm
 
 
-@pytest.mark.parametrize('func', [np.exp, np.sqrt], ids=lambda x: x.__name__)
+@pytest.mark.parametrize('func', [np.exp, np.sqrt], ids=str)
 def test_ufunc(func):
     # GH 23743
     # assert we preserve the incoming dtype on ufunc operation
