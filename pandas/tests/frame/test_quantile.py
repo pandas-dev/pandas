@@ -159,6 +159,7 @@ class TestDataFrameQuantile:
         q = df.quantile(0.1)
         assert q['A'] == np.percentile(df['A'], 10)
 
+        # TODO: Remove the following, as q1 is not different from q
         # test with and without interpolation keyword
         q1 = df.quantile(0.1)
         assert q1['A'] == np.percentile(df['A'], 10)
