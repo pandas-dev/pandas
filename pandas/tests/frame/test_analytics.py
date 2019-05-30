@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import timedelta
 import operator
 from string import ascii_lowercase
@@ -8,13 +6,12 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, PY35, is_platform_windows, lrange
 import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, MultiIndex, Series, Timestamp, compat, date_range,
-    isna, notna, to_datetime, to_timedelta)
+    Categorical, DataFrame, MultiIndex, Series, Timestamp, date_range, isna,
+    notna, to_datetime, to_timedelta)
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
@@ -56,7 +53,7 @@ def assert_stat_op_calc(opname, alternative, frame, has_skipna=True,
         result = getattr(df, opname)()
         assert isinstance(result, Series)
 
-        df['a'] = lrange(len(df))
+        df['a'] = range(len(df))
         result = getattr(df, opname)()
         assert isinstance(result, Series)
         assert len(result)
@@ -231,7 +228,7 @@ def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
         getattr(bool_frame_with_na, opname)(axis=1, bool_only=False)
 
 
-class TestDataFrameAnalytics(object):
+class TestDataFrameAnalytics:
 
     # ---------------------------------------------------------------------
     # Correlation and covariance
@@ -332,8 +329,8 @@ class TestDataFrameAnalytics(object):
     def test_corr_invalid_method(self):
         # GH 22298
         df = pd.DataFrame(np.random.normal(size=(10, 2)))
-        msg = ("method must be either 'pearson', 'spearman', "
-               "or 'kendall'")
+        msg = ("method must be either 'pearson', "
+               "'spearman', 'kendall', or a callable, ")
         with pytest.raises(ValueError, match=msg):
             df.corr(method="____")
 
@@ -898,7 +895,6 @@ class TestDataFrameAnalytics(object):
             result = nanops.nanvar(arr, axis=0)
             assert not (result < 0).any()
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     @pytest.mark.parametrize(
         "meth", ['sem', 'var', 'std'])
     def test_numeric_only_flag(self, meth):
@@ -1010,7 +1006,6 @@ class TestDataFrameAnalytics(object):
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not compat.PY3, reason="only PY3")
     def test_mode_sortwarning(self):
         # Check for the warning that is raised when the mode
         # results cannot be sorted
@@ -1207,7 +1202,7 @@ class TestDataFrameAnalytics(object):
         float_string_frame.skew(1)
 
     def test_sum_bools(self):
-        df = DataFrame(index=lrange(1), columns=lrange(10))
+        df = DataFrame(index=range(1), columns=range(10))
         bools = isna(df)
         assert bools.sum(axis=1)[0] == 10
 
@@ -1216,7 +1211,7 @@ class TestDataFrameAnalytics(object):
 
     def test_cumsum_corner(self):
         dm = DataFrame(np.arange(20).reshape(4, 5),
-                       index=lrange(4), columns=lrange(5))
+                       index=range(4), columns=range(5))
         # ?(wesm)
         result = dm.cumsum()  # noqa
 
@@ -1331,12 +1326,12 @@ class TestDataFrameAnalytics(object):
         assert isinstance(ct2, Series)
 
         # GH#423
-        df = DataFrame(index=lrange(10))
+        df = DataFrame(index=range(10))
         result = df.count(1)
         expected = Series(0, index=df.index)
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame(columns=lrange(10))
+        df = DataFrame(columns=range(10))
         result = df.count(0)
         expected = Series(0, index=df.columns)
         tm.assert_series_equal(result, expected)
@@ -1372,7 +1367,6 @@ class TestDataFrameAnalytics(object):
     # ----------------------------------------------------------------------
     # Index of max / min
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_idxmin(self, float_frame, int_frame):
         frame = float_frame
         frame.loc[5:10] = np.nan
@@ -1390,7 +1384,6 @@ class TestDataFrameAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_idxmax(self, float_frame, int_frame):
         frame = float_frame
         frame.loc[5:10] = np.nan
@@ -1855,9 +1848,6 @@ class TestDataFrameAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.round(df, decimals=0, out=df)
 
-    @pytest.mark.xfail(
-        PY2 and is_platform_windows(), reason="numpy/numpy#7882",
-        raises=AssertionError, strict=True)
     def test_numpy_round_nan(self):
         # See gh-14197
         df = Series([1.53, np.nan, 0.06]).to_frame()
@@ -1897,10 +1887,6 @@ class TestDataFrameAnalytics(object):
             df.round(decimals)
 
     def test_built_in_round(self):
-        if not compat.PY3:
-            pytest.skip("build in round cannot be overridden "
-                        "prior to Python 3")
-
         # GH 11763
         # Here's the test frame we'll be working with
         df = DataFrame(
@@ -2150,15 +2136,13 @@ class TestDataFrameAnalytics(object):
 
         # unaligned
         df = DataFrame(np.random.randn(3, 4),
-                       index=[1, 2, 3], columns=lrange(4))
+                       index=[1, 2, 3], columns=range(4))
         df2 = DataFrame(np.random.randn(5, 3),
-                        index=lrange(5), columns=[1, 2, 3])
+                        index=range(5), columns=[1, 2, 3])
 
         with pytest.raises(ValueError, match='aligned'):
             df.dot(df2)
 
-    @pytest.mark.skipif(not PY35,
-                        reason='matmul supported for Python>=3.5')
     def test_matmul(self):
         # matmul test is for GH 10259
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
@@ -2212,9 +2196,9 @@ class TestDataFrameAnalytics(object):
 
         # unaligned
         df = DataFrame(np.random.randn(3, 4),
-                       index=[1, 2, 3], columns=lrange(4))
+                       index=[1, 2, 3], columns=range(4))
         df2 = DataFrame(np.random.randn(5, 3),
-                        index=lrange(5), columns=[1, 2, 3])
+                        index=range(5), columns=[1, 2, 3])
 
         with pytest.raises(ValueError, match='aligned'):
             operator.matmul(df, df2)
@@ -2255,7 +2239,7 @@ def df_main_dtypes():
                  'timedelta'])
 
 
-class TestNLargestNSmallest(object):
+class TestNLargestNSmallest:
 
     dtype_error_msg_template = ("Column {column!r} has dtype {dtype}, cannot "
                                 "use method {method!r} with this dtype")

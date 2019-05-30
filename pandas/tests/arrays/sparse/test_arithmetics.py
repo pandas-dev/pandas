@@ -8,7 +8,8 @@ from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
-class TestSparseArrayArithmetics(object):
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+class TestSparseArrayArithmetics:
 
     _base = np.array
     _klass = pd.SparseArray

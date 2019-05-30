@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import NaT, iNaT
-import pandas.compat as compat
 
 import pandas as pd
 from pandas import (
@@ -14,7 +13,7 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-class TestTimedeltaArithmetic(object):
+class TestTimedeltaArithmetic:
 
     def test_arithmetic_overflow(self):
         with pytest.raises(OverflowError):
@@ -51,7 +50,7 @@ class TestTimedeltaArithmetic(object):
             assert left != right
 
     def test_ops_notimplemented(self):
-        class Other(object):
+        class Other:
             pass
 
         other = Other()
@@ -77,7 +76,7 @@ class TestTimedeltaArithmetic(object):
         assert abs(-td) == Timedelta('10d')
 
 
-class TestTimedeltaComparison(object):
+class TestTimedeltaComparison:
     def test_compare_tick(self, tick_classes):
         cls = tick_classes
 
@@ -132,7 +131,7 @@ class TestTimedeltaComparison(object):
         Make sure non supported operations on Timedelta returns NonImplemented
         and yields to other operand (GH#20829).
         """
-        class CustomClass(object):
+        class CustomClass:
 
             def __init__(self, cmp_result=None):
                 self.cmp_result = cmp_result
@@ -175,7 +174,7 @@ class TestTimedeltaComparison(object):
             t < val
 
 
-class TestTimedeltas(object):
+class TestTimedeltas:
 
     @pytest.mark.parametrize("unit, value, expected", [
         ('us', 9.999, 9999), ('ms', 9.999999, 9999999),
@@ -240,8 +239,8 @@ class TestTimedeltas(object):
 
     def test_fields(self):
         def check(value):
-            # that we are int/long like
-            assert isinstance(value, (int, compat.long))
+            # that we are int
+            assert isinstance(value, int)
 
         # compat to datetime.timedelta
         rng = to_timedelta('1 days, 10:11:12')
@@ -318,12 +317,12 @@ class TestTimedeltas(object):
         assert to_timedelta('P0DT0H0M1S') == expected
 
     def test_nat_converters(self):
-        result = to_timedelta('nat', box=False)
-        assert result.dtype.kind == 'm'
+        result = to_timedelta('nat').to_numpy()
+        assert result.dtype.kind == 'M'
         assert result.astype('int64') == iNaT
 
-        result = to_timedelta('nan', box=False)
-        assert result.dtype.kind == 'm'
+        result = to_timedelta('nan').to_numpy()
+        assert result.dtype.kind == 'M'
         assert result.astype('int64') == iNaT
 
     @pytest.mark.filterwarnings("ignore:M and Y units are deprecated")
@@ -386,7 +385,6 @@ class TestTimedeltas(object):
             result = Timedelta('2{}'.format(unit))
             assert result == expected
 
-    @pytest.mark.skipif(compat.PY2, reason="requires python3.5 or higher")
     @pytest.mark.parametrize('unit', ['Y', 'y', 'M'])
     def test_unit_m_y_deprecated(self, unit):
         with tm.assert_produces_warning(FutureWarning) as w1:

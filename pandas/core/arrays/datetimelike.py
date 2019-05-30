@@ -1,17 +1,16 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 import operator
+from typing import Any, Sequence, Union, cast
 import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, algos, iNaT, lib
+from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
+from pandas._libs.tslibs.c_timestamp import maybe_integer_op_deprecated
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
-from pandas._libs.tslibs.timestamps import (
-    RoundTo, maybe_integer_op_deprecated, round_nsint64)
-import pandas.compat as compat
+from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
@@ -28,6 +27,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
 from pandas.core.algorithms import (
     checked_add_with_arr, take, unique1d, value_counts)
@@ -39,7 +39,8 @@ from pandas.tseries.offsets import DateOffset, Tick
 from .base import ExtensionArray, ExtensionOpsMixin
 
 
-class AttributesMixin(object):
+class AttributesMixin:
+    _data = None  # type: np.ndarray
 
     @property
     def _attributes(self):
@@ -57,8 +58,7 @@ class AttributesMixin(object):
         return {k: getattr(self, k, None) for k in self._attributes}
 
     @property
-    def _scalar_type(self):
-        # type: () -> Union[type, Tuple[type]]
+    def _scalar_type(self) -> DatetimeLikeScalar:
         """The scalar associated with this datelike
 
         * PeriodArray : Period
@@ -67,8 +67,10 @@ class AttributesMixin(object):
         """
         raise AbstractMethodError(self)
 
-    def _scalar_from_string(self, value):
-        # type: (str) -> Union[Period, Timestamp, Timedelta, NaTType]
+    def _scalar_from_string(
+            self,
+            value: str,
+    ) -> Union[Period, Timestamp, Timedelta, NaTType]:
         """
         Construct a scalar type from a string.
 
@@ -88,8 +90,10 @@ class AttributesMixin(object):
         """
         raise AbstractMethodError(self)
 
-    def _unbox_scalar(self, value):
-        # type: (Union[Period, Timestamp, Timedelta, NaTType]) -> int
+    def _unbox_scalar(
+            self,
+            value: Union[Period, Timestamp, Timedelta, NaTType],
+    ) -> int:
         """
         Unbox the integer value of a scalar `value`.
 
@@ -108,8 +112,10 @@ class AttributesMixin(object):
         """
         raise AbstractMethodError(self)
 
-    def _check_compatible_with(self, other):
-        # type: (Union[Period, Timestamp, Timedelta, NaTType]) -> None
+    def _check_compatible_with(
+            self,
+            other: Union[Period, Timestamp, Timedelta, NaTType],
+    ) -> None:
         """
         Verify that `self` and `other` are compatible.
 
@@ -130,7 +136,7 @@ class AttributesMixin(object):
         raise AbstractMethodError(self)
 
 
-class DatelikeOps(object):
+class DatelikeOps:
     """
     Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex.
     """
@@ -176,7 +182,7 @@ class DatelikeOps(object):
         return Index(self._format_native_types(date_format=date_format))
 
 
-class TimelikeOps(object):
+class TimelikeOps:
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
@@ -206,8 +212,8 @@ class TimelikeOps(object):
 
             .. versionadded:: 0.24.0
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta,
-                      default 'raise'
+        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
@@ -349,8 +355,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         return (self._box_func(v) for v in self.asi8)
 
     @property
-    def asi8(self):
-        # type: () -> ndarray
+    def asi8(self) -> np.ndarray:
         """
         Integer representation of the values.
 
@@ -401,8 +406,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         return (len(self),)
 
     @property
-    def size(self):
-        # type: () -> int
+    def size(self) -> int:
         """The number of elements in this array."""
         return np.prod(self.shape)
 
@@ -460,11 +464,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
 
     def __setitem__(
             self,
-            key,    # type: Union[int, Sequence[int], Sequence[bool], slice]
-            value,  # type: Union[NaTType, Scalar, Sequence[Scalar]]
-    ):
-        # type: (...) -> None
-        # I'm fudging the types a bit here. The "Scalar" above really depends
+            key: Union[int, Sequence[int], Sequence[bool], slice],
+            value: Union[NaTType, Any, Sequence[Any]]
+    ) -> None:
+        # I'm fudging the types a bit here. "Any" above really depends
         # on type(self). For PeriodArray, it's Period (or stuff coercible
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...
         # I don't know if mypy can do that, possibly with Generics.
@@ -476,14 +479,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             if lib.is_scalar(key):
                 raise ValueError("setting an array element with a sequence.")
 
-            if (not is_slice
-                    and len(key) != len(value)
-                    and not com.is_bool_indexer(key)):
-                msg = ("shape mismatch: value array of length '{}' does not "
-                       "match indexing result of length '{}'.")
-                raise ValueError(msg.format(len(key), len(value)))
-            if not is_slice and len(key) == 0:
-                return
+            if not is_slice:
+                key = cast(Sequence, key)
+                if (len(key) != len(value)
+                        and not com.is_bool_indexer(key)):
+                    msg = ("shape mismatch: value array of length '{}' does "
+                           "not match indexing result of length '{}'.")
+                    raise ValueError(msg.format(
+                        len(key), len(value)))
+                elif not len(key):
+                    return
 
             value = type(self)._from_sequence(value, dtype=self.dtype)
             self._check_compatible_with(value)
@@ -648,7 +653,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         indices : array of ints
             Array of insertion points with the same shape as `value`.
         """
-        if isinstance(value, compat.string_types):
+        if isinstance(value, str):
             value = self._scalar_from_string(value)
 
         if not (isinstance(value, (self._scalar_type, type(self)))
@@ -1153,7 +1158,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
             Frequency increment to shift by.
         """
         if freq is not None and freq != self.freq:
-            if isinstance(freq, compat.string_types):
+            if isinstance(freq, str):
                 freq = frequencies.to_offset(freq)
             offset = periods * freq
             result = self + offset
@@ -1379,9 +1384,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin,
         if op:
             return op(axis=axis, skipna=skipna, **kwargs)
         else:
-            return super(DatetimeLikeArrayMixin, self)._reduce(
-                name, skipna, **kwargs
-            )
+            return super()._reduce(name, skipna, **kwargs)
 
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """

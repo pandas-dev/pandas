@@ -1,19 +1,13 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 from datetime import datetime
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange, lzip, u
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
-    Categorical, DataFrame, Index, MultiIndex, Series, compat, date_range,
-    isna)
+    Categorical, DataFrame, Index, MultiIndex, Series, date_range, isna)
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
@@ -104,7 +98,7 @@ class TestDataFrameSelectReindex():
                            simple[['B']])
 
         # non-unique - wheee!
-        nu_df = DataFrame(lzip(range(3), range(-3, 1), list('abc')),
+        nu_df = DataFrame(list(zip(range(3), range(-3, 1), list('abc'))),
                           columns=['a', 'a', 'b'])
         assert_frame_equal(nu_df.drop('a', axis=1), nu_df[['b']])
         assert_frame_equal(nu_df.drop('b', axis='columns'), nu_df['a'])
@@ -213,7 +207,7 @@ class TestDataFrameSelectReindex():
         newFrame = float_frame.reindex(datetime_series.index)
 
         for col in newFrame.columns:
-            for idx, val in compat.iteritems(newFrame[col]):
+            for idx, val in newFrame[col].items():
                 if idx in float_frame.index:
                     if np.isnan(val):
                         assert np.isnan(float_frame[col][idx])
@@ -222,7 +216,7 @@ class TestDataFrameSelectReindex():
                 else:
                     assert np.isnan(val)
 
-        for col, series in compat.iteritems(newFrame):
+        for col, series in newFrame.items():
             assert tm.equalContents(series.index, newFrame.index)
         emptyFrame = float_frame.reindex(Index([]))
         assert len(emptyFrame.index) == 0
@@ -231,7 +225,7 @@ class TestDataFrameSelectReindex():
         nonContigFrame = float_frame.reindex(datetime_series.index[::2])
 
         for col in nonContigFrame.columns:
-            for idx, val in compat.iteritems(nonContigFrame[col]):
+            for idx, val in nonContigFrame[col].items():
                 if idx in float_frame.index:
                     if np.isnan(val):
                         assert np.isnan(float_frame[col][idx])
@@ -240,7 +234,7 @@ class TestDataFrameSelectReindex():
                 else:
                     assert np.isnan(val)
 
-        for col, series in compat.iteritems(nonContigFrame):
+        for col, series in nonContigFrame.items():
             assert tm.equalContents(series.index, nonContigFrame.index)
 
         # corner cases
@@ -397,44 +391,44 @@ class TestDataFrameSelectReindex():
         df = DataFrame(np.random.randn(10, 4))
 
         # axis=0
-        result = df.reindex(lrange(15))
+        result = df.reindex(list(range(15)))
         assert np.isnan(result.values[-5:]).all()
 
-        result = df.reindex(lrange(15), fill_value=0)
-        expected = df.reindex(lrange(15)).fillna(0)
+        result = df.reindex(range(15), fill_value=0)
+        expected = df.reindex(range(15)).fillna(0)
         assert_frame_equal(result, expected)
 
         # axis=1
-        result = df.reindex(columns=lrange(5), fill_value=0.)
+        result = df.reindex(columns=range(5), fill_value=0.)
         expected = df.copy()
         expected[4] = 0.
         assert_frame_equal(result, expected)
 
-        result = df.reindex(columns=lrange(5), fill_value=0)
+        result = df.reindex(columns=range(5), fill_value=0)
         expected = df.copy()
         expected[4] = 0
         assert_frame_equal(result, expected)
 
-        result = df.reindex(columns=lrange(5), fill_value='foo')
+        result = df.reindex(columns=range(5), fill_value='foo')
         expected = df.copy()
         expected[4] = 'foo'
         assert_frame_equal(result, expected)
 
         # reindex_axis
         with tm.assert_produces_warning(FutureWarning):
-            result = df.reindex_axis(lrange(15), fill_value=0., axis=0)
-        expected = df.reindex(lrange(15)).fillna(0)
+            result = df.reindex_axis(range(15), fill_value=0., axis=0)
+        expected = df.reindex(range(15)).fillna(0)
         assert_frame_equal(result, expected)
 
         with tm.assert_produces_warning(FutureWarning):
-            result = df.reindex_axis(lrange(5), fill_value=0., axis=1)
-        expected = df.reindex(columns=lrange(5)).fillna(0)
+            result = df.reindex_axis(range(5), fill_value=0., axis=1)
+        expected = df.reindex(columns=range(5)).fillna(0)
         assert_frame_equal(result, expected)
 
         # other dtypes
         df['foo'] = 'foo'
-        result = df.reindex(lrange(15), fill_value=0)
-        expected = df.reindex(lrange(15)).fillna(0)
+        result = df.reindex(range(15), fill_value=0)
+        expected = df.reindex(range(15)).fillna(0)
         assert_frame_equal(result, expected)
 
     def test_reindex_dups(self):
@@ -859,7 +853,7 @@ class TestDataFrameSelectReindex():
         assert 'foo' in filtered
 
         # unicode columns, won't ascii-encode
-        df = float_frame.rename(columns={'B': u('\u2202')})
+        df = float_frame.rename(columns={'B': '\u2202'})
         filtered = df.filter(like='C')
         assert 'C' in filtered
 
@@ -883,18 +877,18 @@ class TestDataFrameSelectReindex():
         assert_frame_equal(result, exp)
 
     @pytest.mark.parametrize('name,expected', [
-        ('a', DataFrame({u'a': [1, 2]})),
-        (u'a', DataFrame({u'a': [1, 2]})),
-        (u'あ', DataFrame({u'あ': [3, 4]}))
+        ('a', DataFrame({'a': [1, 2]})),
+        ('a', DataFrame({'a': [1, 2]})),
+        ('あ', DataFrame({'あ': [3, 4]}))
     ])
     def test_filter_unicode(self, name, expected):
         # GH13101
-        df = DataFrame({u'a': [1, 2], u'あ': [3, 4]})
+        df = DataFrame({'a': [1, 2], 'あ': [3, 4]})
 
         assert_frame_equal(df.filter(like=name), expected)
         assert_frame_equal(df.filter(regex=name), expected)
 
-    @pytest.mark.parametrize('name', ['a', u'a'])
+    @pytest.mark.parametrize('name', ['a', 'a'])
     def test_filter_bytestring(self, name):
         # GH13101
         df = DataFrame({b'a': [1, 2], b'b': [3, 4]})
@@ -1042,7 +1036,7 @@ class TestDataFrameSelectReindex():
         assert reindexed.values.dtype == np.object_
         assert isna(reindexed[0][1])
 
-        reindexed = frame.reindex(columns=lrange(3))
+        reindexed = frame.reindex(columns=range(3))
         assert reindexed.values.dtype == np.object_
         assert isna(reindexed[1]).all()
 
@@ -1063,7 +1057,6 @@ class TestDataFrameSelectReindex():
         smaller = int_frame.reindex(columns=['A', 'B', 'E'])
         assert smaller['E'].dtype == np.float64
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_reindex_axis(self, float_frame, int_frame):
         cols = ['A', 'B', 'E']
         with tm.assert_produces_warning(FutureWarning) as m:
@@ -1111,22 +1104,22 @@ class TestDataFrameSelectReindex():
     def test_reindex_multi(self):
         df = DataFrame(np.random.randn(3, 3))
 
-        result = df.reindex(index=lrange(4), columns=lrange(4))
-        expected = df.reindex(lrange(4)).reindex(columns=lrange(4))
+        result = df.reindex(index=range(4), columns=range(4))
+        expected = df.reindex(list(range(4))).reindex(columns=range(4))
 
         assert_frame_equal(result, expected)
 
         df = DataFrame(np.random.randint(0, 10, (3, 3)))
 
-        result = df.reindex(index=lrange(4), columns=lrange(4))
-        expected = df.reindex(lrange(4)).reindex(columns=lrange(4))
+        result = df.reindex(index=range(4), columns=range(4))
+        expected = df.reindex(list(range(4))).reindex(columns=range(4))
 
         assert_frame_equal(result, expected)
 
         df = DataFrame(np.random.randint(0, 10, (3, 3)))
 
-        result = df.reindex(index=lrange(2), columns=lrange(2))
-        expected = df.reindex(lrange(2)).reindex(columns=lrange(2))
+        result = df.reindex(index=range(2), columns=range(2))
+        expected = df.reindex(range(2)).reindex(columns=range(2))
 
         assert_frame_equal(result, expected)
 

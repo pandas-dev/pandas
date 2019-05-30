@@ -1,11 +1,10 @@
 import pandas._libs.json as json
-from pandas.compat import string_types
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import _validate_freeze_panes
 
 
-class _XlsxStyler(object):
+class _XlsxStyler:
     # Map from openpyxl-oriented styles to flatter xlsxwriter representation
     # Ordering necessary for both determinism and because some are keyed by
     # prefixes of others.
@@ -121,12 +120,12 @@ class _XlsxStyler(object):
                 else:
                     props[dst] = v
 
-        if isinstance(props.get('pattern'), string_types):
+        if isinstance(props.get('pattern'), str):
             # TODO: support other fill patterns
             props['pattern'] = 0 if props['pattern'] == 'none' else 1
 
         for k in ['border', 'top', 'right', 'bottom', 'left']:
-            if isinstance(props.get(k), string_types):
+            if isinstance(props.get(k), str):
                 try:
                     props[k] = ['none', 'thin', 'medium', 'dashed', 'dotted',
                                 'thick', 'double', 'hair', 'mediumDashed',
@@ -136,11 +135,11 @@ class _XlsxStyler(object):
                 except ValueError:
                     props[k] = 2
 
-        if isinstance(props.get('font_script'), string_types):
+        if isinstance(props.get('font_script'), str):
             props['font_script'] = ['baseline', 'superscript',
                                     'subscript'].index(props['font_script'])
 
-        if isinstance(props.get('underline'), string_types):
+        if isinstance(props.get('underline'), str):
             props['underline'] = {'none': 0, 'single': 1, 'double': 2,
                                   'singleAccounting': 33,
                                   'doubleAccounting': 34}[props['underline']]
@@ -161,11 +160,11 @@ class _XlsxWriter(ExcelWriter):
         if mode == 'a':
             raise ValueError('Append mode is not supported with xlsxwriter!')
 
-        super(_XlsxWriter, self).__init__(path, engine=engine,
-                                          date_format=date_format,
-                                          datetime_format=datetime_format,
-                                          mode=mode,
-                                          **engine_kwargs)
+        super().__init__(path, engine=engine,
+                         date_format=date_format,
+                         datetime_format=datetime_format,
+                         mode=mode,
+                         **engine_kwargs)
 
         self.book = xlsxwriter.Workbook(path, **engine_kwargs)
 

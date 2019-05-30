@@ -1,18 +1,17 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-
 import numpy as np
+import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
 
 import pandas as pd
-from pandas.core.config import option_context
+from pandas import option_context
 import pandas.util.testing as tm
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 
-class TestSparseSeriesFormatting(object):
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+class TestSparseSeriesFormatting:
 
     @property
     def dtype_format_for_platform(self):
@@ -108,7 +107,8 @@ class TestSparseSeriesFormatting(object):
             assert result == exp
 
 
-class TestSparseDataFrameFormatting(object):
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
+class TestSparseDataFrameFormatting:
 
     def test_sparse_frame(self):
         # GH 13110

@@ -1,6 +1,3 @@
-# coding=utf-8
-# pylint: disable-msg=E1101,W0612
-
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -8,7 +5,6 @@ import pytest
 
 from pandas._libs import iNaT
 import pandas._libs.index as _index
-from pandas.compat import lrange, range
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
@@ -52,20 +48,28 @@ def test_fancy_setitem():
     assert (s[48:54] == -3).all()
 
 
-def test_dti_snap():
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.parametrize('tz', [None, 'Asia/Shanghai', 'Europe/Berlin'])
+@pytest.mark.parametrize('name', [None, 'my_dti'])
+def test_dti_snap(name, tz):
     dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
-                         '1/5/2002', '1/6/2002', '1/7/2002'], freq='D')
+                         '1/5/2002', '1/6/2002', '1/7/2002'],
+                        name=name, tz=tz, freq='D')
 
-    res = dti.snap(freq='W-MON')
-    exp = date_range('12/31/2001', '1/7/2002', freq='w-mon')
-    exp = exp.repeat([3, 4])
-    assert (res == exp).all()
+    result = dti.snap(freq='W-MON')
+    expected = date_range('12/31/2001', '1/7/2002',
+                          name=name, tz=tz, freq='w-mon')
+    expected = expected.repeat([3, 4])
+    tm.assert_index_equal(result, expected)
+    assert result.tz == expected.tz
 
-    res = dti.snap(freq='B')
+    result = dti.snap(freq='B')
 
-    exp = date_range('1/1/2002', '1/7/2002', freq='b')
-    exp = exp.repeat([1, 1, 1, 2, 2])
-    assert (res == exp).all()
+    expected = date_range('1/1/2002', '1/7/2002',
+                          name=name, tz=tz, freq='b')
+    expected = expected.repeat([1, 1, 1, 2, 2])
+    tm.assert_index_equal(result, expected)
+    assert result.tz == expected.tz
 
 
 def test_dti_reset_index_round_trip():
@@ -111,7 +115,7 @@ def test_series_set_value():
 def test_slice_locs_indexerror():
     times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10)
              for i in range(100000)]
-    s = Series(lrange(100000), times)
+    s = Series(range(100000), times)
     s.loc[datetime(1900, 1, 1):datetime(2100, 1, 1)]
 
 
@@ -401,7 +405,7 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     stamp = Timestamp('1/8/2000')
 
-    with pytest.raises(KeyError, match=r"^947289600000000000L?$"):
+    with pytest.raises(KeyError, match=r"^947289600000000000$"):
         s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
@@ -410,7 +414,7 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     s = s[::-1]
 
-    with pytest.raises(KeyError, match=r"^947289600000000000L?$"):
+    with pytest.raises(KeyError, match=r"^947289600000000000$"):
         s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
@@ -502,7 +506,7 @@ def test_duplicate_dates_indexing(dups):
         expected = Series(np.where(mask, 0, ts), index=ts.index)
         assert_series_equal(cp, expected)
 
-    with pytest.raises(KeyError, match=r"^947116800000000000L?$"):
+    with pytest.raises(KeyError, match=r"^947116800000000000$"):
         ts[datetime(2000, 1, 6)]
 
     # new index
@@ -644,19 +648,19 @@ def test_indexing():
     # GH3546 (not including times on the last day)
     idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:00',
                      freq='H')
-    ts = Series(lrange(len(idx)), index=idx)
+    ts = Series(range(len(idx)), index=idx)
     expected = ts['2013-05']
     assert_series_equal(expected, ts)
 
     idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:59',
                      freq='S')
-    ts = Series(lrange(len(idx)), index=idx)
+    ts = Series(range(len(idx)), index=idx)
     expected = ts['2013-05']
     assert_series_equal(expected, ts)
 
     idx = [Timestamp('2013-05-31 00:00'),
            Timestamp(datetime(2013, 5, 31, 23, 59, 59, 999999))]
-    ts = Series(lrange(len(idx)), index=idx)
+    ts = Series(range(len(idx)), index=idx)
     expected = ts['2013']
     assert_series_equal(expected, ts)
 

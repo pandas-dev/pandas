@@ -15,12 +15,12 @@ dependencies:
   - ipywidgets
   - lxml
   - matplotlib
-  - nbconvert
+  - nbconvert>=5.4.1
   - nbformat
   - nbsphinx
-  - notebook
+  - notebook>=5.7.5
   - numexpr
-  - numpy=1.13*
+  - numpy
   - numpydoc
   - openpyxl
   - pandoc
@@ -29,7 +29,7 @@ dependencies:
   - pytables
   - python-dateutil
   - python-snappy
-  - python=3.6*
+  - python=3.6.*
   - pytz
   - scipy
   - seaborn

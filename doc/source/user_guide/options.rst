@@ -484,7 +484,7 @@ If a DataFrame or Series contains these characters, the default output mode may 
 
 .. ipython:: python
 
-   df = pd.DataFrame({u'国籍': ['UK', u'日本'], u'名前': ['Alice', u'しのぶ']})
+   df = pd.DataFrame({'国籍': ['UK', '日本'], '名前': ['Alice', 'しのぶ']})
    df
 
 .. image:: ../_static/option_unicode01.png
@@ -507,7 +507,7 @@ By default, an "Ambiguous" character's width, such as "¡" (inverted exclamation
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': ['xxx', u'¡¡'], 'b': ['yyy', u'¡¡']})
+   df = pd.DataFrame({'a': ['xxx', '¡¡'], 'b': ['yyy', '¡¡']})
    df
 
 .. image:: ../_static/option_unicode03.png

@@ -1,10 +1,6 @@
-# -*- coding: utf-8 -*-
-
-
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -12,7 +8,6 @@ from pandas import Index, MultiIndex
 import pandas.util.testing as tm
 
 
-@pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
 def test_drop(idx):
     dropped = idx.drop([('foo', 'two'), ('qux', 'one')])
 
@@ -77,9 +72,10 @@ def test_droplevel_with_names(idx):
     assert dropped.name == 'second'
 
     index = MultiIndex(
-        levels=[Index(lrange(4)), Index(lrange(4)), Index(lrange(4))],
-        codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
-            [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])],
+        levels=[Index(range(4)), Index(range(4)), Index(range(4))],
+        codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+               np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+               np.array([1, 0, 1, 1, 0, 0, 1, 0])],
         names=['one', 'two', 'three'])
     dropped = index.droplevel(0)
     assert dropped.names == ('two', 'three')
@@ -91,9 +87,10 @@ def test_droplevel_with_names(idx):
 
 def test_droplevel_list():
     index = MultiIndex(
-        levels=[Index(lrange(4)), Index(lrange(4)), Index(lrange(4))],
-        codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
-            [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])],
+        levels=[Index(range(4)), Index(range(4)), Index(range(4))],
+        codes=[np.array([0, 0, 1, 2, 2, 2, 3, 3]),
+               np.array([0, 1, 0, 0, 0, 1, 0, 1]),
+               np.array([1, 0, 1, 1, 0, 0, 1, 0])],
         names=['one', 'two', 'three'])
 
     dropped = index[:2].droplevel(['three', 'one'])
