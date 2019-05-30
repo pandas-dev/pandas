@@ -1411,7 +1411,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         ret = self._codes == -1
         return ret
-
     isnull = isna
 
     def notna(self):
@@ -1433,7 +1432,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         """
         return ~self.isna()
-
     notnull = notna
 
     def put(self, *args, **kwargs):
@@ -2555,7 +2553,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
              FutureWarning,
              stacklevel=2)
         return self._index
-
 
 # utility routines
 
