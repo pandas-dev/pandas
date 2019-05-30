@@ -208,7 +208,8 @@ class TestCategoricalOps:
         
     @pytest.mark.parametrize('data,reverse,base', [
         (list("abc"), list("cba"), list("bbb")),
-        ([1, 2, 3], [3, 2, 1], [2, 2, 2])])
+        ([1, 2, 3], [3, 2, 1], [2, 2, 2])]
+    )
     def test_comparisons(self, data, reverse, base):
         cat_rev = Series(
             Categorical(data, categories=reverse, ordered=True))
