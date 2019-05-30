@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_complex_dtype, is_datetime64_dtype, is_datetime_or_timedelta_dtype,
     is_float_dtype, is_integer_dtype, is_object_dtype, is_scalar,
     is_string_dtype, is_timedelta64_dtype)
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype, PandasExtensionDtype
 
 import pandas as pd
 
@@ -32,22 +32,28 @@ def _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
         result_dtype, result_fill_value = maybe_promote(dtype, fill_value)
         expected_fill_value = exp_val_for_scalar
 
-    # try/except as numpy dtypes (i.e. if result_dtype is np.object_) do not
-    # know some expected dtypes like DatetimeTZDtype, and hence raise TypeError
-    try:
-        assert result_dtype == expected_dtype
-    except TypeError:
+    if isinstance(expected_dtype, PandasExtensionDtype):
+        # numpy dtypes (e.g. if result_dtype is np.object_) do not know some
+        # expected dtypes and would raise TypeError in their __eq__-method.
         assert expected_dtype == result_dtype
+    else:
+        assert result_dtype == expected_dtype
 
     # for equal values, also check type (relevant e.g. for int vs float, resp.
     # for different datetimes and timedeltas)
-    # for missing values, None == None and iNaT == iNaT, but np.nan != np.nan
-    assert ((result_fill_value == expected_fill_value
-             # disabled type check due to too many xfails; see GH 23982 / 25425
-             # and type(result_fill_value) == type(expected_fill_value)
-             )
-            or (result_fill_value is np.nan and expected_fill_value is np.nan)
-            or (result_fill_value is NaT and expected_fill_value is NaT))
+    match_value = (result_fill_value == expected_fill_value
+                   # disabled type check due to too many xfails; GH 23982/25425
+                   # and type(result_fill_value) == type(expected_fill_value)
+                   )
+
+    # for missing values, None == None and iNaT == iNaT (are checked through
+    # match_value), but np.nan != np.nan and pd.NaT != pd.NaT
+    match_missing = ((result_fill_value is np.nan
+                      and expected_fill_value is np.nan)
+                     or (result_fill_value is NaT
+                         and expected_fill_value is NaT))
+
+    assert match_value or match_missing
 
 
 def test_maybe_promote_int_with_int():
