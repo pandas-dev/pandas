@@ -1217,24 +1217,24 @@ class TestExcelWriter(_WriterBase):
 
     @pytest.mark.parametrize("np_type", [
         np.int8, np.int16, np.int32, np.int64])
-    def test_int_types(self, merge_cells, engine, ext, np_type, frame):
+    def test_int_types(self, merge_cells, engine, ext, np_type):
         # Test np.int values read come back as int
         # (rather than float which is Excel's format).
-        frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)),
-                          dtype=np_type)
-        frame.to_excel(self.path, "test1")
+        df = DataFrame(np.random.randint(-10, 10, size=(10, 2)),
+                       dtype=np_type)
+        df.to_excel(self.path, "test1")
 
         reader = ExcelFile(self.path)
         recons = pd.read_excel(reader, "test1", index_col=0)
 
-        int_frame = frame.astype(np.int64)
+        int_frame = df.astype(np.int64)
         tm.assert_frame_equal(int_frame, recons)
 
         recons2 = pd.read_excel(self.path, "test1", index_col=0)
         tm.assert_frame_equal(int_frame, recons2)
 
         # Test with convert_float=False comes back as float.
-        float_frame = frame.astype(float)
+        float_frame = df.astype(float)
         recons = pd.read_excel(self.path, "test1",
                                convert_float=False, index_col=0)
         tm.assert_frame_equal(recons, float_frame,
@@ -1243,35 +1243,35 @@ class TestExcelWriter(_WriterBase):
 
     @pytest.mark.parametrize("np_type", [
         np.float16, np.float32, np.float64])
-    def test_float_types(self, merge_cells, engine, ext, np_type, frame):
+    def test_float_types(self, merge_cells, engine, ext, np_type):
         # Test np.float values read come back as float.
-        frame = DataFrame(np.random.random_sample(10), dtype=np_type)
-        frame.to_excel(self.path, "test1")
+        df = DataFrame(np.random.random_sample(10), dtype=np_type)
+        df.to_excel(self.path, "test1")
 
         reader = ExcelFile(self.path)
         recons = pd.read_excel(reader, "test1", index_col=0).astype(np_type)
 
-        tm.assert_frame_equal(frame, recons, check_dtype=False)
+        tm.assert_frame_equal(df, recons, check_dtype=False)
 
     @pytest.mark.parametrize("np_type", [np.bool8, np.bool_])
-    def test_bool_types(self, merge_cells, engine, ext, np_type, frame):
+    def test_bool_types(self, merge_cells, engine, ext, np_type):
         # Test np.bool values read come back as float.
-        frame = (DataFrame([1, 0, True, False], dtype=np_type))
-        frame.to_excel(self.path, "test1")
+        df = (DataFrame([1, 0, True, False], dtype=np_type))
+        df.to_excel(self.path, "test1")
 
         reader = ExcelFile(self.path)
         recons = pd.read_excel(reader, "test1", index_col=0).astype(np_type)
 
-        tm.assert_frame_equal(frame, recons)
+        tm.assert_frame_equal(df, recons)
 
-    def test_inf_roundtrip(self, frame, *_):
-        frame = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)])
-        frame.to_excel(self.path, "test1")
+    def test_inf_roundtrip(self, *_):
+        df = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)])
+        df.to_excel(self.path, "test1")
 
         reader = ExcelFile(self.path)
         recons = pd.read_excel(reader, "test1", index_col=0)
 
-        tm.assert_frame_equal(frame, recons)
+        tm.assert_frame_equal(df, recons)
 
     def test_sheets(self, merge_cells, engine, ext, frame, tsframe):
         frame['A'][:5] = nan
@@ -1428,54 +1428,54 @@ class TestExcelWriter(_WriterBase):
             # we need to use df_expected to check the result.
             tm.assert_frame_equal(rs2, df_expected)
 
-    def test_to_excel_interval_no_labels(self, frame, *_):
+    def test_to_excel_interval_no_labels(self, *_):
         # see gh-19242
         #
         # Test writing Interval without labels.
-        frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
-                          dtype=np.int64)
+        df = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
+                       dtype=np.int64)
         expected = frame.copy()
 
-        frame["new"] = pd.cut(frame[0], 10)
+        df["new"] = pd.cut(frame[0], 10)
         expected["new"] = pd.cut(expected[0], 10).astype(str)
 
-        frame.to_excel(self.path, "test1")
+        df.to_excel(self.path, "test1")
         reader = ExcelFile(self.path)
 
         recons = pd.read_excel(reader, "test1", index_col=0)
         tm.assert_frame_equal(expected, recons)
 
-    def test_to_excel_interval_labels(self, frame, *_):
+    def test_to_excel_interval_labels(self, *_):
         # see gh-19242
         #
         # Test writing Interval with labels.
-        frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
-                          dtype=np.int64)
-        expected = frame.copy()
+        df = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
+                       dtype=np.int64)
+        expected = df.copy()
         intervals = pd.cut(frame[0], 10, labels=["A", "B", "C", "D", "E",
                                                  "F", "G", "H", "I", "J"])
-        frame["new"] = intervals
+        df["new"] = intervals
         expected["new"] = pd.Series(list(intervals))
 
-        frame.to_excel(self.path, "test1")
+        df.to_excel(self.path, "test1")
         reader = ExcelFile(self.path)
 
         recons = pd.read_excel(reader, "test1", index_col=0)
         tm.assert_frame_equal(expected, recons)
 
-    def test_to_excel_timedelta(self, frame, *_):
+    def test_to_excel_timedelta(self, *_):
         # see gh-19242, gh-9155
         #
         # Test writing timedelta to xls.
-        frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
-                          columns=["A"], dtype=np.int64)
-        expected = frame.copy()
+        df = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
+                       columns=["A"], dtype=np.int64)
+        expected = df.copy()
 
-        frame["new"] = frame["A"].apply(lambda x: timedelta(seconds=x))
+        df["new"] = df["A"].apply(lambda x: timedelta(seconds=x))
         expected["new"] = expected["A"].apply(
             lambda x: timedelta(seconds=x).total_seconds() / float(86400))
 
-        frame.to_excel(self.path, "test1")
+        df.to_excel(self.path, "test1")
         reader = ExcelFile(self.path)
 
         recons = pd.read_excel(reader, "test1", index_col=0)
@@ -1492,7 +1492,6 @@ class TestExcelWriter(_WriterBase):
         tm.assert_frame_equal(xp, rs.to_period('M'))
 
     def test_to_excel_multiindex(self, merge_cells, engine, ext, frame):
-        frame = frame
         arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays,
                                            names=['first', 'second'])
@@ -1509,21 +1508,20 @@ class TestExcelWriter(_WriterBase):
 
     # GH13511
     def test_to_excel_multiindex_nan_label(
-            self, merge_cells, engine, ext, frame):
-        frame = pd.DataFrame({'A': [None, 2, 3],
-                              'B': [10, 20, 30],
-                              'C': np.random.sample(3)})
-        frame = frame.set_index(['A', 'B'])
+            self, merge_cells, engine, ext, ):
+        df = pd.DataFrame({'A': [None, 2, 3],
+                           'B': [10, 20, 30],
+                           'C': np.random.sample(3)})
+        df = df.set_index(['A', 'B'])
 
-        frame.to_excel(self.path, merge_cells=merge_cells)
-        df = pd.read_excel(self.path, index_col=[0, 1])
-        tm.assert_frame_equal(frame, df)
+        df.to_excel(self.path, merge_cells=merge_cells)
+        df1 = pd.read_excel(self.path, index_col=[0, 1])
+        tm.assert_frame_equal(df, df1)
 
     # Test for Issue 11328. If column indices are integers, make
     # sure they are handled correctly for either setting of
     # merge_cells
     def test_to_excel_multiindex_cols(self, merge_cells, engine, ext, frame):
-        frame = frame
         arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays,
                                            names=['first', 'second'])
