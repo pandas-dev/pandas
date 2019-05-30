@@ -6,9 +6,14 @@ import warnings
 import numpy as np
 
 from pandas import (
-    Categorical, DataFrame, MultiIndex, Series, TimeGrouper, Timestamp,
+    Categorical, DataFrame, MultiIndex, Series, Timestamp,
     date_range, period_range)
 import pandas.util.testing as tm
+
+try:
+    from pandas import TimeGrouper
+except ImportError:
+    pass
 
 
 method_blacklist = {
