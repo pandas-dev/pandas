@@ -2494,7 +2494,7 @@ class DataFrame(NDFrame):
         4      1      1.0    1.0+0.0j       1  True
 
         >>> df.memory_usage()
-        Index            80
+        Index           192
         int64         40000
         float64       40000
         complex128    80000
