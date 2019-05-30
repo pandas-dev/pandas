@@ -11,7 +11,7 @@ import pandas.core.common as com
 from pandas.util import testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 class TestMultiIndexSetItem:
 
     def test_setitem_multiindex(self):
@@ -280,7 +280,7 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(df['value'], result)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             result = df.ix[:, 'value']
         tm.assert_series_equal(df['value'], result)
 

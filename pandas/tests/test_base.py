@@ -38,7 +38,6 @@ class CheckStringMixin:
             pytest.skip('Need unicode_container to test with this')
         repr(self.unicode_container)
         str(self.unicode_container)
-        bytes(self.unicode_container)
 
 
 class CheckImmutable:

@@ -8,7 +8,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import hashtable as libhashtable, join as libjoin, lib
+from pandas._libs import hashtable as libhashtable, lib
+import pandas._libs.join as libjoin
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -1674,8 +1675,8 @@ _join_functions = {
 def _factorize_keys(lk, rk, sort=True):
     # Some pre-processing for non-ndarray lk / rk
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
-        lk = lk._data
-        rk = rk._data
+        lk = getattr(lk, '_values', lk)._data
+        rk = getattr(rk, '_values', rk)._data
 
     elif (is_categorical_dtype(lk) and
             is_categorical_dtype(rk) and
