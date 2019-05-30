@@ -1863,12 +1863,13 @@ class StringMethods(NoNewAttributesMixin):
     @staticmethod
     def _validate(data):
         """
-        Auxiliary function for string methods, infers and checks dtype of data.
+        Auxiliary function for StringMethods, infers and checks dtype of data.
 
-        This is a "first line of defence" and just checks that the dtype is in
-        the *union* of the allowed types over all string methods below; this
+        This is a "first line of defence" at the creation of the StringMethods-
+        object (see _make_accessor), and just checks that the dtype is in the
+        *union* of the allowed types over all string methods below; this
         restriction is then refined on a per-method basis using the decorator
-        @forbid_nonstring_types.
+        @forbid_nonstring_types (more info in the corresponding docstring).
 
         This really should exclude all series/index with any non-string values,
         but that isn't practical for performance reasons until we have a str
