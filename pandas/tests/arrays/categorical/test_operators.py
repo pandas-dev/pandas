@@ -198,7 +198,7 @@ class TestCategoricalOps:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             actual = getattr(cat, compare_operators_no_eq_ne)(scalar)
-            expected = getattr(np.array(cat), 
+            expected = getattr(np.array(cat),
                                compare_operators_no_eq_ne)(scalar)
             tm.assert_numpy_array_equal(actual, expected)
 
