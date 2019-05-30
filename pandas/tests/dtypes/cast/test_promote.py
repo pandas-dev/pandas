@@ -22,13 +22,44 @@ import pandas as pd
 
 def _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
                    exp_val_for_scalar=None, exp_val_for_array=None):
+    """
+    Auxiliary function to unify handling of scalar/array promotion.
+
+    Parameters
+    ----------
+    dtype : dtype
+        The value to pass on as an argument to maybe_promote.
+    fill_value : scalar
+        The value to pass on as an argument to maybe_promote, *either* as a
+        scalar, or boxed into an array (depending on the parameter `boxed`).
+    boxed : Boolean
+        Parameter whether fill_value should be passed to maybe_promote
+        directly, or wrapped in an array (of dtype box_dtype).
+    box_dtype : dtype
+        The dtype to enforce when wrapping fill_value into an array.
+    expected_dtype : dtype
+        The expected return of maybe_promote (should be the same, regardless of
+        whether the value was passed as scalar or in an array!).
+    exp_val_for_scalar : scalar
+        The expected value for the returned value (that has potentially been
+        upcast by maybe_promote).
+    exp_val_for_array : scalar
+        The expected missing value marker for the expected_dtype (which is
+        returned by maybe_promote when fill_value is an array).
+    """
     assert is_scalar(fill_value)
 
     if boxed:
+        # here, we pass on fill_value as an array of specified box_dtype;
+        # the expected value returned from maybe_promote is the missing value
+        # marker for the returned dtype.
         fill_array = np.array([fill_value], dtype=box_dtype)
         result_dtype, result_fill_value = maybe_promote(dtype, fill_array)
         expected_fill_value = exp_val_for_array
     else:
+        # here, we pass on fill_value as a scalar directly; the expected value
+        # returned from maybe_promote is fill_value, potentially upcast to the
+        # returned dtype.
         result_dtype, result_fill_value = maybe_promote(dtype, fill_value)
         expected_fill_value = exp_val_for_scalar
 
