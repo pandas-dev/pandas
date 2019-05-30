@@ -1,4 +1,5 @@
 import operator
+import warnings
 
 import numpy as np
 import pytest
@@ -7,7 +8,6 @@ import pandas as pd
 from pandas import Categorical, DataFrame, Series, date_range
 from pandas.tests.arrays.categorical.common import TestCategorical
 import pandas.util.testing as tm
-import warnings
 
 
 class TestCategoricalOpsWithFactor(TestCategorical):
