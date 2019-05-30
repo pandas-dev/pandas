@@ -19,6 +19,47 @@ These are the changes in pandas 0.25.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_0250.enhancements.agg_relabel:
+
+Groupby Aggregation with Relabeling
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas has added special groupby behavior, known as "named aggregation", for naming the
+output columns when applying multiple aggregation functions to specific columns (:issue:`18366`).
+
+.. ipython:: python
+
+   animals = pd.DataFrame({'kind': ['cat', 'dog', 'cat', 'dog'],
+                           'height': [9.1, 6.0, 9.5, 34.0],
+                           'weight': [7.9, 7.5, 9.9, 198.0]})
+   animals
+   animals.groupby("kind").agg(
+       min_height=pd.NamedAgg(column='height', aggfunc='min'),
+       max_height=pd.NamedAgg(column='height', aggfunc='max'),
+       average_weight=pd.NamedAgg(column='height', aggfunc=np.mean),
+   )
+
+Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
+should be tuples where the first element is the column selection, and the second element is the
+aggregation function to apply. Pandas provides the ``pandas.NamedAgg`` namedtuple to make it clearer
+what the arguments to the function are, but plain tuples are accepted as well.
+
+.. ipython:: python
+
+   animals.groupby("kind").agg(
+       min_height=('height', 'min'),
+       max_height=('height', 'max'),
+       average_weight=('height', np.mean),
+   )
+
+Named aggregation is the recommended replacement for the deprecated "dict-of-dicts"
+approach to naming the output of column-specific aggregations (:ref:`whatsnew_0200.api_breaking.deprecate_group_agg_dict`).
+
+See :ref:`_groupby.aggregate.named` for more.
+
 .. _whatsnew_0250.enhancements.other:
 
 Other Enhancements

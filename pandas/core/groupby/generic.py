@@ -6,15 +6,18 @@ These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
 
-from collections import OrderedDict, abc
+from collections import OrderedDict, abc, namedtuple
 import copy
 from functools import partial
 from textwrap import dedent
+import typing
+from typing import Any, Callable, List, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timestamp, lib
+from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
@@ -40,6 +43,10 @@ from pandas.core.series import Series
 from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting._core import boxplot_frame_groupby
+
+NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
+# TODO(typing) the return value on this callable should be any *scalar*.
+AggScalar = Union[str, Callable[..., Any]]
 
 
 class NDFrameGroupBy(GroupBy):
@@ -144,8 +151,18 @@ class NDFrameGroupBy(GroupBy):
         return new_items, new_blocks
 
     def aggregate(self, func, *args, **kwargs):
-
         _level = kwargs.pop('_level', None)
+
+        relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
+        if relabeling:
+            func, columns, order = _normalize_keyword_aggregation(kwargs)
+
+            kwargs = {}
+        elif func is None:
+            # nicer error message
+            raise TypeError("Must provide 'func' or tuples of "
+                            "'(column, aggfunc).")
+
         result, how = self._aggregate(func, _level=_level, *args, **kwargs)
         if how is None:
             return result
@@ -178,6 +195,10 @@ class NDFrameGroupBy(GroupBy):
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
             result.index = np.arange(len(result))
+
+        if relabeling:
+            result = result[order]
+            result.columns = columns
 
         return result._convert(datetime=True)
 
@@ -791,11 +812,8 @@ class SeriesGroupBy(GroupBy):
             # list of functions / function names
             columns = []
             for f in arg:
-                if isinstance(f, str):
-                    columns.append(f)
-                else:
-                    # protect against callables without names
-                    columns.append(com.get_callable_name(f))
+                columns.append(com.get_callable_name(f) or f)
+
             arg = zip(columns, arg)
 
         results = OrderedDict()
@@ -1296,6 +1314,26 @@ class DataFrameGroupBy(NDFrameGroupBy):
     A
     1   1   2  0.590716
     2   3   4  0.704907
+
+    To control the output names with different aggregations per column,
+    pandas supports "named aggregation"
+
+    >>> df.groupby("A").agg(
+    ...     b_min=pd.NamedAgg(column="B", aggfunc="min"),
+    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum"))
+       b_min     c_sum
+    A
+    1      1 -1.956929
+    2      3 -0.322183
+
+    - The keywords are the *output* column names
+    - The values are tuples whose first element is the column to select
+      and the second element is the aggregation to apply to that column.
+      Pandas provides the ``pandas.NamedAgg`` namedtuple with the fields
+      ``['column', 'aggfunc']`` to make it clearer what the arguments are.
+      As usual, the aggregation can be a callable or a string alias.
+
+    See :ref:`groupby.aggregate.named` for more.
     """)
 
     @Substitution(see_also=_agg_see_also_doc,
@@ -1304,7 +1342,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
                   klass='DataFrame',
                   axis='')
     @Appender(_shared_docs['aggregate'])
-    def aggregate(self, arg, *args, **kwargs):
+    def aggregate(self, arg=None, *args, **kwargs):
         return super().aggregate(arg, *args, **kwargs)
 
     agg = aggregate
@@ -1577,3 +1615,77 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return results
 
     boxplot = boxplot_frame_groupby
+
+
+def _is_multi_agg_with_relabel(**kwargs):
+    """
+    Check whether the kwargs pass to .agg look like multi-agg with relabling.
+
+    Parameters
+    ----------
+    **kwargs : dict
+
+    Returns
+    -------
+    bool
+
+    Examples
+    --------
+    >>> _is_multi_agg_with_relabel(a='max')
+    False
+    >>> _is_multi_agg_with_relabel(a_max=('a', 'max'),
+    ...                            a_min=('a', 'min'))
+    True
+    >>> _is_multi_agg_with_relabel()
+    False
+    """
+    return all(
+        isinstance(v, tuple) and len(v) == 2
+        for v in kwargs.values()
+    ) and kwargs
+
+
+def _normalize_keyword_aggregation(kwargs):
+    """
+    Normalize user-provided "named aggregation" kwargs.
+
+    Transforms from the new ``Dict[str, NamedAgg]`` style kwargs
+    to the old OrderedDict[str, List[scalar]]].
+
+    Parameters
+    ----------
+    kwargs : dict
+
+    Returns
+    -------
+    aggspec : dict
+        The transformed kwargs.
+    columns : List[str]
+        The user-provided keys.
+    order : List[Tuple[str, str]]
+        Pairs of the input and output column names.
+
+    Examples
+    --------
+    >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
+    (OrderedDict([('input', ['sum'])]), ('output',), [('input', 'sum')])
+    """
+    if not PY36:
+        kwargs = OrderedDict(sorted(kwargs.items()))
+
+    # Normalize the aggregation functions as Dict[column, List[func]],
+    # process normally, then fixup the names.
+    # TODO(Py35): When we drop python 3.5, change this to
+    # defaultdict(list)
+    aggspec = OrderedDict()  # type: typing.OrderedDict[str, List[AggScalar]]
+    order = []
+    columns, pairs = list(zip(*kwargs.items()))
+
+    for name, (column, aggfunc) in zip(columns, pairs):
+        if column in aggspec:
+            aggspec[column].append(aggfunc)
+        else:
+            aggspec[column] = [aggfunc]
+        order.append((column,
+                      com.get_callable_name(aggfunc) or aggfunc))
+    return aggspec, columns, order

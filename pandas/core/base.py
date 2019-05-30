@@ -340,11 +340,15 @@ class SelectionMixin:
             def nested_renaming_depr(level=4):
                 # deprecation of nested renaming
                 # GH 15931
-                warnings.warn(
-                    ("using a dict with renaming "
-                     "is deprecated and will be removed in a future "
-                     "version"),
-                    FutureWarning, stacklevel=level)
+                msg = textwrap.dedent("""\
+                using a dict with renaming is deprecated and will be removed
+                in a future version.
+
+                For column-specific groupby renaming, use named aggregation
+
+                    >>> df.groupby(...).agg(name=('column', aggfunc))
+                """)
+                warnings.warn(msg, FutureWarning, stacklevel=level)
 
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
