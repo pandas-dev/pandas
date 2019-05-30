@@ -1,8 +1,10 @@
-from typing import Union, Sequence
+from pathlib import Path
+from typing import Sequence, Union
+
 from pandas.core.api import DataFrame
 
 
-def read_spss(path: str,
+def read_spss(path: Union[str, Path],
               usecols: Union[str, Sequence[str], None] = None,
               categorical: bool = True) -> DataFrame:
     """
@@ -12,7 +14,7 @@ def read_spss(path: str,
 
     Parameters
     ----------
-    path : string
+    path : string or Path
         File path
     usecols : str or list-like or None
         Return a subset of the columns. If None, return all columns.

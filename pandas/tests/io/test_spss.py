@@ -6,7 +6,6 @@ from pandas.util import testing as tm
 
 from pandas.io.spss import read_spss
 
-
 pyreadstat = pytest.importorskip("pyreadstat")
 
 
