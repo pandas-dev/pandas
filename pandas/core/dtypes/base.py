@@ -173,17 +173,16 @@ class ExtensionDtype:
 
     @classmethod
     def construct_from_string(cls, string):
-        """
+        r"""
         Construct this type from a string.
 
         This is useful mainly for data types that accept parameters.
-        For example, datetime types can accept units (e.g. nanoseconds)
-        or timezones. In those cases, the expected type could be
-        something like ``datetime64[ns, UTC]``.
+        For example, a period dtype accepts a frequency parameter that
+        can be set as ``period[H]`` (where H means hourly frequency).
 
         By default, in the abstract class, just the name of the type is
         expected. But subclasses can overwrite this method to accept
-        type parameters.
+        parameters.
 
         Parameters
         ----------
@@ -207,7 +206,7 @@ class ExtensionDtype:
 
         >>> @classmethod
         ... def construct_from_string(cls, string):
-        ...     pattern = re.compile(r"^my_type\[(?P<arg_name>.+)\]$")  # noqa
+        ...     pattern = re.compile(r"^my_type\[(?P<arg_name>.+)\]$")
         ...     match = pattern.match(string)
         ...     if match:
         ...         return cls(**match.groupdict())
