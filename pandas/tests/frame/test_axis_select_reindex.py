@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
-class TestDataFrameSelectReindex():
+class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 
