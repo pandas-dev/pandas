@@ -302,8 +302,6 @@ This change is backward compatible for direct usage of Pandas, but if you subcla
 Pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
 you may have to adjust your ``__str__``/``__repr__`` methods (:issue:`26495`).
 
->>>>>>> upstream/master
-
 .. _whatsnew_0250.api_breaking.deps:
 
 Increased minimum versions for dependencies
