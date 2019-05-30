@@ -1,7 +1,11 @@
 import numpy as np
 
-from pandas._libs.tslibs.parsing import (
-    _concat_date_cols, _does_string_look_like_datetime)
+try:
+    from pandas._libs.tslibs.parsing import (
+        _concat_date_cols, _does_string_look_like_datetime)
+except ImportError:
+    # Avoid whole benchmark suite import failure on asv (currently 0.4)
+    pass
 
 
 class DoesStringLookLikeDatetime(object):

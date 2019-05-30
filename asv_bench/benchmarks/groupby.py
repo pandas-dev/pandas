@@ -1,12 +1,11 @@
 from functools import partial
 from itertools import product
 from string import ascii_letters
-import warnings
 
 import numpy as np
 
 from pandas import (
-    Categorical, DataFrame, MultiIndex, Series, TimeGrouper, Timestamp,
+    Categorical, DataFrame, MultiIndex, Series, Timestamp,
     date_range, period_range)
 import pandas.util.testing as tm
 
@@ -300,10 +299,6 @@ class Size:
 
     def time_multi_size(self):
         self.df.groupby(['key1', 'key2']).size()
-
-    def time_dt_timegrouper_size(self):
-        with warnings.catch_warnings(record=True):
-            self.df.groupby(TimeGrouper(key='dates', freq='M')).size()
 
     def time_category_size(self):
         self.draws.groupby(self.cats).size()
