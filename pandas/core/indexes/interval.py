@@ -8,7 +8,7 @@ from pandas._config import get_option
 
 from pandas._libs import Timedelta, Timestamp
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
@@ -822,7 +822,15 @@ class IntervalIndex(IntervalMixin, Index):
             loc = self.get_loc(key)
         return series.iloc[loc]
 
-    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
+    @Substitution(**dict(_index_doc_kwargs,
+                         **{'raises_section': textwrap.dedent("""
+        Raises
+        ------
+        NotImplementedError
+            If any method argument other than the default of
+            None is specified as these are not yet implemented.
+        """)}))
+    @Appender(_index_shared_docs['get_indexer'])
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
 
         self._check_method(method)
