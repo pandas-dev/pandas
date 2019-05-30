@@ -7,6 +7,7 @@ import pandas as pd
 from pandas import Categorical, DataFrame, Series, date_range
 from pandas.tests.arrays.categorical.common import TestCategorical
 import pandas.util.testing as tm
+import warnings
 
 
 class TestCategoricalOpsWithFactor(TestCategorical):
@@ -193,8 +194,14 @@ class TestCategoricalOps:
         # values should be evaluated as False
 
         cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
-
-        assert getattr(cat, compare_operators_no_eq_ne)(2)[-1] == False
+        scalar = 2
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            actual = getattr(cat, compare_operators_no_eq_ne)(scalar)
+            expected = getattr(np.array(cat), compare_operators_no_eq_ne)(scalar)
+            tm.assert_numpy_array_equal(actual, expected)
+        
 
     def test_comparison_of_ordered_categorical_with_nan_to_listlike(
             self, compare_operators_no_eq_ne):
@@ -204,7 +211,12 @@ class TestCategoricalOps:
 
         cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
         other = Categorical([2, 2, 2, 2], categories=[1, 2, 3], ordered=True)
-        assert getattr(cat, compare_operators_no_eq_ne)(other)[-1] == False
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            actual = getattr(cat, compare_operators_no_eq_ne)(other)
+            expected = getattr(np.array(cat), compare_operators_no_eq_ne)(2)
+            tm.assert_numpy_array_equal(actual, expected)
         
     @pytest.mark.parametrize('data,reverse,base', [
         (list("abc"), list("cba"), list("bbb")),
