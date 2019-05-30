@@ -868,7 +868,7 @@ You can also set using these same indexers.
 
 .. ipython:: python
 
-   df.at[dates[-1] + 1, 0] = 7
+   df.at[dates[-1] + pd.Timedelta('1 day'), 0] = 7
    df
 
 Boolean indexing

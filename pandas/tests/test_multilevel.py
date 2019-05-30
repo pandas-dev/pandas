@@ -188,7 +188,7 @@ class TestMultiLevel(Base):
         tm.assert_frame_equal(reindexed, expected)
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             reindexed = self.frame.ix[[('foo', 'one'), ('bar', 'one')]]
         tm.assert_frame_equal(reindexed, expected)
 
@@ -201,7 +201,7 @@ class TestMultiLevel(Base):
         assert chunk.index is new_index
 
         with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
+            simplefilter("ignore", FutureWarning)
             chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
@@ -1014,7 +1014,7 @@ Thur,Lunch,Yes,51.51,17"""
         df['Totals', ''] = df.sum(1)
         df = df._consolidate()
 
-    def test_ix_preserve_names(self):
+    def test_loc_preserve_names(self):
         result = self.ymd.loc[2000]
         result2 = self.ymd['A'].loc[2000]
         assert result.index.names == self.ymd.index.names[1:]
