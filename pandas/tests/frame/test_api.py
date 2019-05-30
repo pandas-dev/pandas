@@ -1,4 +1,5 @@
 from copy import deepcopy
+import datetime
 import pydoc
 
 import numpy as np
@@ -111,11 +112,9 @@ class SharedWithSparse:
         getkeys = float_frame.keys
         assert getkeys() is float_frame.columns
 
-    def test_column_contains_typeerror(self, float_frame):
-        try:
+    def test_column_contains_raises(self, float_frame):
+        with pytest.raises(TypeError, match="unhashable type: 'Index'"):
             float_frame.columns in float_frame
-        except TypeError:
-            pass
 
     def test_tab_completion(self):
         # DataFrame whose columns are identifiers shall have them in __dir__.
@@ -223,6 +222,17 @@ class SharedWithSparse:
         for k, v in s.iterrows():
             exp = s.loc[k]
             self._assert_series_equal(v, exp)
+
+    def test_iterrows_corner(self):
+        # gh-12222
+        df = DataFrame(
+            {'a': [datetime.datetime(2015, 1, 1)], 'b': [None], 'c': [None],
+             'd': [''], 'e': [[]], 'f': [set()], 'g': [{}]})
+        expected = Series(
+            [datetime.datetime(2015, 1, 1), None, None, '', [], set(), {}],
+            index=list('abcdefg'), name=0, dtype='object')
+        _, result = next(df.iterrows())
+        tm.assert_series_equal(result, expected)
 
     def test_itertuples(self, float_frame):
         for i, tup in enumerate(float_frame.itertuples()):

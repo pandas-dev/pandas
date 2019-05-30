@@ -29,11 +29,20 @@ class TestDatetimeIndexSetOps:
         union = first.union(second, sort=sort)
         tm.assert_index_equal(union, everything)
 
+    @pytest.mark.parametrize("box", [np.array, Series, list])
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_union3(self, sort, box):
+        everything = tm.makeDateIndex(10)
+        first = everything[:5]
+        second = everything[5:]
+
         # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            result = first.union(case, sort=sort)
-            tm.assert_index_equal(result, everything)
+        expected = first.astype('O').union(
+            pd.Index(second.values, dtype='O')
+        ).astype('O')
+        case = box(second.values)
+        result = first.union(case, sort=sort)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("tz", tz)
     @pytest.mark.parametrize("sort", [None, False])
@@ -303,11 +312,12 @@ class TestDatetimeIndexSetOps:
         empty = Index([])
 
         result = dti.union(empty, sort=sort)
-        assert isinstance(result, DatetimeIndex)
-        assert result is result
+        expected = dti.astype('O')
+        tm.assert_index_equal(result, expected)
 
         result = dti.join(empty)
         assert isinstance(result, DatetimeIndex)
+        tm.assert_index_equal(result, dti)
 
     def test_join_nonunique(self):
         idx1 = to_datetime(['2012-11-06 16:00:11.477563',
