@@ -70,7 +70,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     is_named_tuple)
 from pandas.core.dtypes.generic import (
-    ABCSeries, ABCDataFrame, ABCIndexClass, ABCMultiIndex)
+    ABCSeries, ABCDataFrame, ABCIndexClass, ABCIntervalIndex, ABCMultiIndex)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms
@@ -2866,7 +2866,12 @@ class DataFrame(NDFrame):
         if is_single_key:
             if self.columns.nlevels > 1:
                 return self._getitem_multilevel(key)
+
             indexer = self.columns.get_loc(key)
+            if isinstance(self.columns, ABCIntervalIndex):
+                # GH 26490: convert points to Intervals
+                key = self.columns[indexer]
+
             if is_integer(indexer):
                 indexer = [indexer]
         else:
@@ -2887,7 +2892,7 @@ class DataFrame(NDFrame):
             # - the key itself is repeated (test on data.shape, #9519), or
             # - we have a MultiIndex on columns (test on self.columns, #21309)
             if data.shape[1] == 1 and not isinstance(self.columns, MultiIndex):
-                data = data.squeeze()
+                data = data[key]
 
         return data
 
