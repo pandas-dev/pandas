@@ -10,6 +10,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 from pandas.core.base import SpecificationError
+from pandas.core.groupby.generic import _maybe_mangle_lambdas
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
 
@@ -208,15 +209,6 @@ def test_multiple_functions_tuples_and_non_tuples(df):
     result = df.groupby('A').agg(funcs)
     expected = df.groupby('A').agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
-
-
-def test_agg_multiple_functions_too_many_lambdas(df):
-    grouped = df.groupby('A')
-    funcs = ['mean', lambda x: x.mean(), lambda x: x.std()]
-
-    msg = 'Function names must be unique, found multiple named <lambda>'
-    with pytest.raises(SpecificationError, match=msg):
-        grouped.agg(funcs)
 
 
 def test_more_flexible_frame_multi_function(df):
@@ -457,4 +449,75 @@ class TestNamedAggregationDataFrame:
         )
         expected = df.groupby("A").agg(b=("B", "sum"),
                                        c=("B", "count"))
+        tm.assert_frame_equal(result, expected)
+
+
+class TestLambdaMangling:
+
+    def test_maybe_mangle_lambdas_passthrough(self):
+        assert _maybe_mangle_lambdas('mean') == 'mean'
+        assert _maybe_mangle_lambdas(lambda x: x).__name__ == '<lambda>'
+        assert [x.__name__ for x in _maybe_mangle_lambdas([lambda x: x])
+                ] == ['<lambda>']
+
+    def test_maybe_mangle_lambdas_listlike(self):
+        aggfuncs = [lambda x: 1, lambda x: 2]
+        result = _maybe_mangle_lambdas(aggfuncs)
+        assert result[0].__name__ == '<lambda>'
+        assert result[1].__name__ == '<lambda_1>'
+        assert aggfuncs[0](None) == result[0](None)
+        assert aggfuncs[1](None) == result[1](None)
+
+    def test_maybe_mangle_lambdas(self):
+        func = {
+            'A': [lambda x: 0, lambda x: 1]
+        }
+        result = _maybe_mangle_lambdas(func)
+        assert result['A'][0].__name__ == '<lambda>'
+        assert result['A'][1].__name__ == '<lambda_1>'
+
+    def test_maybe_mangle_lambdas_args(self):
+        func = {
+            'A': [lambda x, a, b=1: (0, a, b), lambda x: 1]
+        }
+        result = _maybe_mangle_lambdas(func)
+        assert result['A'][0].__name__ == '<lambda>'
+        assert result['A'][1].__name__ == '<lambda_1>'
+
+        assert func['A'][0](0, 1) == (0, 1, 1)
+        assert func['A'][0](0, 1, 2) == (0, 1, 2)
+        assert func['A'][0](0, 2, b=3) == (0, 2, 3)
+
+    def test_maybe_mangle_lambdas_named(self):
+        func = OrderedDict([('C', np.mean),
+                            ('D', OrderedDict([('foo', np.mean),
+                                               ('bar', np.mean)]))])
+        result = _maybe_mangle_lambdas(func)
+        assert result == func
+
+    def test_basic(self):
+        df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+        result = df.groupby("A").agg({"B": [lambda x: 0, lambda x: 1]})
+
+        expected = pd.DataFrame({("B", "<lambda>"): [0, 0],
+                                 ("B", "<lambda_1>"): [1, 1]},
+                                index=pd.Index([0, 1], name='A'))
+        tm.assert_frame_equal(result, expected)
+
+    def test_mangle_series_groupby(self):
+        gr = pd.Series([1, 2, 3, 4]).groupby([0, 0, 1, 1])
+        result = gr.agg([lambda x: 0, lambda x: 1])
+        expected = pd.DataFrame({'<lambda>': [0, 0], '<lambda_1>': [1, 1]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.xfail(reason="GH-26611. kwargs for multi-agg.")
+    def test_with_kwargs(self):
+        f1 = lambda x, y, b=1: x.sum() + y + b
+        f2 = lambda x, y, b=2: x.sum() + y * b
+        result = pd.Series([1, 2]).groupby([0, 0]).agg([f1, f2], 0)
+        expected = pd.DataFrame({'<lambda>': [4], '<lambda_1>': [6]})
+        tm.assert_frame_equal(result, expected)
+
+        result = pd.Series([1, 2]).groupby([0, 0]).agg([f1, f2], 0, b=10)
+        expected = pd.DataFrame({'<lambda>': [13], '<lambda_1>': [30]})
         tm.assert_frame_equal(result, expected)

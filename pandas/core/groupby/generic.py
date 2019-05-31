@@ -25,6 +25,7 @@ from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_bool, is_datetimelike,
     is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_scalar)
+from pandas.core.dtypes.inference import is_dict_like, is_list_like
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import FrameOrSeries
@@ -207,6 +208,8 @@ class NDFrameGroupBy(GroupBy):
             # nicer error message
             raise TypeError("Must provide 'func' or tuples of "
                             "'(column, aggfunc).")
+
+        func = _maybe_mangle_lambdas(func)
 
         result, how = self._aggregate(func, _level=_level, *args, **kwargs)
         if how is None:
@@ -830,6 +833,7 @@ class SeriesGroupBy(GroupBy):
         if isinstance(func_or_funcs, abc.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
+            func_or_funcs = _maybe_mangle_lambdas(func_or_funcs)
             ret = self._aggregate_multiple_funcs(func_or_funcs,
                                                  (_level or 0) + 1)
             if relabeling:
@@ -1710,3 +1714,69 @@ def _normalize_keyword_aggregation(kwargs):
         order.append((column,
                       com.get_callable_name(aggfunc) or aggfunc))
     return aggspec, columns, order
+
+
+def _make_lambda(func, i):
+    def f(*args, **kwargs):
+        return func(*args, **kwargs)
+    f.__name__ = "<lambda_{}>".format(i)
+    return f
+
+
+def _managle_lambda_list(aggfuncs):
+    i = 0
+    aggfuncs2 = []
+    for aggfunc in aggfuncs:
+        if com.get_callable_name(aggfunc) == "<lambda>":
+            if i > 0:
+                aggfunc = _make_lambda(aggfunc, i)
+            i += 1
+        aggfuncs2.append(aggfunc)
+
+    return aggfuncs2
+
+
+def _maybe_mangle_lambdas(agg_spec):
+    """
+    Make new lambdas with unique names.
+
+    Parameters
+    ----------
+    agg_spec : Any
+        An argument to NDFrameGroupBy.agg.
+        Non-dict-like `agg_spec` are pass through as is.
+        For dict-like `agg_spec` a new spec is returned
+        with name-mangled lambdas.
+
+    Returns
+    -------
+    mangled : Any
+        Same type as the input.
+
+    Examples
+    --------
+    >>> _maybe_mangle_lambdas('sum')
+    'sum'
+
+    >>> _maybe_mangle_lambdas([lambda: 1, lambda: 2])  # doctest: +SKIP
+    [<function __main__.<lambda>()>,
+     <function pandas...._make_lambda.<locals>.f(*args, **kwargs)>]
+    """
+    is_dict = is_dict_like(agg_spec)
+    if not (is_dict or is_list_like(agg_spec)):
+        return agg_spec
+    agg_spec2 = type(agg_spec)()  # dict or OrderdDict
+
+    if is_dict:
+        for key in agg_spec:
+            aggfuncs = agg_spec[key]
+            if is_list_like(aggfuncs) and not is_dict_like(aggfuncs):
+                aggfuncs2 = _managle_lambda_list(aggfuncs)
+            else:
+                aggfuncs2 = aggfuncs
+
+            agg_spec2[key] = aggfuncs2 or aggfuncs
+    else:
+        agg_spec2 = _managle_lambda_list(agg_spec)
+
+    return agg_spec2
