@@ -1077,9 +1077,7 @@ class MultiIndex(Index):
             self.levels[l].rename(name, inplace=True)
 
     names = property(fset=_set_names, fget=_get_names,
-                     doc="""
-                     Names of levels in MultiIndex
-                     """)
+                     doc="""\nNames of levels in MultiIndex\n""")
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
     def _get_grouper_for_level(self, mapper, level):
