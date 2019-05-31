@@ -25,8 +25,10 @@ def read_spss(path: Union[str, Path],
     -------
     DataFrame
     """
-
-    from pyreadstat import read_sav
+    try:
+        from pyreadstat import read_sav
+    except ImportError:
+        raise ImportError("pyreadstat is required to read SPSS .sav files.")
     if usecols is not None:
         if isinstance(usecols, str):
             usecols = [usecols]
