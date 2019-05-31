@@ -462,7 +462,7 @@ class Window(_Window):
         See the notes below for further information.
     on : str, optional
         For a DataFrame, column on which to calculate
-        the rolling window, rather than the index
+        the rolling window, rather than the index.
     axis : int or str, default 0
     closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
@@ -488,7 +488,7 @@ class Window(_Window):
     changed to the center of the window by setting ``center=True``.
 
     To learn more about the offsets & frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     The recognized win_types are:
 
@@ -2188,7 +2188,7 @@ class EWM(_Rolling):
     (if adjust is True), and 1-alpha and alpha (if adjust is False).
 
     More details can be found at
-    http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-windows
+    http://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
 
     Examples
     --------
