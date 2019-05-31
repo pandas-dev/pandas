@@ -496,7 +496,7 @@ def test_maybe_promote_any_with_string(any_numpy_dtype, string_dtype,
     # special case for box_dtype (cannot use fixture in parametrization)
     box_dtype = fill_dtype if box_dtype == 'str' else box_dtype
 
-    # filling string with anything casts to object
+    # filling anything with a string casts to object
     expected_dtype = np.dtype(object)
     exp_val_for_scalar = fill_value
     exp_val_for_array = np.nan
