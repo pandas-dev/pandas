@@ -2014,15 +2014,11 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         from pandas.core.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
 
-        try:
-            result = _coo_to_sparse_series(A, dense_index=dense_index,
+        result = _coo_to_sparse_series(A, dense_index=dense_index,
                                            sparse_series=False)
-            result = Series(result.array, index=result.index, copy=False)
+        result = Series(result.array, index=result.index, copy=False)
 
-            return result
-
-        except AttributeError:
-            raise AttributeError('Expected coo matrix format.')
+        return result
 
     def to_coo(self, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
         """
