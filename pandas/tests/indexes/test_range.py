@@ -241,35 +241,40 @@ class TestRangeIndex(Numeric):
     def test_dtype(self):
         assert self.index.dtype == np.int64
 
-    def test_has_called_data(self):
-        # Calling RangeIndex._data caches a array of the same length.
-        # This tests whether RangeIndex._data has been called by doing methods
+    def test_cached_data(self):
+        # Calling RangeIndex._data caches an int64 array of the same length at
+        # self._cached_data. This tests whether _cached_data has been set.
         idx = RangeIndex(0, 100, 10)
-        assert idx._has_called_data is False
+
+        assert idx._cached_data is None
 
         repr(idx)
-        assert idx._has_called_data is False
+        assert idx._cached_data is None
 
         str(idx)
-        assert idx._has_called_data is False
+        assert idx._cached_data is None
 
         idx.get_loc(20)
-        assert idx._has_called_data is False
+        assert idx._cached_data is None
 
         df = pd.DataFrame({'a': range(10)}, index=idx)
 
         df.loc[50]
-        assert idx._has_called_data is False
+        assert idx._cached_data is None
 
         with pytest.raises(KeyError):
             df.loc[51]
-        assert idx._has_called_data is False
+        assert idx._cached_data is None
 
         df.loc[10:50]
-        assert idx._has_called_data is False
+        assert idx._cached_data is None
 
         df.iloc[5:10]
-        assert idx._has_called_data is False
+        assert idx._cached_data is None
+
+        # actually calling data._data
+        assert isinstance(idx._data, np.ndarray)
+        assert isinstance(idx._cached_data, np.ndarray)
 
     def test_is_monotonic(self):
         assert self.index.is_monotonic is True

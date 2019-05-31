@@ -98,7 +98,7 @@ class Range:
         self.idx_inc.get_loc(900000)
 
     def time_get_loc_dec(self):
-        self.idx_dec.get_loc(900000)
+        self.idx_dec.get_loc(100000)
 
 
 class IndexAppend:

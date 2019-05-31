@@ -67,7 +67,7 @@ class RangeIndex(Int64Index):
     _engine_type = libindex.Int64Engine
 
     # check whether self._data has benn called
-    _has_called_data = False  # type: bool
+    _cached_data = None  # type: np.ndarray
     # --------------------------------------------------------------------
     # Constructors
 
@@ -186,10 +186,12 @@ class RangeIndex(Int64Index):
         """ return the class to use for construction """
         return Int64Index
 
-    @cache_readonly
+    @property
     def _data(self):
-        self._has_called_data = True
-        return np.arange(self._start, self._stop, self._step, dtype=np.int64)
+        if self._cached_data is None:
+            self._cached_data = np.arange(self._start, self._stop, self._step,
+                                          dtype=np.int64)
+        return self._cached_data
 
     @cache_readonly
     def _int64index(self):
@@ -223,7 +225,7 @@ class RangeIndex(Int64Index):
         return None
 
     def _format_with_header(self, header, na_rep='NaN', **kwargs):
-        return header + [pprint_thing(x) for x in self._range]
+        return header + list(map(pprint_thing, self._range))
 
     # --------------------------------------------------------------------
     @property
