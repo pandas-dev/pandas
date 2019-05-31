@@ -3328,8 +3328,8 @@ class NDFrame(PandasObject, SelectionMixin):
                      "A value is trying to be set on a copy of a slice from a "
                      "DataFrame\n\n"
                      "See the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/"
-                     "indexing.html#indexing-view-versus-copy"
+                     "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                     "indexing.html#returning-a-view-versus-a-copy"
                      )
 
             else:
@@ -3338,8 +3338,8 @@ class NDFrame(PandasObject, SelectionMixin):
                      "DataFrame.\n"
                      "Try using .loc[row_indexer,col_indexer] = value "
                      "instead\n\nSee the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/"
-                     "indexing.html#indexing-view-versus-copy"
+                     "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                     "indexing.html#returning-a-view-versus-a-copy"
                      )
 
             if value == 'raise':
@@ -7762,7 +7762,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         To learn more about the frequency strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
         Examples
         --------

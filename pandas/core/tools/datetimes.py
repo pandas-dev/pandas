@@ -533,7 +533,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     dtype: datetime64[ns]
 
     If a date does not meet the `timestamp limitations
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
     #timeseries-timestamp-limits>`_, passing errors='ignore'
     will return the original input instead of raising any exception.
 
