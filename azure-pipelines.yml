@@ -170,7 +170,7 @@ jobs:
 
   - script: |
       cd doc/build/html
-      git remote add origin git@github.com:pandas-dev/dev-docs.git
+      git remote add origin git@github.com:pandas-dev/pandas-dev.github.io.git
       git push origin master -f
     displayName: 'Publish docs to GitHub pages'
     condition : |
