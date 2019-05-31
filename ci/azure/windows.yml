@@ -19,7 +19,7 @@ jobs:
   steps:
     - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
       displayName: Add conda to PATH
-    - script: conda update -q -n base conda
+    - script: conda install -c conda-canary conda
       displayName: Update conda
     - script: conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
       displayName: Create anaconda environment
