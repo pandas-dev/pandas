@@ -229,11 +229,11 @@ def test_maybe_promote_datetime64_with_any():
 
 # override parametrization of box to add special case for dt_dtype
 @pytest.mark.parametrize('box', [
-    (True, None),        # fill_value array with default dtype
+    (True, None),        # fill_value wrapped in array with default dtype
     # disabled due to too many xfails; see GH 23982 / 25425
-    # (True, 'dt_dtype'),  # fill_value array with explicit datetime dtype
-    # (True, object),      # fill_value array with object dtype
-    (False, None)        # fill_value passed as scalar
+    # (True, 'dt_dtype'),  # fill_value in array with explicit datetime dtype
+    # (True, object),      # fill_value wrapped in array with object dtype
+    (False, None)        # fill_value passed on as scalar
 ])
 @pytest.mark.parametrize('fill_value', [
     pd.Timestamp('now'), np.datetime64('now'),
@@ -392,11 +392,11 @@ def test_maybe_promote_timedelta64_with_any():
 ], ids=['pd.Timedelta', 'np.timedelta64', 'datetime.timedelta'])
 # override parametrization of box to add special case for td_dtype
 @pytest.mark.parametrize('box', [
-    (True, None),        # fill_value array with default dtype
+    (True, None),        # fill_value wrapped in array with default dtype
     # disabled due to too many xfails; see GH 23982 / 25425
-    # (True, 'td_dtype'),  # fill_value array with explicit timedelta dtype
-    (True, object),      # fill_value array with object dtype
-    (False, None)        # fill_value passed as scalar
+    # (True, 'td_dtype'),  # fill_value in array with explicit timedelta dtype
+    (True, object),      # fill_value wrapped in array with object dtype
+    (False, None)        # fill_value passed on as scalar
 ])
 def test_maybe_promote_any_with_timedelta64(any_numpy_dtype, timedelta64_dtype,
                                             fill_value, box):
@@ -468,7 +468,7 @@ def test_maybe_promote_string_with_any(string_dtype, any_numpy_dtype, box):
     # (True, None),    # fill_value wrapped in array with default dtype
     # (True, 'str'),   # fill_value wrapped in array with generic string-dtype
     (True, object),  # fill_value wrapped in array with object dtype
-    (False, None)    # fill_value passed as scalar
+    (False, None)    # fill_value passed on as scalar
 ])
 def test_maybe_promote_any_with_string(any_numpy_dtype, string_dtype, box):
     dtype = np.dtype(any_numpy_dtype)
