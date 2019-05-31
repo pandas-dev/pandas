@@ -2015,7 +2015,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         from pandas import Series
 
         result = _coo_to_sparse_series(A, dense_index=dense_index,
-                                           sparse_series=False)
+                                       sparse_series=False)
         result = Series(result.array, index=result.index, copy=False)
 
         return result

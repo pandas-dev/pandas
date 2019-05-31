@@ -152,5 +152,5 @@ def _coo_to_sparse_series(A, dense_index: bool = False,
             s = s.reindex(ind)
         return s
     except AttributeError:
-        raise TypeError('Expected coo_matrix. Got {} instead.'.format(type(A).__name__))
-
+        raise TypeError('Expected coo_matrix. Got {} instead.'
+                        .format(type(A).__name__))
