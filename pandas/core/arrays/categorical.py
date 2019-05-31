@@ -104,9 +104,7 @@ def _cat_compare_op(op):
 
                 # check for NaN in self
                 mask = (self._codes == -1)
-                if mask.any():
-                    # comparison to missing values NaN leads to False
-                    ret[mask] = False
+                ret[mask] = False
                 return ret
             else:
                 if op == '__eq__':

@@ -195,7 +195,6 @@ class TestCategoricalOps:
 
         cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
         scalar = 2
-        
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             expected = getattr(np.array(cat),
@@ -211,7 +210,6 @@ class TestCategoricalOps:
 
         cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
         other = Categorical([2, 2, 2, 2], categories=[1, 2, 3], ordered=True)
-        
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             expected = getattr(np.array(cat), compare_operators_no_eq_ne)(2)
