@@ -31,5 +31,4 @@ dependencies:
   - moto
   - hypothesis>=3.58.0
   - isort
-  - pip:
-      - pyreadstat
+  - pyreadstat
