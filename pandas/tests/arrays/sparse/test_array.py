@@ -1129,6 +1129,13 @@ class TestAccessor:
         tm.assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
+    def test_from_coo_invalid_input(self):
+        import scipy.sparse
+        m = scipy.sparse.csr_matrix(np.array([[0, 1], [0, 0]]))
+        with pytest.raises(AttributeError):
+            pd.Series.sparse.from_coo(m)
+
+    @td.skip_if_no_scipy
     def test_to_coo(self):
         import scipy.sparse
         ser = pd.Series([1, 2, 3],
