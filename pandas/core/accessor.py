@@ -1,5 +1,6 @@
 """
-Accessor.py contains base classes for implementing accessor properties
+
+accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 """
 from typing import Set
