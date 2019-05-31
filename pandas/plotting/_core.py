@@ -6,7 +6,7 @@ from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
-from pandas.core.generic import _shared_docs
+from pandas.core.generic import _shared_doc_kwargs, _shared_docs
 
 df_kind = """- 'scatter' : scatter plot
         - 'hexbin' : hexbin plot"""
@@ -369,18 +369,6 @@ _shared_docs['kde'] = """
         """
 
 
-def _get_standard_kind(kind):
-    return {'density': 'kde'}.get(kind, kind)
-
-
-def _get_plot_backend():
-    try:
-        import pandas.plotting._matplotlib as plot_backend
-    except ImportError:
-        raise ImportError("matplotlib is required for plotting.")
-    return plot_backend
-
-
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                 xrot=None, ylabelsize=None, yrot=None, figsize=None,
                 bins=10, **kwds):
@@ -520,10 +508,21 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                                    **kwds)
 
 
+@Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
+def boxplot(data, column=None, by=None, ax=None, fontsize=None,
+            rot=0, grid=True, figsize=None, layout=None, return_type=None,
+            **kwds):
+    plot_backend = _get_plot_backend()
+    return plot_backend.boxplot(data, column=column, by=by, ax=ax,
+                                fontsize=fontsize, rot=rot, grid=grid,
+                                figsize=figsize, layout=layout,
+                                return_type=return_type, **kwds)
+
+
+@Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
 def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                   grid=True, figsize=None, layout=None,
                   return_type=None, **kwds):
-    # TODO write docstring
     plot_backend = _get_plot_backend()
     return plot_backend.boxplot_frame(self, column=column, by=by, ax=ax,
                                       fontsize=fontsize, rot=rot, grid=grid,
@@ -600,8 +599,31 @@ _series_kinds = ['pie']
 _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 
 
-def _plot(data, x=None, y=None, subplots=False,
-          ax=None, kind='line', **kwds):
+def _get_standard_kind(kind):
+    return {'density': 'kde'}.get(kind, kind)
+
+
+def _get_plot_backend():
+    """
+    Return the plotting backend to use (e.g. `pandas.plotting._matplotlib`).
+
+    The plotting system of pandas has been using matplotlib, but the idea here
+    is that it can also work with other third-party backends. In the future,
+    this function will return the backend from a pandas option, and all the
+    rest of the code in this file will use the backend specified there for the
+    plotting.
+
+    The backend is imported lazily, as matplotlib is a soft dependency, and
+    pandas can be used without it being installed.
+    """
+    try:
+        import pandas.plotting._matplotlib as plot_backend
+    except ImportError:
+        raise ImportError("matplotlib is required for plotting.")
+    return plot_backend
+
+
+def _plot_classes():
     plot_backend = _get_plot_backend()
     # TODO restore type annotations if we create a base class for plot classes
     # (a parent of MPLPlot, and classes of other backends)
@@ -610,11 +632,14 @@ def _plot(data, x=None, y=None, subplots=False,
                plot_backend.HistPlot, plot_backend.BoxPlot,
                plot_backend.ScatterPlot, plot_backend.HexBinPlot,
                plot_backend.KdePlot, plot_backend.PiePlot]
-    plot_class = {class_._kind: class_ for class_ in classes}
+    return {class_._kind: class_ for class_ in classes}
 
+
+def _plot(data, x=None, y=None, subplots=False,
+          ax=None, kind='line', **kwds):
     kind = _get_standard_kind(kind.lower().strip())
     if kind in _all_kinds:
-        klass = plot_class[kind]
+        klass = _plot_classes()[kind]
     else:
         raise ValueError("%r is not a valid plot kind" % kind)
 
@@ -637,7 +662,6 @@ def _plot(data, x=None, y=None, subplots=False,
                 # converted to series actually. copy to not modify
                 data = data[y].copy()
                 data.index.name = y
-        ax = klass.get_default_ax(ax)
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
     else:
         if isinstance(data, ABCDataFrame):
@@ -680,7 +704,6 @@ def _plot(data, x=None, y=None, subplots=False,
                         )
                     label_name = label_kw or data.columns
                     data.columns = label_name
-        ax = klass.get_default_ax(ax)
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()
@@ -719,6 +742,14 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
                 yerr=None, xerr=None,
                 label=None, secondary_y=False,                 # Series unique
                 **kwds):
+
+    # FIXME move this into _matplotlib
+    import matplotlib.pyplot as plt
+    if ax is None and len(plt.get_fignums()) > 0:
+        with plt.rc_context():
+            ax = plt.gca()
+        ax = getattr(ax, 'left_ax', ax)
+
     return _plot(data, kind=kind, ax=ax,
                  figsize=figsize, use_index=use_index, title=title,
                  grid=grid, legend=legend,

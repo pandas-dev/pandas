@@ -2,8 +2,8 @@
 from math import ceil
 import warnings
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries

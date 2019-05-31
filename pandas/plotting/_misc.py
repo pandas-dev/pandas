@@ -13,11 +13,6 @@ def _get_plot_backend():
     return plot_backend
 
 
-def plot_params():
-    pass
-    # plot_backend.plot_param ?
-
-
 def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     """
     Helper function to convert DataFrame and Series to matplotlib.table
@@ -37,7 +32,8 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     matplotlib table object
     """
     plot_backend = _get_plot_backend()
-    return plot_backend.table(ax=ax, data=data, rowLabels=None, colLabels=None, **kwargs)
+    return plot_backend.table(ax=ax, data=data, rowLabels=None, colLabels=None,
+                              **kwargs)
 
 
 def register(explicit=True):
@@ -59,7 +55,7 @@ def register(explicit=True):
     deregister_matplotlib_converter
     """
     plot_backend = _get_plot_backend()
-    return plot_backend.register(explicit=explicit)
+    plot_backend.register(explicit=explicit)
 
 
 def deregister():
@@ -78,7 +74,7 @@ def deregister():
     deregister_matplotlib_converters
     """
     plot_backend = _get_plot_backend()
-    return plot_backend.deregister()
+    plot_backend.deregister()
 
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
@@ -125,9 +121,10 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     >>> scatter_matrix(df, alpha=0.2)
     """
     plot_backend = _get_plot_backend()
-    return scatter_matrix(frame=frame, alpha=alpha, figsize=figsize, ax=ax, grid=grid,
-                          diagonal=diagonal, marker=marker, density_kwds=density_kwds,
-                          hist_kwds=hist_kwds, range_padding=range_padding, **kwds)
+    return plot_backend.scatter_matrix(
+        frame=frame, alpha=alpha, figsize=figsize, ax=ax, grid=grid,
+        diagonal=diagonal, marker=marker, density_kwds=density_kwds,
+        hist_kwds=hist_kwds, range_padding=range_padding, **kwds)
 
 
 def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
@@ -193,8 +190,8 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         >>> rad_viz = pd.plotting.radviz(df, 'Category')  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend()
-    return plot_backend.radviz(frame=frame, class_column=class_column, ax=ax, color=color,
-                               colormap=colormap, **kwds)
+    return plot_backend.radviz(frame=frame, class_column=class_column, ax=ax,
+                               color=color, colormap=colormap, **kwds)
 
 
 @deprecate_kwarg(old_arg_name='data', new_arg_name='frame')
@@ -233,8 +230,9 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     class:`matplotlip.axis.Axes`
     """
     plot_backend = _get_plot_backend()
-    return plot_backend.andrews_curves(frame=frame, class_column=class_column, ax=ax, samples=samples,
-                                       color=color, colormap=colormap, **kwds)
+    return plot_backend.andrews_curves(frame=frame, class_column=class_column,
+                                       ax=ax, samples=samples, color=color,
+                                       colormap=colormap, **kwds)
 
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
@@ -340,11 +338,11 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     >>> plt.show()
     """
     plot_backend = _get_plot_backend()
-    return plot_backend.parallel_coordinates(frame=frame, class_column=class_column, cols=cols,
-                                             ax=ax, color=color, use_columns=use_columns,
-                                             xticks=xticks, colormap=colormap, axvlines=axvlines,
-                                             axvlines_kwds=axvlines_kwds, sort_labels=sort_labels,
-                                             **kwds)
+    return plot_backend.parallel_coordinates(
+        frame=frame, class_column=class_column, cols=cols, ax=ax, color=color,
+        use_columns=use_columns, xticks=xticks, colormap=colormap,
+        axvlines=axvlines, axvlines_kwds=axvlines_kwds,
+        sort_labels=sort_labels, **kwds)
 
 
 def lag_plot(series, lag=1, ax=None, **kwds):

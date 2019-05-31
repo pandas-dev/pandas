@@ -1,8 +1,8 @@
 # being a bit too dynamic
 import warnings
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 

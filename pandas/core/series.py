@@ -49,7 +49,7 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
-import pandas.plotting._core as gfx
+import pandas.plotting
 
 __all__ = ['Series']
 
@@ -4502,12 +4502,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     str = CachedAccessor("str", StringMethods)
     dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
     cat = CachedAccessor("cat", CategoricalAccessor)
-    plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
+    plot = CachedAccessor("plot", pandas.plotting.SeriesPlotMethods)
     sparse = CachedAccessor("sparse", SparseAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
-    hist = gfx.hist_series
+    hist = pandas.plotting.hist_series
 
 
 Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0},
