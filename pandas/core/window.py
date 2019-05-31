@@ -5,6 +5,7 @@ similar to how we have a Groupby object.
 from collections import defaultdict
 from datetime import timedelta
 from textwrap import dedent
+from typing import Set
 import warnings
 
 import numpy as np
@@ -42,7 +43,7 @@ _doc_template = """
 class _Window(PandasObject, SelectionMixin):
     _attributes = ['window', 'min_periods', 'center', 'win_type',
                    'axis', 'on', 'closed']
-    exclusions = set()
+    exclusions = set()  # type: Set[str]
 
     def __init__(self, obj, window=None, min_periods=None,
                  center=False, win_type=None, axis=0, on=None, closed=None,
@@ -156,7 +157,7 @@ class _Window(PandasObject, SelectionMixin):
     def _window_type(self):
         return self.__class__.__name__
 
-    def __str__(self):
+    def __repr__(self):
         """
         Provide a nice str repr of our rolling object.
         """
@@ -305,10 +306,10 @@ class _Window(PandasObject, SelectionMixin):
                 result = np.copy(result[tuple(lead_indexer)])
         return result
 
-    def aggregate(self, arg, *args, **kwargs):
-        result, how = self._aggregate(arg, *args, **kwargs)
+    def aggregate(self, func, *args, **kwargs):
+        result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
-            return self.apply(arg, raw=False, args=args, kwargs=kwargs)
+            return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
 
     agg = aggregate
@@ -461,7 +462,7 @@ class Window(_Window):
         See the notes below for further information.
     on : str, optional
         For a DataFrame, column on which to calculate
-        the rolling window, rather than the index
+        the rolling window, rather than the index.
     axis : int or str, default 0
     closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
@@ -487,7 +488,7 @@ class Window(_Window):
     changed to the center of the window by setting ``center=True``.
 
     To learn more about the offsets & frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     The recognized win_types are:
 
@@ -788,7 +789,7 @@ class _GroupByMixin(GroupByMixin):
     corr = GroupByMixin._dispatch('corr', other=None, pairwise=None)
     cov = GroupByMixin._dispatch('cov', other=None, pairwise=None)
 
-    def _apply(self, func, name, window=None, center=None,
+    def _apply(self, func, name=None, window=None, center=None,
                check_minp=None, **kwargs):
         """
         Dispatch to apply; we are stripping all of the _apply kwargs and
@@ -2187,7 +2188,7 @@ class EWM(_Rolling):
     (if adjust is True), and 1-alpha and alpha (if adjust is False).
 
     More details can be found at
-    http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-windows
+    http://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
 
     Examples
     --------

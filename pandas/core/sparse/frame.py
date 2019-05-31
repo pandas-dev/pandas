@@ -28,12 +28,23 @@ from pandas.core.series import Series
 from pandas.core.sparse.series import SparseSeries
 
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
+depr_msg = """\
+SparseDataFrame is deprecated and will be removed in a future version.
+Use a regular DataFrame whose columns are SparseArrays instead.
+
+See http://pandas.pydata.org/pandas-docs/stable/\
+user_guide/sparse.html#migrating for more.
+"""
 
 
 class SparseDataFrame(DataFrame):
     """
     DataFrame containing sparse floating point data in the form of SparseSeries
     objects
+
+    .. deprectaed:: 0.25.0
+
+       Use a DataFrame with sparse values instead.
 
     Parameters
     ----------
@@ -56,6 +67,7 @@ class SparseDataFrame(DataFrame):
     def __init__(self, data=None, index=None, columns=None, default_kind=None,
                  default_fill_value=None, dtype=None, copy=False):
 
+        warnings.warn(depr_msg, FutureWarning, stacklevel=2)
         # pick up the defaults from the Sparse structures
         if isinstance(data, SparseDataFrame):
             if index is None:
@@ -627,7 +639,7 @@ class SparseDataFrame(DataFrame):
             # .take returns SparseArray
             new = values.take(indexer)
             if need_mask:
-                new = new.values
+                new = new.to_dense()
                 # convert integer to float if necessary. need to do a lot
                 # more than that, handle boolean etc also
                 new, fill_value = maybe_upcast(new, fill_value=fill_value)

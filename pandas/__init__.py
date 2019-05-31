@@ -65,7 +65,7 @@ from pandas.core.api import (
     to_numeric, to_datetime, to_timedelta,
 
     # misc
-    np, TimeGrouper, Grouper, factorize, unique, value_counts,
+    np, Grouper, factorize, unique, value_counts, NamedAgg,
     array, Categorical, set_eng_float_format, Series, DataFrame,
     Panel)
 

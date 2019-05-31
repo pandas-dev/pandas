@@ -6,7 +6,7 @@ import json
 import operator
 import pickle
 from textwrap import dedent
-from typing import FrozenSet, List, Set
+from typing import Callable, FrozenSet, List, Set
 import warnings
 import weakref
 
@@ -926,7 +926,7 @@ class NDFrame(PandasObject, SelectionMixin):
         a    1
         Name: 0, dtype: int64
 
-        Squeezing all axes wil project directly into a scalar:
+        Squeezing all axes will project directly into a scalar:
 
         >>> df_0a.squeeze()
         1
@@ -2022,7 +2022,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __str__(self):
+    def __repr__(self):
         # string representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
         prepr = '[%s]' % ','.join(map(pprint_thing, self))
@@ -3328,8 +3328,8 @@ class NDFrame(PandasObject, SelectionMixin):
                      "A value is trying to be set on a copy of a slice from a "
                      "DataFrame\n\n"
                      "See the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/"
-                     "indexing.html#indexing-view-versus-copy"
+                     "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                     "indexing.html#returning-a-view-versus-a-copy"
                      )
 
             else:
@@ -3338,8 +3338,8 @@ class NDFrame(PandasObject, SelectionMixin):
                      "DataFrame.\n"
                      "Try using .loc[row_indexer,col_indexer] = value "
                      "instead\n\nSee the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/"
-                     "indexing.html#indexing-view-versus-copy"
+                     "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                     "indexing.html#returning-a-view-versus-a-copy"
                      )
 
             if value == 'raise':
@@ -3680,7 +3680,7 @@ class NDFrame(PandasObject, SelectionMixin):
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
-    _xs = xs
+    _xs = xs  # type: Callable
 
     def select(self, crit, axis=0):
         """
@@ -5589,7 +5589,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3    float64:dense
         dtype: object
 
-        >>> pd.SparseDataFrame(arr).ftypes
+        >>> pd.SparseDataFrame(arr).ftypes  # doctest: +SKIP
         0    float64:sparse
         1    float64:sparse
         2    float64:sparse
@@ -7762,7 +7762,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         To learn more about the frequency strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
         Examples
         --------

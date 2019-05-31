@@ -21,7 +21,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
 )
 from pandas.core.arrays import Categorical, array
-from pandas.core.groupby import Grouper
+from pandas.core.groupby import Grouper, NamedAgg
 from pandas.io.formats.format import set_eng_float_format
 from pandas.core.index import (Index, CategoricalIndex, Int64Index,
                                UInt64Index, RangeIndex, Float64Index,
@@ -45,15 +45,3 @@ from pandas.core.tools.numeric import to_numeric
 from pandas.tseries.offsets import DateOffset
 from pandas.core.tools.datetimes import to_datetime
 from pandas.core.tools.timedeltas import to_timedelta
-
-
-# Deprecation: xref gh-16747
-class TimeGrouper:
-
-    def __new__(cls, *args, **kwargs):
-        from pandas.core.resample import TimeGrouper
-        import warnings
-        warnings.warn("pd.TimeGrouper is deprecated and will be removed; "
-                      "Please use pd.Grouper(freq=...)",
-                      FutureWarning, stacklevel=2)
-        return TimeGrouper(*args, **kwargs)

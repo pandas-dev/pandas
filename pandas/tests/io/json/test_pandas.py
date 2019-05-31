@@ -353,7 +353,7 @@ class TestPandasContainer:
                         '"index":["1","2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
         msg = "3 columns passed, passed data had 2 columns"
-        with pytest.raises(AssertionError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             read_json(json, orient="split")
 
         # bad key
@@ -1012,6 +1012,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         s_naive = Series(tz_naive)
         assert stz.to_json() == s_naive.to_json()
 
+    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
         df = pd.DataFrame(np.random.randn(10, 4))
