@@ -23,20 +23,23 @@ import pandas as pd
 @pytest.fixture(params=[(True, None), (True, object), (False, None)])
 def box(request):
     """
-    Parametrized fixture determining whether/how to transform fill_value
+    Parametrized fixture determining whether/how to transform fill_value.
+
+    Since fill_value is defined on a per-test basis, the actual transformation
+    (based on this fixture) is executed in _check_promote.
 
     Returns
     -------
     boxed : Boolean
-        Whether fill_value should be wrapped in an np.array
+        Whether fill_value should be wrapped in an np.array.
     box_dtype : dtype
-        The dtype to pass to to np.array(fill_value, dtype=box_dtype). If None,
+        The dtype to pass to np.array(fill_value, dtype=box_dtype). If None,
         then this is passed on unmodified, and corresponds to the numpy default
         dtype for the given fill_value.
 
-    * (True, None),    # fill_value wrapped in array with default dtype
-    * (True, object),  # fill_value wrapped in array with object dtype
-    * (False, None)    # fill_value passed on as scalar
+    * (True, None)    # fill_value wrapped in array with default dtype
+    * (True, object)  # fill_value wrapped in array with object dtype
+    * (False, None)   # fill_value passed on as scalar
     """
     return request.param
 
