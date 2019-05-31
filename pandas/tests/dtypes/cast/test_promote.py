@@ -33,7 +33,7 @@ def box(request):
     boxed : Boolean
         Whether fill_value should be wrapped in an np.array.
     box_dtype : dtype
-        The dtype to pass to np.array(fill_value, dtype=box_dtype). If None,
+        The dtype to pass to np.array([fill_value], dtype=box_dtype). If None,
         then this is passed on unmodified, and corresponds to the numpy default
         dtype for the given fill_value.
 
@@ -60,9 +60,9 @@ def _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
         Parameter whether fill_value should be passed to maybe_promote
         directly, or wrapped in an array (of dtype box_dtype).
     box_dtype : dtype
-        The dtype to enforce when wrapping fill_value into an array.
+        The dtype to enforce when wrapping fill_value into an np.array.
     expected_dtype : dtype
-        The expected dtype returned by maybe_promote (must be the same,
+        The expected dtype returned by maybe_promote (by design this is the same
         regardless of whether fill_value was passed as scalar or in an array!).
     exp_val_for_scalar : scalar
         The expected value for the (potentially upcast) fill_value returned by
