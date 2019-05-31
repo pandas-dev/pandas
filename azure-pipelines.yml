@@ -142,16 +142,24 @@ jobs:
   - script: |
       cd doc/build/html
       git init
-      git touch .nojekyll
+      touch .nojekyll
       git add --all .
       git config user.email "pandas-dev@python.org"
       git config user.name "pandas-docs-bot"
-      git status  # TODO just for debugging
       git commit -m "pandas documentation in master"
+      git log  # TODO only for debugging
     displayName: 'Create git repo for docs build'
     # TODO add same contition as next steps
 
-  # TODO add step to install ssh key
+  - task: InstallSSHKey@0
+    inputs:
+      hostName: 'github.com'
+      sshPublicKey: "###### ADD PUBLIC KEY HERE AND UPDATE PRIVATE TO PIPELINES #######"
+      sshKeySecureFile: 'pandas_docs_ssh_key'
+    displayName: 'Install GitHub ssh deployment key'
+    condition : |
+      and(not(eq(variables['Build.Reason'], 'PullRequest')),
+          eq(variables['Build.SourceBranch'], 'refs/heads/master'))
 
   - script: |
       cd doc/build/html
