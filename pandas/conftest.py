@@ -404,6 +404,8 @@ def tz_aware_fixture(request):
 
 # ----------------------------------------------------------------
 # Dtypes
+# ----------------------------------------------------------------
+
 UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
 SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
