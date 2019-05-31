@@ -21,8 +21,7 @@ sudo apt-get install xclip
 Otherwise on Linux, you will need the qtpy or PyQt modules installed.
 qtpy also requires a python-qt-bindings module: PyQt4, PyQt5, PySide, PySide2
 
-PyQt4 modules are not available for Python 3,
-and this module does not work with PyGObject yet.
+This module does not work with PyGObject yet.
 """
 __version__ = '1.5.27'
 
