@@ -340,7 +340,9 @@ class TestNamedAggregation:
         tm.assert_frame_equal(result, expected)
 
         result = gr.agg(b='min', a='sum')
-        expected = expected[['b', 'a']]
+        # sort for 35 and earlier
+        if compat.PY36:
+            expected = expected[['b', 'a']]
         tm.assert_frame_equal(result, expected)
 
     def test_no_args_raises(self):

@@ -769,7 +769,11 @@ class SeriesGroupBy(GroupBy):
                           "aggregation **kwargs.")
         if relabeling:
             columns = list(kwargs)
-            func_or_funcs = list(kwargs.values())
+            if not PY36:
+                # sort for 3.5 and earlier
+                columns = list(sorted(columns))
+
+            func_or_funcs = [kwargs[col] for col in columns]
             kwargs = {}
             if not columns:
                 raise TypeError(no_arg_message)
