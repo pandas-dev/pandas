@@ -157,7 +157,7 @@ jobs:
   # 2. Click on "+ Secure file"
   # 3. Upload the private key (the name of the file must match with the specified in "sshKeySecureFile" input below, "pandas_docs_key")
   # 4. Click on file name after it is created, tick the box "Authorize for use in all pipelines" and save
-  # 5. The public key specified in "sshPublicKey" is the pair of the uploaded private key, and needs to be specified as a deploy key of the repo where the docs will be pushed: https://github.com/pandas-dev/dev-docs/settings/keys
+  # 5. The public key specified in "sshPublicKey" is the pair of the uploaded private key, and needs to be specified as a deploy key of the repo where the docs will be pushed: https://github.com/pandas-dev/pandas-dev.github.io/settings/keys
   - task: InstallSSHKey@0
     inputs:
       hostName: 'github.com'
