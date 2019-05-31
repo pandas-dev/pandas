@@ -634,10 +634,7 @@ class SelectionMixin:
 
 
 class IndexOpsMixin:
-    """
-    Common ops mixin to support a unified interface / docs for Series /
-    Index
-    """
+    """\nCommon ops mixin to support a unified interface / docs for Series / Index\n"""
 
     # ndarray compatibility
     __array_priority__ = 1000
@@ -653,10 +650,8 @@ class IndexOpsMixin:
         nv.validate_transpose(args, kwargs)
         return self
 
-    T = property(transpose, doc="""
-                                Return the transpose, which is by
-                                definition self.
-                                """)
+    T = property(transpose, doc="""\nReturn the transpose, which is by
+                                definition self.\n""")
 
     @property
     def _is_homogeneous_type(self):
