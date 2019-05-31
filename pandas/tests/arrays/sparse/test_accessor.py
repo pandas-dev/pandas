@@ -124,5 +124,5 @@ class TestFrameAccessor:
     def test_series_from_coo_incorrect_format(self):
         import scipy.sparse
         m = scipy.sparse.csr_matrix(np.array([[0, 1], [0, 0]]))
-        with pytest.raises(AttributeError):
+        with pytest.raises(TypeError):
             pd.Series.sparse.from_coo(m)
