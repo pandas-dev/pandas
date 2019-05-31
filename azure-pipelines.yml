@@ -148,9 +148,9 @@ jobs:
       git config user.name "pandas-docs-bot"
       git commit -m "pandas documentation in master"
     displayName: 'Create git repo for docs build'
-    condition : |
-      and(not(eq(variables['Build.Reason'], 'PullRequest')),
-          eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    #condition : |
+    #  and(not(eq(variables['Build.Reason'], 'PullRequest')),
+    #      eq(variables['Build.SourceBranch'], 'refs/heads/master'))
 
   - task: InstallSSHKey@0
     inputs:
@@ -158,15 +158,15 @@ jobs:
       sshPublicKey: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDHmz3l/EdqrgNxEUKkwDUuUcLv91unig03pYFGO/DMIgCmPdMG96zAgfnESd837Rm0wSSqylwSzkRJt5MV/TpFlcVifDLDQmUhqCeO8Z6dLl/oe35UKmyYICVwcvQTAaHNnYRpKC5IUlTh0JEtw9fGlnp1Ta7U1ENBLbKdpywczElhZu+hOQ892zqOj3CwA+U2329/d6cd7YnqIKoFN9DWT3kS5K6JE4IoBfQEVekIOs23bKjNLvPoOmi6CroAhu/K8j+NCWQjge5eJf2x/yTnIIP1PlEcXoHIr8io517posIx3TBup+CN8bNS1PpDW3jyD3ttl1uoBudjOQrobNnJeR6Rn67DRkG6IhSwr3BWj8alwUG5mTdZzwV5Pa9KZFdIiqX7NoDGg+itsR39QCn0thK8lGRNSR8KrWC1PSjecwelKBO7uQ7rnk/rkrZdBWR4oEA8YgNH8tirUw5WfOr5a0AIaJicKxGKNdMxZt+zmC+bS7F4YCOGIm9KHa43RrKhoGRhRf9fHHHKUPwFGqtWG4ykcUgoamDOURJyepesBAO3FiRE9rLU6ILbB3yEqqoekborHmAJD5vf7PWItW3Q/YQKuk3kkqRcKnexPyzyyq5lUgTi8CxxZdaASIOu294wjBhhdyHlXEkVTNJ9JKkj/obF+XiIIp0cBDsOXY9hDQ== pandas-dev@python.org'
       sshKeySecureFile: 'pandas_docs_key'
     displayName: 'Install GitHub ssh deployment key'
-    condition : |
-      and(not(eq(variables['Build.Reason'], 'PullRequest')),
-          eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    #condition : |
+    #  and(not(eq(variables['Build.Reason'], 'PullRequest')),
+    #      eq(variables['Build.SourceBranch'], 'refs/heads/master'))
 
   - script: |
       cd doc/build/html
       git remote add origin git@github.com:pandas-dev/pandas-dev-docs.git
       git push origin master -f
     displayName: 'Publish docs to GitHub pages'
-    condition : |
-      and(not(eq(variables['Build.Reason'], 'PullRequest')),
-          eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    #condition : |
+    #  and(not(eq(variables['Build.Reason'], 'PullRequest')),
+    #      eq(variables['Build.SourceBranch'], 'refs/heads/master'))
