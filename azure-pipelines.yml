@@ -116,3 +116,23 @@ jobs:
       fi
     displayName: 'Running benchmarks'
     condition: true
+
+- job: 'Docs'
+  pool:
+    vmImage: ubuntu-16.04
+  timeoutInMinutes: 90
+  steps:
+  - script: |
+      echo '##vso[task.setvariable variable=CONDA_ENV]pandas-dev'
+      echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
+    displayName: 'Setting environment variables'
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      sudo apt-get install -y libc6-dev-i386
+      ci/setup_env.sh
+    displayName: 'Setup environment and build pandas'
+
+  - script: |
+      doc/make.py
+    displayName: 'Build documentation'
