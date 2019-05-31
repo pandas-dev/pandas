@@ -93,7 +93,7 @@ cut : Bin values into discrete Intervals.
 qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
 
 Notes
-------
+-----
 See the `user guide
 <http://pandas.pydata.org/pandas-docs/stable/advanced.html#intervalindex>`_
 for more.
@@ -239,6 +239,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         .. versionadded:: 0.23.0
 
+    Returns
+    -------
+    %(klass)s
+
     See Also
     --------
     interval_range : Function to create a fixed frequency IntervalIndex.
@@ -382,6 +386,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         If None, dtype will be inferred
 
         ..versionadded:: 0.23.0
+
+    Returns
+    -------
+    %(klass)s
 
     See Also
     --------

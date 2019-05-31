@@ -9,7 +9,7 @@ from pandas.compat import PY36
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, DatetimeTZDtype, ExtensionDtype, IntervalDtype,
-    PandasExtensionDtype, PeriodDtype, registry)
+    PeriodDtype, registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
     ABCPeriodArray, ABCPeriodIndex, ABCSeries)
@@ -18,6 +18,8 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_float, is_hashable, is_integer, is_interval, is_iterator, is_list_like,
     is_named_tuple, is_nested_list_like, is_number, is_re, is_re_compilable,
     is_scalar, is_sequence, is_string_like)
+
+from pandas._typing import ArrayLike
 
 _POSSIBLY_CAST_DTYPES = {np.dtype(t).name
                          for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
@@ -87,10 +89,10 @@ def ensure_categorical(arr):
     return arr
 
 
-def ensure_int64_or_float64(arr, copy=False):
+def ensure_int_or_float(arr: ArrayLike, copy=False) -> np.array:
     """
     Ensure that an dtype array of some integer dtype
-    has an int64 dtype if possible
+    has an int64 dtype if possible.
     If it's not possible, potentially because of overflow,
     convert the array to float64 instead.
 
@@ -107,9 +109,18 @@ def ensure_int64_or_float64(arr, copy=False):
     out_arr : The input array cast as int64 if
               possible without overflow.
               Otherwise the input array cast to float64.
+
+    Notes
+    -----
+    If the array is explicitly of type uint64 the type
+    will remain unchanged.
     """
     try:
         return arr.astype('int64', copy=copy, casting='safe')
+    except TypeError:
+        pass
+    try:
+        return arr.astype('uint64', copy=copy, casting='safe')
     except TypeError:
         return arr.astype('float64', copy=copy)
 
@@ -763,7 +774,7 @@ def is_dtype_equal(source, target):
     target : The second dtype to compare
 
     Returns
-    ----------
+    -------
     boolean
         Whether or not the two dtypes are equal.
 
@@ -804,7 +815,7 @@ def is_dtype_union_equal(source, target):
     target : The second dtype to compare
 
     Returns
-    ----------
+    -------
     boolean
         Whether or not the two dtypes are equal.
 
@@ -1888,7 +1899,7 @@ def _is_dtype_type(arr_or_dtype, condition):
     if isinstance(arr_or_dtype, np.dtype):
         return condition(arr_or_dtype.type)
     elif isinstance(arr_or_dtype, type):
-        if issubclass(arr_or_dtype, (PandasExtensionDtype, ExtensionDtype)):
+        if issubclass(arr_or_dtype, ExtensionDtype):
             arr_or_dtype = arr_or_dtype.type
         return condition(np.dtype(arr_or_dtype).type)
     elif arr_or_dtype is None:
@@ -1936,7 +1947,7 @@ def infer_dtype_from_object(dtype):
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
         return dtype
-    elif isinstance(dtype, (np.dtype, PandasExtensionDtype, ExtensionDtype)):
+    elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         # dtype object
         try:
             _validate_date_like_dtype(dtype)
@@ -2021,7 +2032,7 @@ def pandas_dtype(dtype):
     # short-circuit
     if isinstance(dtype, np.ndarray):
         return dtype.dtype
-    elif isinstance(dtype, (np.dtype, PandasExtensionDtype, ExtensionDtype)):
+    elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         return dtype
 
     # registered extension types

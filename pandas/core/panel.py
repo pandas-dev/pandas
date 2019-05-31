@@ -26,7 +26,6 @@ from pandas.core.indexing import maybe_droplevels
 from pandas.core.internals import (
     BlockManager, create_block_manager_from_arrays,
     create_block_manager_from_blocks)
-import pandas.core.ops as ops
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
@@ -341,9 +340,9 @@ class Panel(NDFrame):
     # ----------------------------------------------------------------------
     # Magic methods
 
-    def __unicode__(self):
+    def __repr__(self):
         """
-        Return a unicode string representation for a particular Panel.
+        Return a string representation for a particular Panel.
         """
 
         class_name = str(self.__class__)
@@ -1574,6 +1573,4 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
                            'minor_axis': 'columns'},
                   docs={})
 
-ops.add_special_arithmetic_methods(Panel)
-ops.add_flex_arithmetic_methods(Panel)
 Panel._add_numeric_operations()

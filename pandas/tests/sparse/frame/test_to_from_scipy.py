@@ -19,6 +19,7 @@ ignore_matrix_warning = pytest.mark.filterwarnings(
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])
 @pytest.mark.parametrize('dtype', [bool, int, float, np.uint16])
 @ignore_matrix_warning
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     # GH 4343
     # Make one ndarray and from it one sparse matrix, both to be used for
@@ -69,6 +70,7 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])  # noqa: F811
 @ignore_matrix_warning
 @pytest.mark.filterwarnings("ignore:object dtype is not supp:UserWarning")
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_from_to_scipy_object(spmatrix, fill_value):
     # GH 4343
     dtype = object
@@ -117,6 +119,7 @@ def test_from_to_scipy_object(spmatrix, fill_value):
 
 
 @ignore_matrix_warning
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_from_scipy_correct_ordering(spmatrix):
     # GH 16179
     arr = np.arange(1, 5).reshape(2, 2)
@@ -136,6 +139,7 @@ def test_from_scipy_correct_ordering(spmatrix):
 
 
 @ignore_matrix_warning
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_from_scipy_fillna(spmatrix):
     # GH 16112
     arr = np.eye(3)
@@ -169,6 +173,7 @@ def test_from_scipy_fillna(spmatrix):
     tm.assert_sp_frame_equal(sdf, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_index_names_multiple_nones():
     # https://github.com/pandas-dev/pandas/pull/24092
     sparse = pytest.importorskip("scipy.sparse")

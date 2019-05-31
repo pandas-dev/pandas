@@ -29,7 +29,7 @@ def int_frame_const_col():
     return df
 
 
-class TestDataFrameApply():
+class TestDataFrameApply:
 
     def test_apply(self, float_frame):
         with np.errstate(all='ignore'):
@@ -829,7 +829,7 @@ def zip_frames(frames, axis=1):
         return pd.DataFrame(zipped)
 
 
-class TestDataFrameAggregate():
+class TestDataFrameAggregate:
 
     def test_agg_transform(self, axis, float_frame):
         other_axis = 1 if axis in {0, 'index'} else 0

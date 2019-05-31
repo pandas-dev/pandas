@@ -6,16 +6,18 @@ These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
 
-from collections import OrderedDict, abc
+from collections import OrderedDict, abc, namedtuple
 import copy
 from functools import partial
 from textwrap import dedent
+import typing
+from typing import Any, Callable, List, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-from pandas.compat import lzip
+from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
@@ -26,7 +28,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import Categorical
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -34,13 +35,17 @@ from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy, _apply_docs, _transform_template)
-from pandas.core.index import CategoricalIndex, Index, MultiIndex
+from pandas.core.index import Index, MultiIndex
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting._core import boxplot_frame_groupby
+
+NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
+# TODO(typing) the return value on this callable should be any *scalar*.
+AggScalar = Union[str, Callable[..., Any]]
 
 
 class NDFrameGroupBy(GroupBy):
@@ -145,8 +150,18 @@ class NDFrameGroupBy(GroupBy):
         return new_items, new_blocks
 
     def aggregate(self, func, *args, **kwargs):
-
         _level = kwargs.pop('_level', None)
+
+        relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
+        if relabeling:
+            func, columns, order = _normalize_keyword_aggregation(kwargs)
+
+            kwargs = {}
+        elif func is None:
+            # nicer error message
+            raise TypeError("Must provide 'func' or tuples of "
+                            "'(column, aggfunc).")
+
         result, how = self._aggregate(func, _level=_level, *args, **kwargs)
         if how is None:
             return result
@@ -179,6 +194,10 @@ class NDFrameGroupBy(GroupBy):
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
             result.index = np.arange(len(result))
+
+        if relabeling:
+            result = result[order]
+            result.columns = columns
 
         return result._convert(datetime=True)
 
@@ -781,23 +800,20 @@ class SeriesGroupBy(GroupBy):
                     FutureWarning, stacklevel=3)
 
             columns = list(arg.keys())
-            arg = list(arg.items())
+            arg = arg.items()
         elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x
                    for x in arg]
 
             # indicated column order
-            columns = lzip(*arg)[0]
+            columns = next(zip(*arg))
         else:
             # list of functions / function names
             columns = []
             for f in arg:
-                if isinstance(f, str):
-                    columns.append(f)
-                else:
-                    # protect against callables without names
-                    columns.append(com.get_callable_name(f))
-            arg = lzip(columns, arg)
+                columns.append(com.get_callable_name(f) or f)
+
+            arg = zip(columns, arg)
 
         results = OrderedDict()
         for name, func in arg:
@@ -835,9 +851,10 @@ class SeriesGroupBy(GroupBy):
             return Series(output, index=index, name=name)
 
     def _wrap_aggregated_output(self, output, names=None):
-        return self._wrap_output(output=output,
-                                 index=self.grouper.result_index,
-                                 names=names)
+        result = self._wrap_output(output=output,
+                                   index=self.grouper.result_index,
+                                   names=names)
+        return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_transformed_output(self, output, names=None):
         return self._wrap_output(output=output,
@@ -857,13 +874,16 @@ class SeriesGroupBy(GroupBy):
             return index
 
         if isinstance(values[0], dict):
-            # GH #823
+            # GH #823 #24880
             index = _get_index()
-            result = DataFrame(values, index=index).stack()
+            result = self._reindex_output(DataFrame(values, index=index))
+            # if self.observed is False,
+            # keep all-NaN rows created while re-indexing
+            result = result.stack(dropna=self.observed)
             result.name = self._selection_name
             return result
 
-        if isinstance(values[0], (Series, dict)):
+        if isinstance(values[0], Series):
             return self._concat_objects(keys, values,
                                         not_indexed_same=not_indexed_same)
         elif isinstance(values[0], DataFrame):
@@ -871,9 +891,11 @@ class SeriesGroupBy(GroupBy):
             return self._concat_objects(keys, values,
                                         not_indexed_same=not_indexed_same)
         else:
-            # GH #6265
-            return Series(values, index=_get_index(),
-                          name=self._selection_name)
+            # GH #6265 #24880
+            result = Series(data=values,
+                            index=_get_index(),
+                            name=self._selection_name)
+            return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
         result = OrderedDict()
@@ -917,8 +939,12 @@ class SeriesGroupBy(GroupBy):
             s = klass(res, indexer)
             results.append(s)
 
-        from pandas.core.reshape.concat import concat
-        result = concat(results).sort_index()
+        # check for empty "results" to avoid concat ValueError
+        if results:
+            from pandas.core.reshape.concat import concat
+            result = concat(results).sort_index()
+        else:
+            result = Series()
 
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* udfs
@@ -999,6 +1025,11 @@ class SeriesGroupBy(GroupBy):
     def nunique(self, dropna=True):
         """
         Return number of unique elements in the group.
+
+        Returns
+        -------
+        Series
+            Number of unique values within each group.
         """
         ids, _, _ = self.grouper.group_info
 
@@ -1181,7 +1212,14 @@ class SeriesGroupBy(GroupBy):
         return Series(out, index=mi, name=self._selection_name)
 
     def count(self):
-        """ Compute count of group, excluding missing values """
+        """
+        Compute count of group, excluding missing values.
+
+        Returns
+        -------
+        Series
+            Count of values within each group.
+        """
         ids, _, ngroups = self.grouper.group_info
         val = self.obj.get_values()
 
@@ -1281,6 +1319,26 @@ class DataFrameGroupBy(NDFrameGroupBy):
     A
     1   1   2  0.590716
     2   3   4  0.704907
+
+    To control the output names with different aggregations per column,
+    pandas supports "named aggregation"
+
+    >>> df.groupby("A").agg(
+    ...     b_min=pd.NamedAgg(column="B", aggfunc="min"),
+    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum"))
+       b_min     c_sum
+    A
+    1      1 -1.956929
+    2      3 -0.322183
+
+    - The keywords are the *output* column names
+    - The values are tuples whose first element is the column to select
+      and the second element is the aggregation to apply to that column.
+      Pandas provides the ``pandas.NamedAgg`` namedtuple with the fields
+      ``['column', 'aggfunc']`` to make it clearer what the arguments are.
+      As usual, the aggregation can be a callable or a string alias.
+
+    See :ref:`groupby.aggregate.named` for more.
     """)
 
     @Substitution(see_also=_agg_see_also_doc,
@@ -1289,7 +1347,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
                   klass='DataFrame',
                   axis='')
     @Appender(_shared_docs['aggregate'])
-    def aggregate(self, arg, *args, **kwargs):
+    def aggregate(self, arg=None, *args, **kwargs):
         return super().aggregate(arg, *args, **kwargs)
 
     agg = aggregate
@@ -1320,7 +1378,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
             if subset is None:
                 subset = self.obj[key]
             return SeriesGroupBy(subset, selection=key,
-                                 grouper=self.grouper)
+                                 grouper=self.grouper,
+                                 observed=self.observed)
 
         raise AssertionError("invalid ndim for _gotitem")
 
@@ -1392,69 +1451,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _reindex_output(self, result):
-        """
-        If we have categorical groupers, then we want to make sure that
-        we have a fully reindex-output to the levels. These may have not
-        participated in the groupings (e.g. may have all been
-        nan groups);
-
-        This can re-expand the output space
-        """
-
-        # we need to re-expand the output space to accomodate all values
-        # whether observed or not in the cartesian product of our groupes
-        groupings = self.grouper.groupings
-        if groupings is None:
-            return result
-        elif len(groupings) == 1:
-            return result
-
-        # if we only care about the observed values
-        # we are done
-        elif self.observed:
-            return result
-
-        # reindexing only applies to a Categorical grouper
-        elif not any(isinstance(ping.grouper, (Categorical, CategoricalIndex))
-                     for ping in groupings):
-            return result
-
-        levels_list = [ping.group_index for ping in groupings]
-        index, _ = MultiIndex.from_product(
-            levels_list, names=self.grouper.names).sortlevel()
-
-        if self.as_index:
-            d = {self.obj._get_axis_name(self.axis): index, 'copy': False}
-            return result.reindex(**d)
-
-        # GH 13204
-        # Here, the categorical in-axis groupers, which need to be fully
-        # expanded, are columns in `result`. An idea is to do:
-        # result = result.set_index(self.grouper.names)
-        #                .reindex(index).reset_index()
-        # but special care has to be taken because of possible not-in-axis
-        # groupers.
-        # So, we manually select and drop the in-axis grouper columns,
-        # reindex `result`, and then reset the in-axis grouper columns.
-
-        # Select in-axis groupers
-        in_axis_grps = ((i, ping.name) for (i, ping)
-                        in enumerate(groupings) if ping.in_axis)
-        g_nums, g_names = zip(*in_axis_grps)
-
-        result = result.drop(labels=list(g_names), axis=1)
-
-        # Set a temp index and reindex (possibly expanding)
-        result = result.set_index(self.grouper.result_index
-                                  ).reindex(index, copy=False)
-
-        # Reset in-axis grouper columns
-        # (using level numbers `g_nums` because level names may not be unique)
-        result = result.reset_index(level=g_nums)
-
-        return result.reset_index(drop=True)
-
     def _iterate_column_groupbys(self):
         for i, colname in enumerate(self._selected_obj.columns):
             yield colname, SeriesGroupBy(self._selected_obj.iloc[:, i],
@@ -1469,17 +1465,15 @@ class DataFrameGroupBy(NDFrameGroupBy):
              in self._iterate_column_groupbys()),
             keys=self._selected_obj.columns, axis=1)
 
-    def _fill(self, direction, limit=None):
-        """Overridden method to join grouped columns in output"""
-        res = super()._fill(direction, limit=limit)
-        output = OrderedDict(
-            (grp.name, grp.grouper) for grp in self.grouper.groupings)
-
-        from pandas import concat
-        return concat((self._wrap_transformed_output(output), res), axis=1)
-
     def count(self):
-        """ Compute count of group, excluding missing values """
+        """
+        Compute count of group, excluding missing values.
+
+        Returns
+        -------
+        DataFrame
+            Count of values within each group.
+        """
         from pandas.core.dtypes.missing import _isna_ndarraylike as _isna
 
         data, _ = self._get_data_to_aggregate()
@@ -1564,3 +1558,77 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return results
 
     boxplot = boxplot_frame_groupby
+
+
+def _is_multi_agg_with_relabel(**kwargs):
+    """
+    Check whether the kwargs pass to .agg look like multi-agg with relabling.
+
+    Parameters
+    ----------
+    **kwargs : dict
+
+    Returns
+    -------
+    bool
+
+    Examples
+    --------
+    >>> _is_multi_agg_with_relabel(a='max')
+    False
+    >>> _is_multi_agg_with_relabel(a_max=('a', 'max'),
+    ...                            a_min=('a', 'min'))
+    True
+    >>> _is_multi_agg_with_relabel()
+    False
+    """
+    return all(
+        isinstance(v, tuple) and len(v) == 2
+        for v in kwargs.values()
+    ) and kwargs
+
+
+def _normalize_keyword_aggregation(kwargs):
+    """
+    Normalize user-provided "named aggregation" kwargs.
+
+    Transforms from the new ``Dict[str, NamedAgg]`` style kwargs
+    to the old OrderedDict[str, List[scalar]]].
+
+    Parameters
+    ----------
+    kwargs : dict
+
+    Returns
+    -------
+    aggspec : dict
+        The transformed kwargs.
+    columns : List[str]
+        The user-provided keys.
+    order : List[Tuple[str, str]]
+        Pairs of the input and output column names.
+
+    Examples
+    --------
+    >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
+    (OrderedDict([('input', ['sum'])]), ('output',), [('input', 'sum')])
+    """
+    if not PY36:
+        kwargs = OrderedDict(sorted(kwargs.items()))
+
+    # Normalize the aggregation functions as Dict[column, List[func]],
+    # process normally, then fixup the names.
+    # TODO(Py35): When we drop python 3.5, change this to
+    # defaultdict(list)
+    aggspec = OrderedDict()  # type: typing.OrderedDict[str, List[AggScalar]]
+    order = []
+    columns, pairs = list(zip(*kwargs.items()))
+
+    for name, (column, aggfunc) in zip(columns, pairs):
+        if column in aggspec:
+            aggspec[column].append(aggfunc)
+        else:
+            aggspec[column] = [aggfunc]
+        order.append((column,
+                      com.get_callable_name(aggfunc) or aggfunc))
+    return aggspec, columns, order

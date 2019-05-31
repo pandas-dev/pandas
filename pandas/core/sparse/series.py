@@ -32,8 +32,23 @@ _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
                           optional_labels='', optional_axis='')
 
 
+depr_msg = """\
+SparseSeries is deprecated and will be removed in a future version.
+Use a Series with sparse values instead.
+
+    >>> series = pd.Series(pd.SparseArray(...))
+
+See http://pandas.pydata.org/pandas-docs/stable/\
+user_guide/sparse.html#migrating for more.
+"""
+
+
 class SparseSeries(Series):
     """Data structure for labeled, sparse floating point data
+
+    .. deprectaed:: 0.25.0
+
+       Use a Series with sparse values instead.
 
     Parameters
     ----------
@@ -60,6 +75,7 @@ class SparseSeries(Series):
     def __init__(self, data=None, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, dtype=None, copy=False,
                  fastpath=False):
+        warnings.warn(depr_msg, FutureWarning, stacklevel=2)
         # TODO: Most of this should be refactored and shared with Series
         # 1. BlockManager -> array
         # 2. Series.index, Series.name, index, name reconciliation
@@ -217,9 +233,8 @@ class SparseSeries(Series):
         return SparseArray(self.values, sparse_index=self.sp_index,
                            fill_value=fill_value, kind=kind, copy=copy)
 
-    def __unicode__(self):
-        # currently, unicode is same as repr...fixes infinite loop
-        series_rep = Series.__unicode__(self)
+    def __repr__(self):
+        series_rep = Series.__repr__(self)
         rep = '{series}\n{index!r}'.format(series=series_rep,
                                            index=self.sp_index)
         return rep

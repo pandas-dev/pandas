@@ -21,11 +21,10 @@ from pandas.errors import PerformanceWarning
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     astype_nansafe, construct_1d_arraylike_from_scalar, find_common_type,
-    infer_dtype_from_scalar, maybe_convert_platform)
+    infer_dtype_from_scalar)
 from pandas.core.dtypes.common import (
     is_array_like, is_bool_dtype, is_datetime64_any_dtype, is_dtype_equal,
-    is_integer, is_list_like, is_object_dtype, is_scalar, is_string_dtype,
-    pandas_dtype)
+    is_integer, is_object_dtype, is_scalar, is_string_dtype, pandas_dtype)
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
@@ -547,7 +546,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         timedelta64 ``pd.NaT``
         =========== ==========
 
-        The fill value is potentiall specified in three ways. In order of
+        The fill value is potentially specified in three ways. In order of
         precedence, these are
 
         1. The `fill_value` argument
@@ -697,6 +696,55 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         new._dtype = dtype
         return new
 
+    @classmethod
+    def from_spmatrix(cls, data):
+        """
+        Create a SparseArray from a scipy.sparse matrix.
+
+        .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        data : scipy.sparse.sp_matrix
+            This should be a SciPy sparse matrix where the size
+            of the second dimension is 1. In other words, a
+            sparse matrix with a single column.
+
+        Returns
+        -------
+        SparseArray
+
+        Examples
+        --------
+        >>> import scipy.sparse
+        >>> mat = scipy.sparse.coo_matrix((4, 1))
+        >>> pd.SparseArray.from_spmatrix(mat)
+        [0.0, 0.0, 0.0, 0.0]
+        Fill: 0.0
+        IntIndex
+        Indices: array([], dtype=int32)
+        """
+        length, ncol = data.shape
+
+        if ncol != 1:
+            raise ValueError(
+                "'data' must have a single column, not '{}'".format(ncol)
+            )
+
+        # our sparse index classes require that the positions be strictly
+        # increasing. So we need to sort loc, and arr accordingly.
+        arr = data.data
+        idx, _ = data.nonzero()
+        loc = np.argsort(idx)
+        arr = arr.take(loc)
+        idx.sort()
+
+        zero = np.array(0, dtype=arr.dtype).item()
+        dtype = SparseDtype(arr.dtype, zero)
+        index = IntIndex(length, idx)
+
+        return cls._simple_new(arr, index, dtype)
+
     def __array__(self, dtype=None, copy=True):
         fill_value = self.fill_value
 
@@ -841,7 +889,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def values(self):
         """
         Dense values
+
+        .. deprecated:: 0.25.0
+
+            Use ``np.asarray(...)`` or the ``.to_dense()`` method instead.
         """
+        msg = (
+            "The SparseArray.values attribute is deprecated and will be "
+            "removed in a future version. You can use `np.asarray(...)` or "
+            "the `.to_dense()` method instead.")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
         return self.to_dense()
 
     def isna(self):
@@ -1027,7 +1084,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if is_integer(key):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
-            data_slice = self.values[key]
+            data_slice = self.to_dense()[key]
         elif isinstance(key, slice):
             # special case to preserve dtypes
             if key == slice(None):
@@ -1586,7 +1643,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         from pandas.core.dtypes.generic import ABCSparseSeries
 
         ufunc, inputs, _ = context
-        inputs = tuple(x.values if isinstance(x, ABCSparseSeries) else x
+        inputs = tuple(x.to_dense() if isinstance(x, ABCSparseSeries) else x
                        for x in inputs)
         return self.__array_ufunc__(ufunc, '__call__', *inputs)
 
@@ -1774,7 +1831,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ----------
     # Formatting
     # -----------
-    def __unicode__(self):
+    def __repr__(self):
         return '{self}\nFill: {fill}\n{index}'.format(
             self=printing.pprint_thing(self),
             fill=printing.pprint_thing(self.fill_value),
@@ -1805,35 +1862,8 @@ def _maybe_to_sparse(array):
     array must be SparseSeries or SparseArray
     """
     if isinstance(array, ABCSparseSeries):
-        array = array.values.copy()
+        array = array.array.copy()
     return array
-
-
-def _sanitize_values(arr):
-    """
-    return an ndarray for our input,
-    in a platform independent manner
-    """
-
-    if hasattr(arr, 'values'):
-        arr = arr.values
-    else:
-
-        # scalar
-        if is_scalar(arr):
-            arr = [arr]
-
-        # ndarray
-        if isinstance(arr, np.ndarray):
-            pass
-
-        elif is_list_like(arr) and len(arr) > 0:
-            arr = maybe_convert_platform(arr)
-
-        else:
-            arr = np.asarray(arr)
-
-    return arr
 
 
 def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
@@ -1853,7 +1883,7 @@ def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     (sparse_values, index, fill_value) : (ndarray, SparseIndex, Scalar)
     """
 
-    arr = _sanitize_values(arr)
+    arr = com.values_from_object(arr)
 
     if arr.ndim > 1:
         raise TypeError("expected dimension <= 1 data")
@@ -1906,27 +1936,32 @@ def _make_index(length, indices, kind):
 # ----------------------------------------------------------------------------
 # Accessor
 
+
+class BaseAccessor:
+    _validation_msg = "Can only use the '.sparse' accessor with Sparse data."
+
+    def __init__(self, data=None):
+        self._parent = data
+        self._validate(data)
+
+    def _validate(self, data):
+        raise NotImplementedError
+
+
 @delegate_names(SparseArray, ['npoints', 'density', 'fill_value',
                               'sp_values'],
                 typ='property')
-class SparseAccessor(PandasDelegate):
+class SparseAccessor(BaseAccessor, PandasDelegate):
     """
     Accessor for SparseSparse from other sparse matrix data types.
     """
 
-    def __init__(self, data=None):
-        self._validate(data)
-        # Store the Series since we need that for to_coo
-        self._parent = data
-
-    @staticmethod
-    def _validate(data):
+    def _validate(self, data):
         if not isinstance(data.dtype, SparseDtype):
-            msg = "Can only use the '.sparse' accessor with Sparse data."
-            raise AttributeError(msg)
+            raise AttributeError(self._validation_msg)
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        return getattr(self._parent.values, name)
+        return getattr(self._parent.array, name)
 
     def _delegate_method(self, name, *args, **kwargs):
         if name == 'from_coo':
@@ -1955,7 +1990,7 @@ class SparseAccessor(PandasDelegate):
         s : SparseSeries
 
         Examples
-        ---------
+        --------
         >>> from scipy import sparse
         >>> A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
                                shape=(3, 4))
@@ -1979,9 +2014,9 @@ class SparseAccessor(PandasDelegate):
         from pandas.core.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
 
-        result = _coo_to_sparse_series(A, dense_index=dense_index)
-        # SparseSeries -> Series[sparse]
-        result = Series(result.values, index=result.index, copy=False)
+        result = _coo_to_sparse_series(A, dense_index=dense_index,
+                                       sparse_series=False)
+        result = Series(result.array, index=result.index, copy=False)
 
         return result
 
@@ -2040,3 +2075,190 @@ class SparseAccessor(PandasDelegate):
                                                  column_levels,
                                                  sort_labels=sort_labels)
         return A, rows, columns
+
+    def to_dense(self):
+        """
+        Convert a Series from sparse values to dense.
+
+        .. versionadded:: 0.25.0
+
+        Returns
+        -------
+        Series:
+            A Series with the same values, stored as a dense array.
+
+        Examples
+        --------
+        >>> series = pd.Series(pd.SparseArray([0, 1, 0]))
+        >>> series
+        0    0
+        1    1
+        2    0
+        dtype: Sparse[int64, 0]
+
+        >>> series.sparse.to_dense()
+        0    0
+        1    1
+        2    0
+        dtype: int64
+        """
+        from pandas import Series
+        return Series(self._parent.array.to_dense(),
+                      index=self._parent.index,
+                      name=self._parent.name)
+
+
+class SparseFrameAccessor(BaseAccessor, PandasDelegate):
+    """
+    DataFrame accessor for sparse data.
+
+    .. versionadded :: 0.25.0
+    """
+
+    def _validate(self, data):
+        dtypes = data.dtypes
+        if not all(isinstance(t, SparseDtype) for t in dtypes):
+            raise AttributeError(self._validation_msg)
+
+    @classmethod
+    def from_spmatrix(cls, data, index=None, columns=None):
+        """
+        Create a new DataFrame from a scipy sparse matrix.
+
+        .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        data : scipy.sparse.spmatrix
+            Must be convertible to csc format.
+        index, columns : Index, optional
+            Row and column labels to use for the resulting DataFrame.
+            Defaults to a RangeIndex.
+
+        Returns
+        -------
+        DataFrame
+            Each column of the DataFrame is stored as a
+            :class:`SparseArray`.
+
+        Examples
+        --------
+        >>> import scipy.sparse
+        >>> mat = scipy.sparse.eye(3)
+        >>> pd.DataFrame.sparse.from_spmatrix(mat)
+             0    1    2
+        0  1.0  0.0  0.0
+        1  0.0  1.0  0.0
+        2  0.0  0.0  1.0
+        """
+        from pandas import DataFrame
+
+        data = data.tocsc()
+        index, columns = cls._prep_index(data, index, columns)
+        sparrays = [
+            SparseArray.from_spmatrix(data[:, i])
+            for i in range(data.shape[1])
+        ]
+        data = dict(enumerate(sparrays))
+        result = DataFrame(data, index=index)
+        result.columns = columns
+        return result
+
+    def to_dense(self):
+        """
+        Convert a DataFrame with sparse values to dense.
+
+        .. versionadded:: 0.25.0
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with the same values stored as dense arrays.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": pd.SparseArray([0, 1, 0])})
+        >>> df.sparse.to_dense()
+           A
+        0  0
+        1  1
+        2  0
+        """
+        from pandas import DataFrame
+
+        data = {k: v.array.to_dense()
+                for k, v in self._parent.items()}
+        return DataFrame(data,
+                         index=self._parent.index,
+                         columns=self._parent.columns)
+
+    def to_coo(self):
+        """
+        Return the contents of the frame as a sparse SciPy COO matrix.
+
+        .. versionadded:: 0.25.0
+
+        Returns
+        -------
+        coo_matrix : scipy.sparse.spmatrix
+            If the caller is heterogeneous and contains booleans or objects,
+            the result will be of dtype=object. See Notes.
+
+        Notes
+        -----
+        The dtype will be the lowest-common-denominator type (implicit
+        upcasting); that is to say if the dtypes (even of numeric types)
+        are mixed, the one that accommodates all will be chosen.
+
+        e.g. If the dtypes are float16 and float32, dtype will be upcast to
+        float32. By numpy.find_common_type convention, mixing int64 and
+        and uint64 will result in a float64 dtype.
+        """
+        try:
+            from scipy.sparse import coo_matrix
+        except ImportError:
+            raise ImportError('Scipy is not installed')
+
+        dtype = find_common_type(self._parent.dtypes)
+        if isinstance(dtype, SparseDtype):
+            dtype = dtype.subtype
+
+        cols, rows, datas = [], [], []
+        for col, name in enumerate(self._parent):
+            s = self._parent[name]
+            row = s.array.sp_index.to_int_index().indices
+            cols.append(np.repeat(col, len(row)))
+            rows.append(row)
+            datas.append(s.array.sp_values.astype(dtype, copy=False))
+
+        cols = np.concatenate(cols)
+        rows = np.concatenate(rows)
+        datas = np.concatenate(datas)
+        return coo_matrix((datas, (rows, cols)), shape=self._parent.shape)
+
+    @property
+    def density(self) -> float:
+        """
+        Ratio of non-sparse points to total (dense) data points
+        represented in the DataFrame.
+        """
+        return np.mean([column.array.density
+                        for _, column in self._parent.items()])
+
+    @staticmethod
+    def _prep_index(data, index, columns):
+        import pandas.core.indexes.base as ibase
+
+        N, K = data.shape
+        if index is None:
+            index = ibase.default_index(N)
+        if columns is None:
+            columns = ibase.default_index(K)
+
+        if len(columns) != K:
+            raise ValueError('Column length mismatch: {columns} vs. {K}'
+                             .format(columns=len(columns), K=K))
+        if len(index) != N:
+            raise ValueError('Index length mismatch: {index} vs. {N}'
+                             .format(index=len(index), N=N))
+        return index, columns
