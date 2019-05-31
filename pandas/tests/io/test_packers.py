@@ -550,6 +550,7 @@ class TestNDFrame(TestPackers):
         assert_frame_equal(result_3, expected_3)
 
 
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestSparse(TestPackers):
 
     def _check_roundtrip(self, obj, comparator, **kwargs):
@@ -840,12 +841,12 @@ def legacy_packer(request, datapath):
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestMsgpack:
     """
     How to add msgpack tests:
 
     1. Install pandas version intended to output the msgpack.
-TestPackers
     2. Execute "generate_legacy_storage_files.py" to create the msgpack.
     $ python generate_legacy_storage_files.py <output_dir> msgpack
 
