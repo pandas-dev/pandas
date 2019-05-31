@@ -23,36 +23,36 @@ import pandas as pd
 def _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
                    exp_val_for_scalar=None, exp_val_for_array=None):
     """
-    Auxiliary function to unify handling of scalar/array promotion.
+    Auxiliary function to unify testing of scalar/array promotion.
 
     Parameters
     ----------
     dtype : dtype
-        The value to pass on as an argument to maybe_promote.
+        The value to pass on as the first argument to maybe_promote.
     fill_value : scalar
-        The value to pass on as an argument to maybe_promote, *either* as a
-        scalar, or boxed into an array (depending on the parameter `boxed`).
+        The value to pass on as the second argument to maybe_promote, either as
+        a scalar, or boxed into an array (depending on the parameter `boxed`).
     boxed : Boolean
         Parameter whether fill_value should be passed to maybe_promote
         directly, or wrapped in an array (of dtype box_dtype).
     box_dtype : dtype
         The dtype to enforce when wrapping fill_value into an array.
     expected_dtype : dtype
-        The expected return of maybe_promote (should be the same, regardless of
-        whether the value was passed as scalar or in an array!).
+        The expected dtype returned by maybe_promote (must be the same,
+        regardless of whether fill_value was passed as scalar or in an array!).
     exp_val_for_scalar : scalar
-        The expected value for the returned value (that has potentially been
-        upcast by maybe_promote).
+        The expected value for the (potentially upcast) fill_value returned by
+        maybe_promote.
     exp_val_for_array : scalar
         The expected missing value marker for the expected_dtype (which is
-        returned by maybe_promote when fill_value is an array).
+        returned by maybe_promote when it receives an array).
     """
     assert is_scalar(fill_value)
 
     if boxed:
-        # here, we pass on fill_value as an array of specified box_dtype;
-        # the expected value returned from maybe_promote is the missing value
-        # marker for the returned dtype.
+        # in this case, we pass on fill_value wrapped in an array of specified
+        # box_dtype; the expected value returned from maybe_promote is the
+        # missing value marker for the returned dtype.
         fill_array = np.array([fill_value], dtype=box_dtype)
         result_dtype, result_fill_value = maybe_promote(dtype, fill_array)
         expected_fill_value = exp_val_for_array
@@ -64,8 +64,9 @@ def _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
         expected_fill_value = exp_val_for_scalar
 
     if isinstance(expected_dtype, PandasExtensionDtype):
-        # numpy dtypes (e.g. if result_dtype is np.object_) do not know some
-        # expected dtypes and would raise TypeError in their __eq__-method.
+        # switch order of equality check because numpy dtypes (e.g. if
+        # result_dtype is np.object_) do not know some expected dtypes (e.g.
+        # DatetimeTZDtype) and would raise a TypeError in their __eq__-method.
         assert expected_dtype == result_dtype
     else:
         assert result_dtype == expected_dtype
@@ -77,8 +78,8 @@ def _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
                    # and type(result_fill_value) == type(expected_fill_value)
                    )
 
-    # for missing values, None == None and iNaT == iNaT (are checked through
-    # match_value), but np.nan != np.nan and pd.NaT != pd.NaT
+    # for missing values, None == None and iNaT == iNaT (which is checked
+    # through match_value above), but np.nan != np.nan and pd.NaT != pd.NaT
     match_missing = ((result_fill_value is np.nan
                       and expected_fill_value is np.nan)
                      or (result_fill_value is NaT
