@@ -134,5 +134,18 @@ jobs:
     displayName: 'Setup environment and build pandas'
 
   - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
       doc/make.py
     displayName: 'Build documentation'
+
+  - script: |
+      cd doc/build/html
+      git init
+      git touch .nojekyll
+      git add --all .
+      git config user.email "pandas-dev@python.org"
+      git config user.name "pandas-docs-bot"
+      git status  # TODO just for debugging
+      git commit -m "pandas documentation in master"
+    displayName: 'Create git repo for docs build'
+    # TODO add same contition as next steps
