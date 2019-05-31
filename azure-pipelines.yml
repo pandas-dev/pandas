@@ -135,6 +135,7 @@ jobs:
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
       doc/make.py
     displayName: 'Build documentation'
 
@@ -149,3 +150,14 @@ jobs:
       git commit -m "pandas documentation in master"
     displayName: 'Create git repo for docs build'
     # TODO add same contition as next steps
+
+  # TODO add step to install ssh key
+
+  - script: |
+      cd doc/build/html
+      git remote add origin git@github.com:pandas-dev/pandas-dev-docs.git
+      git push origin master -f
+    displayName: 'Publish docs to GitHub pages'
+    condition : |
+      and(not(eq(variables['Build.Reason'], 'PullRequest')),
+          eq(variables['Build.SourceBranch'], 'refs/heads/master'))
