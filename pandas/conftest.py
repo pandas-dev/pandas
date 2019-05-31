@@ -408,7 +408,7 @@ tz_aware_fixture2 = tz_aware_fixture
 
 # ----------------------------------------------------------------
 # Dtypes
-
+# ----------------------------------------------------------------
 
 UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_EA_INT_DTYPES = ["UInt8", "UInt16", "UInt32", "UInt64"]
@@ -467,7 +467,7 @@ def object_dtype(request):
 
 @pytest.fixture(params=DATETIME64_DTYPES)
 def datetime64_dtype(request):
-    """Parametrized fixture for datetime/timedelta dtypes.
+    """Parametrized fixture for datetime64 dtypes.
 
     * 'datetime64[ns]'
     * 'M8[ns]'
@@ -477,7 +477,7 @@ def datetime64_dtype(request):
 
 @pytest.fixture(params=TIMEDELTA64_DTYPES)
 def timedelta64_dtype(request):
-    """Parametrized fixture for datetime/timedelta dtypes.
+    """Parametrized fixture for timedelta64 dtypes.
 
     * 'timedelta64[ns]'
     * 'm8[ns]'
