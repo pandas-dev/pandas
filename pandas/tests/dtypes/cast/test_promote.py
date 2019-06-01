@@ -63,8 +63,9 @@ def _check_promote(dtype, fill_value, boxed, box_dtype, expected_dtype,
     box_dtype : dtype
         The dtype to enforce when wrapping fill_value into an np.array.
     expected_dtype : dtype
-        The expected dtype returned by maybe_promote (by design this is the same
-        regardless of whether fill_value was passed as scalar or in an array!).
+        The expected dtype returned by maybe_promote (by design this is the
+        same regardless of whether fill_value was passed as a scalar or in an
+        array!).
     exp_val_for_scalar : scalar
         The expected value for the (potentially upcast) fill_value returned by
         maybe_promote.
