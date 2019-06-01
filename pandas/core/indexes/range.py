@@ -167,8 +167,6 @@ class RangeIndex(Int64Index):
         for k, v in kwargs.items():
             setattr(result, k, v)
 
-        result._range = range(result._start, result._stop, result._step)
-
         result._reset_identity()
         return result
 
@@ -238,7 +236,7 @@ class RangeIndex(Int64Index):
     @cache_readonly
     def start(self):
         """
-        The value of the `start` parameter (or ``0`` if this was not supplied)
+        The value of the `start` parameter (``0`` if this was not supplied)
         """
         # GH 25710
         return self._range.start
@@ -246,12 +244,12 @@ class RangeIndex(Int64Index):
     @property
     def _start(self):
         """
-        The value of the `start` parameter (or ``0`` if this was not supplied)
+        The value of the `start` parameter (``0`` if this was not supplied)
 
          .. deprecated:: 0.25.0
-            Use ._range.start or .start instead.
+            Use ``start`` instead.
         """
-        return self._range.start
+        return self.start
 
     @cache_readonly
     def stop(self):
@@ -266,15 +264,15 @@ class RangeIndex(Int64Index):
         The value of the `stop` parameter
 
          .. deprecated:: 0.25.0
-            Use ._range.stop or .stop instead.
+            Use ``stop`` instead.
         """
         # GH 25710
-        return self._range.stop
+        return self.stop
 
     @cache_readonly
     def step(self):
         """
-        The value of the `step` parameter (or ``1`` if this was not supplied)
+        The value of the `step` parameter (``1`` if this was not supplied)
         """
         # GH 25710
         return self._range.step
@@ -282,13 +280,13 @@ class RangeIndex(Int64Index):
     @property
     def _step(self):
         """
-        The value of the `step` parameter (or ``1`` if this was not supplied)
+        The value of the `step` parameter (``1`` if this was not supplied)
 
          .. deprecated:: 0.25.0
-            Use ._range.step or .step instead.
+            Use ``step`` instead.
         """
         # GH 25710
-        return self._range.step
+        return self.step
 
     @cache_readonly
     def nbytes(self):
@@ -296,8 +294,8 @@ class RangeIndex(Int64Index):
         Return the number of bytes in the underlying data.
         """
         rng = self._range
-        return getsizeof(rng) + sum(getsizeof(rng, v)
-                                    for v in ['start', 'stop', 'step'])
+        return getsizeof(rng) + sum(getsizeof(getattr(rng, attr_name))
+                                    for attr_name in ['start', 'stop', 'step'])
 
     def memory_usage(self, deep=False):
         """
@@ -361,7 +359,7 @@ class RangeIndex(Int64Index):
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             name = kwargs.get("name", self.name)
-            return RangeIndex._simple_new(
+            return self._simple_new(
                 name=name, **dict(self._get_data_as_items()))
         else:
             kwargs.setdefault('name', self.name)
@@ -372,7 +370,7 @@ class RangeIndex(Int64Index):
         self._validate_dtype(dtype)
         if name is None:
             name = self.name
-        return RangeIndex.from_range(self._range, name=name)
+        return self.from_range(self._range, name=name)
 
     def _minmax(self, meth):
         no_steps = len(self) - 1
@@ -454,7 +452,7 @@ class RangeIndex(Int64Index):
             return super().intersection(other, sort=sort)
 
         if not len(self) or not len(other):
-            return RangeIndex._simple_new(None)
+            return self._simple_new(None)
 
         first = self._range[::-1] if self.step < 0 else self._range
         second = other._range[::-1] if other.step < 0 else other._range
@@ -464,7 +462,7 @@ class RangeIndex(Int64Index):
         int_low = max(first.start, second.start)
         int_high = min(first.stop, second.stop)
         if int_high <= int_low:
-            return RangeIndex._simple_new(None)
+            return self._simple_new(None)
 
         # Method hint: linear Diophantine equation
         # solve intersection problem
@@ -474,20 +472,18 @@ class RangeIndex(Int64Index):
 
         # check whether element sets intersect
         if (first.start - second.start) % gcd:
-            return RangeIndex._simple_new(None)
+            return self._simple_new(None)
 
         # calculate parameters for the RangeIndex describing the
         # intersection disregarding the lower bounds
         tmp_start = first.start + (second.start - first.start) * \
             first.step // gcd * s
         new_step = first.step * second.step // gcd
-        new_index = RangeIndex._simple_new(tmp_start, int_high, new_step)
+        new_index = self._simple_new(tmp_start, int_high, new_step)
 
         # adjust index to limiting interval
         new_start = new_index._min_fitting_element(int_low)
-        new_index = RangeIndex._simple_new(new_start,
-                                           new_index.stop,
-                                           new_index.step)
+        new_index = self._simple_new(new_start, new_index.stop, new_index.step)
 
         if (self.step < 0 and other.step < 0) is not (new_index.step < 0):
             new_index = new_index[::-1]
@@ -566,21 +562,23 @@ class RangeIndex(Int64Index):
                 if ((start_s - start_o) % step_s == 0 and
                         (start_s - end_o) <= step_s and
                         (start_o - end_s) <= step_s):
-                    return RangeIndex(start_r, end_r + step_s, step_s)
+                    return self.__class__(start_r, end_r + step_s, step_s)
                 if ((step_s % 2 == 0) and
                         (abs(start_s - start_o) <= step_s / 2) and
                         (abs(end_s - end_o) <= step_s / 2)):
-                    return RangeIndex(start_r, end_r + step_s / 2, step_s / 2)
+                    return self.__class__(start_r,
+                                          end_r + step_s / 2,
+                                          step_s / 2)
             elif step_o % step_s == 0:
                 if ((start_o - start_s) % step_s == 0 and
                         (start_o + step_s >= start_s) and
                         (end_o - step_s <= end_s)):
-                    return RangeIndex(start_r, end_r + step_s, step_s)
+                    return self.__class__(start_r, end_r + step_s, step_s)
             elif step_s % step_o == 0:
                 if ((start_s - start_o) % step_o == 0 and
                         (start_s + step_o >= start_o) and
                         (end_s - step_o <= end_o)):
-                    return RangeIndex(start_r, end_r + step_o, step_o)
+                    return self.__class__(start_r, end_r + step_o, step_o)
         return self._int64index._union(other, sort=sort)
 
     @Appender(_index_shared_docs['join'])
@@ -629,7 +627,7 @@ class RangeIndex(Int64Index):
                                                            size=len(self)))
         if isinstance(key, slice):
             new_range = self._range[key]
-            return RangeIndex.from_range(new_range, name=self.name)
+            return self.from_range(new_range, name=self.name)
 
         # fall back to Int64Index
         return super_getitem(key)
@@ -645,12 +643,10 @@ class RangeIndex(Int64Index):
                 start = self.start // other
                 step = self.step // other
                 stop = start + len(self) * step
-                return RangeIndex._simple_new(
-                    start, stop, step, name=self.name)
+                return self._simple_new(start, stop, step, name=self.name)
             if len(self) == 1:
                 start = self.start // other
-                return RangeIndex._simple_new(
-                    start, start + 1, 1, name=self.name)
+                return self._simple_new(start, start + 1, 1, name=self.name)
         return self._int64index // other
 
     @classmethod
@@ -706,7 +702,7 @@ class RangeIndex(Int64Index):
                         rstart = op(left.start, right)
                         rstop = op(left.stop, right)
 
-                    result = RangeIndex(rstart, rstop, rstep, **attrs)
+                    result = self.__class__(rstart, rstop, rstep, **attrs)
 
                     # for compat with numpy / Int64Index
                     # even if we can represent as a RangeIndex, return

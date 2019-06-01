@@ -239,8 +239,9 @@ class TestRangeIndex(Numeric):
 
     def test_cached_data(self):
         # GH 26565
-        # Calling RangeIndex._data caches an int64 array of the same length at
-        # self._cached_data. This tests whether _cached_data has been set.
+        # Calling RangeIndex._data caches an int64 array of the same length as
+        # self at self._cached_data.
+        # This tests whether _cached_data is being set by various operations.
         idx = RangeIndex(0, 100, 10)
 
         assert idx._cached_data is None
@@ -269,7 +270,7 @@ class TestRangeIndex(Numeric):
         df.iloc[5:10]
         assert idx._cached_data is None
 
-        # actually calling data._data
+        # actually calling idx._data
         assert isinstance(idx._data, np.ndarray)
         assert isinstance(idx._cached_data, np.ndarray)
 
