@@ -20,7 +20,8 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype, PandasExtensionDtype
 import pandas as pd
 
 
-@pytest.fixture(params=[(True, None), (True, object), (False, None)])
+@pytest.fixture(params=[(True, None), (True, object), (False, None)],
+                ids=['True-None', 'True-object', 'False-None'])
 def box(request):
     """
     Parametrized fixture determining whether/how to transform fill_value.
