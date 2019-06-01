@@ -341,6 +341,9 @@ class ExcelFormatter:
         This is only called for body cells.
     """
 
+    max_rows = 2**20
+    max_cols = 2**14
+
     def __init__(self, df, na_rep='', float_format=None, cols=None,
                  header=True, index=True, index_label=None, merge_cells=False,
                  inf_rep='inf', style_converter=None):
@@ -647,6 +650,13 @@ class ExcelFormatter:
         """
         from pandas.io.excel import ExcelWriter
         from pandas.io.common import _stringify_path
+
+        num_rows, num_cols = self.df.shape
+        if num_rows > self.max_rows or num_cols > self.max_cols:
+            raise ValueError("This sheet is too large! Your sheet size is: " +
+                             "{}, {} ".format(num_rows, num_cols) +
+                             "Max sheet size is: {}, {}".
+                             format(self.max_rows, self.max_cols))
 
         if isinstance(writer, ExcelWriter):
             need_save = False
