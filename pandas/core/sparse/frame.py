@@ -42,7 +42,7 @@ class SparseDataFrame(DataFrame):
     DataFrame containing sparse floating point data in the form of SparseSeries
     objects
 
-    .. deprectaed:: 0.25.0
+    .. deprecated:: 0.25.0
 
        Use a DataFrame with sparse values instead.
 
