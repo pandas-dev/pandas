@@ -52,7 +52,6 @@ class Datetime:
 
 class Ops:
 
-    sample_time = 0.2
     params = ['float', 'int']
     param_names = ['dtype']
 
