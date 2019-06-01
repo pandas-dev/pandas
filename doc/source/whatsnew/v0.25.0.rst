@@ -253,6 +253,34 @@ are returned. (:issue:`21521`)
 
     df.groupby("a").ffill()
 
+``DataFrame`` describe on an empty categorical / object column will return top and freq
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When calling :meth:`DataFrame.describe` with an empty categorical / object
+column, the 'top' and 'freq' columns were previously omitted, which was inconsistent with
+the output for non-empty columns. Now the 'top' and 'freq' columns will always be included,
+with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"empty_col": pd.Categorical([])})
+   df
+
+*Previous Behavior*:
+
+.. code-block:: python
+
+   In [3]: df.describe()
+   Out[3]:
+           empty_col
+   count           0
+   unique          0
+
+*New Behavior*:
+
+.. ipython:: python
+
+    df.describe()
 
 ``__str__`` methods now call ``__repr__`` rather than vica-versa
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
