@@ -100,7 +100,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
     A walkthrough of how this method fits in with other tools for combining
     pandas objects can be found `here
-    <http://pandas.pydata.org/pandas-docs/stable/merging.html>`__.
+    <http://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.
 
     Examples
     --------
