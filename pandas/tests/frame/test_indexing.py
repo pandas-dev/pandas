@@ -267,7 +267,7 @@ class TestDataFrameIndexing(TestData):
         # test df[df > 0]
         for df in [datetime_frame, float_string_frame,
                    mixed_float_frame, mixed_int_frame]:
-            if  df is float_string_frame:
+            if df is float_string_frame:
                 continue
 
             data = df._get_numeric_data()
