@@ -242,6 +242,7 @@ class TestRangeIndex(Numeric):
         assert self.index.dtype == np.int64
 
     def test_cached_data(self):
+        # GH 26565
         # Calling RangeIndex._data caches an int64 array of the same length at
         # self._cached_data. This tests whether _cached_data has been set.
         idx = RangeIndex(0, 100, 10)
